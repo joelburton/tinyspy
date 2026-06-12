@@ -1,0 +1,146 @@
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #111;
+  color: #eee;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+#root {
+  width: 100%;
+  max-width: 480px;
+}
+
+.card {
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #222;
+  color: inherit;
+}
+
+input:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: -1px;
+}
+
+button {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #5aa0f2;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #ff6b6b;
+  margin-top: 1rem;
+}
+
+a {
+  color: #4a90e2;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.divider {
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+button.secondary {
+  background: transparent;
+  border-color: #444;
+  color: #aaa;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #2a2a2a;
+}
+
+.join-code-display {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.join-code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 2.5rem;
+  letter-spacing: 0.3rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.seat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.seat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+}
+
+.seat-label {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: #4a90e2;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+}

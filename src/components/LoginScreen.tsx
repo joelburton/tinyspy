@@ -1,0 +1,63 @@
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+export function LoginScreen() {
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setStatus('sending')
+    setError(null)
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    })
+    if (error) {
+      setError(error.message)
+      setStatus('error')
+    } else {
+      setStatus('sent')
+    }
+  }
+
+  if (status === 'sent') {
+    return (
+      <div className="card">
+        <h1>Check your email</h1>
+        <p>
+          We sent a magic link to <strong>{email}</strong>. Click it to sign in.
+        </p>
+        <p className="muted">
+          In local dev, the email lands in Mailpit at{' '}
+          <a href="http://localhost:54324" target="_blank" rel="noreferrer">
+            http://localhost:54324
+          </a>
+          .
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card">
+      <h1>Codenames Duet</h1>
+      <p>Sign in with a magic link.</p>
+      <form onSubmit={onSubmit}>
+        <input
+          type="email"
+          required
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={status === 'sending'}
+        />
+        <button type="submit" disabled={status === 'sending' || !email}>
+          {status === 'sending' ? 'Sending…' : 'Send magic link'}
+        </button>
+      </form>
+      {error && <p className="error">{error}</p>}
+    </div>
+  )
+}
