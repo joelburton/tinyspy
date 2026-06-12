@@ -8,22 +8,42 @@ import { HomeScreen } from './components/HomeScreen'
 import { LobbyScreen } from './components/LobbyScreen'
 import { BoardScreen } from './components/BoardScreen'
 
-// The URL hash holds the join code (not the UUID) so links are shareable
-// and refresh-safe. On load, join_game(code) is idempotent for an existing
-// player and resolves the code back to a UUID.
+/**
+ * Reads the `#game=ABCDEF` segment of the URL hash. Returns the code
+ * upper-cased (matching how generate_join_code emits them) or null.
+ */
 function readHashCode(): string | null {
   const m = window.location.hash.match(/^#game=([A-Za-z0-9]+)$/)
   return m ? m[1].toUpperCase() : null
 }
 
+/**
+ * Writes (or clears) the `#game=…` URL hash via replaceState so the back
+ * button doesn't accumulate an entry per game transition.
+ */
 function writeHashCode(code: string | null) {
   const next = code ? `#game=${code}` : window.location.pathname + window.location.search
   window.history.replaceState(null, '', next)
 }
 
+/**
+ * Top-level state machine. There are four user-visible states:
+ *
+ *     loading  →  LoginScreen | HomeScreen | InGame (Lobby/Board)
+ *
+ * Routing is purely state-based (no react-router). The "current game" is
+ * tracked by UUID in component state, and *also* mirrored to the URL hash
+ * (as the human-friendly join code) so refresh and link-sharing both work.
+ *
+ * The hash is the source of truth for "what game should I be in after a
+ * cold load" — see the restore effect below.
+ */
 export default function App() {
   const { session, loading } = useSession()
   const [gameId, setGameId] = useState<string | null>(null)
+  // `restoring` covers the brief window between session-loaded and
+  // hash-resolved. Without it, a user with `#game=ABC` would flash the
+  // home screen before being kicked into the game.
   const [restoring, setRestoring] = useState(true)
 
   function enterGame(id: string, code: string) {
@@ -36,9 +56,13 @@ export default function App() {
     writeHashCode(null)
   }
 
-  // On session load, restore the game referenced by the URL hash (if any).
-  // join_game is idempotent for an existing player; for a stranger it does
-  // the actual join (treating the URL as a shared invite link).
+  // Restore the game referenced by the URL hash once the session is ready.
+  //
+  // join_game is idempotent for an existing player (returns the game id
+  // back), so calling it on refresh is safe. For a fresh user receiving
+  // the URL as an invite link, it does the actual join — same code path.
+  //
+  // Bad code → clear the hash silently and drop the user on the home screen.
   useEffect(() => {
     if (loading) return
     if (!session) {
@@ -78,8 +102,13 @@ export default function App() {
   )
 }
 
-// Switches between lobby and board based on game status. Reads the game's
-// status via the useGame hook (also keeps the board's header live-updated).
+/**
+ * Inner state machine for an active gameId: shows either LobbyScreen (status
+ * = 'lobby') or BoardScreen (any other status). The transition is driven
+ * entirely by `games.status` changes propagated through Realtime — when
+ * start_game flips status to 'active', both players' screens swap from
+ * lobby to board automatically with no extra navigation logic.
+ */
 function InGame({
   session,
   gameId,

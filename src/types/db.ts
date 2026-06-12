@@ -246,7 +246,7 @@ export type Database = {
       }
       start_game: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
-        Args: { count: number; target_game: string; word: string }
+        Args: { clue_count: number; target_game: string; word: string }
         Returns: undefined
       }
       submit_guess: {

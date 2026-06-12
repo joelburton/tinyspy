@@ -19,6 +19,11 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- INTENTIONAL: any signed-in user can read any profile (display_name only —
+-- there is no sensitive data on profiles today). Required for showing opponent
+-- display names without per-game indirection. If profile data ever grows
+-- sensitive, tighten this to "rows for users I share a game with" via a
+-- security-definer helper similar to is_player_in_game.
 create policy profiles_select_authenticated on public.profiles
   for select to authenticated using (true);
 
@@ -71,6 +76,10 @@ create table public.game_players (
   -- profiles cascades from auth.users, so user delete still cleans up.
   user_id uuid not null references public.profiles(user_id) on delete cascade,
   seat text not null check (seat in ('A', 'B')),
+  -- jsonb array of exactly 25 elements, each 'G' | 'N' | 'A', indexed 0..24
+  -- and matching public.words.position. Populated by start_game; null until
+  -- then. Holds *this seat's* view only — the partner has their own row with
+  -- their own view.
   key_card jsonb,
   joined_at timestamptz not null default now(),
   primary key (game_id, seat),
@@ -132,6 +141,13 @@ create policy games_select on public.games
   for select to authenticated
   using (public.is_player_in_game(id));
 
+-- INTENTIONAL: this policy allows any in-game player to read ALL columns of
+-- game_players for that game — including the partner's key_card. Client code
+-- (useBoard) filters to user_id = self by convention and never asks for the
+-- partner's key during play, so it isn't leaked in practice. For a hardened
+-- version, drop this policy in favor of (a) own-row reads on game_players,
+-- plus (b) a game_players_roster view (omitting key_card) for lobby/header
+-- needs. Deliberately deferred for v1 — see CODE_REVIEW.md item 13.
 create policy game_players_select on public.game_players
   for select to authenticated
   using (public.is_player_in_game(game_id));
@@ -408,7 +424,10 @@ $$;
 
 revoke execute on function public._end_turn(uuid) from public;
 
-create function public.submit_clue(target_game uuid, word text, count int)
+-- Parameter is named clue_count (not "count") to avoid shadowing the SQL
+-- aggregate function. The matching column on public.clues stays "count" since
+-- it's only ever referenced in column lists, never as a function call.
+create function public.submit_clue(target_game uuid, word text, clue_count int)
 returns void
 language plpgsql
 security definer
@@ -455,7 +474,7 @@ begin
   end if;
 
   insert into public.clues (game_id, turn_number, by_seat, word, count)
-  values (target_game, current_turn, caller_seat, word, count);
+  values (target_game, current_turn, caller_seat, word, clue_count);
 end;
 $$;
 
@@ -505,6 +524,17 @@ begin
     raise exception 'not a player in this game' using errcode = '42501';
   end if;
 
+  -- Whose key view labels this reveal? This is the most subtle rule in Duet.
+  --
+  -- During active play: the clue-giver's view. A green agent on the
+  -- clue-giver's side counts toward the 15; a neutral on their side ends
+  -- the turn; an assassin on their side ends the game. The guesser's own
+  -- view does NOT matter for this reveal — the guess is in response to the
+  -- clue-giver's clue, so the clue-giver's labels apply.
+  --
+  -- In sudden death: there is no clue-giver, but guesses are "from memory
+  -- of past clues", and those clues came from the partner. So we still use
+  -- the partner's view (the seat opposite to the caller).
   if game_status = 'active' then
     if caller_seat = giver then
       raise exception 'you are the clue-giver this turn' using errcode = 'P0001';

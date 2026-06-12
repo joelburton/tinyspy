@@ -9,6 +9,17 @@ type Props = {
   onLeave: () => void
 }
 
+/**
+ * Pre-game waiting room.
+ *
+ * Shows the join code prominently (so the creator can share it with a
+ * partner) and the two seat slots. Once both seats fill, the seat-A
+ * player gets a Start-game button that calls the `start_game` RPC.
+ *
+ * No explicit navigation away from this screen — when start_game flips
+ * games.status to 'active', useGame's Realtime subscription notices and
+ * App's InGame swaps over to BoardScreen automatically.
+ */
 export function LobbyScreen({ session, gameId, onLeave }: Props) {
   const { game, players, loading } = useGame(gameId)
   const [starting, setStarting] = useState(false)

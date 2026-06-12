@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+/**
+ * Source of truth for "is there a logged-in user, and who are they".
+ *
+ * Returns the current Supabase session (or null), plus a `loading` flag
+ * that's true until the initial restore + profile-verify finishes.
+ *
+ * On mount, subscribes to `onAuthStateChange`. Supabase fires an
+ * INITIAL_SESSION event on subscribe with the localStorage-restored
+ * session, so we don't need a separate getSession() call. Subsequent
+ * SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED events update state too.
+ *
+ * Each non-null session is run through `verifyAndSet`, which checks
+ * that a matching profile row still exists — see the comment there.
+ */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,8 +59,9 @@ export function useSession() {
       setLoading(false)
     }
 
-    supabase.auth.getSession().then(({ data }) => verifyAndSet(data.session))
-
+    // onAuthStateChange fires an INITIAL_SESSION event on subscribe with the
+    // currently-stored session, so we don't need a separate getSession() call —
+    // doing both would double the verify query on every page load.
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'SIGNED_OUT' || !next) {
         setSession(null)

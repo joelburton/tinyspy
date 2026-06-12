@@ -4,9 +4,21 @@ import { supabase } from '../lib/supabase'
 
 type Props = {
   session: Session
+  /** Pass both id and code so App can mirror the code to the URL hash. */
   onEnterGame: (gameId: string, joinCode: string) => void
 }
 
+/**
+ * Post-login screen for a user not currently in a game.
+ *
+ * Two affordances: create a fresh game (caller becomes seat A) or join
+ * an existing one by code (caller becomes seat B, if open). Both call
+ * server RPCs that handle the seat assignment atomically.
+ *
+ * Also fetches the user's `display_name` on mount for the "Welcome,
+ * {name}" greeting. The profile row is guaranteed to exist by the
+ * `handle_new_user` trigger in the baseline migration.
+ */
 export function HomeScreen({ session, onEnterGame }: Props) {
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [code, setCode] = useState('')
@@ -90,9 +102,9 @@ export function HomeScreen({ session, onEnterGame }: Props) {
       {error && <p className="error">{error}</p>}
 
       <p className="muted" style={{ marginTop: '2rem' }}>
-        <a href="#" onClick={() => supabase.auth.signOut()}>
+        <button type="button" className="link-button" onClick={() => supabase.auth.signOut()}>
           Log out
-        </a>
+        </button>
       </p>
     </div>
   )
