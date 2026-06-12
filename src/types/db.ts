@@ -34,6 +34,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      clues: {
+        Row: {
+          by_seat: string
+          count: number
+          game_id: string
+          id: string
+          submitted_at: string
+          turn_number: number
+          word: string
+        }
+        Insert: {
+          by_seat: string
+          count: number
+          game_id: string
+          id?: string
+          submitted_at?: string
+          turn_number: number
+          word: string
+        }
+        Update: {
+          by_seat?: string
+          count?: number
+          game_id?: string
+          id?: string
+          submitted_at?: string
+          turn_number?: number
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clues_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_players: {
         Row: {
           game_id: string
@@ -80,6 +118,7 @@ export type Database = {
           id: string
           join_code: string
           status: string
+          turn_number: number
           turns_remaining: number
         }
         Insert: {
@@ -88,6 +127,7 @@ export type Database = {
           id?: string
           join_code: string
           status?: string
+          turn_number?: number
           turns_remaining?: number
         }
         Update: {
@@ -96,6 +136,7 @@ export type Database = {
           id?: string
           join_code?: string
           status?: string
+          turn_number?: number
           turns_remaining?: number
         }
         Relationships: []
@@ -167,6 +208,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _end_turn: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: never
         Returns: {
@@ -177,7 +219,16 @@ export type Database = {
       generate_join_code: { Args: never; Returns: string }
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       join_game: { Args: { code: string }; Returns: string }
+      pass_turn: { Args: { target_game: string }; Returns: undefined }
       start_game: { Args: { target_game: string }; Returns: undefined }
+      submit_clue: {
+        Args: { count: number; target_game: string; word: string }
+        Returns: undefined
+      }
+      submit_guess: {
+        Args: { target_game: string; target_position: number }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

@@ -35,5 +35,5 @@ function InGame({
   if (game.status === 'lobby') {
     return <LobbyScreen session={session} gameId={gameId} onLeave={onLeave} />
   }
-  return <BoardScreen session={session} gameId={gameId} />
+  return <BoardScreen session={session} gameId={gameId} onLeave={onLeave} />
 }

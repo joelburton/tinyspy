@@ -8,4 +8,13 @@ if (!url || !publishableKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY')
 }
 
-export const supabase = createClient<Database>(url, publishableKey)
+export const supabase = createClient<Database>(url, publishableKey, {
+  auth: {
+    // Persist + auto-refresh the session in localStorage so refresh keeps
+    // the user logged in. These are the supabase-js defaults but stating
+    // them explicitly makes the contract obvious.
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
