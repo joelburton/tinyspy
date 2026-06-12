@@ -35,9 +35,14 @@ For two-player testing, open one regular window and one private/incognito window
 ```
 src/
   App.tsx              ← top-level state machine (login → home → lobby → board)
-  lib/supabase.ts      ← typed client wrapper
+  test-setup.ts        ← Vitest setup (jest-dom matchers)
+  lib/
+    supabase.ts        ← typed Supabase client wrapper
+    labels.ts          ← KeyLabel type + LABEL_CLASS + labelName
+    url.ts             ← URL hash helpers (read/write #game=…)
+    phase.ts           ← pure derivePhase(inputs) — game-state matrix
   hooks/
-    useSession.ts      ← auth state + onAuthStateChange
+    useSession.ts      ← auth state + onAuthStateChange + profile-verify
     useGame.ts         ← games + game_players, realtime
     useBoard.ts        ← words + own key (and peer key post-game)
     useClues.ts        ← clues
@@ -45,15 +50,21 @@ src/
     LoginScreen.tsx    ← magic-link form
     HomeScreen.tsx     ← create / join controls
     LobbyScreen.tsx    ← join code + seat list
-    BoardScreen.tsx    ← 5×5 grid, clue panel, game log, game-over banner
+    BoardScreen.tsx    ← 5×5 grid + composition root
+    CluePanel.tsx      ← clue form / pass button / waiting states
+    GameLog.tsx        ← turn-by-turn replay
+    GameOverBanner.tsx ← win/loss banner + play-again
   types/db.ts          ← generated from Supabase schema, do not edit
 
 supabase/
   config.toml          ← local Supabase config (ports, auth, rate limits)
   migrations/          ← timestamped SQL, the source of truth for schema
-  seed.sql             ← Duet word list (389 words)
+                         (incl. 20260612000001_seed_word_pool.sql)
+  seed.sql             ← stub; the word list lives in the migration above
+  tests/               ← pgTAP test suites
 
 docs/duet-rules.md     ← canonical spec the RPCs implement against
+CODE_REVIEW.md         ← v1 review findings (deferred items + intent docs)
 ```
 
 ## Schema overview
@@ -87,9 +98,11 @@ All marked `security definer`, all granted to the `authenticated` role only.
 
 ```bash
 npm run dev          # Vite dev server
-npm run build        # tsc -b && vite build
-npm test             # supabase test db (runs all pgTAP tests in supabase/tests)
-npm run db:reset     # supabase db reset (wipes local DB, replays migrations + seed)
+npm run build        # tsc -b && vite build (Vite picks up .env.production)
+npm test             # FE + DB tests (Vitest, then pgTAP)
+npm run test:fe      # Vitest only (add --watch for the dev loop)
+npm run test:db      # pgTAP only (needs Docker + the local stack)
+npm run db:reset     # wipe local DB, replay migrations + seed
 npm run db:diff      # show schema drift vs migrations
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
@@ -152,7 +165,7 @@ select set_config('role', 'authenticated', true);
 | `lives_ok(query, desc)` | the query must NOT raise |
 | `results_eq(q1, q2, desc)` | row sets equal in order |
 
-Tests rely on `supabase db reset` having been run recently — they assume `word_pool` is seeded.
+Tests assume the standard local schema (run `npm run db:reset` if anything has drifted). `word_pool` is populated by migration `20260612000001_seed_word_pool.sql` and is therefore always present after a reset.
 
 ### Frontend layer (Vitest + React Testing Library)
 
@@ -181,6 +194,27 @@ Key things the engine gets right that are easy to get wrong:
 - A timer token is spent on turn end (neutral or pass), never on a green reveal.
 - When the last token is spent and agents remain, the game enters sudden death; any non-green reveal there is a loss.
 
+## Production
+
+Deployed at <https://tinyspy.netlify.app> with the Supabase backend on the free tier.
+
+Redeploy loop:
+
+```bash
+# schema / RPC changes — write a new append-only migration, then:
+supabase db push                          # apply to hosted DB
+
+# frontend changes:
+npm run build                             # picks up .env.production[.local]
+netlify deploy -p -d dist                 # upload to Netlify
+```
+
+The hosted Supabase project ref is committed to `supabase/.temp/project-ref` by `supabase link`; the publishable key is in `.env.production.local` (gitignored). For new contributors: get those two values from the dashboard at Project Settings → API.
+
+A few hosted-project settings can only be configured in the dashboard (not via `config.toml`):
+- Auth → URL Configuration: site_url + redirect URLs must include the Netlify origin
+- Auth → Email rate limits: free tier defaults are conservative; raise if needed
+
 ## Status
 
-Playable end-to-end on the local stack. Not yet deployed to a hosted Supabase or any frontend host. Known cosmetic gaps: no mobile audit, the `game_players` SELECT policy is open enough that a player could in principle read the partner's `key_card` (client convention hides it).
+Playable end-to-end (local + hosted). Known cosmetic gaps and trade-offs are tracked in [`CODE_REVIEW.md`](CODE_REVIEW.md) — most notably no mobile audit, no display-name editing, and the `game_players` SELECT policy is open enough that a player could in principle read the partner's `key_card` (client convention hides it).

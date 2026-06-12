@@ -30,3 +30,6 @@ supabase/snippets
 
 # Claude Code per-user settings
 .claude/settings.local.json
+
+# Netlify CLI local state
+.netlify
