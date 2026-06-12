@@ -99,10 +99,19 @@ npm run types:gen    # regenerate src/types/db.ts from local DB
 
 ## Tests
 
+Two suites:
+
+```bash
+npm test            # both (FE then DB)
+npm run test:fe     # Vitest only (fast; watch mode with --watch)
+npm run test:db     # pgTAP only (needs Docker + the local stack running)
+```
+
+### Database layer (pgTAP)
+
 The server-authoritative game logic lives in plpgsql RPCs, so most of the meaningful behavior is tested directly against the database with **[pgTAP](https://pgtap.org/)** — a Postgres extension that adds TAP-format assertion functions (`ok`, `is`, `throws_ok`, `results_eq`, …) to SQL.
 
 ```bash
-npm test                 # all tests
 supabase test db --local supabase/tests/lobby_test.sql      # one file
 ```
 
@@ -144,6 +153,22 @@ select set_config('role', 'authenticated', true);
 | `results_eq(q1, q2, desc)` | row sets equal in order |
 
 Tests rely on `supabase db reset` having been run recently — they assume `word_pool` is seeded.
+
+### Frontend layer (Vitest + React Testing Library)
+
+A thin layer of unit tests covers the FE-only logic the pgTAP suite can't reach:
+
+| target | location | what it locks in |
+|---|---|---|
+| URL hash helpers | `src/lib/url.test.ts` | regex parsing, `replaceState` (not `pushState`) |
+| Phase derivation | `src/lib/phase.test.ts` | the `(status × seat × clue)` matrix for `cellsClickable` etc. |
+| useSession profile-verify | `src/hooks/useSession.test.ts` | the stale-JWT signOut branch |
+| useBoard peer-key toggle | `src/hooks/useBoard.test.ts` | peerKey clears when `revealPeer` flips back to false |
+| GameLog ordering | `src/components/GameLog.test.tsx` | turn grouping + within-turn `revealed_at` sort |
+
+We don't test trivial rendering (button labels, CSS classes that exist only for styling). We do test the small bits of pure logic that have non-obvious behavior — extracted into `src/lib/url.ts` and `src/lib/phase.ts` so they're testable without rendering components or mocking hooks.
+
+Supabase calls in hook tests are mocked via `vi.mock('../lib/supabase', ...)` — `useSession.test.ts` is the cleanest example of the pattern (uses `vi.hoisted` so the spies survive vi.mock's hoisting). Not tested at this layer: end-to-end browser flow (Realtime + URL hash + RPC + RLS chain) — that would be Playwright and is deferred to post-deploy.
 
 ## Rules
 

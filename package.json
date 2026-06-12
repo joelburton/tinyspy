@@ -11,7 +11,9 @@
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff",
     "db:lint": "SUPABASE_ACCESS_TOKEN=local supabase db lint --local --level warning",
-    "test": "supabase test db --local supabase/tests",
+    "test": "npm run test:fe -- --run && npm run test:db",
+    "test:fe": "vitest",
+    "test:db": "supabase test db --local supabase/tests",
     "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts"
   },
   "dependencies": {
@@ -21,6 +23,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -29,8 +34,10 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.8"
   }
 }

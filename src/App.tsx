@@ -1,30 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
+import { readHashCode, writeHashCode } from './lib/url'
 import { useSession } from './hooks/useSession'
 import { useGame } from './hooks/useGame'
 import { LoginScreen } from './components/LoginScreen'
 import { HomeScreen } from './components/HomeScreen'
 import { LobbyScreen } from './components/LobbyScreen'
 import { BoardScreen } from './components/BoardScreen'
-
-/**
- * Reads the `#game=ABCDEF` segment of the URL hash. Returns the code
- * upper-cased (matching how generate_join_code emits them) or null.
- */
-function readHashCode(): string | null {
-  const m = window.location.hash.match(/^#game=([A-Za-z0-9]+)$/)
-  return m ? m[1].toUpperCase() : null
-}
-
-/**
- * Writes (or clears) the `#game=…` URL hash via replaceState so the back
- * button doesn't accumulate an entry per game transition.
- */
-function writeHashCode(code: string | null) {
-  const next = code ? `#game=${code}` : window.location.pathname + window.location.search
-  window.history.replaceState(null, '', next)
-}
 
 /**
  * Top-level state machine. There are four user-visible states:

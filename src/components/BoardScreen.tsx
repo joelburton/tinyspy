@@ -5,6 +5,7 @@ import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
 import { LABEL_CLASS, type KeyLabel } from '../lib/labels'
+import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { GameOverBanner } from './GameOverBanner'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
@@ -57,15 +58,15 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   // games.turn_number. The submit_clue RPC enforces the one-per-turn unique
   // constraint, so we can trust this at the client level.
   const currentTurnClue = clues.find((c) => c.turn_number === game.turn_number) ?? null
-  const isGuessPhase = currentTurnClue !== null
-  const isClueGiver = mySeat === game.current_clue_giver
-  const inSuddenDeath = game.status === 'sudden_death'
 
-  // Cells are clickable when the caller is allowed to guess right now. The
-  // RPC also enforces these — this just disables the UI for clarity.
-  const cellsClickable =
-    !gameOver &&
-    (inSuddenDeath || (game.status === 'active' && isGuessPhase && !isClueGiver))
+  // derivePhase is pure and unit-tested in src/lib/phase.test.ts — see there
+  // for the full clickability / phase matrix.
+  const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } = derivePhase({
+    status: game.status as GameStatus,
+    currentClueGiver: game.current_clue_giver as Seat | null,
+    mySeat,
+    hasCurrentTurnClue: currentTurnClue !== null,
+  })
 
   async function handleGuess(position: number) {
     setGuessError(null)
