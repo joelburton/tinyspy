@@ -13,14 +13,16 @@ body {
   place-items: start center;
 }
 
+/* #root no longer caps width — that's the responsibility of each
+   top-level screen, so the narrow card-based screens (login, home,
+   lobby) can stay readable while the board claims wide-desktop space. */
 #root {
   width: 100%;
-  max-width: 480px;
 }
 
 .board-wrap {
   width: 100%;
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -29,6 +31,8 @@ body {
   border: 1px solid #2a2a2a;
   border-radius: 8px;
   padding: 2rem;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 h1 {
@@ -426,4 +430,53 @@ button.secondary:hover:not(:disabled) {
 .tile-stripe.tile-assassin {
   background: #1a1a1a;
   color: #eee;
+}
+
+/* =============================================================
+   Desktop layout: board left, game log right.
+   Below 1024px viewport, board-wrap stays a single-column stack
+   (the original mobile-ish layout). Above, switch to a two-column
+   grid where the board claims the remaining width and the log
+   gets a fixed 280px panel on the right.
+   ============================================================= */
+
+@media (min-width: 1024px) {
+  .board-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    column-gap: 1.5rem;
+    row-gap: 0;
+  }
+
+  /* Everything except the board and the log should still span the
+     full width — header, clue panel, banners, leave-game link. */
+  .board-header,
+  .clue-panel,
+  .error-banner,
+  .game-over,
+  .board-help {
+    grid-column: 1 / -1;
+  }
+
+  /* board-grid takes column 1; game-log takes column 2 of the same
+     row via CSS grid's auto-placement (next available cell after the
+     board lands in column 1 is row N column 2). No explicit row
+     assignment needed regardless of how many full-width banners
+     happen to precede the board. */
+  .board-grid {
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .game-log {
+    grid-column: 2;
+    align-self: start;
+    /* Swap the horizontal top-rule for a vertical left-rule so the
+       log feels like a side panel rather than a footer block. */
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 1.25rem;
+    border-top: none;
+    border-left: 1px solid #2a2a2a;
+  }
 }
