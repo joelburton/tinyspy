@@ -104,6 +104,9 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
           <div className="muted">
             {inSuddenDeath ? 'sudden death' : `${game.turns_remaining} tokens left`}
           </div>
+          <button type="button" className="link-button status-leave" onClick={onLeave}>
+            Leave game
+          </button>
         </div>
       </header>
 
@@ -183,12 +186,6 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
       </div>
 
       <GameLog clues={clues} words={words} />
-
-      <p className="muted board-help">
-        <button type="button" className="link-button" onClick={onLeave}>
-          Leave game
-        </button>
-      </p>
     </div>
   )
 }

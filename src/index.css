@@ -164,6 +164,20 @@ button.secondary:hover:not(:disabled) {
 
 .status {
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.status-leave {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 0.35rem;
+}
+
+.status-leave:hover {
+  opacity: 1;
 }
 
 .board-grid {
@@ -173,7 +187,9 @@ button.secondary:hover:not(:disabled) {
 }
 
 .tile {
-  aspect-ratio: 1;
+  /* Roughly matches real Codenames cards' landscape shape and keeps the
+     whole 5×5 board on a laptop screen without scrolling. */
+  aspect-ratio: 5 / 3;
   padding: 0.5rem;
   border-radius: 6px;
   display: flex;
@@ -230,11 +246,6 @@ button.secondary:hover:not(:disabled) {
 .tile-revealed.tile-assassin {
   background: #1a1a1a;
   border-color: #444;
-}
-
-.board-help {
-  margin-top: 1rem;
-  text-align: center;
 }
 
 .tile-clickable {
@@ -453,8 +464,7 @@ button.secondary:hover:not(:disabled) {
   .board-header,
   .clue-panel,
   .error-banner,
-  .game-over,
-  .board-help {
+  .game-over {
     grid-column: 1 / -1;
   }
 
