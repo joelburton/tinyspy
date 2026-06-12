@@ -14,7 +14,8 @@
     "test": "npm run test:fe -- --run && npm run test:db",
     "test:fe": "vitest",
     "test:db": "supabase test db --local supabase/tests",
-    "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts"
+    "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts",
+    "deploy": "supabase db push && npm run build && netlify deploy -p -d dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

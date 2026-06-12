@@ -16,6 +16,7 @@ Quick reference for reading the code and driving the project. See [`../README.md
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
+| `npm run deploy` | full prod push: `supabase db push` → `vite build` → `netlify deploy -p -d dist` |
 
 `types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x quirk; you don't need to set it yourself when running those scripts.
 

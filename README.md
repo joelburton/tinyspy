@@ -198,13 +198,19 @@ Key things the engine gets right that are easy to get wrong:
 
 Deployed at <https://tinyspy.netlify.app> with the Supabase backend on the free tier.
 
-Redeploy loop:
+Redeploy in one command:
 
 ```bash
-# schema / RPC changes — write a new append-only migration, then:
-supabase db push                          # apply to hosted DB
+npm run deploy
+```
 
-# frontend changes:
+It runs `supabase db push && npm run build && netlify deploy -p -d dist`. The order matters: schema first so the FE never references a column or RPC the prod DB doesn't have yet. `db push` is idempotent — when no migrations are pending it's a quick no-op, so it's safe to run on every deploy.
+
+If you want to do the steps by hand:
+
+```bash
+supabase db push --dry-run                # preview pending migrations (optional)
+supabase db push                          # apply to hosted DB
 npm run build                             # picks up .env.production[.local]
 netlify deploy -p -d dist                 # upload to Netlify
 ```
