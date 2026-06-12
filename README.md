@@ -1,73 +1,111 @@
-# React + TypeScript + Vite
+# Codenames Duet
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An online two-player implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/) — the cooperative variant where both players give clues to each other to find 15 agents before the timer runs out.
 
-Currently, two official plugins are available:
+Built as a learning exercise around Supabase: row-level security, Postgres RPCs, and Realtime, with all game logic enforced server-side. The frontend is a small React + Vite + TypeScript app.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- **Frontend:** Vite + React 19 + TypeScript. No router — the App is a small state machine with the join code in the URL hash for refresh-safety.
+- **Backend:** Supabase (Postgres + Auth + Realtime). Free-tier hosted in production; local Docker stack via the Supabase CLI in dev.
+- **Auth:** magic-link email (passwordless), via `signInWithOtp`.
+- **Game logic:** entirely in plpgsql RPCs marked `security definer`. The client only calls RPCs and subscribes to Realtime updates — it cannot insert into game tables directly.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Quick start
 
-## Expanding the ESLint configuration
+Prereqs: Node, Docker Desktop, and Homebrew (or another way to install the Supabase CLI).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+brew install supabase/tap/supabase
+git clone <this repo>
+cd codenames
+npm install
+supabase start             # pulls Docker images on first run (~slow); ~30s after
+npm run db:reset           # applies migrations + seeds the word list
+npm run types:gen          # generates src/types/db.ts from the live schema
+npm run dev                # http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Local credentials are picked up automatically from `supabase status`; `.env.local` already points at the local API URL. Emails (magic links) land in Mailpit at <http://localhost:54324> in dev — open it, click the link, and you're signed in.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+For two-player testing, open one regular window and one private/incognito window and sign in as two different emails.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Layout
+
 ```
+src/
+  App.tsx              ← top-level state machine (login → home → lobby → board)
+  lib/supabase.ts      ← typed client wrapper
+  hooks/
+    useSession.ts      ← auth state + onAuthStateChange
+    useGame.ts         ← games + game_players, realtime
+    useBoard.ts        ← words + own key (and peer key post-game)
+    useClues.ts        ← clues
+  components/
+    LoginScreen.tsx    ← magic-link form
+    HomeScreen.tsx     ← create / join controls
+    LobbyScreen.tsx    ← join code + seat list
+    BoardScreen.tsx    ← 5×5 grid, clue panel, game log, game-over banner
+  types/db.ts          ← generated from Supabase schema, do not edit
+
+supabase/
+  config.toml          ← local Supabase config (ports, auth, rate limits)
+  migrations/          ← timestamped SQL, the source of truth for schema
+  seed.sql             ← Duet word list (389 words)
+
+docs/duet-rules.md     ← canonical spec the RPCs implement against
+```
+
+## Schema overview
+
+| table          | purpose                                            |
+|----------------|----------------------------------------------------|
+| `profiles`     | one per auth user, holds `display_name`           |
+| `games`        | one per match: status, turn, clue-giver, tokens   |
+| `game_players` | seat A/B per game, holds player's key view jsonb  |
+| `word_pool`    | seeded Duet word list (read only by RPCs)         |
+| `words`        | 25 rows per game: word + reveal state             |
+| `clues`        | one row per turn, unique on (game_id, turn_number) |
+
+RLS pattern: `is_player_in_game(game_id)` is a `security definer` helper that lets RLS policies say "the current user is in this game" without recursing on `game_players` itself.
+
+## RPCs
+
+All marked `security definer`, all granted to the `authenticated` role only.
+
+| function                              | purpose                                                            |
+|---------------------------------------|--------------------------------------------------------------------|
+| `create_game()`                       | New game with random 6-char code; caller becomes seat A.          |
+| `join_game(code)`                     | Idempotent: existing player gets back the game id; new joiner takes seat B if free. |
+| `start_game(target_game)`             | Picks 25 words, generates the Duet key card distribution, seats both keys, flips status to `active`. |
+| `submit_clue(target_game, word, n)`   | Clue-giver only, clue phase only, one per turn (enforced by unique index). |
+| `submit_guess(target_game, position)` | Reveals using the clue-giver's key view; green continues, neutral ends turn, assassin ends game. |
+| `pass_turn(target_game)`              | Guesser ends the turn voluntarily.                                |
+| `play_again(prev_game)`               | From a finished game, creates a successor and pre-seats both players. Idempotent — first caller creates, second caller gets the same id. |
+
+## npm scripts
+
+```bash
+npm run dev          # Vite dev server
+npm run build        # tsc -b && vite build
+npm run db:reset     # supabase db reset (wipes local DB, replays migrations + seed)
+npm run db:diff      # show schema drift vs migrations
+npm run types:gen    # regenerate src/types/db.ts from local DB
+```
+
+`types:gen` sets `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x regression that requires a token even for `--local`.
+
+## Rules
+
+The game logic intentionally tracks the rulebook closely. The canonical spec is in [`docs/duet-rules.md`](docs/duet-rules.md) — if you spot a behavior discrepancy, fix that file first, then the RPC.
+
+Key things the engine gets right that are easy to get wrong:
+
+- Reveals use the **clue-giver's** key view, not the guesser's.
+- Green guesses are unlimited (no `clue + 1` cap — that's normal Codenames, not Duet).
+- A timer token is spent on turn end (neutral or pass), never on a green reveal.
+- When the last token is spent and agents remain, the game enters sudden death; any non-green reveal there is a loss.
+
+## Status
+
+Playable end-to-end on the local stack. Not yet deployed to a hosted Supabase or any frontend host. Known cosmetic gaps: no mobile audit, the `game_players` SELECT policy is open enough that a player could in principle read the partner's `key_card` (client convention hides it).

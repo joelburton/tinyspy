@@ -5,9 +5,10 @@ import type { Database } from '../types/db'
 type WordRow = Database['public']['Tables']['words']['Row']
 export type KeyLabel = 'G' | 'N' | 'A'
 
-export function useBoard(gameId: string, userId: string) {
+export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
   const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
+  const [peerKey, setPeerKey] = useState<KeyLabel[] | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -52,5 +53,27 @@ export function useBoard(gameId: string, userId: string) {
     }
   }, [gameId, userId])
 
-  return { words, myKey, loading }
+  // Fetch the peer's key only when game is over (for post-game review).
+  useEffect(() => {
+    if (!revealPeer) {
+      setPeerKey(null)
+      return
+    }
+    let mounted = true
+    supabase
+      .from('game_players')
+      .select('key_card')
+      .eq('game_id', gameId)
+      .neq('user_id', userId)
+      .single()
+      .then(({ data }) => {
+        if (!mounted) return
+        if (data?.key_card) setPeerKey(data.key_card as unknown as KeyLabel[])
+      })
+    return () => {
+      mounted = false
+    }
+  }, [gameId, userId, revealPeer])
+
+  return { words, myKey, peerKey, loading }
 }

@@ -117,6 +117,7 @@ export type Database = {
           current_clue_giver: string | null
           id: string
           join_code: string
+          next_game_id: string | null
           status: string
           turn_number: number
           turns_remaining: number
@@ -126,6 +127,7 @@ export type Database = {
           current_clue_giver?: string | null
           id?: string
           join_code: string
+          next_game_id?: string | null
           status?: string
           turn_number?: number
           turns_remaining?: number
@@ -135,11 +137,20 @@ export type Database = {
           current_clue_giver?: string | null
           id?: string
           join_code?: string
+          next_game_id?: string | null
           status?: string
           turn_number?: number
           turns_remaining?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_next_game_id_fkey"
+            columns: ["next_game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -176,21 +187,27 @@ export type Database = {
           game_id: string
           position: number
           revealed_as: string | null
+          revealed_at: string | null
           revealed_by: string | null
+          revealed_in_turn: number | null
           word: string
         }
         Insert: {
           game_id: string
           position: number
           revealed_as?: string | null
+          revealed_at?: string | null
           revealed_by?: string | null
+          revealed_in_turn?: number | null
           word: string
         }
         Update: {
           game_id?: string
           position?: number
           revealed_as?: string | null
+          revealed_at?: string | null
           revealed_by?: string | null
+          revealed_in_turn?: number | null
           word?: string
         }
         Relationships: [
@@ -220,6 +237,13 @@ export type Database = {
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       join_game: { Args: { code: string }; Returns: string }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
+      play_again: {
+        Args: { prev_game: string }
+        Returns: {
+          id: string
+          join_code: string
+        }[]
+      }
       start_game: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
         Args: { count: number; target_game: string; word: string }

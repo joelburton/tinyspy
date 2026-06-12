@@ -278,31 +278,69 @@ button.secondary:hover:not(:disabled) {
 }
 
 .clue-panel.sudden-death {
-  border-color: #a04040;
-  background: rgba(160, 64, 64, 0.12);
+  border-color: #be3c3c;
+  background: rgba(190, 60, 60, 0.18);
+  font-size: 1.05rem;
+  padding: 1rem 1.25rem;
 }
 
-.clue-history {
+.board-wrap.sudden-death {
+  position: relative;
+  padding: 1rem;
+  border: 2px solid #be3c3c;
+  border-radius: 8px;
+  background: rgba(190, 60, 60, 0.04);
+}
+
+.game-log {
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid #2a2a2a;
 }
 
-.clue-history h3 {
+.game-log h3 {
   margin: 0 0 0.5rem;
   font-size: 0.9rem;
   color: #888;
   font-weight: 500;
 }
 
-.clue-history ol {
+.game-log ol {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.4rem;
   font-size: 0.9rem;
+}
+
+.log-guess {
+  margin-left: 1rem;
+  padding: 0.1rem 0;
+  color: #ccc;
+}
+
+.log-label {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.log-label-G {
+  background: rgba(56, 161, 105, 0.3);
+  color: #6cd29c;
+}
+
+.log-label-N {
+  background: rgba(180, 152, 110, 0.25);
+  color: #d4b88a;
+}
+
+.log-label-A {
+  background: rgba(190, 60, 60, 0.3);
+  color: #ff8e8e;
 }
 
 .game-over {
@@ -310,9 +348,14 @@ button.secondary:hover:not(:disabled) {
   padding: 1rem 1.25rem;
   margin: 1rem 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .game-over.win {
@@ -347,4 +390,40 @@ button.secondary:hover:not(:disabled) {
 .tile-pending {
   outline: 2px solid #4a90e2;
   outline-offset: -2px;
+}
+
+/* Post-game reveal: two stripes for the two key views, word in the middle. */
+.tile-postgame {
+  background: #1c1c1c;
+  border-color: #2a2a2a;
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.tile-postgame .tile-word {
+  padding: 0.4rem 0.5rem;
+  align-self: center;
+}
+
+.tile-stripe {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 0.15rem 0.4rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.tile-stripe.tile-green {
+  background: #38a169;
+  color: white;
+}
+
+.tile-stripe.tile-neutral {
+  background: #b4986e;
+}
+
+.tile-stripe.tile-assassin {
+  background: #1a1a1a;
+  color: #eee;
 }

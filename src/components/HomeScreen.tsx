@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 
 type Props = {
   session: Session
-  onEnterGame: (gameId: string) => void
+  onEnterGame: (gameId: string, joinCode: string) => void
 }
 
 export function HomeScreen({ session, onEnterGame }: Props) {
@@ -42,7 +42,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
       setError(error?.message ?? 'failed to create game')
       return
     }
-    onEnterGame(data.id)
+    onEnterGame(data.id, data.join_code)
   }
 
   async function onJoin(e: React.FormEvent) {
@@ -55,7 +55,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
       setError(error?.message ?? 'failed to join game')
       return
     }
-    onEnterGame(data)
+    onEnterGame(data, code)
   }
 
   return (

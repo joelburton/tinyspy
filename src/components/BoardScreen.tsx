@@ -3,12 +3,16 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useGame } from '../hooks/useGame'
 import { useBoard, type KeyLabel } from '../hooks/useBoard'
-import { useClues } from '../hooks/useClues'
+import { useClues, type ClueRow } from '../hooks/useClues'
+import type { Database } from '../types/db'
+
+type WordRow = Database['public']['Tables']['words']['Row']
 
 type Props = {
   session: Session
   gameId: string
   onLeave: () => void
+  onEnterGame: (id: string, joinCode: string) => void
 }
 
 const LABEL_CLASS: Record<KeyLabel, string> = {
@@ -23,9 +27,10 @@ const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
   lost_clock: { text: 'Game over — ran out of time in sudden death.', tone: 'loss' },
 }
 
-export function BoardScreen({ session, gameId, onLeave }: Props) {
+export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   const { game, players } = useGame(gameId)
-  const { words, myKey, loading } = useBoard(gameId, session.user.id)
+  const gameOver = game ? game.status !== 'active' && game.status !== 'sudden_death' : false
+  const { words, myKey, peerKey, loading } = useBoard(gameId, session.user.id, gameOver)
   const { clues } = useClues(gameId)
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const [guessError, setGuessError] = useState<string | null>(null)
@@ -35,13 +40,12 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   const mySeat = players.find((p) => p.user_id === session.user.id)?.seat as 'A' | 'B' | undefined
+  const opponent = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
-  // Phase derivation: did a clue exist for the current turn?
   const currentTurnClue = clues.find((c) => c.turn_number === game.turn_number) ?? null
   const isGuessPhase = currentTurnClue !== null
   const isClueGiver = mySeat === game.current_clue_giver
-  const gameOver = game.status !== 'active' && game.status !== 'sudden_death'
   const inSuddenDeath = game.status === 'sudden_death'
 
   const cellsClickable =
@@ -63,12 +67,13 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   return (
-    <div className="board-wrap">
+    <div className={`board-wrap ${inSuddenDeath ? 'sudden-death' : ''}`}>
       <header className="board-header">
         <div>
           <div className="muted">Game {game.join_code}</div>
           <div>
-            You are <strong>{mySeat}</strong>
+            <strong>{mySeat}</strong> · with{' '}
+            <strong>{opponent?.display_name ?? '…'}</strong>
             {!gameOver && !inSuddenDeath && (
               <> · clue-giver: <strong>{game.current_clue_giver}</strong></>
             )}
@@ -85,7 +90,14 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
       </header>
 
       {gameOver && (
-        <GameOverBanner status={game.status} onLeave={onLeave} />
+        <GameOverBanner
+          status={game.status}
+          gameId={gameId}
+          nextGameId={game.next_game_id}
+          opponentName={opponent?.display_name}
+          onLeave={onLeave}
+          onEnterGame={onEnterGame}
+        />
       )}
 
       {!gameOver && (
@@ -110,12 +122,20 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
       <div className="board-grid">
         {words.map((w) => {
           const myLabel = myKey[w.position]
+          const peerLabel = peerKey?.[w.position] ?? null
           const revealed = w.revealed_as !== null
+          const showPostGameReveal = gameOver && !revealed && peerLabel !== null
           const tintCls = revealed
             ? `tile-revealed ${LABEL_CLASS[w.revealed_as as KeyLabel]}`
-            : `tile-hint ${LABEL_CLASS[myLabel]}`
+            : showPostGameReveal
+              ? 'tile-postgame'
+              : `tile-hint ${LABEL_CLASS[myLabel]}`
           const clickable = cellsClickable && !revealed
           const isPending = pendingPos === w.position
+
+          const aLabel: KeyLabel = mySeat === 'A' ? myLabel : (peerLabel ?? myLabel)
+          const bLabel: KeyLabel = mySeat === 'B' ? myLabel : (peerLabel ?? myLabel)
+
           return (
             <button
               key={w.position}
@@ -124,26 +144,20 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
               disabled={!clickable || isPending}
               onClick={() => clickable && handleGuess(w.position)}
             >
+              {showPostGameReveal && (
+                <span className={`tile-stripe stripe-a ${LABEL_CLASS[aLabel]}`}>A</span>
+              )}
               <span className="tile-word">{w.word}</span>
+              {showPostGameReveal && (
+                <span className={`tile-stripe stripe-b ${LABEL_CLASS[bLabel]}`}>B</span>
+              )}
               {isPending && <span className="tile-key">…</span>}
             </button>
           )
         })}
       </div>
 
-      {clues.length > 0 && (
-        <section className="clue-history">
-          <h3>Clue history</h3>
-          <ol>
-            {clues.map((c) => (
-              <li key={c.id}>
-                <span className="muted">turn {c.turn_number}, {c.by_seat}:</span>{' '}
-                <strong>{c.word.toUpperCase()}</strong> · {c.count}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+      <GameLog clues={clues} words={words} />
 
       <p className="muted board-help">
         <button type="button" className="link-button" onClick={onLeave}>
@@ -154,13 +168,58 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   )
 }
 
-function GameOverBanner({ status, onLeave }: { status: string; onLeave: () => void }) {
+function GameOverBanner({
+  status,
+  gameId,
+  nextGameId,
+  opponentName,
+  onLeave,
+  onEnterGame,
+}: {
+  status: string
+  gameId: string
+  nextGameId: string | null
+  opponentName?: string
+  onLeave: () => void
+  onEnterGame: (id: string, joinCode: string) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const banner = STATUS_BANNER[status]
   if (!banner) return null
+
+  async function playAgain() {
+    setError(null)
+    setBusy(true)
+    const { data, error } = await supabase
+      .rpc('play_again', { prev_game: gameId })
+      .single()
+    setBusy(false)
+    if (error || !data) {
+      setError(error?.message ?? 'failed to start a new game')
+      return
+    }
+    onEnterGame(data.id, data.join_code)
+  }
+
+  const playAgainLabel = nextGameId
+    ? `Join ${opponentName ?? 'partner'}'s new game`
+    : opponentName
+      ? `Play again with ${opponentName}`
+      : 'Play again'
+
   return (
     <div className={`game-over ${banner.tone}`}>
       <strong>{banner.text}</strong>
-      <button type="button" onClick={onLeave}>Back to home</button>
+      <div className="game-over-actions">
+        <button type="button" onClick={playAgain} disabled={busy}>
+          {busy ? '…' : playAgainLabel}
+        </button>
+        <button type="button" className="secondary" onClick={onLeave}>
+          Back to home
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
     </div>
   )
 }
@@ -199,7 +258,6 @@ function CluePanel({
     )
   }
 
-  // Clue phase
   if (isClueGiver) {
     return <ClueForm gameId={gameId} />
   }
@@ -282,4 +340,61 @@ function PassButton({ gameId }: { gameId: string }) {
       Pass (end turn)
     </button>
   )
+}
+
+// Game log: turn-by-turn, clue then guesses (ordered by reveal time).
+function GameLog({ clues, words }: { clues: ClueRow[]; words: WordRow[] }) {
+  if (clues.length === 0) return null
+
+  const guesses = words
+    .filter((w) => w.revealed_at !== null)
+    .sort((a, b) =>
+      (a.revealed_in_turn ?? 0) - (b.revealed_in_turn ?? 0)
+      || (a.revealed_at ?? '').localeCompare(b.revealed_at ?? ''),
+    )
+
+  // Group by turn_number; turns may have no clue (sudden death).
+  const turnNumbers = Array.from(
+    new Set([
+      ...clues.map((c) => c.turn_number),
+      ...guesses.map((g) => g.revealed_in_turn ?? 0),
+    ]),
+  ).sort((a, b) => a - b)
+
+  return (
+    <section className="game-log">
+      <h3>Game log</h3>
+      <ol>
+        {turnNumbers.map((t) => {
+          const clue = clues.find((c) => c.turn_number === t)
+          const turnGuesses = guesses.filter((g) => g.revealed_in_turn === t)
+          return (
+            <li key={t}>
+              <span className="muted">turn {t}</span>
+              {clue && (
+                <span>
+                  {' '}· <strong>{clue.by_seat}</strong>: {clue.word.toUpperCase()} · {clue.count}
+                </span>
+              )}
+              {turnGuesses.map((g) => (
+                <div key={g.position} className="log-guess">
+                  <strong>{g.revealed_by}</strong> → {g.word}{' '}
+                  <span className={`log-label log-label-${g.revealed_as}`}>
+                    {labelName(g.revealed_as)}
+                  </span>
+                </div>
+              ))}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
+function labelName(l: string | null): string {
+  if (l === 'G') return 'green'
+  if (l === 'N') return 'neutral'
+  if (l === 'A') return 'assassin'
+  return '?'
 }
