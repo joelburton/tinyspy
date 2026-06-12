@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { HowToPlayModal } from './HowToPlayModal'
 
 type Props = {
   session: Session
@@ -24,6 +25,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [howToOpen, setHowToOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -101,11 +103,17 @@ export function HomeScreen({ session, onEnterGame }: Props) {
 
       {error && <p className="error">{error}</p>}
 
-      <p className="muted" style={{ marginTop: '2rem' }}>
+      <p className="muted home-footer">
+        <button type="button" className="link-button" onClick={() => setHowToOpen(true)}>
+          How to play
+        </button>
+        <span className="dot-separator">·</span>
         <button type="button" className="link-button" onClick={() => supabase.auth.signOut()}>
           Log out
         </button>
       </p>
+
+      <HowToPlayModal open={howToOpen} onClose={() => setHowToOpen(false)} />
     </div>
   )
 }

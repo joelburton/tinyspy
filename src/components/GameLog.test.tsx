@@ -52,7 +52,7 @@ describe('GameLog', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('groups guesses under the turn whose clue they belong to', () => {
+  it('groups guesses under the turn whose clue they belong to, latest turn first', () => {
     const clues = [
       clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'TOOLS', count: 2 }),
       clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'DRINK', count: 1 }),
@@ -75,17 +75,17 @@ describe('GameLog', () => {
     const turns = screen.getAllByRole('listitem')
     expect(turns).toHaveLength(2)
 
-    // Turn 1: A: TOOLS · 2 → B guessed HAMMER green.
-    expect(turns[0]).toHaveTextContent('turn 1')
-    expect(turns[0]).toHaveTextContent('TOOLS')
-    expect(within(turns[0]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
-    expect(within(turns[0]).getByText('green')).toBeInTheDocument()
+    // Latest turn (2) appears first.
+    expect(turns[0]).toHaveTextContent('turn 2')
+    expect(turns[0]).toHaveTextContent('DRINK')
+    expect(within(turns[0]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
+    expect(within(turns[0]).getByText('neutral')).toBeInTheDocument()
 
-    // Turn 2 belongs to B's clue.
-    expect(turns[1]).toHaveTextContent('turn 2')
-    expect(turns[1]).toHaveTextContent('DRINK')
-    expect(within(turns[1]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
-    expect(within(turns[1]).getByText('neutral')).toBeInTheDocument()
+    // Older turn (1) below.
+    expect(turns[1]).toHaveTextContent('turn 1')
+    expect(turns[1]).toHaveTextContent('TOOLS')
+    expect(within(turns[1]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
+    expect(within(turns[1]).getByText('green')).toBeInTheDocument()
   })
 
   it('sorts guesses within a turn by revealed_at', () => {

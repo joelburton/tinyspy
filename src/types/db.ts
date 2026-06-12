@@ -152,6 +152,45 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          game_id: string
+          id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          game_id: string
+          id?: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          game_id?: string
+          id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -243,6 +282,10 @@ export type Database = {
           id: string
           join_code: string
         }[]
+      }
+      send_message: {
+        Args: { content: string; target_game: string }
+        Returns: undefined
       }
       start_game: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {

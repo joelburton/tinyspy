@@ -10,16 +10,20 @@ type Props = {
 }
 
 /**
- * Turn-by-turn replay shown beneath the board.
- *
- * Each turn slot contains, in order:
- *   1. the clue (if one was given — sudden-death turns don't have one), and
- *   2. each guess made during that turn, ordered by `revealed_at`.
+ * Turn-by-turn replay shown next to the board on desktop (beneath it on
+ * narrow screens). Latest turn at the top so the most recent activity
+ * is what you see without scrolling; within a turn, the clue is listed
+ * first and then each guess in chronological order so each turn reads
+ * as a small top-down narrative.
  *
  * Data source: the same `clues` array and `words` array the board
- * already has from useClues + useBoard. We do all grouping here client-side
- * — no extra queries — because the data set is tiny (≤ a handful of clues
- * and ≤ 25 guesses).
+ * already has from useClues + useBoard. We do all grouping here
+ * client-side — no extra queries — because the data set is tiny
+ * (≤ a handful of clues and ≤ 25 guesses).
+ *
+ * The CSS gives this section a fixed height matching the board grid
+ * and lets the inner <ol> scroll; we don't reverse guesses-within-turn
+ * because reading order matters more than recency at that grain.
  */
 export function GameLog({ clues, words }: Props) {
   if (clues.length === 0) return null
@@ -32,13 +36,14 @@ export function GameLog({ clues, words }: Props) {
     )
 
   // Turns may exist in the clue list, in the guess list, or both. Union the
-  // turn numbers so the log shows every turn that did anything.
+  // turn numbers so the log shows every turn that did anything. Sorted
+  // descending so the latest turn appears at the top of the log.
   const turnNumbers = Array.from(
     new Set([
       ...clues.map((c) => c.turn_number),
       ...guesses.map((g) => g.revealed_in_turn ?? 0),
     ]),
-  ).sort((a, b) => a - b)
+  ).sort((a, b) => b - a)
 
   return (
     <section className="game-log">

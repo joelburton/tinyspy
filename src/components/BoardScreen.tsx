@@ -9,6 +9,7 @@ import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { GameOverBanner } from './GameOverBanner'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
+import { ChatPanel } from './ChatPanel'
 
 type Props = {
   session: Session
@@ -186,6 +187,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
       </div>
 
       <GameLog clues={clues} words={words} />
+      <ChatPanel gameId={gameId} players={players} />
     </div>
   )
 }

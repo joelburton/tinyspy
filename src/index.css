@@ -1,3 +1,10 @@
+/* Universal border-box so padding doesn't get added on top of widths and
+   heights — without this `body { min-height: 100vh; padding: 2rem }` totals
+   to `100vh + 64px` and the page scrolls even when content fits. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   font-family: system-ui, -apple-system, sans-serif;
   background: #111;
@@ -22,7 +29,7 @@ body {
 
 .board-wrap {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -284,7 +291,9 @@ button.secondary:hover:not(:disabled) {
 
 .clue-form-row {
   display: grid;
-  grid-template-columns: 1fr 5rem auto;
+  /* count input first, then the wide word/phrase field, then the submit
+     button. Matches the visual order of the rendered clue (e.g. "3 vehicles"). */
+  grid-template-columns: 5rem 1fr auto;
   gap: 0.5rem;
 }
 
@@ -392,6 +401,124 @@ button.secondary:hover:not(:disabled) {
   text-decoration: underline;
 }
 
+.home-footer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.dot-separator {
+  color: #555;
+}
+
+/* =============================================================
+   How-to-play modal
+   ============================================================= */
+
+dialog.how-to-play {
+  /* Native <dialog> defaults paint a white surface with black borders;
+     re-style for our dark theme. */
+  background: #1c1c1c;
+  color: #eee;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 0;
+  max-width: 36rem;
+  width: calc(100vw - 4rem);
+}
+
+dialog.how-to-play::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.how-to-play-content {
+  padding: 2rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.how-to-play-content h2 {
+  margin-top: 0;
+}
+
+.how-to-play-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: #ccc;
+}
+
+.how-to-play-content ul,
+.how-to-play-content ol {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.how-to-play-content li {
+  margin: 0.25rem 0;
+}
+
+.how-to-play-content button {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* Inline rule-color swatches inside the modal. */
+.hint-green    { color: #6cd29c; }
+.hint-neutral  { color: #d4b88a; }
+.hint-assassin { color: #ff8e8e; }
+
+/* =============================================================
+   Chat panel
+   ============================================================= */
+
+.chat-panel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #2a2a2a;
+}
+
+.chat-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #888;
+  font-weight: 500;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  padding-right: 0.25rem;
+}
+
+.chat-msg {
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+/* Seat-coded name colors. A and B get distinct hues so the eye can
+   follow the conversation without reading the names letter-by-letter. */
+.chat-name {
+  font-weight: 600;
+}
+.chat-seat-A { color: #6aa8f0; }   /* blue, matches the seat-label */
+.chat-seat-B { color: #f0a060; }   /* warm orange — high contrast vs A */
+
+.chat-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.chat-input-row input {
+  font-size: 0.9rem;
+}
+
 .error-banner {
   background: rgba(190, 60, 60, 0.18);
   border: 1px solid #be3c3c;
@@ -454,13 +581,16 @@ button.secondary:hover:not(:disabled) {
 @media (min-width: 1024px) {
   .board-wrap {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
+    /* Three columns: board (flex), game log, chat. The right two are
+       fixed at 220px each to keep the board legible while still
+       fitting on a 1024px viewport. */
+    grid-template-columns: minmax(0, 1fr) 220px 220px;
     column-gap: 1.5rem;
     row-gap: 0;
   }
 
-  /* Everything except the board and the log should still span the
-     full width — header, clue panel, banners, leave-game link. */
+  /* Everything except the board, the log, and the chat should still
+     span the full width — header, clue panel, banners. */
   .board-header,
   .clue-panel,
   .error-banner,
@@ -478,15 +608,37 @@ button.secondary:hover:not(:disabled) {
     align-self: start;
   }
 
-  .game-log {
-    grid-column: 2;
-    align-self: start;
-    /* Swap the horizontal top-rule for a vertical left-rule so the
-       log feels like a side panel rather than a footer block. */
+  .game-log,
+  .chat-panel {
+    /* Stretch (not `start`) so each side panel matches the grid's
+       height; the inner scroll container handles overflow.
+       min-height:0 on flex children is what makes them actually
+       shrink below their content. */
+    align-self: stretch;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* Swap the horizontal top-rule for a vertical left-rule so each
+       panel feels like a side column rather than a footer block. */
     margin-top: 0;
     padding-top: 0;
     padding-left: 1.25rem;
     border-top: none;
     border-left: 1px solid #2a2a2a;
+  }
+
+  .game-log {
+    grid-column: 2;
+  }
+
+  .chat-panel {
+    grid-column: 3;
+  }
+
+  .game-log ol,
+  .chat-messages {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
   }
 }
