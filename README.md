@@ -88,12 +88,62 @@ All marked `security definer`, all granted to the `authenticated` role only.
 ```bash
 npm run dev          # Vite dev server
 npm run build        # tsc -b && vite build
+npm test             # supabase test db (runs all pgTAP tests in supabase/tests)
 npm run db:reset     # supabase db reset (wipes local DB, replays migrations + seed)
 npm run db:diff      # show schema drift vs migrations
+npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
 ```
 
-`types:gen` sets `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x regression that requires a token even for `--local`.
+`types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x regression that requires a token even for `--local`.
+
+## Tests
+
+The server-authoritative game logic lives in plpgsql RPCs, so most of the meaningful behavior is tested directly against the database with **[pgTAP](https://pgtap.org/)** — a Postgres extension that adds TAP-format assertion functions (`ok`, `is`, `throws_ok`, `results_eq`, …) to SQL.
+
+```bash
+npm test                 # all tests
+supabase test db --local supabase/tests/lobby_test.sql      # one file
+```
+
+Each test file follows this skeleton:
+
+```sql
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path = public, extensions;
+select plan(N);              -- declare the assertion count
+-- ... assertions ...
+select * from finish();      -- TAP summary; fails if N didn't match
+rollback;                    -- isolate this test from later ones
+```
+
+The `begin / rollback` pair means a test file leaves the database exactly as it found it — no fixtures to clean up between runs.
+
+**Authentication in tests.** Our RPCs call `auth.uid()` to identify the caller. `auth.uid()` reads the `sub` claim from `request.jwt.claims`, which PostgREST normally sets per request. The test files simulate "logged in as X" via:
+
+```sql
+select set_config('request.jwt.claims',
+                  json_build_object('sub', some_uuid, 'role', 'authenticated')::text,
+                  true);
+select set_config('role', 'authenticated', true);
+```
+
+`supabase/tests/lobby_test.sql` walks through this in detail as the tutorial file; subsequent files lean on that foundation. Recommended reading order: `lobby_test.sql` → `start_game_test.sql`.
+
+**Common assertion functions** used in this project:
+
+| function | purpose |
+|---|---|
+| `ok(boolean, desc)` | basic truthiness assert |
+| `is(actual, expected, desc)` | equality (null-safe — unlike SQL `=`) |
+| `isnt(a, b, desc)` | inverse |
+| `matches(actual, regex, desc)` | regex match |
+| `throws_ok(query, sqlstate, msg, desc)` | the query must raise this exact error (note the 4-arg form — the 3-arg version treats arg 3 as the expected message, easy gotcha) |
+| `lives_ok(query, desc)` | the query must NOT raise |
+| `results_eq(q1, q2, desc)` | row sets equal in order |
+
+Tests rely on `supabase db reset` having been run recently — they assume `word_pool` is seeded.
 
 ## Rules
 

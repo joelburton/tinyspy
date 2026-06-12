@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff",
+    "db:lint": "SUPABASE_ACCESS_TOKEN=local supabase db lint --local --level warning",
+    "test": "supabase test db --local supabase/tests",
     "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts"
   },
   "dependencies": {
