@@ -1,5 +1,7 @@
-import { useGame } from '../hooks/useGame'
+import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+import { useGame } from '../hooks/useGame'
 
 type Props = {
   session: Session
@@ -9,6 +11,8 @@ type Props = {
 
 export function LobbyScreen({ session, gameId, onLeave }: Props) {
   const { game, players, loading } = useGame(gameId)
+  const [starting, setStarting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (loading || !game) return <div className="card">Loading game…</div>
 
@@ -16,6 +20,18 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
   const playerB = players.find((p) => p.seat === 'B')
   const youAre = players.find((p) => p.user_id === session.user.id)
   const both = playerA && playerB
+
+  async function onStart() {
+    setError(null)
+    setStarting(true)
+    const { error } = await supabase.rpc('start_game', { target_game: gameId })
+    if (error) {
+      setError(error.message)
+      setStarting(false)
+    }
+    // Successful start flips games.status; useGame's realtime subscription
+    // picks it up and App switches to BoardScreen — no manual nav.
+  }
 
   return (
     <div className="card">
@@ -41,8 +57,8 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
 
       <div className="actions">
         {both && youAre?.seat === 'A' && (
-          <button type="button" disabled>
-            Start game (coming in step 3)
+          <button type="button" onClick={onStart} disabled={starting}>
+            {starting ? 'Starting…' : 'Start game'}
           </button>
         )}
         {both && youAre?.seat !== 'A' && (
@@ -53,6 +69,8 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
           Leave
         </button>
       </div>
+
+      {error && <p className="error">{error}</p>}
     </div>
   )
 }

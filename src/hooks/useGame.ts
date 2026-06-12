@@ -43,8 +43,11 @@ export function useGame(gameId: string) {
 
     load()
 
+    // Unique channel name per effect run: supabase-js caches channels by name,
+    // and in React StrictMode the effect runs twice — without uniqueness the
+    // second .on() chain hits the already-subscribed cached channel and throws.
     const channel = supabase
-      .channel(`game:${gameId}`)
+      .channel(`game:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },

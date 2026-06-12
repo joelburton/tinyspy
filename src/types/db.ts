@@ -130,6 +130,38 @@ export type Database = {
         }
         Relationships: []
       }
+      words: {
+        Row: {
+          game_id: string
+          position: number
+          revealed_as: string | null
+          revealed_by: string | null
+          word: string
+        }
+        Insert: {
+          game_id: string
+          position: number
+          revealed_as?: string | null
+          revealed_by?: string | null
+          word: string
+        }
+        Update: {
+          game_id?: string
+          position?: number
+          revealed_as?: string | null
+          revealed_by?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -145,6 +177,7 @@ export type Database = {
       generate_join_code: { Args: never; Returns: string }
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       join_game: { Args: { code: string }; Returns: string }
+      start_game: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

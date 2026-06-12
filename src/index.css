@@ -8,14 +8,20 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
   padding: 2rem;
+  display: grid;
+  place-items: start center;
 }
 
 #root {
   width: 100%;
   max-width: 480px;
+}
+
+.board-wrap {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .card {
@@ -143,4 +149,86 @@ button.secondary:hover:not(:disabled) {
   color: white;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 0;
+}
+
+.status {
+  text-align: right;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.tile {
+  aspect-ratio: 1;
+  padding: 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.tile-word {
+  font-size: 0.95rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.tile-key {
+  font-size: 0.7rem;
+  align-self: flex-end;
+  opacity: 0.55;
+  font-family: ui-monospace, Menlo, monospace;
+  letter-spacing: 0.1em;
+}
+
+.tile-hint.tile-green {
+  background: rgba(56, 161, 105, 0.18);
+  border-color: rgba(56, 161, 105, 0.4);
+}
+
+.tile-hint.tile-neutral {
+  background: rgba(180, 152, 110, 0.12);
+  border-color: rgba(180, 152, 110, 0.3);
+}
+
+.tile-hint.tile-assassin {
+  background: rgba(190, 60, 60, 0.18);
+  border-color: rgba(190, 60, 60, 0.45);
+}
+
+.tile-revealed {
+  color: white;
+}
+
+.tile-revealed.tile-green {
+  background: #38a169;
+  border-color: #38a169;
+}
+
+.tile-revealed.tile-neutral {
+  background: #b4986e;
+  border-color: #b4986e;
+  color: #1a1a1a;
+}
+
+.tile-revealed.tile-assassin {
+  background: #1a1a1a;
+  border-color: #444;
+}
+
+.board-help {
+  margin-top: 1rem;
+  text-align: center;
 }
