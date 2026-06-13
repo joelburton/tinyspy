@@ -226,6 +226,33 @@ For a new game, the conventional shape is:
 
 Cross-schema FKs (game → common) need `common.*` to exist first, which timestamp ordering handles naturally.
 
+## pgTAP test layout
+
+Tests live under `supabase/tests/<schema>/`:
+
+```
+supabase/tests/
+  tinyspy/
+    chat_test.sql
+    clue_context_test.sql
+    game_loop_test.sql
+    lobby_test.sql
+    play_again_test.sql
+    rls_test.sql
+    start_game_test.sql
+    sudden_death_test.sql
+    win_test.sql
+  common/            (none yet — common is exercised indirectly via
+                      the on_auth_user_created trigger in lobby_test)
+  boggle/            (future)
+```
+
+`supabase test db --local supabase/tests` recurses into subdirectories automatically, so the `test:db` npm script doesn't need updating when new game folders appear.
+
+Naming convention inside a folder: `<feature>_test.sql`, no game prefix (the folder already carries that information). Same role-not-implementation rule as the FE components — a game-specific `clue_context_test.sql` doesn't repeat the schema name.
+
+Each test file follows the pgTAP shape from `lobby_test.sql` (the tutorial file): `begin / set search_path = <schema>, common, public, extensions / plan(N) / ...assertions... / finish() / rollback`. The transaction wrapping means tests don't have to clean up after themselves.
+
 ## Realtime channel names
 
 Pattern: `<schema>:<table>:<id>` or `<schema>:<id>` for game-scoped channels.
