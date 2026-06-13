@@ -193,7 +193,7 @@ PostgREST's schema cache only discovers FK relationships **within a single schem
 ```ts
 // This DOES NOT work cross-schema, even though the FK exists:
 supabase.schema('tinyspy').from('game_players')
-  .select('user_id, seat, profiles(display_name)')
+  .select('user_id, seat, profiles(username)')
 // → PGRST200 "Could not find a relationship between 'game_players'
 //             and 'profiles' in the schema cache"
 

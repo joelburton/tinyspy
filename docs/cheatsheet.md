@@ -78,7 +78,7 @@ All in the `public` schema. Schema source: [`supabase/migrations/20260612000000_
 
 | table | purpose |
 |---|---|
-| `profiles` | one row per auth user. Holds `display_name` (defaulted to email username by the `handle_new_user` trigger). Cascades from `auth.users`. |
+| `profiles` | one row per auth user. Holds `username` (unique, defaulted to email local-part by the `handle_new_user` trigger). Cascades from `auth.users`. |
 | `games` | one row per match. Tracks `status`, `turn_number`, `turns_remaining`, `current_clue_giver`, `join_code`, and `next_game_id` (set by `play_again`). |
 | `game_players` | the (≤ 2) seated players per game. Holds each player's `key_card` jsonb (25-element view of `'G' \| 'N' \| 'A'`). FK to `profiles` so PostgREST auto-embeds display names. |
 | `word_pool` | the static Duet word list (390 rows). Read only by security-definer RPCs; clients cannot SELECT. |
@@ -94,7 +94,7 @@ All callable RPCs are `security definer` (run with `postgres` privileges) and gr
 
 | function | purpose |
 |---|---|
-| `handle_new_user()` | trigger on `auth.users` insert. Materializes a `profiles` row, defaulting `display_name` to the part of the email before `@`. |
+| `handle_new_user()` | trigger on `auth.users` insert. Materializes a `profiles` row, defaulting `username` to the part of the email before `@` (subject to the unique-username constraint — a colliding local-part fails sign-in). |
 | `is_player_in_game(target_game uuid) → boolean` | security-definer RLS helper. Avoids infinite recursion when `game_players` policies need to ask "is the caller in this game?" |
 | `generate_join_code() → text` | 6-char code from an unambiguous alphabet (no `O`/`0`/`I`/`1`/`l`); retries until unique. Revoked from public. |
 | `_end_turn(target_game uuid)` | shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, and flips to `sudden_death` at zero. |

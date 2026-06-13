@@ -18,12 +18,12 @@ type Props = {
  * an existing one by code (caller becomes seat B, if open). Both call
  * server RPCs that handle the seat assignment atomically.
  *
- * Also fetches the user's `display_name` on mount for the "Welcome,
+ * Also fetches the user's `username` on mount for the "Welcome,
  * {name}" greeting. The profile row is guaranteed to exist by the
  * `handle_new_user` trigger in the baseline migration.
  */
 export function HomeScreen({ session, onEnterGame }: Props) {
-  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -33,7 +33,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
     let mounted = true
     commonDb
       .from('profiles')
-      .select('display_name')
+      .select('username')
       .eq('user_id', session.user.id)
       .single()
       .then(({ data, error }) => {
@@ -42,7 +42,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
           console.error('failed to load profile', error)
           return
         }
-        setDisplayName(data.display_name)
+        setUsername(data.username)
       })
     return () => {
       mounted = false
@@ -76,7 +76,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
 
   return (
     <div className="card">
-      <h1>Welcome{displayName ? `, ${displayName}` : ''}</h1>
+      <h1>Welcome{username ? `, ${username}` : ''}</h1>
       <p className="muted">{session.user.email}</p>
 
       <div className="actions">

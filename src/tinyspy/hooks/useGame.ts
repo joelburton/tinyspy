@@ -9,7 +9,7 @@ type GameRow = Database['tinyspy']['Tables']['games']['Row']
 export type Player = {
   user_id: string
   seat: 'A' | 'B'
-  display_name: string
+  username: string
 }
 
 /**
@@ -17,7 +17,7 @@ export type Player = {
  *
  * Returns:
  *  - `game`: the `games` row (status, current_clue_giver, turn_number, etc.)
- *  - `players`: the (≤ 2) seated players, with display names embedded
+ *  - `players`: the (≤ 2) seated players, with usernames embedded
  *  - `loading`: true until the first load completes
  *
  * Realtime: subscribes to `games` and `game_players` postgres_changes for
@@ -70,11 +70,11 @@ export function useGame(gameId: string) {
       const profilesRes = userIds.length > 0
         ? await commonDb
             .from('profiles')
-            .select('user_id, display_name')
+            .select('user_id, username')
             .in('user_id', userIds)
         : null
-      const displayNameByUserId = new Map<string, string>(
-        (profilesRes?.data ?? []).map((p) => [p.user_id, p.display_name]),
+      const usernameByUserId = new Map<string, string>(
+        (profilesRes?.data ?? []).map((p) => [p.user_id, p.username]),
       )
 
       if (!mounted) return
@@ -84,7 +84,7 @@ export function useGame(gameId: string) {
           playersRes.data.map((p) => ({
             user_id: p.user_id,
             seat: p.seat as 'A' | 'B',
-            display_name: displayNameByUserId.get(p.user_id) ?? '?',
+            username: usernameByUserId.get(p.user_id) ?? '?',
           })),
         )
       }

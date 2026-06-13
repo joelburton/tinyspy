@@ -92,7 +92,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
           <div className="muted">Game {game.join_code}</div>
           <div>
             <strong>{mySeat}</strong> · with{' '}
-            <strong>{opponent?.display_name ?? '…'}</strong>
+            <strong>{opponent?.username ?? '…'}</strong>
             {!gameOver && !inSuddenDeath && (
               <> · clue-giver: <strong>{game.current_clue_giver}</strong></>
             )}
@@ -116,7 +116,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
           status={game.status}
           gameId={gameId}
           nextGameId={game.next_game_id}
-          opponentName={opponent?.display_name}
+          opponentName={opponent?.username}
           onLeave={onLeave}
           onEnterGame={onEnterGame}
         />

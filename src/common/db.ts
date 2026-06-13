@@ -7,7 +7,7 @@ import { supabase } from './lib/supabase'
  *
  *     import { db } from '../db'
  *
- *     const { data } = await db.from('profiles').select('display_name')...
+ *     const { data } = await db.from('profiles').select('username')...
  *     await db.rpc('some_common_rpc', { ... })
  *
  * Equivalent to `supabase.schema('common').from(...)` at every call

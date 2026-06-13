@@ -11,7 +11,7 @@ import { useChat, type ChatSchema } from '../hooks/useChat'
 type ChatRosterEntry = {
   user_id: string
   seat: string
-  display_name: string
+  username: string
 }
 
 type Props = {
@@ -43,7 +43,7 @@ export function ChatPanel({ gameSchema, gameId, players }: Props) {
   // small (≤ 2) so a find() is cheap. Doing the lookup here (instead of
   // in useChat) means useChat returns raw rows — which matches the shape
   // of realtime INSERT payloads exactly, so the append-on-INSERT path
-  // doesn't need to refetch the row to get the display name.
+  // doesn't need to refetch the row to get the username.
   function playerFor(userId: string) {
     return players.find((p) => p.user_id === userId)
   }
@@ -83,7 +83,7 @@ export function ChatPanel({ gameSchema, gameId, players }: Props) {
         )}
         {messages.map((m) => {
           const sender = playerFor(m.user_id)
-          const name = sender?.display_name ?? '?'
+          const name = sender?.username ?? '?'
           const seat = sender?.seat ?? 'A'
           return (
             <div key={m.id} className="chat-msg">

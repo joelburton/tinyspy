@@ -56,12 +56,12 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
       <div className="seat-list">
         <div className="seat">
           <span className="seat-label">A</span>
-          <span>{playerA?.display_name ?? <em className="muted">waiting…</em>}</span>
+          <span>{playerA?.username ?? <em className="muted">waiting…</em>}</span>
           {playerA?.user_id === session.user.id && <span className="muted">(you)</span>}
         </div>
         <div className="seat">
           <span className="seat-label">B</span>
-          <span>{playerB?.display_name ?? <em className="muted">waiting…</em>}</span>
+          <span>{playerB?.username ?? <em className="muted">waiting…</em>}</span>
           {playerB?.user_id === session.user.id && <span className="muted">(you)</span>}
         </div>
       </div>
