@@ -30,7 +30,16 @@ type WordRow = Database['tinyspy']['Tables']['words']['Row']
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
   const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
-  const [peerKey, setPeerKey] = useState<KeyLabel[] | null>(null)
+  // The peer key is fetched into `fetchedPeerKey` and tagged with the
+  // gameId+userId it was fetched for. The publicly-returned `peerKey`
+  // (derived below) is null unless the caller currently wants the peer
+  // key AND the cached fetch matches the active game/user — this
+  // avoids the "setState in effect body" anti-pattern that arose when
+  // the hook synchronously cleared peerKey on revealPeer flipping off.
+  const [fetchedPeerKey, setFetchedPeerKey] = useState<KeyLabel[] | null>(null)
+  const [fetchedFor, setFetchedFor] = useState<string | null>(null)
+  const peerKey =
+    revealPeer && fetchedFor === `${gameId}:${userId}` ? fetchedPeerKey : null
   const [loading, setLoading] = useState(true)
 
   // Words + own key. Re-runs only on game/user change (not when revealPeer
@@ -80,15 +89,13 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     }
   }, [gameId, userId])
 
-  // Peer key for post-game review. Fetched lazily — only loaded once the
-  // game is in a terminal state and the board switches to the "show both
-  // keys" rendering. When `revealPeer` flips back off (e.g. a new game),
-  // the peer key is dropped so it can't leak into a future render.
+  // Peer key for post-game review. Fetched lazily — only loaded once
+  // the game is in a terminal state and the board switches to the
+  // "show both keys" rendering. The hook-returned `peerKey` is null
+  // when revealPeer is false (derivation above), so we don't need an
+  // explicit clear path here; we just skip the fetch.
   useEffect(() => {
-    if (!revealPeer) {
-      setPeerKey(null)
-      return
-    }
+    if (!revealPeer) return
     let mounted = true
     db
       .from('game_players')
@@ -98,7 +105,10 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       .single()
       .then(({ data }) => {
         if (!mounted) return
-        if (data?.key_card) setPeerKey(data.key_card as unknown as KeyLabel[])
+        if (data?.key_card) {
+          setFetchedPeerKey(data.key_card as unknown as KeyLabel[])
+          setFetchedFor(`${gameId}:${userId}`)
+        }
       })
     return () => {
       mounted = false

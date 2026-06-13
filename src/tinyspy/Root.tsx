@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { GameRootProps } from '../common/lib/games'
 import { readHashCode, writeHashCode } from '../common/lib/url'
 import { db } from './db'
@@ -28,10 +28,30 @@ import { BoardScreen } from './components/BoardScreen'
  */
 export function TinyspyRoot({ session }: GameRootProps) {
   const [gameId, setGameId] = useState<string | null>(null)
-  // `restoring` covers the brief window between Root mounting and the
-  // URL hash resolving. Without it, a user with `#game=ABC` would
-  // flash the home screen before being kicked into the game.
-  const [restoring, setRestoring] = useState(true)
+
+  // Read the URL hash ONCE at mount and remember it. Using useMemo
+  // (rather than a plain const) so it isn't re-read on every render —
+  // a transient hash change mid-mount would otherwise confuse the
+  // restore flow.
+  const initialCode = useMemo(() => readHashCode(), [])
+
+  // `restoreAttempted` flips to true once the URL-hash join_game RPC
+  // has settled (success or failure). It's initialized to true on the
+  // common case (no hash to restore) so the "Loading…" splash is
+  // skipped entirely on a cold load with a clean URL.
+  const [restoreAttempted, setRestoreAttempted] = useState(
+    () => initialCode === null,
+  )
+
+  // `restoring` is derived state — true only while we're actively
+  // waiting on the URL-hash join_game RPC. Once we have a gameId
+  // (regardless of how we got it: hash restore, manual create/join,
+  // play_again) or once the restore has been attempted, we're done.
+  //
+  // Deriving avoids the "setState in effect body" anti-pattern that
+  // arose when `restoring` was held as state and cleared from inside
+  // the effect's early-return branches.
+  const restoring = !restoreAttempted && !gameId
 
   function enterGame(id: string, code: string) {
     setGameId(id)
@@ -53,25 +73,21 @@ export function TinyspyRoot({ session }: GameRootProps) {
   // Bad code → clear the hash silently and drop the user on the home
   // screen.
   useEffect(() => {
-    if (gameId) {
-      setRestoring(false)
-      return
-    }
-    const code = readHashCode()
-    if (!code) {
-      setRestoring(false)
-      return
-    }
-    db.rpc('join_game', { code }).then(({ data, error }) => {
+    // No-op in all three early-return cases below — `restoring` is
+    // already false (initialized that way or cleared on a prior pass),
+    // so the splash has already unmounted; we just don't issue the RPC.
+    if (restoreAttempted || gameId || !initialCode) return
+
+    db.rpc('join_game', { code: initialCode }).then(({ data, error }) => {
       if (error || !data) {
         console.warn('could not restore game from URL', error)
         writeHashCode(null)
       } else {
         setGameId(data)
       }
-      setRestoring(false)
+      setRestoreAttempted(true)
     })
-  }, [session.user.id, gameId])
+  }, [initialCode, gameId, restoreAttempted])
 
   if (restoring) return <div className="card">Loading…</div>
   if (!gameId) return <HomeScreen session={session} onEnterGame={enterGame} />
