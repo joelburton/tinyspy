@@ -16,7 +16,7 @@ Quick reference for reading the code and driving the project. See [`../README.md
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
-| `npm run deploy` | full prod push: `supabase db push` → `vite build` → `netlify deploy -p -d dist` |
+| `npm run deploy` | full prod push: `supabase db push` → `functions deploy suggest-clue` → `vite build` → `netlify deploy -p -d dist` |
 
 `types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x quirk; you don't need to set it yourself when running those scripts.
 
@@ -52,6 +52,18 @@ supabase link --project-ref <ref>               # tie this checkout to a hosted 
 supabase login                                  # one-time browser-based auth
 ```
 
+### Edge Functions
+
+```
+supabase functions serve <name>                 # local hot-reload runtime
+supabase functions deploy <name>                # ship to the linked project
+supabase functions list                         # what's deployed on prod
+supabase secrets set KEY=value                  # set a secret in prod runtime env
+supabase secrets list                           # see what secrets are set (names only)
+```
+
+Local-only secrets live in `supabase/functions/.env` (gitignored). Production secrets are set via `supabase secrets set` — they live in Supabase's encrypted vault and are injected into the function's `Deno.env` at runtime.
+
 ### Inspecting the running local stack
 
 ```
@@ -72,6 +84,7 @@ All in the `public` schema. Schema source: [`supabase/migrations/20260612000000_
 | `word_pool` | the static Duet word list (390 rows). Read only by security-definer RPCs; clients cannot SELECT. |
 | `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
 | `clues` | one row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
+| `messages` | in-game chat. RLS-scoped to players in the game; writes go through the `send_message` RPC. |
 
 ## Postgres functions
 
@@ -97,15 +110,24 @@ All callable RPCs are `security definer` (run with `postgres` privileges) and gr
 | `submit_guess(target_game uuid, target_position int) → text` | Reveals a cell using the *clue-giver's* key view. Green = continue; neutral = `_end_turn`; assassin = `lost_assassin`. In `sudden_death`, any non-green = `lost_clock`. Returns the revealed label. | not a player · cell already revealed · clue-giver can't guess · waiting for clue · position out of range |
 | `pass_turn(target_game uuid)` | Voluntary turn-end during the guess phase. | clue-giver can't pass · no clue this turn · status ≠ active |
 | `play_again(prev_game uuid) → table(id, join_code)` | From a finished game, creates a successor with both players pre-seated. Idempotent — second caller gets the same id+code via `games.next_game_id`. | previous game not ended · not a player in the previous game |
+| `send_message(target_game uuid, content text)` | Posts a chat message to the game. Trimmed length must be 1–1000 chars. | not authenticated · not a player · empty content · over 1000 chars |
+| `get_clue_context(target_game uuid) → jsonb` | Read-only. Returns the caller's unrevealed greens/neutrals/assassin + previous clue history, for the `suggest-clue` Edge Function to feed to Claude. | not authenticated · not a player · not the current clue-giver · status ≠ active/sudden_death |
+
+## Edge Functions
+
+| function | purpose |
+|---|---|
+| `suggest-clue` | Called from the "Need a clue?" button. Invokes `get_clue_context` as the user (RLS applies), prompts Claude Sonnet 4.6 via tool-use for `{clue, count, agents, reasoning}`, returns it. Requires `ANTHROPIC_API_KEY` in the function's runtime env. |
 
 ## Key files for code reading
 
 | reading goal | start here |
 |---|---|
-| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) |
+| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) (game) + [`20260612220832_chat.sql`](../supabase/migrations/20260612220832_chat.sql) (chat) + [`20260613001456_clue_context.sql`](../supabase/migrations/20260613001456_clue_context.sql) (suggest-clue helper) |
 | "the rulebook in code form" | [`docs/duet-rules.md`](duet-rules.md) |
 | "what's the top-level state machine" | [`src/App.tsx`](../src/App.tsx) |
 | "how does the board work" | [`src/components/BoardScreen.tsx`](../src/components/BoardScreen.tsx) + [`src/lib/phase.ts`](../src/lib/phase.ts) |
 | "how does Realtime stay in sync" | [`src/hooks/useGame.ts`](../src/hooks/useGame.ts) (others follow the same pattern) |
+| "how does the AI clue suggestion work" | [`supabase/functions/suggest-clue/index.ts`](../supabase/functions/suggest-clue/index.ts) — the Edge Function pattern: thin orchestrator around a security-definer RPC + Anthropic tool-use |
 | "what corners did we cut" | [`../CODE_REVIEW.md`](../CODE_REVIEW.md) |
 | "how do the tests work" | [`supabase/tests/lobby_test.sql`](../supabase/tests/lobby_test.sql) (pgTAP tutorial) and [`src/hooks/useSession.test.ts`](../src/hooks/useSession.test.ts) (Vitest + supabase mock) |

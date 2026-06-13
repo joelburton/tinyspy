@@ -62,8 +62,13 @@ supabase/
                          (incl. 20260612000001_seed_word_pool.sql)
   seed.sql             ← stub; the word list lives in the migration above
   tests/               ← pgTAP test suites
+  functions/
+    suggest-clue/      ← Deno Edge Function: "Need a clue?" → Anthropic
+    .env.example       ← local-only secret template (.env is gitignored)
 
-docs/duet-rules.md     ← canonical spec the RPCs implement against
+docs/
+  duet-rules.md        ← canonical spec the RPCs implement against
+  cheatsheet.md        ← one-page lookup for commands, tables, RPCs
 CODE_REVIEW.md         ← v1 review findings (deferred items + intent docs)
 ```
 
@@ -77,6 +82,7 @@ CODE_REVIEW.md         ← v1 review findings (deferred items + intent docs)
 | `word_pool`    | seeded Duet word list (read only by RPCs)         |
 | `words`        | 25 rows per game: word + reveal state             |
 | `clues`        | one row per turn, unique on (game_id, turn_number) |
+| `messages`     | in-game chat, one row per message; RLS-scoped to players in the game |
 
 RLS pattern: `is_player_in_game(game_id)` is a `security definer` helper that lets RLS policies say "the current user is in this game" without recursing on `game_players` itself.
 
@@ -93,6 +99,39 @@ All marked `security definer`, all granted to the `authenticated` role only.
 | `submit_guess(target_game, position)` | Reveals using the clue-giver's key view; green continues, neutral ends turn, assassin ends game. |
 | `pass_turn(target_game)`              | Guesser ends the turn voluntarily.                                |
 | `play_again(prev_game)`               | From a finished game, creates a successor and pre-seats both players. Idempotent — first caller creates, second caller gets the same id. |
+| `send_message(target_game, content)`  | Posts a chat message. Seat membership + length (1–1000 chars) checked. |
+| `get_clue_context(target_game)`       | Read-only. Returns the data the `suggest-clue` Edge Function needs (caller's unrevealed greens/neutrals/assassin + previous clues). Caller must be the current clue-giver in an active game. |
+
+## Edge Functions
+
+One Deno function lives under `supabase/functions/`:
+
+| function | purpose |
+|---|---|
+| `suggest-clue` | When the active clue-giver clicks "Need a clue?", the FE invokes this function. It calls `get_clue_context` as the user (RLS-checked), builds a prompt from the result, and asks Claude Sonnet 4.6 via tool-use for a `{clue, count, agents, reasoning}` object. The reasoning surfaces to the player as a tooltip below the input row. |
+
+**Architecture pattern.** The function is intentionally thin — it doesn't enforce game rules (that's `get_clue_context`'s job) and it doesn't shape responses for the FE (Anthropic's tool-use gives us already-typed JSON). Most of its body is prompt construction. The Edge Function is for things the database can't do well: calling external APIs with real SDK support, handling secrets, doing prompt engineering in TypeScript.
+
+**Secrets.** The function needs `ANTHROPIC_API_KEY`. Set it once per environment:
+
+```bash
+# Local (for `supabase functions serve`)
+cp supabase/functions/.env.example supabase/functions/.env
+# then edit and add the key
+
+# Production (encrypted secret store)
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-...
+```
+
+The function also reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from its runtime env — both auto-injected by the Edge Runtime, no setup needed. (Note: the runtime injects `ANON_KEY` even though the FE now uses the renamed `PUBLISHABLE_KEY`; they're the same JWT value, different name on different surfaces.)
+
+**Local development.**
+
+```bash
+supabase functions serve suggest-clue   # hot-reloads on file change
+```
+
+The FE's `supabase.functions.invoke('suggest-clue', { body: { gameId } })` routes to either local or hosted depending on which `VITE_SUPABASE_URL` is set.
 
 ## npm scripts
 
@@ -151,7 +190,9 @@ select set_config('request.jwt.claims',
 select set_config('role', 'authenticated', true);
 ```
 
-`supabase/tests/lobby_test.sql` walks through this in detail as the tutorial file; subsequent files lean on that foundation. Recommended reading order: `lobby_test.sql` → `start_game_test.sql`.
+`supabase/tests/lobby_test.sql` walks through this in detail as the tutorial file; subsequent files lean on that foundation. Recommended reading order: `lobby_test.sql` → `start_game_test.sql` → others as you need.
+
+Current pgTAP files: `lobby_test`, `start_game_test`, `game_loop_test`, `play_again_test`, `rls_test`, `sudden_death_test`, `win_test`, `chat_test`, `clue_context_test`. Total: 9 files, ~80 assertions.
 
 **Common assertion functions** used in this project:
 
@@ -204,13 +245,14 @@ Redeploy in one command:
 npm run deploy
 ```
 
-It runs `supabase db push && npm run build && netlify deploy -p -d dist`. The order matters: schema first so the FE never references a column or RPC the prod DB doesn't have yet. `db push` is idempotent — when no migrations are pending it's a quick no-op, so it's safe to run on every deploy.
+It runs `supabase db push && supabase functions deploy suggest-clue && npm run build && netlify deploy -p -d dist`. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Both `db push` and `functions deploy` are idempotent — when nothing's pending they're quick no-ops, so the script is safe to run on every deploy.
 
 If you want to do the steps by hand:
 
 ```bash
 supabase db push --dry-run                # preview pending migrations (optional)
 supabase db push                          # apply to hosted DB
+supabase functions deploy suggest-clue    # push Edge Function changes
 npm run build                             # picks up .env.production[.local]
 netlify deploy -p -d dist                 # upload to Netlify
 ```
@@ -220,6 +262,8 @@ The hosted Supabase project ref is committed to `supabase/.temp/project-ref` by 
 A few hosted-project settings can only be configured in the dashboard (not via `config.toml`):
 - Auth → URL Configuration: site_url + redirect URLs must include the Netlify origin
 - Auth → Email rate limits: free tier defaults are conservative; raise if needed
+- Custom SMTP (we use Resend on `tinyspy.joelburton.com`) — Supabase's shared mailer caps you at 2 emails/hour; any real magic-link traffic requires your own SMTP provider
+- Edge Function secrets — set via `supabase secrets set` (CLI) rather than the dashboard for atomicity. Currently just `ANTHROPIC_API_KEY` for the `suggest-clue` function.
 
 ## Status
 
