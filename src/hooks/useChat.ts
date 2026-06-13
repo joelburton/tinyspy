@@ -55,7 +55,12 @@ export function useChat(gameId: string) {
           setMessages((prev) => [...prev, payload.new as ChatMessage])
         },
       )
-      .subscribe()
+      // Refetch on every SUBSCRIBED. Recovers any messages we missed during
+      // a reconnect, by overwriting the appended state with the canonical
+      // server view. See useGame for the pattern.
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') load()
+      })
 
     return () => {
       mounted = false

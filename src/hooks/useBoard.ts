@@ -71,7 +71,11 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
         { event: '*', schema: 'public', table: 'words', filter: `game_id=eq.${gameId}` },
         load,
       )
-      .subscribe()
+      // Refetch on every SUBSCRIBED — recovers from any missed reveals
+      // during a reconnect. See useGame for the pattern.
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') load()
+      })
 
     return () => {
       mounted = false

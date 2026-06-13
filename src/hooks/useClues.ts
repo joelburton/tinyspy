@@ -44,7 +44,11 @@ export function useClues(gameId: string) {
         { event: '*', schema: 'public', table: 'clues', filter: `game_id=eq.${gameId}` },
         load,
       )
-      .subscribe()
+      // Refetch on every SUBSCRIBED — without this, missing the clue INSERT
+      // during a network blip would deadlock the guesser. See useGame.
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') load()
+      })
 
     return () => {
       mounted = false

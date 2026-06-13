@@ -83,7 +83,12 @@ export function useGame(gameId: string) {
         },
         load,
       )
-      .subscribe()
+      // Refetch on every SUBSCRIBED status — fires on initial subscribe AND
+      // on every reconnect. Closes the "missed events during a network blip"
+      // gap that postgres_changes alone leaves open.
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') load()
+      })
 
     return () => {
       mounted = false
