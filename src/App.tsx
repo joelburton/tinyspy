@@ -1,121 +1,29 @@
-import { useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { supabase } from './common/lib/supabase'
-import { readHashCode, writeHashCode } from './common/lib/url'
 import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
-import { useGame } from './tinyspy/hooks/useGame'
-import { HomeScreen } from './tinyspy/components/HomeScreen'
-import { LobbyScreen } from './tinyspy/components/LobbyScreen'
-import { BoardScreen } from './tinyspy/components/BoardScreen'
+import { games } from './games'
 
 /**
- * Top-level state machine. There are four user-visible states:
+ * Top-level shell. Handles the three things every game shares:
  *
- *     loading  →  LoginScreen | HomeScreen | InGame (Lobby/Board)
+ *   1. Auth — wait for session, fall back to LoginScreen if not signed in.
+ *   2. Selecting which game is mounted (today: always games[0]; later: a
+ *      picker when games.length > 1).
+ *   3. Delegating everything else to that game's Root component.
  *
- * Routing is purely state-based (no react-router). The "current game" is
- * tracked by UUID in component state, and *also* mirrored to the URL hash
- * (as the human-friendly join code) so refresh and link-sharing both work.
- *
- * The hash is the source of truth for "what game should I be in after a
- * cold load" — see the restore effect below.
+ * The shell deliberately does NOT name any specific game — it iterates
+ * `games` from src/games.ts. Removing a game is three actions
+ * (delete folder, delete its line in games.ts, drop its DB schema)
+ * and the shell is untouched. See docs/naming.md.
  */
 export default function App() {
   const { session, loading } = useSession()
-  const [gameId, setGameId] = useState<string | null>(null)
-  // `restoring` covers the brief window between session-loaded and
-  // hash-resolved. Without it, a user with `#game=ABC` would flash the
-  // home screen before being kicked into the game.
-  const [restoring, setRestoring] = useState(true)
 
-  function enterGame(id: string, code: string) {
-    setGameId(id)
-    writeHashCode(code)
-  }
-
-  function leaveGame() {
-    setGameId(null)
-    writeHashCode(null)
-  }
-
-  // Restore the game referenced by the URL hash once the session is ready.
-  //
-  // join_game is idempotent for an existing player (returns the game id
-  // back), so calling it on refresh is safe. For a fresh user receiving
-  // the URL as an invite link, it does the actual join — same code path.
-  //
-  // Bad code → clear the hash silently and drop the user on the home screen.
-  useEffect(() => {
-    if (loading) return
-    if (!session) {
-      setRestoring(false)
-      return
-    }
-    if (gameId) {
-      setRestoring(false)
-      return
-    }
-    const code = readHashCode()
-    if (!code) {
-      setRestoring(false)
-      return
-    }
-    supabase.schema('tinyspy').rpc('join_game', { code }).then(({ data, error }) => {
-      if (error || !data) {
-        console.warn('could not restore game from URL', error)
-        writeHashCode(null)
-      } else {
-        setGameId(data)
-      }
-      setRestoring(false)
-    })
-  }, [loading, session?.user.id, gameId])
-
-  if (loading || restoring) return <div className="card">Loading…</div>
+  if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
-  if (!gameId) return <HomeScreen session={session} onEnterGame={enterGame} />
-  return (
-    <InGame
-      session={session}
-      gameId={gameId}
-      onLeave={leaveGame}
-      onEnterGame={enterGame}
-    />
-  )
-}
 
-/**
- * Inner state machine for an active gameId: shows either LobbyScreen (status
- * = 'lobby') or BoardScreen (any other status). The transition is driven
- * entirely by `games.status` changes propagated through Realtime — when
- * start_game flips status to 'active', both players' screens swap from
- * lobby to board automatically with no extra navigation logic.
- */
-function InGame({
-  session,
-  gameId,
-  onLeave,
-  onEnterGame,
-}: {
-  session: Session
-  gameId: string
-  onLeave: () => void
-  onEnterGame: (id: string, joinCode: string) => void
-}) {
-  const { game, loading } = useGame(gameId)
-
-  if (loading) return <div className="card">Loading game…</div>
-  if (!game) return <div className="card">Game not found.</div>
-  if (game.status === 'lobby') {
-    return <LobbyScreen session={session} gameId={gameId} onLeave={onLeave} />
-  }
-  return (
-    <BoardScreen
-      session={session}
-      gameId={gameId}
-      onLeave={onLeave}
-      onEnterGame={onEnterGame}
-    />
-  )
+  // For now there's only one game registered, so we always mount it.
+  // When games.length > 1, this is where the chooser/picker goes
+  // (or routes to `#game-id=<id>/...`, or persists last-played, etc.).
+  const game = games[0]
+  return <game.Root session={session} />
 }
