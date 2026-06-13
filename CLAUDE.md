@@ -30,6 +30,25 @@ This is a venue for groups of friends to play games together. It is **not** a pu
 - Clubs invite friends to join; games happen inside clubs. Chat, presence, "people you've played with," and game invitations are organized by club, not by individual game.
 - This shapes UX decisions: e.g., a game's "share" affordance is "play with a club," not "post to a public list." The join-code path exists for ad-hoc pairings outside any club, but it's the fallback, not the primary flow.
 
+## Alpha software — break things freely
+
+The actual user population is Joel plus a handful of friends who *know* this is alpha-stage and have signed up for the bumpy ride. There are no production users to protect.
+
+What this means in practice:
+
+- **Don't engineer for backwards compatibility.** No redirect shims for old URL shapes, no dual-running code paths during a migration, no "legacy" branches that exist to be polite to existing data. Make the change, tell Joel to tell the friends.
+- **Schema rewrites are fine.** Drop tables, rename columns, change RPC signatures. The cost is "Joel sends a Discord message" — not "engineering a multi-week dual-write transition."
+- **Data loss between rebuilds is expected and accepted.** `supabase db reset` wipes everything; in-progress games disappear; chat history goes with them. This is fine. The Supabase project itself is on the chopping block (planned rebuild as "games"). The friends understand.
+- **Forcing re-authentication / re-account-creation is fine.** Renaming `display_name` → `username` may invalidate someone's previous handle. They'll pick a new one. Migrating to a fresh Supabase project means everyone signs in afresh. None of this is a blocker.
+- **Bookmarks rotting is fine.** When clubs introduce path-based URLs, old `#game=ABC` links won't work. Nobody will be sad.
+
+This **doesn't** mean be cavalier with destructive actions. The principle is about *avoiding compat apparatus we don't need*, not about being sloppy with the friends' goodwill. Still:
+
+- **Always confirm before destructive operations** (dropping databases, force-pushes, etc.). The "friends will understand" license is for *design* decisions, not for *unauthorized* destruction.
+- **The friends' actual game data, if it matters to them, still matters.** Joel decides what's expendable; if he says "you can wipe the dev DB," yes. He hasn't said that about prod — but prod is currently empty / non-load-bearing.
+
+When you encounter a question like "should we keep the old URL pattern working?" or "do we need a migration path from display_name to username for existing rows?" — the default answer is **no, just make the change cleanly**. If you're not sure whether a specific destructive choice is in-bounds, ask once; once Joel says yes, take the simpler path.
+
 ## Solo and multiplayer games — keep them orthogonal
 
 Most games in this monorepo are playable solo (Boggle, crosswords, etc.). One — Tinyspy — requires exactly two players. Solo games are started outside any club; multiplayer games are started inside a club.
