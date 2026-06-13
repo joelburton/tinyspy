@@ -24,7 +24,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+set search_path = tinyspy, common, public, extensions;
 
 select plan(4);
 
@@ -53,7 +53,7 @@ $$;
 create function pg_temp.find_position_set(g uuid, s text, target text) returns int[]
 language sql as $$
   select array_agg((ord - 1)::int order by ord)
-  from public.game_players gp,
+  from tinyspy.game_players gp,
        jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
   where gp.game_id = g and gp.seat = s and t.label = target;
 $$;
@@ -123,13 +123,13 @@ begin
   -- Positions where Alice's view != G but Bob's view = G.
   with a as (
     select t.label as la, t.ord
-    from public.game_players gp,
+    from tinyspy.game_players gp,
          jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
     where gp.game_id = (select id from g) and gp.seat = 'A'
   ),
   b as (
     select t.label as lb, t.ord
-    from public.game_players gp,
+    from tinyspy.game_players gp,
          jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
     where gp.game_id = (select id from g) and gp.seat = 'B'
   )
@@ -163,16 +163,16 @@ select is(
   submit_guess(
     (select id from g),
     (select (a.ord - 1)::int
-     from public.game_players gpa,
+     from tinyspy.game_players gpa,
           jsonb_array_elements_text(gpa.key_card) with ordinality as a(label, ord),
-          public.game_players gpb,
+          tinyspy.game_players gpb,
           jsonb_array_elements_text(gpb.key_card) with ordinality as b(label, ord)
      where gpa.game_id = (select id from g) and gpa.seat = 'A'
        and gpb.game_id = (select id from g) and gpb.seat = 'B'
        and a.ord = b.ord
        and a.label <> 'G' and b.label = 'G'
        and not exists (
-         select 1 from public.words w
+         select 1 from tinyspy.words w
          where w.game_id = (select id from g)
            and w.position = (a.ord - 1)::int
            and w.revealed_as is not null

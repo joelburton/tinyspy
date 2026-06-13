@@ -17,8 +17,8 @@ import { describe, expect, it } from 'vitest'
 import { GameLog } from './GameLog'
 import type { Database } from '../types/db'
 
-type ClueRow = Database['public']['Tables']['clues']['Row']
-type WordRow = Database['public']['Tables']['words']['Row']
+type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
+type WordRow = Database['tinyspy']['Tables']['words']['Row']
 
 function clue(overrides: Partial<ClueRow>): ClueRow {
   return {

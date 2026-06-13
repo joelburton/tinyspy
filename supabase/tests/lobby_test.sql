@@ -44,7 +44,10 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+-- Tests target tinyspy's RPCs/tables; `common` is included so cross-schema
+-- references to common.profiles resolve unqualified; `public` and
+-- `extensions` are kept for gen_random_uuid and pgtap helpers.
+set search_path = tinyspy, common, public, extensions;
 
 -- Eight assertions in this file. pgTAP fails the run if this count
 -- doesn't match the actual number of assertion calls below.
@@ -56,7 +59,7 @@ select plan(8);
 
 -- Insert two fake users directly into auth.users (bypassing the magic-
 -- link flow). The handle_new_user trigger fires on insert and creates
--- the matching public.profiles row for each, so game_players FKs will
+-- the matching common.profiles row for each, so game_players FKs will
 -- resolve later.
 
 insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values

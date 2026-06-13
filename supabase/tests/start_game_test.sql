@@ -18,7 +18,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+set search_path = tinyspy, common, public, extensions;
 
 select plan(7);
 
@@ -47,7 +47,7 @@ $$;
 -- ============================================================
 -- Drive a complete lobby → start flow
 -- ============================================================
--- create_game uses public.word_pool, which seed.sql populates with 389
+-- create_game uses tinyspy.word_pool, which the seed migration populates with 389
 -- Duet words on `supabase db reset`. We rely on that — if you run the
 -- test without first running db reset, word_pool will be empty and
 -- start_game will fail.

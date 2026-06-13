@@ -18,7 +18,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+set search_path = tinyspy, common, public, extensions;
 
 select plan(18);
 
@@ -50,7 +50,7 @@ $$;
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$
   select (ord - 1)::int
-  from public.game_players gp,
+  from tinyspy.game_players gp,
        jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
   where gp.game_id = g and gp.seat = s and t.label = target
   limit 1;

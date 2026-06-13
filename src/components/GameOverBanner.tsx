@@ -54,6 +54,7 @@ export function GameOverBanner({
     setError(null)
     setBusy(true)
     const { data, error } = await supabase
+      .schema('tinyspy')
       .rpc('play_again', { prev_game: gameId })
       .single()
     setBusy(false)

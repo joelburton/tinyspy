@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/db'
 
-export type ClueRow = Database['public']['Tables']['clues']['Row']
+export type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
 
 /**
  * Subscribes to the clue history for a single game.
@@ -26,6 +26,7 @@ export function useClues(gameId: string) {
 
     async function load() {
       const { data } = await supabase
+        .schema('tinyspy')
         .from('clues')
         .select('*')
         .eq('game_id', gameId)
@@ -41,7 +42,7 @@ export function useClues(gameId: string) {
       .channel(`clues:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'clues', filter: `game_id=eq.${gameId}` },
+        { event: '*', schema: 'tinyspy', table: 'clues', filter: `game_id=eq.${gameId}` },
         load,
       )
       // Refetch on every SUBSCRIBED — without this, missing the clue INSERT

@@ -90,7 +90,7 @@ function ClueForm({ gameId }: { gameId: string }) {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    const { error } = await supabase.rpc('submit_clue', {
+    const { error } = await supabase.schema('tinyspy').rpc('submit_clue', {
       target_game: gameId,
       word: word.trim(),
       clue_count: parseInt(count, 10),
@@ -191,7 +191,7 @@ function PassButton({ gameId }: { gameId: string }) {
       disabled={busy}
       onClick={async () => {
         setBusy(true)
-        const { error } = await supabase.rpc('pass_turn', { target_game: gameId })
+        const { error } = await supabase.schema('tinyspy').rpc('pass_turn', { target_game: gameId })
         setBusy(false)
         if (error) console.error(error)
       }}

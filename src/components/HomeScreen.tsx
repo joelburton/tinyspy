@@ -30,6 +30,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
   useEffect(() => {
     let mounted = true
     supabase
+      .schema('common')
       .from('profiles')
       .select('display_name')
       .eq('user_id', session.user.id)
@@ -50,7 +51,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
   async function onCreate() {
     setError(null)
     setBusy(true)
-    const { data, error } = await supabase.rpc('create_game').single()
+    const { data, error } = await supabase.schema('tinyspy').rpc('create_game').single()
     setBusy(false)
     if (error || !data) {
       setError(error?.message ?? 'failed to create game')
@@ -63,7 +64,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    const { data, error } = await supabase.rpc('join_game', { code })
+    const { data, error } = await supabase.schema('tinyspy').rpc('join_game', { code })
     setBusy(false)
     if (error || !data) {
       setError(error?.message ?? 'failed to join game')

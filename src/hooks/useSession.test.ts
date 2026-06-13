@@ -31,14 +31,16 @@ vi.mock('../lib/supabase', () => ({
       onAuthStateChange: mockOnAuthStateChange,
       signOut: mockSignOut,
     },
-    // The hook's query is `from('profiles').select('user_id')
-    //   .eq('user_id', X).maybeSingle()` — we collapse the whole chain
-    // to its terminal mock so we don't have to model each intermediate
-    // method's return value.
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: mockMaybeSingle,
+    // The hook's query is `supabase.schema('common').from('profiles')
+    //   .select('user_id').eq('user_id', X).maybeSingle()` — we collapse
+    // the whole chain (including schema()) to its terminal mock so we
+    // don't have to model each intermediate method's return value.
+    schema: () => ({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: mockMaybeSingle,
+          }),
         }),
       }),
     }),

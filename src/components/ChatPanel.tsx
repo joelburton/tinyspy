@@ -47,7 +47,7 @@ export function ChatPanel({ gameId, players }: Props) {
     if (!trimmed) return
     setError(null)
     setBusy(true)
-    const { error } = await supabase.rpc('send_message', {
+    const { error } = await supabase.schema('tinyspy').rpc('send_message', {
       target_game: gameId,
       content: trimmed,
     })

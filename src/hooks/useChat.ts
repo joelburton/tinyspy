@@ -4,7 +4,7 @@ import type { Database } from '../types/db'
 
 /** A raw chat row. Display names are resolved by the consumer
  * (ChatPanel), which has the player roster from useGame. */
-export type ChatMessage = Database['public']['Tables']['messages']['Row']
+export type ChatMessage = Database['tinyspy']['Tables']['messages']['Row']
 
 /**
  * Subscribes to a game's chat log.
@@ -35,6 +35,7 @@ export function useChat(gameId: string) {
 
     async function load() {
       const { data } = await supabase
+        .schema('tinyspy')
         .from('messages')
         .select('*')
         .eq('game_id', gameId)
@@ -50,7 +51,7 @@ export function useChat(gameId: string) {
       .channel(`chat:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `game_id=eq.${gameId}` },
+        { event: 'INSERT', schema: 'tinyspy', table: 'messages', filter: `game_id=eq.${gameId}` },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as ChatMessage])
         },

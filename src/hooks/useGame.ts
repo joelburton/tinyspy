@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/db'
 
-type GameRow = Database['public']['Tables']['games']['Row']
+type GameRow = Database['tinyspy']['Tables']['games']['Row']
 
 export type Player = {
   user_id: string
@@ -41,14 +41,29 @@ export function useGame(gameId: string) {
   useEffect(() => {
     let mounted = true
 
+    // Shape of one embedded roster row. We have to spell this out because
+    // `supabase gen types` doesn't emit cross-schema relationships — the
+    // FK tinyspy.game_players.user_id → common.profiles isn't in the
+    // generated Relationships array, so TS can't infer the embed type.
+    // PostgREST still resolves the embed at runtime (both schemas are
+    // exposed and the FK exists in Postgres), so `.returns<...>` is the
+    // narrow workaround that aligns the type with the actual response.
+    type PlayerRosterRow = {
+      user_id: string
+      seat: string
+      profiles: { display_name: string } | null
+    }
+
     async function load() {
       const [gameRes, playersRes] = await Promise.all([
-        supabase.from('games').select('*').eq('id', gameId).single(),
+        supabase.schema('tinyspy').from('games').select('*').eq('id', gameId).single(),
         supabase
+          .schema('tinyspy')
           .from('game_players')
           .select('user_id, seat, profiles(display_name)')
           .eq('game_id', gameId)
-          .order('seat'),
+          .order('seat')
+          .returns<PlayerRosterRow[]>(),
       ])
       if (!mounted) return
       if (gameRes.data) setGame(gameRes.data)
@@ -70,14 +85,14 @@ export function useGame(gameId: string) {
       .channel(`game:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` },
+        { event: '*', schema: 'tinyspy', table: 'games', filter: `id=eq.${gameId}` },
         load,
       )
       .on(
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'tinyspy',
           table: 'game_players',
           filter: `game_id=eq.${gameId}`,
         },

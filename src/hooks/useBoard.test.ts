@@ -28,6 +28,11 @@ const { mockFrom, mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
+    // .schema('tinyspy').from(...) is how every table query in the hook
+    // is built; the mock collapses .schema() to a passthrough that
+    // exposes the same chainable mockFrom — no need to model schema
+    // routing in the test.
+    schema: () => ({ from: mockFrom }),
     from: mockFrom,
     channel: mockChannel,
     removeChannel: mockRemoveChannel,

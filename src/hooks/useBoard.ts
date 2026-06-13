@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { Database } from '../types/db'
 import type { KeyLabel } from '../lib/labels'
 
-type WordRow = Database['public']['Tables']['words']['Row']
+type WordRow = Database['tinyspy']['Tables']['words']['Row']
 
 /**
  * Subscribes to a game's board state for the current player.
@@ -40,11 +40,13 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     async function load() {
       const [wordsRes, keyRes] = await Promise.all([
         supabase
+          .schema('tinyspy')
           .from('words')
           .select('*')
           .eq('game_id', gameId)
           .order('position'),
         supabase
+          .schema('tinyspy')
           .from('game_players')
           .select('key_card')
           .eq('game_id', gameId)
@@ -68,7 +70,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       .channel(`board:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'words', filter: `game_id=eq.${gameId}` },
+        { event: '*', schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },
         load,
       )
       // Refetch on every SUBSCRIBED — recovers from any missed reveals
@@ -94,6 +96,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     }
     let mounted = true
     supabase
+      .schema('tinyspy')
       .from('game_players')
       .select('key_card')
       .eq('game_id', gameId)

@@ -61,7 +61,7 @@ export default function App() {
       setRestoring(false)
       return
     }
-    supabase.rpc('join_game', { code }).then(({ data, error }) => {
+    supabase.schema('tinyspy').rpc('join_game', { code }).then(({ data, error }) => {
       if (error || !data) {
         console.warn('could not restore game from URL', error)
         writeHashCode(null)

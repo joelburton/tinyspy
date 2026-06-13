@@ -25,7 +25,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-set search_path = public, extensions;
+set search_path = tinyspy, common, public, extensions;
 
 select plan(8);
 

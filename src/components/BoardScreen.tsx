@@ -72,7 +72,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   async function handleGuess(position: number) {
     setGuessError(null)
     setPendingPos(position)
-    const { error } = await supabase.rpc('submit_guess', {
+    const { error } = await supabase.schema('tinyspy').rpc('submit_guess', {
       target_game: gameId,
       target_position: position,
     })

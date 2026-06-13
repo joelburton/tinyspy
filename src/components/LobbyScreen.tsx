@@ -35,7 +35,7 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
   async function onStart() {
     setError(null)
     setStarting(true)
-    const { error } = await supabase.rpc('start_game', { target_game: gameId })
+    const { error } = await supabase.schema('tinyspy').rpc('start_game', { target_game: gameId })
     if (error) {
       setError(error.message)
       setStarting(false)

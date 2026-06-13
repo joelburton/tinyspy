@@ -38,6 +38,7 @@ export function useSession() {
         return
       }
       const { data, error } = await supabase
+        .schema('common')
         .from('profiles')
         .select('user_id')
         .eq('user_id', next.user.id)
