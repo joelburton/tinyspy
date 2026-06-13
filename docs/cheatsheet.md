@@ -123,11 +123,11 @@ All callable RPCs are `security definer` (run with `postgres` privileges) and gr
 
 | reading goal | start here |
 |---|---|
-| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) (game) + [`20260612220832_chat.sql`](../supabase/migrations/20260612220832_chat.sql) (chat) + [`20260613001456_clue_context.sql`](../supabase/migrations/20260613001456_clue_context.sql) (suggest-clue helper) |
+| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) — the entire v1 schema (game + chat + suggest-clue helper) in one place |
 | "the rulebook in code form" | [`docs/duet-rules.md`](duet-rules.md) |
 | "what's the top-level state machine" | [`src/App.tsx`](../src/App.tsx) |
 | "how does the board work" | [`src/components/BoardScreen.tsx`](../src/components/BoardScreen.tsx) + [`src/lib/phase.ts`](../src/lib/phase.ts) |
-| "how does Realtime stay in sync" | [`src/hooks/useGame.ts`](../src/hooks/useGame.ts) (others follow the same pattern) |
+| "how does Realtime stay in sync" | [`src/hooks/useGame.ts`](../src/hooks/useGame.ts) — canonical example of the two patterns we use everywhere: per-effect-run unique channel names (StrictMode safety) and refetch-on-`SUBSCRIBED` (recovers from missed events on a reconnect). Other hooks follow the same shape. |
 | "how does the AI clue suggestion work" | [`supabase/functions/suggest-clue/index.ts`](../supabase/functions/suggest-clue/index.ts) — the Edge Function pattern: thin orchestrator around a security-definer RPC + Anthropic tool-use |
 | "what corners did we cut" | [`../CODE_REVIEW.md`](../CODE_REVIEW.md) |
 | "how do the tests work" | [`supabase/tests/lobby_test.sql`](../supabase/tests/lobby_test.sql) (pgTAP tutorial) and [`src/hooks/useSession.test.ts`](../src/hooks/useSession.test.ts) (Vitest + supabase mock) |

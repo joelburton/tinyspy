@@ -112,6 +112,21 @@ create table public.clues (
   unique (game_id, turn_number)
 );
 
+-- In-game chat. Writes go through the send_message RPC (no direct
+-- INSERT policy) so seat membership + length checks happen server-side.
+create table public.messages (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references public.games(id) on delete cascade,
+  -- FK to profiles (matching the game_players pattern) so PostgREST
+  -- can auto-embed display_name if a consumer ever wants the join.
+  user_id uuid not null references public.profiles(user_id) on delete cascade,
+  content text not null check (length(trim(content)) > 0 and length(content) <= 1000),
+  sent_at timestamptz not null default now()
+);
+
+create index messages_game_id_sent_at_idx
+  on public.messages (game_id, sent_at);
+
 -- ============================================================
 -- RLS
 -- ============================================================
@@ -121,6 +136,7 @@ alter table public.game_players enable row level security;
 alter table public.word_pool enable row level security;
 alter table public.words enable row level security;
 alter table public.clues enable row level security;
+alter table public.messages enable row level security;
 
 -- Helper: prevents RLS infinite recursion when game_players self-references.
 -- security definer bypasses RLS inside the function body.
@@ -160,6 +176,10 @@ create policy clues_select on public.clues
   for select to authenticated
   using (public.is_player_in_game(game_id));
 
+create policy messages_select on public.messages
+  for select to authenticated
+  using (public.is_player_in_game(game_id));
+
 -- No insert/update/delete policies on any table. All writes go through RPCs.
 -- word_pool has no policies at all — only security-definer RPCs read from it.
 
@@ -167,6 +187,7 @@ grant select on public.games to authenticated;
 grant select on public.game_players to authenticated;
 grant select on public.words to authenticated;
 grant select on public.clues to authenticated;
+grant select on public.messages to authenticated;
 
 -- ============================================================
 -- Realtime publication
@@ -176,6 +197,7 @@ alter publication supabase_realtime add table public.games;
 alter publication supabase_realtime add table public.game_players;
 alter publication supabase_realtime add table public.words;
 alter publication supabase_realtime add table public.clues;
+alter publication supabase_realtime add table public.messages;
 
 -- ============================================================
 -- Join code generator (internal)
@@ -718,3 +740,146 @@ $$;
 
 revoke execute on function public.play_again(uuid) from public;
 grant execute on function public.play_again(uuid) to authenticated;
+
+-- ============================================================
+-- send_message: post a chat message to a game's chat log.
+-- Only seated players; trimmed content must be 1–1000 chars.
+-- ============================================================
+
+create function public.send_message(target_game uuid, content text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  trimmed text := trim(content);
+begin
+  if auth.uid() is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1 from public.game_players
+    where game_id = target_game and user_id = auth.uid()
+  ) then
+    raise exception 'not a player in this game' using errcode = '42501';
+  end if;
+
+  if length(trimmed) = 0 then
+    raise exception 'message must not be empty' using errcode = 'P0001';
+  end if;
+
+  if length(trimmed) > 1000 then
+    raise exception 'message too long (max 1000 chars)' using errcode = 'P0001';
+  end if;
+
+  insert into public.messages (game_id, user_id, content)
+  values (target_game, auth.uid(), trimmed);
+end;
+$$;
+
+revoke execute on function public.send_message(uuid, text) from public;
+grant execute on function public.send_message(uuid, text) to authenticated;
+
+-- ============================================================
+-- get_clue_context: read-only RPC returning the data the
+-- "suggest a clue" Edge Function needs to ask Anthropic.
+-- ============================================================
+--
+-- Returns a jsonb object with:
+--   greens:         text[]  — caller's unrevealed green agents
+--   neutrals:       text[]  — caller's unrevealed neutrals (avoid)
+--   assassin:       text    — caller's unrevealed assassin (avoid),
+--                              or null if it's already revealed
+--   previous_clues: array of {word, count, by_seat, turn_number}
+--
+-- Authorization: caller must be the current clue-giver of an active
+-- (or sudden-death) game. We do the check here so the Edge Function
+-- can stay a thin orchestrator; it gets back either a clean context
+-- or a clean rejection.
+
+create function public.get_clue_context(target_game uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  caller_seat text;
+  game_status text;
+  current_giver text;
+  caller_key jsonb;
+  ctx jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  -- Pull seat + game state in one shot.
+  select gp.seat, g.status, g.current_clue_giver, gp.key_card
+    into caller_seat, game_status, current_giver, caller_key
+    from public.game_players gp
+    join public.games g on g.id = gp.game_id
+    where gp.game_id = target_game and gp.user_id = auth.uid();
+
+  if caller_seat is null then
+    raise exception 'not a player in this game' using errcode = '42501';
+  end if;
+
+  if game_status not in ('active', 'sudden_death') then
+    raise exception 'no suggestions outside of active play' using errcode = 'P0001';
+  end if;
+
+  if caller_seat is distinct from current_giver then
+    raise exception 'only the current clue-giver can request a suggestion'
+      using errcode = 'P0001';
+  end if;
+
+  -- Build the context object. Each of the three category lookups uses the
+  -- caller's key view (caller_key) indexed by w.position. `->>` returns
+  -- the label as text ('G' | 'N' | 'A').
+  select jsonb_build_object(
+    'greens', coalesce((
+      select jsonb_agg(w.word order by w.position)
+      from public.words w
+      where w.game_id = target_game
+        and w.revealed_as is null
+        and (caller_key->>w.position) = 'G'
+    ), '[]'::jsonb),
+    'neutrals', coalesce((
+      select jsonb_agg(w.word order by w.position)
+      from public.words w
+      where w.game_id = target_game
+        and w.revealed_as is null
+        and (caller_key->>w.position) = 'N'
+    ), '[]'::jsonb),
+    'assassin', (
+      select w.word
+      from public.words w
+      where w.game_id = target_game
+        and w.revealed_as is null
+        and (caller_key->>w.position) = 'A'
+      limit 1
+    ),
+    'previous_clues', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'word', c.word,
+          'count', c.count,
+          'by_seat', c.by_seat,
+          'turn_number', c.turn_number
+        ) order by c.turn_number
+      )
+      from public.clues c
+      where c.game_id = target_game
+    ), '[]'::jsonb)
+  ) into ctx;
+
+  return ctx;
+end;
+$$;
+
+revoke execute on function public.get_clue_context(uuid) from public;
+grant execute on function public.get_clue_context(uuid) to authenticated;
