@@ -26,17 +26,23 @@ export type GameRootProps = {
  */
 export type GameManifest = {
   /**
-   * Stable identifier — URL-safe, matches the game's Postgres schema
-   * name by convention. Used for registry lookups and (eventually)
-   * the URL slug when more than one game is registered.
+   * Stable identifier for the gametype — URL-safe, matches the game's
+   * Postgres schema name by convention. Used for registry lookups and
+   * (eventually) the URL slug when more than one gametype is registered.
+   *
+   * Terminology: `gametype` is the *category* (`tinyspy`, `boggle`,
+   * `crosswords`), distinct from `game` (a specific playing instance)
+   * and `board` (a static starting configuration that can be shared).
+   * Treated as one word like `username`, so the field is lowercase,
+   * not `gameType`.
    */
-  id: string
+  gametype: string
 
   /**
    * Postgres schema where the game's tables and RPCs live. Same as
-   * `id` by convention, but kept as a separate field so the type
+   * `gametype` by convention, but kept as a separate field so the type
    * communicates "the schema is the address of the DB side" alongside
-   * "id is the address of the FE side." If they ever diverge, we
+   * "gametype is the address of the FE side." If they ever diverge, we
    * don't have to overload one string.
    */
   schema: string

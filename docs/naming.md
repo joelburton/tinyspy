@@ -101,7 +101,7 @@ import { TinyspyRoot } from './components/Root'
 import type { GameManifest } from '../common/types'
 
 export const tinyspyGame: GameManifest = {
-  id: 'tinyspy',
+  gametype: 'tinyspy',
   schema: 'tinyspy',
   name: 'Tinyspy',
   blurb: 'Cooperative codenames for two.',
@@ -115,7 +115,7 @@ export const games = [tinyspyGame, boggleGame]
 
 // src/App.tsx — game-agnostic
 import { games } from './games'
-// renders a picker; mounts games.find(g => g.id === active).Root
+// renders a picker; mounts games.find(g => g.gametype === active).Root
 ```
 
 To remove a game: drop its line from `src/games.ts`, delete the folder. The shell, common code, and every other game are untouched.
