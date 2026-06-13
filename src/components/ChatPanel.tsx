@@ -25,10 +25,13 @@ export function ChatPanel({ gameId, players }: Props) {
   const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
-  // Map user_id → seat letter so each message can be color-coded without
-  // an extra query. The players list is small (≤ 2) so a find() is fine.
-  function seatFor(userId: string): 'A' | 'B' | undefined {
-    return players.find((p) => p.user_id === userId)?.seat
+  // Look up the sender in the roster from useGame. The players list is
+  // small (≤ 2) so a find() is cheap. Doing the lookup here (instead of
+  // in useChat) means useChat returns raw rows — which matches the shape
+  // of realtime INSERT payloads exactly, so the append-on-INSERT path
+  // doesn't need to refetch the row to get the display name.
+  function playerFor(userId: string) {
+    return players.find((p) => p.user_id === userId)
   }
 
   // Auto-scroll to the bottom on every message change. Uses 'auto' rather
@@ -65,11 +68,12 @@ export function ChatPanel({ gameId, players }: Props) {
           <p className="muted">No messages yet. Say hi.</p>
         )}
         {messages.map((m) => {
-          const seat = seatFor(m.user_id)
-          const name = m.profiles?.display_name ?? '?'
+          const sender = playerFor(m.user_id)
+          const name = sender?.display_name ?? '?'
+          const seat = sender?.seat ?? 'A'
           return (
             <div key={m.id} className="chat-msg">
-              <span className={`chat-name chat-seat-${seat ?? 'A'}`}>{name}:</span>{' '}
+              <span className={`chat-name chat-seat-${seat}`}>{name}:</span>{' '}
               <span>{m.content}</span>
             </div>
           )

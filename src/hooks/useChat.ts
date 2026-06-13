@@ -2,23 +2,27 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../types/db'
 
-/**
- * A chat row joined to the sender's display_name from profiles.
- * The embed shape is what PostgREST returns from `select('*, profiles(display_name)')`.
- */
-export type ChatMessage = Database['public']['Tables']['messages']['Row'] & {
-  profiles: { display_name: string } | null
-}
+/** A raw chat row. Display names are resolved by the consumer
+ * (ChatPanel), which has the player roster from useGame. */
+export type ChatMessage = Database['public']['Tables']['messages']['Row']
 
 /**
  * Subscribes to a game's chat log.
  *
  * Returns the full chronological message list plus a `loading` flag.
- * Like the other hooks, any INSERT into the chat table triggers a full
- * refetch — fine for the volume we'll see in a 2-player game.
  *
- * The display name is fetched via PostgREST's embedded resource syntax
- * (`profiles(display_name)`) using the FK on messages.user_id → profiles.
+ * Sync strategy: one full fetch on mount, then append-on-INSERT from
+ * the realtime payload — we do NOT refetch the whole table on each
+ * new message. The realtime broadcast carries the inserted row as
+ * `payload.new`, which we hand straight to setState. Cheap, and
+ * stays correct because the only mutation on this table is INSERT
+ * (no UPDATE/DELETE paths through send_message).
+ *
+ * Display names are NOT fetched here. Each message row has a
+ * `user_id`, and the consumer (ChatPanel) looks the name up from
+ * the `players` array it already has via useGame. This avoids the
+ * "embed shape varies between initial-fetch and realtime-append"
+ * problem — realtime payloads are raw table rows, not embeds.
  *
  * See useGame for the channel-name suffix rationale.
  */
@@ -32,11 +36,11 @@ export function useChat(gameId: string) {
     async function load() {
       const { data } = await supabase
         .from('messages')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('game_id', gameId)
         .order('sent_at', { ascending: true })
       if (!mounted) return
-      if (data) setMessages(data as ChatMessage[])
+      if (data) setMessages(data)
       setLoading(false)
     }
 
@@ -47,7 +51,9 @@ export function useChat(gameId: string) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `game_id=eq.${gameId}` },
-        load,
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as ChatMessage])
+        },
       )
       .subscribe()
 

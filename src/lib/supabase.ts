@@ -9,9 +9,12 @@ import type { Database } from '../types/db'
  * definitions. Re-run `npm run types:gen` after any schema change.
  *
  * Configured for an SPA with localStorage-backed session persistence
- * (the supabase-js defaults). The session is verified against `profiles`
- * on every restore (see useSession.ts) to catch stale JWTs left over
- * from a `supabase db reset` or admin-deleted users.
+ * (the supabase-js defaults). On every session restore we check that
+ * the user the JWT points at still exists — see useSession.ts. The
+ * check looks up `profiles` because (a) we can't read auth.users
+ * directly from the FE, and (b) profiles cascades from auth.users,
+ * so its presence is a reliable proxy. Catches stale JWTs left over
+ * from a `supabase db reset` or admin-deleted users in prod.
  */
 
 const url = import.meta.env.VITE_SUPABASE_URL
