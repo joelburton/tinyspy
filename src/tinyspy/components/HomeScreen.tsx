@@ -8,7 +8,7 @@ import { HowToPlayModal } from './HowToPlayModal'
 type Props = {
   session: Session
   /** Pass both id and code so App can mirror the code to the URL hash. */
-  onEnterGame: (gameId: string, joinCode: string) => void
+  onEnterGame: (gameId: string) => void
 }
 
 /**
@@ -58,7 +58,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
       setError(error?.message ?? 'failed to create game')
       return
     }
-    onEnterGame(data.id, data.join_code)
+    onEnterGame(data.id)
   }
 
   async function onJoin(e: React.FormEvent) {
@@ -71,7 +71,7 @@ export function HomeScreen({ session, onEnterGame }: Props) {
       setError(error?.message ?? 'failed to join game')
       return
     }
-    onEnterGame(data, code)
+    onEnterGame(data)
   }
 
   return (

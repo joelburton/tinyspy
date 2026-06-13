@@ -1,0 +1,8 @@
+# Netlify SPA fallback — every path serves index.html with HTTP 200
+# (NOT a 301/302 redirect, so the URL stays as the user typed it).
+# This makes refresh / deep-link work on any client-side route
+# handled by src/common/lib/router.tsx.
+#
+# Format: <from> <to> <status>
+# Docs:   https://docs.netlify.com/routing/redirects/
+/* /index.html 200

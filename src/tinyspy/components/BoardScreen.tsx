@@ -17,7 +17,7 @@ type Props = {
   /** Leave the game and clear the URL hash, going back to home. */
   onLeave: () => void
   /** Enter a new game (used by GameOverBanner's "Play again"). */
-  onEnterGame: (id: string, joinCode: string) => void
+  onEnterGame: (id: string) => void
 }
 
 /**

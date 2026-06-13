@@ -19,7 +19,7 @@ type Props = {
   /** Cancel: go back to the home screen (clears the URL hash). */
   onLeave: () => void
   /** Successfully started a new game — App enters it and updates the URL. */
-  onEnterGame: (id: string, joinCode: string) => void
+  onEnterGame: (id: string) => void
 }
 
 /**
@@ -61,7 +61,7 @@ export function GameOverBanner({
       setError(error?.message ?? 'failed to start a new game')
       return
     }
-    onEnterGame(data.id, data.join_code)
+    onEnterGame(data.id)
   }
 
   const playAgainLabel = nextGameId
