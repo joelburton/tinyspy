@@ -186,6 +186,26 @@ Why CSS Modules:
 - CSS-in-JS (styled-components, emotion) — adds a dependency and a runtime cost for a problem CSS Modules already solve.
 - Tailwind — fine in the abstract, but a large stylistic change from where the code is now.
 
+## Cross-schema embeds (PostgREST gotcha)
+
+PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `tinyspy.game_players.user_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
+
+```ts
+// This DOES NOT work cross-schema, even though the FK exists:
+supabase.schema('tinyspy').from('game_players')
+  .select('user_id, seat, profiles(display_name)')
+// → PGRST200 "Could not find a relationship between 'game_players'
+//             and 'profiles' in the schema cache"
+
+// The !fkname hint syntax doesn't rescue it either — same error.
+```
+
+**Workaround:** fetch the two sides in separate queries and merge in JS. For small result sets (the lobby's ≤ 2 players, etc.) the extra round trip is fine. `src/tinyspy/hooks/useGame.ts` is the canonical example — read the inline comment there for the diagnostic story.
+
+If a query genuinely needs server-side joining of cross-schema data (e.g. a complex roster + scores + history view), prefer a `security definer` RPC that does the join in SQL and returns a single payload, rather than fighting the embed layer.
+
+This limitation has implications for table design: cross-game features that want PostgREST embeds need their referenced tables in the same schema as the queries (e.g. don't move `common.profiles` to `common` and then expect tinyspy queries to embed it). It's another argument for the "shared UI, per-game data" pattern in [Cross-game features](#chat-per-game-now-common-keyed-off-clubs-later) — keep tables co-located with the queries that join them, lean on `common` for things genuinely accessed alone.
+
 ## TypeScript types from the DB
 
 `supabase gen types` produces a `Database` type with a top-level key per exposed schema. `supabase.schema('tinyspy').from('words')` is fully typed against `Database['tinyspy']['Tables']['words']`. Same for RPCs.
