@@ -301,6 +301,23 @@ button.secondary:hover:not(:disabled) {
   text-align: center;
 }
 
+.clue-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.suggest-btn {
+  font-size: 0.85rem;
+}
+
+.suggest-reasoning {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .clue-panel.sudden-death {
   border-color: #be3c3c;
   background: rgba(190, 60, 60, 0.18);

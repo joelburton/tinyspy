@@ -273,6 +273,7 @@ export type Database = {
         }[]
       }
       generate_join_code: { Args: never; Returns: string }
+      get_clue_context: { Args: { target_game: string }; Returns: Json }
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       join_game: { Args: { code: string }; Returns: string }
       pass_turn: { Args: { target_game: string }; Returns: undefined }

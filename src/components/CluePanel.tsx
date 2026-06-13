@@ -83,6 +83,8 @@ function ClueForm({ gameId }: { gameId: string }) {
   const [word, setWord] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+  const [reasoning, setReasoning] = useState<string | null>(null)
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -102,13 +104,49 @@ function ClueForm({ gameId }: { gameId: string }) {
     // automatically once Realtime propagates the new clue row.
     setCount('')
     setWord('')
+    setReasoning(null)
+  }
+
+  // Calls the suggest-clue Edge Function, which:
+  //   1. invokes get_clue_context as the current user (the RPC enforces
+  //      the "you are the clue-giver in an active game" check)
+  //   2. asks Claude to pick a clue via tool-use for structured output
+  // The returned suggestion fills the inputs — the user can edit before
+  // submitting. The reasoning text is shown as a small tooltip below.
+  async function onSuggest() {
+    setError(null)
+    setReasoning(null)
+    setSuggesting(true)
+    const { data, error } = await supabase.functions.invoke('suggest-clue', {
+      body: { gameId },
+    })
+    setSuggesting(false)
+    if (error || data?.error) {
+      setError(error?.message ?? data?.error ?? 'failed to fetch suggestion')
+      return
+    }
+    const s = data.suggestion as { clue: string; count: number; reasoning: string }
+    setWord(s.clue)
+    setCount(String(s.count))
+    setReasoning(s.reasoning)
   }
 
   const submittable = count !== '' && word.trim().length > 0
+  const eitherBusy = busy || suggesting
 
   return (
     <form className="clue-panel clue-form" onSubmit={onSubmit}>
-      <div className="muted">Give a clue for your partner</div>
+      <div className="clue-form-header">
+        <span className="muted">Give a clue for your partner</span>
+        <button
+          type="button"
+          className="link-button suggest-btn"
+          onClick={onSuggest}
+          disabled={eitherBusy}
+        >
+          {suggesting ? 'Thinking…' : 'Need a clue?'}
+        </button>
+      </div>
       <div className="clue-form-row">
         <input
           type="number"
@@ -116,7 +154,7 @@ function ClueForm({ gameId }: { gameId: string }) {
           placeholder="count"
           value={count}
           onChange={(e) => setCount(e.target.value)}
-          disabled={busy}
+          disabled={eitherBusy}
           required
           className="count-input"
           autoFocus
@@ -126,13 +164,14 @@ function ClueForm({ gameId }: { gameId: string }) {
           placeholder="word or phrase"
           value={word}
           onChange={(e) => setWord(e.target.value)}
-          disabled={busy}
+          disabled={eitherBusy}
           required
         />
-        <button type="submit" disabled={busy || !submittable}>
+        <button type="submit" disabled={eitherBusy || !submittable}>
           {busy ? 'Sending…' : 'Submit'}
         </button>
       </div>
+      {reasoning && <p className="muted suggest-reasoning">{reasoning}</p>}
       {error && <p className="error">{error}</p>}
     </form>
   )

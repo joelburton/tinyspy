@@ -33,3 +33,6 @@ supabase/snippets
 
 # Netlify CLI local state
 .netlify
+
+# Edge Function secrets
+supabase/functions/.env
