@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../common/lib/supabase'
 import { ChatPanel } from '../../common/components/ChatPanel'
+import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
@@ -72,7 +72,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   async function handleGuess(position: number) {
     setGuessError(null)
     setPendingPos(position)
-    const { error } = await supabase.schema('tinyspy').rpc('submit_guess', {
+    const { error } = await db.rpc('submit_guess', {
       target_game: gameId,
       target_position: position,
     })
@@ -187,7 +187,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
       </div>
 
       <GameLog clues={clues} words={words} />
-      <ChatPanel gameId={gameId} players={players} />
+      <ChatPanel gameSchema="tinyspy" gameId={gameId} players={players} />
     </div>
   )
 }

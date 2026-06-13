@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { db } from '../db'
 
 /**
  * Source of truth for "is there a logged-in user, and who are they".
@@ -37,8 +38,7 @@ export function useSession() {
         setLoading(false)
         return
       }
-      const { data, error } = await supabase
-        .schema('common')
+      const { data, error } = await db
         .from('profiles')
         .select('user_id')
         .eq('user_id', next.user.id)

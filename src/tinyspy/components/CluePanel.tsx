@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
 
 type Clue = { word: string; count: number }
 
@@ -90,7 +91,7 @@ function ClueForm({ gameId }: { gameId: string }) {
     e.preventDefault()
     setError(null)
     setBusy(true)
-    const { error } = await supabase.schema('tinyspy').rpc('submit_clue', {
+    const { error } = await db.rpc('submit_clue', {
       target_game: gameId,
       word: word.trim(),
       clue_count: parseInt(count, 10),
@@ -191,7 +192,7 @@ function PassButton({ gameId }: { gameId: string }) {
       disabled={busy}
       onClick={async () => {
         setBusy(true)
-        const { error } = await supabase.schema('tinyspy').rpc('pass_turn', { target_game: gameId })
+        const { error } = await db.rpc('pass_turn', { target_game: gameId })
         setBusy(false)
         if (error) console.error(error)
       }}

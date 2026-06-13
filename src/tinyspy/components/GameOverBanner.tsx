@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
 
 const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
   won: { text: 'Victory! All 15 agents found.', tone: 'win' },
@@ -53,8 +53,7 @@ export function GameOverBanner({
   async function playAgain() {
     setError(null)
     setBusy(true)
-    const { data, error } = await supabase
-      .schema('tinyspy')
+    const { data, error } = await db
       .rpc('play_again', { prev_game: gameId })
       .single()
     setBusy(false)

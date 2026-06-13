@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Database } from '../../types/db'
 
+/**
+ * Schemas this hook can talk to. Today only tinyspy has a `messages`
+ * table; once clubs land and chat moves to `common.messages` keyed off
+ * `club_id`, this type goes away and the hook hard-codes `common`.
+ * Adding more pre-clubs games with chat would mean expanding this
+ * union (and matching common's ChatPanel).
+ */
+export type ChatSchema = 'tinyspy'
+
 /** A raw chat row. Display names are resolved by the consumer
- * (ChatPanel), which has the player roster from useGame. */
+ * (ChatPanel), which has the player roster from the game. */
 export type ChatMessage = Database['tinyspy']['Tables']['messages']['Row']
 
 /**
@@ -26,7 +35,7 @@ export type ChatMessage = Database['tinyspy']['Tables']['messages']['Row']
  *
  * See useGame for the channel-name suffix rationale.
  */
-export function useChat(gameId: string) {
+export function useChat(gameSchema: ChatSchema, gameId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -35,7 +44,7 @@ export function useChat(gameId: string) {
 
     async function load() {
       const { data } = await supabase
-        .schema('tinyspy')
+        .schema(gameSchema)
         .from('messages')
         .select('*')
         .eq('game_id', gameId)
@@ -51,7 +60,7 @@ export function useChat(gameId: string) {
       .channel(`chat:${gameId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'tinyspy', table: 'messages', filter: `game_id=eq.${gameId}` },
+        { event: 'INSERT', schema: gameSchema, table: 'messages', filter: `game_id=eq.${gameId}` },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as ChatMessage])
         },
@@ -67,7 +76,7 @@ export function useChat(gameId: string) {
       mounted = false
       supabase.removeChannel(channel)
     }
-  }, [gameId])
+  }, [gameSchema, gameId])
 
   return { messages, loading }
 }

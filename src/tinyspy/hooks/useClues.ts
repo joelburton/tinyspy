@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
 import type { Database } from '../../types/db'
 
 export type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
@@ -25,8 +26,7 @@ export function useClues(gameId: string) {
     let mounted = true
 
     async function load() {
-      const { data } = await supabase
-        .schema('tinyspy')
+      const { data } = await db
         .from('clues')
         .select('*')
         .eq('game_id', gameId)

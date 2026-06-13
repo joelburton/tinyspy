@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import type { Database } from '../../types/db'
 
 type GameRow = Database['tinyspy']['Tables']['games']['Row']
@@ -60,19 +62,13 @@ export function useGame(gameId: string) {
       // about the cross-schema boundary; doesn't depend on PostgREST
       // behavior we'd like it to have but doesn't.
       const [gameRes, playersRes] = await Promise.all([
-        supabase.schema('tinyspy').from('games').select('*').eq('id', gameId).single(),
-        supabase
-          .schema('tinyspy')
-          .from('game_players')
-          .select('user_id, seat')
-          .eq('game_id', gameId)
-          .order('seat'),
+        db.from('games').select('*').eq('id', gameId).single(),
+        db.from('game_players').select('user_id, seat').eq('game_id', gameId).order('seat'),
       ])
 
       const userIds = (playersRes.data ?? []).map((p) => p.user_id)
       const profilesRes = userIds.length > 0
-        ? await supabase
-            .schema('common')
+        ? await commonDb
             .from('profiles')
             .select('user_id, display_name')
             .in('user_id', userIds)

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { useChat } from '../hooks/useChat'
+import { useChat, type ChatSchema } from '../hooks/useChat'
 
 // Structural minimum a chat panel needs from a player record. Defined
 // locally rather than importing from any specific game's roster so this
@@ -15,6 +15,9 @@ type ChatRosterEntry = {
 }
 
 type Props = {
+  /** Which game's chat to show. Today only `'tinyspy'`; see useChat's
+   *  ChatSchema for the future-evolution plan. */
+  gameSchema: ChatSchema
   gameId: string
   players: ChatRosterEntry[]
 }
@@ -29,8 +32,8 @@ type Props = {
  * Auto-scrolls to the latest message on every update. The input is a
  * single text field with Enter-to-send via the form's default submit.
  */
-export function ChatPanel({ gameId, players }: Props) {
-  const { messages, loading } = useChat(gameId)
+export function ChatPanel({ gameSchema, gameId, players }: Props) {
+  const { messages, loading } = useChat(gameSchema, gameId)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +61,7 @@ export function ChatPanel({ gameId, players }: Props) {
     if (!trimmed) return
     setError(null)
     setBusy(true)
-    const { error } = await supabase.schema('tinyspy').rpc('send_message', {
+    const { error } = await supabase.schema(gameSchema).rpc('send_message', {
       target_game: gameId,
       content: trimmed,
     })

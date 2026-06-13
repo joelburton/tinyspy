@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 
 type Props = {
@@ -35,7 +35,7 @@ export function LobbyScreen({ session, gameId, onLeave }: Props) {
   async function onStart() {
     setError(null)
     setStarting(true)
-    const { error } = await supabase.schema('tinyspy').rpc('start_game', { target_game: gameId })
+    const { error } = await db.rpc('start_game', { target_game: gameId })
     if (error) {
       setError(error.message)
       setStarting(false)

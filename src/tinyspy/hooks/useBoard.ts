@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
 
@@ -39,14 +40,8 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
 
     async function load() {
       const [wordsRes, keyRes] = await Promise.all([
-        supabase
-          .schema('tinyspy')
-          .from('words')
-          .select('*')
-          .eq('game_id', gameId)
-          .order('position'),
-        supabase
-          .schema('tinyspy')
+        db.from('words').select('*').eq('game_id', gameId).order('position'),
+        db
           .from('game_players')
           .select('key_card')
           .eq('game_id', gameId)
@@ -95,8 +90,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       return
     }
     let mounted = true
-    supabase
-      .schema('tinyspy')
+    db
       .from('game_players')
       .select('key_card')
       .eq('game_id', gameId)
