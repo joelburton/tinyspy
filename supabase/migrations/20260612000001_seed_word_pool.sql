@@ -12,7 +12,7 @@
 -- migration twice (e.g. against a partially-seeded DB) is safe.
 -- ============================================================
 
-insert into public.word_pool (word) values
+insert into tinyspy.word_pool (word) values
   ('ACE'),
   ('ALASKA'),
   ('ANCHOR'),
