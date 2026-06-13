@@ -7,6 +7,40 @@ export type Json =
   | Json[]
 
 export type Database = {
+  common: {
+    Tables: {
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -33,6 +67,23 @@ export type Database = {
     }
   }
   public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  tinyspy: {
     Tables: {
       clues: {
         Row: {
@@ -101,13 +152,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "games"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "game_players_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -182,32 +226,7 @@ export type Database = {
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
         ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          display_name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       word_pool: {
         Row: {
@@ -425,10 +444,16 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  common: {
+    Enums: {},
+  },
   graphql_public: {
     Enums: {},
   },
   public: {
+    Enums: {},
+  },
+  tinyspy: {
     Enums: {},
   },
 } as const
