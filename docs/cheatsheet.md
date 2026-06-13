@@ -16,7 +16,7 @@ Quick reference for reading the code and driving the project. See [`../README.md
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
-| `npm run deploy` | full prod push: `supabase db push` → `functions deploy suggest-clue` → `vite build` → `netlify deploy -p -d dist` |
+| `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 
 `types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x quirk; you don't need to set it yourself when running those scripts.
 
@@ -111,23 +111,25 @@ All callable RPCs are `security definer` (run with `postgres` privileges) and gr
 | `pass_turn(target_game uuid)` | Voluntary turn-end during the guess phase. | clue-giver can't pass · no clue this turn · status ≠ active |
 | `play_again(prev_game uuid) → table(id, join_code)` | From a finished game, creates a successor with both players pre-seated. Idempotent — second caller gets the same id+code via `games.next_game_id`. | previous game not ended · not a player in the previous game |
 | `send_message(target_game uuid, content text)` | Posts a chat message to the game. Trimmed length must be 1–1000 chars. | not authenticated · not a player · empty content · over 1000 chars |
-| `get_clue_context(target_game uuid) → jsonb` | Read-only. Returns the caller's unrevealed greens/neutrals/assassin + previous clue history, for the `suggest-clue` Edge Function to feed to Claude. | not authenticated · not a player · not the current clue-giver · status ≠ active/sudden_death |
+| `get_clue_context(target_game uuid) → jsonb` | Read-only. Returns the caller's unrevealed greens/neutrals/assassin + previous clue history, for the `tinyspy-suggest-clue` Edge Function to feed to Claude. | not authenticated · not a player · not the current clue-giver · status ≠ active/sudden_death |
 
 ## Edge Functions
 
 | function | purpose |
 |---|---|
-| `suggest-clue` | Called from the "Need a clue?" button. Invokes `get_clue_context` as the user (RLS applies), prompts Claude Sonnet 4.6 via tool-use for `{clue, count, agents, reasoning}`, returns it. Requires `ANTHROPIC_API_KEY` in the function's runtime env. |
+| `tinyspy-suggest-clue` | Called from the "Need a clue?" button. Invokes `get_clue_context` as the user (RLS applies), prompts Claude Sonnet 4.6 via tool-use for `{clue, count, agents, reasoning}`, returns it. Requires `ANTHROPIC_API_KEY` in the function's runtime env. |
+
+Naming convention: `<game>-<feature>` for game-specific functions (`tinyspy-…`, `boggle-…`), `common-<feature>` for cross-game ones. Sets the precedent for future games.
 
 ## Key files for code reading
 
 | reading goal | start here |
 |---|---|
-| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) — the entire v1 schema (game + chat + suggest-clue helper) in one place |
+| "what does the server-side do" | [`supabase/migrations/20260612000000_baseline.sql`](../supabase/migrations/20260612000000_baseline.sql) — the entire v1 schema (game + chat + tinyspy-suggest-clue helper) in one place |
 | "the rulebook in code form" | [`docs/duet-rules.md`](duet-rules.md) |
 | "what's the top-level state machine" | [`src/App.tsx`](../src/App.tsx) |
 | "how does the board work" | [`src/components/BoardScreen.tsx`](../src/components/BoardScreen.tsx) + [`src/lib/phase.ts`](../src/lib/phase.ts) |
 | "how does Realtime stay in sync" | [`src/hooks/useGame.ts`](../src/hooks/useGame.ts) — canonical example of the two patterns we use everywhere: per-effect-run unique channel names (StrictMode safety) and refetch-on-`SUBSCRIBED` (recovers from missed events on a reconnect). Other hooks follow the same shape. |
-| "how does the AI clue suggestion work" | [`supabase/functions/suggest-clue/index.ts`](../supabase/functions/suggest-clue/index.ts) — the Edge Function pattern: thin orchestrator around a security-definer RPC + Anthropic tool-use |
+| "how does the AI clue suggestion work" | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts) — the Edge Function pattern: thin orchestrator around a security-definer RPC + Anthropic tool-use |
 | "what corners did we cut" | [`../CODE_REVIEW.md`](../CODE_REVIEW.md) |
 | "how do the tests work" | [`supabase/tests/lobby_test.sql`](../supabase/tests/lobby_test.sql) (pgTAP tutorial) and [`src/hooks/useSession.test.ts`](../src/hooks/useSession.test.ts) (Vitest + supabase mock) |

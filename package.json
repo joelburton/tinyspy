@@ -15,7 +15,7 @@
     "test:fe": "vitest",
     "test:db": "supabase test db --local supabase/tests",
     "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts",
-    "deploy": "supabase db push && supabase functions deploy suggest-clue && npm run build && netlify deploy -p -d dist"
+    "deploy": "supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",

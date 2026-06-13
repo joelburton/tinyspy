@@ -107,7 +107,7 @@ function ClueForm({ gameId }: { gameId: string }) {
     setReasoning(null)
   }
 
-  // Calls the suggest-clue Edge Function, which:
+  // Calls the tinyspy-suggest-clue Edge Function, which:
   //   1. invokes get_clue_context as the current user (the RPC enforces
   //      the "you are the clue-giver in an active game" check)
   //   2. asks Claude to pick a clue via tool-use for structured output
@@ -117,7 +117,7 @@ function ClueForm({ gameId }: { gameId: string }) {
     setError(null)
     setReasoning(null)
     setSuggesting(true)
-    const { data, error } = await supabase.functions.invoke('suggest-clue', {
+    const { data, error } = await supabase.functions.invoke('tinyspy-suggest-clue', {
       body: { gameId },
     })
     setSuggesting(false)
