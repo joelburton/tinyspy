@@ -1,5 +1,5 @@
 import type { ClueRow } from '../hooks/useClues'
-import type { Database } from '../types/db'
+import type { Database } from '../../types/db'
 import { labelName } from '../lib/labels'
 
 type WordRow = Database['tinyspy']['Tables']['words']['Row']

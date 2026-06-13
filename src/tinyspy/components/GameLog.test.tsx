@@ -15,7 +15,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { GameLog } from './GameLog'
-import type { Database } from '../types/db'
+import type { Database } from '../../types/db'
 
 type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
 type WordRow = Database['tinyspy']['Tables']['words']['Row']

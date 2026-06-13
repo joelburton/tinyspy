@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../common/lib/supabase'
 
 const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
   won: { text: 'Victory! All 15 agents found.', tone: 'win' },

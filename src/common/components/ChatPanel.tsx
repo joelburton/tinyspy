@@ -1,11 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useChat } from '../hooks/useChat'
-import type { Player } from '../hooks/useGame'
+
+// Structural minimum a chat panel needs from a player record. Defined
+// locally rather than importing from any specific game's roster so this
+// component stays cross-game (e.g. tinyspy passes its Player[] in;
+// future games can pass their own equivalent shape). The seat is
+// `'A' | 'B'` in Tinyspy but kept as plain `string` here so other games
+// with different seat conventions still satisfy the type.
+type ChatRosterEntry = {
+  user_id: string
+  seat: string
+  display_name: string
+}
 
 type Props = {
   gameId: string
-  players: Player[]
+  players: ChatRosterEntry[]
 }
 
 /**

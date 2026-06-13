@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../common/lib/supabase'
+import { ChatPanel } from '../../common/components/ChatPanel'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
@@ -9,7 +10,6 @@ import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { GameOverBanner } from './GameOverBanner'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
-import { ChatPanel } from './ChatPanel'
 
 type Props = {
   session: Session

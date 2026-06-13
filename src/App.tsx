@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './lib/supabase'
-import { readHashCode, writeHashCode } from './lib/url'
-import { useSession } from './hooks/useSession'
-import { useGame } from './hooks/useGame'
-import { LoginScreen } from './components/LoginScreen'
-import { HomeScreen } from './components/HomeScreen'
-import { LobbyScreen } from './components/LobbyScreen'
-import { BoardScreen } from './components/BoardScreen'
+import { supabase } from './common/lib/supabase'
+import { readHashCode, writeHashCode } from './common/lib/url'
+import { useSession } from './common/hooks/useSession'
+import { LoginScreen } from './common/components/LoginScreen'
+import { useGame } from './tinyspy/hooks/useGame'
+import { HomeScreen } from './tinyspy/components/HomeScreen'
+import { LobbyScreen } from './tinyspy/components/LobbyScreen'
+import { BoardScreen } from './tinyspy/components/BoardScreen'
 
 /**
  * Top-level state machine. There are four user-visible states:

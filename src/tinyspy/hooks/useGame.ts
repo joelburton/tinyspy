@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-import type { Database } from '../types/db'
+import { supabase } from '../../common/lib/supabase'
+import type { Database } from '../../types/db'
 
 type GameRow = Database['tinyspy']['Tables']['games']['Row']
 

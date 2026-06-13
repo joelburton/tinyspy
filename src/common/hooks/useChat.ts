@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Database } from '../types/db'
+import type { Database } from '../../types/db'
 
 /** A raw chat row. Display names are resolved by the consumer
  * (ChatPanel), which has the player roster from useGame. */

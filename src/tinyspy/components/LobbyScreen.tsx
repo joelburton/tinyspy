@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../../common/lib/supabase'
 import { useGame } from '../hooks/useGame'
 
 type Props = {

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '../types/db'
+import type { Database } from '../../types/db'
 
 /**
  * The single Supabase client used everywhere in the app.
