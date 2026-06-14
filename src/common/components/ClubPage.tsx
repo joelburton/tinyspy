@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
+import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { ClubChatPanel } from './ClubChatPanel'
 import { games } from '../../games'
+import type { ClubGameRow } from '../lib/games'
 import type { Database } from '../../types/db'
 
 type ClubRow = Database['common']['Tables']['clubs']['Row']
@@ -18,34 +20,29 @@ type Props = {
 /**
  * Club detail page — accessed via `/c/<handle>`.
  *
- * Shows the club name, member roster, and chat. Games-in-this-club
- * (active / paused / completed lists) will appear here once
- * commit 5 wires up tinyspy.games.club_id; for now there's a
- * placeholder explaining the gap.
+ * Shows: club name, member roster, games (active / paused /
+ * completed), per-gametype "Start" buttons, and chat.
  *
  * RLS gates everything: a non-member's `clubs.select` returns zero
  * rows, so visiting `/c/some-other-club` shows a "not found" rather
  * than a forbidden-style error. Same protection covers
- * `club_members` (you only see your own clubs' rosters) and
- * `messages` (covered transitively by useClubChat).
+ * `club_members`, `club_active_game`, each game's tables (via the
+ * gametype's own RLS), and `messages` (covered transitively by
+ * useClubChat).
  *
- * Data flow:
- *   1. Look up the club by handle (single, may return 0 rows → not found).
- *   2. Fetch member user_ids for that club.
- *   3. Fetch profiles for those user_ids (separate query rather than
- *      a PostgREST embed — within-schema FK so the embed would
- *      probably work, but two small focused queries are easier to
- *      reason about and match the pattern in useGame.ts).
- *   4. Render roster + chat.
- *
- * Note: realtime subscription to common.club_members exists (added
- * to the publication in the clubs migration), so future "membership
- * changed" events could be picked up, but v1 has no add/remove flow
- * so we skip the subscription to keep the hook simple.
+ * Realtime: subscribed to common.club_active_game changes for this
+ * club. When another tab (different member, or yourself in another
+ * window) starts/ends a game, the active pointer changes and we
+ * refetch — so the games section updates without a manual refresh.
+ * Within-game updates (chat, board state, etc.) belong to other
+ * subscriptions inside those views; ClubPage only cares about the
+ * club's active-game pointer + the games-list shape.
  */
 export function ClubPage({ session, handle }: Props) {
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
+  const [allGames, setAllGames] = useState<ClubGameRow[]>([])
+  const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
@@ -65,6 +62,8 @@ export function ClubPage({ session, handle }: Props) {
     navigate(`/g/${result.id}`)
   }
 
+  // Step 1: look up the club + roster. These don't change during
+  // v1 (membership is fixed at creation), so we only fetch once.
   useEffect(() => {
     let mounted = true
 
@@ -99,18 +98,16 @@ export function ClubPage({ session, handle }: Props) {
       }
       const userIds = (membersData ?? []).map((m) => m.user_id)
 
-      if (userIds.length === 0) {
+      if (userIds.length > 0) {
+        const { data: profilesData } = await commonDb
+          .from('profiles')
+          .select('user_id, username')
+          .in('user_id', userIds)
+        if (!mounted) return
+        setMembers((profilesData ?? []) as Member[])
+      } else {
         setMembers([])
-        setLoading(false)
-        return
       }
-
-      const { data: profilesData } = await commonDb
-        .from('profiles')
-        .select('user_id, username')
-        .in('user_id', userIds)
-      if (!mounted) return
-      setMembers((profilesData ?? []) as Member[])
       setLoading(false)
     }
 
@@ -119,6 +116,56 @@ export function ClubPage({ session, handle }: Props) {
       mounted = false
     }
   }, [handle])
+
+  // Step 2: load games for this club + the active-game pointer.
+  // Re-runs whenever realtime tells us club_active_game changed
+  // (which happens on game start, game end via the termination
+  // trigger, or game switch). Also fires on initial mount.
+  useEffect(() => {
+    if (!club) return
+    const clubId = club.id
+    let mounted = true
+
+    async function loadGames() {
+      const activeRes = await commonDb
+        .from('club_active_game')
+        .select('game_id')
+        .eq('club_id', clubId)
+        .maybeSingle()
+      const results = await Promise.all(
+        games.map((g) => g.fetchClubGames(clubId)),
+      )
+      if (!mounted) return
+      setActiveGameId(activeRes.data?.game_id ?? null)
+      setAllGames(results.flat())
+    }
+
+    loadGames()
+
+    // Subscribe to club_active_game changes for this club. New-game
+    // start, game completion (via the termination trigger), and
+    // explicit pause/resume (if added later) all surface here.
+    const channel = supabase
+      .channel(`club-active:${clubId}:${crypto.randomUUID()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'common',
+          table: 'club_active_game',
+          filter: `club_id=eq.${clubId}`,
+        },
+        loadGames,
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') loadGames()
+      })
+
+    return () => {
+      mounted = false
+      supabase.removeChannel(channel)
+    }
+  }, [club])
 
   if (loading) return <div className="card">Loading club…</div>
   if (error || !club) {
@@ -136,6 +183,20 @@ export function ClubPage({ session, handle }: Props) {
   }
 
   const isSoloClub = club.handle.startsWith('=')
+
+  // Classify games — active is the one matching club_active_game,
+  // completed are terminal, paused is everything else.
+  const activeGame = activeGameId
+    ? allGames.find((g) => g.gameId === activeGameId) ?? null
+    : null
+  const pausedGames = allGames.filter(
+    (g) => !g.isTerminal && g.gameId !== activeGameId,
+  )
+  const completedGames = allGames.filter((g) => g.isTerminal)
+
+  function gameName(gameType: string) {
+    return games.find((g) => g.gametype === gameType)?.name ?? gameType
+  }
 
   return (
     <div className="card">
@@ -166,11 +227,41 @@ export function ClubPage({ session, handle }: Props) {
         </ul>
       </section>
 
+      {activeGame && (
+        <section>
+          <h3>Active game</h3>
+          <p>
+            <Link to={`/g/${activeGame.gameId}`} className="link-button">
+              Resume {gameName(activeGame.gameType)}
+            </Link>{' '}
+            <span className="muted">— {activeGame.statusLabel}</span>
+          </p>
+        </section>
+      )}
+
+      {pausedGames.length > 0 && (
+        <section>
+          <h3>Paused games</h3>
+          <ul>
+            {pausedGames.map((g) => (
+              <li key={g.gameId}>
+                <Link to={`/g/${g.gameId}`}>
+                  {gameName(g.gameType)} — {g.statusLabel}
+                </Link>{' '}
+                <span className="muted">
+                  · started {new Date(g.startedAt).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
-        <h3>Play a game</h3>
-        {/* Iterate the games registry — one button per registered
-            gametype, calling its manifest's startGameInClub. ClubPage
-            stays game-agnostic; tinyspy's RPC call lives inside the
+        <h3>Start a new game</h3>
+        {/* Iterate the games registry — one button per gametype,
+            calling its manifest's startGameInClub. ClubPage stays
+            game-agnostic; tinyspy's RPC call lives inside the
             tinyspy manifest. Add boggle later and a button appears
             here automatically. */}
         <div className="actions">
@@ -186,8 +277,35 @@ export function ClubPage({ session, handle }: Props) {
             </button>
           ))}
         </div>
+        {activeGame && (
+          <p className="muted">
+            Starting a new game will pause the currently active one (you
+            can resume it later from this page).
+          </p>
+        )}
         {startError && <p className="error">{startError}</p>}
       </section>
+
+      {completedGames.length > 0 && (
+        <section>
+          <h3>Completed games ({completedGames.length})</h3>
+          <ul>
+            {completedGames.slice(0, 20).map((g) => (
+              <li key={g.gameId}>
+                {gameName(g.gameType)} — {g.statusLabel}{' '}
+                <span className="muted">
+                  · {new Date(g.startedAt).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {completedGames.length > 20 && (
+            <p className="muted">
+              + {completedGames.length - 20} older games not shown.
+            </p>
+          )}
+        </section>
+      )}
 
       <ClubChatPanel clubId={club.id} members={members} />
 
