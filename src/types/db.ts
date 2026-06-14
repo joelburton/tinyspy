@@ -9,6 +9,139 @@ export type Json =
 export type Database = {
   common: {
     Tables: {
+      club_active_game: {
+        Row: {
+          club_id: string
+          game_id: string
+          gametype: string
+          set_active_at: string
+        }
+        Insert: {
+          club_id: string
+          game_id: string
+          gametype: string
+          set_active_at?: string
+        }
+        Update: {
+          club_id?: string
+          game_id?: string
+          gametype?: string
+          set_active_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_active_game_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_members: {
+        Row: {
+          club_id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      clubs: {
+        Row: {
+          created_at: string
+          created_by: string
+          handle: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          handle: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          handle?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          club_id: string
+          content: string
+          id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          content: string
+          id?: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          content?: string
+          id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -32,7 +165,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_club: {
+        Args: { club_name: string; member_usernames: string[] }
+        Returns: {
+          handle: string
+          id: string
+        }[]
+      }
+      is_club_member: { Args: { target_club: string }; Returns: boolean }
+      send_message: {
+        Args: { content: string; target_club: string }
+        Returns: undefined
+      }
+      slugify_club_name: { Args: { name: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
