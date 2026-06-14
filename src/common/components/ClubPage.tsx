@@ -145,6 +145,22 @@ export function ClubPage({ session, handle }: Props) {
     // Subscribe to club_active_game changes for this club. New-game
     // start, game completion (via the termination trigger), and
     // explicit pause/resume (if added later) all surface here.
+    //
+    // On INSERT or UPDATE — the club picked a new active game —
+    // auto-navigate every member into it. This is a club-level
+    // invariant: when a club is playing, the whole club is in the
+    // same game; no "I'll catch up later." (Solo play is what solo
+    // clubs are for, and they have a single member so this just
+    // navigates that one user, which is fine.) DELETE events
+    // happen on game completion + future explicit-pause and do
+    // NOT navigate anyone — players already in the game stay on
+    // the game-over screen; players on the club page just see the
+    // game move from Active to Completed in the list.
+    //
+    // The "already there" guard prevents the player who clicked
+    // Start (and was already navigated by `handleStart`) from
+    // getting a duplicate history entry when the realtime echo of
+    // their own INSERT arrives.
     const channel = supabase
       .channel(`club-active:${clubId}:${crypto.randomUUID()}`)
       .on(
@@ -155,7 +171,16 @@ export function ClubPage({ session, handle }: Props) {
           table: 'club_active_game',
           filter: `club_id=eq.${clubId}`,
         },
-        loadGames,
+        (payload) => {
+          loadGames()
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newGameId = (payload.new as { game_id: string }).game_id
+            const target = `/g/${newGameId}`
+            if (window.location.pathname !== target) {
+              navigate(target)
+            }
+          }
+        },
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') loadGames()
