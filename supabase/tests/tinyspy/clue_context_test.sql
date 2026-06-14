@@ -16,10 +16,6 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(6);
 
--- ============================================================
--- Fixtures
--- ============================================================
-
 \ir ../_common/setup.psql
 
 -- Set up an active game with ada as clue-giver (default after

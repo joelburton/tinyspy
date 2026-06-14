@@ -21,10 +21,6 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(18);
 
--- ============================================================
--- Fixtures
--- ============================================================
-
 \ir ../_common/setup.psql
 
 -- Find the first board position whose label on a given seat's key view is

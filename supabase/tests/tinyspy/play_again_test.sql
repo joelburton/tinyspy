@@ -22,9 +22,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(9);
 
--- ============================================================
--- Fixtures: three users — ada + bea play, dee is outside
--- ============================================================
+-- Cast: ada + bea play; dee is outside the club.
 
 \ir ../_common/setup.psql
 

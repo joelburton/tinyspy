@@ -28,10 +28,6 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(5);
 
--- ============================================================
--- Fixtures
--- ============================================================
-
 \ir ../_common/setup.psql
 
 create function pg_temp.find_position(g uuid, s text, target text) returns int

@@ -18,9 +18,7 @@ set search_path = psychicnum, common, public, extensions;
 
 select plan(7);
 
--- ============================================================
--- Fixtures: two members (ada + bea) + dee-outsider
--- ============================================================
+-- Cast: ada + bea are club members; dee is outside.
 
 \ir ../_common/setup.psql
 

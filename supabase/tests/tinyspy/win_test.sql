@@ -27,10 +27,6 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(4);
 
--- ============================================================
--- Fixtures
--- ============================================================
-
 \ir ../_common/setup.psql
 
 -- Return all positions where a seat's view has the given label. The
