@@ -32,7 +32,7 @@ select plan(17);
 
 \ir ../_common/setup.psql
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -48,7 +48,7 @@ update psychicnum.games set target = 7 where id = (select id from g);
 -- (1) Range check — guesses must be 1..10
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 0) $$, (select id from g)),
   'P0001',
@@ -66,7 +66,7 @@ select throws_ok(
 -- (2) Non-member is rejected
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');  -- dee
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 5) $$, (select id from g)),
   '42501',
@@ -78,7 +78,7 @@ select throws_ok(
 -- (3) First wrong guess — ada guesses 1
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   psychicnum.submit_guess((select id from g), 1),
   'wrong',
@@ -99,7 +99,7 @@ select is(
 -- (4) Duplicate guess — bea also guesses 1 (silly but legal)
 -- ============================================================
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   psychicnum.submit_guess((select id from g), 1),
   'wrong',
@@ -115,7 +115,7 @@ select is(
 -- (5) Correct guess — bea guesses 7
 -- ============================================================
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   psychicnum.submit_guess((select id from g), 7),
   'correct',
@@ -128,7 +128,7 @@ select is(
 );
 select is(
   (select winner_id from psychicnum.games where id = (select id from g)),
-  '22222222-2222-2222-2222-222222222222'::uuid,
+  'bea22222-2222-2222-2222-222222222222'::uuid,
   'winner_id is set to the correct-guesser'
 );
 
@@ -141,7 +141,7 @@ select is(
 );
 
 -- (7) No more guesses accepted on the won game.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 4) $$, (select id from g)),
   'P0001',
@@ -156,7 +156,7 @@ select throws_ok(
 -- alternate wrong guesses (1 through 7) for a total of 7 wrong
 -- attempts. The 7th should flip status to 'lost'.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from psychicnum.create_game((select id from club));
 
@@ -164,17 +164,17 @@ reset role;
 update psychicnum.games set target = 8 where id = (select id from g2);
 
 -- Six wrong guesses (alternating).
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g2), 1);
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from g2), 2);
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g2), 3);
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from g2), 4);
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g2), 5);
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from g2), 6);
 
 -- After 6 wrong, status still active, 1 guess remaining.
@@ -190,7 +190,7 @@ select is(
 );
 
 -- The 7th wrong guess loses the game.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   psychicnum.submit_guess((select id from g2), 9),
   'lost',

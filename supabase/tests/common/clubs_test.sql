@@ -75,7 +75,7 @@ select throws_ok(
   'create_club: not authenticated raises 42501'
 );
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   $$ select common.create_club('!!!', array['bea']) $$,
@@ -142,7 +142,7 @@ select is(
 -- bea creates a club listing only ada + cade; bea should be
 -- silently added so the membership has 3, not 2.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 create temp table bobs_club on commit drop as
 select * from common.create_club('Friday Night', array['ada','cade']);
@@ -158,7 +158,7 @@ select ok(
   (select exists (
     select 1 from common.club_members
     where club_id = (select id from bobs_club)
-      and user_id = '22222222-2222-2222-2222-222222222222'
+      and user_id = 'bea22222-2222-2222-2222-222222222222'
   )),
   'create_club: auto-added caller appears in club_members'
 );
@@ -170,7 +170,7 @@ select ok(
 -- handle as bea's 'Friday Night' → 'friday-night'. Unique constraint
 -- raises SQLSTATE 23505 (unique_violation).
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   $$ select common.create_club('friday night', array['ada','bea']) $$,
@@ -204,16 +204,16 @@ select is(
   (select count(*) from common.clubs
     where handle like '=%'
       and created_by in (
-        '11111111-1111-1111-1111-111111111111',
-        '22222222-2222-2222-2222-222222222222',
-        '33333333-3333-3333-3333-333333333333'
+        'ada11111-1111-1111-1111-111111111111',
+        'bea22222-2222-2222-2222-222222222222',
+        'cade3333-3333-3333-3333-333333333333'
       )),
   3::bigint,
   'solo clubs: one per user was auto-created on signup'
 );
 
 select is(
-  (select handle from common.clubs where created_by = '11111111-1111-1111-1111-111111111111' and handle like '=%'),
+  (select handle from common.clubs where created_by = 'ada11111-1111-1111-1111-111111111111' and handle like '=%'),
   '=ada',
   'solo clubs: ada''s solo handle is "=ada"'
 );
@@ -229,7 +229,7 @@ select ok(
   (select exists (
     select 1 from common.club_members cm
     where cm.club_id = (select id from common.clubs where handle = '=ada')
-      and cm.user_id = '11111111-1111-1111-1111-111111111111'
+      and cm.user_id = 'ada11111-1111-1111-1111-111111111111'
   )),
   'solo clubs: the sole member is the user themselves'
 );
@@ -241,7 +241,7 @@ select ok(
 --   - ada SELECTing 'Joel and Leah' should return 1 row.
 --   - ada SELECTing '=cade' should return 0 rows (RLS hides it).
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
   (select count(*) from common.clubs where handle = 'joel-and-leah'),

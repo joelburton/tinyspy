@@ -29,7 +29,7 @@ select plan(10);
 -- Cast: ada + bea inside a club; dee outside it (the outsider
 -- whose calls + reads should all be blocked).
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 
@@ -55,7 +55,7 @@ select throws_ok(
 );
 
 -- dee (a real user) is not in this club.
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($q$ select common.send_message(%L, 'sneaking in') $q$, (select id from club)),
   '42501',
@@ -64,7 +64,7 @@ select throws_ok(
 );
 
 -- ada IS a member, so she can be used for the empty/long checks.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format($q$ select common.send_message(%L, '   ') $q$, (select id from club)),
@@ -105,14 +105,14 @@ select is(
 -- RLS: bea can see ada's message, dee cannot
 -- ============================================================
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select count(*) from common.messages where club_id = (select id from club)),
   1::bigint,
   'RLS: fellow member can see club messages'
 );
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from common.messages where club_id = (select id from club)),
   0::bigint,
@@ -125,13 +125,13 @@ select is(
 -- authenticated has SELECT but no INSERT grant on common.messages,
 -- so even a dee-with-a-correct-club_id can't write.
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
     $q$ insert into common.messages (club_id, user_id, content)
         values (%L, %L, 'direct write') $q$,
     (select id from club),
-    '44444444-4444-4444-4444-444444444444'
+    'dee44444-4444-4444-4444-444444444444'
   ),
   '42501',
   null,

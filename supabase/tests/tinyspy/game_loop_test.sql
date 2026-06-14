@@ -41,7 +41,7 @@ $$;
 -- Ada creates the 2-member club; tinyspy.create_game seats both
 -- members and brings the game straight to 'active'.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g1 on commit drop as
@@ -50,7 +50,7 @@ select * from tinyspy.create_game((select id from club));
 -- ----- Phase-enforcement rejections -----
 -- Bea is not the clue-giver (Ada is), so submit_clue must reject.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   $$ select submit_clue((select id from g1), 'TOOLS', 2) $$,
   'P0001',
@@ -69,7 +69,7 @@ select throws_ok(
 -- Ada (the clue-giver) can't guess either, even after a clue exists —
 -- but right now there's no clue either, so the error she'd hit is
 -- "you are the clue-giver this turn" (checked first in the RPC).
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select submit_guess((select id from g1), 0) $$,
   'P0001',
@@ -97,7 +97,7 @@ select throws_ok(
 -- Bea guesses a green. The label is determined by *Ada's* view (the
 -- clue-giver's view), which is the most subtle rule in Duet. We use
 -- find_position to pin down a cell that's 'G' on Ada's side.
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   submit_guess(
     (select id from g1),
@@ -154,10 +154,10 @@ select is(
 -- Bea is now the clue-giver. He submits a clue, Ada passes immediately
 -- (a zero-guess turn — rulebook-legal). Turn ends just like a neutral.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g1), 'WHATEVER', 1);
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   $$ select pass_turn((select id from g1)) $$,
   'pass_turn succeeds for the guesser in the guess phase'
@@ -185,12 +185,12 @@ select is(
 -- so g1 implicitly becomes a paused (non-active) game — fine for
 -- this test, which doesn't poke at the active-game pointer.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from tinyspy.create_game((select id from club));
 select submit_clue((select id from g2), 'DOOM', 1);
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   submit_guess(
     (select id from g2),

@@ -37,7 +37,7 @@ select plan(8);
 -- ada creates a 2-member club (ada+bea) — dee is signed in
 -- but outside it. RLS will hide game rows from dee since she's
 -- neither a player nor a member of the club.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -63,7 +63,7 @@ select is(
 -- empty result — the standard RLS behavior).
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
   (select count(*) from games where id = (select id from g)),
@@ -126,7 +126,7 @@ select throws_ok(
 select throws_ok(
   $$ insert into game_players (game_id, user_id, seat)
      values ((select id from g),
-             '44444444-4444-4444-4444-444444444444',
+             'dee44444-4444-4444-4444-444444444444',
              'B') $$,
   '42501',
   'permission denied for table game_players',

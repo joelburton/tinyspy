@@ -21,7 +21,7 @@ select plan(6);
 -- Set up an active game with ada as clue-giver (default after
 -- create_game). Dee isn't in the club, so she'll exercise the
 -- non-player rejection path.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -31,7 +31,7 @@ select * from tinyspy.create_game((select id from club));
 -- (1) Non-player rejection
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   '42501',
@@ -43,7 +43,7 @@ select throws_ok(
 -- (2) Bea (the non-clue-giver) cannot ask
 -- ============================================================
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   'P0001',
@@ -60,13 +60,13 @@ select throws_ok(
 -- game's status to a terminal value via direct UPDATE (RLS-free
 -- because tests run as postgres by default — reset role first).
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_game on commit drop as
 select * from tinyspy.create_game((select id from club));
 reset role;
 update tinyspy.games set status = 'won', current_clue_giver = null
   where id = (select id from done_game);
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select get_clue_context((select id from done_game)) $$,
   'P0001',
@@ -79,7 +79,7 @@ select throws_ok(
 -- and the greens array has exactly 9 entries (one per A-side green).
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table ctx on commit drop as
   select get_clue_context((select id from g)) as data;

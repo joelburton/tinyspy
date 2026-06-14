@@ -41,7 +41,7 @@ $$;
 
 -- Ada creates a 2-member club; tinyspy.create_game seats both
 -- and brings the game straight to 'active'.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table prev on commit drop as
@@ -58,7 +58,7 @@ select throws_ok(
 -- End the game: Ada gives a clue, Bea guesses Ada's assassin cell.
 select submit_clue((select id from prev), 'DOOM', 1);
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_guess(
   (select id from prev),
   pg_temp.find_position((select id from prev), 'A', 'A')
@@ -68,7 +68,7 @@ select submit_guess(
 -- play_again, take 1: Ada creates the successor
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table next on commit drop as
 select * from play_again((select id from prev));
 
@@ -93,7 +93,7 @@ select is(
 -- from the same prev_game should get back the same id, not a
 -- second game. This is what makes the UI race-free.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table bob_result on commit drop as
 select * from play_again((select id from prev));
 
@@ -115,14 +115,14 @@ select is(
 select is(
   (select seat from game_players
    where game_id = (select id from next)
-     and user_id = '11111111-1111-1111-1111-111111111111'),
+     and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'A',
   'ada is pre-seated as A in the successor game'
 );
 select is(
   (select seat from game_players
    where game_id = (select id from next)
-     and user_id = '22222222-2222-2222-2222-222222222222'),
+     and user_id = 'bea22222-2222-2222-2222-222222222222'),
   'B',
   'bea is pre-seated as B in the successor game'
 );
@@ -150,7 +150,7 @@ select is(
 -- Dee (not a player in `prev`) cannot call play_again on it.
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select play_again((select id from prev)) $$,
   '42501',

@@ -50,7 +50,7 @@ select throws_ok(
 -- Build a club for the happy-path tests
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 
@@ -58,7 +58,7 @@ select * from common.create_club('test club', array['ada','bea']);
 -- (2) Non-member callers are rejected
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');  -- dee, outsider
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee, outsider
 select throws_ok(
   format($$ select psychicnum.create_game(%L::uuid) $$, (select id from club)),
   '42501',
@@ -70,7 +70,7 @@ select throws_ok(
 -- (3) Happy path — ada creates a game
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
 select * from psychicnum.create_game((select id from club));
 
@@ -120,7 +120,7 @@ select is(
 -- "paused" is purely a derived club-level state (no club_active_game
 -- row pointing at it), so we just check the pointer moved.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from psychicnum.create_game((select id from club));
 
@@ -145,7 +145,7 @@ select is(
 -- — but NOT target. Selecting target as the authenticated role
 -- should raise SQLSTATE 42501 ("permission denied for column").
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select target from psychicnum.games where id = %L $$, (select id from g)),
   '42501',

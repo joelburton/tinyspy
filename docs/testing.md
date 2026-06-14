@@ -80,13 +80,15 @@ The shared setup file loads five fixture users with stable roles. Use them by th
 
 | persona | UUID | role |
 |---|---|---|
-| **ada** | `11111111-1111-1111-1111-111111111111` | Default test subject. In the club, in the game. When the test just needs "some authenticated user," use ada. |
-| **bea** | `22222222-2222-2222-2222-222222222222` | Second player. In the club, in the game. Reach for bea when the test needs two people interacting. |
-| **cade** | `33333333-3333-3333-3333-333333333333` | In the club but not necessarily in the current game. Use cade for "a club member who isn't playing this particular game" scenarios. |
-| **dee** | `44444444-4444-4444-4444-444444444444` | Outside the club entirely. Use dee for "should be rejected by RLS / membership check." |
-| **eda** | `55555555-5555-5555-5555-555555555555` | Second outsider, for the rare two-non-member test. |
+| **ada** | `ada11111-1111-1111-1111-111111111111` | Default test subject. In the club, in the game. When the test just needs "some authenticated user," use ada. |
+| **bea** | `bea22222-2222-2222-2222-222222222222` | Second player. In the club, in the game. Reach for bea when the test needs two people interacting. |
+| **cade** | `cade3333-3333-3333-3333-333333333333` | In the club but not necessarily in the current game. Use cade for "a club member who isn't playing this particular game" scenarios. |
+| **dee** | `dee44444-4444-4444-4444-444444444444` | Outside the club entirely. Use dee for "should be rejected by RLS / membership check." |
+| **eda** | `eda55555-5555-5555-5555-555555555555` | Second outsider, for the rare two-non-member test. |
 
 Mnemonic: ada/bea/cade are inside (alphabetically adjacent); dee/eda are outside (the next two letters).
+
+The UUIDs are self-evident on purpose. The first hex block embeds the persona name (`ada11111…`, `bea22222…`, …) so a stack trace or query result referencing one immediately tells you who the actor was — no "who's `1111…` again?" sidecar lookup. The padding chars match the persona's position in the list (1 for ada, 2 for bea, …) so they're still well-formed UUIDs.
 
 The roles are conventions, not constraints — there's nothing in `setup.psql` that prevents you from making dee a club member in a specific test. But if you're tempted to, ask whether the test is really about who you think it's about. Crossing personas usually means a fixture is doing double duty in a way that hurts readability.
 
@@ -99,10 +101,10 @@ Switches the session to act as a given authenticated user. Sets `request.jwt.cla
 Usage:
 
 ```sql
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');  -- now I'm ada
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');  -- now I'm ada
 select tinyspy.create_game(some_club_id);                         -- runs as ada
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');  -- now I'm bea
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');  -- now I'm bea
 select tinyspy.submit_clue(...);                                  -- runs as bea
 ```
 

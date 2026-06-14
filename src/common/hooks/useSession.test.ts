@@ -50,7 +50,7 @@ vi.mock('../lib/supabase', () => ({
 import { useSession } from './useSession'
 
 const fakeSession = {
-  user: { id: '11111111-1111-1111-1111-111111111111' },
+  user: { id: 'ada11111-1111-1111-1111-111111111111' },
 } as unknown as Session
 
 /** Captures the callback the hook subscribes with so tests can fire events. */

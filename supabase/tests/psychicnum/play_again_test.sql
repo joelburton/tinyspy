@@ -26,7 +26,7 @@ select plan(7);
 -- Set up a finished game so play_again has something to act on
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table prev on commit drop as
@@ -43,14 +43,14 @@ select throws_ok(
 -- End the game: pin target to 5, ada guesses 5.
 reset role;
 update psychicnum.games set target = 5 where id = (select id from prev);
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from prev), 5);
 
 -- ============================================================
 -- play_again, take 1: ada creates the successor
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table next on commit drop as
 select * from psychicnum.play_again((select id from prev));
 
@@ -72,7 +72,7 @@ select is(
 -- Whichever player clicks first creates; a later caller from the
 -- same prev_game gets back the same id.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 create temp table bob_result on commit drop as
 select * from psychicnum.play_again((select id from prev));
 
@@ -104,7 +104,7 @@ select is(
 -- (Dee) — non-member is rejected
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select psychicnum.play_again(%L::uuid) $$, (select id from prev)),
   '42501',

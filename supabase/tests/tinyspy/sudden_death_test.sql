@@ -43,7 +43,7 @@ $$;
 -- Set up an active game and force-flip it to sudden_death
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -62,7 +62,7 @@ update games set status = 'sudden_death', turns_remaining = 0, current_clue_give
 -- ============================================================
 -- The RPC guards on status='active' and raises P0001 otherwise.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select submit_clue((select id from g), 'CLUE', 1) $$,
   'P0001',

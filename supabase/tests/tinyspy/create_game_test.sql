@@ -40,7 +40,7 @@ select plan(13);
 -- ada creates a 2-member club (ada+bea) and a 3-member club
 -- (ada+bea+cade). The 3-member one exercises the wrong-size
 -- rejection.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table club2 on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
@@ -63,7 +63,7 @@ select throws_ok(
 );
 
 -- cade is signed in but not a member of club2 (ada+bea only).
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   format($q$ select tinyspy.create_game(%L::uuid) $q$, (select id from club2)),
@@ -73,7 +73,7 @@ select throws_ok(
 );
 
 -- ada tries to start a tinyspy game in the 3-member club.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format($q$ select tinyspy.create_game(%L::uuid) $q$, (select id from club3)),
@@ -117,14 +117,14 @@ select is(
 select is(
   (select user_id from tinyspy.game_players
     where game_id = (select id from created) and seat = 'A'),
-  '11111111-1111-1111-1111-111111111111',
+  'ada11111-1111-1111-1111-111111111111',
   'create_game: caller is placed in seat A'
 );
 
 select is(
   (select user_id from tinyspy.game_players
     where game_id = (select id from created) and seat = 'B'),
-  '22222222-2222-2222-2222-222222222222',
+  'bea22222-2222-2222-2222-222222222222',
   'create_game: other club member is placed in seat B'
 );
 

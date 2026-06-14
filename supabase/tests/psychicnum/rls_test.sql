@@ -27,7 +27,7 @@ select plan(9);
 
 -- ada creates a 2-member club (ada+bea); dee is signed in
 -- but outside it.
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -37,7 +37,7 @@ select * from psychicnum.create_game((select id from club));
 -- read tests below.
 reset role;
 update psychicnum.games set target = 7 where id = (select id from g);
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g), 1);
 
 -- ============================================================
@@ -59,7 +59,7 @@ select is(
 -- Dee (outsider) sees nothing
 -- ============================================================
 
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from psychicnum.games where id = (select id from g)),
   0::bigint,
@@ -93,7 +93,7 @@ select throws_ok(
 -- reveal_target gate: rejected while active, even for members
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.reveal_target(%L::uuid) $$, (select id from g)),
   'P0001',
@@ -106,7 +106,7 @@ select throws_ok(
 -- ============================================================
 -- Ada guesses 7 → win, status flips to 'won', target stays = 7.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g), 7);
 
 select is(
@@ -116,7 +116,7 @@ select is(
 );
 
 -- Bea (the other member) can also reveal — not caller-only.
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   psychicnum.reveal_target((select id from g)),
   7,

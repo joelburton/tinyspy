@@ -43,7 +43,7 @@ $$;
 -- Create the club + game (single create_game seats both members)
 -- ============================================================
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
@@ -56,7 +56,7 @@ select * from tinyspy.create_game((select id from club));
 
 select submit_clue((select id from g), 'EVERYTHING', 9);
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 do $$
 declare
   positions int[];
@@ -87,10 +87,10 @@ end $$;
 --
 -- The 14th green keeps status='active'; the 15th flips it to 'won'.
 
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g), 'TARGETS', 6);
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- Reveal the first 5 of Bea's unique greens (14 total revealed so far).
 do $$
