@@ -211,6 +211,114 @@ export type Database = {
       [_ in never]: never
     }
   }
+  psychicnum: {
+    Tables: {
+      games: {
+        Row: {
+          club_id: string
+          created_at: string
+          guesses_remaining: number
+          id: string
+          next_game_id: string | null
+          status: string
+          target: number
+          winner_id: string | null
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          guesses_remaining?: number
+          id?: string
+          next_game_id?: string | null
+          status?: string
+          target: number
+          winner_id?: string | null
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          guesses_remaining?: number
+          id?: string
+          next_game_id?: string | null
+          status?: string
+          target?: number
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_next_game_id_fkey"
+            columns: ["next_game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          id: string
+          number: number
+          user_id: string
+          was_correct: boolean
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          id?: string
+          number: number
+          user_id: string
+          was_correct: boolean
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          id?: string
+          number?: number
+          user_id?: string
+          was_correct?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      create_game: {
+        Args: { target_club: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      play_again: {
+        Args: { prev_game: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      reveal_target: { Args: { target_game: string }; Returns: number }
+      submit_guess: {
+        Args: { guess: number; target_game: string }
+        Returns: string
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       [_ in never]: never
@@ -552,6 +660,9 @@ export const Constants = {
     Enums: {},
   },
   graphql_public: {
+    Enums: {},
+  },
+  psychicnum: {
     Enums: {},
   },
   public: {
