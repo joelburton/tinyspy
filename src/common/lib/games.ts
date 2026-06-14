@@ -96,7 +96,7 @@ export type GameManifest = {
    * fetchClubGames in parallel, and merges + classifies the results
    * into active/paused/completed sections.
    *
-   * Each row tells us:
+   * Each entry tells us:
    *   - `gameId`        — the id to route to (`/g/<gameType>/<gameId>`)
    *   - `gameType`      — back-pointer to the manifest's gametype
    *                        (redundant but keeps merged arrays
@@ -111,14 +111,14 @@ export type GameManifest = {
    *                        "13/15 agents", etc.). ClubPage renders
    *                        verbatim.
    */
-  fetchClubGames: (clubId: string) => Promise<ClubGameRow[]>
+  fetchClubGames: (clubId: string) => Promise<ClubGameEntry[]>
 }
 
 /**
  * One game's-eye view of itself within a club, for the ClubPage's
  * games section. See `GameManifest.fetchClubGames` for fields.
  */
-export type ClubGameRow = {
+export type ClubGameEntry = {
   gameType: string
   gameId: string
   startedAt: string

@@ -215,6 +215,83 @@ If you add a new schema, also:
 - Add it to `[api].schemas` in `supabase/config.toml`.
 - Re-run `npm run types:gen` so the FE picks it up.
 
+## TypeScript naming conventions
+
+Two conventions intersect here: TypeScript leans camelCase, SQL leans snake_case. We honor both, with a rule that makes the boundary visible.
+
+### Field casing
+
+> **snake_case** for type fields that mirror a Postgres row's shape. **camelCase** for fields on TS-native shapes (component props, FE-built normalizations, manifest types, anything we designed in TS).
+
+The "how to tell" test: if the field names would match what `supabase gen types` emits for that table, the type is DB-shaped and uses snake_case. Otherwise it's a TS abstraction and uses camelCase.
+
+Examples:
+
+```ts
+// DB-shape — fields match the Postgres row exactly
+type PlayerRow = {
+  user_id: string         // snake (matches DB)
+  seat: 'A' | 'B'
+  username: string
+}
+
+// FE-built normalization — TS-named fields
+type ClubGameEntry = {
+  gameType: string        // camel (TS-named)
+  gameId: string
+  startedAt: string
+  isTerminal: boolean
+}
+
+// Component props — TS-native concept
+type Props = {
+  clubId: string          // camel — name we chose
+  members: PlayerRow[]    // camel prop name; PlayerRow keeps its snake fields
+}
+```
+
+Both forms appear in any given file, but for principled reasons: snake means "this came from the DB unmodified"; camel means "this is a TS shape we designed."
+
+### Why this over "translate to camelCase at the boundary"
+
+The other realistic option is "camelCase everywhere; map at the hook layer." We don't, because:
+
+- The generated `Database['<schema>']['Tables']['<name>']['Row']` types are snake_case. Translating would mean either wrapping every one of them or duplicating the row shape in our own types.
+- Each hook would gain ~5 lines of column-renaming boilerplate.
+- We'd lose the visual signal — when you see `user_id` you know it's the raw DB shape; when you see `gameId` you know it's a TS abstraction.
+
+The hybrid rule keeps that signal load-bearing.
+
+### Type name suffix
+
+> A type whose fields are a direct alias of (or trivial subset of) a Postgres row's shape ends in **`Row`**. TS-native shapes use whatever name describes their role best.
+
+This parallels the generated `Database[schema][Tables][name]['Row']` naming. The suffix is a quick visual confirmation of the convention — `PlayerRow` says "DB-shape, expect snake_case fields" without you having to look.
+
+Examples:
+
+| name | what it is |
+|---|---|
+| `WordRow`, `GameRow`, `ClueRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[...]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
+| `PlayerRow`, `MemberRow`, `PsychicnumGameRow` | Hand-rolled DB-shape types — they're not aliases of generated types but they mirror a row shape. |
+| `ClubGameEntry`, `ClubListEntry` | FE-built normalizations for list rendering — composed in TS, not direct DB rows. No `Row` suffix. "Entry" describes their role. |
+| `Props`, `CluePanelProps`, `LinkProps`, `GameRootProps` | React component prop types. |
+| `GameManifest` | A TS-native interface that game folders implement. |
+| `PhaseInputs`, `PhaseDerived` | Pure-function input/output. |
+
+If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading. (`ClubGameRow` failed this check — its fields are camelCase, but the name suggested otherwise. Renamed to `ClubGameEntry`.)
+
+### Other casing rules
+
+| kind | convention | examples |
+|---|---|---|
+| Function names, function parameters, local variables | camelCase | `enterGame`, `gameId`, `resolvedIds` |
+| React component names | PascalCase | `ClubPage`, `BoardScreen` |
+| Module-level constants | SCREAMING_SNAKE_CASE | `GAMETYPES`, `STATUS_LABEL` |
+| File names — components | PascalCase | `BoardScreen.tsx` |
+| File names — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
+| File names — docs | kebab-case | `duet-rules.md` (historical), `cheatsheet.md` |
+
 ## Migrations
 
 One migration file per logical change, prefixed with a UTC timestamp. Filename describes the change in present tense: `20260613120000_add_boggle_schema.sql`.

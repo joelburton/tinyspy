@@ -6,7 +6,7 @@ import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { ClubChatPanel } from './ClubChatPanel'
 import { games } from '../../games'
-import type { ClubGameRow } from '../lib/games'
+import type { ClubGameEntry } from '../lib/games'
 import type { Database } from '../../types/db'
 
 type ClubRow = Database['common']['Tables']['clubs']['Row']
@@ -41,7 +41,7 @@ type Props = {
 export function ClubPage({ session, handle }: Props) {
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
-  const [allGames, setAllGames] = useState<ClubGameRow[]>([])
+  const [allGames, setAllGames] = useState<ClubGameEntry[]>([])
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
