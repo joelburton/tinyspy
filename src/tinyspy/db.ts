@@ -16,7 +16,8 @@ import { supabase } from '../common/lib/supabase'
  * directly (those aren't schema-scoped).
  *
  * Game schemas are deliberately omitted from PostgREST's
- * `extra_search_path` (see docs/naming.md), so going through this
- * handle is also the only way to address tinyspy tables from the FE.
+ * `extra_search_path` (see docs/code-conventions.md), so going
+ * through this handle is also the only way to address tinyspy
+ * tables from the FE.
  */
 export const db = supabase.schema('tinyspy')

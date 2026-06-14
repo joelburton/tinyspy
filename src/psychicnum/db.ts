@@ -12,7 +12,7 @@ import { supabase } from '../common/lib/supabase'
  *
  * Same pattern as `src/tinyspy/db.ts` — game schemas are
  * deliberately omitted from PostgREST's `extra_search_path`
- * (see docs/naming.md), so addressing psychicnum tables from
- * the FE goes through this handle.
+ * (see docs/code-conventions.md), so addressing psychicnum tables
+ * from the FE goes through this handle.
  */
 export const db = supabase.schema('psychicnum')

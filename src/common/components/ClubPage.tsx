@@ -9,7 +9,7 @@ import { games } from '../../games'
 import type { ClubGameEntry } from '../lib/games'
 import type { Database } from '../../types/db'
 
-// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to common.clubs requires
 // explicitly listing it here AND in the select() below.
 type ClubRow = Pick<

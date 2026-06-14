@@ -12,7 +12,7 @@ type Props = {
  * Create-club form. POSTs to common.create_club; on success,
  * navigates to the new club's page.
  *
- * v1 club semantics (see CLAUDE.md / docs/naming.md / project
+ * v1 club semantics (see CLAUDE.md / docs/common.md / project
  * memory): the membership list is fixed at creation. There's no
  * "invite later" flow yet. The creator is auto-added by the RPC,
  * so this form only asks for the other members.

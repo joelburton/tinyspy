@@ -7,7 +7,7 @@ import type { Database } from '../../types/db'
  * A raw chat row keyed by club. Display names are resolved by the
  * consumer (ClubChatPanel) from the member roster it already has.
  *
- * Narrower than Database[...]['Row'] — see naming.md's "Avoid
+ * Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
  * SELECT *". Adding a new column to common.messages requires
  * explicitly listing it here AND in the select() below. `sent_at`
  * is intentionally omitted: the server orders by it but no client

@@ -32,7 +32,7 @@ import { games } from './games'
  *
  * Removing a game is still three actions (delete folder, delete
  * its line in games.ts, drop its DB schema). The shell is
- * untouched. See docs/naming.md.
+ * untouched. See docs/common.md for the removability invariant.
  *
  * The Suspense fallback handles the brief moment between
  * "navigated to /g/<gametype>/<id>" and "the game's JS chunk

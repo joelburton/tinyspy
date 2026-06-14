@@ -4,7 +4,7 @@ import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
 
-// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to tinyspy.words requires
 // explicitly listing it here AND in the select() below.
 // Exported so GameLog can share the same narrowed shape rather

@@ -203,7 +203,7 @@ DELETE events (game completion, future explicit pause) do NOT navigate anyone â€
 
 ## Theme & styling
 
-Conventions live in [`naming.md`](naming.md) (to be re-organized later); the short version:
+Conventions live in [`code-conventions.md`](code-conventions.md); the short version:
 
 - **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`.
 - **Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) â€” colors, spacing, font stack, radii. All other CSS references these via `var(--token-name)`.
@@ -231,7 +231,9 @@ There are no FE tests covering routing as a whole (no E2E in this project), but 
 
 ## Deferred / open
 
-- **`common.club_game_kinds` m2m.** Per-club opt-in of which games are enabled. Sketched in [`naming.md`](naming.md) but not built. Every club can play every registered game in v1.
+See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
+
+- **`common.club_game_kinds` m2m.** Per-club opt-in of which games are enabled. Not built. Every club can play every registered game in v1; the m2m table lands when "this club only plays crosswords" becomes a real request.
 - **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; the registry-dispatch `fetchClubGames` is fine at current scale.
-- **Friends / presence.** Sketched in [`naming.md`](naming.md). The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
+- **Friends / presence.** The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.

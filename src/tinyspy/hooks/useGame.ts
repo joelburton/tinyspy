@@ -4,7 +4,7 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import type { Database } from '../../types/db'
 
-// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to tinyspy.games requires
 // explicitly listing it here AND in the select() below.
 type GameRow = Pick<
@@ -35,8 +35,9 @@ export type Player = {
  * embedded-resource syntax. The cross-schema FK exists in Postgres
  * but PostgREST's schema cache doesn't discover relationships across
  * schemas, so the `profiles(...)` embed returns PGRST200. See the
- * inline comment in `load()` for the gory details, and naming.md's
- * "Cross-schema embeds" note for the project-level guidance.
+ * inline comment in `load()` for the gory details, and
+ * code-conventions.md's "Cross-schema embeds" note for the
+ * project-level guidance.
  *
  * Channel-name suffix: `supabase-js` caches channels by name, and in React
  * StrictMode the effect runs twice on mount. Without a unique suffix the

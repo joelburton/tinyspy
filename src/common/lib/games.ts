@@ -34,7 +34,7 @@ export type GameRootProps = {
  * specific game directly. This is what makes adding or removing a
  * game a one-line change in the registry.
  *
- * See docs/naming.md for the "removability in three actions" rule
+ * See docs/common.md for the "removability in three actions" rule
  * that motivates the manifest pattern.
  */
 export type GameManifest = {
@@ -86,7 +86,7 @@ export type GameManifest = {
    * lives ON the manifest so common code (ClubPage) can iterate
    * `games` and offer a button per gametype without ever importing
    * from a game folder — preserving the import-direction rules from
-   * docs/naming.md.
+   * docs/code-conventions.md.
    */
   startGameInClub: (clubId: string) => Promise<{ id: string } | { error: string }>
 

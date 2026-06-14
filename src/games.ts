@@ -12,7 +12,7 @@ import { psychicnumGame } from './psychicnum/manifest'
  * code stays generic; each game lives in its own folder + schema).
  *
  * That removability property is the structural integrity check for the
- * whole monorepo — see docs/naming.md.
+ * whole monorepo — see docs/common.md.
  *
  * ESLint's `no-restricted-imports` carves this file out as the one
  * place allowed to import from every `<game>/` folder. Don't replicate

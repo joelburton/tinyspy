@@ -1,6 +1,6 @@
 # Project priors
 
-Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs ([docs/naming.md](docs/naming.md), [docs/cheatsheet.md](docs/cheatsheet.md), [README.md](README.md)) build on top.
+Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs ([docs/naming.md](docs/naming.md), [docs/code-conventions.md](docs/code-conventions.md), [docs/cheatsheet.md](docs/cheatsheet.md), [README.md](README.md)) build on top.
 
 ## Educational priority — clarity over brevity
 
@@ -10,7 +10,7 @@ Concretely:
 
 - **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The existing tinyspy RPCs in `supabase/migrations/20260612000000_baseline.sql` and components like `src/components/CluePanel.tsx` are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
-- **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [docs/naming.md](docs/naming.md).
+- **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [docs/naming.md](docs/naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
 
 This **overrides** the general agent default of "no comments unless strictly necessary." Comments that teach are part of the value of this codebase.
@@ -26,7 +26,7 @@ What still doesn't belong:
 This is a venue for groups of friends to play games together. It is **not** a public matchmaking platform.
 
 - No "find an open game" listings, no public lobby, no random pairings, no leaderboards-among-strangers.
-- The social primitive is a **club**: a named, persistent group of friends who play games together. See [docs/naming.md → Clubs](docs/naming.md#clubs-the-common-social-layer).
+- The social primitive is a **club**: a named, persistent group of friends who play games together. See [docs/common.md](docs/common.md) for the model.
 - Clubs invite friends to join; games happen inside clubs. Chat, presence, "people you've played with," and game invitations are organized by club, not by individual game.
 - This shapes UX decisions: e.g., a game's "share" affordance is "play with a club," not "post to a public list." The join-code path exists for ad-hoc pairings outside any club, but it's the fallback, not the primary flow.
 
@@ -86,9 +86,9 @@ Examples of where this lands:
 
 For grounding when a decision touches the stack:
 
-- **Frontend:** React 19 + TypeScript + Vite, no UI framework. CSS Modules + a global theme stylesheet ([docs/naming.md → CSS](docs/naming.md#css)).
+- **Frontend:** React 19 + TypeScript + Vite, no UI framework. CSS Modules + a global theme stylesheet ([docs/code-conventions.md → CSS Modules + theme](docs/code-conventions.md#css-modules--theme)).
 - **Backend:** Supabase — Postgres (with RLS), PostgREST, Realtime, Auth (magic links via Resend SMTP), Edge Functions (Deno).
 - **Hosting:** Netlify (FE), Supabase (everything else).
 - **AI features:** Anthropic Claude via Edge Functions (Tinyspy's clue suggester is the current example).
 
-Multi-game architecture is rolling out — see [docs/naming.md](docs/naming.md) for the schema-per-game model and the games-registry pattern that makes any single game removable in three actions.
+Multi-game architecture has landed — see [docs/common.md](docs/common.md) for the schema-per-game model and the games-registry pattern that makes any single game removable in three actions.

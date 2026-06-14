@@ -3,7 +3,7 @@ import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 
-// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to tinyspy.clues requires
 // explicitly listing it here AND in the select() below.
 export type ClueRow = Pick<

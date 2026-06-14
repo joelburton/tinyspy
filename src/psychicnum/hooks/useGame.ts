@@ -98,7 +98,7 @@ export function useGame(gameId: string) {
 
       // Resolve member usernames via a second `common` fetch. We
       // can't do a single embed because PostgREST's schema cache
-      // doesn't resolve cross-schema FKs (see docs/naming.md).
+      // doesn't resolve cross-schema FKs (see docs/code-conventions.md).
       let memberList: ClubMember[] = []
       const userIds = (memberRows ?? []).map((r) => r.user_id)
       if (userIds.length > 0) {

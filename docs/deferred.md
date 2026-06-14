@@ -1,0 +1,47 @@
+# Deferred work
+
+Things we explicitly chose NOT to do, with a one-line reminder of what + why. This isn't a roadmap or a "next up" queue — it's the register of decisions made in code review and conversation that we want to remember.
+
+When an item gets picked up, delete it from this file. When a new "we'll do this later" decision happens, add it here so future-us doesn't lose track.
+
+For per-feature deep context on each item, follow the link into the relevant feature doc — `tinyspy.md`'s "Open items," `psychicnum.md`'s "Open items / known scope-creep," `common.md`'s "Deferred / open."
+
+## Tinyspy
+
+See [`tinyspy.md → Open items`](tinyspy.md#open-items) for the longer treatment of each.
+
+- **Harden `game_players_select`.** Partner's `key_card` is currently readable by either player via RLS — convention says "don't query the other seat" but enforcement is missing. Fix: split into own-row reads + a `game_players_roster` view that omits `key_card`. Tagged as CODE_REVIEW.md item 13.
+- **Mission / campaign mode.** Variable starting token counts per the Duet rulebook's mission maps. Schema not built; would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
+- **Per-player guess UI.** Currently a single guesser at a time (the non-clue-giver during active play). Could expand to "either player can vote on a guess" for richer cooperative play, but that's a rules change, not just code.
+
+## Psychic Num
+
+See [`psychicnum.md → Open items / known scope-creep`](psychicnum.md#open-items--known-scope-creep) for the full cleanup recipe.
+
+- **Remove `winner_id` overspec.** The schema and FE track which user guessed correctly; the original spec was strictly team-wins, not individual-attribution. ~30 lines of removal across 5 files when someone gets to it. The cleanup recipe is in `psychicnum.md`.
+- **Solo-mode UI.** The RPCs allow any club size, but no UI drives single-member-club play. Tied to the broader solo-clubs question below.
+
+## Common / architecture
+
+See [`common.md → Deferred / open`](common.md#deferred--open) for more detail on each.
+
+- **`common.club_game_kinds` m2m.** Per-club opt-in of which gametypes are enabled. v1 lets every club play every registered game; the m2m table lands when "this club only plays crosswords" becomes a real request.
+- **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Build only if registry-dispatch `fetchClubGames` becomes painful at scale.
+- **Friends / presence layer.** The "you already know your friends" framing currently makes them unnecessary. Revisit if and when the audience grows past handful-of-friends scale.
+- **Per-club stats schema.** Solo clubs are the planned anchor for per-user stats; schema not built yet. No UI surface to drive it.
+- **Profile column hardening via `common.profiles_public` view.** If profile data ever grows sensitive (real names, email-derived metadata, settings), revoke direct SELECT on `common.profiles` from `authenticated` and expose a view exposing only the safe columns. See the comment on the existing `profiles_select_authenticated` policy in the baseline migration.
+- **Username picker UI.** Currently the trigger auto-seeds username from email's local-part. Picker waits on the larger "magic links vs passwords" auth-method decision; when that lands, collision handling moves into the auth flow.
+- **Solo-club UI surface.** Solo clubs exist (auto-created on signup) but are UI-hidden. When solo-mode play for boggle / crosswords / etc. lands, decide how solo clubs surface to their owner.
+- **Global auto-nav on club_active_game.** Currently the auto-nav-into-active-game logic lives in `ClubPage` and only fires while the user is on the club page. For users elsewhere (their own profile, a different club, an unrelated /g/ URL), a club starting a new game won't pull them in. Worth a global subscription when this gap matters in practice.
+
+## Tooling
+
+- **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Not worth the machinery until we have ≥ 3 games — the dup is one line and the lint failure on a missed update is obvious.
+
+## Far future
+
+Items where the question itself is still up for grabs, not just the implementation.
+
+- **Cross-game leaderboards / achievements.** When we want them, they live in `common` and each game writes to them via a common RPC — but the *shape* of that RPC is TBD until we have a second non-toy game to compare.
+- **Friends vs 1:1 clubs.** Once clubs are well-used, a 2-person club may make `common.friends` redundant. Or friends stays as a lightweight "would play with" graph and clubs are the persistent rooms that form from it. Decide when there are users who'd notice the difference.
+- **Production data preservation.** Currently we wipe and rebuild freely; production-grade data migrations aren't a concern until the project has live users worth preserving. When that changes, revisit the "alpha software, friends understand" prior in `CLAUDE.md`.

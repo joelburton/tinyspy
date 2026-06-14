@@ -1,6 +1,6 @@
 # Cheatsheet
 
-Quick reference for reading the code and driving the project. See [`../README.md`](../README.md) for narrative and [`naming.md`](naming.md) for the project-wide conventions; this file is the one-screen lookup.
+Quick reference for reading the code and driving the project. See [`../README.md`](../README.md) for narrative, [`naming.md`](naming.md) for the terminology lexicon, and [`code-conventions.md`](code-conventions.md) for the code-style rules. This file is the one-screen lookup.
 
 ## `npm run …`
 
@@ -82,7 +82,7 @@ After `\connect`, useful starter queries:
 
 ## Schemas overview
 
-Multi-game architecture (see [`naming.md`](naming.md) for the full convention):
+Multi-game architecture (see [`code-conventions.md → Database`](code-conventions.md#database) for the schema convention):
 
 | schema | contents |
 |---|---|
