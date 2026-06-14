@@ -2,18 +2,11 @@
 -- common schema — baseline
 -- ============================================================
 --
--- Squashed: a single migration that brings the `common` schema to
--- its current shape in one shot. Replaces the original four-step
--- progression (initial baseline → display_name→username rename →
--- clubs tables + RPCs → solo-club trigger extension), now that the
--- schema is stable enough to flatten into a clean starting point.
--- Read the git history for the narrative — what's preserved here
--- is the end state and the teaching commentary worth keeping.
---
 -- What `common` holds:
---   - profiles      — one row per signed-in user; username is the
---                     public identity (immutable after first sign-in
---                     in the future picker flow).
+--   - profiles      — one row per auth user (created on their
+--                     first sign-in; persists across sign-out).
+--                     username is the public identity (immutable
+--                     after first sign-in in the future picker flow).
 --   - clubs         — fixed-membership rooms friends play in
 --                     together. Cross-game social primitive.
 --   - club_members  — m2m between clubs and profiles.
@@ -67,12 +60,21 @@ create table common.profiles (
 
 alter table common.profiles enable row level security;
 
--- INTENTIONAL: any signed-in user can read any profile. Username is
--- public; there's no sensitive data on profiles today. Required for
--- showing usernames without per-context indirection (rosters, chat
--- attribution, etc.). If profile data ever grows sensitive,
--- tighten to "rows for users I share a club with" via a
--- security-definer helper analogous to is_club_member.
+-- INTENTIONAL: any signed-in user can read any profile. Username
+-- is public; there's no sensitive data on profiles today. Required
+-- for club creation — when you type "leah" into the new-club form,
+-- the FE has to be able to resolve "leah" → user_id BEFORE you
+-- share a club with her, which rules out any "only people I share
+-- a club with" row-tightening. The right axis is which COLUMNS
+-- get exposed, not which rows.
+--
+-- If profile data ever grows sensitive (real names, settings,
+-- email-derived metadata, etc.), the hardening move is to revoke
+-- direct SELECT on common.profiles from authenticated and expose
+-- a `common.profiles_public` view that selects only the safe
+-- columns (username + whatever else is genuinely public). The FE
+-- queries the view; security-definer RPCs that need the full row
+-- read the base table directly.
 create policy profiles_select_authenticated on common.profiles
   for select to authenticated using (true);
 
