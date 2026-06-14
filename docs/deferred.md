@@ -34,7 +34,6 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - **Username picker UI.** Currently the trigger auto-seeds username from email's local-part. Picker waits on the larger "magic links vs passwords" auth-method decision; when that lands, collision handling moves into the auth flow.
 - **Solo-club UI surface.** Solo clubs exist (auto-created on signup) but are UI-hidden. When solo-mode play for boggle / crosswords / etc. lands, decide how solo clubs surface to their owner.
 - **Global auto-nav on club_active_game.** Currently the auto-nav-into-active-game logic lives in `ClubPage` and only fires while the user is on the club page. For users elsewhere (their own profile, a different club, an unrelated /g/ URL), a club starting a new game won't pull them in. Worth a global subscription when this gap matters in practice.
-- **Resend magic-link button on `LoginScreen`.** Once `status` flips to `'sent'`, there's no affordance to retry — the user has to refresh and re-type their email if the link doesn't arrive. Small UI addition (button + handler) that re-invokes `signInWithOtp` with the same email.
 
 ## Tooling
 
