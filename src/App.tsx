@@ -1,15 +1,18 @@
 import { Suspense } from 'react'
 import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
+import { ClubPage } from './common/components/ClubPage'
+import { CreateClubPage } from './common/components/CreateClubPage'
+import { usePath } from './common/lib/router'
 import { games } from './games'
 
 /**
  * Top-level shell. Handles the three things every game shares:
  *
  *   1. Auth — wait for session, fall back to LoginScreen if not signed in.
- *   2. Selecting which game is mounted (today: always games[0]; later: a
- *      picker when games.length > 1).
- *   3. Delegating everything else to that game's Root component.
+ *   2. Cross-game club routes (`/c/new`, `/c/<handle>`) — common UI
+ *      for setting up and viewing clubs, independent of any game.
+ *   3. Delegating everything else to the registered game's Root.
  *
  * The shell deliberately does NOT name any specific game — it iterates
  * `games` from src/games.ts. Removing a game is three actions
@@ -18,20 +21,34 @@ import { games } from './games'
  *
  * Each game's `Root` is loaded as a lazy chunk (see the game's
  * manifest), so the main bundle ships only the shell + common +
- * manifests. The `<Suspense>` boundary below handles the brief moment
+ * manifests. The `<Suspense>` boundary handles the brief moment
  * between "user navigates into this game" and "the game's JS chunk
  * has finished downloading." After the first navigation in a session,
  * the chunk is browser-cached and subsequent renders are instant.
+ *
+ * URL shape — see src/common/lib/router.ts for the routing model.
+ * Anything not matched as a club route falls through to the game's
+ * Root, which does its own internal matching for `/g/<gameId>` etc.
  */
 export default function App() {
   const { session, loading } = useSession()
+  const path = usePath()
 
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
 
-  // For now there's only one game registered, so we always mount it.
-  // When games.length > 1, this is where the chooser/picker goes
-  // (or routes to `/<gametype>/...`, or persists last-played, etc.).
+  // Club routes — shell-level since they're cross-game / common.
+  if (path === '/c/new') {
+    return <CreateClubPage session={session} />
+  }
+  const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
+  if (clubMatch) {
+    return <ClubPage session={session} handle={clubMatch[1]} />
+  }
+
+  // Anything else → the registered game's Root. For now there's only
+  // tinyspy, so we always mount games[0]; when games.length > 1, the
+  // picker / chooser logic goes here.
   const game = games[0]
   return (
     <Suspense fallback={<div className="card">Loading game…</div>}>
