@@ -9,7 +9,13 @@ import { games } from '../../games'
 import type { ClubGameEntry } from '../lib/games'
 import type { Database } from '../../types/db'
 
-type ClubRow = Database['common']['Tables']['clubs']['Row']
+// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// SELECT *". Adding a new column to common.clubs requires
+// explicitly listing it here AND in the select() below.
+type ClubRow = Pick<
+  Database['common']['Tables']['clubs']['Row'],
+  'id' | 'handle' | 'name'
+>
 type Member = { user_id: string; username: string }
 
 type Props = {
@@ -70,7 +76,7 @@ export function ClubPage({ session, handle }: Props) {
     async function load() {
       const { data: clubData, error: clubError } = await commonDb
         .from('clubs')
-        .select('*')
+        .select('id, handle, name')
         .eq('handle', handle)
         .maybeSingle()
       if (!mounted) return

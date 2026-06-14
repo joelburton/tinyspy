@@ -215,6 +215,44 @@ If you add a new schema, also:
 - Add it to `[api].schemas` in `supabase/config.toml`.
 - Re-run `npm run types:gen` so the FE picks it up.
 
+## Avoid `SELECT *`
+
+> Every `.from('foo').select(...)` should pass an explicit column list. Don't reach for `.select('*')`.
+
+The reasoning, in order of weight:
+
+1. **Fail-closed on new columns.** When a new column lands on a table, we want the build to break at every consumer that hadn't decided what to do with it — not for the column to silently flow through to the FE. Explicit lists give that: the next `npm run types:gen` widens the table's `Row` type but our selects, narrowed via `Pick<Row, …>`, stay scoped to what the consumer actually needs.
+2. **Security defense-in-depth.** A future sensitive column added without a column-level grant would leak through `select('*')`. With explicit lists, the leak requires a deliberate edit. The DB-level grant is the lock; the explicit list is "I'm not even reaching for the doorknob."
+3. **Reader clarity.** The select call documents which fields the consumer cares about. You don't have to grep through the codebase to know whether a removable field is actually load-bearing.
+
+The pattern we use:
+
+```ts
+// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// SELECT *". Adding a new column to common.clubs requires
+// explicitly listing it here AND in the select() below.
+type ClubRow = Pick<
+  Database['common']['Tables']['clubs']['Row'],
+  'id' | 'handle' | 'name'
+>
+
+const { data } = await commonDb
+  .from('clubs')
+  .select('id, handle, name')
+  .eq('handle', handle)
+  .maybeSingle()
+```
+
+The narrow type + matching select string is the lock. The type alias + the column-list string have to drift together; TS catches mismatches at build time.
+
+### Exceptions
+
+A `select('*')` is OK if (a) the consumer truly uses every column AND (b) the table is unlikely to grow sensitive columns. In practice that's a rare combination — when in doubt, list them.
+
+### When this would have been wrong (an example)
+
+If we'd let `select('*')` ride on `common.messages` and later added an `ip_address` column for moderation, every `useClubChat` consumer would have started shipping IPs to every signed-in member of the club. The explicit `select('id, user_id, content')` pattern means that doesn't happen until someone adds `ip_address` to the list intentionally.
+
 ## TypeScript naming conventions
 
 Two conventions intersect here: TypeScript leans camelCase, SQL leans snake_case. We honor both, with a rule that makes the boundary visible.

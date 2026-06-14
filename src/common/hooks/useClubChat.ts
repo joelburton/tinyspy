@@ -3,9 +3,20 @@ import { supabase } from '../lib/supabase'
 import { db as commonDb } from '../db'
 import type { Database } from '../../types/db'
 
-/** A raw chat row keyed by club. Display names are resolved by the
- *  consumer (ClubChatPanel) from the member roster it already has. */
-export type ClubMessage = Database['common']['Tables']['messages']['Row']
+/**
+ * A raw chat row keyed by club. Display names are resolved by the
+ * consumer (ClubChatPanel) from the member roster it already has.
+ *
+ * Narrower than Database[...]['Row'] — see naming.md's "Avoid
+ * SELECT *". Adding a new column to common.messages requires
+ * explicitly listing it here AND in the select() below. `sent_at`
+ * is intentionally omitted: the server orders by it but no client
+ * code reads it.
+ */
+export type ClubMessage = Pick<
+  Database['common']['Tables']['messages']['Row'],
+  'id' | 'user_id' | 'content'
+>
 
 /**
  * Subscribes to a club's chat log.
@@ -29,7 +40,7 @@ export function useClubChat(clubId: string) {
     async function load() {
       const { data } = await commonDb
         .from('messages')
-        .select('*')
+        .select('id, user_id, content')
         .eq('club_id', clubId)
         .order('sent_at', { ascending: true })
       if (!mounted) return

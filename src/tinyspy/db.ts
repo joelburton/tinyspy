@@ -7,7 +7,7 @@ import { supabase } from '../common/lib/supabase'
  *
  *     import { db } from '../db'
  *
- *     const { data } = await db.from('games').select('*')...
+ *     const { data } = await db.from('games').select('id, status')...
  *     await db.rpc('submit_clue', { ... })
  *
  * Equivalent to `supabase.schema('tinyspy').from(...)` at every call

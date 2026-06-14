@@ -3,7 +3,13 @@ import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 
-export type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
+// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// SELECT *". Adding a new column to tinyspy.clues requires
+// explicitly listing it here AND in the select() below.
+export type ClueRow = Pick<
+  Database['tinyspy']['Tables']['clues']['Row'],
+  'id' | 'turn_number' | 'by_seat' | 'word' | 'count'
+>
 
 /**
  * Subscribes to the clue history for a single game.
@@ -31,7 +37,7 @@ export function useClues(gameId: string) {
     async function load() {
       const { data } = await db
         .from('clues')
-        .select('*')
+        .select('id, turn_number, by_seat, word, count')
         .eq('game_id', gameId)
         .order('turn_number', { ascending: true })
       if (!mounted) return

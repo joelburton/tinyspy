@@ -4,7 +4,13 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import type { Database } from '../../types/db'
 
-type GameRow = Database['tinyspy']['Tables']['games']['Row']
+// Narrower than Database[...]['Row'] — see naming.md's "Avoid
+// SELECT *". Adding a new column to tinyspy.games requires
+// explicitly listing it here AND in the select() below.
+type GameRow = Pick<
+  Database['tinyspy']['Tables']['games']['Row'],
+  'id' | 'club_id' | 'status' | 'turns_remaining' | 'turn_number' | 'current_clue_giver' | 'next_game_id'
+>
 
 export type Player = {
   user_id: string
@@ -66,7 +72,11 @@ export function useGame(gameId: string) {
       // about the cross-schema boundary; doesn't depend on PostgREST
       // behavior we'd like it to have but doesn't.
       const [gameRes, playersRes] = await Promise.all([
-        db.from('games').select('*').eq('id', gameId).single(),
+        db
+          .from('games')
+          .select('id, club_id, status, turns_remaining, turn_number, current_clue_giver, next_game_id')
+          .eq('id', gameId)
+          .single(),
         db.from('game_players').select('user_id, seat').eq('game_id', gameId).order('seat'),
       ])
 

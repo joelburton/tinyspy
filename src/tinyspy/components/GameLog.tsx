@@ -1,10 +1,8 @@
 import type { ClueRow } from '../hooks/useClues'
-import type { Database } from '../../types/db'
+import type { WordRow } from '../hooks/useBoard'
 import { cls } from '../../common/lib/cls'
 import { labelName } from '../lib/labels'
 import styles from './GameLog.module.css'
-
-type WordRow = Database['tinyspy']['Tables']['words']['Row']
 
 type Props = {
   clues: ClueRow[]
