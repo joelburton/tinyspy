@@ -20,7 +20,6 @@
 
 begin;
 
-create extension if not exists pgtap with schema extensions;
 set search_path = psychicnum, common, public, extensions;
 
 select plan(11);
