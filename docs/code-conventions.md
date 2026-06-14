@@ -4,6 +4,22 @@ How we write code in this repo. The cross-cutting rules that aren't tied to any 
 
 For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
 
+## Code clarity & docstrings
+
+The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
+
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
+- **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
+- **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
+- **`useEffect` gets a header comment.** Inline arrow effects have no name — see [the useEffect comments rule](#useeffect-comments) below.
+
+### What doesn't belong
+
+- Comments that restate what well-named code already says (`// increment counter` above `counter++`).
+- References to the current task, PR, or contributor (`// added for issue #42`, `// per joel's review`) — these belong in commit messages and rot in the code.
+- Stale TODOs. If a TODO doesn't have a clear trigger for resolution, delete it instead.
+
 ## Database
 
 ### Schemas

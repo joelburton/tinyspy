@@ -17,6 +17,20 @@ The payoff is the **removability invariant**: any game must be removable in thre
 
 This applies on the database side too: the `common` schema must not reference any game schema. Game schemas reference common (`tinyspy.games.club_id → common.clubs.id`), never the reverse.
 
+## Solo and multiplayer modes — keep them orthogonal
+
+The architecture supports two modes of play: **solo** (a single user playing alone) and **multiplayer** (a club's members playing together). The directive for any new gametype: **the same code and tables should handle both modes wherever possible** — avoid forked code paths or duplicated tables for "solo version" vs "club version."
+
+Concretely:
+
+- A game's `games` table should accommodate both with a nullable `club_id` (null = solo, non-null = club-played) rather than separate `solo_games` / `club_games` tables.
+- Score reports, replay history, board generation, and any other game-internal logic should be the same code regardless of mode.
+- Mode-specific behavior lives at the **edges**: RLS (who can see the game), the entry flow (who can join), the post-game screen (invite-club-to-rematch vs. play-again-alone).
+
+Tinyspy is the structural exception that proves the rule — its `club_id` is `not null` because Codenames Duet is intrinsically a 2-player game. Psychic Num's `club_id` is also `not null` today, but only because no solo-mode UI has been wired up yet (the RPCs would work fine with any club size). A future Boggle's `club_id` should be nullable from day one because Boggle plays naturally in both modes.
+
+Solo clubs (handle `=<username>`) exist as the anchor for solo play — even "solo" play in this codebase technically happens *inside* a club, just one with a single member. That's what lets per-user stats and history tables join cleanly on `club_id` without a separate "solo records" table.
+
 ## Schema: `common.*`
 
 ### Tables

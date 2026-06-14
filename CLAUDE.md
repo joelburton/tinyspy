@@ -1,25 +1,26 @@
 # Project priors
 
-Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs ([docs/naming.md](docs/naming.md), [docs/code-conventions.md](docs/code-conventions.md), [docs/cheatsheet.md](docs/cheatsheet.md), [README.md](README.md)) build on top.
+Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs build on top:
+
+| file | what's there |
+|---|---|
+| [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) |
+| [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, known gotchas |
+| [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant |
+| [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
+| [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
+| [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
+| [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
+| [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
+| [README.md](README.md) | Narrative + stack |
 
 ## Educational priority — clarity over brevity
 
 The primary author is an engineer learning AI-assisted development who also genuinely enjoys reading code and writing TypeScript and React. **The codebase itself is part of the artifact.** Optimize for someone reading it later (often the author, occasionally a fork-er) understanding *why* things are the way they are.
 
-Concretely:
-
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The existing tinyspy RPCs in `supabase/migrations/20260612000000_baseline.sql` and components like `src/components/CluePanel.tsx` are the model — generous prose, examples, references to related pieces.
-- **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
-- **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [docs/naming.md](docs/naming.md) for the terminology lexicon.
-- **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
-
 This **overrides** the general agent default of "no comments unless strictly necessary." Comments that teach are part of the value of this codebase.
 
-What still doesn't belong:
-
-- Comments that restate what well-named code already says (`// increment counter` above `counter++`).
-- References to the current task, PR, or contributor (`// added for issue #42`, `// per joel's review`) — these belong in commit messages and rot in the code.
-- Stale TODOs. If a TODO doesn't have a clear trigger for resolution, delete it instead.
+See [docs/code-conventions.md → Code clarity & docstrings](docs/code-conventions.md#code-clarity--docstrings) for the concrete rules this implies — what to document, what doesn't belong, and the model examples.
 
 ## Audience — friends, not strangers
 
@@ -39,29 +40,15 @@ What this means in practice:
 - **Don't engineer for backwards compatibility.** No redirect shims for old URL shapes, no dual-running code paths during a migration, no "legacy" branches that exist to be polite to existing data. Make the change, tell Joel to tell the friends.
 - **Schema rewrites are fine.** Drop tables, rename columns, change RPC signatures. The cost is "Joel sends a Discord message" — not "engineering a multi-week dual-write transition."
 - **Data loss between rebuilds is expected and accepted.** `supabase db reset` wipes everything; in-progress games disappear; chat history goes with them. This is fine. The Supabase project itself is on the chopping block (planned rebuild as "games"). The friends understand.
-- **Forcing re-authentication / re-account-creation is fine.** Renaming `display_name` → `username` may invalidate someone's previous handle. They'll pick a new one. Migrating to a fresh Supabase project means everyone signs in afresh. None of this is a blocker.
-- **Bookmarks rotting is fine.** When clubs introduce path-based URLs, old `#game=ABC` links won't work. Nobody will be sad.
+- **Forcing re-authentication / re-account-creation is fine.** Renaming `display_name` → `username` invalidated everyone's previous handle. They picked new ones. Migrating to a fresh Supabase project means everyone signs in afresh. None of this is a blocker.
+- **Bookmarks rotting is fine.** Going from `#game=ABC` hash URLs to `/g/<gametype>/<gameId>` paths broke old links. Nobody was sad.
 
 This **doesn't** mean be cavalier with destructive actions. The principle is about *avoiding compat apparatus we don't need*, not about being sloppy with the friends' goodwill. Still:
 
 - **Always confirm before destructive operations** (dropping databases, force-pushes, etc.). The "friends will understand" license is for *design* decisions, not for *unauthorized* destruction.
 - **The friends' actual game data, if it matters to them, still matters.** Joel decides what's expendable; if he says "you can wipe the dev DB," yes. He hasn't said that about prod — but prod is currently empty / non-load-bearing.
 
-When you encounter a question like "should we keep the old URL pattern working?" or "do we need a migration path from display_name to username for existing rows?" — the default answer is **no, just make the change cleanly**. If you're not sure whether a specific destructive choice is in-bounds, ask once; once Joel says yes, take the simpler path.
-
-## Solo and multiplayer games — keep them orthogonal
-
-Most games in this monorepo are playable solo (Boggle, crosswords, etc.). One — Tinyspy — requires exactly two players. Solo games are started outside any club; multiplayer games are started inside a club.
-
-**Goal: the same code and tables should handle both modes wherever possible.** Avoid forked code paths or duplicated tables for "solo version" vs "club version."
-
-Concretely:
-
-- A game's `games` table should accommodate both with a nullable `club_id` (null = solo, non-null = club-played) rather than separate `solo_games` / `club_games` tables.
-- Score reports, replay history, board generation, and any other game-internal logic should be the same code regardless of mode.
-- Mode-specific behavior lives at the **edges**: RLS (who can see the game), the lobby flow (who can join), the post-game screen (invite-club-to-rematch vs. play-again-alone).
-
-Tinyspy is the exception that proves the rule — its `club_id` is `not null` because the game is intrinsically multiplayer. Other games' `club_id` is nullable.
+When you encounter a question like "should we keep the old URL pattern working?" or "do we need a migration path for existing rows?" — the default answer is **no, just make the change cleanly**. If you're not sure whether a specific destructive choice is in-bounds, ask once; once Joel says yes, take the simpler path.
 
 ## Trust model — server-authoritative for cleanliness, not anti-cheat
 
@@ -84,11 +71,4 @@ Examples of where this lands:
 
 ## Stack snapshot
 
-For grounding when a decision touches the stack:
-
-- **Frontend:** React 19 + TypeScript + Vite, no UI framework. CSS Modules + a global theme stylesheet ([docs/code-conventions.md → CSS Modules + theme](docs/code-conventions.md#css-modules--theme)).
-- **Backend:** Supabase — Postgres (with RLS), PostgREST, Realtime, Auth (magic links via Resend SMTP), Edge Functions (Deno).
-- **Hosting:** Netlify (FE), Supabase (everything else).
-- **AI features:** Anthropic Claude via Edge Functions (Tinyspy's clue suggester is the current example).
-
-Multi-game architecture has landed — see [docs/common.md](docs/common.md) for the schema-per-game model and the games-registry pattern that makes any single game removable in three actions.
+React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, PostgREST, Realtime, Auth via magic links, Edge Functions in Deno) on the backend; Netlify for FE hosting; Anthropic Claude via Edge Functions for AI features (tinyspy's clue suggester is the current example). See [README.md](README.md) for the longer narrative.
