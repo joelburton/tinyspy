@@ -5,13 +5,13 @@ import { supabase } from '../lib/supabase'
  * Magic-link sign-in flow.
  *
  * On submit, calls `signInWithOtp` to mail a one-click login link to the
- * user. The link redirects back to `window.location.origin` — so a user
- * who started the flow with `#game=ABC` in their URL lands back on the
- * same hash and gets auto-restored into that game by App's effect.
+ * user. The link redirects back to `window.location.origin`, so a user
+ * who started on a deep URL (e.g. `/g/tinyspy/<id>`) lands back on the
+ * same path after sign-in.
  *
- * No password flow at all. No "resend" button yet (see CODE_REVIEW.md
- * item 10). The dev-only Mailpit hint catches the email in the local
- * stack so you don't need real email delivery while iterating.
+ * No password flow at all. No "resend" button yet — see
+ * `docs/deferred.md`. The dev-only Mailpit hint catches the email in
+ * the local stack so you don't need real email delivery while iterating.
  */
 export function LoginScreen() {
   const [email, setEmail] = useState('')

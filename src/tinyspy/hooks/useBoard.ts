@@ -25,8 +25,8 @@ export type WordRow = Pick<
  *   - The peer key is sensitive during play (it would leak the partner's
  *     view) and is only fetched when `revealPeer` is true. Even though the
  *     RLS policy on `game_players` would technically allow reading the
- *     partner's row during play (see CODE_REVIEW.md item 13), we don't
- *     ask for it until the game ends.
+ *     partner's row during play (the "Harden `game_players_select`" item
+ *     in `docs/deferred.md`), we don't ask for it until the game ends.
  *
  * Realtime: subscribes to `words` UPDATE/INSERT events for this game. On
  * any event, the whole load() runs again — wasteful for a chatty table

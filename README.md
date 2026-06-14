@@ -139,4 +139,4 @@ The detail behind everything above lives in `docs/`. Read these by need, not in 
 
 Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). The multi-game architecture is complete; Tinyspy plays end-to-end and Psychic Num exists as a deliberately-tiny second game to keep the architecture honest. Next games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
-Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md). The older [`CODE_REVIEW.md`](CODE_REVIEW.md) predates the multi-game refactor; some items there are obsolete.
+Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

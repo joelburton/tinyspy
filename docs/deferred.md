@@ -10,9 +10,10 @@ For per-feature deep context on each item, follow the link into the relevant fea
 
 See [`tinyspy.md → Open items`](tinyspy.md#open-items) for the longer treatment of each.
 
-- **Harden `game_players_select`.** Partner's `key_card` is currently readable by either player via RLS — convention says "don't query the other seat" but enforcement is missing. Fix: split into own-row reads + a `game_players_roster` view that omits `key_card`. Tagged as CODE_REVIEW.md item 13.
+- **Harden `game_players_select`.** Partner's `key_card` is currently readable by either player via RLS — convention says "don't query the other seat" but enforcement is missing. Fix: split into own-row reads + a `game_players_roster` view that omits `key_card`.
 - **Mission / campaign mode.** Variable starting token counts per the Duet rulebook's mission maps. Schema not built; would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
 - **Per-player guess UI.** Currently a single guesser at a time (the non-clue-giver during active play). Could expand to "either player can vote on a guess" for richer cooperative play, but that's a rules change, not just code.
+- **Tile `aria-label` for screen readers.** Board tiles are `<button>`s but have no `aria-label` describing reveal state. Screen-reader users hear only the word, not whether it's been revealed and as what color. Add `aria-label={\`${word}${revealed ? `, revealed as ${labelName(revealed_as)}` : ''}\`}` to the tile button in `BoardScreen.tsx`.
 
 ## Psychic Num
 
@@ -33,6 +34,7 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - **Username picker UI.** Currently the trigger auto-seeds username from email's local-part. Picker waits on the larger "magic links vs passwords" auth-method decision; when that lands, collision handling moves into the auth flow.
 - **Solo-club UI surface.** Solo clubs exist (auto-created on signup) but are UI-hidden. When solo-mode play for boggle / crosswords / etc. lands, decide how solo clubs surface to their owner.
 - **Global auto-nav on club_active_game.** Currently the auto-nav-into-active-game logic lives in `ClubPage` and only fires while the user is on the club page. For users elsewhere (their own profile, a different club, an unrelated /g/ URL), a club starting a new game won't pull them in. Worth a global subscription when this gap matters in practice.
+- **Resend magic-link button on `LoginScreen`.** Once `status` flips to `'sent'`, there's no affordance to retry — the user has to refresh and re-type their email if the link doesn't arrive. Small UI addition (button + handler) that re-invokes `signInWithOtp` with the same email.
 
 ## Tooling
 

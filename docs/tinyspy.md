@@ -309,7 +309,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 Deferred or sketched but not built:
 
-- **Hardening `game_players_select`.** Currently any player can read the partner's `key_card`. The fix is to split into own-row reads + a `game_players_roster` view that omits the key. See the policy comment in the baseline migration; tagged as CODE_REVIEW.md item 13.
+- **Hardening `game_players_select`.** Currently any player can read the partner's `key_card`. The fix is to split into own-row reads + a `game_players_roster` view that omits the key. See the policy comment in the baseline migration.
 - **Mission / campaign mode.** Variable starting token counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
 - **Per-player guess UI.** Currently a single guesser at a time (the non-clue-giver during active play). Could expand to "either player can vote on a guess" for richer cooperative play, but that's a rules change, not just code.
 
