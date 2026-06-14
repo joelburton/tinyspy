@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { ClubChatPanel } from '../../common/components/ClubChatPanel'
@@ -59,7 +59,7 @@ export function BoardScreen({ gameId, onLeave, onEnterGame }: Props) {
     }
   }, [status, gameId, revealedTarget])
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     const n = Number.parseInt(entry, 10)
     if (Number.isNaN(n) || n < 1 || n > 10) {

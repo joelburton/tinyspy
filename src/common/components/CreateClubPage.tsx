@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 import { Link } from '../lib/Link'
@@ -38,7 +38,7 @@ export function CreateClubPage({ session: _session }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function onSubmit(e: FormEvent) {
+  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
