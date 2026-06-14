@@ -31,41 +31,22 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(13);
 
--- ============================================================
--- Fixtures: two users for the 2-member club, plus a third for
--- the wrong-size and non-member test cases.
--- ============================================================
+-- Cast: ada + bea form the 2-member club used for the happy
+-- path. cade is the in-club third member for the wrong-size
+-- (3-member) rejection. dee is the non-member outsider.
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'eve@test.local', now(), now(), now());
+\ir ../_common/setup.psql
 
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config(
-    'request.jwt.claims',
-    json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-    true
-  );
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
-
--- alice creates a 2-member club (alice+bob) and a 3-member club
--- (alice+bob+eve). The 3-member one exercises the wrong-size
+-- ada creates a 2-member club (ada+bea) and a 3-member club
+-- (ada+bea+cade). The 3-member one exercises the wrong-size
 -- rejection.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
 create temp table club2 on commit drop as
-select * from common.create_club('Alice and Bob', array['alice','bob']);
+select * from common.create_club('Ada and Bea', array['ada','bea']);
 
 create temp table club3 on commit drop as
-select * from common.create_club('Trio', array['alice','bob','eve']);
+select * from common.create_club('Trio', array['ada','bea','cade']);
 
 -- ============================================================
 -- Rejection paths
@@ -81,7 +62,7 @@ select throws_ok(
   'create_game: not authenticated raises 42501'
 );
 
--- eve is signed in but not a member of club2 (alice+bob only).
+-- cade is signed in but not a member of club2 (ada+bea only).
 select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
 
 select throws_ok(
@@ -91,7 +72,7 @@ select throws_ok(
   'create_game: non-member is rejected'
 );
 
--- alice tries to start a tinyspy game in the 3-member club.
+-- ada tries to start a tinyspy game in the 3-member club.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
 select throws_ok(
@@ -132,7 +113,7 @@ select is(
   'create_game: both club members are seated'
 );
 
--- Caller (alice) is seat A; the other member (bob) is seat B.
+-- Caller (ada) is seat A; the other member (bea) is seat B.
 select is(
   (select user_id from tinyspy.game_players
     where game_id = (select id from created) and seat = 'A'),

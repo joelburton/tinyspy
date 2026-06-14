@@ -15,9 +15,9 @@
 --   4. ANY non-green reveal ends the game in lost_clock
 --
 -- For the reveal label, sudden_death uses the *partner's* view
--- (the seat opposite the guesser). So when alice guesses, we
--- look up positions on bob's key view to find a "green for alice
--- to hit" or "neutral for alice to hit".
+-- (the seat opposite the guesser). So when ada guesses, we
+-- look up positions on bea's key view to find a "green for ada
+-- to hit" or "neutral for ada to hit".
 --
 -- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
@@ -32,21 +32,7 @@ select plan(5);
 -- Fixtures
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$
@@ -63,7 +49,7 @@ $$;
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
 select * from tinyspy.create_game((select id from club));
 
@@ -91,7 +77,7 @@ select throws_ok(
 -- ============================================================
 -- (2) and (3) — green guess works, game stays in sudden_death
 -- ============================================================
--- Alice guesses; the reveal uses bob's view. We look up a 'G' on bob's
+-- Ada guesses; the reveal uses bea's view. We look up a 'G' on bea's
 -- side and submit it.
 
 select is(

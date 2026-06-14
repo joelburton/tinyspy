@@ -23,26 +23,10 @@ set search_path = tinyspy, common, public, extensions;
 select plan(9);
 
 -- ============================================================
--- Fixtures: three users — alice + bob play, carol is outside
+-- Fixtures: three users — ada + bea play, dee is outside
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local',   now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$
@@ -57,11 +41,11 @@ $$;
 -- Set up a finished game so play_again has something to act on
 -- ============================================================
 
--- Alice creates a 2-member club; tinyspy.create_game seats both
+-- Ada creates a 2-member club; tinyspy.create_game seats both
 -- and brings the game straight to 'active'.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table prev on commit drop as
 select * from tinyspy.create_game((select id from club));
 
@@ -73,7 +57,7 @@ select throws_ok(
   'play_again rejects while the previous game is still active'
 );
 
--- End the game: Alice gives a clue, Bob guesses Alice's assassin cell.
+-- End the game: Ada gives a clue, Bea guesses Ada's assassin cell.
 select submit_clue((select id from prev), 'DOOM', 1);
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -83,14 +67,14 @@ select submit_guess(
 );
 
 -- ============================================================
--- play_again, take 1: Alice creates the successor
+-- play_again, take 1: Ada creates the successor
 -- ============================================================
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table next on commit drop as
 select * from play_again((select id from prev));
 
--- (2) Alice's play_again call should have returned one row.
+-- (2) Ada's play_again call should have returned one row.
 select is(
   (select count(*) from next),
   1::bigint,
@@ -105,7 +89,7 @@ select is(
 );
 
 -- ============================================================
--- play_again, take 2: Bob's idempotent call from the same prev game
+-- play_again, take 2: Bea's idempotent call from the same prev game
 -- ============================================================
 -- Whichever player clicks first creates the new game. A later caller
 -- from the same prev_game should get back the same id, not a
@@ -135,14 +119,14 @@ select is(
    where game_id = (select id from next)
      and user_id = '11111111-1111-1111-1111-111111111111'),
   'A',
-  'alice is pre-seated as A in the successor game'
+  'ada is pre-seated as A in the successor game'
 );
 select is(
   (select seat from game_players
    where game_id = (select id from next)
      and user_id = '22222222-2222-2222-2222-222222222222'),
   'B',
-  'bob is pre-seated as B in the successor game'
+  'bea is pre-seated as B in the successor game'
 );
 
 -- (7) Successor game starts in 'active' directly (no lobby state
@@ -165,10 +149,10 @@ select is(
 );
 
 -- ============================================================
--- Carol (not a player in `prev`) cannot call play_again on it.
+-- Dee (not a player in `prev`) cannot call play_again on it.
 -- ============================================================
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select play_again((select id from prev)) $$,
   '42501',

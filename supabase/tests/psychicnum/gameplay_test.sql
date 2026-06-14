@@ -17,7 +17,7 @@
 -- UPDATE after create_game (RPCs only pick the target randomly;
 -- tests need the target to drive the guess sequence). Then play
 -- through the scenarios with the as_user helper to switch
--- alice/bob roles between guesses.
+-- ada/bea roles between guesses.
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP primer.
 -- ============================================================
@@ -29,30 +29,14 @@ set search_path = psychicnum, common, public, extensions;
 select plan(17);
 
 -- ============================================================
--- Fixtures: two members (alice + bob) + carol-outsider
+-- Fixtures: two members (ada + bea) + dee-outsider
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
 select * from psychicnum.create_game((select id from club));
 
@@ -84,7 +68,7 @@ select throws_ok(
 -- (2) Non-member is rejected
 -- ============================================================
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');  -- carol
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');  -- dee
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 5) $$, (select id from g)),
   '42501',
@@ -93,7 +77,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (3) First wrong guess — alice guesses 1
+-- (3) First wrong guess — ada guesses 1
 -- ============================================================
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
@@ -114,7 +98,7 @@ select is(
 );
 
 -- ============================================================
--- (4) Duplicate guess — bob also guesses 1 (silly but legal)
+-- (4) Duplicate guess — bea also guesses 1 (silly but legal)
 -- ============================================================
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -130,7 +114,7 @@ select is(
 );
 
 -- ============================================================
--- (5) Correct guess — bob guesses 7
+-- (5) Correct guess — bea guesses 7
 -- ============================================================
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -170,7 +154,7 @@ select throws_ok(
 -- ============================================================
 -- (8) Loss path — fresh game, 7 wrong guesses
 -- ============================================================
--- Start a second game, pin target to 8, then have alice and bob
+-- Start a second game, pin target to 8, then have ada and bea
 -- alternate wrong guesses (1 through 7) for a total of 7 wrong
 -- attempts. The 7th should flip status to 'lost'.
 

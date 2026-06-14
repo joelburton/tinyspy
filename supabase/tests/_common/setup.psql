@@ -1,0 +1,123 @@
+-- ============================================================
+-- Shared test setup — personas + auth helper
+-- ============================================================
+--
+-- Loaded at the top of every pgTAP test file via:
+--
+--   \ir ../_common/setup.sql
+--
+-- (`\ir`, not `\i` — `\ir` resolves the path relative to the
+-- *including file's* directory, so this single line works
+-- whether the caller lives in tests/common/, tests/tinyspy/, or
+-- tests/psychicnum/. With `\i`, the path would resolve relative
+-- to psql's current working directory, which is brittle.)
+--
+-- What this file gives every test:
+--   1. Five auth.users rows for the standard personas, with
+--      common.profiles + solo clubs materialized by the
+--      on_auth_user_created trigger.
+--   2. pg_temp.as_user(uid) — switches the session to act as a
+--      given authenticated user. Used by every test that needs
+--      to invoke an RPC as a particular person.
+--
+-- Underneath each test still wraps in begin/rollback, so all
+-- of the rows and the temp function created here are scoped to
+-- the single test file. Nothing leaks across tests.
+--
+-- ============================================================
+-- The personas — read this before writing or editing a test
+-- ============================================================
+--
+-- Test fixtures are people, not row-numbers. The names below
+-- have roles you should respect across the suite so a reader
+-- can scan a test and know who's who without re-checking the
+-- fixture block each time.
+--
+--   ada     The default test subject. When a test just needs
+--           "some authenticated user is doing the thing," use
+--           ada. She is always in the relevant club and, if a
+--           game is in progress, she's playing it.
+--
+--   bea     The second player. Reach for bea when the test
+--           needs two people interacting — ada gives a clue,
+--           bea guesses; ada submits a guess, bea sees the
+--           realtime update. Like ada, bea is always in the
+--           club AND in any game being played.
+--
+--   cade    In the club, but not necessarily in the current
+--           game. Use cade when the test specifically wants to
+--           exercise "a club member who isn't part of this
+--           particular game" — e.g., he walked into the club
+--           room while ada + bea were mid-game, or he's the
+--           third member of a 3-member club that's about to be
+--           rejected by tinyspy.create_game (which requires
+--           exactly 2 members).
+--
+--   dee     Outside the club entirely. dee is an existing
+--           authenticated user — she signed in, so her profile
+--           and solo club exist — but she's never a member of
+--           the test's club. Use dee whenever the test needs
+--           someone whose RPC calls should be rejected with
+--           "not a member of this club", or whose SELECT should
+--           return zero rows because of club-scoped RLS.
+--
+--   eda     A second outsider, for the rare test that needs
+--           two non-members. Same role as dee, different person.
+--
+-- The mnemonic: ada/bea/cade are *inside* (alphabetically
+-- adjacent, easy to bracket as "the in-club trio"); dee/eda are
+-- *outside* (next two letters, the outside pair).
+--
+-- ============================================================
+-- Fixtures
+-- ============================================================
+--
+-- UUIDs follow the "fill the first hex block with N's, separator
+-- for the rest" convention used throughout the suite. Picking a
+-- name-embedded UUID style (e.g. 'ada11111-1111-...') is a
+-- future change; for now the numeric grouping is what matches
+-- existing tests.
+
+insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
+  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'ada@test.local',  now(), now(), now()),
+  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'bea@test.local',  now(), now(), now()),
+  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'cade@test.local', now(), now(), now()),
+  ('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'dee@test.local',  now(), now(), now()),
+  ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'eda@test.local',  now(), now(), now());
+
+-- The on_auth_user_created trigger on auth.users fires for each
+-- of those inserts, materializing common.profiles (username =
+-- email's local-part: 'ada', 'bea', etc.) and a solo club for
+-- each user. So after this file runs, every test has five
+-- profiles and five solo clubs available with no further work.
+
+-- ============================================================
+-- pg_temp.as_user — switch the session to "I am this user"
+-- ============================================================
+--
+-- pgTAP tests start out running as the postgres superuser
+-- (which bypasses RLS). To exercise an RPC the way a real FE
+-- call would, we need to flip the session into the
+-- `authenticated` role and put the user's id into
+-- request.jwt.claims (where auth.uid() reads from).
+--
+-- Each test calls `select pg_temp.as_user('11111111-...')`
+-- before invoking an RPC that should run as ada. Switching to
+-- a different person is just another as_user call; resetting
+-- back to postgres (e.g. to read across RLS for an assertion)
+-- is `reset role; select set_config('request.jwt.claims', '', true);`.
+
+create function pg_temp.as_user(uid uuid) returns void
+language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims',
+                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
+                     true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;

@@ -6,13 +6,13 @@
 -- reveal, count the total greens; if it's ≥ 15, set status = won
 -- and clear the clue-giver.
 --
--- Of the 15 unique green agents, 9 are visible on Alice's side
--- and 9 are visible on Bob's side (with 3 overlapping G/G cells).
+-- Of the 15 unique green agents, 9 are visible on Ada's side
+-- and 9 are visible on Bea's side (with 3 overlapping G/G cells).
 -- So in any given game:
---   - Alice's 9 view-greens can be revealed when Alice gives a clue
+--   - Ada's 9 view-greens can be revealed when Ada gives a clue
 --     (3 G/G + 5 G/N + 1 G/A on her view).
---   - The remaining 6 (5 N/G + 1 A/G on her view) are Bob's unique
---     greens, revealable only when Bob gives a clue.
+--   - The remaining 6 (5 N/G + 1 A/G on her view) are Bea's unique
+--     greens, revealable only when Bea gives a clue.
 --
 -- We drive that exact sequence with PL/pgSQL loops over the
 -- positions found by `find_position_set` and assert the win check
@@ -31,21 +31,7 @@ select plan(4);
 -- Fixtures
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 -- Return all positions where a seat's view has the given label. The
 -- positional unnest with ordinality avoids the row_number-vs-SRF trap.
@@ -63,12 +49,12 @@ $$;
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
 select * from tinyspy.create_game((select id from club));
 
 -- ============================================================
--- Turn 1: Alice gives a clue, Bob reveals all 9 of Alice's
+-- Turn 1: Ada gives a clue, Bea reveals all 9 of Ada's
 -- view-greens, then passes to end the turn.
 -- ============================================================
 
@@ -82,7 +68,7 @@ declare
 begin
   positions := pg_temp.find_position_set(
     (select id from g),
-    'A',  -- Alice's view (she's the clue-giver this turn)
+    'A',  -- Ada's view (she's the clue-giver this turn)
     'G'
   );
   foreach p in array positions loop
@@ -93,14 +79,14 @@ begin
 end $$;
 
 -- ============================================================
--- Turn 2: Bob (now clue-giver) reveals his unique greens.
+-- Turn 2: Bea (now clue-giver) reveals his unique greens.
 -- ============================================================
--- These are positions where Alice's view is *not* green but Bob's
+-- These are positions where Ada's view is *not* green but Bea's
 -- view is green — i.e., the 5 N/G + 1 A/G cells from the rulebook
 -- table. That's exactly 6 positions.
 --
--- Per Duet's "clue-giver's view labels the reveal" rule, when Bob
--- gives a clue and Alice guesses, the reveal uses Bob's view —
+-- Per Duet's "clue-giver's view labels the reveal" rule, when Bea
+-- gives a clue and Ada guesses, the reveal uses Bea's view —
 -- which is 'G' for all 6 of these cells.
 --
 -- The 14th green keeps status='active'; the 15th flips it to 'won'.
@@ -110,13 +96,13 @@ select submit_clue((select id from g), 'TARGETS', 6);
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
--- Reveal the first 5 of Bob's unique greens (14 total revealed so far).
+-- Reveal the first 5 of Bea's unique greens (14 total revealed so far).
 do $$
 declare
   bob_unique int[];
   p int;
 begin
-  -- Positions where Alice's view != G but Bob's view = G.
+  -- Positions where Ada's view != G but Bea's view = G.
   with a as (
     select t.label as la, t.ord
     from tinyspy.game_players gp,

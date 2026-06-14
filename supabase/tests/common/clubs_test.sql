@@ -34,32 +34,15 @@ set search_path = common, public, extensions;
 
 select plan(21);
 
--- ============================================================
--- Fixtures: three users — alice, bob, carol.
--- ============================================================
--- on_auth_user_created fires for each, materializing their
--- profile AND their solo club. So before any explicit create_club
--- runs, there are already 3 solo clubs in the db.
+-- Cast: ada/bea/cade are the three in-club personas this test
+-- uses (creating clubs, being members, exercising the handle-
+-- collision path). dee/eda are loaded too but unused here. Each
+-- of the five gets a solo club from the on_auth_user_created
+-- trigger, so the DB has 5 solo clubs before any explicit
+-- create_club runs — relevant for the solo-club assertions
+-- in Block 6, which scope their count to these fixture users.
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config(
-    'request.jwt.claims',
-    json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-    true
-  );
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 -- ============================================================
 -- Block 1: slugify_club_name
@@ -86,7 +69,7 @@ select set_config('request.jwt.claims', '', true)
      , set_config('role', 'postgres', true) where false;
 
 select throws_ok(
-  $$ select common.create_club('Some Club', array['alice','bob']) $$,
+  $$ select common.create_club('Some Club', array['ada','bea']) $$,
   '42501',
   'must be authenticated',
   'create_club: not authenticated raises 42501'
@@ -95,7 +78,7 @@ select throws_ok(
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
 select throws_ok(
-  $$ select common.create_club('!!!', array['bob']) $$,
+  $$ select common.create_club('!!!', array['bea']) $$,
   'P0001',
   'club name must contain alphanumeric characters',
   'create_club: name with no alphanumerics is rejected'
@@ -112,7 +95,7 @@ select throws_ok(
 -- (The caller is auto-added if missing, but membership still needs
 -- to be >= 2 after that.)
 select throws_ok(
-  $$ select common.create_club('Just Me', array['alice']) $$,
+  $$ select common.create_club('Just Me', array['ada']) $$,
   'P0001',
   'a club must have at least 2 members',
   'create_club: lone-caller membership is rejected'
@@ -131,7 +114,7 @@ select throws_ok(
 -- ============================================================
 
 create temp table created_club on commit drop as
-select * from common.create_club('Joel and Leah', array['alice','bob','carol']);
+select * from common.create_club('Joel and Leah', array['ada','bea','cade']);
 
 select is(
   (select count(*) from created_club),
@@ -156,13 +139,13 @@ select is(
 -- ============================================================
 -- Block 4: caller auto-added when not in list
 -- ============================================================
--- bob creates a club listing only alice + carol; bob should be
+-- bea creates a club listing only ada + cade; bea should be
 -- silently added so the membership has 3, not 2.
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
 
 create temp table bobs_club on commit drop as
-select * from common.create_club('Friday Night', array['alice','carol']);
+select * from common.create_club('Friday Night', array['ada','cade']);
 
 select is(
   (select count(*) from common.club_members
@@ -183,14 +166,14 @@ select ok(
 -- ============================================================
 -- Block 5: handle collision
 -- ============================================================
--- carol attempts to create a club whose name slugifies to the same
--- handle as bob's 'Friday Night' → 'friday-night'. Unique constraint
+-- cade attempts to create a club whose name slugifies to the same
+-- handle as bea's 'Friday Night' → 'friday-night'. Unique constraint
 -- raises SQLSTATE 23505 (unique_violation).
 
 select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
 
 select throws_ok(
-  $$ select common.create_club('friday night', array['alice','bob']) $$,
+  $$ select common.create_club('friday night', array['ada','bea']) $$,
   '23505',
   null,
   'create_club: handle collision raises unique_violation'
@@ -231,13 +214,13 @@ select is(
 
 select is(
   (select handle from common.clubs where created_by = '11111111-1111-1111-1111-111111111111' and handle like '=%'),
-  '=alice',
-  'solo clubs: alice''s solo handle is "=alice"'
+  '=ada',
+  'solo clubs: ada''s solo handle is "=ada"'
 );
 
 select is(
   (select count(*) from common.club_members
-    where club_id = (select id from common.clubs where handle = '=alice')),
+    where club_id = (select id from common.clubs where handle = '=ada')),
   1::bigint,
   'solo clubs: a solo club has exactly one member'
 );
@@ -245,7 +228,7 @@ select is(
 select ok(
   (select exists (
     select 1 from common.club_members cm
-    where cm.club_id = (select id from common.clubs where handle = '=alice')
+    where cm.club_id = (select id from common.clubs where handle = '=ada')
       and cm.user_id = '11111111-1111-1111-1111-111111111111'
   )),
   'solo clubs: the sole member is the user themselves'
@@ -254,9 +237,9 @@ select ok(
 -- ============================================================
 -- Block 7: RLS
 -- ============================================================
--- alice is in 'Joel and Leah' but NOT in carol's solo club.
---   - alice SELECTing 'Joel and Leah' should return 1 row.
---   - alice SELECTing '=carol' should return 0 rows (RLS hides it).
+-- ada is in 'Joel and Leah' but NOT in cade's solo club.
+--   - ada SELECTing 'Joel and Leah' should return 1 row.
+--   - ada SELECTing '=cade' should return 0 rows (RLS hides it).
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
@@ -267,7 +250,7 @@ select is(
 );
 
 select is(
-  (select count(*) from common.clubs where handle = '=carol'),
+  (select count(*) from common.clubs where handle = '=cade'),
   0::bigint,
   'RLS: non-member cannot see another user''s solo club'
 );

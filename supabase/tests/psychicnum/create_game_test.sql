@@ -28,23 +28,7 @@ select plan(11);
 -- Fixtures
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 -- ============================================================
 -- (1) Unauthenticated callers are rejected
@@ -72,13 +56,13 @@ select throws_ok(
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 
 -- ============================================================
 -- (2) Non-member callers are rejected
 -- ============================================================
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');  -- carol, outsider
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');  -- dee, outsider
 select throws_ok(
   format($$ select psychicnum.create_game(%L::uuid) $$, (select id from club)),
   '42501',
@@ -87,7 +71,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (3) Happy path — alice creates a game
+-- (3) Happy path — ada creates a game
 -- ============================================================
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');

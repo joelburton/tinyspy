@@ -22,41 +22,21 @@ begin;
 
 set search_path = common, public, extensions;
 
+\ir ../_common/setup.psql
+
 select plan(10);
 
--- ============================================================
--- Fixtures: three users — alice + bob in a club, carol outside.
--- ============================================================
+-- Cast: ada + bea inside a club; dee outside it (the outsider
+-- whose calls + reads should all be blocked).
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config(
-    'request.jwt.claims',
-    json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-    true
-  );
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
-
--- Alice creates a 2-member club with bob.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Alice and Bob', array['alice','bob']);
+select * from common.create_club('Ada and Bea', array['ada','bea']);
 
 -- ============================================================
 -- send_message rejection paths
 -- ============================================================
--- Clear alice's auth context for the unauthenticated check. Note
+-- Clear ada's auth context for the unauthenticated check. Note
 -- the `select set_config(...) where false` shortcut only works
 -- when no `as_user` has been called yet on this connection —
 -- Postgres skips the SELECT-list expressions when `WHERE false`
@@ -74,8 +54,8 @@ select throws_ok(
   'send_message: not authenticated raises 42501'
 );
 
--- carol (a real user) is not in this club.
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+-- dee (a real user) is not in this club.
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select throws_ok(
   format($q$ select common.send_message(%L, 'sneaking in') $q$, (select id from club)),
   '42501',
@@ -83,7 +63,7 @@ select throws_ok(
   'send_message: non-member is rejected'
 );
 
--- alice IS a member, so she can be used for the empty/long checks.
+-- ada IS a member, so she can be used for the empty/long checks.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
 select throws_ok(
@@ -105,7 +85,7 @@ select throws_ok(
 -- ============================================================
 
 select lives_ok(
-  format($q$ select common.send_message(%L, 'hello from alice') $q$, (select id from club)),
+  format($q$ select common.send_message(%L, 'hello from ada') $q$, (select id from club)),
   'send_message: member can post a normal message'
 );
 
@@ -117,12 +97,12 @@ select is(
 
 select is(
   (select content from common.messages where club_id = (select id from club) limit 1),
-  'hello from alice',
+  'hello from ada',
   'send_message: content was preserved verbatim'
 );
 
 -- ============================================================
--- RLS: bob can see alice's message, carol cannot
+-- RLS: bea can see ada's message, dee cannot
 -- ============================================================
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -132,7 +112,7 @@ select is(
   'RLS: fellow member can see club messages'
 );
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from common.messages where club_id = (select id from club)),
   0::bigint,
@@ -143,15 +123,15 @@ select is(
 -- Direct INSERT blocked
 -- ============================================================
 -- authenticated has SELECT but no INSERT grant on common.messages,
--- so even a carol-with-a-correct-club_id can't write.
+-- so even a dee-with-a-correct-club_id can't write.
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
     $q$ insert into common.messages (club_id, user_id, content)
         values (%L, %L, 'direct write') $q$,
     (select id from club),
-    '33333333-3333-3333-3333-333333333333'
+    '44444444-4444-4444-4444-444444444444'
   ),
   '42501',
   null,

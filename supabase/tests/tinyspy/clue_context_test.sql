@@ -20,30 +20,14 @@ select plan(6);
 -- Fixtures
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'carol@test.local', now(), now(), now());
+\ir ../_common/setup.psql
 
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config('request.jwt.claims',
-                     json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-                     true);
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
-
--- Set up an active game with alice as clue-giver (default after
--- create_game). Carol isn't in the club, so she'll exercise the
+-- Set up an active game with ada as clue-giver (default after
+-- create_game). Dee isn't in the club, so she'll exercise the
 -- non-player rejection path.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
 select * from tinyspy.create_game((select id from club));
 
@@ -51,7 +35,7 @@ select * from tinyspy.create_game((select id from club));
 -- (1) Non-player rejection
 -- ============================================================
 
-select pg_temp.as_user('33333333-3333-3333-3333-333333333333');
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   '42501',
@@ -60,7 +44,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (2) Bob (the non-clue-giver) cannot ask
+-- (2) Bea (the non-clue-giver) cannot ask
 -- ============================================================
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -95,7 +79,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (4)–(6) Happy path: alice gets a context with the expected keys
+-- (4)–(6) Happy path: ada gets a context with the expected keys
 -- and the greens array has exactly 9 entries (one per A-side green).
 -- ============================================================
 

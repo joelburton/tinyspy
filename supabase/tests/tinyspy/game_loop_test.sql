@@ -25,23 +25,7 @@ select plan(18);
 -- Fixtures
 -- ============================================================
 
-insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, created_at, updated_at) values
-  ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'alice@test.local', now(), now(), now()),
-  ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'bob@test.local', now(), now(), now());
-
-create function pg_temp.as_user(uid uuid) returns void
-language plpgsql as $$
-begin
-  perform set_config(
-    'request.jwt.claims',
-    json_build_object('sub', uid::text, 'role', 'authenticated')::text,
-    true
-  );
-  perform set_config('role', 'authenticated', true);
-end;
-$$;
+\ir ../_common/setup.psql
 
 -- Find the first board position whose label on a given seat's key view is
 -- `target`. The key card is random, so the test can't hardcode positions —
@@ -58,17 +42,17 @@ $$;
 -- ============================================================
 -- Game 1: full active-play loop
 -- ============================================================
--- Alice creates the 2-member club; tinyspy.create_game seats both
+-- Ada creates the 2-member club; tinyspy.create_game seats both
 -- members and brings the game straight to 'active'.
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['alice','bob']);
+select * from common.create_club('test club', array['ada','bea']);
 create temp table g1 on commit drop as
 select * from tinyspy.create_game((select id from club));
 
 -- ----- Phase-enforcement rejections -----
--- Bob is not the clue-giver (Alice is), so submit_clue must reject.
+-- Bea is not the clue-giver (Ada is), so submit_clue must reject.
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
 select throws_ok(
@@ -78,7 +62,7 @@ select throws_ok(
   'submit_clue rejects when caller is not the current clue-giver'
 );
 
--- Bob also can't guess yet — there's no clue for the current turn.
+-- Bea also can't guess yet — there's no clue for the current turn.
 select throws_ok(
   $$ select submit_guess((select id from g1), 0) $$,
   'P0001',
@@ -86,7 +70,7 @@ select throws_ok(
   'submit_guess rejects in the clue phase (no clue submitted yet)'
 );
 
--- Alice (the clue-giver) can't guess either, even after a clue exists —
+-- Ada (the clue-giver) can't guess either, even after a clue exists —
 -- but right now there's no clue either, so the error she'd hit is
 -- "you are the clue-giver this turn" (checked first in the RPC).
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
@@ -98,14 +82,14 @@ select throws_ok(
 );
 
 -- ----- Happy path: clue + green guess + neutral guess -----
--- Alice submits a clue.
+-- Ada submits a clue.
 
 select lives_ok(
   $$ select submit_clue((select id from g1), 'TOOLS', 2) $$,
   'submit_clue succeeds for the current clue-giver in the clue phase'
 );
 
--- Alice can't double up — the unique (game_id, turn_number) constraint
+-- Ada can't double up — the unique (game_id, turn_number) constraint
 -- on `clues` is enforced by the RPC ahead of the actual insert.
 select throws_ok(
   $$ select submit_clue((select id from g1), 'OTHER', 1) $$,
@@ -114,9 +98,9 @@ select throws_ok(
   'submit_clue rejects a second clue in the same turn'
 );
 
--- Bob guesses a green. The label is determined by *Alice's* view (the
+-- Bea guesses a green. The label is determined by *Ada's* view (the
 -- clue-giver's view), which is the most subtle rule in Duet. We use
--- find_position to pin down a cell that's 'G' on Alice's side.
+-- find_position to pin down a cell that's 'G' on Ada's side.
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
 select is(
   submit_guess(
@@ -144,7 +128,7 @@ select is(
   'green guess does not advance the turn number'
 );
 
--- Bob guesses a neutral (on Alice's view). This ends the turn.
+-- Bea guesses a neutral (on Ada's view). This ends the turn.
 select is(
   submit_guess(
     (select id from g1),
@@ -171,7 +155,7 @@ select is(
 );
 
 -- ----- pass_turn -----
--- Bob is now the clue-giver. He submits a clue, Alice passes immediately
+-- Bea is now the clue-giver. He submits a clue, Ada passes immediately
 -- (a zero-guess turn — rulebook-legal). Turn ends just like a neutral.
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
@@ -197,7 +181,7 @@ select is(
 -- ============================================================
 -- Game 2: assassin reveal
 -- ============================================================
--- Bob guesses Alice's assassin cell — game ends immediately, regardless
+-- Bea guesses Ada's assassin cell — game ends immediately, regardless
 -- of token count. status flips to lost_assassin and current_clue_giver
 -- is cleared.
 
