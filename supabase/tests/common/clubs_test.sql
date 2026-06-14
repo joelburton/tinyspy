@@ -25,8 +25,8 @@
 --   5. RLS: non-member SELECT returns 0 rows; member SELECT returns
 --      the row.
 --
--- See `tinyspy/lobby_test.sql` for the pgTAP / auth-simulation
--- primer this file builds on.
+-- See `tinyspy/create_game_test.sql` for the pgTAP /
+-- auth-simulation primer this file builds on.
 
 begin;
 

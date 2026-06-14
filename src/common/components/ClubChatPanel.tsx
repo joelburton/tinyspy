@@ -16,15 +16,15 @@ type Props = {
 }
 
 /**
- * Chat panel for a club. The club-keyed counterpart of `ChatPanel`
- * (which is per-game and lives inside Tinyspy's board today). When
- * commit 5 retires Tinyspy's chat, the old `ChatPanel` is deleted
- * and this becomes the only one.
+ * Chat panel for a club. The only chat panel — every game's
+ * BoardScreen mounts this directly. Chat is keyed by club, not
+ * by game, so the same thread persists across game-kind switches
+ * and play-again chains within the same club.
  *
  * Looks up each message's sender in the `members` prop (loaded
  * once by the parent), keeping render cheap and avoiding the
  * "embed shape varies between fetch and realtime payload" problem
- * that the original game chat avoided too.
+ * that comes from PostgREST joins.
  *
  * Auto-scrolls to the latest message on each update — `block: 'end'`
  * (not `'smooth'`) so the scroll is instant on first mount and on

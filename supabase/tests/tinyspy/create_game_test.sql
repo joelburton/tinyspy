@@ -2,11 +2,11 @@
 -- Test: tinyspy.create_game(target_club)
 -- ============================================================
 --
--- The clubs-era replacement for the old lobby_test.sql, which
--- covered create_game()/join_game()/start_game() in the ad-hoc
--- model. That whole flow collapsed into a single RPC under clubs:
--- create_game takes a target_club, seats both members, picks
--- words, generates key cards, and goes straight to status='active'.
+-- create_game is the one entry-point RPC for starting a tinyspy
+-- game: it takes a target_club, seats both members, picks the
+-- 25 words, generates the Duet key card, sets status='active',
+-- and upserts common.club_active_game. There is no lobby state
+-- and no second-player "join with code" step.
 --
 -- Coverage:
 --   - rejection: not authenticated
@@ -19,8 +19,11 @@
 --     the club's active game
 --   - key-card distribution: exactly matches the Duet rulebook
 --     (G/G:3, G/N:5, G/A:1, N/G:5, N/N:7, N/A:1, A/G:1, A/N:1,
---     A/A:1). This was previously verified in start_game_test;
---     moved here since the same logic runs inside create_game now.
+--     A/A:1).
+--
+-- Doubles as the pgTAP primer for the rest of the test suite —
+-- the as_user helper, find_position lookups, and begin/rollback
+-- structure are all introduced here.
 
 begin;
 

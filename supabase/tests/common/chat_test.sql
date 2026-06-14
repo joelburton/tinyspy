@@ -11,11 +11,12 @@
 --   - direct INSERT to common.messages is blocked
 --     (no grant on authenticated)
 --
--- Tests existence of the chat plumbing only. Tinyspy will rewire
--- its ChatPanel to call common.send_message in commit 5; this file
--- exercises the RPC standalone.
+-- Tests the chat plumbing standalone, with no game involved.
+-- ClubChatPanel (used by every game's BoardScreen) calls
+-- common.send_message and reads common.messages via RLS — this
+-- file exercises both directly.
 --
--- See `tinyspy/lobby_test.sql` for the pgTAP primer.
+-- See `tinyspy/create_game_test.sql` for the pgTAP primer.
 
 begin;
 
@@ -55,12 +56,13 @@ select * from common.create_club('Alice and Bob', array['alice','bob']);
 -- ============================================================
 -- send_message rejection paths
 -- ============================================================
--- Clear alice's auth context for the unauthenticated check. The
--- `select set_config(...) where false` idiom from lobby_test only
--- worked there because no `as_user` had been called yet — Postgres
--- skips the SELECT-list expressions when `WHERE false` filters out
--- the row, so the side effects never fire. We need real SELECTs
--- here.
+-- Clear alice's auth context for the unauthenticated check. Note
+-- the `select set_config(...) where false` shortcut only works
+-- when no `as_user` has been called yet on this connection —
+-- Postgres skips the SELECT-list expressions when `WHERE false`
+-- filters out the row, so the side effects never fire. After an
+-- as_user call, we need real SELECTs (no `where false`) to
+-- actually run set_config and roll the role back to postgres.
 
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);

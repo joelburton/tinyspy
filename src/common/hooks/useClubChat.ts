@@ -10,21 +10,11 @@ export type ClubMessage = Database['common']['Tables']['messages']['Row']
 /**
  * Subscribes to a club's chat log.
  *
- * The club-keyed counterpart of `useChat` (the per-game chat hook
- * that's currently still wired up inside Tinyspy). Both follow the
- * same shape: an initial fetch, append-on-INSERT via Realtime, and
- * a refetch on every SUBSCRIBED event to recover from missed events
- * during a reconnect.
- *
- * When commit 5 swaps Tinyspy's chat over to common.messages, the
- * old `useChat` hook is deleted and this becomes the only chat hook.
- * For now both coexist briefly — `useChat` writes to tinyspy.messages
- * inside a game; `useClubChat` writes to common.messages inside a
- * club. Different tables, different consumers, no overlap.
- *
- * Channel-name suffix follows the same StrictMode-safety pattern as
- * the other Realtime hooks in this repo — see useGame for the
- * rationale.
+ * The shape: an initial fetch, append-on-INSERT via Realtime, and
+ * a refetch on every SUBSCRIBED event to recover from missed
+ * events during a reconnect. Same pattern as the rest of the
+ * Realtime hooks in this repo (see useGame for the rationale on
+ * the unique channel-name suffix that makes StrictMode safe).
  */
 export function useClubChat(clubId: string) {
   const [messages, setMessages] = useState<ClubMessage[]>([])

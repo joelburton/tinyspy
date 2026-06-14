@@ -17,11 +17,9 @@ type Props = {
 /**
  * The shell's `/` landing page.
  *
- * Was previously HomeScreen in src/tinyspy/components/, which mixed
- * "your clubs" + the ad-hoc tinyspy lobby flow (create_game / join
- * with code). Now that tinyspy lives entirely inside clubs (commit 5),
- * the ad-hoc flow is gone and the landing page is pure shell content:
- * who you are, what clubs you're in, and a path to create a new club.
+ * Pure shell content: who you are, what clubs you're in, and a
+ * path to create a new club. All games live inside clubs, so
+ * starting a game happens on the club page, not here.
  *
  * Clubs RLS does the filtering for us — the `.from('clubs').select`
  * below returns only the clubs the caller is a member of. The
