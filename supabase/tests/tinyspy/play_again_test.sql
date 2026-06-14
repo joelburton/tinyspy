@@ -6,14 +6,14 @@
 -- shortcut from the game-over banner. It must:
 --   - reject if the previous game hasn't ended
 --   - reject if the caller wasn't a player in the previous game
---   - create a fresh game and pre-seat both players
+--   - create a fresh game and pre-seat both players (in the same club)
 --   - be idempotent: whichever player clicks first creates; the other
---     gets back the same (id, code) tuple instead of a second game
+--     gets back the same id instead of a second game
 --
 -- Strategy: end a real game by hitting an assassin, then exercise
 -- play_again from both players and a third party.
 --
--- See `lobby_test.sql` for the pgTAP primer.
+-- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -58,15 +58,13 @@ $$;
 -- Set up a finished game so play_again has something to act on
 -- ============================================================
 
--- Alice creates, Bob joins, Alice starts.
+-- Alice creates a 2-member club; tinyspy.create_game seats both
+-- and brings the game straight to 'active'.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table prev on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from prev));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from prev));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table prev on commit drop as
+select * from tinyspy.create_game((select id from club));
 
 -- (1) While the game is still 'active', play_again rejects.
 select throws_ok(
@@ -97,7 +95,7 @@ select * from play_again((select id from prev));
 select is(
   (select count(*) from next),
   1::bigint,
-  'play_again returns one (id, join_code) row'
+  'play_again returns one (id) row'
 );
 
 -- (3) The previous game's next_game_id pointer should now match.
@@ -111,23 +109,20 @@ select is(
 -- play_again, take 2: Bob's idempotent call from the same prev game
 -- ============================================================
 -- Whichever player clicks first creates the new game. A later caller
--- from the same prev_game should get back the same id+code, not a
+-- from the same prev_game should get back the same id, not a
 -- second game. This is what makes the UI race-free.
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
 create temp table bob_result on commit drop as
 select * from play_again((select id from prev));
 
--- (4) and (5) — same id and same code.
+-- (4) — same id back. (Idempotency check used to also cover join_code,
+-- but the column is gone with the clubs migration; the game id is
+-- the only stable handle now.)
 select is(
   (select id from bob_result),
   (select id from next),
   'play_again is idempotent: second caller gets the same game id'
-);
-select is(
-  (select join_code from bob_result),
-  (select join_code from next),
-  'play_again is idempotent: second caller gets the same join code'
 );
 
 -- ============================================================
@@ -135,7 +130,7 @@ select is(
 -- ============================================================
 -- Both players should already be in the new game with the same seats.
 
--- (6) and (7) — the seating rows exist as expected.
+-- (5) and (6) — the seating rows exist as expected.
 select is(
   (select seat from game_players
    where game_id = (select id from next)
@@ -151,11 +146,23 @@ select is(
   'bob is pre-seated as B in the successor game'
 );
 
--- (8) And the new game starts fresh in lobby state.
+-- (7) Successor game starts in 'active' directly (no lobby state
+-- under the clubs model).
 select is(
   (select status from games where id = (select id from next)),
-  'lobby',
-  'successor game starts in lobby state'
+  'active',
+  'successor game starts in active state'
+);
+
+-- (8) And the successor is now the club's active game, with the
+-- previous one auto-paused (cleared from club_active_game by the
+-- termination trigger when the assassin reveal flipped it to
+-- lost_assassin, then re-set by play_again pointing at next).
+select is(
+  (select game_id from common.club_active_game
+    where club_id = (select id from club)),
+  (select id from next),
+  'play_again upserts club_active_game to point at the new game'
 );
 
 -- ============================================================

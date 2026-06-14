@@ -7,7 +7,7 @@
 -- the three rejection paths plus one happy path that returns a shape
 -- with the expected keys.
 --
--- See lobby_test.sql for the pgTAP primer.
+-- See create_game_test.sql for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -39,15 +39,14 @@ begin
 end;
 $$;
 
--- Set up an active game with alice as clue-giver (default after start).
+-- Set up an active game with alice as clue-giver (default after
+-- create_game). Carol isn't in the club, so she'll exercise the
+-- non-player rejection path.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table g on commit drop as
+select * from tinyspy.create_game((select id from club));
 
 -- ============================================================
 -- (1) Non-player rejection
@@ -74,16 +73,26 @@ select throws_ok(
 );
 
 -- ============================================================
--- (3) Lobby-state game is rejected (separate game still in lobby)
+-- (3) Non-active game is rejected
 -- ============================================================
+-- The old test used a 'lobby' state game; that state is gone with
+-- clubs (create_game now goes directly to 'active'). To exercise
+-- the "no suggestions outside active play" path, force a fresh
+-- game's status to a terminal value via direct UPDATE (RLS-free
+-- because tests run as postgres by default — reset role first).
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table lobby_game on commit drop as select * from create_game();
+create temp table done_game on commit drop as
+select * from tinyspy.create_game((select id from club));
+reset role;
+update tinyspy.games set status = 'won', current_clue_giver = null
+  where id = (select id from done_game);
+select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 select throws_ok(
-  $$ select get_clue_context((select id from lobby_game)) $$,
+  $$ select get_clue_context((select id from done_game)) $$,
   'P0001',
   'no suggestions outside of active play',
-  'get_clue_context rejects when status is lobby'
+  'get_clue_context rejects when game is terminal'
 );
 
 -- ============================================================

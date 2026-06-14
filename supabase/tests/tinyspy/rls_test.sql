@@ -19,7 +19,7 @@
 -- Without it, "carol returns 0 rows" wouldn't actually prove RLS is
 -- doing anything — it could just be that there's nothing to see.
 --
--- See `lobby_test.sql` for the pgTAP primer.
+-- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -55,14 +55,14 @@ $$;
 -- Set up a game in progress that carol is not part of
 -- ============================================================
 
+-- alice creates a 2-member club (alice+bob) — carol is signed in
+-- but outside it. RLS will hide game rows from carol since she's
+-- neither a player nor a member of the club.
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table g on commit drop as
+select * from tinyspy.create_game((select id from club));
 select submit_clue((select id from g), 'TOOLS', 2);
 
 -- ============================================================

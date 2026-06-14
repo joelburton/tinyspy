@@ -18,7 +18,7 @@
 -- positions found by `find_position_set` and assert the win check
 -- fires only on the 15th reveal — not the 14th.
 --
--- See `lobby_test.sql` for the pgTAP primer.
+-- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -59,17 +59,14 @@ language sql as $$
 $$;
 
 -- ============================================================
--- Create + join + start
+-- Create the club + game (single create_game seats both members)
 -- ============================================================
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table g on commit drop as
+select * from tinyspy.create_game((select id from club));
 
 -- ============================================================
 -- Turn 1: Alice gives a clue, Bob reveals all 9 of Alice's

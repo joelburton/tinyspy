@@ -302,30 +302,30 @@ export type Database = {
       }
       games: {
         Row: {
+          club_id: string
           created_at: string
           current_clue_giver: string | null
           id: string
-          join_code: string
           next_game_id: string | null
           status: string
           turn_number: number
           turns_remaining: number
         }
         Insert: {
+          club_id: string
           created_at?: string
           current_clue_giver?: string | null
           id?: string
-          join_code: string
           next_game_id?: string | null
           status?: string
           turn_number?: number
           turns_remaining?: number
         }
         Update: {
+          club_id?: string
           created_at?: string
           current_clue_giver?: string | null
           id?: string
-          join_code?: string
           next_game_id?: string | null
           status?: string
           turn_number?: number
@@ -335,38 +335,6 @@ export type Database = {
           {
             foreignKeyName: "games_next_game_id_fkey"
             columns: ["next_game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          content: string
-          game_id: string
-          id: string
-          sent_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          game_id: string
-          id?: string
-          sent_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          game_id?: string
-          id?: string
-          sent_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_game_id_fkey"
-            columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
             referencedColumns: ["id"]
@@ -430,29 +398,20 @@ export type Database = {
     Functions: {
       _end_turn: { Args: { target_game: string }; Returns: undefined }
       create_game: {
-        Args: never
+        Args: { target_club: string }
         Returns: {
           id: string
-          join_code: string
         }[]
       }
-      generate_join_code: { Args: never; Returns: string }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
-      join_game: { Args: { code: string }; Returns: string }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
       play_again: {
         Args: { prev_game: string }
         Returns: {
           id: string
-          join_code: string
         }[]
       }
-      send_message: {
-        Args: { content: string; target_game: string }
-        Returns: undefined
-      }
-      start_game: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
         Args: { clue_count: number; target_game: string; word: string }
         Returns: undefined

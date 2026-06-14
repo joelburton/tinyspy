@@ -12,7 +12,7 @@
 --   2. A fresh game where the first guess hits an assassin —
 --      the game ends immediately in `lost_assassin`.
 --
--- See `lobby_test.sql` for the pgTAP primer.
+-- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -59,16 +59,14 @@ $$;
 -- ============================================================
 -- Game 1: full active-play loop
 -- ============================================================
--- Alice creates, Bob joins, Alice starts.
+-- Alice creates the 2-member club; tinyspy.create_game seats both
+-- members and brings the game straight to 'active'.
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g1 on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g1));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g1));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table g1 on commit drop as
+select * from tinyspy.create_game((select id from club));
 
 -- ----- Phase-enforcement rejections -----
 -- Bob is not the clue-giver (Alice is), so submit_clue must reject.
@@ -204,14 +202,13 @@ select is(
 -- of token count. status flips to lost_assassin and current_clue_giver
 -- is cleared.
 
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g2 on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g2));
+-- Game 2 reuses the same club. create_game upserts club_active_game,
+-- so g1 implicitly becomes a paused (non-active) game — fine for
+-- this test, which doesn't poke at the active-game pointer.
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g2));
+create temp table g2 on commit drop as
+select * from tinyspy.create_game((select id from club));
 select submit_clue((select id from g2), 'DOOM', 1);
 
 select pg_temp.as_user('22222222-2222-2222-2222-222222222222');

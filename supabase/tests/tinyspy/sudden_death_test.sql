@@ -19,7 +19,7 @@
 -- look up positions on bob's key view to find a "green for alice
 -- to hit" or "neutral for alice to hit".
 --
--- See `lobby_test.sql` for the pgTAP primer.
+-- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
 
 begin;
@@ -63,13 +63,10 @@ $$;
 -- ============================================================
 
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-create temp table g on commit drop as select * from create_game();
-
-select pg_temp.as_user('22222222-2222-2222-2222-222222222222');
-select join_game((select join_code from g));
-
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select start_game((select id from g));
+create temp table club on commit drop as
+select * from common.create_club('test club', array['alice','bob']);
+create temp table g on commit drop as
+select * from tinyspy.create_game((select id from club));
 
 -- Force the game into sudden_death. We swap back to the superuser
 -- because the `games` table has no UPDATE policy/grant for the
