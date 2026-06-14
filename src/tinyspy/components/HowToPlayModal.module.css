@@ -1,0 +1,60 @@
+/* The native <dialog> for the "How to play Tinyspy" overlay.
+ *
+ * <dialog> defaults paint a white surface with black borders;
+ * everything here is re-styling for our dark theme. We also style
+ * the ::backdrop pseudo-element (the dimmed background behind the
+ * modal) for the same reason.
+ */
+
+dialog.howToPlay {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: 36rem;
+  width: calc(100vw - 4rem);
+}
+
+dialog.howToPlay::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.content {
+  padding: 2rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.content h2 {
+  margin-top: 0;
+}
+
+.content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: #ccc;
+}
+
+.content ul,
+.content ol {
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.content li {
+  margin: 0.25rem 0;
+}
+
+.content button {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+/* Inline rule-color swatches inside the modal — pull from
+ * tinyspy/theme.css. */
+.hintGreen    { color: var(--tinyspy-green-text); }
+.hintNeutral  { color: var(--tinyspy-neutral-text); }
+.hintAssassin { color: var(--tinyspy-assassin-text); }

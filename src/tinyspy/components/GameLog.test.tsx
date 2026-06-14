@@ -9,7 +9,14 @@
  *      that happened during that turn.
  *   3. Guess sort order: within a turn, guesses are listed by
  *      revealed_at (so the log replays in the order things happened).
- *   4. The label-class wiring (G → log-label-G, etc.).
+ *
+ * NOT covered: the per-label color hookup. With CSS Modules the
+ * literal class name is hashed (`_logLabelG_a3f9k` etc.) so
+ * asserting on a specific string would be brittle, and Vitest is
+ * configured with css: false so the styles object the component
+ * reads is an empty object at test time. The presence and text of
+ * each label is asserted; that the right CSS variant is applied is
+ * a visual contract checked by the developer in the browser.
  */
 
 import { render, screen, within } from '@testing-library/react'
@@ -116,10 +123,10 @@ describe('GameLog', () => {
     expect(text.indexOf('FIRST')).toBeGreaterThanOrEqual(0)
   })
 
-  it('attaches a per-label CSS class so each outcome gets its own color', () => {
-    // We don't assert on the resolved color (CSS isn't loaded in this
-    // test environment); we just assert the class hook is wired so the
-    // stylesheet has something to latch onto.
+  it('renders the readable label name for each revealed_as value', () => {
+    // The label-name → readable-string mapping is what shows up in
+    // the chip; we assert each outcome renders the right word.
+    // (Visual color is a CSS contract — see the file docstring.)
     const clues = [clue({ turn_number: 1 })]
     const words = [
       word({ position: 0, word: 'G_WORD', revealed_as: 'G', revealed_by: 'B',
@@ -132,8 +139,8 @@ describe('GameLog', () => {
 
     render(<GameLog clues={clues} words={words} />)
 
-    expect(screen.getByText('green')).toHaveClass('log-label-G')
-    expect(screen.getByText('neutral')).toHaveClass('log-label-N')
-    expect(screen.getByText('assassin')).toHaveClass('log-label-A')
+    expect(screen.getByText('green')).toBeInTheDocument()
+    expect(screen.getByText('neutral')).toBeInTheDocument()
+    expect(screen.getByText('assassin')).toBeInTheDocument()
   })
 })

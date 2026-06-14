@@ -3,6 +3,7 @@ import type { GameRootProps } from '../common/lib/games'
 import { navigate, usePath } from '../common/lib/router'
 import { useGame } from './hooks/useGame'
 import { BoardScreen } from './components/BoardScreen'
+import './theme.css'  // tinyspy-specific color tokens (lazy-loaded with this chunk)
 
 /**
  * Tinyspy mount point. The shell routes `/g/<gameId>` here; this

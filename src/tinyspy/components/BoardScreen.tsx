@@ -1,15 +1,30 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { ClubChatPanel } from '../../common/components/ClubChatPanel'
+import { cls } from '../../common/lib/cls'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
-import { LABEL_CLASS, type KeyLabel } from '../lib/labels'
+import { type KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { GameOverBanner } from './GameOverBanner'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
+import styles from './BoardScreen.module.css'
+
+/**
+ * Per-label module-class lookup. Local to BoardScreen since it's
+ * the only consumer; the actual style rules live in
+ * BoardScreen.module.css under `.tileGreen`, `.tileNeutral`,
+ * `.tileAssassin`. Indirection lets the rest of the file say
+ * `styles[TILE_BG[label]]` and have everything stay scoped.
+ */
+const TILE_BG: Record<KeyLabel, 'tileGreen' | 'tileNeutral' | 'tileAssassin'> = {
+  G: 'tileGreen',
+  N: 'tileNeutral',
+  A: 'tileAssassin',
+}
 
 type Props = {
   session: Session
@@ -86,8 +101,8 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   }
 
   return (
-    <div className={`board-wrap ${inSuddenDeath ? 'sudden-death' : ''}`}>
-      <header className="board-header">
+    <div className={cls(styles.boardWrap, inSuddenDeath && styles.suddenDeath)}>
+      <header className={styles.boardHeader}>
         <div>
           <div>
             <strong>{mySeat}</strong> · with{' '}
@@ -99,42 +114,50 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
             </div>
           )}
         </div>
-        <div className="status">
+        <div className={styles.status}>
           <div>
             <strong>{greenFound}</strong> / 15 agents
           </div>
           <div className="muted">
             {inSuddenDeath ? 'sudden death' : `${game.turns_remaining} tokens left`}
           </div>
-          <button type="button" className="link-button status-leave" onClick={onLeave}>
+          <button
+            type="button"
+            className={cls('link-button', styles.statusLeave)}
+            onClick={onLeave}
+          >
             Leave game
           </button>
         </div>
       </header>
 
       {gameOver && (
-        <GameOverBanner
-          status={game.status}
-          gameId={gameId}
-          nextGameId={game.next_game_id}
-          opponentName={opponent?.username}
-          onLeave={onLeave}
-          onEnterGame={onEnterGame}
-        />
+        <div className={styles.gameOverSlot}>
+          <GameOverBanner
+            status={game.status}
+            gameId={gameId}
+            nextGameId={game.next_game_id}
+            opponentName={opponent?.username}
+            onLeave={onLeave}
+            onEnterGame={onEnterGame}
+          />
+        </div>
       )}
 
       {!gameOver && (
-        <CluePanel
-          gameId={gameId}
-          isClueGiver={isClueGiver}
-          isGuessPhase={isGuessPhase}
-          currentClue={currentTurnClue}
-          inSuddenDeath={inSuddenDeath}
-        />
+        <div className={styles.cluePanelSlot}>
+          <CluePanel
+            gameId={gameId}
+            isClueGiver={isClueGiver}
+            isGuessPhase={isGuessPhase}
+            currentClue={currentTurnClue}
+            inSuddenDeath={inSuddenDeath}
+          />
+        </div>
       )}
 
       {guessError && (
-        <div className="error-banner">
+        <div className={styles.errorBanner}>
           {guessError}{' '}
           <button type="button" className="link-button" onClick={() => setGuessError(null)}>
             dismiss
@@ -142,7 +165,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
         </div>
       )}
 
-      <div className="board-grid">
+      <div className={styles.boardGrid}>
         {words.map((w) => {
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null
@@ -152,10 +175,10 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
           const showPostGameReveal = gameOver && !revealed && peerLabel !== null
 
           const tintCls = revealed
-            ? `tile-revealed ${LABEL_CLASS[w.revealed_as as KeyLabel]}`
+            ? cls(styles.tileRevealed, styles[TILE_BG[w.revealed_as as KeyLabel]])
             : showPostGameReveal
-              ? 'tile-postgame'
-              : `tile-hint ${LABEL_CLASS[myLabel]}`
+              ? styles.tilePostgame
+              : cls(styles.tileHint, styles[TILE_BG[myLabel]])
 
           const clickable = cellsClickable && !revealed
           const isPending = pendingPos === w.position
@@ -170,30 +193,39 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
             <button
               key={w.position}
               type="button"
-              className={`tile ${tintCls} ${clickable ? 'tile-clickable' : ''} ${isPending ? 'tile-pending' : ''}`}
+              className={cls(
+                styles.tile,
+                tintCls,
+                clickable && styles.tileClickable,
+                isPending && styles.tilePending,
+              )}
               disabled={!clickable || isPending}
               onClick={() => clickable && handleGuess(w.position)}
             >
               {showPostGameReveal && (
-                <span className={`tile-stripe stripe-a ${LABEL_CLASS[aLabel]}`}>A</span>
+                <span className={cls(styles.tileStripe, styles[TILE_BG[aLabel]])}>A</span>
               )}
-              <span className="tile-word">{w.word}</span>
+              <span className={styles.tileWord}>{w.word}</span>
               {showPostGameReveal && (
-                <span className={`tile-stripe stripe-b ${LABEL_CLASS[bLabel]}`}>B</span>
+                <span className={cls(styles.tileStripe, styles[TILE_BG[bLabel]])}>B</span>
               )}
-              {isPending && <span className="tile-key">…</span>}
+              {isPending && <span className={styles.tileKey}>…</span>}
             </button>
           )
         })}
       </div>
 
-      <GameLog clues={clues} words={words} />
+      <div className={styles.gameLogSlot}>
+        <GameLog clues={clues} words={words} />
+      </div>
       {/* `players` from useGame already has {user_id, username, seat}
           for both seated members, which IS the full club roster
           (tinyspy clubs are exactly 2 members). Pass it as the
           ClubChatPanel `members` prop — same shape minus the seat
           field, which the chat panel just ignores. */}
-      <ClubChatPanel clubId={game.club_id} members={players} />
+      <div className={styles.chatPanelSlot}>
+        <ClubChatPanel clubId={game.club_id} members={players} />
+      </div>
     </div>
   )
 }

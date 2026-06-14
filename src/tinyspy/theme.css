@@ -1,0 +1,39 @@
+/* ============================================================
+ * tinyspy/theme.css — color tokens specific to Tinyspy.
+ *
+ * The three Duet roles (green agent, neutral bystander, assassin)
+ * each get a small palette of opacities + a "hint" soft variant
+ * and a "revealed" solid variant. Components reference these via
+ * var(--color-tinyspy-green) etc. from their own *.module.css.
+ *
+ * Loaded with the Tinyspy chunk (imported from src/tinyspy/Root.tsx).
+ * When Boggle / Crosswords / etc. land, they bring their own
+ * theme.css with whatever palette makes sense for their gameplay
+ * surface — no cross-game token bleed.
+ * ============================================================ */
+
+:root {
+  /* Green agent — the "good" target color. */
+  --tinyspy-green:              #38a169;
+  --tinyspy-green-soft:         rgba(56, 161, 105, 0.18);
+  --tinyspy-green-soft-bright:  rgba(56, 161, 105, 0.30);
+  --tinyspy-green-soft-banner:  rgba(56, 161, 105, 0.20);
+  --tinyspy-green-text:         #6cd29c;
+
+  /* Neutral bystander — warm-tan, low-contrast. */
+  --tinyspy-neutral:            #b4986e;
+  --tinyspy-neutral-soft:       rgba(180, 152, 110, 0.12);
+  --tinyspy-neutral-soft-bright:rgba(180, 152, 110, 0.25);
+  --tinyspy-neutral-text:       #d4b88a;
+  --tinyspy-neutral-text-dark:  #1a1a1a;  /* on solid neutral bg */
+
+  /* Assassin — the "you lose" red. Also drives the sudden-death
+     wrapper border and the error-banner inside the board area. */
+  --tinyspy-assassin:           #be3c3c;
+  --tinyspy-assassin-soft:      rgba(190, 60, 60, 0.18);
+  --tinyspy-assassin-soft-dim:  rgba(190, 60, 60, 0.04);
+  --tinyspy-assassin-soft-banner:rgba(190, 60, 60, 0.20);
+  --tinyspy-assassin-soft-bright:rgba(190, 60, 60, 0.30);
+  --tinyspy-assassin-bg:        #1a1a1a;  /* the dark fill behind the revealed assassin tile */
+  --tinyspy-assassin-text:      #ff8e8e;
+}

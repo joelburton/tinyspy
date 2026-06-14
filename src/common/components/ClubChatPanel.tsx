@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { db as commonDb } from '../db'
 import { useClubChat } from '../hooks/useClubChat'
+import styles from './ClubChatPanel.module.css'
 
 /** Minimal member shape the chat panel needs to render names. The
  *  caller passes the roster it's already loaded for the club page. */
@@ -63,23 +64,23 @@ export function ClubChatPanel({ clubId, members }: Props) {
   }
 
   return (
-    <section className="chat-panel">
+    <section className={styles.chatPanel}>
       <h3>Chat</h3>
-      <div className="chat-messages">
+      <div className={styles.chatMessages}>
         {loading && <p className="muted">Loading…</p>}
         {!loading && messages.length === 0 && (
           <p className="muted">No messages yet. Say hi.</p>
         )}
         {messages.map((m) => (
-          <div key={m.id} className="chat-msg">
-            <span className="chat-name">{nameFor(m.user_id)}:</span>{' '}
+          <div key={m.id} className={styles.chatMsg}>
+            <span className={styles.chatName}>{nameFor(m.user_id)}:</span>{' '}
             <span>{m.content}</span>
           </div>
         ))}
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={onSend} className="chat-input-row">
+      <form onSubmit={onSend} className={styles.chatInputRow}>
         <input
           type="text"
           value={input}

@@ -1,0 +1,57 @@
+/* Contextual panel between board header and the 5x5 grid. Holds
+ * the clue form (clue-giver, clue phase), the displayed clue
+ * (guesser, guess phase), the pass button (guesser, guess phase),
+ * or the sudden-death notice. BoardScreen always renders one of
+ * these in the slot above the grid.
+ */
+
+.cluePanel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cluePanel.suddenDeath {
+  border-color: var(--tinyspy-assassin);
+  background: var(--tinyspy-assassin-soft);
+  font-size: 1.05rem;
+}
+
+.clueDisplay {
+  font-size: 1.4rem;
+}
+
+.clueFormHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.clueFormRow {
+  display: grid;
+  /* count input first, then the wide word/phrase field, then the
+     submit button. Matches the visual order of the rendered clue
+     (e.g. "3 vehicles"). */
+  grid-template-columns: 5rem 1fr auto;
+  gap: 0.5rem;
+}
+
+.countInput {
+  text-align: center;
+}
+
+.suggestBtn {
+  font-size: 0.85rem;
+}
+
+.suggestReasoning {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-style: italic;
+}

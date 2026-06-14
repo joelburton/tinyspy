@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import styles from './HowToPlayModal.module.css'
 
 type Props = {
   open: boolean
@@ -29,7 +30,7 @@ export function HowToPlayModal({ open, onClose }: Props) {
   return (
     <dialog
       ref={dialogRef}
-      className="how-to-play"
+      className={styles.howToPlay}
       onClose={onClose}
       onClick={(e) => {
         // A click that targets the <dialog> element itself (and not any
@@ -37,7 +38,7 @@ export function HowToPlayModal({ open, onClose }: Props) {
         if (e.target === dialogRef.current) onClose()
       }}
     >
-      <div className="how-to-play-content">
+      <div className={styles.content}>
         <h2>How to play Codenames Duet</h2>
 
         <p>
@@ -50,9 +51,9 @@ export function HowToPlayModal({ open, onClose }: Props) {
           You see a 5×5 grid, tinted with <em>your</em> view of each card:
         </p>
         <ul>
-          <li><strong className="hint-green">Green</strong> — an agent (you're hunting these)</li>
-          <li><strong className="hint-neutral">Tan</strong> — a bystander</li>
-          <li><strong className="hint-assassin">Red</strong> — the assassin (revealing one ends the game)</li>
+          <li><strong className={styles.hintGreen}>Green</strong> — an agent (you're hunting these)</li>
+          <li><strong className={styles.hintNeutral}>Tan</strong> — a bystander</li>
+          <li><strong className={styles.hintAssassin}>Red</strong> — the assassin (revealing one ends the game)</li>
         </ul>
         <p>
           Your partner sees the same 25 words but with their <em>own</em> color view — different

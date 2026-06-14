@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { cls } from '../../common/lib/cls'
 import { db } from '../db'
+import styles from './GameOverBanner.module.css'
 
 const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
   won: { text: 'Victory! All 15 agents found.', tone: 'win' },
@@ -73,9 +75,9 @@ export function GameOverBanner({
       : 'Play again'
 
   return (
-    <div className={`game-over ${banner.tone}`}>
+    <div className={cls(styles.gameOver, styles[banner.tone])}>
       <strong>{banner.text}</strong>
-      <div className="game-over-actions">
+      <div className={styles.gameOverActions}>
         <button type="button" onClick={playAgain} disabled={busy}>
           {busy ? '…' : playAgainLabel}
         </button>

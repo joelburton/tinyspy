@@ -1,0 +1,46 @@
+/* Chat panel for a club. The desktop-layout positioning (right-
+ * column, stretch height, scrollable messages) is set by the
+ * parent — see BoardScreen.module.css's `.chatPanelSlot` rule.
+ * This module covers only the internal styling.
+ */
+
+.chatPanel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-surface-border);
+}
+
+.chatPanel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.chatMessages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  padding-right: 0.25rem;
+}
+
+.chatMsg {
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.chatName {
+  font-weight: 600;
+}
+
+.chatInputRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.chatInputRow input {
+  font-size: 0.9rem;
+}

@@ -12,18 +12,6 @@
 
 export type KeyLabel = 'G' | 'N' | 'A'
 
-/**
- * Maps a label to the CSS class that paints its tile background.
- * Used in two contexts (see BoardScreen):
- *  - as a hint tint on your-key-view (translucent), or
- *  - as a solid color on a revealed cell.
- */
-export const LABEL_CLASS: Record<KeyLabel, string> = {
-  G: 'tile-green',
-  N: 'tile-neutral',
-  A: 'tile-assassin',
-}
-
 /** Human-readable name for a label, e.g. for the game log. */
 export function labelName(l: string | null): string {
   if (l === 'G') return 'green'

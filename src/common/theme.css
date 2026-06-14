@@ -1,0 +1,203 @@
+/* ============================================================
+ * theme.css — design tokens, element resets, and universal
+ * utility classes used across the whole app.
+ *
+ * Loaded once at app startup by src/main.tsx (`import './common/
+ * theme.css'`). Tokens are CSS custom properties on :root so any
+ * stylesheet (including `*.module.css` files in components) can
+ * reference them via var(--token-name).
+ *
+ * Anything in this file is GLOBAL — no CSS Modules scoping. Use
+ * sparingly: tokens, element-level defaults, and a handful of
+ * truly cross-cutting utility classes (.card, .muted, .error,
+ * .link-button, .actions, .divider, .dot-separator, .home-footer,
+ * button.secondary). Component-specific styles live in
+ * co-located `*.module.css` files and are scoped automatically.
+ *
+ * Game-specific color tokens (e.g. the tinyspy green/neutral/
+ * assassin palette) live in each game's own theme.css, loaded
+ * with that game's chunk — see src/tinyspy/theme.css.
+ * ============================================================ */
+
+/* ---------- Design tokens ---------- */
+
+:root {
+  /* Surface palette — neutral grays for the dark theme. */
+  --color-bg:                 #111;
+  --color-surface:            #1c1c1c;
+  --color-surface-border:     #2a2a2a;
+  --color-surface-hover:      #2a2a2a;
+
+  /* Form control palette. */
+  --color-control-bg:         #222;
+  --color-control-border:     #333;
+  --color-control-border-2:   #444;
+  --color-control-text-2:     #aaa;
+
+  /* Text palette. */
+  --color-text:               #eee;
+  --color-muted:              #888;
+  --color-divider:            #666;
+  --color-dot:                #555;
+  --color-error:              #ff6b6b;
+  --color-error-soft-text:    #ffb6b6;
+
+  /* Accent — links, primary buttons, focus outlines. */
+  --color-accent:             #4a90e2;
+  --color-accent-hover:       #5aa0f2;
+
+  /* Radii. */
+  --radius-md:                6px;   /* buttons, inputs, panels */
+  --radius-lg:                8px;   /* cards, modals */
+
+  /* Type. */
+  font-family: system-ui, -apple-system, sans-serif;
+
+  background: var(--color-bg);
+  color: var(--color-text);
+  color-scheme: dark;
+}
+
+/* ---------- Element resets ---------- */
+
+/* Universal border-box so padding doesn't get added on top of widths
+   and heights — without this `body { min-height: 100vh; padding: 2rem }`
+   totals to `100vh + 64px` and the page scrolls even when content fits. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 2rem;
+  display: grid;
+  place-items: start center;
+}
+
+/* #root no longer caps width — that's the responsibility of each
+   top-level screen, so the narrow card-based screens (login, home,
+   club page) can stay readable while the board claims wide-desktop
+   space. */
+#root {
+  width: 100%;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-control-border);
+  background: var(--color-control-bg);
+  color: inherit;
+}
+
+input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+button {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* `<button className="secondary">` — outline-style alternative to
+   the filled accent default. Used for cancel / back actions. */
+button.secondary {
+  background: transparent;
+  border-color: var(--color-control-border-2);
+  color: var(--color-control-text-2);
+}
+button.secondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+/* ---------- Universal utility classes ---------- */
+
+/* The page-card surface used by HomePage, LoginScreen, ClubPage,
+   CreateClubPage. Cross-cutting enough to live globally rather
+   than be duplicated in each component's module. */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.muted {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--color-error);
+  margin-top: 1rem;
+}
+
+/* Stack of buttons / form rows, separated by a generous gap.
+   Used inside .card screens for the primary action region. */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.divider {
+  text-align: center;
+  color: var(--color-divider);
+  font-size: 0.85rem;
+}
+
+/* Renders an anchor-or-button as plain text-link styling — used
+   for inline navigation / cancel affordances inside cards. */
+.link-button {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Footer row inside .card screens — typically log-out / help links. */
+.home-footer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.dot-separator {
+  color: var(--color-dot);
+}

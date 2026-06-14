@@ -1,0 +1,29 @@
+/* Inline banner shown when a tinyspy game enters a terminal state.
+ * The win/loss variants pull from tinyspy/theme.css's role-color
+ * tokens (green for "you got 'em all", assassin-red for losses).
+ */
+
+.gameOver {
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gameOverActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.win {
+  background: var(--tinyspy-green-soft-banner);
+  border: 1px solid var(--tinyspy-green);
+}
+
+.loss {
+  background: var(--tinyspy-assassin-soft-banner);
+  border: 1px solid var(--tinyspy-assassin);
+}

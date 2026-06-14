@@ -1,0 +1,56 @@
+/* Turn-by-turn replay panel.
+ *
+ * On wide viewports BoardScreen places this in column 2 of its
+ * grid (via `.gameLogSlot`); on mobile it stacks below the board
+ * with the top border showing.
+ */
+
+.gameLog {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-surface-border);
+}
+
+.gameLog h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.gameLog ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.logGuess {
+  margin-left: 1rem;
+  padding: 0.1rem 0;
+  color: #ccc;
+}
+
+/* Inline label chip — the colored bubble showing what the guess
+ * revealed. Three variants matching the Duet tile roles. */
+.logLabel {
+  font-size: 0.8rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.logLabelG {
+  background: var(--tinyspy-green-soft-bright);
+  color: var(--tinyspy-green-text);
+}
+.logLabelN {
+  background: var(--tinyspy-neutral-soft-bright);
+  color: var(--tinyspy-neutral-text);
+}
+.logLabelA {
+  background: var(--tinyspy-assassin-soft-bright);
+  color: var(--tinyspy-assassin-text);
+}

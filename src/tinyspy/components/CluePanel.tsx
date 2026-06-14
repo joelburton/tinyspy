@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { cls } from '../../common/lib/cls'
 import { db } from '../db'
+import styles from './CluePanel.module.css'
 
 type Clue = { word: string; count: number }
 
@@ -39,7 +41,7 @@ export function CluePanel({
 }: CluePanelProps) {
   if (inSuddenDeath) {
     return (
-      <div className="clue-panel sudden-death">
+      <div className={cls(styles.cluePanel, styles.suddenDeath)}>
         <strong>Sudden death.</strong> No more clues. Any non-green reveal loses.
       </div>
     )
@@ -47,9 +49,9 @@ export function CluePanel({
 
   if (isGuessPhase && currentClue) {
     return (
-      <div className="clue-panel">
+      <div className={styles.cluePanel}>
         <div className="muted">Current clue</div>
-        <div className="clue-display">
+        <div className={styles.clueDisplay}>
           <strong>{currentClue.word.toUpperCase()}</strong> · {currentClue.count}
         </div>
         {!isClueGiver && <PassButton gameId={gameId} />}
@@ -62,7 +64,7 @@ export function CluePanel({
     return <ClueForm gameId={gameId} />
   }
   return (
-    <div className="clue-panel">
+    <div className={styles.cluePanel}>
       <p className="muted">Waiting for your partner to give a clue…</p>
     </div>
   )
@@ -136,19 +138,19 @@ function ClueForm({ gameId }: { gameId: string }) {
   const eitherBusy = busy || suggesting
 
   return (
-    <form className="clue-panel clue-form" onSubmit={onSubmit}>
-      <div className="clue-form-header">
+    <form className={styles.cluePanel} onSubmit={onSubmit}>
+      <div className={styles.clueFormHeader}>
         <span className="muted">Give a clue for your partner</span>
         <button
           type="button"
-          className="link-button suggest-btn"
+          className={cls('link-button', styles.suggestBtn)}
           onClick={onSuggest}
           disabled={eitherBusy}
         >
           {suggesting ? 'Thinking…' : 'Need a clue?'}
         </button>
       </div>
-      <div className="clue-form-row">
+      <div className={styles.clueFormRow}>
         <input
           type="number"
           min={0}
@@ -157,7 +159,7 @@ function ClueForm({ gameId }: { gameId: string }) {
           onChange={(e) => setCount(e.target.value)}
           disabled={eitherBusy}
           required
-          className="count-input"
+          className={styles.countInput}
           autoFocus
         />
         <input
@@ -172,7 +174,7 @@ function ClueForm({ gameId }: { gameId: string }) {
           {busy ? 'Sending…' : 'Submit'}
         </button>
       </div>
-      {reasoning && <p className="muted suggest-reasoning">{reasoning}</p>}
+      {reasoning && <p className={cls('muted', styles.suggestReasoning)}>{reasoning}</p>}
       {error && <p className="error">{error}</p>}
     </form>
   )

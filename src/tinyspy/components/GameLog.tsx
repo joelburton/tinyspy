@@ -1,6 +1,8 @@
 import type { ClueRow } from '../hooks/useClues'
 import type { Database } from '../../types/db'
+import { cls } from '../../common/lib/cls'
 import { labelName } from '../lib/labels'
+import styles from './GameLog.module.css'
 
 type WordRow = Database['tinyspy']['Tables']['words']['Row']
 
@@ -46,7 +48,7 @@ export function GameLog({ clues, words }: Props) {
   ).sort((a, b) => b - a)
 
   return (
-    <section className="game-log">
+    <section className={styles.gameLog}>
       <h3>Game log</h3>
       <ol>
         {turnNumbers.map((t) => {
@@ -61,9 +63,9 @@ export function GameLog({ clues, words }: Props) {
                 </span>
               )}
               {turnGuesses.map((g) => (
-                <div key={g.position} className="log-guess">
+                <div key={g.position} className={styles.logGuess}>
                   <strong>{g.revealed_by}</strong> → {g.word}{' '}
-                  <span className={`log-label log-label-${g.revealed_as}`}>
+                  <span className={cls(styles.logLabel, styles[`logLabel${g.revealed_as}`])}>
                     {labelName(g.revealed_as)}
                   </span>
                 </div>
