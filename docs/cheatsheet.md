@@ -166,7 +166,7 @@ Path-based routing (no hash). All routes served by `index.html` via Netlify rewr
 | `/` | `HomePage` — clubs list + create-club link + log out |
 | `/c/new` | `CreateClubPage` — name + member usernames form |
 | `/c/<handle>` | `ClubPage` — members, games (active/paused/completed), chat, "Start X" per gametype |
-| `/g/<gameId>` | The registered game's Root (lazy-loaded chunk). Today: `TinyspyRoot` → `BoardScreen` |
+| `/g/<gametype>/<gameId>` | The matching manifest's Root (lazy-loaded chunk), e.g. `/g/tinyspy/<id>` → `TinyspyRoot` → `BoardScreen`. `<gametype>` is the `gametype` field on the registered `GameManifest`. |
 
 The hand-rolled router lives in [`src/common/lib/router.ts`](../src/common/lib/router.ts) (~40 lines, no react-router) + [`src/common/lib/Link.tsx`](../src/common/lib/Link.tsx).
 

@@ -1,7 +1,7 @@
 import { navigate } from './router'
 
 type LinkProps = {
-  /** Destination path, e.g. `/c/joel-leah` or `/g/<gameId>`. */
+  /** Destination path, e.g. `/c/joel-leah` or `/g/tinyspy/<gameId>`. */
   to: string
   children: React.ReactNode
 } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'>

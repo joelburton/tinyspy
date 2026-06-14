@@ -59,7 +59,7 @@ export function ClubPage({ session, handle }: Props) {
       setStartError(result.error)
       return
     }
-    navigate(`/g/${result.id}`)
+    navigate(`/g/${game.gametype}/${result.id}`)
   }
 
   // Step 1: look up the club + roster. These don't change during
@@ -174,8 +174,8 @@ export function ClubPage({ session, handle }: Props) {
         (payload) => {
           loadGames()
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newGameId = (payload.new as { game_id: string }).game_id
-            const target = `/g/${newGameId}`
+            const row = payload.new as { game_id: string; gametype: string }
+            const target = `/g/${row.gametype}/${row.game_id}`
             if (window.location.pathname !== target) {
               navigate(target)
             }
@@ -256,7 +256,7 @@ export function ClubPage({ session, handle }: Props) {
         <section>
           <h3>Active game</h3>
           <p>
-            <Link to={`/g/${activeGame.gameId}`} className="link-button">
+            <Link to={`/g/${activeGame.gameType}/${activeGame.gameId}`} className="link-button">
               Resume {gameName(activeGame.gameType)}
             </Link>{' '}
             <span className="muted">— {activeGame.statusLabel}</span>
@@ -270,7 +270,7 @@ export function ClubPage({ session, handle }: Props) {
           <ul>
             {pausedGames.map((g) => (
               <li key={g.gameId}>
-                <Link to={`/g/${g.gameId}`}>
+                <Link to={`/g/${g.gameType}/${g.gameId}`}>
                   {gameName(g.gameType)} — {g.statusLabel}
                 </Link>{' '}
                 <span className="muted">

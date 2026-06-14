@@ -30,7 +30,8 @@ See [`CLAUDE.md`](CLAUDE.md) for the project-level priors (educational clarity, 
 
 ```
 src/
-  App.tsx              ← shell: auth gate + URL routing (/, /c/..., /g/...)
+  App.tsx              ← shell: auth gate + URL routing
+                         (/, /c/..., /g/<gametype>/<id>)
   main.tsx, types/db.ts, index.css, test-setup.ts
   games.ts             ← THE registry — `export const games = [tinyspyGame, ...]`
                          (only file allowed to import every game)
@@ -49,7 +50,7 @@ src/
     hooks/             ← useGame, useBoard, useClues
     lib/               ← labels, phase
     db.ts              ← supabase.schema('tinyspy')
-    Root.tsx           ← entry component (/g/<id> → BoardScreen)
+    Root.tsx           ← entry component (/g/tinyspy/<id> → BoardScreen)
     manifest.ts        ← GameManifest export {gametype, schema, name,
                          blurb, Root, startGameInClub, fetchClubGames}
 
@@ -118,7 +119,7 @@ Path-based, hand-rolled. See [`src/common/lib/router.ts`](src/common/lib/router.
 | `/` | `HomePage` — your clubs list + create-club link |
 | `/c/new` | Create-club form |
 | `/c/<handle>` | Club page — members, games sections, chat, "Start <game>" buttons |
-| `/g/<gameId>` | The first registered game's `Root` (lazy chunk). Today: Tinyspy's `BoardScreen` |
+| `/g/<gametype>/<gameId>` | The manifest matching `<gametype>` — its `Root` (lazy chunk). E.g. `/g/tinyspy/<id>` → `TinyspyRoot` → `BoardScreen`. |
 
 Netlify rewrites every path to `index.html` (`public/_redirects`). Vite's dev server does the same automatically.
 

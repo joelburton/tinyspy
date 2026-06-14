@@ -3,9 +3,15 @@ import type { ComponentType } from 'react'
 
 /**
  * Props the shell hands to a game's Root component. A Root takes
- * over once the user is authenticated — owning its own gameId state,
- * URL-hash mirroring, and home/lobby/board routing. The shell stays
- * game-agnostic.
+ * over once the user is authenticated and the shell has resolved the
+ * URL to a specific game. The shell stays game-agnostic; it parses
+ * `/g/<gametype>/<gameId>`, looks up the manifest by `<gametype>`,
+ * and mounts that manifest's Root with the extracted `gameId`.
+ *
+ * Per-game Roots no longer parse URLs themselves — they receive
+ * `gameId` as a prop. App.tsx also keys each Root by `gameId`, so
+ * navigating from one game to another remounts the Root and gets
+ * a clean state slate (no stale subscriptions or cached fetches).
  *
  * As cross-cutting needs emerge (theme switching, presence, club
  * selection), they get added here in one place and every game's
@@ -13,6 +19,13 @@ import type { ComponentType } from 'react'
  */
 export type GameRootProps = {
   session: Session
+  /**
+   * The id of the specific game to load. Extracted from the URL by
+   * App.tsx (the second path segment of `/g/<gametype>/<gameId>`).
+   * Roots can trust this is non-empty — App.tsx wouldn't have
+   * mounted them otherwise.
+   */
+  gameId: string
 }
 
 /**
@@ -55,8 +68,9 @@ export type GameManifest = {
 
   /**
    * The game's root component. Renders whatever the game needs once
-   * the shell has routed to a game URL (e.g. `/g/<id>` for Tinyspy).
-   * Lazy-loaded so each game's bundle ships as a separate Vite chunk.
+   * the shell has resolved a `/g/<gametype>/<gameId>` URL and found
+   * this manifest by `gametype`. Lazy-loaded so each game's bundle
+   * ships as a separate Vite chunk.
    */
   Root: ComponentType<GameRootProps>
 
@@ -83,7 +97,7 @@ export type GameManifest = {
    * into active/paused/completed sections.
    *
    * Each row tells us:
-   *   - `gameId`        — the id to route to (`/g/<gameId>`)
+   *   - `gameId`        — the id to route to (`/g/<gameType>/<gameId>`)
    *   - `gameType`      — back-pointer to the manifest's gametype
    *                        (redundant but keeps merged arrays
    *                        self-describing)

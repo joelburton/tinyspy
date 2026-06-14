@@ -11,29 +11,33 @@ import { games } from './games'
  * Top-level shell. Owns the URL → component routing for all paths
  * the app understands:
  *
- *   /                  →  HomePage (your clubs + create-club link)
- *   /c/new             →  CreateClubPage
- *   /c/<handle>        →  ClubPage
- *   /g/<gameId>        →  games[0].Root  (lazy-loaded; the game's
- *                          Root does its own /g/<id> matching to
- *                          render the right board)
- *   <anything else>    →  HomePage  (treated as "go home" rather
- *                          than a 404 screen)
+ *   /                          →  HomePage (your clubs + create-club link)
+ *   /c/new                     →  CreateClubPage
+ *   /c/<handle>                →  ClubPage
+ *   /g/<gametype>/<gameId>     →  the manifest matching <gametype>,
+ *                                  mounted as <manifest.Root> with
+ *                                  the gameId as a prop. Lazy-loaded.
+ *   <anything else>            →  HomePage  (treated as "go home"
+ *                                  rather than a 404 screen)
  *
- * The shell deliberately does NOT name any specific game in its
- * route table — `/g/<id>` falls through to the first registered
- * game. Today that's tinyspy; when there are multiple games, the
- * URL space will need to disambiguate (e.g. `/tinyspy/g/<id>` vs
- * `/boggle/b/<id>`) and the picker for "which game?" before
- * entering a game will live in HomePage / ClubPage.
+ * Why the gametype is in the URL: with more than one registered
+ * game, `/g/<id>` alone wouldn't tell us which schema to look the
+ * id up in. Embedding the gametype keeps the route purely
+ * structural — no cross-schema id resolution, no soft-FK lookup.
+ *
+ * Each Root receives `gameId` as a prop and is keyed by it. The
+ * key forces a remount when navigating between games, so each
+ * Root starts with a clean state slate (no stale realtime
+ * subscriptions or cached fetches leaking across games).
  *
  * Removing a game is still three actions (delete folder, delete
  * its line in games.ts, drop its DB schema). The shell is
  * untouched. See docs/naming.md.
  *
  * The Suspense fallback handles the brief moment between
- * "navigated to /g/<id>" and "the game's JS chunk arrived."
- * Subsequent in-session navigations to that game are cached.
+ * "navigated to /g/<gametype>/<id>" and "the game's JS chunk
+ * arrived." Subsequent in-session navigations to that game are
+ * cached.
  */
 export default function App() {
   const { session, loading } = useSession()
@@ -51,12 +55,27 @@ export default function App() {
     return <ClubPage session={session} handle={clubMatch[1]} />
   }
 
-  // Game routes — delegated to the registered game's Root.
-  if (path.startsWith('/g/')) {
-    const game = games[0]
+  // Game routes — delegated to the registered manifest's Root.
+  // Path shape: /g/<gametype>/<gameId>. Anything else under /g/
+  // falls through to HomePage (rather than rendering a broken
+  // game screen), matching the "be forgiving with URLs" stance.
+  const gameMatch = path.match(/^\/g\/([a-z0-9]+)\/([0-9a-f-]+)\/?$/i)
+  if (gameMatch) {
+    const [, gametype, gameId] = gameMatch
+    const game = games.find((g) => g.gametype === gametype)
+    if (!game) {
+      return (
+        <div className="card">
+          <h1>Unknown game type</h1>
+          <p className="error">
+            No registered game called <code>{gametype}</code>.
+          </p>
+        </div>
+      )
+    }
     return (
       <Suspense fallback={<div className="card">Loading game…</div>}>
-        <game.Root session={session} />
+        <game.Root key={gameId} session={session} gameId={gameId} />
       </Suspense>
     )
   }

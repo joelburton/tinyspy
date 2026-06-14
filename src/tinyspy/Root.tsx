@@ -1,15 +1,14 @@
-import { useMemo } from 'react'
 import type { GameRootProps } from '../common/lib/games'
-import { navigate, usePath } from '../common/lib/router'
+import { navigate } from '../common/lib/router'
 import { useGame } from './hooks/useGame'
 import { BoardScreen } from './components/BoardScreen'
 import './theme.css'  // tinyspy-specific color tokens (lazy-loaded with this chunk)
 
 /**
- * Tinyspy mount point. The shell routes `/g/<gameId>` here; this
- * component figures out which game id is being asked for and renders
- * BoardScreen for it. Everything else (the home page, the club
- * page, the create-club form) lives at the shell level now.
+ * Tinyspy mount point. The shell parses `/g/tinyspy/<gameId>`,
+ * looks up this manifest's Root, and mounts it with `gameId` as
+ * a prop. The Root no longer parses the URL itself — that's
+ * App.tsx's job — and it can trust `gameId` is non-empty.
  *
  * No lobby state anymore — under the clubs model, both members are
  * seated at game-creation time and the game starts directly in
@@ -17,23 +16,14 @@ import './theme.css'  // tinyspy-specific color tokens (lazy-loaded with this ch
  * to handle; useGame's loaded game is always already playable
  * (or already-completed for terminal states).
  *
- * URL is the source of truth for gameId — derived from `usePath()`,
- * not held in `useState`. enterGame / leaveGame are thin shims
- * that just navigate; the next render picks up the new path.
+ * play_again's "enter the new game" hop hard-codes the tinyspy
+ * gametype, since this Root only ever exists for tinyspy games.
+ * The gametype-in-URL machinery sits in common code; the
+ * per-game Root just knows its own name.
  */
-export function TinyspyRoot({ session }: GameRootProps) {
-  const path = usePath()
-
-  // Match `/g/<gameId>` and extract the UUID. Anything else means
-  // we shouldn't have been mounted in the first place — App.tsx
-  // only routes to us for paths starting `/g/`.
-  const gameId = useMemo(() => {
-    const m = path.match(/^\/g\/([0-9a-f-]+)\/?$/i)
-    return m ? m[1] : null
-  }, [path])
-
+export function TinyspyRoot({ session, gameId }: GameRootProps) {
   function enterGame(id: string) {
-    navigate(`/g/${id}`)
+    navigate(`/g/tinyspy/${id}`)
   }
 
   function leaveGame() {
@@ -41,10 +31,6 @@ export function TinyspyRoot({ session }: GameRootProps) {
     // game's club page instead (`/c/<handle>`) but we'd need an
     // extra fetch to resolve the handle; home is fine for v1.
     navigate('/')
-  }
-
-  if (!gameId) {
-    return <div className="card">Game not found.</div>
   }
 
   return (
