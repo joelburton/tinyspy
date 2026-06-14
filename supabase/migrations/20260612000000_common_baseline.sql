@@ -1,43 +1,91 @@
 -- ============================================================
--- Clubs v1: the cross-game social primitive
+-- common schema — baseline
 -- ============================================================
 --
--- See project memory's "Clubs v1 model" entry for the full design.
--- This migration is purely additive — no game schemas are touched.
--- Tinyspy still uses its own join_code / lobby / tinyspy.messages
--- flow; commit 5 of the execution sequence will rewire it to use
--- clubs. The intermediate state has clubs + chat infrastructure
--- existing without anyone reading from it, which is fine.
+-- Squashed: a single migration that brings the `common` schema to
+-- its current shape in one shot. Replaces the original four-step
+-- progression (initial baseline → display_name→username rename →
+-- clubs tables + RPCs → solo-club trigger extension), now that the
+-- schema is stable enough to flatten into a clean starting point.
+-- Read the git history for the narrative — what's preserved here
+-- is the end state and the teaching commentary worth keeping.
 --
--- A club is a fixed-membership room formed by one creator. Members
--- are listed at creation and never change in v1; there are no
--- invitations or acceptance flows. The club page is visible only
--- to its members.
+-- What `common` holds:
+--   - profiles      — one row per signed-in user; username is the
+--                     public identity (immutable after first sign-in
+--                     in the future picker flow).
+--   - clubs         — fixed-membership rooms friends play in
+--                     together. Cross-game social primitive.
+--   - club_members  — m2m between clubs and profiles.
+--   - club_active_game — at-most-one row per club; tracks which
+--                     game the club is currently playing (across
+--                     all gametypes). Auto-cleared by each game's
+--                     own termination trigger.
+--   - messages      — per-club chat. Single thread per club,
+--                     persists across gametype switches.
 --
--- Solo clubs (handle starts with '=') are auto-created per user on
--- signup. They anchor solo-eligible games and (eventually) per-user
--- stats. UI hides them from the main clubs list.
+-- What `common` MUST NOT do: reference any game schema. The
+-- removability invariant (delete a game in three actions — folder,
+-- registry line, schema) depends on common staying gametype-blind.
+-- The link goes the other way: each game schema references
+-- common.clubs(id) for `club_id`.
 --
--- Game-instance-per-club lifecycle uses three states:
---
---   active     — currently being played; at most one per club, across
---                all gametypes, enforced by common.club_active_game's
---                pk(club_id).
---   paused     — non-terminal internal status, no row in
---                club_active_game. Any number per club, including
---                multiple of the same gametype.
---   completed  — terminal internal status. Any number per club.
---
--- This migration creates the tables, RLS helpers, RLS policies,
--- and the create_club + send_message RPCs. State transitions
--- (start / pause / resume / complete) are game-specific and land
--- in commit 5 when tinyspy adopts clubs.
+-- Per the alpha-software prior in CLAUDE.md, schema changes after
+-- this baseline are written as new timestamped migrations, not as
+-- edits to this file.
 
 -- ============================================================
--- Tables
+-- Schema + usage grant
 -- ============================================================
 
--- common.clubs — one row per club.
+create schema if not exists common;
+
+-- Authenticated users need usage on the schema so PostgREST can
+-- expose tables and RPCs under it.
+grant usage on schema common to authenticated;
+
+-- ============================================================
+-- common.profiles — one row per auth user
+-- ============================================================
+-- Created automatically by the on_auth_user_created trigger on
+-- first sign-in. `username` is the public identity (URLs, rosters,
+-- chat); `email` stays on auth.users as the magic-link credential
+-- and is not surfaced in-app.
+--
+-- The unique constraint on username means a second user signing
+-- in with a colliding email local-part (e.g. bob@foo.com after
+-- bob@bar.com already exists) will fail the magic-link sign-in
+-- entirely. That's accepted for alpha (~3 users, picker UI is
+-- deferred — see project memory). When a picker lands, collision
+-- handling moves into the auth flow.
+
+create table common.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  username text unique not null,
+  created_at timestamptz not null default now()
+);
+
+alter table common.profiles enable row level security;
+
+-- INTENTIONAL: any signed-in user can read any profile. Username is
+-- public; there's no sensitive data on profiles today. Required for
+-- showing usernames without per-context indirection (rosters, chat
+-- attribution, etc.). If profile data ever grows sensitive,
+-- tighten to "rows for users I share a club with" via a
+-- security-definer helper analogous to is_club_member.
+create policy profiles_select_authenticated on common.profiles
+  for select to authenticated using (true);
+
+create policy profiles_update_own on common.profiles
+  for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+grant select, update on common.profiles to authenticated;
+
+-- ============================================================
+-- common.clubs — fixed-membership rooms
+-- ============================================================
 --
 -- handle is the URL-safe slug used in `/c/<handle>` routes. Unique
 -- across all clubs, including solo clubs. User-typed names go
@@ -56,13 +104,15 @@ create table common.clubs (
   created_at timestamptz not null default now()
 );
 
--- common.club_members — m2m between clubs and profiles.
+-- ============================================================
+-- common.club_members — m2m
+-- ============================================================
 --
--- Pk on (club_id, user_id) so the same user can't be listed twice.
--- Membership is fixed at creation in v1 (no add/remove RPCs); the
--- table exists in this normalized form anyway because (a) it's the
--- right shape, and (b) commit-5+ work will add member-listing UI
--- and the relational shape is what that wants.
+-- Pk on (club_id, user_id) so a user can't be listed twice in
+-- the same club. Membership is fixed at creation in v1 (no
+-- add/remove RPCs); the table exists in this normalized form
+-- because (a) it's the right shape and (b) future member-listing
+-- UI wants the relational structure.
 
 create table common.club_members (
   club_id uuid not null references common.clubs(id) on delete cascade,
@@ -71,17 +121,21 @@ create table common.club_members (
   primary key (club_id, user_id)
 );
 
--- common.club_active_game — the "what is this club playing right
--- now" pointer. The primary key on club_id alone (NOT (club_id,
--- gametype, game_id)) is what enforces the "one active game per
--- club, across all gametypes" rule. Presence of a row → club has
--- an active game; absence → nothing is active for the club.
+-- ============================================================
+-- common.club_active_game — "what is this club playing now"
+-- ============================================================
+--
+-- The primary key on club_id alone (NOT (club_id, gametype,
+-- game_id)) is what enforces the "one active game per club, across
+-- all gametypes" rule. Presence of a row → club has an active
+-- game; absence → nothing is active for the club.
 --
 -- (game_id, gametype) is a soft FK into <gametype>.games(id). The
 -- real FK can't be declared here because the target schema varies
--- per row (tinyspy.games for tinyspy, future boggle.games, etc.).
--- Cleanup of orphan rows when a gametype is removed is handled in
--- the drop-a-game recipe, not by referential integrity.
+-- per row (tinyspy.games for tinyspy, psychicnum.games for
+-- psychicnum, future games for theirs). Cleanup of orphan rows
+-- when a gametype is removed is handled in the drop-a-game recipe,
+-- not by referential integrity.
 
 create table common.club_active_game (
   club_id uuid primary key references common.clubs(id) on delete cascade,
@@ -90,14 +144,14 @@ create table common.club_active_game (
   set_active_at timestamptz not null default now()
 );
 
--- common.messages — chat, keyed by club not by game. Each club
--- has a single persistent chat thread; conversations span games
--- and gametypes within the club's lifetime. Per-game ephemeral
--- chat doesn't exist in this model.
---
--- The 1–1000 character constraint matches the prior tinyspy.messages
--- behavior. Writes only go through common.send_message (below);
--- no insert policy on the table itself.
+-- ============================================================
+-- common.messages — per-club chat
+-- ============================================================
+-- Keyed by club, not game. Each club has a single persistent
+-- chat thread; conversations span games and gametypes within
+-- the club's lifetime. The 1–1000 character constraint matches
+-- the prior per-game messages behavior. Writes only go through
+-- common.send_message; no insert policy on the table itself.
 
 create table common.messages (
   id uuid primary key default gen_random_uuid(),
@@ -114,9 +168,10 @@ create index messages_club_id_sent_at_idx
 -- RLS — only members can read club data
 -- ============================================================
 --
--- Pattern matches tinyspy.is_player_in_game: a security-definer
--- helper to avoid infinite recursion when club_members has a
--- policy that needs to ask "is the caller in this club?"
+-- The security-definer helper is_club_member (below) bypasses
+-- RLS inside its body, preventing the infinite recursion that
+-- would happen if club_members's own policy needed to ask
+-- "is the caller a member of this club?"
 
 alter table common.clubs enable row level security;
 alter table common.club_members enable row level security;
@@ -153,9 +208,10 @@ create policy messages_select on common.messages
   using (common.is_club_member(club_id));
 
 -- No insert/update/delete policies on any of these tables. Writes
--- all go through the security-definer RPCs defined below
--- (create_club, send_message) and, for game-lifecycle transitions,
--- through each gametype's RPCs in commit 5.
+-- go through the security-definer RPCs defined below (create_club,
+-- send_message) and, for game-lifecycle transitions, through each
+-- gametype's RPCs (which upsert/delete common.club_active_game via
+-- their security-definer status).
 
 grant select on common.clubs to authenticated;
 grant select on common.club_members to authenticated;
@@ -165,11 +221,16 @@ grant select on common.messages to authenticated;
 -- ============================================================
 -- Realtime publication
 -- ============================================================
+-- All four club tables broadcast so the FE can subscribe to:
+--   - clubs              new club created / renamed
+--   - club_members       roster changes (deferred to v2 but free)
+--   - club_active_game   the "every member follows the active game"
+--                        auto-nav rule lives on this one
+--   - messages           chat
 --
--- All four tables become realtime-aware so the (commit-4) clubs UI
--- can subscribe to "new message," "active-game changed," and (when
--- it eventually matters) "new member." common.messages is the
--- chatty one; the other three change rarely.
+-- Profiles is deliberately NOT in the publication — usernames
+-- don't change during a session and the realtime traffic isn't
+-- worth it. If usernames become mutable later, add it then.
 
 alter publication supabase_realtime add table common.clubs;
 alter publication supabase_realtime add table common.club_members;
@@ -177,7 +238,7 @@ alter publication supabase_realtime add table common.club_active_game;
 alter publication supabase_realtime add table common.messages;
 
 -- ============================================================
--- slugify_club_name — turn user-typed name into URL handle
+-- common.slugify_club_name — user-typed name → URL handle
 -- ============================================================
 --
 -- Rules:
@@ -191,7 +252,7 @@ alter publication supabase_realtime add table common.messages;
 -- handle "joel" — the '=' was treated like any other separator.
 -- Solo clubs use literal '=<username>' handles set directly by the
 -- new-user trigger (NOT routed through this function), so they
--- live in a slug-space that user input cannot reach.
+-- live in a slug-space user input cannot reach.
 --
 -- Marked `immutable` so Postgres can use it in indexed expressions
 -- if we ever want a generated column or expression index.
@@ -211,7 +272,7 @@ as $$
 $$;
 
 -- ============================================================
--- create_club RPC
+-- common.create_club RPC
 -- ============================================================
 --
 -- Creates a new club + its full membership in a single transaction.
@@ -257,15 +318,12 @@ begin
       using errcode = 'P0001';
   end if;
   -- Defensive: slugify strips '=', so this should be unreachable.
-  -- If it ever fires, we have a slugify bug, not a malicious input.
   if new_handle like '=%' then
     raise exception 'club handle cannot start with reserved character'
       using errcode = 'P0001';
   end if;
 
-  -- Resolve usernames → user_ids. unknown_names collects any that
-  -- didn't map. We aggregate both in one query for a single round
-  -- trip; the array_remove peels off the nulls each side leaves.
+  -- Resolve usernames → user_ids; collect any that didn't map.
   --
   -- The COALESCE-to-empty-array on both is load-bearing: when
   -- member_usernames is empty, the aggregate result is NULL and
@@ -295,8 +353,8 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- The unique constraint on clubs.handle does the collision
-  -- enforcement here; we let the exception propagate so the caller
+  -- The unique constraint on clubs.handle does collision
+  -- enforcement; we let the exception propagate so the caller
   -- gets SQLSTATE 23505 (unique_violation).
   insert into common.clubs (handle, name, created_by)
   values (new_handle, club_name, caller_id)
@@ -313,15 +371,12 @@ revoke execute on function common.create_club(text, text[]) from public;
 grant execute on function common.create_club(text, text[]) to authenticated;
 
 -- ============================================================
--- send_message RPC
+-- common.send_message RPC
 -- ============================================================
 --
 -- Post a message to a club's chat. Authorized for any member of
 -- the club. Trimmed content must be 1–1000 chars (matches the
 -- check constraint on common.messages).
---
--- Tinyspy will rewire ChatPanel to use this RPC in commit 5; for
--- now the function exists but nothing calls it.
 
 create function common.send_message(target_club uuid, content text)
 returns void
@@ -360,26 +415,26 @@ revoke execute on function common.send_message(uuid, text) from public;
 grant execute on function common.send_message(uuid, text) to authenticated;
 
 -- ============================================================
--- handle_new_user — extended to create a solo club too
+-- common.handle_new_user — auth.users trigger function
 -- ============================================================
 --
--- Each new user gets:
---   1. A profile row (existing behavior).
+-- Materializes per-user state whenever a new auth.users row
+-- appears (i.e. after a first successful magic-link sign-in):
+--
+--   1. A profile row with username = email's local-part.
 --   2. A solo club with handle '=<username>', single-membered
 --      (just this user). The '=' prefix puts solo clubs in a
 --      slug-space user-typed names cannot reach (slugify_club_name
 --      strips '='), so there's no risk of collision.
 --
--- The two inserts happen in the same transaction as the original
--- auth.users insert. If username collides (unique constraint on
--- common.profiles.username), the entire magic-link sign-in fails —
--- per the alpha-software prior, that's accepted; a username picker
--- with collision UX moves into the auth flow when it's redesigned.
---
--- We CREATE OR REPLACE rather than ALTER FUNCTION because plpgsql
--- function bodies aren't alterable in place.
+-- All three inserts happen in the same transaction as the
+-- original auth.users insert. If username collides (unique
+-- constraint on common.profiles.username), the entire magic-link
+-- sign-in fails — per the alpha-software prior, that's accepted;
+-- a username picker with collision UX moves into the auth flow
+-- when that's redesigned.
 
-create or replace function common.handle_new_user()
+create function common.handle_new_user()
 returns trigger
 language plpgsql
 security definer
@@ -404,3 +459,7 @@ begin
   return new;
 end;
 $$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function common.handle_new_user();

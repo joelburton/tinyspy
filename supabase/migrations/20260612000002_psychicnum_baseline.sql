@@ -33,6 +33,11 @@
 -- only static datum is the target number — too small to warrant
 -- its own table, so it co-locates onto the game row, matching how
 -- tinyspy keeps its words + key-cards alongside the game.
+--
+-- This is the psychicnum schema's baseline migration. Per the
+-- alpha-software prior in CLAUDE.md, schema changes after this
+-- file are written as new timestamped migrations, not as edits
+-- to this file.
 -- ============================================================
 
 -- ============================================================
