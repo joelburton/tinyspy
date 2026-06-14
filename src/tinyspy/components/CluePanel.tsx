@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
 import { db } from '../db'
@@ -89,7 +89,7 @@ function ClueForm({ gameId }: { gameId: string }) {
   const [suggesting, setSuggesting] = useState(false)
   const [reasoning, setReasoning] = useState<string | null>(null)
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setBusy(true)

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../db'
 import { useClubChat } from '../hooks/useClubChat'
 import styles from './ClubChatPanel.module.css'
@@ -48,7 +48,7 @@ export function ClubChatPanel({ clubId, members }: Props) {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
-  async function onSend(e: React.FormEvent) {
+  async function onSend(e: FormEvent) {
     e.preventDefault()
     const trimmed = input.trim()
     if (!trimmed) return
