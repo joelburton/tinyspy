@@ -21,6 +21,10 @@ export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Subscribe to auth state for the component's lifetime. Empty deps
+  // = the subscription lives across every re-render and is torn down
+  // only on unmount. INITIAL_SESSION fires here on mount with the
+  // localStorage-restored session, so no separate getSession() needed.
   useEffect(() => {
     let mounted = true
 

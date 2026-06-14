@@ -41,6 +41,9 @@ export function ClubChatPanel({ clubId, members }: Props) {
     return members.find((m) => m.user_id === userId)?.username ?? '?'
   }
 
+  // Auto-scroll to the bottom whenever new messages arrive, so a
+  // reader sees them without having to scroll manually. See the
+  // file-level docstring for the `block: 'end'` choice.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])

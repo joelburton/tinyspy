@@ -43,6 +43,10 @@ export function useGame(gameId: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Fetch + realtime-subscribe to the games row and player roster.
+  // Re-runs only on gameId change; within a game, realtime
+  // postgres_changes on `games` and `game_players` drive load()
+  // directly.
   useEffect(() => {
     let mounted = true
 

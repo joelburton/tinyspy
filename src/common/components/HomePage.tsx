@@ -30,6 +30,10 @@ export function HomePage({ session }: Props) {
   const [username, setUsername] = useState<string | null>(null)
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
 
+  // Load the caller's username for the greeting. Dep is the user id
+  // (not the full session object), so background token refreshes —
+  // which return a new Session reference with the same user — don't
+  // trigger a refetch.
   useEffect(() => {
     let mounted = true
     commonDb
@@ -50,6 +54,9 @@ export function HomePage({ session }: Props) {
     }
   }, [session.user.id])
 
+  // Load the caller's clubs. Same dep choice as the username effect
+  // above: keyed on user id (not the session reference) so token
+  // refreshes don't cause spurious reloads.
   useEffect(() => {
     let mounted = true
     commonDb

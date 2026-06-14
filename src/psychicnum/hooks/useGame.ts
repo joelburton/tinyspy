@@ -56,6 +56,10 @@ export function useGame(gameId: string) {
   const [members, setMembers] = useState<ClubMember[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Fetch + realtime-subscribe to the game row, guesses log, and
+  // club roster. Re-runs only on gameId change; within a game,
+  // realtime events on psychicnum.{games,guesses} drive load()
+  // directly.
   useEffect(() => {
     let mounted = true
 

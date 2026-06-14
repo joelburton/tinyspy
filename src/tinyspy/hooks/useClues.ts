@@ -22,6 +22,9 @@ export function useClues(gameId: string) {
   const [clues, setClues] = useState<ClueRow[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Fetch + realtime-subscribe to this game's clue history. Re-runs
+  // only on gameId change; within a game the channel stays live and
+  // realtime events drive load() directly.
   useEffect(() => {
     let mounted = true
 
