@@ -3,32 +3,37 @@ import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
 import { ClubPage } from './common/components/ClubPage'
 import { CreateClubPage } from './common/components/CreateClubPage'
+import { HomePage } from './common/components/HomePage'
 import { usePath } from './common/lib/router'
 import { games } from './games'
 
 /**
- * Top-level shell. Handles the three things every game shares:
+ * Top-level shell. Owns the URL → component routing for all paths
+ * the app understands:
  *
- *   1. Auth — wait for session, fall back to LoginScreen if not signed in.
- *   2. Cross-game club routes (`/c/new`, `/c/<handle>`) — common UI
- *      for setting up and viewing clubs, independent of any game.
- *   3. Delegating everything else to the registered game's Root.
+ *   /                  →  HomePage (your clubs + create-club link)
+ *   /c/new             →  CreateClubPage
+ *   /c/<handle>        →  ClubPage
+ *   /g/<gameId>        →  games[0].Root  (lazy-loaded; the game's
+ *                          Root does its own /g/<id> matching to
+ *                          render the right board)
+ *   <anything else>    →  HomePage  (treated as "go home" rather
+ *                          than a 404 screen)
  *
- * The shell deliberately does NOT name any specific game — it iterates
- * `games` from src/games.ts. Removing a game is three actions
- * (delete folder, delete its line in games.ts, drop its DB schema)
- * and the shell is untouched. See docs/naming.md.
+ * The shell deliberately does NOT name any specific game in its
+ * route table — `/g/<id>` falls through to the first registered
+ * game. Today that's tinyspy; when there are multiple games, the
+ * URL space will need to disambiguate (e.g. `/tinyspy/g/<id>` vs
+ * `/boggle/b/<id>`) and the picker for "which game?" before
+ * entering a game will live in HomePage / ClubPage.
  *
- * Each game's `Root` is loaded as a lazy chunk (see the game's
- * manifest), so the main bundle ships only the shell + common +
- * manifests. The `<Suspense>` boundary handles the brief moment
- * between "user navigates into this game" and "the game's JS chunk
- * has finished downloading." After the first navigation in a session,
- * the chunk is browser-cached and subsequent renders are instant.
+ * Removing a game is still three actions (delete folder, delete
+ * its line in games.ts, drop its DB schema). The shell is
+ * untouched. See docs/naming.md.
  *
- * URL shape — see src/common/lib/router.ts for the routing model.
- * Anything not matched as a club route falls through to the game's
- * Root, which does its own internal matching for `/g/<gameId>` etc.
+ * The Suspense fallback handles the brief moment between
+ * "navigated to /g/<id>" and "the game's JS chunk arrived."
+ * Subsequent in-session navigations to that game are cached.
  */
 export default function App() {
   const { session, loading } = useSession()
@@ -37,7 +42,7 @@ export default function App() {
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
 
-  // Club routes — shell-level since they're cross-game / common.
+  // Club routes — common UI, no game involvement.
   if (path === '/c/new') {
     return <CreateClubPage session={session} />
   }
@@ -46,13 +51,18 @@ export default function App() {
     return <ClubPage session={session} handle={clubMatch[1]} />
   }
 
-  // Anything else → the registered game's Root. For now there's only
-  // tinyspy, so we always mount games[0]; when games.length > 1, the
-  // picker / chooser logic goes here.
-  const game = games[0]
-  return (
-    <Suspense fallback={<div className="card">Loading game…</div>}>
-      <game.Root session={session} />
-    </Suspense>
-  )
+  // Game routes — delegated to the registered game's Root.
+  if (path.startsWith('/g/')) {
+    const game = games[0]
+    return (
+      <Suspense fallback={<div className="card">Loading game…</div>}>
+        <game.Root session={session} />
+      </Suspense>
+    )
+  }
+
+  // Fallback (including the bare `/`): land on home. Better UX
+  // than a 404 for a typo'd URL; if it matters we add a real
+  // not-found screen later.
+  return <HomePage session={session} />
 }

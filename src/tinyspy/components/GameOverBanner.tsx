@@ -26,16 +26,18 @@ type Props = {
  * Banner shown when a game enters a terminal state (won / lost_*).
  *
  * Offers two actions:
- *   - **Play again**: calls the `play_again` RPC. The first caller creates
- *     the successor game (which pre-seats both players and sets
- *     `games.next_game_id`); a later caller from the same finished game
- *     gets the same id back (idempotent), so both players end up in the
- *     same new lobby regardless of who clicks first.
- *   - **Back to home**: just leaves the current game.
+ *   - **Play again**: calls the `play_again` RPC. The first caller
+ *     creates the successor (in the same club, with fresh words +
+ *     key card, both players pre-seated, status='active' directly);
+ *     a later caller from the same finished game gets the same id
+ *     back (idempotent), so both players end up on the same new
+ *     board regardless of who clicks first.
+ *   - **Back to home**: leaves the current game, returning to /.
  *
- * The label flips to "Join {opponent}'s new game" once the partner has
- * already clicked Play again — `nextGameId` becomes non-null via Realtime
- * propagation.
+ * The label flips to "Join {opponent}'s new game" once the partner
+ * has already clicked Play again — `nextGameId` becomes non-null
+ * via Realtime propagation from the prev game's
+ * `games.next_game_id` column.
  */
 export function GameOverBanner({
   status,

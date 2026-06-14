@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
+import { db } from './db'
 
 /**
  * Tinyspy's registration with the shell. Exported as the only thing
@@ -28,4 +29,18 @@ export const tinyspyGame: GameManifest = {
   name: 'Tinyspy',
   blurb: 'Cooperative Codenames Duet for two.',
   Root: lazy(() => import('./Root').then((m) => ({ default: m.TinyspyRoot }))),
+
+  // Called by the common ClubPage's "Start Tinyspy" button. The RPC
+  // does all the work — verifies caller is in the 2-member club,
+  // seats both, picks words, generates the key card, and upserts
+  // common.club_active_game.
+  startGameInClub: async (clubId) => {
+    const { data, error } = await db
+      .rpc('create_game', { target_club: clubId })
+      .single()
+    if (error || !data) {
+      return { error: error?.message ?? 'failed to start tinyspy game' }
+    }
+    return { id: data.id }
+  },
 }

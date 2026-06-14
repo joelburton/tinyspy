@@ -54,9 +54,25 @@ export type GameManifest = {
   blurb: string
 
   /**
-   * The game's root component. Handles everything from "signed in and
-   * landed on this game" onward — its own home/lobby/in-game state
-   * machine, its own URL hash mirroring, its own RPC calls.
+   * The game's root component. Renders whatever the game needs once
+   * the shell has routed to a game URL (e.g. `/g/<id>` for Tinyspy).
+   * Lazy-loaded so each game's bundle ships as a separate Vite chunk.
    */
   Root: ComponentType<GameRootProps>
+
+  /**
+   * Start a new game of this gametype inside the given club. Called
+   * by the club page's "Start X" button (one per registered game).
+   * Returns the new game's id on success, or null + an error message
+   * the UI can surface verbatim.
+   *
+   * Each game implements this against its own RPCs (Tinyspy calls
+   * tinyspy.create_game(target_club); Boggle eventually will call
+   * boggle.create_game with whatever shape it wants). The function
+   * lives ON the manifest so common code (ClubPage) can iterate
+   * `games` and offer a button per gametype without ever importing
+   * from a game folder — preserving the import-direction rules from
+   * docs/naming.md.
+   */
+  startGameInClub: (clubId: string) => Promise<{ id: string } | { error: string }>
 }

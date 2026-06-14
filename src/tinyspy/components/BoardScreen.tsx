@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { ChatPanel } from '../../common/components/ChatPanel'
+import { ClubChatPanel } from '../../common/components/ClubChatPanel'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
@@ -89,14 +89,15 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
     <div className={`board-wrap ${inSuddenDeath ? 'sudden-death' : ''}`}>
       <header className="board-header">
         <div>
-          <div className="muted">Game {game.join_code}</div>
           <div>
             <strong>{mySeat}</strong> · with{' '}
             <strong>{opponent?.username ?? '…'}</strong>
-            {!gameOver && !inSuddenDeath && (
-              <> · clue-giver: <strong>{game.current_clue_giver}</strong></>
-            )}
           </div>
+          {!gameOver && !inSuddenDeath && (
+            <div className="muted">
+              clue-giver: <strong>{game.current_clue_giver}</strong>
+            </div>
+          )}
         </div>
         <div className="status">
           <div>
@@ -187,7 +188,12 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
       </div>
 
       <GameLog clues={clues} words={words} />
-      <ChatPanel gameSchema="tinyspy" gameId={gameId} players={players} />
+      {/* `players` from useGame already has {user_id, username, seat}
+          for both seated members, which IS the full club roster
+          (tinyspy clubs are exactly 2 members). Pass it as the
+          ClubChatPanel `members` prop — same shape minus the seat
+          field, which the chat panel just ignores. */}
+      <ClubChatPanel clubId={game.club_id} members={players} />
     </div>
   )
 }

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 import { Link } from '../lib/Link'
+import { navigate } from '../lib/router'
 import { ClubChatPanel } from './ClubChatPanel'
+import { games } from '../../games'
 import type { Database } from '../../types/db'
 
 type ClubRow = Database['common']['Tables']['clubs']['Row']
@@ -46,6 +48,22 @@ export function ClubPage({ session, handle }: Props) {
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [startError, setStartError] = useState<string | null>(null)
+  const [starting, setStarting] = useState<string | null>(null)
+
+  async function handleStart(gametype: string) {
+    const game = games.find((g) => g.gametype === gametype)
+    if (!club || !game) return
+    setStartError(null)
+    setStarting(gametype)
+    const result = await game.startGameInClub(club.id)
+    setStarting(null)
+    if ('error' in result) {
+      setStartError(result.error)
+      return
+    }
+    navigate(`/g/${result.id}`)
+  }
 
   useEffect(() => {
     let mounted = true
@@ -148,12 +166,30 @@ export function ClubPage({ session, handle }: Props) {
         </ul>
       </section>
 
-      <ClubChatPanel clubId={club.id} members={members} />
+      <section>
+        <h3>Play a game</h3>
+        {/* Iterate the games registry — one button per registered
+            gametype, calling its manifest's startGameInClub. ClubPage
+            stays game-agnostic; tinyspy's RPC call lives inside the
+            tinyspy manifest. Add boggle later and a button appears
+            here automatically. */}
+        <div className="actions">
+          {games.map((g) => (
+            <button
+              key={g.gametype}
+              type="button"
+              onClick={() => handleStart(g.gametype)}
+              disabled={starting !== null}
+              title={g.blurb}
+            >
+              {starting === g.gametype ? 'Starting…' : `Start ${g.name}`}
+            </button>
+          ))}
+        </div>
+        {startError && <p className="error">{startError}</p>}
+      </section>
 
-      <p className="muted">
-        Games played in this club will appear here once the per-game
-        wiring lands (commit 5 of the refactor).
-      </p>
+      <ClubChatPanel clubId={club.id} members={members} />
 
       <p>
         <Link to="/" className="link-button">
