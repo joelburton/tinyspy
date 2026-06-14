@@ -212,8 +212,20 @@ select throws_ok(
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
+-- Scoped to this test's three fixture users — not a blanket count
+-- of every solo club in the DB. Bare `count(*) where handle like '=%'`
+-- would be brittle to any pre-existing solo clubs left over from
+-- interactive testing on the same dev DB (e.g. real signups during
+-- a smoke session); pgTAP's begin/rollback wrap protects against
+-- cross-test pollution, not pre-test seed/local state.
 select is(
-  (select count(*) from common.clubs where handle like '=%'),
+  (select count(*) from common.clubs
+    where handle like '=%'
+      and created_by in (
+        '11111111-1111-1111-1111-111111111111',
+        '22222222-2222-2222-2222-222222222222',
+        '33333333-3333-3333-3333-333333333333'
+      )),
   3::bigint,
   'solo clubs: one per user was auto-created on signup'
 );

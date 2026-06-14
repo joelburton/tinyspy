@@ -191,7 +191,14 @@ select is(
       where w.game_id = (select id from created)
       group by 1, 2
     )
-    select array_agg(format('%s%s:%s', a_label, b_label, n) order by 1)
+    -- Sort by explicit columns so the array order is deterministic.
+    -- (`order by 1` inside array_agg parses as ORDER BY the constant
+    -- integer 1, not as a SELECT-list position — so it's a no-op,
+    -- leaving the rows in whatever order the GROUP BY produced.
+    -- That happened to match the expected array before; explicit
+    -- a_label/b_label ordering makes the test deterministic.)
+    select array_agg(format('%s%s:%s', a_label, b_label, n)
+                     order by a_label, b_label)
     from joint
   ),
   array[
