@@ -21,7 +21,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(18);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- Find the first board position whose label on a given seat's key view is
 -- `target`. The key card is random, so the test can't hardcode positions —

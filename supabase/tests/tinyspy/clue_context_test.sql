@@ -16,7 +16,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(6);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- Set up an active game with ada as clue-giver (default after
 -- create_game). Dee isn't in the club, so she'll exercise the

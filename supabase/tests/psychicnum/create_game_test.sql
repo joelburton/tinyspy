@@ -24,7 +24,7 @@ set search_path = psychicnum, common, public, extensions;
 
 select plan(11);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ============================================================
 -- (1) Unauthenticated callers are rejected

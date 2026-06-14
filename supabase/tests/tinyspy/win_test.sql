@@ -27,7 +27,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(4);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- Return all positions where a seat's view has the given label. The
 -- positional unnest with ordinality avoids the row_number-vs-SRF trap.

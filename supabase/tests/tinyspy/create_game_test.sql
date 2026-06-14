@@ -35,7 +35,7 @@ select plan(13);
 -- path. cade is the in-club third member for the wrong-size
 -- (3-member) rejection. dee is the non-member outsider.
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ada creates a 2-member club (ada+bea) and a 3-member club
 -- (ada+bea+cade). The 3-member one exercises the wrong-size

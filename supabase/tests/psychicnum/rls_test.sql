@@ -23,7 +23,7 @@ set search_path = psychicnum, common, public, extensions;
 
 select plan(9);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ada creates a 2-member club (ada+bea); dee is signed in
 -- but outside it.

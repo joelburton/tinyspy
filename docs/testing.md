@@ -49,7 +49,7 @@ begin;
 
 set search_path = <schema>, common, public, extensions;
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 select plan(N);
 
@@ -59,7 +59,7 @@ select * from finish();
 rollback;
 ```
 
-The `\ir ../_common/setup.psql` line loads [`supabase/tests/_common/setup.psql`](../supabase/tests/_common/setup.psql), which:
+The `\ir ../_shared/setup.psql` line loads [`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql), which:
 
 1. Inserts five `auth.users` rows for the standard personas (see [Personas](#personas) below).
 2. Defines the `pg_temp.as_user(uid uuid)` helper for simulating an authenticated caller.
@@ -96,7 +96,7 @@ The roles are conventions, not constraints — there's nothing in `setup.psql` t
 
 ### `pg_temp.as_user(uid uuid)`
 
-Switches the session to act as a given authenticated user. Sets `request.jwt.claims` (where `auth.uid()` reads from) and `role = authenticated` (which RLS policies and grants check against). Defined in `_common/setup.psql`.
+Switches the session to act as a given authenticated user. Sets `request.jwt.claims` (where `auth.uid()` reads from) and `role = authenticated` (which RLS policies and grants check against). Defined in `_shared/setup.psql`.
 
 Usage:
 
@@ -151,22 +151,22 @@ Tests assert on the code, not the wording. The exact error string is described i
 
 ## Per-gametype test setup (future)
 
-`_common/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychic-num or tinyspy.
+`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychic-num or tinyspy.
 
 When that pain shows up, the pattern is:
 
 ```
 supabase/tests/
-  _common/
+  _shared/
     setup.psql                 # ada/bea/cade/dee/eda + as_user (everyone uses this)
   boggle/
     setup.psql                 # boggle-specific helpers (every boggle test uses this)
-    score_test.sql             # \ir ../_common/setup.psql
+    score_test.sql             # \ir ../_shared/setup.psql
                                # \ir ../boggle/setup.psql
                                # ...test body...
 ```
 
-The doubly-included pattern: every test imports `_common/setup.psql` first (everyone needs personas), then optionally a per-gametype `setup.psql` if the game has accumulated enough shared scaffolding to justify it. The per-gametype file would live alongside the tests in `supabase/tests/<game>/`, using the same `.psql` extension trick to stay invisible to discovery.
+The doubly-included pattern: every test imports `_shared/setup.psql` first (everyone needs personas), then optionally a per-gametype `setup.psql` if the game has accumulated enough shared scaffolding to justify it. The per-gametype file would live alongside the tests in `supabase/tests/<game>/`, using the same `.psql` extension trick to stay invisible to discovery.
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
@@ -241,6 +241,6 @@ Vitest output is conventional Jest-style: test name, failed expectation, line nu
 
 ## Maintaining the persona convention
 
-If you add a sixth persona, document it in [`supabase/tests/_common/setup.psql`](../supabase/tests/_common/setup.psql) alongside the existing five, and update the table above. If you rename one, do it consistently across every test in a single commit — the personas are convention-as-API; partial renames hurt readability more than they help.
+If you add a sixth persona, document it in [`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql) alongside the existing five, and update the table above. If you rename one, do it consistently across every test in a single commit — the personas are convention-as-API; partial renames hurt readability more than they help.
 
 If a specific test needs a persona who *isn't* in the standard set (e.g., "the user whose username is exactly 40 characters"), it's fine to insert that user inline within the test rather than promoting them to the shared setup. Promote only when the same user shows up in three or more tests.

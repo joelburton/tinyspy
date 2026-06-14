@@ -20,7 +20,7 @@ select plan(7);
 
 -- Cast: ada + bea are club members; dee is outside.
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ============================================================
 -- Set up a finished game so play_again has something to act on

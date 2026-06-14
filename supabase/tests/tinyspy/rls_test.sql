@@ -28,7 +28,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(8);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ============================================================
 -- Set up a game in progress that dee is not part of

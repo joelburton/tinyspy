@@ -30,7 +30,7 @@ select plan(17);
 
 -- Cast: ada + bea are club members; dee is outside.
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as

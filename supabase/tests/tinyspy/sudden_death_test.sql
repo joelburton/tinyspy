@@ -28,7 +28,7 @@ set search_path = tinyspy, common, public, extensions;
 
 select plan(5);
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$

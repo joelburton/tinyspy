@@ -278,7 +278,7 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 ### Tinyspy-specific test helpers
 
-These live inline in the test files that need them — not promoted to `_common/setup.psql` because they're tinyspy-specific:
+These live inline in the test files that need them — not promoted to `_shared/setup.psql` because they're tinyspy-specific:
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** (in `game_loop_test.sql`, `sudden_death_test.sql`, `play_again_test.sql`): "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game; the test can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** (in `win_test.sql`): array-returning variant for "find all positions matching." The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.

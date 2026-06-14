@@ -42,7 +42,7 @@ select plan(21);
 -- create_club runs — relevant for the solo-club assertions
 -- in Block 6, which scope their count to these fixture users.
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 -- ============================================================
 -- Block 1: slugify_club_name

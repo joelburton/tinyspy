@@ -22,7 +22,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-\ir ../_common/setup.psql
+\ir ../_shared/setup.psql
 
 select plan(10);
 

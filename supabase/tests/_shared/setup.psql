@@ -4,7 +4,7 @@
 --
 -- Loaded at the top of every pgTAP test file via:
 --
---   \ir ../_common/setup.sql
+--   \ir ../_shared/setup.psql
 --
 -- (`\ir`, not `\i` — `\ir` resolves the path relative to the
 -- *including file's* directory, so this single line works
