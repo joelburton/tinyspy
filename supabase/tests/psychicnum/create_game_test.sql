@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: psychicnum.create_game — the entry RPC
+-- Test: psychicnum.create_game(target_club, config)
 -- ============================================================
 --
 -- Doubles as the pgTAP primer for the psychicnum test suite.
@@ -7,22 +7,26 @@
 -- (fixture setup, the as_user helper, why we wrap in begin/rollback).
 --
 -- What we check here:
---   1. unauthenticated callers are rejected (42501)
---   2. non-member callers are rejected (42501)
---   3. a valid call returns a game id, picks a target in 1..10,
---      sets guesses_remaining = 7, status = 'active'
---   4. the call upserts common.club_active_game pointing at it
---   5. a second create in the same club replaces (auto-pauses)
---      the first — common.club_active_game has PK on club_id
---   6. the `target` column is NOT visible to authenticated SELECT
---      (column-level grant excludes it)
+--   1. unauthenticated callers rejected (42501)
+--   2. non-member callers rejected (42501)
+--   3. config validation: out-of-range guesses, missing guesses
+--   4. happy path: returns a game id, picks a target in 1..10,
+--      sets guesses_remaining = config.guesses, status = 'active'
+--   5. config column persists the player's choice (for end-of-
+--      game review)
+--   6. guesses_remaining is initialized from config.guesses (a
+--      non-default test value pins the linkage)
+--   7. the call upserts common.club_active_game pointing at it
+--   8. a second create in the same club replaces (auto-pauses)
+--      the first
+--   9. the `target` column is NOT visible to authenticated SELECT
 -- ============================================================
 
 begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(11);
+select plan(15);
 
 \ir ../_shared/setup.psql
 
@@ -40,7 +44,10 @@ select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
 select throws_ok(
-  $$ select psychicnum.create_game('00000000-0000-0000-0000-000000000000'::uuid) $$,
+  $$ select psychicnum.create_game(
+       '00000000-0000-0000-0000-000000000000'::uuid,
+       '{"guesses": 7}'::jsonb
+     ) $$,
   '42501',
   'must be authenticated',
   'unauthenticated create_game is rejected'
@@ -60,19 +67,50 @@ select * from common.create_club('test club', array['ada','bea']);
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee, outsider
 select throws_ok(
-  format($$ select psychicnum.create_game(%L::uuid) $$, (select id from club)),
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7}'::jsonb) $$,
+    (select id from club)
+  ),
   '42501',
   'not a member of this club',
   'non-member create_game is rejected'
 );
 
 -- ============================================================
--- (3) Happy path — ada creates a game
+-- (3) Config validation
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 4}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.guesses must be 3, 5, 7, or 9 (got 4)',
+  'create_game: config.guesses outside {3,5,7,9} is rejected'
+);
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.guesses is required',
+  'create_game: missing config.guesses is rejected'
+);
+
+-- ============================================================
+-- (4) Happy path — ada creates a game with the default-ish 7
+-- ============================================================
+
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game(
+  (select id from club),
+  '{"guesses": 7}'::jsonb
+);
 
 select is(
   (select count(*) from g),
@@ -80,9 +118,9 @@ select is(
   'create_game returns one (id) row'
 );
 
--- (4) Game row exists with expected initial values.
--- Note: we reset to postgres to read the `target` column for assertions
--- — authenticated callers can't see target (verified in test 8 below).
+-- Reset to postgres to read the `target` column for assertions —
+-- authenticated callers can't see target (verified in test 11
+-- below). The other column reads are fine either way.
 reset role;
 select is(
   (select status from psychicnum.games where id = (select id from g)),
@@ -92,7 +130,7 @@ select is(
 select is(
   (select guesses_remaining from psychicnum.games where id = (select id from g)),
   7,
-  'newly-created game starts with 7 guesses remaining'
+  'newly-created game starts with 7 guesses remaining (config-driven)'
 );
 select ok(
   (select target between 1 and 10 from psychicnum.games where id = (select id from g)),
@@ -117,12 +155,15 @@ select is(
 -- common.club_active_game has primary key (club_id) so the
 -- on-conflict-do-update path in create_game replaces the row.
 -- The first game's `psychicnum.games.status` stays 'active' —
--- "paused" is purely a derived club-level state (no club_active_game
--- row pointing at it), so we just check the pointer moved.
+-- "paused" is purely a derived club-level state (no
+-- club_active_game row pointing at it).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game(
+  (select id from club),
+  '{"guesses": 7}'::jsonb
+);
 
 select is(
   (select game_id from common.club_active_game where club_id = (select id from club)),
@@ -135,6 +176,33 @@ select is(
   (select status from psychicnum.games where id = (select id from g)),
   'active',
   'first game still has status = active (paused is a club-level state, not a row state)'
+);
+
+-- ============================================================
+-- (7) Config column persists + guesses_remaining is linked to it
+-- ============================================================
+-- Use a non-default value (5) so the assertion proves the link
+-- (without varying, "guesses_remaining = 7" could just be the
+-- old hardcoded default leaking through). config column also
+-- captures the original intent for end-of-game review.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select * from psychicnum.create_game(
+  (select id from club),
+  '{"guesses": 5}'::jsonb
+);
+
+reset role;
+select is(
+  (select guesses_remaining from psychicnum.games where id = (select id from g3)),
+  5,
+  'guesses_remaining is initialized from config.guesses'
+);
+select is(
+  (select config->>'guesses' from psychicnum.games where id = (select id from g3)),
+  '5',
+  'config column persists the starting guesses value'
 );
 
 -- ============================================================

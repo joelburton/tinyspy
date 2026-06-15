@@ -1,0 +1,51 @@
+/* Psychic Num's setup form. Sits inside SetupGameDialog's
+ * content area, so it inherits the dialog's padding. These
+ * styles just shape the single fieldset + radio row.
+ *
+ * Identical to tinyspy/components/Setup.module.css for now —
+ * the shapes match because the forms look the same. Promoting
+ * to a shared per-game-form stylesheet would mean a
+ * src/common/ rule reaches into a per-game pattern, which
+ * isn't a good trade for ~30 lines of CSS.
+ */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldset {
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.fieldset > p {
+  margin: 0.25rem 0 0.75rem 0;
+}
+
+.radioRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.radio input {
+  margin: 0;
+  /* Override theme.css's input padding (sized for text inputs). */
+  padding: 0;
+}

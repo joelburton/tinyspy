@@ -31,7 +31,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
 
 -- A wrong guess from ada gives us a guesses row for the RLS
 -- read tests below.

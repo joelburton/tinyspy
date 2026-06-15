@@ -3,6 +3,7 @@ import type { GameManifest } from '../common/lib/games'
 import { db as commonDb } from '../common/db'
 import type { Database } from '../types/db'
 import { db } from './db'
+import { DEFAULT_PSYCHICNUM_CONFIG, type PsychicnumConfig } from './lib/config'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's
 // "Avoid SELECT *". Adding a column to psychicnum.games requires
@@ -34,26 +35,32 @@ export const psychicnumGame: GameManifest = {
     import('./Root').then((m) => ({ default: m.PsychicnumRoot })),
   ),
 
-  // Setup form not wired up yet — landing in a follow-up commit
-  // that adds a guess-budget option. Until then ClubPage's
-  // start-button bypasses the dialog and fires this RPC directly
-  // with config=null.
-  setup: null,
+  // Per-game setup: a single-fieldset guess-budget radio. The
+  // Component is lazy-loaded so the form ships in psychicnum's
+  // chunk (not the registry); `defaults` is a tiny literal that
+  // travels with the manifest. See src/common/lib/games.ts for
+  // the split's reasoning.
+  setup: {
+    Component: lazy(() =>
+      import('./components/Setup').then((m) => ({ default: m.PsychicnumSetup })),
+    ),
+    defaults: DEFAULT_PSYCHICNUM_CONFIG,
+  },
 
-  // Called by the common ClubPage's "Start Psychic Num" button.
-  // The RPC picks the random target server-side and upserts
-  // common.club_active_game (auto-pausing any other active game
-  // in the club, per the v1 active-per-club invariant).
+  // Called by SetupGameDialog when the player clicks Start. The
+  // RPC picks the random target server-side, validates the config
+  // shape, initializes guesses_remaining from config.guesses, and
+  // upserts common.club_active_game (auto-pausing any prior
+  // active game in the club, per the v1 active-per-club
+  // invariant).
   //
-  // `config` is the typed setup payload the dialog would have
-  // collected, but with `setup: null` it's always null and we
-  // don't bother declaring the parameter. TypeScript's
-  // contravariance on function parameter count lets this satisfy
-  // the manifest's (clubId, config) signature with a (clubId)-only
-  // implementation.
-  startGameInClub: async (clubId) => {
+  // The `unknown` → PsychicnumConfig cast is safe because we own
+  // both ends of the boundary (this manifest's setup.Component is
+  // the only thing populating the wrapper's value).
+  startGameInClub: async (clubId, config) => {
+    const cfg = config as PsychicnumConfig
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId })
+      .rpc('create_game', { target_club: clubId, config: cfg })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start psychic num game' }

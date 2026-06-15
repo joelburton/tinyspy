@@ -36,7 +36,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
 
 -- Pin the target to 7 for the scenarios. RPCs roll randomly;
 -- we override directly as postgres so the test's guess sequence
@@ -158,7 +158,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
 
 reset role;
 update psychicnum.games set target = 8 where id = (select id from g2);
