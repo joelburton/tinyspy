@@ -96,7 +96,7 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 
 - `game:<game_id>:<uuid>` — tinyspy game subscription
 - `psychicnum:<game_id>:<uuid>` — psychic-num game subscription
-- `wordknit:<game_id>:<uuid>` — wordknit game subscription (carries postgres-changes + broadcast + presence on a single channel)
+- `wordknit:<game_id>` — wordknit game subscription (carries postgres-changes + broadcast + presence on a single channel). **No UUID suffix** here — every connected player has to be on the same Realtime "room" for broadcast and presence to merge across clients. The UUID workaround for supabase-js's StrictMode-cache bite would put each tab in its own room and break peer events. The hook handles the StrictMode double-mount via prompt cleanup (`removeChannel` before the next effect run) instead.
 - `club-active:<club_id>:<uuid>` — club active-game pointer
 - `club-chat:<club_id>:<uuid>` — club chat messages
 

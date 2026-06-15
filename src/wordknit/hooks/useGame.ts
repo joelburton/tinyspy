@@ -226,9 +226,22 @@ export function useGame(
     // Create the channel, attach every listener, then subscribe.
     // All `.on()` calls must precede `.subscribe()` — supabase-js
     // rejects late attachments.
-    const ch = supabase.channel(
-      `wordknit:${gameId}:${crypto.randomUUID()}`,
-    )
+    //
+    // ┌─ Channel-name pattern, wordknit-specific ──────────────┐
+    // │ Tinyspy / psychic-num use a per-effect-run UUID suffix │
+    // │ to sidestep supabase-js's per-client channel cache     │
+    // │ (StrictMode double-mount workaround). Wordknit can't:  │
+    // │ broadcast + presence need every connected player on    │
+    // │ the SAME Realtime "room," which is just the channel    │
+    // │ name. A UUID per tab puts each player in their own     │
+    // │ room and no peer events propagate.                     │
+    // │                                                        │
+    // │ The cleanup-then-recreate cycle in this effect handles │
+    // │ StrictMode's double-mount: removeChannel(ch) clears    │
+    // │ the cache before the second effect run. See            │
+    // │ docs/code-conventions.md → "Realtime channel names."   │
+    // └────────────────────────────────────────────────────────┘
+    const ch = supabase.channel(`wordknit:${gameId}`)
 
     // Postgres Changes: refetch on every row event for this game.
     ch.on(
