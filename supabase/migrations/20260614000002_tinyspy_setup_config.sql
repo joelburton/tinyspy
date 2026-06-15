@@ -121,25 +121,35 @@ begin
   -- with a clearer message than "key not found." We don't trust
   -- the FE for any of this — the dialog narrows TypeScript types
   -- to the same shape, but a curious client could send anything.
+  --
+  -- Missing-vs-bad-value split (same pattern as psychic-num's
+  -- config validation) so each rejection has its own clear
+  -- message. Otherwise PL/pgSQL's % placeholder substitutes NULL
+  -- as the empty string and we'd raise "...must be 9, 10, or 11
+  -- (got )" — readable, but confusingly empty in the parens.
+  if (config->>'turns') is null then
+    raise exception 'config.turns is required' using errcode = 'P0001';
+  end if;
   cfg_turns := (config->>'turns')::int;
-  if cfg_turns is null or cfg_turns not in (9, 10, 11) then
-    raise exception 'config.turns must be 9, 10, or 11 (got %)', config->>'turns'
+  if cfg_turns not in (9, 10, 11) then
+    raise exception 'config.turns must be 9, 10, or 11 (got %)', cfg_turns
       using errcode = 'P0001';
   end if;
 
-  -- A non-uuid text raises invalid_text_representation; catch it
-  -- so the error message names the field instead of the raw cast
-  -- failure.
+  -- firstClueGiverUserId: missing → "is required"; present but
+  -- malformed → "must be a uuid" (via the cast exception
+  -- handler); present and parseable but not a member of this
+  -- club → "must be a club member."
+  if (config->>'firstClueGiverUserId') is null then
+    raise exception 'config.firstClueGiverUserId is required'
+      using errcode = 'P0001';
+  end if;
   begin
     cfg_first := (config->>'firstClueGiverUserId')::uuid;
   exception when invalid_text_representation then
     raise exception 'config.firstClueGiverUserId must be a uuid'
       using errcode = 'P0001';
   end;
-  if cfg_first is null then
-    raise exception 'config.firstClueGiverUserId is required'
-      using errcode = 'P0001';
-  end if;
   if cfg_first not in (caller_id, other_id) then
     raise exception 'config.firstClueGiverUserId must be a club member'
       using errcode = 'P0001';

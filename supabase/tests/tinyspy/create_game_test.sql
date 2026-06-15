@@ -35,7 +35,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -124,6 +124,36 @@ select throws_ok(
   'P0001',
   'config.turns must be 9, 10, or 11 (got 7)',
   'create_game: config.turns outside {9,10,11} is rejected'
+);
+
+-- turns missing entirely
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
+      )
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'config.turns is required',
+  'create_game: missing config.turns is rejected with its own message'
+);
+
+-- firstClueGiverUserId missing entirely
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object('turns', 9)
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'config.firstClueGiverUserId is required',
+  'create_game: missing firstClueGiverUserId is rejected with its own message'
 );
 
 -- firstClueGiverUserId not a uuid
