@@ -137,7 +137,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
       return
     }
     if (verdict.kind === 'oneAway') setTransient('One away!')
-    else if (verdict.kind === 'wrong') setTransient('Not quite')
+    else if (verdict.kind === 'wrong') setTransient('Incorrect')
     sendClear()
   }
 
@@ -205,21 +205,31 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
         {!gameOver && (
           <div className={styles.grid}>
             {remainingTiles.map((tile) => {
+              // Distinct treatments for self vs peer:
+              //   - Mine: strong dark-fill (the NYT "selected"
+              //     look). No border — the fill alone reads as
+              //     "this is yours."
+              //   - Peer's: regular tile background + a thick
+              //     inset frame in the peer's color, so a glance
+              //     tells you "Bea is hovering on this one."
+              //   - Unowned: plain tile.
               const ownerId = ownerByTile.get(tile)
-              const isSelected = ownerId !== undefined
-              const borderColor = ownerId ? colorForUserId(ownerId) : undefined
+              const isMine = ownerId === session.user.id
+              const isPeer = ownerId !== undefined && !isMine
               return (
                 <button
                   key={tile}
                   type="button"
                   className={cls(
                     styles.tile,
-                    isSelected && styles.tileSelected,
+                    isMine && styles.tileSelected,
                     frozen && styles.tileDisabled,
                   )}
                   style={
-                    isSelected && borderColor
-                      ? { boxShadow: `inset 0 0 0 4px ${borderColor}` }
+                    isPeer && ownerId
+                      ? {
+                          boxShadow: `inset 0 0 0 4px ${colorForUserId(ownerId)}`,
+                        }
                       : undefined
                   }
                   onClick={() => !frozen && toggleTile(tile)}
