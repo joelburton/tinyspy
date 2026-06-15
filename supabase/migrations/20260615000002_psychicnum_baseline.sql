@@ -1,23 +1,35 @@
 -- ============================================================
--- Psychic Num — a tiny cooperative number-guessing game
+-- psychicnum schema — baseline (squashed)
 -- ============================================================
 --
--- Gameplay (intentionally minimal):
---   1. Game creation picks a random target 1..10, hidden server-side.
---   2. Any club member can guess at any time — no turns, no
---      seat assignment. All members play together against the
---      shared 7-guess budget.
---   3. First correct guess → game ends, status='won', that
---      guesser is the winner.
---   4. After 7 wrong guesses (across all members) → status='lost'.
+-- Squashed from three originally-separate migrations:
 --
--- This game is deliberately a toy. It exists to exercise the
--- multi-game architecture (manifest registry, schema-per-game,
--- per-game RLS, per-game theme, per-game chunk split) with the
--- absolute minimum game-logic surface, so the patterns are
--- legible and easy to compare against tinyspy's richer shape.
--- It is also a stand-in for "the second game" until something
--- substantial (Boggle) lands.
+--   2026-06-12  psychicnum_baseline             — schema, tables,
+--                                                  RLS + column-grant
+--                                                  hiding `target`, RPCs
+--                                                  (1-arg create_game,
+--                                                  submit_guess, play_again,
+--                                                  reveal_target,
+--                                                  termination trigger)
+--   2026-06-14  psychicnum_remove_play_again    — drops play_again RPC +
+--                                                  games.next_game_id
+--   2026-06-14  psychicnum_setup                — adds games.setup jsonb,
+--                                                  widens guesses_remaining
+--                                                  check to 0..9, replaces
+--                                                  create_game with the
+--                                                  2-arg version
+--
+-- Squashing collapses the alter/drop/replace dances into a single
+-- forward definition. Git history holds the originals.
+--
+-- Psychic Num is a tiny cooperative number-guessing game: pick a
+-- random target 1..10, hidden server-side; any club member can
+-- guess at any time; first correct guess wins; running out of
+-- guesses loses. Deliberately minimal — it exercises the
+-- multi-game architecture (per-game schema, per-game theme,
+-- per-game chunk split, column-level secrecy) with the absolute
+-- minimum game-logic surface, so the patterns are legible
+-- compared to tinyspy's richer shape.
 --
 -- What this exercises that tinyspy doesn't:
 --   - N-player, no turns (anyone-acts-any-time)
@@ -26,35 +38,43 @@
 --     that excludes `target` from authenticated SELECT
 --   - A different status enum (active/won/lost — no sudden_death,
 --     no multi-axis loss reasons)
---   - A different theme color scheme (lazy-loaded with the chunk)
 --
 -- The static-starting-state vocabulary calls for a "boards" table
 -- in some games (boggle's dice, crosswords' grid). Psychic Num's
 -- only static datum is the target number — too small to warrant
 -- its own table, so it co-locates onto the game row, matching how
--- tinyspy keeps its words + key-cards alongside the game.
+-- tinyspy keeps its words alongside the game.
 --
--- This is the psychicnum schema's baseline migration. Per the
--- alpha-software prior in CLAUDE.md, schema changes after this
--- file are written as new timestamped migrations, not as edits
--- to this file.
--- ============================================================
+-- Depends on `common` (clubs, profiles, club_active_game,
+-- is_club_member, gametypes). Per the removability invariant,
+-- common MUST NOT reference psychicnum back.
 
 -- ============================================================
--- 1. Schema + usage grant
+-- Schema + usage grant
 -- ============================================================
 
-create schema psychicnum;
+create schema if not exists psychicnum;
 grant usage on schema psychicnum to authenticated;
 
 -- ============================================================
--- 2. Tables
+-- psychicnum.games — one row per playing
 -- ============================================================
+-- `target` is the secret 1..10; column-grant excludes it from
+-- authenticated SELECT (see grants below). RPCs run as the
+-- postgres role under security definer and can read it freely;
+-- the FE only learns it via the reveal_target RPC after the game
+-- ends.
+--
+-- `setup jsonb` is the frozen-at-create-time player choices —
+-- today just `{ "guesses": 3 | 5 | 7 | 9 }`. Persisted because the
+-- mutable `guesses_remaining` counter decrements during play, so
+-- after the game ends the counter at 0 doesn't tell you what the
+-- starting budget was. The `setup` column preserves intent for
+-- end-of-game review.
+--
+-- The `guesses_remaining between 0 and 9` constraint matches the
+-- max allowed setup.guesses value.
 
--- psychicnum.games — one row per playing.
--- `target` is the secret; see grants below for how it's hidden
--- from authenticated SELECT.
--- `next_game_id` mirrors tinyspy's idempotent-play_again pattern.
 create table psychicnum.games (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references common.clubs(id) on delete cascade,
@@ -62,20 +82,23 @@ create table psychicnum.games (
     check (status in ('active', 'won', 'lost')),
   target int not null check (target between 1 and 10),
   guesses_remaining int not null default 7
-    check (guesses_remaining between 0 and 7),
+    check (guesses_remaining between 0 and 9),
   winner_id uuid references common.profiles(user_id) on delete set null,
-  next_game_id uuid references psychicnum.games(id) on delete set null,
+  setup jsonb not null,
   created_at timestamptz not null default now()
 );
 
 create index psychicnum_games_club_id_idx on psychicnum.games (club_id);
 
--- psychicnum.guesses — append-only log of every guess made.
+-- ============================================================
+-- psychicnum.guesses — append-only log
+-- ============================================================
 -- Used both for "show the history" in the UI and for the
--- guesses_remaining counter (though we update the counter
--- on psychicnum.games inline rather than recomputing from
--- this log, to keep submit_guess cheap and to support a
--- column-level RLS story).
+-- guesses_remaining counter (though we update the counter on
+-- psychicnum.games inline rather than recomputing from this log,
+-- to keep submit_guess cheap and to support a column-level RLS
+-- story).
+
 create table psychicnum.guesses (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references psychicnum.games(id) on delete cascade,
@@ -88,7 +111,7 @@ create table psychicnum.guesses (
 create index psychicnum_guesses_game_id_idx on psychicnum.guesses (game_id);
 
 -- ============================================================
--- 3. Row-level security
+-- RLS
 -- ============================================================
 -- Club members can SELECT both tables. Writes never happen
 -- directly — they go through the security-definer RPCs below.
@@ -115,12 +138,12 @@ create policy guesses_select on psychicnum.guesses
   );
 
 -- ============================================================
--- 4. Grants — `target` is column-excluded
+-- Grants — `target` is column-excluded
 -- ============================================================
 -- Default `grant select` would include `target`, defeating the
 -- "backend-authoritative secret" property. Column-list grant
 -- whitelists every column EXCEPT `target`. The RPCs run as the
--- `postgres` role (security definer) and can read `target`
+-- postgres role (security definer) and can read `target`
 -- freely; the authenticated role cannot.
 --
 -- After game termination, players reveal `target` via the
@@ -128,13 +151,13 @@ create policy guesses_select on psychicnum.guesses
 -- terminal-status precondition.
 
 grant select
-  (id, club_id, status, guesses_remaining, winner_id, next_game_id, created_at)
+  (id, club_id, status, guesses_remaining, winner_id, setup, created_at)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.guesses to authenticated;
 
 -- ============================================================
--- 5. Realtime
+-- Realtime publication
 -- ============================================================
 -- Both tables broadcast so the FE can subscribe to:
 --   - games:    status flips (won/lost), guesses_remaining decrement
@@ -144,20 +167,21 @@ alter publication supabase_realtime add table psychicnum.games;
 alter publication supabase_realtime add table psychicnum.guesses;
 
 -- ============================================================
--- 6. create_game — start a new game in a club
+-- psychicnum.create_game(target_club, setup) — start a new game
 -- ============================================================
--- Pre-check: caller is a club member. No minimum-member check —
--- psychic-num plays fine with any membership count (a solo club's
--- single member can play it themselves; v1 doesn't surface that as
--- a UI affordance, but the game logic doesn't care).
+-- Validates the setup shape, picks a random target 1–10, inserts
+-- the game row in `active` with `guesses_remaining` initialized
+-- from `setup.guesses`, upserts common.club_active_game pointing
+-- at it.
 --
--- Effects:
---   - inserts a row with a random target 1..10
---   - upserts common.club_active_game pointing at it, which
---     auto-pauses whatever was previously active for the club
---     (per the v1 active-game-per-club invariant)
+-- Setup shape: { "guesses": 3 | 5 | 7 | 9 }
+--
+-- No member-count check — psychic-num plays with any club size.
+-- Must agree with the `numberOfPlayers: [1, null]` declaration
+-- in src/psychicnum/manifest.ts. See docs/code-conventions.md →
+-- "Per-game player counts" for the cross-reference convention.
 
-create function psychicnum.create_game(target_club uuid)
+create function psychicnum.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -166,6 +190,7 @@ as $$
 declare
   caller_id uuid;
   new_id uuid;
+  s_guesses int;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -179,8 +204,34 @@ begin
     raise exception 'not a member of this club' using errcode = '42501';
   end if;
 
-  insert into psychicnum.games (club_id, target)
-  values (target_club, 1 + floor(random() * 10)::int)
+  -- ─── Validate setup shape ────────────────────────────
+  -- One option, four allowed values. We don't trust the FE for
+  -- any of this — the dialog narrows TypeScript to the same set,
+  -- but a curious client could send anything.
+  --
+  -- Missing-vs-bad-value split so each rejection has a clean
+  -- message. Otherwise PL/pgSQL's % placeholder substitutes NULL
+  -- as the empty string and we'd raise "...must be 3, 5, 7, or 9
+  -- (got )" — readable, but confusingly empty in the parens.
+  if (setup->>'guesses') is null then
+    raise exception 'setup.guesses is required' using errcode = 'P0001';
+  end if;
+  s_guesses := (setup->>'guesses')::int;
+  if s_guesses not in (3, 5, 7, 9) then
+    raise exception 'setup.guesses must be 3, 5, 7, or 9 (got %)', s_guesses
+      using errcode = 'P0001';
+  end if;
+
+  -- Insert the game row. guesses_remaining seeds from s_guesses;
+  -- setup itself is persisted for game-review surfaces. target is
+  -- the random 1..10 secret, hidden by the column-level grant.
+  insert into psychicnum.games (club_id, target, guesses_remaining, setup)
+  values (
+    target_club,
+    1 + floor(random() * 10)::int,
+    s_guesses,
+    setup
+  )
   returning games.id into new_id;
 
   insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
@@ -194,11 +245,11 @@ begin
 end;
 $$;
 
-revoke execute on function psychicnum.create_game(uuid) from public;
-grant execute on function psychicnum.create_game(uuid) to authenticated;
+revoke execute on function psychicnum.create_game(uuid, jsonb) from public;
+grant execute on function psychicnum.create_game(uuid, jsonb) to authenticated;
 
 -- ============================================================
--- 7. submit_guess — the only mid-game action
+-- psychicnum.submit_guess — the only mid-game action
 -- ============================================================
 -- Returns one of: 'correct' (caller won), 'wrong' (game
 -- continues), 'lost' (caller's wrong guess used the last token).
@@ -212,8 +263,8 @@ grant execute on function psychicnum.create_game(uuid) to authenticated;
 -- Duplicate guesses are allowed — anyone can guess any number,
 -- even one already-wrongly-guessed. A dumb move in a dumb game.
 --
--- The club_active_game row is cleared by a trigger on
--- psychicnum.games (see section 9), not inline here.
+-- The club_active_game row is cleared by the termination trigger
+-- (below), not inline here.
 
 create function psychicnum.submit_guess(target_game uuid, guess int)
 returns text
@@ -286,76 +337,7 @@ revoke execute on function psychicnum.submit_guess(uuid, int) from public;
 grant execute on function psychicnum.submit_guess(uuid, int) to authenticated;
 
 -- ============================================================
--- 8. play_again — successor-game shortcut
--- ============================================================
--- Mirrors tinyspy.play_again's contract:
---   - rejects if the previous game hasn't ended
---   - rejects if the caller isn't a club member of the previous game
---   - creates a fresh game in the same club, returns its id
---   - idempotent via prev.next_game_id: whichever caller arrives
---     first creates; a later call from the same prev_game gets
---     back the same successor id rather than a duplicate game
-
-create function psychicnum.play_again(prev_game uuid)
-returns table(id uuid)
-language plpgsql
-security definer
-set search_path = psychicnum, common, public, extensions
-as $$
-declare
-  caller_id uuid;
-  prev psychicnum.games%rowtype;
-  successor_id uuid;
-begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  select * into prev from psychicnum.games
-   where psychicnum.games.id = prev_game
-   for update;
-  if not found then
-    raise exception 'previous game not found' using errcode = 'P0002';
-  end if;
-
-  if not common.is_club_member(prev.club_id) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
-
-  if prev.status = 'active' then
-    raise exception 'previous game has not ended' using errcode = 'P0001';
-  end if;
-
-  if prev.next_game_id is not null then
-    return query select prev.next_game_id;
-    return;
-  end if;
-
-  insert into psychicnum.games (club_id, target)
-  values (prev.club_id, 1 + floor(random() * 10)::int)
-  returning games.id into successor_id;
-
-  update psychicnum.games
-     set next_game_id = successor_id
-   where psychicnum.games.id = prev_game;
-
-  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
-  values (prev.club_id, 'psychicnum', successor_id, now())
-  on conflict (club_id) do update set
-    gametype = excluded.gametype,
-    game_id = excluded.game_id,
-    set_active_at = excluded.set_active_at;
-
-  return query select successor_id;
-end;
-$$;
-
-revoke execute on function psychicnum.play_again(uuid) from public;
-grant execute on function psychicnum.play_again(uuid) to authenticated;
-
--- ============================================================
--- 9. Trigger: clear club_active_game on termination
+-- psychicnum.clear_active_on_termination — trigger
 -- ============================================================
 -- Mirrors tinyspy.clear_active_on_termination. When a game's
 -- status flips from 'active' to 'won' or 'lost', delete the
@@ -364,7 +346,8 @@ grant execute on function psychicnum.play_again(uuid) to authenticated;
 -- of 'active' on the club page.
 --
 -- security definer because the calling RPC runs as authenticated
--- and that role has no grant to delete from common.club_active_game.
+-- and that role has no grant to delete from
+-- common.club_active_game.
 
 create function psychicnum.clear_active_on_termination()
 returns trigger
@@ -389,12 +372,12 @@ create trigger clear_active_on_termination
   for each row execute function psychicnum.clear_active_on_termination();
 
 -- ============================================================
--- 10. reveal_target — surfaces the secret after game end
+-- psychicnum.reveal_target — surfaces the secret after game end
 -- ============================================================
 -- The `target` column is hidden from authenticated SELECT via
--- column-level grant (see section 4). Players need to see the
--- number after a loss ("the number was 7"); this RPC is the
--- gated path. Rejects while the game is still active so a
+-- column-level grant (see the grants section). Players need to
+-- see the number after a loss ("the number was 7"); this RPC is
+-- the gated path. Rejects while the game is still active so a
 -- curious client can't peek mid-game.
 
 create function psychicnum.reveal_target(target_game uuid)
@@ -430,3 +413,10 @@ $$;
 
 revoke execute on function psychicnum.reveal_target(uuid) from public;
 grant execute on function psychicnum.reveal_target(uuid) to authenticated;
+
+-- ============================================================
+-- Register psychicnum with common.gametypes
+-- ============================================================
+
+insert into common.gametypes (gametype) values ('psychicnum')
+on conflict do nothing;

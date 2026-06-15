@@ -1,14 +1,27 @@
 -- ============================================================
--- tinyspy schema — baseline
+-- tinyspy schema — baseline (squashed)
 -- ============================================================
 --
--- Squashed: a single migration that brings the `tinyspy` schema to
--- its current shape in one shot. Replaces the original two-step
--- progression (initial baseline with join-code lobby flow →
--- tinyspy_to_clubs atomic flip), now that the schema is stable
--- enough to flatten into a clean starting point. Read the git
--- history for the narrative — what's preserved here is the end
--- state and the teaching commentary worth keeping.
+-- Squashed from three originally-separate migrations:
+--
+--   2026-06-12  tinyspy_baseline               — schema, tables,
+--                                                 RLS, RPCs (1-arg
+--                                                 create_game, submit_clue,
+--                                                 submit_guess, pass_turn,
+--                                                 play_again, get_clue_context,
+--                                                 termination trigger), word pool
+--   2026-06-14  tinyspy_remove_play_again      — drops play_again RPC +
+--                                                 the games.next_game_id column
+--                                                 it relied on
+--   2026-06-14  tinyspy_setup                  — adds games.setup jsonb;
+--                                                 drops the 1-arg create_game,
+--                                                 defines the 2-arg version
+--                                                 with setup-shape validation
+--                                                 + first-clue-giver seating
+--
+-- Squashing collapses the alter/drop/replace dances into a single
+-- forward definition. The git history holds the original three
+-- files for anyone curious about the evolution.
 --
 -- Tinyspy is Codenames Duet for two: a cooperative word-guessing
 -- game played by exactly two club members. See docs/tinyspy.md
@@ -16,12 +29,8 @@
 -- implementation.
 --
 -- Depends on `common` (clubs, profiles, club_active_game,
--- is_club_member). Per the removability invariant in
+-- is_club_member, gametypes). Per the removability invariant in
 -- docs/naming.md, common MUST NOT reference tinyspy back.
---
--- Per the alpha-software prior in CLAUDE.md, schema changes after
--- this baseline are written as new timestamped migrations, not as
--- edits to this file.
 
 -- ============================================================
 -- Schema + usage grant
@@ -38,6 +47,14 @@ grant usage on schema tinyspy to authenticated;
 -- just "must exist and not be deleted"). Status starts at
 -- 'active' since there's no lobby state under the club model;
 -- both members are seated immediately on create_game.
+--
+-- `setup jsonb` is the frozen-at-create-time player choices: the
+-- start-game dialog's turns + firstClueGiverUserId. Persisted
+-- both because (a) the mutable counter `turns_remaining`
+-- decrements during play and can't tell you what the starting
+-- count was after the game ends, and (b) end-of-game review
+-- surfaces (e.g. a "this game was played with 11 turns" badge)
+-- want it. Server-side validated in create_game.
 
 create table tinyspy.games (
   id uuid primary key default gen_random_uuid(),
@@ -47,7 +64,7 @@ create table tinyspy.games (
   turns_remaining int not null default 9,
   turn_number int not null default 1,
   current_clue_giver text check (current_clue_giver in ('A', 'B')),
-  next_game_id uuid references tinyspy.games(id),
+  setup jsonb not null,
   created_at timestamptz not null default now()
 );
 
@@ -233,21 +250,35 @@ $$;
 revoke execute on function tinyspy._end_turn(uuid) from public;
 
 -- ============================================================
--- tinyspy.create_game(target_club) — start a new game in a club
+-- tinyspy.create_game(target_club, setup) — start a new game
 -- ============================================================
--- One call:
---   - verifies caller is in the target club
---   - verifies the club has exactly 2 members (tinyspy is 2-player)
---   - seats the caller as A and the other member as B
---   - picks 25 words from word_pool
---   - generates the Duet key card distribution and assigns both
---     seats their views
---   - sets status='active' directly (no lobby)
---   - upserts common.club_active_game pointing at this game
---     (which auto-pauses whatever was previously active for the
---     club, per the v1 active/paused/completed semantics)
+-- Validates setup, picks 25 words, generates the Duet key-card
+-- distribution, seats both members (the chosen first-clue-giver
+-- as A, the other as B), inserts in status='active', upserts
+-- common.club_active_game.
+--
+-- Setup shape:
+--   {
+--     "turns": 9 | 10 | 11,
+--     "firstClueGiverUserId": "<uuid of one of the two club members>"
+--   }
+--
+-- Why a jsonb setup column rather than discrete columns
+-- (`starting_turns int`, `first_clue_giver uuid`): the mutable
+-- counter `turns_remaining` decrements during play. Looking at a
+-- finished game later, the counter at 0 doesn't tell you whether
+-- the game started with 9, 10, or 11 — the original intent is
+-- gone. A typed-by-the-game jsonb column preserves intent for
+-- end-of-game review (and a future "this game was played with 11
+-- turns" badge) without per-feature column churn. Future games
+-- add their own options to the same `setup jsonb` shape.
+--
+-- Validation is server-side: this RPC inspects the jsonb shape
+-- and rejects malformed payloads. The FE's TinyspySetup type is
+-- advisory only — a curious client could fire any payload, and
+-- the server is the only thing protecting state correctness.
 
-create function tinyspy.create_game(target_club uuid)
+create function tinyspy.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -264,6 +295,8 @@ declare
   b_view text[];
   j int;
   tmp jsonb;
+  s_turns int;
+  s_first uuid;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -278,7 +311,10 @@ begin
     raise exception 'not a member of this club' using errcode = '42501';
   end if;
 
-  -- Tinyspy needs exactly 2 club members.
+  -- Tinyspy needs exactly 2 club members. Must agree with
+  -- the `numberOfPlayers: [2, 2]` declaration in
+  -- src/tinyspy/manifest.ts. See docs/code-conventions.md →
+  -- "Per-game player counts" for the cross-reference convention.
   select count(*) into member_count
     from common.club_members where club_id = target_club;
   if member_count <> 2 then
@@ -286,14 +322,48 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- Find the other member (the one who isn't the caller).
+  -- Find the other member.
   select user_id into other_id
     from common.club_members
    where club_id = target_club and user_id <> caller_id
    limit 1;
 
-  -- Pick the 25 words. The word_pool seed at the bottom of this
-  -- file guarantees ≥ 25 words exist.
+  -- ─── Validate setup shape ────────────────────────────
+  -- Missing-vs-bad-value split so each rejection has its own
+  -- clear message. Otherwise PL/pgSQL's % placeholder substitutes
+  -- NULL as the empty string and we'd raise "...must be 9, 10, or
+  -- 11 (got )" — readable, but confusingly empty in the parens.
+  if (setup->>'turns') is null then
+    raise exception 'setup.turns is required' using errcode = 'P0001';
+  end if;
+  s_turns := (setup->>'turns')::int;
+  if s_turns not in (9, 10, 11) then
+    raise exception 'setup.turns must be 9, 10, or 11 (got %)', s_turns
+      using errcode = 'P0001';
+  end if;
+
+  -- firstClueGiverUserId: missing → "is required"; present but
+  -- malformed → "must be a uuid" (via the cast exception
+  -- handler); present and parseable but not a member of this
+  -- club → "must be a club member."
+  if (setup->>'firstClueGiverUserId') is null then
+    raise exception 'setup.firstClueGiverUserId is required'
+      using errcode = 'P0001';
+  end if;
+  begin
+    s_first := (setup->>'firstClueGiverUserId')::uuid;
+  exception when invalid_text_representation then
+    raise exception 'setup.firstClueGiverUserId must be a uuid'
+      using errcode = 'P0001';
+  end;
+  if s_first not in (caller_id, other_id) then
+    raise exception 'setup.firstClueGiverUserId must be a club member'
+      using errcode = 'P0001';
+  end if;
+
+  -- ─── Pick 25 words ────────────────────────────────────
+  -- The word_pool seed at the bottom of this file guarantees ≥ 25
+  -- words exist.
   select array_agg(word) into picked_words
     from (select word from tinyspy.word_pool order by random() limit 25) sub;
   if array_length(picked_words, 1) <> 25 then
@@ -301,7 +371,8 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- Duet key card distribution (25 tiles total):
+  -- ─── Duet key-card distribution ───────────────────────
+  -- Joint distribution (25 cells total):
   --   G/G:3  G/N:5  G/A:1
   --   N/G:5  N/N:7  N/A:1
   --   A/G:1  A/N:1  A/A:1
@@ -331,15 +402,26 @@ begin
     b_view := b_view || (tiles[i]->>'b');
   end loop;
 
-  -- Insert the game row directly in 'active' state.
-  insert into tinyspy.games (club_id, status, current_clue_giver)
-  values (target_club, 'active', 'A')
+  -- Insert the game row. turns_remaining is seeded from s_turns;
+  -- setup itself is persisted so future review can see the
+  -- starting choices.
+  insert into tinyspy.games (
+    club_id, status, current_clue_giver, turns_remaining, setup
+  ) values (
+    target_club, 'active', 'A', s_turns, setup
+  )
   returning games.id into new_id;
 
-  -- Seat both members.
+  -- Seat the chosen first-clue-giver as A; the other member
+  -- gets seat B.
   insert into tinyspy.game_players (game_id, user_id, seat, key_card) values
-    (new_id, caller_id, 'A', to_jsonb(a_view)),
-    (new_id, other_id,  'B', to_jsonb(b_view));
+    (new_id, s_first, 'A', to_jsonb(a_view)),
+    (
+      new_id,
+      case s_first when caller_id then other_id else caller_id end,
+      'B',
+      to_jsonb(b_view)
+    );
 
   -- Insert the 25 words.
   for i in 0..24 loop
@@ -348,7 +430,7 @@ begin
   end loop;
 
   -- Upsert into club_active_game — auto-pauses any prior active
-  -- game for this club by overwriting the row.
+  -- game for this club by overwriting the pointer.
   insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
   values (target_club, 'tinyspy', new_id, now())
   on conflict (club_id) do update set
@@ -360,8 +442,8 @@ begin
 end;
 $$;
 
-revoke execute on function tinyspy.create_game(uuid) from public;
-grant execute on function tinyspy.create_game(uuid) to authenticated;
+revoke execute on function tinyspy.create_game(uuid, jsonb) from public;
+grant execute on function tinyspy.create_game(uuid, jsonb) to authenticated;
 
 -- ============================================================
 -- tinyspy.submit_clue
@@ -619,130 +701,6 @@ revoke execute on function tinyspy.pass_turn(uuid) from public;
 grant execute on function tinyspy.pass_turn(uuid) to authenticated;
 
 -- ============================================================
--- tinyspy.play_again
--- ============================================================
--- Same seat layout as the previous game. The new game inherits
--- the previous game's club_id. Idempotent via
--- prev_game.next_game_id: whichever caller arrives first creates;
--- a later call from the same prev_game gets back the same id.
-
-create function tinyspy.play_again(prev_game uuid)
-returns table(id uuid)
-language plpgsql
-security definer
-set search_path = tinyspy, common, public, extensions
-as $$
-declare
-  prev_status text;
-  prev_next uuid;
-  prev_club uuid;
-  new_id uuid;
-  picked_words text[];
-  tiles jsonb[];
-  a_view text[];
-  b_view text[];
-  j int;
-  tmp jsonb;
-begin
-  if auth.uid() is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  select status, next_game_id, club_id
-    into prev_status, prev_next, prev_club
-    from tinyspy.games where prev_game = games.id for update;
-
-  if prev_status is null then
-    raise exception 'game not found' using errcode = 'P0002';
-  end if;
-
-  if prev_status not in ('won', 'lost_assassin', 'lost_clock') then
-    raise exception 'previous game has not ended' using errcode = 'P0001';
-  end if;
-
-  if not exists (
-    select 1 from tinyspy.game_players
-    where game_id = prev_game and user_id = auth.uid()
-  ) then
-    raise exception 'not a player in this game' using errcode = '42501';
-  end if;
-
-  -- Idempotent: another caller already created the next game.
-  if prev_next is not null then
-    return query select prev_next;
-    return;
-  end if;
-
-  -- Fresh words.
-  select array_agg(word) into picked_words
-    from (select word from tinyspy.word_pool order by random() limit 25) sub;
-  if array_length(picked_words, 1) <> 25 then
-    raise exception 'word_pool must contain at least 25 words'
-      using errcode = 'P0001';
-  end if;
-
-  -- Fresh key card.
-  tiles := array[]::jsonb[];
-  for i in 1..3 loop tiles := tiles || jsonb_build_object('a','G','b','G'); end loop;
-  for i in 1..5 loop tiles := tiles || jsonb_build_object('a','G','b','N'); end loop;
-  tiles := tiles || jsonb_build_object('a','G','b','A');
-  for i in 1..5 loop tiles := tiles || jsonb_build_object('a','N','b','G'); end loop;
-  for i in 1..7 loop tiles := tiles || jsonb_build_object('a','N','b','N'); end loop;
-  tiles := tiles || jsonb_build_object('a','N','b','A');
-  tiles := tiles || jsonb_build_object('a','A','b','G');
-  tiles := tiles || jsonb_build_object('a','A','b','N');
-  tiles := tiles || jsonb_build_object('a','A','b','A');
-
-  for i in reverse 25..2 loop
-    j := 1 + floor(random() * i)::int;
-    tmp := tiles[i];
-    tiles[i] := tiles[j];
-    tiles[j] := tmp;
-  end loop;
-
-  a_view := array[]::text[];
-  b_view := array[]::text[];
-  for i in 1..25 loop
-    a_view := a_view || (tiles[i]->>'a');
-    b_view := b_view || (tiles[i]->>'b');
-  end loop;
-
-  -- New game in the same club, status='active' immediately.
-  insert into tinyspy.games (club_id, status, current_clue_giver)
-  values (prev_club, 'active', 'A')
-  returning games.id into new_id;
-
-  -- Carry forward seats from the previous game, with fresh keys.
-  insert into tinyspy.game_players (game_id, user_id, seat, key_card)
-  select new_id,
-         user_id,
-         seat,
-         case seat when 'A' then to_jsonb(a_view) else to_jsonb(b_view) end
-    from tinyspy.game_players where game_id = prev_game;
-
-  for i in 0..24 loop
-    insert into tinyspy.words (game_id, position, word)
-    values (new_id, i, picked_words[i+1]);
-  end loop;
-
-  -- Link the chain and re-take the active slot for this club.
-  update tinyspy.games set next_game_id = new_id where games.id = prev_game;
-
-  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
-  values (prev_club, 'tinyspy', new_id, now())
-  on conflict (club_id) do update set
-    gametype = excluded.gametype,
-    game_id = excluded.game_id,
-    set_active_at = excluded.set_active_at;
-
-  return query select new_id;
-end;
-$$;
-
-revoke execute on function tinyspy.play_again(uuid) from public;
-grant execute on function tinyspy.play_again(uuid) to authenticated;
-
--- ============================================================
 -- tinyspy.clear_active_on_termination — trigger function
 -- ============================================================
 -- Fires whenever tinyspy.games.status updates to a terminal
@@ -875,6 +833,13 @@ $$;
 
 revoke execute on function tinyspy.get_clue_context(uuid) from public;
 grant execute on function tinyspy.get_clue_context(uuid) to authenticated;
+
+-- ============================================================
+-- Register tinyspy with common.gametypes
+-- ============================================================
+
+insert into common.gametypes (gametype) values ('tinyspy')
+on conflict do nothing;
 
 -- ============================================================
 -- Seed: tinyspy.word_pool (390 Codenames Duet words)

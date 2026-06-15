@@ -2,6 +2,26 @@
 -- Wordknit — Connections-style word-grouping puzzle (POC)
 -- ============================================================
 --
+-- Squashed from three originally-separate migrations:
+--
+--   2026-06-14  wordknit_baseline           — schema, tables,
+--                                              partial unique index,
+--                                              RLS, create_game
+--                                              (without timer
+--                                              validation), submit_guess,
+--                                              termination trigger,
+--                                              gametype self-registration
+--   2026-06-14  wordknit_submit_timeout     — adds submit_timeout RPC
+--                                              fired by the FE when the
+--                                              countdown timer expires
+--   2026-06-15  wordknit_timer_in_setup     — CREATE OR REPLACE of
+--                                              create_game adding the
+--                                              setup.timer shape
+--                                              validator
+--
+-- Squashing collapses the CREATE OR REPLACE dance into a single
+-- forward definition.
+--
 -- A 4×4 board of 16 tiles split into 4 hidden categories of 4.
 -- Players select 4 tiles, submit, and try to identify a category.
 -- Correct guesses reveal the category as a colored band;
@@ -80,6 +100,10 @@ grant usage on schema wordknit to authenticated;
 -- in the file header). Mutable state (mistake_count, status)
 -- lives in normal columns so it can be partial-updated
 -- atomically.
+--
+-- `setup jsonb` is the frozen-at-create-time player choices —
+-- today just `{ "timer": ... }`. Server-side validated in
+-- create_game.
 
 create table wordknit.games (
   id uuid primary key default gen_random_uuid(),
@@ -124,11 +148,13 @@ create index wordknit_guesses_game_id_idx on wordknit.guesses (game_id);
 -- raises unique_violation, which submit_guess catches and
 -- treats as "already matched, no-op."
 --
--- Replaces the old (game_id, level) PK on a separate
--- found_groups table. Killing that table left this constraint
--- without a home; the partial index does the same job (one row
--- per (game, rank) when result='correct') with no second table
--- to fan postgres-changes events out of.
+-- An earlier iteration of this schema had a separate
+-- found_groups table whose (game_id, level) PK provided this
+-- guarantee. We dropped the table when we realized the data was
+-- fully derivable from `guesses` filtered to result='correct'
+-- plus the static board; the partial index gives the same
+-- idempotency property with one fewer table to fan postgres-
+-- changes events out of.
 create unique index wordknit_guesses_one_correct_per_rank
   on wordknit.guesses (game_id, matched_category_rank)
   where result = 'correct';
@@ -175,11 +201,23 @@ alter publication supabase_realtime add table wordknit.guesses;
 -- ============================================================
 -- wordknit.create_game — start a new game in a club
 -- ============================================================
--- POC: builds a hardcoded 4-category board (words starting with
--- A/B/C/D, four each) and a shuffled tile order. Future work
--- will swap the body for a date-picker + puzzle-database lookup;
--- the manifest's setup dialog already gestures at this with a
--- placeholder message.
+-- Validates the setup.timer shape, then builds the hardcoded
+-- POC board (4 categories × 4 tiles) and a shuffled tile order,
+-- inserts the row in `in_progress`, upserts
+-- common.club_active_game.
+--
+-- Setup shape:
+--   {
+--     "timer": (
+--         { "kind": "none" }
+--       | { "kind": "countup" }
+--       | { "kind": "countdown", "seconds": <int 1..3600> }
+--     )
+--   }
+--
+-- Future work will swap the body's hardcoded board for a date-
+-- picker + puzzle-database lookup; the manifest's setup dialog
+-- already gestures at this.
 
 create function wordknit.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
@@ -194,6 +232,9 @@ declare
   tile_order text[];
   j int;
   tmp text;
+  timer_obj jsonb;
+  timer_kind text;
+  timer_seconds int;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -211,6 +252,36 @@ begin
   -- Must agree with the `numberOfPlayers: [1, null]` declaration
   -- in src/wordknit/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts" for the cross-reference convention.
+
+  -- ─── Validate setup.timer shape ──────────────────────
+  -- Missing-vs-bad split for clear error messages (same
+  -- pattern as tinyspy / psychic-num setup validation).
+  timer_obj := setup->'timer';
+  if timer_obj is null then
+    raise exception 'setup.timer is required' using errcode = 'P0001';
+  end if;
+
+  timer_kind := timer_obj->>'kind';
+  if timer_kind not in ('none', 'countup', 'countdown') then
+    raise exception
+      'setup.timer.kind must be none, countup, or countdown (got %)',
+      coalesce(timer_kind, '<null>')
+      using errcode = 'P0001';
+  end if;
+
+  if timer_kind = 'countdown' then
+    if (timer_obj->>'seconds') is null then
+      raise exception 'setup.timer.seconds is required for countdown'
+        using errcode = 'P0001';
+    end if;
+    timer_seconds := (timer_obj->>'seconds')::int;
+    if timer_seconds < 1 or timer_seconds > 3600 then
+      raise exception
+        'setup.timer.seconds must be 1..3600 (got %)',
+        timer_seconds
+        using errcode = 'P0001';
+    end if;
+  end if;
 
   -- Hardcoded POC board. Ranks 0..3 map to NYT yellow/green/
   -- blue/purple in the FE's theme.css. The categories are obvious
@@ -292,9 +363,7 @@ grant execute on function wordknit.create_game(uuid, jsonb) to authenticated;
 -- The matched_category_rank CHECK constraint on the column
 -- (0..3) already enforces a valid range, and every board has
 -- exactly 4 categories ranked 0..3 by construction — so we
--- don't need a separate runtime "rank exists in board" check
--- the way the old code did when it had to look up the group_obj
--- to populate found_groups.
+-- don't need a separate runtime "rank exists in board" check.
 
 create function wordknit.submit_guess(
   target_game uuid,
@@ -413,6 +482,66 @@ revoke execute on function wordknit.submit_guess(uuid, text[], text, int) from p
 grant execute on function wordknit.submit_guess(uuid, text[], text, int) to authenticated;
 
 -- ============================================================
+-- wordknit.submit_timeout — countdown expiry handler
+-- ============================================================
+-- Fired by the FE when the count-down timer hits 0. Sets the
+-- game's status to 'lost' (same terminal status as 4-mistakes-
+-- losing — the cause doesn't change the outcome shape, just the
+-- copy in the loss banner; the FE can distinguish by looking at
+-- the mistakes count vs. the absence of mistakes).
+--
+-- Concurrency: multiple clients may fire submit_timeout at the
+-- same instant because each client's local timer hits 0 around
+-- the same wall-clock moment. The `SELECT ... FOR UPDATE` lock
+-- serializes them; whichever transaction commits first flips
+-- status to 'lost'; subsequent calls see status != 'in_progress'
+-- and raise P0001. The FE swallows that "already lost" rejection
+-- silently — it just means a peer beat us to the punch, and
+-- realtime will propagate the loss to all clients.
+--
+-- The termination trigger (below) clears common.club_active_game
+-- when status flips terminal, same as the 4-mistakes-lose and
+-- 4-categories-solved paths.
+
+create function wordknit.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordknit, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g_row wordknit.games%rowtype;
+begin
+  caller_id := auth.uid();
+  if caller_id is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  select * into g_row from wordknit.games
+   where wordknit.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  if not common.is_club_member(g_row.club_id) then
+    raise exception 'not a member of this club' using errcode = '42501';
+  end if;
+
+  if g_row.status <> 'in_progress' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  update wordknit.games set status = 'lost'
+   where wordknit.games.id = target_game;
+end;
+$$;
+
+revoke execute on function wordknit.submit_timeout(uuid) from public;
+grant execute on function wordknit.submit_timeout(uuid) to authenticated;
+
+-- ============================================================
 -- wordknit.clear_active_on_termination — trigger function
 -- ============================================================
 -- Fires when wordknit.games.status flips from 'in_progress' to
@@ -443,13 +572,8 @@ create trigger clear_active_on_termination
   for each row execute function wordknit.clear_active_on_termination();
 
 -- ============================================================
--- Register the gametype with common.gametypes
+-- Register wordknit with common.gametypes
 -- ============================================================
--- Per the convention in 20260614000004_common_club_game_kinds.sql,
--- every gametype's baseline registers itself with an
--- ON CONFLICT DO NOTHING INSERT. handle_new_user / create_club
--- then populate club_game_kinds for new clubs with every
--- registered gametype.
 
 insert into common.gametypes (gametype) values ('wordknit')
 on conflict do nothing;

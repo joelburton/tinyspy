@@ -1,31 +1,54 @@
 -- ============================================================
--- common schema — baseline
+-- common schema — baseline (squashed)
 -- ============================================================
 --
+-- Squashed from three originally-separate migrations:
+--
+--   2026-06-12  common_baseline           — profiles, clubs,
+--                                            club_members, club_active_game,
+--                                            messages, slugify, create_club,
+--                                            send_message, is_club_member,
+--                                            handle_new_user trigger
+--   2026-06-14  common_club_game_kinds    — gametypes registry +
+--                                            club_game_kinds m2m, with
+--                                            handle_new_user / create_club
+--                                            extended to populate it
+--
+-- The pre-squash files lived behind several CREATE OR REPLACE
+-- patches on top of the original baseline. The squash collapses
+-- them into a single forward definition: every table created once
+-- with its final shape, every function created once with its final
+-- body. The original migration files (and their CREATE OR REPLACE
+-- dances) live in git history for anyone curious about the
+-- evolution.
+--
 -- What `common` holds:
---   - profiles      — one row per auth user (created on their
---                     first sign-in; persists across sign-out).
---                     username is the public identity (immutable
---                     after first sign-in in the future picker flow).
---   - clubs         — fixed-membership rooms friends play in
---                     together. Cross-game social primitive.
---   - club_members  — m2m between clubs and profiles.
---   - club_active_game — at-most-one row per club; tracks which
---                     game the club is currently playing (across
---                     all gametypes). Auto-cleared by each game's
---                     own termination trigger.
---   - messages      — per-club chat. Single thread per club,
---                     persists across gametype switches.
+--   - profiles            — one row per auth user (created on
+--                            their first sign-in; persists across
+--                            sign-out). username is the public
+--                            identity.
+--   - clubs               — fixed-membership rooms friends play in
+--                            together. Cross-game social primitive.
+--   - club_members        — m2m between clubs and profiles.
+--   - club_active_game    — at-most-one row per club; tracks which
+--                            game the club is currently playing
+--                            (across all gametypes). Auto-cleared
+--                            by each game's own termination trigger.
+--   - messages            — per-club chat. Single thread per club,
+--                            persists across gametype switches.
+--   - gametypes           — registered-gametype list. Each game's
+--                            baseline migration self-registers via
+--                            an INSERT ... ON CONFLICT DO NOTHING.
+--   - club_game_kinds     — m2m saying "this club may play this
+--                            gametype." Populated for every new
+--                            club by handle_new_user / create_club.
 --
 -- What `common` MUST NOT do: reference any game schema. The
 -- removability invariant (delete a game in three actions — folder,
 -- registry line, schema) depends on common staying gametype-blind.
 -- The link goes the other way: each game schema references
--- common.clubs(id) for `club_id`.
---
--- Per the alpha-software prior in CLAUDE.md, schema changes after
--- this baseline are written as new timestamped migrations, not as
--- edits to this file.
+-- common.clubs(id) for `club_id` and self-registers via
+-- common.gametypes.
 
 -- ============================================================
 -- Schema + usage grant
@@ -57,33 +80,6 @@ create table common.profiles (
   username text unique not null,
   created_at timestamptz not null default now()
 );
-
-alter table common.profiles enable row level security;
-
--- INTENTIONAL: any signed-in user can read any profile. Username
--- is public; there's no sensitive data on profiles today. Required
--- for club creation — when you type "leah" into the new-club form,
--- the FE has to be able to resolve "leah" → user_id BEFORE you
--- share a club with her, which rules out any "only people I share
--- a club with" row-tightening. The right axis is which COLUMNS
--- get exposed, not which rows.
---
--- If profile data ever grows sensitive (real names, settings,
--- email-derived metadata, etc.), the hardening move is to revoke
--- direct SELECT on common.profiles from authenticated and expose
--- a `common.profiles_public` view that selects only the safe
--- columns (username + whatever else is genuinely public). The FE
--- queries the view; security-definer RPCs that need the full row
--- read the base table directly.
-create policy profiles_select_authenticated on common.profiles
-  for select to authenticated using (true);
-
-create policy profiles_update_own on common.profiles
-  for update to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-grant select, update on common.profiles to authenticated;
 
 -- ============================================================
 -- common.clubs — fixed-membership rooms
@@ -167,6 +163,50 @@ create index messages_club_id_sent_at_idx
   on common.messages (club_id, sent_at);
 
 -- ============================================================
+-- common.gametypes — the registered-gametype list
+-- ============================================================
+-- Authoritative SQL-side list of gametypes. Used by the
+-- m2m-population RPCs below so each only needs one query
+-- ("INSERT INTO club_game_kinds SELECT new_club_id, gametype
+-- FROM gametypes") rather than hardcoding the list of
+-- gametype strings.
+--
+-- ┌─ Convention for new gametypes ─────────────────────────┐
+-- │ Each gametype's baseline migration must self-register: │
+-- │                                                        │
+-- │   insert into common.gametypes (gametype)              │
+-- │   values ('boggle')                                    │
+-- │   on conflict do nothing;                              │
+-- │                                                        │
+-- │ The three existing baselines (tinyspy, psychicnum,     │
+-- │ wordknit) all do this at the bottom of their files;    │
+-- │ a future game follows the same pattern.                │
+-- └────────────────────────────────────────────────────────┘
+
+create table common.gametypes (
+  gametype text primary key
+);
+
+-- ============================================================
+-- common.club_game_kinds — m2m
+-- ============================================================
+-- PK is (club_id, gametype) so each pair is recorded at most
+-- once. `gametype` FKs to common.gametypes for referential
+-- integrity (an unregistered gametype can't be inserted).
+--
+-- v1 only writes from the security-definer RPCs below
+-- (handle_new_user, create_club). A future "club admin UI"
+-- would add an RPC for member-driven enable/disable. No
+-- INSERT/UPDATE/DELETE policies on the table itself.
+
+create table common.club_game_kinds (
+  club_id  uuid not null references common.clubs(id) on delete cascade,
+  gametype text not null references common.gametypes(gametype) on delete cascade,
+  added_at timestamptz not null default now(),
+  primary key (club_id, gametype)
+);
+
+-- ============================================================
 -- RLS — only members can read club data
 -- ============================================================
 --
@@ -175,10 +215,13 @@ create index messages_club_id_sent_at_idx
 -- would happen if club_members's own policy needed to ask
 -- "is the caller a member of this club?"
 
-alter table common.clubs enable row level security;
-alter table common.club_members enable row level security;
+alter table common.profiles         enable row level security;
+alter table common.clubs            enable row level security;
+alter table common.club_members     enable row level security;
 alter table common.club_active_game enable row level security;
-alter table common.messages enable row level security;
+alter table common.messages         enable row level security;
+alter table common.gametypes        enable row level security;
+alter table common.club_game_kinds  enable row level security;
 
 create function common.is_club_member(target_club uuid)
 returns boolean
@@ -192,6 +235,29 @@ as $$
     where club_id = target_club and user_id = auth.uid()
   );
 $$;
+
+-- INTENTIONAL: any signed-in user can read any profile. Username
+-- is public; there's no sensitive data on profiles today. Required
+-- for club creation — when you type "leah" into the new-club form,
+-- the FE has to be able to resolve "leah" → user_id BEFORE you
+-- share a club with her, which rules out any "only people I share
+-- a club with" row-tightening. The right axis is which COLUMNS
+-- get exposed, not which rows.
+--
+-- If profile data ever grows sensitive (real names, settings,
+-- email-derived metadata, etc.), the hardening move is to revoke
+-- direct SELECT on common.profiles from authenticated and expose
+-- a `common.profiles_public` view that selects only the safe
+-- columns (username + whatever else is genuinely public). The FE
+-- queries the view; security-definer RPCs that need the full row
+-- read the base table directly.
+create policy profiles_select_authenticated on common.profiles
+  for select to authenticated using (true);
+
+create policy profiles_update_own on common.profiles
+  for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 create policy clubs_select on common.clubs
   for select to authenticated
@@ -209,21 +275,35 @@ create policy messages_select on common.messages
   for select to authenticated
   using (common.is_club_member(club_id));
 
+-- Permissive read on gametypes — gametype identifiers are not
+-- sensitive, and the FE needs to discover them anyway (the
+-- registry table mirrors what src/games.ts declares on the FE
+-- side).
+create policy gametypes_select on common.gametypes
+  for select to authenticated using (true);
+
+create policy club_game_kinds_select on common.club_game_kinds
+  for select to authenticated
+  using (common.is_club_member(club_id));
+
 -- No insert/update/delete policies on any of these tables. Writes
 -- go through the security-definer RPCs defined below (create_club,
 -- send_message) and, for game-lifecycle transitions, through each
 -- gametype's RPCs (which upsert/delete common.club_active_game via
 -- their security-definer status).
 
-grant select on common.clubs to authenticated;
-grant select on common.club_members to authenticated;
-grant select on common.club_active_game to authenticated;
-grant select on common.messages to authenticated;
+grant select, update on common.profiles        to authenticated;
+grant select on common.clubs                   to authenticated;
+grant select on common.club_members            to authenticated;
+grant select on common.club_active_game        to authenticated;
+grant select on common.messages                to authenticated;
+grant select on common.gametypes               to authenticated;
+grant select on common.club_game_kinds         to authenticated;
 
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- All four club tables broadcast so the FE can subscribe to:
+-- The four club tables broadcast so the FE can subscribe to:
 --   - clubs              new club created / renamed
 --   - club_members       roster changes (deferred to v2 but free)
 --   - club_active_game   the "every member follows the active game"
@@ -233,6 +313,11 @@ grant select on common.messages to authenticated;
 -- Profiles is deliberately NOT in the publication — usernames
 -- don't change during a session and the realtime traffic isn't
 -- worth it. If usernames become mutable later, add it then.
+--
+-- gametypes / club_game_kinds also deliberately not published —
+-- they only change at club creation (already handled by the
+-- ClubPage refetch on navigation) and at gametype registration
+-- (a deploy-time event).
 
 alter publication supabase_realtime add table common.clubs;
 alter publication supabase_realtime add table common.club_members;
@@ -277,8 +362,9 @@ $$;
 -- common.create_club RPC
 -- ============================================================
 --
--- Creates a new club + its full membership in a single transaction.
--- Reject reasons (all P0001 unless noted):
+-- Creates a new club + its full membership + its club_game_kinds
+-- entries in a single transaction. Reject reasons (all P0001
+-- unless noted):
 --
 --   - not authenticated (42501)
 --   - club name slugifies to an empty handle ("!!!" etc.)
@@ -292,6 +378,10 @@ $$;
 -- Caller is automatically added if not already in member_usernames,
 -- so a UI that lets the creator type only their friends doesn't
 -- have to remember to also include themselves.
+--
+-- club_game_kinds is populated with every registered gametype; v1
+-- lets every new club play every game. Per-club opt-out is
+-- deferred (see docs/deferred.md).
 
 create function common.create_club(
   club_name text,
@@ -365,6 +455,15 @@ begin
   insert into common.club_members (club_id, user_id)
   select new_id, member_id from unnest(resolved_ids) as member_id;
 
+  -- Populate club_game_kinds with every registered gametype.
+  -- v1 lets every new club play every registered game; per-club
+  -- opt-out is deferred (see docs/deferred.md). The FE's
+  -- per-club Start-button rendering still applies the player-
+  -- count range from each gametype's manifest, so e.g. tinyspy
+  -- appears disabled in a 3-member club's button list.
+  insert into common.club_game_kinds (club_id, gametype)
+  select new_id, gametype from common.gametypes;
+
   return query select new_id, new_handle;
 end;
 $$;
@@ -428,13 +527,18 @@ grant execute on function common.send_message(uuid, text) to authenticated;
 --      (just this user). The '=' prefix puts solo clubs in a
 --      slug-space user-typed names cannot reach (slugify_club_name
 --      strips '='), so there's no risk of collision.
+--   3. club_game_kinds rows for the solo club covering every
+--      registered gametype. (The FE still hides Start buttons
+--      whose `numberOfPlayers` range excludes solo, but the m2m
+--      row is there for the future "your solo club doesn't play
+--      tinyspy because solo" tooltip.)
 --
--- All three inserts happen in the same transaction as the
--- original auth.users insert. If username collides (unique
--- constraint on common.profiles.username), the entire magic-link
--- sign-in fails — per the alpha-software prior, that's accepted;
--- a username picker with collision UX moves into the auth flow
--- when that's redesigned.
+-- All inserts happen in the same transaction as the original
+-- auth.users insert. If username collides (unique constraint on
+-- common.profiles.username), the entire magic-link sign-in fails
+-- — per the alpha-software prior, that's accepted; a username
+-- picker with collision UX moves into the auth flow when that's
+-- redesigned.
 
 create function common.handle_new_user()
 returns trigger
@@ -457,6 +561,9 @@ begin
 
   insert into common.club_members (club_id, user_id)
   values (solo_club_id, new.id);
+
+  insert into common.club_game_kinds (club_id, gametype)
+  select solo_club_id, gametype from common.gametypes;
 
   return new;
 end;
