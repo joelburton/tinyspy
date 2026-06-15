@@ -316,4 +316,4 @@ If you add a new schema, also:
 
 - Add it to `[api].schemas` in `supabase/config.toml`.
 - Re-run `npm run types:gen` so the FE picks it up.
-- Restart the local stack (`supabase stop && supabase start`) — PostgREST's schema cache picks up new schemas at boot, not on the fly.
+- **Restart the local stack: `supabase stop && supabase start`.** Note that `npm run db:reset` is NOT enough — it replays migrations and restarts containers, but doesn't re-read `config.toml`. PostgREST will keep its prior exposed-schemas list and reject calls to the new schema with PGRST106 ("Invalid schema: foo"). The full stop/start is required to make the new `[api].schemas` value take effect.
