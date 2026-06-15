@@ -200,7 +200,7 @@ The two never coexist on the same game — a suspended game isn't being looked a
 
 ### Timer (browser-side, no server sync)
 
-Wordknit declares `timerMode: { kind: 'countdown', seconds: 600 }` on its manifest — a 10-minute count-down. When the timer hits 0, the FE fires `wordknit.submit_timeout` and the game's status flips to `lost`.
+The timer is a **per-game setup choice**, not a manifest-level constant. The setup dialog renders a None / Up / Down radio + an MM:SS input for the count-down case (1 second to 60 minutes); the choice lives on `wordknit.games.config.timer` and is server-side validated in `create_game`. The default is countdown 10:00. When a count-down hits 0, the FE fires `wordknit.submit_timeout` and the game's status flips to `lost`.
 
 **Browser-side, not server-synced.** Every client anchors at `games.created_at` (a server-stamped ISO timestamp), then ticks locally using `Date.now()`. There's no heartbeat back to the server, no periodic sync, no pause-log column.
 
@@ -212,7 +212,7 @@ Wordknit declares `timerMode: { kind: 'countdown', seconds: 600 }` on its manife
 
 **Timeout-loss firing.** When `useGameTimer` reports `expired: true`, BoardScreen fires `wordknit.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
 
-**Future timer modes.** When boggle lands, it'll set its own `timerMode` on its manifest. The same `useGameTimer` hook handles whatever shape is declared. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, tinyspy might enter sudden-death, etc.) but they all consume the same hook.
+**Where the mode comes from.** Per-game (like wordknit) lives in `game.config.timer`; the BoardScreen reads it directly. Per-gametype (a hypothetical Boggle with a fixed-3-minute round) would set `timerMode` on the manifest and skip a per-game choice. Both shapes are supported — the `useGameTimer` hook is mode-agnostic, just consuming whatever `mode` it's handed. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, tinyspy might enter sudden-death, etc.) but they all consume the same hook.
 
 ### Code-splitting
 

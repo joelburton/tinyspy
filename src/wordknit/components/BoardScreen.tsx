@@ -12,7 +12,7 @@ import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { colorForUserId } from '../lib/peerColor'
 import type { GroupLevel } from '../lib/board'
-import { wordknitGame } from '../manifest'
+import { DEFAULT_WORDKNIT_CONFIG } from '../lib/config'
 import styles from './BoardScreen.module.css'
 
 type Props = {
@@ -82,17 +82,20 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Browser-side countdown timer. Anchors at the game's
-  // created_at (a stable ISO timestamp from the server) and
-  // ticks locally; pauses freeze it; no server sync. See
-  // useGameTimer's doc for the design choice and drift bounds.
-  // The timer is a no-op when game is null (initial load) — we
-  // pass a placeholder anchor; the resulting display value
-  // doesn't render anyway because we early-return for !game.
+  // Browser-side timer. Anchors at the game's created_at (a
+  // stable ISO timestamp from the server) and ticks locally;
+  // pauses freeze it; no server sync. The mode is per-game,
+  // chosen by the player(s) in the setup dialog and stored on
+  // game.config.timer. See useGameTimer's doc for the design
+  // choice and drift bounds.
+  //
+  // While game is loading (null), pass placeholder anchor +
+  // none-mode — the timer doesn't render anyway because we
+  // early-return below for !game.
   const timer = useGameTimer({
     startedAt: game?.created_at ?? new Date().toISOString(),
     paused,
-    mode: wordknitGame.timerMode ?? { kind: 'none' },
+    mode: game?.config.timer ?? DEFAULT_WORDKNIT_CONFIG.timer,
   })
 
   // Auto-clear the transient banner after a beat.
@@ -208,15 +211,14 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
             ) : (
               <>
                 Mistakes left: {4 - game.mistakes}
-                {wordknitGame.timerMode &&
-                  wordknitGame.timerMode.kind !== 'none' && (
-                    <>
-                      {' · '}
-                      <span className={styles.timer}>
-                        {formatTimerSeconds(timer.displaySeconds)}
-                      </span>
-                    </>
-                  )}
+                {game.config.timer.kind !== 'none' && (
+                  <>
+                    {' · '}
+                    <span className={styles.timer}>
+                      {formatTimerSeconds(timer.displaySeconds)}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>

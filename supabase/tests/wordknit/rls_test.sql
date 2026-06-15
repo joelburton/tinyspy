@@ -29,7 +29,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
 
 -- A wrong guess so there's a row in wordknit.guesses for dee
 -- not to see.
@@ -97,7 +97,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
     (select id from club)
   ),
   '42501',

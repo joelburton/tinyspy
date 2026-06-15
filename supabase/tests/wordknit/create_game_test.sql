@@ -20,7 +20,7 @@ begin;
 
 set search_path = wordknit, common, public, extensions;
 
-select plan(12);
+select plan(19);
 
 \ir ../_shared/setup.psql
 
@@ -41,7 +41,7 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
     (select id from club)
   ),
   '42501',
@@ -57,7 +57,7 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
     (select id from club)
   ),
   '42501',
@@ -66,12 +66,96 @@ select throws_ok(
 );
 
 -- ============================================================
+-- Config-shape validation
+-- ============================================================
+-- Missing-vs-bad split so each rejection has its own clean
+-- message. The dialog never produces these payloads in
+-- practice (the form defaults are valid), but we still want
+-- explicit server-side gating per the friends-trust-model
+-- principle: validate shape, trust contents.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+-- timer field missing entirely
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.timer is required',
+  'create_game: missing config.timer is rejected'
+);
+
+-- timer.kind is bogus
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"fast"}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.timer.kind must be none, countup, or countdown (got fast)',
+  'create_game: bogus timer.kind is rejected'
+);
+
+-- countdown without seconds
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown"}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.timer.seconds is required for countdown',
+  'create_game: countdown without seconds is rejected'
+);
+
+-- countdown with 0 seconds (below min)
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":0}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.timer.seconds must be 1..3600 (got 0)',
+  'create_game: countdown with seconds=0 is rejected'
+);
+
+-- countdown with 3601 seconds (above max — Joel's 60-min cap)
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":3601}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'config.timer.seconds must be 1..3600 (got 3601)',
+  'create_game: countdown over 60min is rejected'
+);
+
+-- 'none' is accepted (no seconds needed)
+select lives_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"none"}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'create_game: timer.kind=none is accepted'
+);
+
+-- 'countup' is accepted (no seconds needed)
+select lives_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countup"}}'::jsonb) $$,
+    (select id from club)
+  ),
+  'create_game: timer.kind=countup is accepted'
+);
+
+-- ============================================================
 -- (3)–(11) Happy path: ada creates a game
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table created on commit drop as
-select * from wordknit.create_game((select id from club), '{}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
 
 select is(
   (select count(*) from created),
@@ -145,12 +229,13 @@ select is(
   'create_game: tileOrder is exactly a permutation of the group members'
 );
 
--- config is persisted as-given. POC sends '{}'; future date-picker
--- work will send something richer.
+-- config is persisted as-given. End-of-game review surfaces (a
+-- "this game was played with a 10-minute timer" badge, etc.) read
+-- this column.
 select is(
   (select config from wordknit.games where id = (select id from created)),
-  '{}'::jsonb,
-  'create_game: config column persists the passed-in jsonb (here, {})'
+  '{"timer":{"kind":"countdown","seconds":600}}'::jsonb,
+  'create_game: config column persists the passed-in jsonb'
 );
 
 -- club_active_game upserted: this new game is the club's active.

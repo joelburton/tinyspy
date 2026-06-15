@@ -38,13 +38,12 @@ export const wordknitGame: GameManifest = {
   // See docs/code-conventions.md → "Per-game player counts".
   numberOfPlayers: [1, null],
 
-  // Count-down timer. 10 minutes ("can you solve this in 10
-  // minutes?" is the wordknit POC's stand-in for difficulty,
-  // until the puzzle archive lands). When the timer hits 0 the
-  // FE fires wordknit.submit_timeout, flipping status to 'lost'.
-  // See docs/wordknit.md → "Timer" for the browser-side-clock
-  // design rationale.
-  timerMode: { kind: 'countdown', seconds: 600 },
+  // No manifest-level `timerMode`: wordknit's timer is a
+  // per-game choice (the setup dialog has the None / Up / Down
+  // radio). BoardScreen reads `game.config.timer` to drive
+  // useGameTimer. The GameManifest field is preserved for
+  // future games that want a fixed per-gametype timer (e.g. a
+  // hypothetical Boggle with a fixed-3-minute round).
 
   Root: lazy(() =>
     import('./Root').then((m) => ({ default: m.WordknitRoot })),

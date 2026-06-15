@@ -35,7 +35,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
 
 -- ============================================================
 -- (1) Wrong tile count is rejected
@@ -216,7 +216,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordknit.create_game((select id from club), '{}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
 
 -- Four wrong guesses with distinct tile sets so they pass the
 -- "exactly 4 tiles" payload check. (Tile membership / dup check
@@ -276,7 +276,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from wordknit.create_game((select id from club), '{}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
 
 -- Happy path: in_progress → submit_timeout → lost.
 select lives_ok(

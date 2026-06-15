@@ -7,13 +7,14 @@ import type { SetupMember } from '../../common/lib/games'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Board, GroupLevel } from '../lib/board'
+import type { WordknitConfig } from '../lib/config'
 
 // Narrower than Database[...]['Row']. The board jsonb column is
 // read once on load and stays put — only mutable fields (status,
 // mistakes) appear on the realtime update payloads we care about.
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'status' | 'mistakes' | 'board' | 'created_at'
+  'id' | 'club_id' | 'status' | 'mistakes' | 'board' | 'config' | 'created_at'
 >
 
 export type GuessRow = {
@@ -38,6 +39,10 @@ export type WordknitGame = {
   status: 'in_progress' | 'solved' | 'lost'
   mistakes: number
   board: Board
+  /** The frozen-at-create-time player choices: timer mode +
+   *  (future) puzzle date etc. Read by BoardScreen to drive
+   *  useGameTimer; server-side validated in create_game. */
+  config: WordknitConfig
   /** Server-stamped game-start timestamp, ISO. Used as the
    *  anchor for the browser-side countdown timer. */
   created_at: string
@@ -202,7 +207,7 @@ export function useGame(
       const [gameRes, guessesRes, foundRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_id, status, mistakes, board, created_at')
+          .select('id, club_id, status, mistakes, board, config, created_at')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -229,6 +234,7 @@ export function useGame(
         status: row.status as WordknitGame['status'],
         mistakes: row.mistakes,
         board: row.board as Board,
+        config: row.config as WordknitConfig,
         created_at: row.created_at,
       })
       setGuesses(
