@@ -10,6 +10,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
 | [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
+| [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |

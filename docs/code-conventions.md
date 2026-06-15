@@ -120,6 +120,8 @@ If you find yourself wanting to import a component from another game, that's a s
 
 ### CSS Modules + theme
 
+This section covers the *file mechanics* only. For the design philosophy — desktop-first, the two-vocabularies rule for global vs per-game tokens, what's deferred — see [`ui.md`](ui.md).
+
 **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`:
 
 ```
