@@ -78,6 +78,11 @@ begin
     raise exception 'not a member of this club' using errcode = '42501';
   end if;
 
+  -- No member-count check — psychic-num plays with any club size.
+  -- Must agree with the `numberOfPlayers: [1, null]` declaration
+  -- in src/psychicnum/manifest.ts. See docs/code-conventions.md →
+  -- "Per-game player counts" for the cross-reference convention.
+
   -- ─── Validate config shape ────────────────────────────
   -- One option, four allowed values. We don't trust the FE for
   -- any of this — the dialog narrows TypeScript to the same set,

@@ -31,6 +31,16 @@ export const psychicnumGame: GameManifest = {
   schema: 'psychicnum',
   name: 'Psychic Num',
   blurb: 'Guess the secret number 1–10. Anyone can guess, 7 tries total.',
+
+  // Psychic Num plays with any club size — the game logic doesn't
+  // care how many people are guessing. Must agree with the
+  // (absence of a) member-count check in psychicnum.create_game
+  // (in supabase/migrations/*_psychicnum_setup_config.sql, which
+  // is also the RPC that enforces club membership). See
+  // docs/code-conventions.md → "Per-game player counts" for the
+  // cross-reference convention.
+  numberOfPlayers: [1, null],
+
   Root: lazy(() =>
     import('./Root').then((m) => ({ default: m.PsychicnumRoot })),
   ),

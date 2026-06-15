@@ -123,6 +123,32 @@ export type GameManifest = {
   blurb: string
 
   /**
+   * Supported player-count range. The shell uses this to decide
+   * whether a "Start X" button is rendered for a given club:
+   *
+   *   - hidden if there's no `common.club_game_kinds` row for
+   *     (club, gametype)
+   *   - visible-but-disabled (with a "needs N members" tooltip)
+   *     if the row exists but the club's member count is outside
+   *     `numberOfPlayers`
+   *   - enabled if both checks pass
+   *
+   * Shape: `[min, max | null]`. Use `null` for no upper bound
+   * (e.g. psychic-num plays with any number of members).
+   * Exact-match games use the same number for both ends
+   * (tinyspy is `[2, 2]`).
+   *
+   * MUST AGREE with the member-count check in this gametype's
+   * `create_game` RPC — there's no automated sync, just a
+   * cross-reference comment in both places. See
+   * docs/code-conventions.md → "Per-game player counts" for the
+   * convention. If they drift, the failure mode is loud (FE
+   * shows Start, RPC rejects with the actual member-count
+   * constraint) rather than silent.
+   */
+  numberOfPlayers: [number, number | null]
+
+  /**
    * The game's root component. Renders whatever the game needs once
    * the shell has resolved a `/g/<gametype>/<gameId>` URL and found
    * this manifest by `gametype`. Lazy-loaded so each game's bundle

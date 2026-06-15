@@ -29,6 +29,14 @@ export const tinyspyGame: GameManifest = {
   schema: 'tinyspy',
   name: 'Tinyspy',
   blurb: 'Cooperative Codenames Duet for two.',
+
+  // Codenames Duet is intrinsically 2-player. Must agree with
+  // the `member_count <> 2` check in tinyspy.create_game (in
+  // supabase/migrations/*_tinyspy_setup_config.sql). See
+  // docs/code-conventions.md → "Per-game player counts" for the
+  // cross-reference convention.
+  numberOfPlayers: [2, 2],
+
   Root: lazy(() => import('./Root').then((m) => ({ default: m.TinyspyRoot }))),
 
   // Per-game setup: turn-count radio + first-clue-giver radio.

@@ -99,7 +99,10 @@ begin
     raise exception 'not a member of this club' using errcode = '42501';
   end if;
 
-  -- Tinyspy needs exactly 2 club members.
+  -- Tinyspy needs exactly 2 club members. Must agree with
+  -- the `numberOfPlayers: [2, 2]` declaration in
+  -- src/tinyspy/manifest.ts. See docs/code-conventions.md →
+  -- "Per-game player counts" for the cross-reference convention.
   select count(*) into member_count
     from common.club_members where club_id = target_club;
   if member_count <> 2 then

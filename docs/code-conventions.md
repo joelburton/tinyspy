@@ -75,6 +75,21 @@ Examples:
 
 Cross-schema FKs (game → common) need `common.*` to exist first, which timestamp ordering handles naturally.
 
+### Per-game player counts
+
+Each gametype's supported player-count range is declared in **two places**:
+
+- The TypeScript manifest's `numberOfPlayers: [min, max | null]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club).
+- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls).
+
+These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
+
+- **Cross-reference comments on both sides.** The manifest's `numberOfPlayers` comment names the migration that holds the matching check; the migration's check has a comment pointing back at the manifest field. Whoever edits one is told where the other lives.
+- **Boundary-test the DB side.** Each game's `create_game_test.sql` includes a boundary test (one happy-path call within the range + one rejection just outside). The test pins the SQL-side check; drift between the two sides becomes a visible mismatch.
+- **Accept that FE drift surfaces as a server error.** If somehow the manifest says `[1, 8]` and the DB says `[1, 6]`, a 7-member club's Start button is shown enabled, the RPC rejects with its actual message, the user sees the error inline. Loud, not silent.
+
+The model: the two declarations are equally authoritative for their respective layers (TS narrows types; SQL enforces state). The convention is "edit both together; the comments help you remember the partner."
+
 ### Realtime channel names
 
 Pattern: `<topic>:<id>:<unique>`, e.g.:

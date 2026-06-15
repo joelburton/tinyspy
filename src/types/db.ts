@@ -38,6 +38,39 @@ export type Database = {
           },
         ]
       }
+      club_game_kinds: {
+        Row: {
+          added_at: string
+          club_id: string
+          gametype: string
+        }
+        Insert: {
+          added_at?: string
+          club_id: string
+          gametype: string
+        }
+        Update: {
+          added_at?: string
+          club_id?: string
+          gametype?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_game_kinds_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_game_kinds_gametype_fkey"
+            columns: ["gametype"]
+            isOneToOne: false
+            referencedRelation: "gametypes"
+            referencedColumns: ["gametype"]
+          },
+        ]
+      }
       club_members: {
         Row: {
           club_id: string
@@ -102,6 +135,18 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      gametypes: {
+        Row: {
+          gametype: string
+        }
+        Insert: {
+          gametype: string
+        }
+        Update: {
+          gametype?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
