@@ -256,6 +256,14 @@ These patterns repeat in [`useBoard`](../src/tinyspy/hooks/useBoard.ts) and [`us
 
 Components consume the phase as a single value and render accordingly. Centralizing the derivation here means no component has to know that "active + I'm the clue-giver + no clue this turn" maps to the same UI state as "active + I'm the clue-giver + already submitted but waiting for guesses" (which it doesn't — they're different phases).
 
+### Post-game peer-key reveal
+
+During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Open items → Harden `game_players_select`](#open-items)), the convention is "don't ask, don't see."
+
+Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `BoardScreen` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
+
+The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Flipping back into a fresh game (via Play again) makes the derivation evaluate to null on the next render — no manual clear needed. See `useBoard.test.ts` for the test that pins this behavior.
+
 ### Code-splitting
 
 `Root` is lazy-loaded in the manifest (`React.lazy(() => import('./Root'))`). The Vite build emits tinyspy's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/tinyspy/<id>` fetches the chunk.

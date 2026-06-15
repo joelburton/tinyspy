@@ -16,6 +16,13 @@ type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
   'id' | 'handle' | 'name'
 >
+// The realtime payload's `.new` field. We only read the two fields
+// needed to build the navigate() URL; the Pick anchors the field
+// set to the schema rather than to a hand-written shape.
+type ActiveGameRow = Pick<
+  Database['common']['Tables']['club_active_game']['Row'],
+  'game_id' | 'gametype'
+>
 type Member = { user_id: string; username: string }
 
 type Props = {
@@ -180,7 +187,7 @@ export function ClubPage({ session, handle }: Props) {
         (payload) => {
           loadGames()
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const row = payload.new as { game_id: string; gametype: string }
+            const row = payload.new as ActiveGameRow
             const target = `/g/${row.gametype}/${row.game_id}`
             if (window.location.pathname !== target) {
               navigate(target)

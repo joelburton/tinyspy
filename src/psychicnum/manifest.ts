@@ -1,7 +1,16 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db as commonDb } from '../common/db'
+import type { Database } from '../types/db'
 import { db } from './db'
+
+// Narrower than Database[...]['Row'] — see code-conventions.md's
+// "Avoid SELECT *". Adding a column to psychicnum.games requires
+// listing it here AND in the select() below.
+type GameRow = Pick<
+  Database['psychicnum']['Tables']['games']['Row'],
+  'id' | 'status' | 'guesses_remaining' | 'winner_id' | 'created_at'
+>
 
 /**
  * Psychic Num's registration with the shell. Mirrors the shape
@@ -73,17 +82,31 @@ export const psychicnumGame: GameManifest = {
       }
     }
 
+    // Build the human-readable per-row status. Lifted out of the
+    // .map() ternary nest so each branch reads on its own line.
+    //
+    // The 'won' branch's winner-name lookup is the one expected to
+    // disappear when the winner_id overspec is removed (see
+    // docs/deferred.md → Psychic Num); that'll collapse the whole
+    // function to two cases.
+    function labelFor(g: GameRow): string {
+      if (g.status === 'active') {
+        const word = g.guesses_remaining === 1 ? 'guess' : 'guesses'
+        return `${g.guesses_remaining} ${word} left`
+      }
+      if (g.status === 'won') {
+        const name = g.winner_id ? winnerName[g.winner_id] ?? 'someone' : 'someone'
+        return `won — ${name} guessed it`
+      }
+      return 'lost'
+    }
+
     return games.map((g) => ({
       gameType: 'psychicnum',
       gameId: g.id,
       startedAt: g.created_at,
       isTerminal: g.status !== 'active',
-      statusLabel:
-        g.status === 'active'
-          ? `${g.guesses_remaining} ${g.guesses_remaining === 1 ? 'guess' : 'guesses'} left`
-          : g.status === 'won'
-            ? `won — ${g.winner_id ? winnerName[g.winner_id] ?? 'someone' : 'someone'} guessed it`
-            : 'lost',
+      statusLabel: labelFor(g),
     }))
   },
 }

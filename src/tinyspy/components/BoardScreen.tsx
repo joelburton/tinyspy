@@ -11,6 +11,7 @@ import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { GameOverBanner } from './GameOverBanner'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
+import { HowToPlayModal } from './HowToPlayModal'
 import styles from './BoardScreen.module.css'
 
 /**
@@ -61,6 +62,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
   const { clues } = useClues(gameId)
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const [guessError, setGuessError] = useState<string | null>(null)
+  const [howToPlayOpen, setHowToPlayOpen] = useState(false)
 
   if (loading || !game || !myKey || words.length < 25) {
     return <div className="card">Loading board…</div>
@@ -121,13 +123,22 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
           <div className="muted">
             {inSuddenDeath ? 'sudden death' : `${game.turns_remaining} tokens left`}
           </div>
-          <button
-            type="button"
-            className={cls('link-button', styles.statusLeave)}
-            onClick={onLeave}
-          >
-            Leave game
-          </button>
+          <div className={styles.statusLinks}>
+            <button
+              type="button"
+              className={cls('link-button', styles.statusLeave)}
+              onClick={() => setHowToPlayOpen(true)}
+            >
+              How to play
+            </button>
+            <button
+              type="button"
+              className={cls('link-button', styles.statusLeave)}
+              onClick={onLeave}
+            >
+              Leave game
+            </button>
+          </div>
         </div>
       </header>
 
@@ -226,6 +237,11 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
       <div className={styles.chatPanelSlot}>
         <ClubChatPanel clubId={game.club_id} members={players} />
       </div>
+
+      <HowToPlayModal
+        open={howToPlayOpen}
+        onClose={() => setHowToPlayOpen(false)}
+      />
     </div>
   )
 }

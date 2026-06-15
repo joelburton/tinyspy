@@ -230,9 +230,16 @@ Conventions live in [`code-conventions.md`](code-conventions.md); the short vers
 
 Auth is email-based magic links via `supabase.auth.signInWithOtp`. Custom SMTP (Resend) for the actual delivery, because Supabase's free-tier mail is rate-limited.
 
+The sign-in email contains **both** a clickable magic link AND a 6-digit code. Two verification paths land at the same session:
+
+- Click the link — Supabase's redirect URL exchanges it for a session and lands back at `window.location.origin`.
+- Enter the 6-digit code in the LoginScreen's "I have a code" form — calls `verifyOtp({type: 'email'})` to exchange the code on the current device.
+
+The code path is what makes cross-device sign-in work: open the email on your phone, type the code on your laptop. Either path emits `SIGNED_IN`, which `useSession` is subscribed to.
+
 On first sign-in, the `auth.users` row triggers `handle_new_user`, which materializes a `profiles` row + a solo club. The username is derived from the email's local-part (`bob@foo.com → "bob"`). Username collision aborts the sign-in entirely — accepted under the alpha-software prior; a picker UI is deferred until the auth-method question is settled.
 
-[`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, loading}`. It's a thin wrapper; the canonical example of the project's "thin hook that owns one subscription" pattern.
+[`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, loading}`. It's a thin wrapper, with one non-thin hop: every restored session is checked against `common.profiles` to make sure the user's profile row still exists. The JWT in localStorage stays signature-valid even after the user is gone (a local `supabase db reset` during dev, or an admin-deleted user in prod), and PostgREST will happily let the stale JWT through until a write trips the user_id FK. The verify-and-sign-out catches it on restore.
 
 ## Common testing
 
