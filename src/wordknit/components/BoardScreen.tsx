@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { cls } from '../../common/lib/cls'
 import { ClubChatPanel } from '../../common/components/ClubChatPanel'
-import { PauseOverlay } from '../../common/components/PauseOverlay'
+import { PauseBoundary } from '../../common/components/PauseBoundary'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -28,15 +28,14 @@ const LEVEL_TOKEN: Record<GroupLevel, string> = {
  *
  * Layout (top → bottom):
  *   - header: title + leave-game link + mistakes indicator
- *   - found-group bands (one per resolved group, NYT-colored);
- *     on lose, additional bands for the un-found groups
- *   - 4×4 tile grid of remaining tiles; click toggles union
- *     membership across all connected players (see useGame's
- *     selection semantics)
- *   - action row: Submit (enabled iff union has 4 tiles), Clear
- *   - transient feedback banner ("One away!", "Already tried
- *     that", "Not quite")
- *   - PauseOverlay over the play area when a peer disconnects
+ *   - PauseBoundary around the play area:
+ *       - found-group bands (one per resolved group, NYT-colored);
+ *         on lose, additional bands for the un-found groups
+ *       - 4×4 tile grid of remaining tiles
+ *       - action row: Submit / Clear
+ *       - transient feedback banner
+ *     (When paused, PauseBoundary replaces all of the above with
+ *     its overlay; the header and chat below stay visible.)
  *   - shared chat panel
  *
  * The submission flow:
@@ -48,6 +47,15 @@ const LEVEL_TOKEN: Record<GroupLevel, string> = {
  *   4. Realtime postgres-changes propagate the new state to
  *      every player; this hook refetches automatically
  *   5. Broadcast a `clear` to drop everyone's selection
+ *
+ * Pause handling is concentrated in PauseBoundary — this
+ * component doesn't thread `disabled={paused}` props through
+ * click handlers, because the boundary hides children with
+ * `visibility: hidden` during a pause (they're non-interactive
+ * by virtue of being invisible to layout-clicks). The
+ * `onPause` callback on the boundary fires `sendClear` on the
+ * pause-transition so reconnecting peers land in an empty
+ * selection state.
  */
 export function BoardScreen({ session, gameId, onLeave }: Props) {
   const {
@@ -65,19 +73,6 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   } = useGame(session, gameId)
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // Broadcast a selection-clear on the transition INTO paused so
-  // every connected client drops its current selection. Reconnect-
-  // ing peers land in an empty-selection state.
-  const wasPausedRef = useRef(false)
-  useEffect(() => {
-    if (paused && !wasPausedRef.current) {
-      wasPausedRef.current = true
-      sendClear()
-    } else if (!paused) {
-      wasPausedRef.current = false
-    }
-  }, [paused, sendClear])
 
   // Auto-clear the transient banner after a beat.
   useEffect(() => {
@@ -107,7 +102,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   async function handleSubmit() {
-    if (paused || submitting) return
+    if (submitting) return
     if (unionTiles.length !== 4 || !game) return
 
     // Dup detection (FE-side per the FE-knows model). If this
@@ -142,12 +137,11 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   function handleClear() {
-    if (paused) return
     sendClear()
   }
 
   const canSubmit =
-    !paused && unionTiles.length === 4 && !submitting && game.status === 'in_progress'
+    unionTiles.length === 4 && !submitting && game.status === 'in_progress'
   const gameOver = game.status !== 'in_progress'
   const foundLevels = new Set(foundGroups.map((f) => f.level))
   const unfound = gameOver
@@ -176,7 +170,12 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
         </button>
       </header>
 
-      <div className={styles.boardArea}>
+      <PauseBoundary
+        paused={paused}
+        missing={missing}
+        onPause={sendClear}
+        className={styles.boardArea}
+      >
         {foundGroups
           .slice()
           .sort((a, b) => a.level - b.level)
@@ -223,7 +222,6 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
                   className={cls(
                     styles.tile,
                     isMine && styles.tileSelected,
-                    paused && styles.tileDisabled,
                   )}
                   style={
                     isPeer && ownerId
@@ -232,8 +230,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
                         }
                       : undefined
                   }
-                  onClick={() => !paused && toggleTile(tile)}
-                  disabled={paused}
+                  onClick={() => toggleTile(tile)}
                 >
                   {tile}
                 </button>
@@ -248,7 +245,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
               type="button"
               className="secondary"
               onClick={handleClear}
-              disabled={paused || unionTiles.length === 0}
+              disabled={unionTiles.length === 0}
             >
               Clear
             </button>
@@ -273,9 +270,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
             </button>
           </div>
         )}
-
-        {paused && <PauseOverlay missing={missing} />}
-      </div>
+      </PauseBoundary>
 
       <ClubChatPanel clubId={game.club_id} members={members} />
     </div>

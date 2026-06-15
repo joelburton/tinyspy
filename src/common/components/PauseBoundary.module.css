@@ -1,0 +1,24 @@
+/* PauseBoundary's contribution to the host's wrapper styling.
+ *
+ * The boundary adds only `position: relative` so the
+ * absolutely-positioned PauseOverlay (`inset: 0` + `z-index: 10`)
+ * fills the boundary rather than the document. The host's own
+ * className (passed through Props.className) supplies the
+ * game-specific surface: background, border, padding, flex
+ * layout, etc. — the boundary stays game-agnostic.
+ *
+ * The `.hidden` modifier on the inner children-wrapper applies
+ * `visibility: hidden` during pause. Children keep their layout
+ * (so the boundary keeps its size for the overlay to fill) but
+ * become invisible and non-interactive. See PauseBoundary.tsx
+ * for the rationale on why visibility-hidden vs. display: none
+ * vs. unmount.
+ */
+
+.boundary {
+  position: relative;
+}
+
+.hidden {
+  visibility: hidden;
+}

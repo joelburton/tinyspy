@@ -105,11 +105,6 @@
   background: var(--wordknit-tile-selected-bg);
 }
 
-.tileDisabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
