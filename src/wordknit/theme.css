@@ -2,11 +2,11 @@
  * (imported from Root.tsx) so they only ship when wordknit is
  * being played.
  *
- * The level palette matches the NYT Connections convention:
- * yellow / green / blue / purple, mapped to level 0..3. Numbers
- * approximate the published puzzle's bands; we use slightly
- * darkened variants so the bands read on a white card without
- * needing extra outline.
+ * The rank palette matches the NYT Connections convention:
+ * yellow / green / blue / purple, mapped to category rank 0..3.
+ * Numbers approximate the published puzzle's bands; we use
+ * slightly darkened variants so the bands read on a white card
+ * without needing extra outline.
  *
  * `--wordknit-tile-bg` and `--wordknit-tile-selected-*` define
  * the unrevealed tile state — light gray with a near-black
@@ -14,23 +14,24 @@
  *
  * Two-vocabularies rule (see docs/ui.md): these tokens use
  * semantic names tied to wordknit's game vocabulary
- * (`level-0` not `yellow`) so a future theme tweak doesn't
+ * (`rank-0` not `yellow`) so a future theme tweak doesn't
  * have to walk every consumer.
  */
 :root {
-  /* NYT level palette. Numbers chosen to look like the
+  /* NYT rank palette. Numbers chosen to look like the
    * published puzzle while reading on the white card surface. */
-  --wordknit-level-0:    #f9df6d;  /* yellow — easiest */
-  --wordknit-level-1:    #a0c35a;  /* green */
-  --wordknit-level-2:    #b0c4ef;  /* blue */
-  --wordknit-level-3:    #ba81c5;  /* purple — hardest */
+  --wordknit-rank-0:    #f9df6d;  /* yellow — easiest */
+  --wordknit-rank-1:    #a0c35a;  /* green */
+  --wordknit-rank-2:    #b0c4ef;  /* blue */
+  --wordknit-rank-3:    #ba81c5;  /* purple — hardest */
 
-  /* Band text — black on the lighter levels, white-ish on the
-   * darker ones. Bands have generous contrast either way. */
-  --wordknit-level-0-text: #1a1a1a;
-  --wordknit-level-1-text: #1a1a1a;
-  --wordknit-level-2-text: #1a1a1a;
-  --wordknit-level-3-text: #1a1a1a;
+  /* Band text — black on all ranks for now (the NYT palette has
+   * enough lightness across the four bands that a single text
+   * color works). */
+  --wordknit-rank-0-text: #1a1a1a;
+  --wordknit-rank-1-text: #1a1a1a;
+  --wordknit-rank-2-text: #1a1a1a;
+  --wordknit-rank-3-text: #1a1a1a;
 
   /* Tile palette. Selected uses the project's text color
    * inverted — near-black background with white text. */

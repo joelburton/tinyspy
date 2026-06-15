@@ -3,8 +3,8 @@
  * The .boardArea is `position: relative` so the PauseOverlay
  * can absolute-position over the play surface (the chat panel
  * below stays unaffected). The grid auto-flows; with 16-N tiles
- * remaining (N = 4 × foundGroups count) it naturally re-flows
- * as bands eat into the tile space.
+ * remaining (N = 4 × matchedCategories count) it naturally re-
+ * flows as bands eat into the tile space.
  *
  * NYT-style tile look: warm-gray fill, rounded corners,
  * generous padding for readable word labels; selected state

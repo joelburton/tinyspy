@@ -6,15 +6,22 @@ import { computePause } from '../../common/lib/pause'
 import type { SetupMember } from '../../common/lib/games'
 import { db } from '../db'
 import type { Database } from '../../types/db'
-import type { Board, GroupLevel } from '../lib/board'
+import type { Board, CategoryRank } from '../lib/board'
 import type { WordknitConfig } from '../lib/config'
 
 // Narrower than Database[...]['Row']. The board jsonb column is
 // read once on load and stays put — only mutable fields (status,
-// mistakes) appear on the realtime update payloads we care about.
+// mistake_count) appear on the realtime update payloads we care
+// about.
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'status' | 'mistakes' | 'board' | 'config' | 'created_at'
+  | 'id'
+  | 'club_id'
+  | 'status'
+  | 'mistake_count'
+  | 'board'
+  | 'config'
+  | 'created_at'
 >
 
 export type GuessRow = {
@@ -22,22 +29,30 @@ export type GuessRow = {
   user_id: string
   tiles: string[]
   result: 'correct' | 'oneAway' | 'wrong'
-  matched_level: number | null
+  matched_category_rank: number | null
   guessed_at: string
 }
 
-export type FoundGroupRow = {
-  level: GroupLevel
-  group_name: string
-  members: string[]
-  found_at: string
+/**
+ * One matched category, derived from a `result='correct'` guess
+ * row joined with the static board.categories. There's no longer
+ * a separate found_groups table — the partial unique index on
+ * `guesses (game_id, matched_category_rank) where
+ * result='correct'` enforces "one match per rank per game" at
+ * the DB layer, and we project here.
+ */
+export type MatchedCategory = {
+  rank: CategoryRank
+  name: string
+  tiles: string[]
+  matched_at: string
 }
 
 export type WordknitGame = {
   id: string
   club_id: string
   status: 'in_progress' | 'solved' | 'lost'
-  mistakes: number
+  mistake_count: number
   board: Board
   /** The frozen-at-create-time player choices: timer mode +
    *  (future) puzzle date etc. Read by BoardScreen to drive
@@ -87,8 +102,10 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  * effect, then subscribes.
  *
  * Returns:
- *   - game / guesses / foundGroups / members — postgres-derived
- *     state, refetched on every realtime row event
+ *   - game / guesses / matchedCategories / members — postgres-
+ *     derived state, refetched on every realtime row event.
+ *     matchedCategories is a projection of `guesses` filtered
+ *     to result='correct', joined with board.categories.
  *   - selections / unionTiles — shared peer-selection state
  *     driven by Broadcast events
  *   - toggleTile / sendClear — emit selection events
@@ -100,7 +117,7 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *     for the Pause / Resume buttons
  *   - loading — false once initial fetch completes
  *
- * See docs/wordknit.md → "Realtime: three subscriptions on one
+ * See docs/wordknit.md → "Realtime: two subscriptions on one
  * channel" for the architectural picture.
  */
 export function useGame(
@@ -109,7 +126,7 @@ export function useGame(
 ): {
   game: WordknitGame | null
   guesses: GuessRow[]
-  foundGroups: FoundGroupRow[]
+  matchedCategories: MatchedCategory[]
   members: Member[]
   selections: SelectionMap
   unionTiles: string[]
@@ -124,7 +141,6 @@ export function useGame(
 } {
   const [game, setGame] = useState<WordknitGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
-  const [foundGroups, setFoundGroups] = useState<FoundGroupRow[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [selections, setSelections] = useState<Map<string, string[]>>(
     () => new Map(),
@@ -204,22 +220,21 @@ export function useGame(
     let mounted = true
 
     async function load() {
-      const [gameRes, guessesRes, foundRes] = await Promise.all([
+      const [gameRes, guessesRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_id, status, mistakes, board, config, created_at')
+          .select(
+            'id, club_id, status, mistake_count, board, config, created_at',
+          )
           .eq('id', gameId)
           .maybeSingle(),
         db
           .from('guesses')
-          .select('id, user_id, tiles, result, matched_level, guessed_at')
+          .select(
+            'id, user_id, tiles, result, matched_category_rank, guessed_at',
+          )
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
-        db
-          .from('found_groups')
-          .select('level, group_name, members, found_at')
-          .eq('game_id', gameId)
-          .order('found_at', { ascending: true }),
       ])
       if (!mounted) return
       if (!gameRes.data) {
@@ -232,7 +247,7 @@ export function useGame(
         id: row.id,
         club_id: row.club_id,
         status: row.status as WordknitGame['status'],
-        mistakes: row.mistakes,
+        mistake_count: row.mistake_count,
         board: row.board as Board,
         config: row.config as WordknitConfig,
         created_at: row.created_at,
@@ -241,12 +256,6 @@ export function useGame(
         (guessesRes.data ?? []).map((g) => ({
           ...g,
           result: g.result as GuessRow['result'],
-        })),
-      )
-      setFoundGroups(
-        (foundRes.data ?? []).map((f) => ({
-          ...f,
-          level: f.level as GroupLevel,
         })),
       )
 
@@ -293,6 +302,10 @@ export function useGame(
     const ch = supabase.channel(`wordknit:${gameId}`)
 
     // Postgres Changes: refetch on every row event for this game.
+    // Just two tables now — guesses carries every state change
+    // the FE needs to see (mistake_count + status flips via
+    // games, matched categories via the result='correct' rows
+    // on guesses).
     ch.on(
       'postgres_changes',
       { event: '*', schema: 'wordknit', table: 'games', filter: `id=eq.${gameId}` },
@@ -301,16 +314,6 @@ export function useGame(
     ch.on(
       'postgres_changes',
       { event: '*', schema: 'wordknit', table: 'guesses', filter: `game_id=eq.${gameId}` },
-      load,
-    )
-    ch.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'wordknit',
-        table: 'found_groups',
-        filter: `game_id=eq.${gameId}`,
-      },
       load,
     )
 
@@ -474,10 +477,32 @@ export function useGame(
     : null
   const paused = presencePaused || manuallyPausedBy !== null
 
+  // Project matched categories from the guess log + static board.
+  // The DB enforces at-most-one correct-per-rank-per-game via the
+  // partial unique index, so we can index categories[] by rank
+  // without worrying about duplicates surfacing here.
+  const matchedCategories: MatchedCategory[] = []
+  if (game) {
+    const categoryByRank = new Map<number, Board['categories'][number]>()
+    for (const c of game.board.categories) categoryByRank.set(c.rank, c)
+    for (const g of guesses) {
+      if (g.result !== 'correct') continue
+      if (g.matched_category_rank == null) continue
+      const cat = categoryByRank.get(g.matched_category_rank)
+      if (!cat) continue
+      matchedCategories.push({
+        rank: cat.rank,
+        name: cat.name,
+        tiles: cat.tiles,
+        matched_at: g.guessed_at,
+      })
+    }
+  }
+
   return {
     game,
     guesses,
-    foundGroups,
+    matchedCategories,
     members,
     selections,
     unionTiles,

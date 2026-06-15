@@ -1,9 +1,10 @@
-import type { Group, GroupLevel } from './board'
+import type { Category, CategoryRank } from './board'
 
 /**
- * Evaluate a 4-tile guess against the board's groups. Returns
- * `correct` (with the matched level + members), `oneAway`
- * (exactly 3 of the 4 belong to a single group), or `wrong`.
+ * Evaluate a 4-tile guess against the board's categories.
+ * Returns `correct` (with the matched category's rank + name +
+ * tiles), `oneAway` (exactly 3 of the 4 belong to a single
+ * category), or `wrong`.
  *
  * This is the canonical wordknit evaluator. It lives in TS
  * because the wordknit board is publicly readable (see the
@@ -15,46 +16,47 @@ import type { Group, GroupLevel } from './board'
  *
  * Pure function — no I/O, no global state. Tested in
  * evaluate.test.ts; the boundary cases (1-overlap, 2-overlap,
- * 3-overlap, 4-overlap, multi-group ties) are all pinned.
+ * 3-overlap, 4-overlap, multi-category ties) are all pinned.
  */
 export type Evaluation =
   | {
       kind: 'correct'
-      level: GroupLevel
-      group: string
-      members: string[]
+      rank: CategoryRank
+      name: string
+      tiles: string[]
     }
   | { kind: 'oneAway' }
   | { kind: 'wrong' }
 
 export function evaluateGuess(
   tiles: string[],
-  groups: Group[],
+  categories: Category[],
 ): Evaluation {
   // Defensive: the BoardScreen guards submit on selection size,
   // but a short input shouldn't false-positive as 'oneAway' just
-  // because all 3 happen to be in the same group.
+  // because all 3 happen to be in the same category.
   if (tiles.length !== 4) return { kind: 'wrong' }
 
-  // Find the group with the largest overlap to the guessed tiles.
-  // If anything has all 4, it's the correct group. If anything
-  // has 3 of 4, it's a `oneAway` hint (the NYT signal that nudges
-  // the player toward swapping one tile). Otherwise wrong.
+  // Find the category with the largest overlap to the guessed
+  // tiles. If anything has all 4, it's the matched category.
+  // If anything has 3 of 4, it's a `oneAway` hint (the NYT
+  // signal that nudges the player toward swapping one tile).
+  // Otherwise wrong.
   let best = 0
-  let bestGroup: Group | null = null
-  for (const g of groups) {
-    const overlap = tiles.filter((t) => g.members.includes(t)).length
+  let bestCategory: Category | null = null
+  for (const c of categories) {
+    const overlap = tiles.filter((t) => c.tiles.includes(t)).length
     if (overlap > best) {
       best = overlap
-      bestGroup = g
+      bestCategory = c
     }
   }
-  if (best === 4 && bestGroup) {
+  if (best === 4 && bestCategory) {
     return {
       kind: 'correct',
-      level: bestGroup.level,
-      group: bestGroup.group,
-      members: bestGroup.members.slice(),
+      rank: bestCategory.rank,
+      name: bestCategory.name,
+      tiles: bestCategory.tiles.slice(),
     }
   }
   if (best === 3) return { kind: 'oneAway' }

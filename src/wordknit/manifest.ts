@@ -10,7 +10,7 @@ import { DEFAULT_WORDKNIT_CONFIG, type WordknitConfig } from './lib/config'
 // select() below — see code-conventions.md's "Avoid SELECT *".
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
-  'id' | 'status' | 'mistakes' | 'created_at'
+  'id' | 'status' | 'mistake_count' | 'created_at'
 >
 
 /**
@@ -30,7 +30,7 @@ export const wordknitGame: GameManifest = {
   gametype: 'wordknit',
   schema: 'wordknit',
   name: 'Wordknit',
-  blurb: 'Find the four hidden groups of four words.',
+  blurb: 'Match the four hidden categories of four words.',
 
   // Plays solo (1 player at their solo club) or coop (any number
   // of club members poke at the same board). Must agree with the
@@ -73,39 +73,41 @@ export const wordknitGame: GameManifest = {
   },
 
   // Lists this gametype's games for a club. RLS scopes to clubs
-  // the caller is a member of. We fold a separate fetch of the
-  // found-groups counts so the status label can read
-  // "2/4 groups found" while in progress.
+  // the caller is a member of. We fold in a separate batched
+  // fetch of the correct-guess counts so the status label can
+  // read "2/4 categories matched" while in progress.
+  //
+  // (Pre-rename, this used a `found_groups` table — that table
+  // is gone; one correct guess per rank, enforced by the partial
+  // unique index, is the equivalent record.)
   fetchClubGames: async (clubId) => {
     const { data: games, error } = await db
       .from('games')
-      .select('id, status, mistakes, created_at')
+      .select('id, status, mistake_count, created_at')
       .eq('club_id', clubId)
       .order('created_at', { ascending: false })
     if (error || !games) return []
 
-    // Batch the found-groups counts in one query so the status
-    // label can include progress. Small games + few players →
-    // tiny result set, so the cost is negligible.
     const gameIds = games.map((g) => g.id)
-    const foundByGame = new Map<string, number>()
+    const matchedByGame = new Map<string, number>()
     if (gameIds.length > 0) {
       const { data: rows } = await db
-        .from('found_groups')
+        .from('guesses')
         .select('game_id')
         .in('game_id', gameIds)
+        .eq('result', 'correct')
       for (const r of rows ?? []) {
-        foundByGame.set(r.game_id, (foundByGame.get(r.game_id) ?? 0) + 1)
+        matchedByGame.set(r.game_id, (matchedByGame.get(r.game_id) ?? 0) + 1)
       }
     }
 
     function labelFor(g: GameRow): string {
-      const found = foundByGame.get(g.id) ?? 0
+      const matched = matchedByGame.get(g.id) ?? 0
       if (g.status === 'in_progress') {
-        return `${found}/4 groups · ${g.mistakes}/4 mistakes`
+        return `${matched}/4 categories · ${g.mistake_count}/4 mistakes`
       }
-      if (g.status === 'solved') return `solved · ${g.mistakes} mistakes`
-      return `lost · ${found}/4 found`
+      if (g.status === 'solved') return `solved · ${g.mistake_count} mistakes`
+      return `lost · ${matched}/4 matched`
     }
 
     return games.map((g) => ({

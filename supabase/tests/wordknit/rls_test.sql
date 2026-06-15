@@ -17,7 +17,7 @@ begin;
 
 set search_path = wordknit, common, public, extensions;
 
-select plan(8);
+select plan(7);
 
 \ir ../_shared/setup.psql
 
@@ -71,12 +71,6 @@ select is(
   (select count(*) from wordknit.guesses where game_id = (select id from g)),
   0::bigint,
   'dee cannot SELECT wordknit guesses for a club she is outside'
-);
-
-select is(
-  (select count(*) from wordknit.found_groups where game_id = (select id from g)),
-  0::bigint,
-  'dee cannot SELECT wordknit found_groups for a club she is outside'
 );
 
 -- ============================================================

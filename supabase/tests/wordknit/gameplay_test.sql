@@ -4,16 +4,18 @@
 --
 -- Covers the FE-trusts-the-server-records contract:
 --   - payload rejections (wrong tile count, bad result enum,
---     bad matched_level)
+--     bad matched_category_rank)
 --   - phase rejections (unauth, non-member, finished game)
---   - wrong path: mistakes++, status stays in_progress
+--   - wrong path: mistake_count++, status stays in_progress
 --   - oneAway path: also counts as mistake
---   - correct path: found_groups gets a row, guesses gets a row
---   - the (game_id, level) PK provides idempotency: a second
---     'correct' for the same level is a no-op (silent)
---   - 4 mistakes flips status to 'lost', clears club_active_game
---     via the termination trigger
---   - 4 found groups flips status to 'solved', clears
+--   - correct path: a guesses row with result='correct' lands
+--   - the partial unique index on (game_id,
+--     matched_category_rank) where result='correct' provides
+--     race idempotency: a second 'correct' for the same rank is
+--     a silent no-op
+--   - 4 mistakes flips status to 'lost', clears
+--     club_active_game via the termination trigger
+--   - 4 matched categories flips status to 'solved', clears
 --     club_active_game via the termination trigger
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
@@ -70,7 +72,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (3) result='correct' requires a level
+-- (3) result='correct' requires a rank
 -- ============================================================
 
 select throws_ok(
@@ -81,8 +83,8 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'matched_level must be 0..3 when result is correct',
-  'submit_guess: correct without matched_level is rejected'
+  'matched_category_rank must be 0..3 when result is correct',
+  'submit_guess: correct without matched_category_rank is rejected'
 );
 
 -- ============================================================
@@ -119,9 +121,9 @@ select lives_ok(
 
 reset role;
 select is(
-  (select mistakes from wordknit.games where id = (select id from g)),
+  (select mistake_count from wordknit.games where id = (select id from g)),
   1,
-  'submit_guess: wrong guess increments mistakes to 1'
+  'submit_guess: wrong guess increments mistake_count to 1'
 );
 
 select is(
@@ -131,7 +133,7 @@ select is(
 );
 
 -- ============================================================
--- (8) Correct guess: inserts a found_groups row, guesses row
+-- (8) Correct guess: a result='correct' guesses row lands
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -144,15 +146,17 @@ select wordknit.submit_guess(
 
 reset role;
 select is(
-  (select count(*) from wordknit.found_groups
-    where game_id = (select id from g)),
+  (select count(*) from wordknit.guesses
+    where game_id = (select id from g)
+      and result = 'correct'
+      and matched_category_rank = 0),
   1::bigint,
-  'submit_guess: correct guess inserts one found_groups row'
+  'submit_guess: correct guess inserts one correct row at rank 0'
 );
 
 -- ============================================================
--- (9) Race idempotency: a second 'correct' for the same level
---     silently no-ops (PK conflict caught)
+-- (9) Race idempotency: a second 'correct' for the same rank
+--     silently no-ops (partial-unique-index conflict caught)
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -163,19 +167,21 @@ select lives_ok(
                                      'correct', 0) $$,
     (select id from g)
   ),
-  'submit_guess: a repeat correct on the same level is a silent no-op'
+  'submit_guess: a repeat correct on the same rank is a silent no-op'
 );
 
 reset role;
 select is(
-  (select count(*) from wordknit.found_groups
-    where game_id = (select id from g)),
+  (select count(*) from wordknit.guesses
+    where game_id = (select id from g)
+      and result = 'correct'
+      and matched_category_rank = 0),
   1::bigint,
-  'submit_guess: still exactly one found_groups row after the race'
+  'submit_guess: still exactly one correct row at rank 0 after the race'
 );
 
 -- ============================================================
--- (10)–(11) Solve path: find the other 3 groups → status=solved
+-- (10)–(11) Solve path: match the other 3 categories → solved
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -199,7 +205,7 @@ reset role;
 select is(
   (select status from wordknit.games where id = (select id from g)),
   'solved',
-  'submit_guess: 4-found groups flips status to solved'
+  'submit_guess: 4 matched categories flips status to solved'
 );
 
 -- The termination trigger clears the club_active_game pointer.
@@ -239,11 +245,11 @@ select wordknit.submit_guess(
 );
 
 reset role;
--- After 3 wrong, mistakes = 3, status still in_progress.
+-- After 3 wrong, mistake_count = 3, status still in_progress.
 select is(
-  (select mistakes from wordknit.games where id = (select id from g2)),
+  (select mistake_count from wordknit.games where id = (select id from g2)),
   3,
-  'submit_guess: 3 wrong guesses leaves mistakes at 3'
+  'submit_guess: 3 wrong guesses leaves mistake_count at 3'
 );
 select is(
   (select status from wordknit.games where id = (select id from g2)),
@@ -251,7 +257,7 @@ select is(
   'submit_guess: 3 wrong guesses leaves status in_progress'
 );
 
--- The 4th wrong takes mistakes to 4 and flips status to lost.
+-- The 4th wrong takes mistake_count to 4 and flips status to lost.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordknit.submit_guess(
   (select id from g2),

@@ -221,7 +221,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
 | `Root` | Lazy-loaded React component. The shell mounts this for `/g/<gametype>/<id>` URLs. |
 | `setup` | `{ Component, defaults } \| null` — the per-game setup dialog body + initial config. `null` for games whose start needs no choices; the dialog is then bypassed entirely. |
-| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` in the BoardScreen. Tinyspy and psychic-num omit; wordknit sets `{ kind: 'countdown', seconds: 600 }`. |
+| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` in the BoardScreen — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). Today no game uses this field; wordknit chose to make the timer a per-game setup choice instead (stored on `wordknit.games.config.timer`, picked in the setup dialog). The field is preserved for the per-gametype-constant case. |
 | `startGameInClub(clubId, config)` | Async. Called by the SetupGameDialog (or directly by ClubPage when `setup: null`). Receives the dialog's collected config. Returns `{id}` on success or `{error}` on failure. |
 | `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/suspended/completed list. |
 

@@ -11,7 +11,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { colorForUserId } from '../lib/peerColor'
-import type { GroupLevel } from '../lib/board'
+import type { CategoryRank } from '../lib/board'
 import { DEFAULT_WORDKNIT_CONFIG } from '../lib/config'
 import styles from './BoardScreen.module.css'
 
@@ -21,11 +21,11 @@ type Props = {
   onLeave: () => void
 }
 
-const LEVEL_TOKEN: Record<GroupLevel, string> = {
-  0: 'var(--wordknit-level-0)',
-  1: 'var(--wordknit-level-1)',
-  2: 'var(--wordknit-level-2)',
-  3: 'var(--wordknit-level-3)',
+const RANK_TOKEN: Record<CategoryRank, string> = {
+  0: 'var(--wordknit-rank-0)',
+  1: 'var(--wordknit-rank-1)',
+  2: 'var(--wordknit-rank-2)',
+  3: 'var(--wordknit-rank-3)',
 }
 
 /**
@@ -34,8 +34,9 @@ const LEVEL_TOKEN: Record<GroupLevel, string> = {
  * Layout (top → bottom):
  *   - header: title + leave-game link + mistakes indicator
  *   - PauseBoundary around the play area:
- *       - found-group bands (one per resolved group, NYT-colored);
- *         on lose, additional bands for the un-found groups
+ *       - matched-category bands (one per resolved category,
+ *         NYT-colored); on lose, additional bands for the
+ *         unmatched categories
  *       - 4×4 tile grid of remaining tiles
  *       - action row: Submit / Clear
  *       - transient feedback banner
@@ -44,11 +45,11 @@ const LEVEL_TOKEN: Record<GroupLevel, string> = {
  *   - shared chat panel
  *
  * The submission flow:
- *   1. FE evaluates the guess locally against board.groups (FE-
- *      knows-the-answer; see docs/wordknit.md)
+ *   1. FE evaluates the guess locally against board.categories
+ *      (FE-knows-the-answer; see docs/wordknit.md)
  *   2. Dup detection (sameTileSet on the existing guess log) —
  *      if duplicate, show banner, skip RPC
- *   3. Fire submit_guess RPC with (tiles, result, level)
+ *   3. Fire submit_guess RPC with (tiles, result, rank)
  *   4. Realtime postgres-changes propagate the new state to
  *      every player; this hook refetches automatically
  *   5. Broadcast a `clear` to drop everyone's selection
@@ -66,7 +67,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   const {
     game,
     guesses,
-    foundGroups,
+    matchedCategories,
     members,
     selections,
     unionTiles,
@@ -130,12 +131,12 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   if (loading) return <div className="card">Loading board…</div>
   if (!game) return <div className="card">Game not found.</div>
 
-  const foundMembers = new Set<string>()
-  for (const fg of foundGroups) {
-    for (const m of fg.members) foundMembers.add(m)
+  const matchedTiles = new Set<string>()
+  for (const mc of matchedCategories) {
+    for (const t of mc.tiles) matchedTiles.add(t)
   }
   const remainingTiles = game.board.tileOrder.filter(
-    (t) => !foundMembers.has(t),
+    (t) => !matchedTiles.has(t),
   )
 
   // Per-tile contributor for visual attribution: which user_id
@@ -159,17 +160,17 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
       return
     }
 
-    const verdict = evaluateGuess(unionTiles, game.board.groups)
+    const verdict = evaluateGuess(unionTiles, game.board.categories)
     setSubmitting(true)
-    // matched_level is omitted unless correct — the RPC's
-    // parameter has `default null` and the SQL body only inspects
-    // it inside the result='correct' branch.
+    // matched_category_rank is omitted unless correct — the
+    // RPC's parameter has `default null` and the SQL body only
+    // inspects it inside the result='correct' branch.
     const { error } = await db.rpc('submit_guess', {
       target_game: gameId,
       tiles: unionTiles,
       result: verdict.kind,
       ...(verdict.kind === 'correct'
-        ? { matched_level: verdict.level }
+        ? { matched_category_rank: verdict.rank }
         : {}),
     })
     setSubmitting(false)
@@ -189,9 +190,9 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   const canSubmit =
     unionTiles.length === 4 && !submitting && game.status === 'in_progress'
   const gameOver = game.status !== 'in_progress'
-  const foundLevels = new Set(foundGroups.map((f) => f.level))
-  const unfound = gameOver
-    ? game.board.groups.filter((g) => !foundLevels.has(g.level))
+  const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
+  const unmatched = gameOver
+    ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
   return (
@@ -210,7 +211,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
               )
             ) : (
               <>
-                Mistakes left: {4 - game.mistakes}
+                Mistakes left: {4 - game.mistake_count}
                 {game.config.timer.kind !== 'none' && (
                   <>
                     {' · '}
@@ -251,28 +252,28 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
         onResume={sendManualUnpause}
         className={styles.boardArea}
       >
-        {foundGroups
+        {matchedCategories
           .slice()
-          .sort((a, b) => a.level - b.level)
-          .map((fg) => (
+          .sort((a, b) => a.rank - b.rank)
+          .map((mc) => (
             <div
-              key={fg.level}
+              key={mc.rank}
               className={styles.band}
-              style={{ background: LEVEL_TOKEN[fg.level] }}
+              style={{ background: RANK_TOKEN[mc.rank] }}
             >
-              <strong>{fg.group_name}</strong>
-              <div className={styles.bandMembers}>{fg.members.join(' · ')}</div>
+              <strong>{mc.name}</strong>
+              <div className={styles.bandMembers}>{mc.tiles.join(' · ')}</div>
             </div>
           ))}
 
-        {unfound.map((g) => (
+        {unmatched.map((c) => (
           <div
-            key={g.level}
+            key={c.rank}
             className={cls(styles.band, styles.bandRevealed)}
-            style={{ background: LEVEL_TOKEN[g.level] }}
+            style={{ background: RANK_TOKEN[c.rank] }}
           >
-            <strong>{g.group}</strong>
-            <div className={styles.bandMembers}>{g.members.join(' · ')}</div>
+            <strong>{c.name}</strong>
+            <div className={styles.bandMembers}>{c.tiles.join(' · ')}</div>
           </div>
         ))}
 

@@ -555,38 +555,6 @@ export type Database = {
   }
   wordknit: {
     Tables: {
-      found_groups: {
-        Row: {
-          found_at: string
-          game_id: string
-          group_name: string
-          level: number
-          members: string[]
-        }
-        Insert: {
-          found_at?: string
-          game_id: string
-          group_name: string
-          level: number
-          members: string[]
-        }
-        Update: {
-          found_at?: string
-          game_id?: string
-          group_name?: string
-          level?: number
-          members?: string[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "found_groups_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       games: {
         Row: {
           board: Json
@@ -594,7 +562,7 @@ export type Database = {
           config: Json
           created_at: string
           id: string
-          mistakes: number
+          mistake_count: number
           status: string
         }
         Insert: {
@@ -603,7 +571,7 @@ export type Database = {
           config: Json
           created_at?: string
           id?: string
-          mistakes?: number
+          mistake_count?: number
           status?: string
         }
         Update: {
@@ -612,7 +580,7 @@ export type Database = {
           config?: Json
           created_at?: string
           id?: string
-          mistakes?: number
+          mistake_count?: number
           status?: string
         }
         Relationships: []
@@ -622,7 +590,7 @@ export type Database = {
           game_id: string
           guessed_at: string
           id: string
-          matched_level: number | null
+          matched_category_rank: number | null
           result: string
           tiles: string[]
           user_id: string
@@ -631,7 +599,7 @@ export type Database = {
           game_id: string
           guessed_at?: string
           id?: string
-          matched_level?: number | null
+          matched_category_rank?: number | null
           result: string
           tiles: string[]
           user_id: string
@@ -640,7 +608,7 @@ export type Database = {
           game_id?: string
           guessed_at?: string
           id?: string
-          matched_level?: number | null
+          matched_category_rank?: number | null
           result?: string
           tiles?: string[]
           user_id?: string
@@ -668,7 +636,7 @@ export type Database = {
       }
       submit_guess: {
         Args: {
-          matched_level?: number
+          matched_category_rank?: number
           result: string
           target_game: string
           tiles: string[]

@@ -28,6 +28,15 @@
 -- The submit_timeout RPC stays unchanged — it just flips status
 -- to 'lost' regardless of which mode the game was in (the FE
 -- only fires it for countdown, by construction).
+--
+-- Note for the future squash: this CREATE OR REPLACE body is a
+-- near-duplicate of what now lives in the baseline migration
+-- (because the rename refactor brought the new-board-shape
+-- forward into baseline). When we squash wordknit's migrations,
+-- this file and baseline collapse into a single baseline with
+-- one definition of create_game. Until then we keep this CREATE
+-- OR REPLACE in sync with baseline so the apply-order
+-- (baseline → timer) lands on the right body.
 
 create or replace function wordknit.create_game(target_club uuid, config jsonb)
 returns table(id uuid)
@@ -38,7 +47,7 @@ as $$
 declare
   caller_id uuid;
   new_id uuid;
-  board_groups jsonb;
+  board_categories jsonb;
   tile_order text[];
   j int;
   tmp text;
@@ -94,22 +103,23 @@ begin
 
   -- ─── Pick board + shuffle (unchanged from baseline) ───
   -- Hardcoded POC board. See the baseline migration for the
-  -- in-depth rationale.
-  board_groups := $json$[
-    {"level": 0, "group": "Words starting with A",
-     "members": ["ALPHA","ANGEL","APPLE","ARROW"]},
-    {"level": 1, "group": "Words starting with B",
-     "members": ["BANANA","BIRCH","BREAD","BRICK"]},
-    {"level": 2, "group": "Words starting with C",
-     "members": ["CASTLE","CIRCLE","CLOUD","CROWN"]},
-    {"level": 3, "group": "Words starting with D",
-     "members": ["DAGGER","DELTA","DIAMOND","DRAGON"]}
+  -- in-depth rationale. Ranks 0..3 map to NYT yellow/green/
+  -- blue/purple in the FE's theme.css.
+  board_categories := $json$[
+    {"rank": 0, "name": "Words starting with A",
+     "tiles": ["ALPHA","ANGEL","APPLE","ARROW"]},
+    {"rank": 1, "name": "Words starting with B",
+     "tiles": ["BANANA","BIRCH","BREAD","BRICK"]},
+    {"rank": 2, "name": "Words starting with C",
+     "tiles": ["CASTLE","CIRCLE","CLOUD","CROWN"]},
+    {"rank": 3, "name": "Words starting with D",
+     "tiles": ["DAGGER","DELTA","DIAMOND","DRAGON"]}
   ]$json$::jsonb;
 
   select array_agg(t)
     into tile_order
-    from jsonb_array_elements(board_groups) g,
-         jsonb_array_elements_text(g->'members') t;
+    from jsonb_array_elements(board_categories) c,
+         jsonb_array_elements_text(c->'tiles') t;
 
   for i in reverse 16..2 loop
     j := 1 + floor(random() * i)::int;
@@ -121,8 +131,8 @@ begin
   insert into wordknit.games (club_id, board, config)
   values (
     target_club,
-    jsonb_build_object('groups', board_groups,
-                       'tileOrder', to_jsonb(tile_order)),
+    jsonb_build_object('categories', board_categories,
+                       'tileOrder',  to_jsonb(tile_order)),
     config
   )
   returning games.id into new_id;

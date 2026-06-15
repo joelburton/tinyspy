@@ -8,29 +8,41 @@ For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](
 
 ## What the game is
 
-A 4×4 board of 16 words split into 4 hidden groups of 4 by theme. Players select 4 tiles and submit a guess. The server evaluates against the answer key:
+A 4×4 board of 16 tiles split into 4 hidden **categories** of 4 by theme. Players select 4 tiles and submit a guess. The server evaluates against the answer key:
 
-- **correct** — all 4 in one group: the group resolves into a colored band, the tiles leave the grid.
-- **oneAway** — exactly 3 of 4 in a single group: NYT's hint that you're close; counts as a mistake.
+- **correct** — all 4 in one category: the category resolves into a colored band, the tiles leave the grid.
+- **oneAway** — exactly 3 of 4 in a single category: NYT's hint that you're close; counts as a mistake.
 - **wrong** — otherwise: also counts as a mistake.
 
-You lose at 4 mistakes; you win by finding all 4 groups. On a loss, the un-found groups are revealed to the player.
+You lose at 4 mistakes; you win by matching all 4 categories. On a loss, the unmatched categories are revealed to the player.
 
-Levels 0..3 map to NYT's yellow / green / blue / purple band colors — increasing difficulty in the original puzzle. Tokens in [`theme.css`](../src/wordknit/theme.css).
+Each category has a **rank** 0..3, mapped to NYT's yellow / green / blue / purple band colors — increasing difficulty in the original puzzle. Tokens in [`theme.css`](../src/wordknit/theme.css) (`--wordknit-rank-N`).
+
+## Vocabulary
+
+The schema and FE use a small, deliberate set of terms; the in-codebase glossary lives in [`naming.md`](naming.md) but the wordknit-specific calls are:
+
+| term | what it means |
+|---|---|
+| **category** | one of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere) |
+| **rank** | the difficulty index 0..3 of a category (was "level" — renamed because "level" overloads with puzzle-difficulty levels, app-routing levels, etc.) |
+| **tile** | one of the 16 selectable words on the board (was "member" inside the JSON — renamed because "member" already means a person in a club) |
+| **matched** | the resolution state for a category once a correct guess identifies it (was "found" — `matched` unifies with the `matched_category_rank` column and reads cohesively across copy + code) |
+| **mistake_count** | the integer column counting wrong+oneAway submissions for a game (was `mistakes` — `_count` is explicit that it's a number, not the mistakes themselves) |
 
 ## POC scope (current state)
 
-This is the first port of an existing personal project ([`../connections`](https://github.com/joelburton/...)) into this codebase. The POC implements the core wiring — game lifecycle, real shared coop play, the pause-on-disconnect pattern — with a **hardcoded board**: 16 words, 4 groups (A-words / B-words / C-words / D-words). Easy to verify visually; impossible to actually challenge anyone with.
+This is the first port of an existing personal project ([`../connections`](https://github.com/joelburton/...)) into this codebase. The POC implements the core wiring — game lifecycle, real shared coop play, the pause-on-disconnect pattern — with a **hardcoded board**: 16 words, 4 categories (A-words / B-words / C-words / D-words). Easy to verify visually; impossible to actually challenge anyone with.
 
 In scope today:
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
-- Reveal-on-loss (the FE reads `board.groups` directly — no separate RPC, see "FE-knows" below)
+- Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below)
 - Shared selection across all connected players via Broadcast
 - Pause-on-disconnect overlay via Presence
 - Common chat (the existing `ClubChatPanel`)
 
 Deliberately deferred (per the architecture-shake-out priority):
-- Hint feature ("show me the first word of each group")
+- Hint feature ("show me the first word of each category")
 - Scratchpad (the connections repo's collaborative-editor takeover-lock thing)
 - Per-tile rise-and-fade animations
 - Per-player local shuffle
@@ -42,13 +54,13 @@ Deliberately deferred (per the architecture-shake-out priority):
 
 ## The "FE-knows-the-answer" decision
 
-Unlike tinyspy and psychic-num — where the server holds a secret and validates moves against it — wordknit's board (groups + tile order) is **publicly readable** by every club member. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + matched_level) and just records it, applying atomicity for the shared state (mistakes counter, found_groups idempotency via PK).
+Unlike tinyspy and psychic-num — where the server holds a secret and validates moves against it — wordknit's board (categories + tile order) is **publicly readable** by every club member. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (`mistake_count`, and one-correct-per-rank idempotency via a partial unique index on `guesses`).
 
 **Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-target mechanic" section](psychicnum.md#the-hidden-target-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise.
 
-**What stays server-authoritative regardless:** atomic mutations of shared state. The `mistakes += 1` and `status = 'lost'` flips need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychic-num. Found-groups idempotency comes from the PK on `(game_id, level)` — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
+**What stays server-authoritative regardless:** atomic mutations of shared state. The `mistake_count += 1` and `status = 'lost'` flips need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychic-num. One-correct-per-rank idempotency comes from a **partial unique index** on `wordknit.guesses (game_id, matched_category_rank) where result = 'correct'` — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
-**If wordknit ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_level` parameters from `submit_guess`. The architectural shape is small enough that the future-proofing is conceptual, not structural.
+**If wordknit ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_category_rank` parameters from `submit_guess`. The architectural shape is small enough that the future-proofing is conceptual, not structural.
 
 ## Schema: `wordknit.*`
 
@@ -56,26 +68,41 @@ Unlike tinyspy and psychic-num — where the server holds a secret and validates
 
 | table | purpose |
 |---|---|
-| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. Holds `status`, `mistakes`, `board` (jsonb — groups + tileOrder — publicly readable), `config` (jsonb — currently empty; future date-picker). |
-| `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_level` is non-null iff result is correct. |
-| `found_groups` | Append-only list of revealed groups. PK on `(game_id, level)` provides the idempotency / race protection for concurrent 'correct' submissions on the same group. |
+| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. Holds `status`, `mistake_count`, `board` (jsonb — categories + tileOrder — publicly readable), `config` (jsonb — timer mode + future puzzle-date). |
+| `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. A partial unique index on `(game_id, matched_category_rank) where result = 'correct'` enforces one match per category per game. |
+
+### `board` jsonb shape
+
+```
+{
+  categories: [
+    { rank: 0..3, name: text, tiles: text[4] },
+    ...  // exactly 4 categories
+  ],
+  tileOrder: [text, text, ...16]  // shuffled display order
+}
+```
+
+The whole board is publicly readable. The FE reads `board.categories` to evaluate guesses (FE-knows-the-answer) and to render the colored bands on reveal; it reads `board.tileOrder` for the 4×4 grid display order.
 
 ### Status enum
 
 `games.status text not null check (status in ('in_progress', 'solved', 'lost'))`
 
 - **in_progress** — guesses being submitted. The default; no other entry state.
-- **solved** — all 4 groups have been found. Terminal.
-- **lost** — mistakes hit 4. Terminal.
+- **solved** — all 4 categories have been matched. Terminal.
+- **lost** — mistakes hit 4 (or the countdown timer expired). Terminal.
 
-### Why no `tiles` table
+### Why no `tiles` table, no separate "matched categories" table
 
 In tinyspy, the 25 words live in their own `tinyspy.words` table — one row per tile, with reveal state. Wordknit doesn't need that because:
 
 1. The tile order is static (shuffled once at create_game time, never mutated).
-2. The "is this tile still on the board?" check is derived: a tile is removed from play when its word appears in any `found_groups` row.
+2. The "is this tile still on the board?" check is derived: a tile is removed from play when its category appears as a `result='correct'` row in the guess log.
 
-So `tileOrder` lives in the `board` jsonb alongside `groups`, and the FE filters out found tiles at render time. Saves a 16-rows-per-game table for nothing.
+So `tileOrder` lives in the `board` jsonb alongside `categories`, and the FE filters out matched tiles at render time. Saves a 16-rows-per-game table for nothing.
+
+Earlier versions of this schema had a separate `wordknit.found_groups` table whose PK on `(game_id, level)` provided the race-idempotency for concurrent correct submissions. That's been collapsed into the partial unique index on `guesses` — same guarantee, one less table, one less postgres-changes fan-out for the FE to subscribe to.
 
 ## RPCs
 
@@ -83,21 +110,25 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `wordknit.create_game(target_club uuid, config jsonb) → table(id uuid)`
 
-The one entry point. Verifies caller is a club member, builds the hardcoded POC board (4 groups × 4 members), shuffles the 16 tiles into `board.tileOrder`, inserts the row in `in_progress`, upserts `common.club_active_game`.
+The one entry point. Verifies caller is a club member, validates `config.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), builds the hardcoded POC board (4 categories × 4 tiles), shuffles the 16 tiles into `board.tileOrder`, inserts the row in `in_progress`, upserts `common.club_active_game`.
 
-Reject reasons: not authenticated; not a member.
+Reject reasons: not authenticated; not a member; bad config.timer.
 
 **No minimum-club-size check** — wordknit plays with any club size (matches the manifest's `numberOfPlayers: [1, null]`).
 
-### `wordknit.submit_guess(target_game uuid, tiles text[], result text, matched_level int default null)`
+### `wordknit.submit_guess(target_game uuid, tiles text[], result text, matched_category_rank int default null)`
 
-The only mid-game action. Validates the payload shape (4 tiles, valid result enum, level present iff correct), then records what the caller tells it. For `correct`: inserts into `found_groups` (PK as idempotency), records the guess, checks win (4 found → solved). For `wrong` / `oneAway`: records the guess, increments `mistakes`, checks loss (4 mistakes → lost).
+The only mid-game action. Validates the payload shape (4 tiles, valid result enum, rank present iff correct), then records what the caller tells it. For `correct`: inserts a `result='correct'` row into `guesses` (the partial unique index on `(game_id, matched_category_rank)` filtered to correct rows is the race-idempotency check), then counts correct rows to detect the win (4 correct → solved). For `wrong` / `oneAway`: records the guess, increments `mistake_count`, checks loss (4 mistakes → lost).
 
 `SELECT FOR UPDATE` on the games row serializes concurrent submissions.
 
-The PL/pgSQL **does not re-evaluate** the guess against `board.groups` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql).)
+The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql).)
 
-Reject reasons: not authenticated; not a club member; game not in progress; tile count ≠ 4; bad result enum; missing matched_level when result is correct.
+Reject reasons: not authenticated; not a club member; game not in progress; tile count ≠ 4; bad result enum; missing or out-of-range `matched_category_rank` when result is correct.
+
+### `wordknit.submit_timeout(target_game uuid)`
+
+Fires when the countdown timer expires; flips `status` to `lost`. Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
 ### `wordknit.clear_active_on_termination` (trigger)
 
@@ -105,7 +136,7 @@ Fires on `status` UPDATE from `in_progress` to terminal. Deletes the matching `c
 
 ## Row-level security
 
-All three tables have RLS enabled with SELECT policies gated on `common.is_club_member(club_id)` (tracing through `wordknit.games` for the child tables via EXISTS subquery — same pattern as `psychicnum.guesses_select`).
+Both tables have RLS enabled with SELECT policies gated on `common.is_club_member(club_id)` (`wordknit.guesses` traces through `wordknit.games` for the membership check via EXISTS subquery — same pattern as `psychicnum.guesses_select`).
 
 No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPCs.
 
@@ -120,31 +151,32 @@ src/wordknit/
   Root.tsx                Mounted by App.tsx for /g/wordknit/<id>. Receives gameId as prop.
   manifest.ts             GameManifest registration.
   db.ts                   export const db = supabase.schema('wordknit')
-  theme.css               NYT level palette (yellow/green/blue/purple).
+  theme.css               NYT rank palette (yellow/green/blue/purple = --wordknit-rank-0..3).
 
   components/
-    BoardScreen.tsx       The play surface — header, found-group bands, tile grid, actions, pause overlay, chat.
+    BoardScreen.tsx       The play surface — header, matched-category bands, tile grid, actions, pause overlay, chat.
     BoardScreen.module.css
-    Setup.tsx             POC placeholder dialog — gestures at the future date picker.
+    Setup.tsx             Timer-mode + (future) puzzle-date picker.
 
   hooks/
     useGame.ts            The one realtime entry point. Owns the per-game channel
-                          end-to-end: postgres-changes (game / guesses /
-                          found_groups), broadcast (shared selection + manual-
-                          pause events), and presence (who's connected). Returns
-                          a flat surface the BoardScreen consumes — data,
-                          selections, paused flag, pause helpers, member list.
+                          end-to-end: postgres-changes (games / guesses),
+                          broadcast (shared selection + manual-pause events),
+                          and presence (who's connected). Returns a flat surface
+                          the BoardScreen consumes — data, matchedCategories
+                          projection, selections, paused flag, pause helpers,
+                          member list.
 
   lib/
-    board.ts              Wire types for the `board` jsonb (Group, Board, GroupLevel).
+    board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
     peerColor.ts          Stable hash userId → 5-color palette.
     peerColor.test.ts     Determinism + distinctness tests.
-    config.ts             WordknitConfig type (empty for POC) + defaults.
+    config.ts             WordknitConfig type (timer mode) + defaults.
 ```
 
-### Realtime: three subscriptions on one channel
+### Realtime: two subscriptions on one channel
 
 The per-game channel is `wordknit:<gameId>` — **no per-tab UUID suffix**, unlike tinyspy / psychic-num. The UUID workaround used elsewhere sidesteps supabase-js's per-client channel cache, but it does that by putting each tab in its own Realtime "room." For wordknit we *need* every tab in the same room because broadcast and presence only merge across clients with matching channel names. The StrictMode-double-mount issue is handled by the hook's own cleanup: `removeChannel()` clears the cache before the next effect run. See `docs/code-conventions.md` → "Realtime channel names."
 
@@ -152,11 +184,15 @@ One channel carries three concerns:
 
 | subscription | purpose |
 |---|---|
-| Postgres Changes | game row / guesses / found_groups events drive `useGame`'s refetch |
+| Postgres Changes | game row + guesses events drive `useGame`'s refetch. (Two tables now — collapsed from three when `found_groups` went away.) |
 | Broadcast | shared-selection events (select / deselect / clear) and manual-pause events (manualPause / manualUnpause) |
 | Presence | each client's `track({ user_id })` builds the connected-users set; the `paused` flag is derived from `presence vs. expected members` via `computePause` |
 
 **Why one channel, not three:** supabase-js requires every `.on()` listener to be registered *before* `.subscribe()`. Splitting across hooks would mean each hook's effect attaches its listeners separately — but consumer hooks' effects run after the channel-owner's, so their `.on()` calls would land post-subscribe and supabase-js rejects them. The pragmatic shape is one hook (`useGame`) attaching everything synchronously in a single effect. (Previous iterations split into `useGameFreeze` + `useSharedSelection` + `useGame` and hit this constraint head-on; the merge is the resolution.)
+
+### `matchedCategories` is a projection
+
+The FE doesn't query a "matched categories" table — there isn't one. `useGame` projects `matchedCategories` by walking the `guesses` log, filtering to `result='correct'`, and joining each row's `matched_category_rank` to the static `board.categories[]`. The DB's partial unique index guarantees at most one correct guess per (game, rank), so the projection has at most 4 entries; ordering is by `guessed_at` (so the FE can show the bands in the order they were resolved if it ever wants to).
 
 ### Peer selection: Broadcast + Presence pattern
 
@@ -164,7 +200,7 @@ Wordknit is the first place in this codebase that uses Realtime Broadcast and Pr
 
 **Selection semantics:** click acts on the **union** of all players' selections, not on each player's private list. Each tile has at most one contributor; clicking a tile already in the union removes it (regardless of who put it there); clicking an unselected tile adds it to MY contribution. Submit / "deselect all" / pause-on-disconnect all broadcast a `clear` event that empties every client's local map.
 
-**Why Broadcast (not Presence-state) for the selection:** events are the natural unit here ("I selected X", "deselect X"). The state is reconstructable by listening from the moment you join — and we don't worry about late-joiners or mid-session rejoins because [we pause the game on any disconnect](#pause-on-disconnect-paused--suspended). State lives in client memory, gets reset on every pause.
+**Why Broadcast (not Presence-state) for the selection:** events are the natural unit here ("I selected X", "deselect X"). The state is reconstructable by listening from the moment you join — and we don't worry about late-joiners or mid-session rejoins because [we pause the game on any disconnect](#pause-presence-driven--manual). State lives in client memory, gets reset on every pause.
 
 **Why Presence (not Broadcast) for "who's here":** Presence is exactly the primitive for this — it auto-cleans up on disconnect (no heartbeat plumbing), and its state-carrier capability gives us a stable list of connected `user_id`s without any custom join/leave protocol. `computePause` derives the `paused` boolean from `presence diff expected members`.
 
@@ -226,22 +262,22 @@ Same pattern as tinyspy and psychic-num — `Root` is lazy-loaded in the manifes
 
 | file | covers |
 |---|---|
-| `tests/wordknit/create_game_test.sql` | Auth, membership, returns id row, status/mistakes initial values, hardcoded board shape (4 groups × 4 members, 16-element tileOrder, tileOrder is a permutation), config persistence, club_active_game upsert. |
-| `tests/wordknit/gameplay_test.sql` | Payload validation (tile count, result enum, level-iff-correct), member-only enforcement, wrong/oneAway → mistakes++, correct → found_groups insert + win check, 4-found → status=solved, 4-mistakes → status=lost, race idempotency on (game_id, level). |
-| `tests/wordknit/rls_test.sql` | dee (non-member) sees zero rows from all three tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
+| `tests/wordknit/create_game_test.sql` | Auth, membership, config.timer shape validation (missing / bad kind / missing or out-of-range seconds, accept none/countup), returns id row, status/mistake_count initial values, hardcoded board shape (4 categories × 4 tiles, 16-element tileOrder, tileOrder is a permutation), config persistence, club_active_game upsert. |
+| `tests/wordknit/gameplay_test.sql` | Payload validation (tile count, result enum, rank-iff-correct), member-only enforcement, wrong/oneAway → mistake_count++, correct → guesses row + win check, 4-correct → status=solved, 4-mistakes → status=lost, race idempotency on (game_id, matched_category_rank) via the partial unique index, submit_timeout happy + idempotency paths. |
+| `tests/wordknit/rls_test.sql` | dee (non-member) sees zero rows from both tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
 
 ### FE tests
 
 | file | covers |
 |---|---|
-| `src/wordknit/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with level + members), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-members defensive-copy. |
+| `src/wordknit/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
 | `src/wordknit/lib/peerColor.test.ts` | The user_id → color hash: deterministic, distinct for the two persona UUIDs we care about, output is a CSS hex string. |
 
 No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the BoardScreen there.
 
 ## Open items
 
-- **Per-game `setup.psql`.** Wordknit has zero tinyspy-style helpers right now (no random-position lookup, no config builder — the POC tests use literal `'{}'::jsonb`). Below the 3-helper promotion threshold from [testing.md](testing.md). Revisit when the puzzle archive lands and the create_game tests grow setup variation.
+- **Per-game `setup.psql`.** Wordknit has zero tinyspy-style helpers right now (no random-position lookup, no config builder — the POC tests use literal `'{"timer":{"kind":"countdown","seconds":600}}'::jsonb`). Below the 3-helper promotion threshold from [testing.md](testing.md). Revisit when the puzzle archive lands and the create_game tests grow setup variation.
 
 ## Future work
 
@@ -258,6 +294,7 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | What does the play surface look like | [`src/wordknit/components/BoardScreen.tsx`](../src/wordknit/components/BoardScreen.tsx) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
+| How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |
-| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../src/common/hooks/useGameTimer.ts) + the wordknit manifest's `timerMode` field |
+| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../src/common/hooks/useGameTimer.ts) + the wordknit setup dialog's timer field |
 | The evaluator | [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) |

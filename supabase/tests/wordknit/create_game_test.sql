@@ -9,12 +9,16 @@
 -- Coverage:
 --   - rejection: not authenticated
 --   - rejection: caller is not a member of the target club
+--   - rejection: bad config.timer shapes (missing, bad kind,
+--     missing seconds, out-of-range seconds)
+--   - acceptance: timer.kind in {none, countup}
 --   - happy path: returns one row, status='in_progress',
---     mistakes=0, config persists, board hardcoded with 4 groups
---     × 4 members each, tile order is a shuffle of all 16
---     members, club_active_game is upserted
---   - The board.groups and board.tileOrder shape is what the FE
---     expects to read directly (FE-knows-the-answer model).
+--     mistake_count=0, config persists, board hardcoded with 4
+--     categories × 4 tiles each, tile order is a shuffle of all
+--     16 tiles, club_active_game is upserted
+--   - The board.categories and board.tileOrder shape is what
+--     the FE expects to read directly (FE-knows-the-answer
+--     model).
 
 begin;
 
@@ -174,30 +178,31 @@ select is(
 );
 
 select is(
-  (select mistakes from wordknit.games where id = (select id from created)),
+  (select mistake_count from wordknit.games where id = (select id from created)),
   0,
-  'create_game: new game starts with 0 mistakes'
+  'create_game: new game starts with mistake_count = 0'
 );
 
--- board.groups is hardcoded with 4 entries. We sample the shape
--- by asserting there are exactly 4 groups with 4 members each.
+-- board.categories is hardcoded with 4 entries. We sample the
+-- shape by asserting there are exactly 4 categories with 4
+-- tiles each.
 select is(
-  (select jsonb_array_length(board->'groups')
+  (select jsonb_array_length(board->'categories')
      from wordknit.games where id = (select id from created)),
   4,
-  'create_game: board.groups has exactly 4 groups'
+  'create_game: board.categories has exactly 4 categories'
 );
 
 select is(
   (
-    -- Sum of members across all 4 groups should be 16.
-    select sum(jsonb_array_length(g->'members'))::int
+    -- Sum of tiles across all 4 categories should be 16.
+    select sum(jsonb_array_length(c->'tiles'))::int
       from wordknit.games gm,
-           jsonb_array_elements(gm.board->'groups') g
+           jsonb_array_elements(gm.board->'categories') c
      where gm.id = (select id from created)
   ),
   16,
-  'create_game: board.groups members sum to 16'
+  'create_game: board.categories tiles sum to 16'
 );
 
 -- tileOrder is a 16-element array. Validates that the FE has the
@@ -209,8 +214,8 @@ select is(
   'create_game: board.tileOrder has 16 entries'
 );
 
--- Sanity check: tileOrder is a permutation of the group members.
--- (Walks both sets, sorted, and asserts equality.)
+-- Sanity check: tileOrder is a permutation of the category
+-- tiles. (Walks both sets, sorted, and asserts equality.)
 select is(
   (select array(
      select e from
@@ -220,13 +225,13 @@ select is(
    )),
   (select array(
      select e from
-       (select jsonb_array_elements_text(g->'members') as e
+       (select jsonb_array_elements_text(c->'tiles') as e
           from wordknit.games gm,
-               jsonb_array_elements(gm.board->'groups') g
+               jsonb_array_elements(gm.board->'categories') c
          where gm.id = (select id from created)) t
       order by e
    )),
-  'create_game: tileOrder is exactly a permutation of the group members'
+  'create_game: tileOrder is exactly a permutation of the category tiles'
 );
 
 -- config is persisted as-given. End-of-game review surfaces (a
