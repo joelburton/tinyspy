@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { cls } from '../../common/lib/cls'
 import { ClubChatPanel } from '../../common/components/ClubChatPanel'
 import { PauseBoundary } from '../../common/components/PauseBoundary'
+import {
+  useGameTimer,
+  formatTimerSeconds,
+} from '../../common/hooks/useGameTimer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { colorForUserId } from '../lib/peerColor'
 import type { GroupLevel } from '../lib/board'
+import { wordknitGame } from '../manifest'
 import styles from './BoardScreen.module.css'
 
 type Props = {
@@ -77,12 +82,47 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  // Browser-side countdown timer. Anchors at the game's
+  // created_at (a stable ISO timestamp from the server) and
+  // ticks locally; pauses freeze it; no server sync. See
+  // useGameTimer's doc for the design choice and drift bounds.
+  // The timer is a no-op when game is null (initial load) — we
+  // pass a placeholder anchor; the resulting display value
+  // doesn't render anyway because we early-return for !game.
+  const timer = useGameTimer({
+    startedAt: game?.created_at ?? new Date().toISOString(),
+    paused,
+    mode: wordknitGame.timerMode ?? { kind: 'none' },
+  })
+
   // Auto-clear the transient banner after a beat.
   useEffect(() => {
     if (!transient) return
     const t = setTimeout(() => setTransient(null), 2200)
     return () => clearTimeout(t)
   }, [transient])
+
+  // Fire the timeout-loss RPC when the countdown hits 0. Edge-
+  // triggered: only the false → true transition fires. The RPC
+  // is idempotent on the "game already not in progress" check,
+  // so multiple clients racing to fire is fine — the loser sees
+  // a P0001 we swallow silently.
+  const submittedTimeoutRef = useRef(false)
+  useEffect(() => {
+    if (!timer.expired) return
+    if (submittedTimeoutRef.current) return
+    if (!game || game.status !== 'in_progress') return
+    submittedTimeoutRef.current = true
+    db.rpc('submit_timeout', { target_game: gameId }).then(({ error }) => {
+      // Idempotency: if a peer beat us to it, the RPC raises a
+      // P0001 "game is not in progress" which we silently
+      // swallow — realtime will propagate the loss to us
+      // momentarily.
+      if (error && error.code !== 'P0001') {
+        console.error('submit_timeout failed', error)
+      }
+    })
+  }, [timer.expired, game, gameId])
 
   if (loading) return <div className="card">Loading board…</div>
   if (!game) return <div className="card">Game not found.</div>
@@ -157,11 +197,28 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
         <div>
           <strong>Wordknit</strong>
           <div className="muted">
-            {gameOver
-              ? game.status === 'solved'
-                ? 'Solved!'
-                : 'Out of guesses.'
-              : `Mistakes left: ${4 - game.mistakes}`}
+            {gameOver ? (
+              game.status === 'solved' ? (
+                'Solved!'
+              ) : timer.expired ? (
+                'Out of time.'
+              ) : (
+                'Out of guesses.'
+              )
+            ) : (
+              <>
+                Mistakes left: {4 - game.mistakes}
+                {wordknitGame.timerMode &&
+                  wordknitGame.timerMode.kind !== 'none' && (
+                    <>
+                      {' · '}
+                      <span className={styles.timer}>
+                        {formatTimerSeconds(timer.displaySeconds)}
+                      </span>
+                    </>
+                  )}
+              </>
+            )}
           </div>
         </div>
         <div className={styles.headerActions}>

@@ -38,6 +38,9 @@ export type WordknitGame = {
   status: 'in_progress' | 'solved' | 'lost'
   mistakes: number
   board: Board
+  /** Server-stamped game-start timestamp, ISO. Used as the
+   *  anchor for the browser-side countdown timer. */
+  created_at: string
 }
 
 export type Member = SetupMember
@@ -226,6 +229,7 @@ export function useGame(
         status: row.status as WordknitGame['status'],
         mistakes: row.mistakes,
         board: row.board as Board,
+        created_at: row.created_at,
       })
       setGuesses(
         (guessesRes.data ?? []).map((g) => ({

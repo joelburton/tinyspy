@@ -38,6 +38,14 @@ export const wordknitGame: GameManifest = {
   // See docs/code-conventions.md → "Per-game player counts".
   numberOfPlayers: [1, null],
 
+  // Count-down timer. 10 minutes ("can you solve this in 10
+  // minutes?" is the wordknit POC's stand-in for difficulty,
+  // until the puzzle archive lands). When the timer hits 0 the
+  // FE fires wordknit.submit_timeout, flipping status to 'lost'.
+  // See docs/wordknit.md → "Timer" for the browser-side-clock
+  // design rationale.
+  timerMode: { kind: 'countdown', seconds: 600 },
+
   Root: lazy(() =>
     import('./Root').then((m) => ({ default: m.WordknitRoot })),
   ),

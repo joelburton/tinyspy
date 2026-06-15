@@ -38,6 +38,14 @@
   gap: 0.75rem;
 }
 
+/* The countdown display in the header. Tabular-nums so the
+ * MM:SS digits don't shift width as they tick down. */
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .leave {
   align-self: center;
 }

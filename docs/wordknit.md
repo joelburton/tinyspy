@@ -182,6 +182,22 @@ The two can't coexist on the same game today — a suspended game isn't being lo
 
 **Future rollout:** the `computePause` helper + `PauseOverlay` component live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern later. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/`.
 
+### Timer (browser-side, no server sync)
+
+Wordknit declares `timerMode: { kind: 'countdown', seconds: 600 }` on its manifest — a 10-minute count-down. When the timer hits 0, the FE fires `wordknit.submit_timeout` and the game's status flips to `lost`.
+
+**Browser-side, not server-synced.** Every client anchors at `games.created_at` (a server-stamped ISO timestamp), then ticks locally using `Date.now()`. There's no heartbeat back to the server, no periodic sync, no pause-log column.
+
+**Why:** the alternative — a server-canonical clock that clients fetch periodically — was tried in a prior project and had a specific UX problem: at sync boundaries the displayed seconds would "fast-second" or "slow-second" depending on which way the local clock drifted relative to the server's. To smooth this, the heartbeat frequency has to be cranked up, which is a lot of plumbing for a small benefit. Browser-side ticking is always smooth.
+
+**Drift across clients.** Two effects compound: wall-clock differences between machines (typically 30-50ms between NTP-synced consumer laptops), and per-pause broadcast latency (~30-100ms each time someone pauses or resumes). For a typical game with 1-2 pauses, total drift between two clients at end-of-game is well under 500ms. Invisible at friends-coop scale.
+
+**The `useGameTimer` hook** (`src/common/hooks/useGameTimer.ts`) implements this. Built on React's `useSyncExternalStore` — the canonical pattern for "this hook observes an external time source" — so it satisfies the React-19 hook lint rules around impure calls during render. The hook is mode-aware (`countup` / `countdown(seconds)` / `none`), pause-aware (freezes the display while `paused`, accumulates pause windows so resume continues from where it left off), and recomputes-from-`Date.now()` rather than incrementing a counter (so backgrounded tabs and slept laptops catch up correctly when they return).
+
+**Timeout-loss firing.** When `useGameTimer` reports `expired: true`, BoardScreen fires `wordknit.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
+
+**Future timer modes.** When boggle lands, it'll set its own `timerMode` on its manifest. The same `useGameTimer` hook handles whatever shape is declared. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, tinyspy might enter sudden-death, etc.) but they all consume the same hook.
+
 ### Code-splitting
 
 Same pattern as tinyspy and psychic-num — `Root` is lazy-loaded in the manifest (`React.lazy(() => import('./Root'))`). The Vite build emits wordknit's JS + CSS as separate chunks; users who only play tinyspy never download it. The lazy boundary for the Setup form is separate (also lazy via the manifest's `setup.Component` field) so the form lands in wordknit's chunk too.
@@ -225,5 +241,6 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | What does the play surface look like | [`src/wordknit/components/BoardScreen.tsx`](../src/wordknit/components/BoardScreen.tsx) |
 | How shared selection works | [`src/wordknit/hooks/useSharedSelection.ts`](../src/wordknit/hooks/useSharedSelection.ts) |
-| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) |
+| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |
+| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../src/common/hooks/useGameTimer.ts) + the wordknit manifest's `timerMode` field |
 | The evaluator | [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) |

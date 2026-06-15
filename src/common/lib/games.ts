@@ -123,6 +123,14 @@ export type GameManifest = {
   blurb: string
 
   /**
+   * Optional timer declaration. Default (omitted) = no timer.
+   * Wordknit sets `{ kind: 'countdown', seconds: 600 }` today;
+   * tinyspy and psychic-num omit. See `TimerMode` above for the
+   * shape and `useGameTimer` for the consumer.
+   */
+  timerMode?: TimerMode
+
+  /**
    * Supported player-count range. The shell uses this to decide
    * whether a "Start X" button is rendered for a given club:
    *
@@ -226,6 +234,31 @@ export type ClubGameEntry = {
   isTerminal: boolean
   statusLabel: string
 }
+
+/**
+ * Per-gametype timer declaration. Read by the `useGameTimer` hook
+ * inside each game's BoardScreen to decide which mode to render.
+ *
+ *   - `none` — no timer; the header shows just whatever the game
+ *     uses for at-a-glance status. Tinyspy and Psychic Num today.
+ *   - `countup` — informational, ticks up from game-creation
+ *     time. "It took us 8 minutes to solve." Display-only;
+ *     doesn't drive any state change.
+ *   - `countdown` — ticks down from `seconds` toward zero.
+ *     When it hits zero, `useGameTimer` flips `expired: true`,
+ *     which the game's BoardScreen uses to fire a per-game
+ *     timeout RPC (e.g. `wordknit.submit_timeout`). The game's
+ *     status flips to a terminal value; realtime propagates the
+ *     loss to all clients.
+ *
+ * See docs/wordknit.md → "Timer" for the broader pattern,
+ * including the deliberate "browser-side, no server sync"
+ * choice and the drift it implies.
+ */
+export type TimerMode =
+  | { kind: 'none' }
+  | { kind: 'countup' }
+  | { kind: 'countdown'; seconds: number }
 
 /**
  * Does a club's member count fall inside a gametype's supported
