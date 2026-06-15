@@ -1,15 +1,15 @@
 -- ============================================================
--- Test: common.gametypes + common.club_game_kinds m2m
+-- Test: common.gametypes + common.clubs_gametypes m2m
 -- ============================================================
 --
 -- Coverage:
 --   1. common.gametypes is populated for both today's gametypes
 --      ('tinyspy', 'psychicnum')
---   2. handle_new_user populates club_game_kinds for each solo
+--   2. handle_new_user populates clubs_gametypes for each solo
 --      club it auto-creates — one row per registered gametype
---   3. create_club populates club_game_kinds for each new club —
+--   3. create_club populates clubs_gametypes for each new club —
 --      same shape
---   4. RLS: a non-member cannot see club_game_kinds rows for a
+--   4. RLS: a non-member cannot see clubs_gametypes rows for a
 --      club they're outside; a member can
 --   5. RLS: common.gametypes is permissively readable (sanity
 --      check — gametype identifiers are not sensitive)
@@ -26,7 +26,7 @@ select plan(10);
 -- Cast: ada + bea form the test club; dee is the outsider used
 -- for the RLS-negative assertions. The personas trigger
 -- handle_new_user on insert, so each one has a solo club + a
--- populated club_game_kinds before the test body runs — relevant
+-- populated clubs_gametypes before the test body runs — relevant
 -- for the "solo club auto-creation populates m2m" check.
 
 \ir ../_shared/setup.psql
@@ -57,18 +57,18 @@ select is(
 select is(
   (
     select count(*)
-    from common.club_game_kinds k
+    from common.clubs_gametypes k
     join common.clubs c on c.id = k.club_id
     where c.handle = '=ada'
   ),
   3::bigint,
-  'handle_new_user populated 3 club_game_kinds rows for ada''s solo club'
+  'handle_new_user populated 3 clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
   (
     select array_agg(k.gametype order by k.gametype)
-    from common.club_game_kinds k
+    from common.clubs_gametypes k
     join common.clubs c on c.id = k.club_id
     where c.handle = '=ada'
   ),
@@ -88,7 +88,7 @@ reset role;
 select is(
   (
     select count(*)
-    from common.club_game_kinds
+    from common.clubs_gametypes
     where club_id = (select id from club)
   ),
   3::bigint,
@@ -98,7 +98,7 @@ select is(
 select is(
   (
     select array_agg(gametype order by gametype)
-    from common.club_game_kinds
+    from common.clubs_gametypes
     where club_id = (select id from club)
   ),
   array['psychicnum','tinyspy','wordknit'],
@@ -114,7 +114,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (
     select count(*)
-    from common.club_game_kinds
+    from common.clubs_gametypes
     where club_id = (select id from club)
   ),
   3::bigint,
@@ -124,13 +124,13 @@ select is(
 -- ============================================================
 -- (8) Dee (outsider) cannot SELECT the m2m rows
 -- ============================================================
--- club_game_kinds_select is gated on common.is_club_member.
+-- clubs_gametypes_select is gated on common.is_club_member.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (
     select count(*)
-    from common.club_game_kinds
+    from common.clubs_gametypes
     where club_id = (select id from club)
   ),
   0::bigint,
@@ -151,19 +151,19 @@ select is(
 );
 
 -- ============================================================
--- (10) Direct INSERT into club_game_kinds is blocked
+-- (10) Direct INSERT into clubs_gametypes is blocked
 -- ============================================================
 -- No INSERT/UPDATE/DELETE grants for authenticated — writes go
 -- through the security-definer create_club / handle_new_user.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  $$ insert into common.club_game_kinds (club_id, gametype)
+  $$ insert into common.clubs_gametypes (club_id, gametype)
      values ((select id from common.clubs where handle = '=ada'),
              'tinyspy') $$,
   '42501',
-  'permission denied for table club_game_kinds',
-  'direct INSERT into club_game_kinds is blocked (no grant on authenticated)'
+  'permission denied for table clubs_gametypes',
+  'direct INSERT into clubs_gametypes is blocked (no grant on authenticated)'
 );
 
 -- ============================================================

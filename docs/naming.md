@@ -44,7 +44,7 @@ See [`common.md`](common.md) for the full club model — invariants, lifecycle, 
 
 ### member
 
-A user who's joined a club. In `common.club_members`. Membership is fixed at club creation in v1; no add/remove RPCs.
+A user who's joined a club. In `common.clubs_members`. Membership is fixed at club creation in v1; no add/remove RPCs.
 
 **Bare `member` is reserved for the club-member case** — that's the dominant referent in this codebase and stealing it would cost every reader a moment of disambiguation. If we ever introduce a "member" concept for some other domain object (a permission group, a household, a mailing list, …), it must carry a differentiating prefix: `permissionGroupMember`, `householdMember`. Bare `member` stays the club member.
 

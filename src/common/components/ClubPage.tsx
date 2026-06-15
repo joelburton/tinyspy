@@ -41,7 +41,7 @@ type Props = {
  * RLS gates everything: a non-member's `clubs.select` returns zero
  * rows, so visiting `/c/some-other-club` shows a "not found" rather
  * than a forbidden-style error. Same protection covers
- * `club_members`, `club_active_game`, each game's tables (via the
+ * `clubs_members`, `club_active_game`, each game's tables (via the
  * gametype's own RLS), and `messages` (covered transitively by
  * useClubChat).
  *
@@ -63,7 +63,7 @@ export function ClubPage({ session, handle }: Props) {
   const [startError, setStartError] = useState<string | null>(null)
   const [starting, setStarting] = useState<string | null>(null)
   // The set of gametypes this club is allowed to play, read from
-  // common.club_game_kinds. v1 populates this with every registered
+  // common.clubs_gametypes. v1 populates this with every registered
   // gametype at club-creation time; per-club opt-out is deferred.
   // We still gate FE rendering on this set so a future
   // gametype-not-auto-added-to-this-club state works correctly,
@@ -124,7 +124,7 @@ export function ClubPage({ session, handle }: Props) {
       setClub(clubData)
 
       const { data: membersData, error: membersError } = await commonDb
-        .from('club_members')
+        .from('clubs_members')
         .select('user_id')
         .eq('club_id', clubData.id)
       if (!mounted) return
@@ -151,7 +151,7 @@ export function ClubPage({ session, handle }: Props) {
       // (computed at render time) naturally hides gametypes the
       // DB knows about but this FE bundle doesn't.
       const { data: kindsData } = await commonDb
-        .from('club_game_kinds')
+        .from('clubs_gametypes')
         .select('gametype')
         .eq('club_id', clubData.id)
       if (!mounted) return

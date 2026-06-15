@@ -2,26 +2,6 @@
 -- Wordknit — Connections-style word-grouping puzzle (POC)
 -- ============================================================
 --
--- Squashed from three originally-separate migrations:
---
---   2026-06-14  wordknit_baseline           — schema, tables,
---                                              partial unique index,
---                                              RLS, create_game
---                                              (without timer
---                                              validation), submit_guess,
---                                              termination trigger,
---                                              gametype self-registration
---   2026-06-14  wordknit_submit_timeout     — adds submit_timeout RPC
---                                              fired by the FE when the
---                                              countdown timer expires
---   2026-06-15  wordknit_timer_in_setup     — CREATE OR REPLACE of
---                                              create_game adding the
---                                              setup.timer shape
---                                              validator
---
--- Squashing collapses the CREATE OR REPLACE dance into a single
--- forward definition.
---
 -- A 4×4 board of 16 tiles split into 4 hidden categories of 4.
 -- Players select 4 tiles, submit, and try to identify a category.
 -- Correct guesses reveal the category as a colored band;
@@ -226,62 +206,25 @@ security definer
 set search_path = wordknit, common, public, extensions
 as $$
 declare
-  caller_id uuid;
   new_id uuid;
   board_categories jsonb;
   tile_order text[];
   j int;
   tmp text;
-  timer_obj jsonb;
-  timer_kind text;
-  timer_seconds int;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  if not exists (
-    select 1 from common.club_members
-     where club_id = target_club and user_id = caller_id
-  ) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership gate. See common.require_club_member —
+  -- wordknit doesn't need the returned caller_id at create time
+  -- (the game has no per-seat structure, just club membership).
+  perform common.require_club_member(target_club);
 
   -- No member-count check — wordknit plays with any club size.
   -- Must agree with the `numberOfPlayers: [1, null]` declaration
   -- in src/wordknit/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts" for the cross-reference convention.
 
-  -- ─── Validate setup.timer shape ──────────────────────
-  -- Missing-vs-bad split for clear error messages (same
-  -- pattern as tinyspy / psychic-num setup validation).
-  timer_obj := setup->'timer';
-  if timer_obj is null then
-    raise exception 'setup.timer is required' using errcode = 'P0001';
-  end if;
-
-  timer_kind := timer_obj->>'kind';
-  if timer_kind not in ('none', 'countup', 'countdown') then
-    raise exception
-      'setup.timer.kind must be none, countup, or countdown (got %)',
-      coalesce(timer_kind, '<null>')
-      using errcode = 'P0001';
-  end if;
-
-  if timer_kind = 'countdown' then
-    if (timer_obj->>'seconds') is null then
-      raise exception 'setup.timer.seconds is required for countdown'
-        using errcode = 'P0001';
-    end if;
-    timer_seconds := (timer_obj->>'seconds')::int;
-    if timer_seconds < 1 or timer_seconds > 3600 then
-      raise exception
-        'setup.timer.seconds must be 1..3600 (got %)',
-        timer_seconds
-        using errcode = 'P0001';
-    end if;
-  end if;
+  -- Canonical timer-shape validation. See common.validate_timer
+  -- for the accepted shapes and the exact raise messages.
+  perform common.validate_timer(setup->'timer');
 
   -- Hardcoded POC board. Ranks 0..3 map to NYT yellow/green/
   -- blue/purple in the FE's theme.css. The categories are obvious
@@ -321,14 +264,8 @@ begin
   )
   returning games.id into new_id;
 
-  -- Upsert into club_active_game — auto-pauses any prior active
-  -- game for this club by overwriting the pointer.
-  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
-  values (target_club, 'wordknit', new_id, now())
-  on conflict (club_id) do update set
-    gametype = excluded.gametype,
-    game_id = excluded.game_id,
-    set_active_at = excluded.set_active_at;
+  -- Take the club's active-game slot (auto-pauses any prior).
+  perform common.set_club_active_game(target_club, 'wordknit', new_id);
 
   return query select new_id;
 end;
@@ -383,11 +320,6 @@ declare
   new_mistake_count int;
   new_status text;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
   -- Lock the game row for atomic mistake_count++ and status
   -- flips.
   select * into g_row from wordknit.games
@@ -397,9 +329,9 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  if not common.is_club_member(g_row.club_id) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership (deferred to after the lock so we can use
+  -- the game row's club_id). See common.require_club_member.
+  caller_id := common.require_club_member(g_row.club_id);
 
   if g_row.status <> 'in_progress' then
     raise exception 'game is not in progress' using errcode = 'P0001';
@@ -510,14 +442,8 @@ security definer
 set search_path = wordknit, common, public, extensions
 as $$
 declare
-  caller_id uuid;
   g_row wordknit.games%rowtype;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
   select * into g_row from wordknit.games
    where wordknit.games.id = target_game
    for update;
@@ -525,9 +451,9 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  if not common.is_club_member(g_row.club_id) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership (deferred to after the lock so we can use
+  -- the game row's club_id). See common.require_club_member.
+  perform common.require_club_member(g_row.club_id);
 
   if g_row.status <> 'in_progress' then
     raise exception 'game is not in progress' using errcode = 'P0001';

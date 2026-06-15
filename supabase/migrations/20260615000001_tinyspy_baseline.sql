@@ -298,25 +298,17 @@ declare
   s_turns int;
   s_first uuid;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  -- Caller must be a member of the target club.
-  if not exists (
-    select 1 from common.club_members
-    where club_id = target_club and user_id = caller_id
-  ) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership gate. See common.require_club_member —
+  -- returns caller_id, raises 42501 'must be authenticated' or
+  -- 'not a member of this club' as appropriate.
+  caller_id := common.require_club_member(target_club);
 
   -- Tinyspy needs exactly 2 club members. Must agree with
   -- the `numberOfPlayers: [2, 2]` declaration in
   -- src/tinyspy/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts" for the cross-reference convention.
   select count(*) into member_count
-    from common.club_members where club_id = target_club;
+    from common.clubs_members where club_id = target_club;
   if member_count <> 2 then
     raise exception 'tinyspy requires a 2-member club (this club has %)', member_count
       using errcode = 'P0001';
@@ -324,7 +316,7 @@ begin
 
   -- Find the other member.
   select user_id into other_id
-    from common.club_members
+    from common.clubs_members
    where club_id = target_club and user_id <> caller_id
    limit 1;
 
@@ -429,14 +421,9 @@ begin
     values (new_id, i, picked_words[i+1]);
   end loop;
 
-  -- Upsert into club_active_game — auto-pauses any prior active
-  -- game for this club by overwriting the pointer.
-  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
-  values (target_club, 'tinyspy', new_id, now())
-  on conflict (club_id) do update set
-    gametype = excluded.gametype,
-    game_id = excluded.game_id,
-    set_active_at = excluded.set_active_at;
+  -- Take the club's active-game slot (auto-pauses any prior
+  -- active game for this club by overwriting the pointer).
+  perform common.set_club_active_game(target_club, 'tinyspy', new_id);
 
   return query select new_id;
 end;

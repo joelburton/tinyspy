@@ -2,26 +2,6 @@
 -- psychicnum schema — baseline (squashed)
 -- ============================================================
 --
--- Squashed from three originally-separate migrations:
---
---   2026-06-12  psychicnum_baseline             — schema, tables,
---                                                  RLS + column-grant
---                                                  hiding `target`, RPCs
---                                                  (1-arg create_game,
---                                                  submit_guess, play_again,
---                                                  reveal_target,
---                                                  termination trigger)
---   2026-06-14  psychicnum_remove_play_again    — drops play_again RPC +
---                                                  games.next_game_id
---   2026-06-14  psychicnum_setup                — adds games.setup jsonb,
---                                                  widens guesses_remaining
---                                                  check to 0..9, replaces
---                                                  create_game with the
---                                                  2-arg version
---
--- Squashing collapses the alter/drop/replace dances into a single
--- forward definition. Git history holds the originals.
---
 -- Psychic Num is a tiny cooperative number-guessing game: pick a
 -- random target 1..10, hidden server-side; any club member can
 -- guess at any time; first correct guess wins; running out of
@@ -188,21 +168,13 @@ security definer
 set search_path = psychicnum, common, public, extensions
 as $$
 declare
-  caller_id uuid;
   new_id uuid;
   s_guesses int;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  if not exists (
-    select 1 from common.club_members
-     where club_id = target_club and user_id = caller_id
-  ) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership gate. See common.require_club_member —
+  -- we discard the returned caller_id; psychic-num doesn't need
+  -- it (no per-seat state, no winner attribution at create time).
+  perform common.require_club_member(target_club);
 
   -- ─── Validate setup shape ────────────────────────────
   -- One option, four allowed values. We don't trust the FE for
@@ -234,12 +206,8 @@ begin
   )
   returning games.id into new_id;
 
-  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
-  values (target_club, 'psychicnum', new_id, now())
-  on conflict (club_id) do update set
-    gametype = excluded.gametype,
-    game_id = excluded.game_id,
-    set_active_at = excluded.set_active_at;
+  -- Take the club's active-game slot (auto-pauses any prior).
+  perform common.set_club_active_game(target_club, 'psychicnum', new_id);
 
   return query select new_id;
 end;
@@ -278,11 +246,6 @@ declare
   is_correct boolean;
   remaining int;
 begin
-  caller_id := auth.uid();
-  if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
   if guess is null or guess < 1 or guess > 10 then
     raise exception 'guess must be between 1 and 10' using errcode = 'P0001';
   end if;
@@ -294,9 +257,9 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  if not common.is_club_member(g.club_id) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership (deferred to after the lock so we can use
+  -- the game row's club_id). See common.require_club_member.
+  caller_id := common.require_club_member(g.club_id);
 
   if g.status <> 'active' then
     raise exception 'game is not active' using errcode = 'P0001';
@@ -389,19 +352,15 @@ as $$
 declare
   g psychicnum.games%rowtype;
 begin
-  if auth.uid() is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  if not common.is_club_member(g.club_id) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership (deferred to after the lookup so we can use
+  -- the game row's club_id). See common.require_club_member.
+  perform common.require_club_member(g.club_id);
 
   if g.status = 'active' then
     raise exception 'game is still active' using errcode = 'P0001';

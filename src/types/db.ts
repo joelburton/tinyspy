@@ -36,71 +36,12 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      club_game_kinds: {
-        Row: {
-          added_at: string
-          club_id: string
-          gametype: string
-        }
-        Insert: {
-          added_at?: string
-          club_id: string
-          gametype: string
-        }
-        Update: {
-          added_at?: string
-          club_id?: string
-          gametype?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "club_game_kinds_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "club_game_kinds_gametype_fkey"
+            foreignKeyName: "club_active_game_gametype_fkey"
             columns: ["gametype"]
             isOneToOne: false
             referencedRelation: "gametypes"
             referencedColumns: ["gametype"]
-          },
-        ]
-      }
-      club_members: {
-        Row: {
-          club_id: string
-          joined_at: string
-          user_id: string
-        }
-        Insert: {
-          club_id: string
-          joined_at?: string
-          user_id: string
-        }
-        Update: {
-          club_id?: string
-          joined_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "club_members_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "club_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -130,6 +71,72 @@ export type Database = {
           {
             foreignKeyName: "clubs_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      clubs_gametypes: {
+        Row: {
+          added_at: string
+          club_id: string
+          gametype: string
+        }
+        Insert: {
+          added_at?: string
+          club_id: string
+          gametype: string
+        }
+        Update: {
+          added_at?: string
+          club_id?: string
+          gametype?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_gametypes_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clubs_gametypes_gametype_fkey"
+            columns: ["gametype"]
+            isOneToOne: false
+            referencedRelation: "gametypes"
+            referencedColumns: ["gametype"]
+          },
+        ]
+      }
+      clubs_members: {
+        Row: {
+          club_id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_members_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clubs_members_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
@@ -218,11 +225,17 @@ export type Database = {
         }[]
       }
       is_club_member: { Args: { target_club: string }; Returns: boolean }
+      require_club_member: { Args: { target_club: string }; Returns: string }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined
       }
+      set_club_active_game: {
+        Args: { game_id: string; gametype: string; target_club: string }
+        Returns: undefined
+      }
       slugify_club_name: { Args: { name: string }; Returns: string }
+      validate_timer: { Args: { timer_obj: Json }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

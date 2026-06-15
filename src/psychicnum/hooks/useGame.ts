@@ -89,7 +89,7 @@ export function useGame(gameId: string) {
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
         commonDb
-          .from('club_members')
+          .from('clubs_members')
           .select('user_id')
           .eq('club_id', gameData.club_id),
       ])

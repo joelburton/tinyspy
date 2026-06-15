@@ -26,7 +26,7 @@ Concretely:
 - Every game's `games` table has `club_id NOT NULL`. The FK is to `common.clubs`; there is no "solo" alternative.
 - Each user gets a **solo club** (handle `=<username>`) auto-created at first sign-in by the `handle_new_user` trigger. The solo club is the venue for that user's solo play — when a future gametype plays naturally as 1-player (a single-player boggle puzzle, a daily crossword), the user enters their solo club and starts it there. Same shell, same routing, same `create_game` RPC.
 - Game-internal logic (score reports, replay history, board generation) is the same regardless of club size.
-- A gametype's supported player-count range is declared on its manifest (`numberOfPlayers: [min, max | null]`). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. Tinyspy `[2, 2]` never appears in a solo club; psychic-num and wordknit (both `[1, null]`) appear in both solo and multi-member clubs; a future game with `[3, 5]` would only appear in clubs sized 3-5. ClubPage hides the button entirely when there's no `club_game_kinds` row, and disables it with a tooltip when the row exists but the count is out of range — see `playerCountFits` / `playerCountLabel` in `src/common/lib/games.ts`.
+- A gametype's supported player-count range is declared on its manifest (`numberOfPlayers: [min, max | null]`). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. Tinyspy `[2, 2]` never appears in a solo club; psychic-num and wordknit (both `[1, null]`) appear in both solo and multi-member clubs; a future game with `[3, 5]` would only appear in clubs sized 3-5. ClubPage hides the button entirely when there's no `clubs_gametypes` row, and disables it with a tooltip when the row exists but the count is out of range — see `playerCountFits` / `playerCountLabel` in `src/common/lib/games.ts`.
 - Mode-specific UX, where it exists (a game that asks "cooperative or competitive?" only when multi-player), lives inside that game's setup form — same `setup jsonb` pattern as the existing setup options. The form's body is free to render different fields based on the mode choice; the shell doesn't notice.
 
 The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_id` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
@@ -41,17 +41,17 @@ Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 |---|---|
 | `profiles` | One row per auth user. Holds `username` (unique). Materialized by the `handle_new_user` trigger on first sign-in; persists across sign-out. Cascades from `auth.users`. |
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. |
-| `club_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
+| `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
 | `club_active_game` | Pointer table. PK on `club_id` alone (not on `(club_id, gametype, game_id)`) is what enforces the **one active game per club, across all gametypes** rule. Presence of a row → club has an active game; absence → nothing is active. |
-| `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `club_game_kinds` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
-| `club_game_kinds` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. |
+| `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
+| `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. |
 | `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. The 1–1000 character constraint matches what game-scoped chat used to have, before chat moved to common. |
 
 ### The club_active_game pointer
 
 This table is the most architecturally interesting piece of `common`. Two things to keep in mind:
 
-1. **`(game_id, gametype)` is a soft FK.** The real FK can't be declared because the target schema varies per row — `tinyspy.games(id)` for tinyspy rows, `psychicnum.games(id)` for psychic-num rows, etc. Cleanup of orphan rows when a gametype is dropped is part of the drop-a-game recipe, not enforced by referential integrity.
+1. **`gametype` is a real FK to `common.gametypes(gametype)` with ON DELETE CASCADE; `game_id` is a soft FK.** The real FK on `game_id` can't be declared because the target schema varies per row — `tinyspy.games(id)` for tinyspy rows, `psychicnum.games(id)` for psychic-num rows, etc. Cleanup of `game_id`-orphan rows (a game row gets deleted by its own schema's cascade) is part of the drop-a-game recipe, not enforced by referential integrity. The `gametype` FK does carry CASCADE, so removing a gametype from the registry — the "delete a game in three actions" recipe — auto-clears its active-game pointers.
 
 2. **The `pk(club_id)` is load-bearing.** With it, starting a new game upserts the row, which auto-suspends whatever was previously active — by simply overwriting the pointer. The previously-active game's internal status (`tinyspy.games.status`) is untouched; "suspended" is a club-level concept derived from "this game exists but isn't pointed at by `club_active_game`."
 
@@ -75,7 +75,7 @@ Every user gets a solo club on first sign-in, materialized by the `handle_new_us
 
 Solo clubs are intended as the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The FE hides them from the regular clubs list — they're visible to their owner but not surfaced as a navigation target. Most game logic doesn't distinguish solo clubs from regular ones; the `club_id` is just non-null in both cases.
 
-Wordknit and psychic-num both have `numberOfPlayers: [1, null]`, so both appear as Play-solo buttons on the HomePage's solo-games section (keyed on the user's solo club). Tinyspy stays multi-member-only by virtue of its `[2, 2]` range. The HomePage's filtering logic is the same as ClubPage's: intersect the manifest range with the solo club's `club_game_kinds` rows and show what fits.
+Wordknit and psychic-num both have `numberOfPlayers: [1, null]`, so both appear as Play-solo buttons on the HomePage's solo-games section (keyed on the user's solo club). Tinyspy stays multi-member-only by virtue of its `[2, 2]` range. The HomePage's filtering logic is the same as ClubPage's: intersect the manifest range with the solo club's `clubs_gametypes` rows and show what fits.
 
 ## RPCs
 
@@ -105,9 +105,48 @@ Writes go through this RPC only; the table itself has no insert grant on `authen
 
 | function | role |
 |---|---|
-| `common.handle_new_user()` | Trigger on `auth.users` insert. Materializes a `profiles` row + a solo club + `club_game_kinds` rows for every gametype in `common.gametypes`. A username collision (unique constraint) aborts sign-in entirely. |
+| `common.handle_new_user()` | Trigger on `auth.users` insert. Materializes a `profiles` row + a solo club + `clubs_gametypes` rows for every gametype in `common.gametypes`. A username collision (unique constraint) aborts sign-in entirely. |
 | `common.is_club_member(target_club uuid) → boolean` | Security-definer RLS helper. Used by every `common.*` table's SELECT policy. Marked `stable` so Postgres can cache it within a SELECT — the RLS layer calls it once per row otherwise. |
 | `common.slugify_club_name(name text) → text` | Lowercase → non-alnum to `-` → trim → cap at 40 chars. Strips `=` along the way, which is what keeps user-typed names from producing solo-club handles. |
+
+### Game-RPC helpers (called by per-game RPCs)
+
+These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-specific mechanics and don't independently re-implement the cross-cutting gates. All three are security-definer and revoked from public (no grant to `authenticated`) — they're callable only from within other security-definer RPCs in the same database, where SECURITY DEFINER chains let the call succeed without an explicit grant to the session user. They're still visible in the generated `Database` types because PostgREST inspects the catalog, but FE invocation gets `permission denied`.
+
+| function | role |
+|---|---|
+| `common.require_club_member(target_club uuid) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_id comes off the game row, e.g. `submit_guess`). |
+| `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
+| `common.set_club_active_game(target_club uuid, gametype text, game_id uuid) → void` | Upserts the (club, gametype, game_id) pointer in `club_active_game`, replacing whatever was active. The single-row-per-club PK enforces "one active game per club, across all gametypes" — the upsert auto-suspends whatever was previously active. Use at the end of every `create_game` after inserting the game row. |
+
+Canonical pattern for a new gametype's `create_game`:
+
+```sql
+create function <gametype>.create_game(target_club uuid, setup jsonb)
+returns table(id uuid)
+language plpgsql security definer
+set search_path = <gametype>, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  new_id uuid;
+begin
+  caller_id := common.require_club_member(target_club);
+
+  -- gametype-specific setup validation (e.g. setup.foo + setup.bar)
+  perform common.validate_timer(setup->'timer');  -- when this gametype has a timer
+
+  -- gametype-specific board generation + game-row insert
+  insert into <gametype>.games (...) values (...) returning id into new_id;
+
+  perform common.set_club_active_game(target_club, '<gametype>', new_id);
+
+  return query select new_id;
+end;
+$$;
+```
+
+Tests for the helpers live in [`supabase/tests/common/helpers_test.sql`](../supabase/tests/common/helpers_test.sql).
 
 ## Row-level security
 
@@ -129,7 +168,7 @@ There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes 
 Four club tables are in `supabase_realtime`:
 
 - `clubs` — new club, rename
-- `club_members` — roster changes (deferred to v2, but free)
+- `clubs_members` — roster changes (deferred to v2, but free)
 - `club_active_game` — the "every member follows the active game" auto-nav rule lives on this one
 - `messages` — chat
 
@@ -279,4 +318,4 @@ See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 - **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; the registry-dispatch `fetchClubGames` is fine at current scale.
 - **Friends / presence.** The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
-- **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.club_game_kinds` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.
+- **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.clubs_gametypes` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.

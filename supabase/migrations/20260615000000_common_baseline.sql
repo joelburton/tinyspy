@@ -5,12 +5,12 @@
 -- Squashed from three originally-separate migrations:
 --
 --   2026-06-12  common_baseline           — profiles, clubs,
---                                            club_members, club_active_game,
+--                                            clubs_members, club_active_game,
 --                                            messages, slugify, create_club,
 --                                            send_message, is_club_member,
 --                                            handle_new_user trigger
 --   2026-06-14  common_club_game_kinds    — gametypes registry +
---                                            club_game_kinds m2m, with
+--                                            clubs_gametypes m2m, with
 --                                            handle_new_user / create_club
 --                                            extended to populate it
 --
@@ -29,7 +29,7 @@
 --                            identity.
 --   - clubs               — fixed-membership rooms friends play in
 --                            together. Cross-game social primitive.
---   - club_members        — m2m between clubs and profiles.
+--   - clubs_members       — m2m between clubs and profiles.
 --   - club_active_game    — at-most-one row per club; tracks which
 --                            game the club is currently playing
 --                            (across all gametypes). Auto-cleared
@@ -39,9 +39,13 @@
 --   - gametypes           — registered-gametype list. Each game's
 --                            baseline migration self-registers via
 --                            an INSERT ... ON CONFLICT DO NOTHING.
---   - club_game_kinds     — m2m saying "this club may play this
+--   - clubs_gametypes     — m2m saying "this club may play this
 --                            gametype." Populated for every new
 --                            club by handle_new_user / create_club.
+--
+-- Naming note: m2m tables are pluralized on both sides
+-- (`clubs_members`, `clubs_gametypes`) so they read as m:m at a
+-- glance rather than as 1:m. See docs/naming.md.
 --
 -- What `common` MUST NOT do: reference any game schema. The
 -- removability invariant (delete a game in three actions — folder,
@@ -103,7 +107,7 @@ create table common.clubs (
 );
 
 -- ============================================================
--- common.club_members — m2m
+-- common.clubs_members — m2m
 -- ============================================================
 --
 -- Pk on (club_id, user_id) so a user can't be listed twice in
@@ -112,11 +116,39 @@ create table common.clubs (
 -- because (a) it's the right shape and (b) future member-listing
 -- UI wants the relational structure.
 
-create table common.club_members (
+create table common.clubs_members (
   club_id uuid not null references common.clubs(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   joined_at timestamptz not null default now(),
   primary key (club_id, user_id)
+);
+
+-- ============================================================
+-- common.gametypes — the registered-gametype list
+-- ============================================================
+-- Authoritative SQL-side list of gametypes. Used by the
+-- m2m-population RPCs below so each only needs one query
+-- ("INSERT INTO clubs_gametypes SELECT new_club_id, gametype
+-- FROM gametypes") rather than hardcoding the list of
+-- gametype strings.
+--
+-- Defined before club_active_game so that table's `gametype`
+-- column can carry a real FK pointing here.
+--
+-- ┌─ Convention for new gametypes ─────────────────────────┐
+-- │ Each gametype's baseline migration must self-register: │
+-- │                                                        │
+-- │   insert into common.gametypes (gametype)              │
+-- │   values ('boggle')                                    │
+-- │   on conflict do nothing;                              │
+-- │                                                        │
+-- │ The three existing baselines (tinyspy, psychicnum,     │
+-- │ wordknit) all do this at the bottom of their files;    │
+-- │ a future game follows the same pattern.                │
+-- └────────────────────────────────────────────────────────┘
+
+create table common.gametypes (
+  gametype text primary key
 );
 
 -- ============================================================
@@ -128,18 +160,41 @@ create table common.club_members (
 -- all gametypes" rule. Presence of a row → club has an active
 -- game; absence → nothing is active for the club.
 --
--- (game_id, gametype) is a soft FK into <gametype>.games(id). The
--- real FK can't be declared here because the target schema varies
--- per row (tinyspy.games for tinyspy, psychicnum.games for
--- psychicnum, future games for theirs). Cleanup of orphan rows
--- when a gametype is removed is handled in the drop-a-game recipe,
--- not by referential integrity.
+-- `gametype` is a real FK to common.gametypes(gametype) with
+-- ON DELETE CASCADE — when a gametype is removed from the
+-- registry (the "delete a game in three actions" recipe), its
+-- active-game pointers are auto-cleaned.
+--
+-- `game_id` is a soft FK into <gametype>.games(id). The real
+-- FK can't be declared because the target schema varies per row
+-- (tinyspy.games for tinyspy, psychicnum.games for psychicnum,
+-- future games for theirs). Cleanup of orphan rows from the
+-- gametype-side is handled in the drop-a-game recipe.
 
 create table common.club_active_game (
   club_id uuid primary key references common.clubs(id) on delete cascade,
-  gametype text not null,
+  gametype text not null references common.gametypes(gametype) on delete cascade,
   game_id uuid not null,
   set_active_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- common.clubs_gametypes — m2m
+-- ============================================================
+-- PK is (club_id, gametype) so each pair is recorded at most
+-- once. `gametype` FKs to common.gametypes for referential
+-- integrity (an unregistered gametype can't be inserted).
+--
+-- v1 only writes from the security-definer RPCs below
+-- (handle_new_user, create_club). A future "club admin UI"
+-- would add an RPC for member-driven enable/disable. No
+-- INSERT/UPDATE/DELETE policies on the table itself.
+
+create table common.clubs_gametypes (
+  club_id  uuid not null references common.clubs(id) on delete cascade,
+  gametype text not null references common.gametypes(gametype) on delete cascade,
+  added_at timestamptz not null default now(),
+  primary key (club_id, gametype)
 );
 
 -- ============================================================
@@ -163,65 +218,21 @@ create index messages_club_id_sent_at_idx
   on common.messages (club_id, sent_at);
 
 -- ============================================================
--- common.gametypes — the registered-gametype list
--- ============================================================
--- Authoritative SQL-side list of gametypes. Used by the
--- m2m-population RPCs below so each only needs one query
--- ("INSERT INTO club_game_kinds SELECT new_club_id, gametype
--- FROM gametypes") rather than hardcoding the list of
--- gametype strings.
---
--- ┌─ Convention for new gametypes ─────────────────────────┐
--- │ Each gametype's baseline migration must self-register: │
--- │                                                        │
--- │   insert into common.gametypes (gametype)              │
--- │   values ('boggle')                                    │
--- │   on conflict do nothing;                              │
--- │                                                        │
--- │ The three existing baselines (tinyspy, psychicnum,     │
--- │ wordknit) all do this at the bottom of their files;    │
--- │ a future game follows the same pattern.                │
--- └────────────────────────────────────────────────────────┘
-
-create table common.gametypes (
-  gametype text primary key
-);
-
--- ============================================================
--- common.club_game_kinds — m2m
--- ============================================================
--- PK is (club_id, gametype) so each pair is recorded at most
--- once. `gametype` FKs to common.gametypes for referential
--- integrity (an unregistered gametype can't be inserted).
---
--- v1 only writes from the security-definer RPCs below
--- (handle_new_user, create_club). A future "club admin UI"
--- would add an RPC for member-driven enable/disable. No
--- INSERT/UPDATE/DELETE policies on the table itself.
-
-create table common.club_game_kinds (
-  club_id  uuid not null references common.clubs(id) on delete cascade,
-  gametype text not null references common.gametypes(gametype) on delete cascade,
-  added_at timestamptz not null default now(),
-  primary key (club_id, gametype)
-);
-
--- ============================================================
 -- RLS — only members can read club data
 -- ============================================================
 --
 -- The security-definer helper is_club_member (below) bypasses
 -- RLS inside its body, preventing the infinite recursion that
--- would happen if club_members's own policy needed to ask
+-- would happen if clubs_members's own policy needed to ask
 -- "is the caller a member of this club?"
 
 alter table common.profiles         enable row level security;
 alter table common.clubs            enable row level security;
-alter table common.club_members     enable row level security;
+alter table common.clubs_members    enable row level security;
 alter table common.club_active_game enable row level security;
 alter table common.messages         enable row level security;
 alter table common.gametypes        enable row level security;
-alter table common.club_game_kinds  enable row level security;
+alter table common.clubs_gametypes  enable row level security;
 
 create function common.is_club_member(target_club uuid)
 returns boolean
@@ -231,7 +242,7 @@ set search_path = common, public, extensions
 stable
 as $$
   select exists (
-    select 1 from common.club_members
+    select 1 from common.clubs_members
     where club_id = target_club and user_id = auth.uid()
   );
 $$;
@@ -263,7 +274,7 @@ create policy clubs_select on common.clubs
   for select to authenticated
   using (common.is_club_member(id));
 
-create policy club_members_select on common.club_members
+create policy clubs_members_select on common.clubs_members
   for select to authenticated
   using (common.is_club_member(club_id));
 
@@ -282,7 +293,7 @@ create policy messages_select on common.messages
 create policy gametypes_select on common.gametypes
   for select to authenticated using (true);
 
-create policy club_game_kinds_select on common.club_game_kinds
+create policy clubs_gametypes_select on common.clubs_gametypes
   for select to authenticated
   using (common.is_club_member(club_id));
 
@@ -294,18 +305,18 @@ create policy club_game_kinds_select on common.club_game_kinds
 
 grant select, update on common.profiles        to authenticated;
 grant select on common.clubs                   to authenticated;
-grant select on common.club_members            to authenticated;
+grant select on common.clubs_members           to authenticated;
 grant select on common.club_active_game        to authenticated;
 grant select on common.messages                to authenticated;
 grant select on common.gametypes               to authenticated;
-grant select on common.club_game_kinds         to authenticated;
+grant select on common.clubs_gametypes         to authenticated;
 
 -- ============================================================
 -- Realtime publication
 -- ============================================================
 -- The four club tables broadcast so the FE can subscribe to:
 --   - clubs              new club created / renamed
---   - club_members       roster changes (deferred to v2 but free)
+--   - clubs_members      roster changes (deferred to v2 but free)
 --   - club_active_game   the "every member follows the active game"
 --                        auto-nav rule lives on this one
 --   - messages           chat
@@ -314,13 +325,13 @@ grant select on common.club_game_kinds         to authenticated;
 -- don't change during a session and the realtime traffic isn't
 -- worth it. If usernames become mutable later, add it then.
 --
--- gametypes / club_game_kinds also deliberately not published —
+-- gametypes / clubs_gametypes also deliberately not published —
 -- they only change at club creation (already handled by the
 -- ClubPage refetch on navigation) and at gametype registration
 -- (a deploy-time event).
 
 alter publication supabase_realtime add table common.clubs;
-alter publication supabase_realtime add table common.club_members;
+alter publication supabase_realtime add table common.clubs_members;
 alter publication supabase_realtime add table common.club_active_game;
 alter publication supabase_realtime add table common.messages;
 
@@ -359,10 +370,183 @@ as $$
 $$;
 
 -- ============================================================
+-- Helpers for game RPCs
+-- ============================================================
+-- Per-game RPCs share a few load-bearing patterns: auth + club-
+-- membership gating, canonical timer-setup validation, and the
+-- upsert of common.club_active_game on game creation. Lifting
+-- these into common keeps the per-game RPCs focused on game-
+-- specific mechanics and ensures the canonical error messages
+-- and behavior stay identical across gametypes.
+--
+-- Each helper is security-definer + granted to authenticated so
+-- per-game RPCs (themselves security-definer) can call them. The
+-- FE has no reason to invoke them directly.
+--
+-- Convention: lift when N=3 callers would converge. Today the
+-- three callers are tinyspy, psychicnum, wordknit. A future
+-- gametype follows the same pattern.
+
+-- ─── common.require_club_member ────────────────────────
+-- "Caller must be authenticated AND a member of target_club."
+-- Returns the caller's user_id — the calling RPC typically
+-- needs it for downstream inserts.
+--
+-- Raises (both 42501):
+--   - 'must be authenticated'      when auth.uid() is null
+--   - 'not a member of this club'  when not in common.clubs_members
+--
+-- security definer so the membership lookup bypasses RLS, the
+-- same way is_club_member does.
+
+create function common.require_club_member(target_club uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+begin
+  caller_id := auth.uid();
+  if caller_id is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1 from common.clubs_members
+    where club_id = target_club and user_id = caller_id
+  ) then
+    raise exception 'not a member of this club' using errcode = '42501';
+  end if;
+
+  return caller_id;
+end;
+$$;
+
+-- No grant to authenticated. SECURITY DEFINER chains (RPCs call
+-- this helper) run with the helper-owner's privileges and can
+-- call it; direct authenticated calls are blocked, keeping the
+-- function out of PostgREST's exposed surface.
+revoke execute on function common.require_club_member(uuid) from public;
+
+-- ─── common.validate_timer ─────────────────────────────
+-- Validates a jsonb timer object against the canonical shape
+-- shared across games:
+--
+--   { "kind": "none" }
+-- | { "kind": "countup" }
+-- | { "kind": "countdown", "seconds": <int 1..3600> }
+--
+-- The argument is the timer *subobject* (typically
+-- `setup->'timer'`), not the full setup blob, so games can place
+-- timer wherever they want and the helper stays agnostic about
+-- the surrounding key.
+--
+-- Raises (all P0001):
+--   - 'setup.timer is required'                          when null
+--   - 'setup.timer.kind must be none, countup, or countdown (got X)'
+--   - 'setup.timer.seconds is required for countdown'
+--   - 'setup.timer.seconds must be 1..3600 (got X)'
+--
+-- The error-message path uses 'setup.timer.*' because all current
+-- games place timer at setup.timer. A future game with a different
+-- nesting would either accept the slight message mismatch or write
+-- its own validator — the canonical *shape* is the contract here,
+-- not the path string in error messages.
+
+create function common.validate_timer(timer_obj jsonb)
+returns void
+language plpgsql
+immutable
+as $$
+declare
+  timer_kind text;
+  timer_seconds int;
+begin
+  if timer_obj is null then
+    raise exception 'setup.timer is required' using errcode = 'P0001';
+  end if;
+
+  timer_kind := timer_obj->>'kind';
+  -- Explicit null check: `NULL not in (...)` returns NULL, not
+  -- TRUE, so without this the "missing kind" case would fall
+  -- through the next check unraised. Separate "is required" vs
+  -- "must be" messages give clearer FE error display.
+  if timer_kind is null then
+    raise exception 'setup.timer.kind is required' using errcode = 'P0001';
+  end if;
+  if timer_kind not in ('none', 'countup', 'countdown') then
+    raise exception
+      'setup.timer.kind must be none, countup, or countdown (got %)',
+      timer_kind
+      using errcode = 'P0001';
+  end if;
+
+  if timer_kind = 'countdown' then
+    if (timer_obj->>'seconds') is null then
+      raise exception 'setup.timer.seconds is required for countdown'
+        using errcode = 'P0001';
+    end if;
+    timer_seconds := (timer_obj->>'seconds')::int;
+    if timer_seconds < 1 or timer_seconds > 3600 then
+      raise exception
+        'setup.timer.seconds must be 1..3600 (got %)',
+        timer_seconds
+        using errcode = 'P0001';
+    end if;
+  end if;
+end;
+$$;
+
+-- No grant to authenticated; internal helper (see
+-- require_club_member's note).
+revoke execute on function common.validate_timer(jsonb) from public;
+
+-- ─── common.set_club_active_game ───────────────────────
+-- Upserts the (club_id, gametype, game_id) pointer in
+-- club_active_game, replacing whatever was previously active.
+-- The single-row-per-club PK enforces the "one active game per
+-- club, across all gametypes" rule — overwriting the pointer is
+-- what auto-suspends the prior active game in this club.
+--
+-- set_active_at is stamped now() so the FE can sort "most
+-- recently active" displays without inferring from row timestamps
+-- on individual games tables.
+--
+-- The gametype FK on club_active_game makes the gametype arg
+-- engine-validated (23503 foreign_key_violation fires if the
+-- gametype isn't registered in common.gametypes).
+
+create function common.set_club_active_game(
+  target_club uuid,
+  gametype text,
+  game_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+begin
+  insert into common.club_active_game (club_id, gametype, game_id, set_active_at)
+  values (target_club, gametype, game_id, now())
+  on conflict (club_id) do update set
+    gametype = excluded.gametype,
+    game_id = excluded.game_id,
+    set_active_at = excluded.set_active_at;
+end;
+$$;
+
+-- No grant to authenticated; internal helper (see
+-- require_club_member's note).
+revoke execute on function common.set_club_active_game(uuid, text, uuid) from public;
+
+-- ============================================================
 -- common.create_club RPC
 -- ============================================================
 --
--- Creates a new club + its full membership + its club_game_kinds
+-- Creates a new club + its full membership + its clubs_gametypes
 -- entries in a single transaction. Reject reasons (all P0001
 -- unless noted):
 --
@@ -379,7 +563,7 @@ $$;
 -- so a UI that lets the creator type only their friends doesn't
 -- have to remember to also include themselves.
 --
--- club_game_kinds is populated with every registered gametype; v1
+-- clubs_gametypes is populated with every registered gametype; v1
 -- lets every new club play every game. Per-club opt-out is
 -- deferred (see docs/deferred.md).
 
@@ -452,16 +636,16 @@ begin
   values (new_handle, club_name, caller_id)
   returning clubs.id into new_id;
 
-  insert into common.club_members (club_id, user_id)
+  insert into common.clubs_members (club_id, user_id)
   select new_id, member_id from unnest(resolved_ids) as member_id;
 
-  -- Populate club_game_kinds with every registered gametype.
+  -- Populate clubs_gametypes with every registered gametype.
   -- v1 lets every new club play every registered game; per-club
   -- opt-out is deferred (see docs/deferred.md). The FE's
   -- per-club Start-button rendering still applies the player-
   -- count range from each gametype's manifest, so e.g. tinyspy
   -- appears disabled in a 3-member club's button list.
-  insert into common.club_game_kinds (club_id, gametype)
+  insert into common.clubs_gametypes (club_id, gametype)
   select new_id, gametype from common.gametypes;
 
   return query select new_id, new_handle;
@@ -486,18 +670,12 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
+  caller_id uuid;
   trimmed text := trim(content);
 begin
-  if auth.uid() is null then
-    raise exception 'must be authenticated' using errcode = '42501';
-  end if;
-
-  if not exists (
-    select 1 from common.club_members
-    where club_id = target_club and user_id = auth.uid()
-  ) then
-    raise exception 'not a member of this club' using errcode = '42501';
-  end if;
+  -- Auth + membership gate. Raises 42501 on either fail with the
+  -- canonical messages — see common.require_club_member.
+  caller_id := common.require_club_member(target_club);
 
   if length(trimmed) = 0 then
     raise exception 'message must not be empty' using errcode = 'P0001';
@@ -508,7 +686,7 @@ begin
   end if;
 
   insert into common.messages (club_id, user_id, content)
-  values (target_club, auth.uid(), trimmed);
+  values (target_club, caller_id, trimmed);
 end;
 $$;
 
@@ -527,7 +705,7 @@ grant execute on function common.send_message(uuid, text) to authenticated;
 --      (just this user). The '=' prefix puts solo clubs in a
 --      slug-space user-typed names cannot reach (slugify_club_name
 --      strips '='), so there's no risk of collision.
---   3. club_game_kinds rows for the solo club covering every
+--   3. clubs_gametypes rows for the solo club covering every
 --      registered gametype. (The FE still hides Start buttons
 --      whose `numberOfPlayers` range excludes solo, but the m2m
 --      row is there for the future "your solo club doesn't play
@@ -559,10 +737,10 @@ begin
   values ('=' || derived_username, derived_username, new.id)
   returning clubs.id into solo_club_id;
 
-  insert into common.club_members (club_id, user_id)
+  insert into common.clubs_members (club_id, user_id)
   values (solo_club_id, new.id);
 
-  insert into common.club_game_kinds (club_id, gametype)
+  insert into common.clubs_gametypes (club_id, gametype)
   select solo_club_id, gametype from common.gametypes;
 
   return new;

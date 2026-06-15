@@ -37,7 +37,7 @@ type Props = {
  *
  * Solo-game gating mirrors ClubPage's "Start a new game" section:
  * a game appears as a solo-play button iff (a) the user's solo
- * club has an m2m row for that gametype in common.club_game_kinds
+ * club has an m2m row for that gametype in common.clubs_gametypes
  * AND (b) the gametype's `numberOfPlayers` range admits 1.
  * Single-source-of-truth gating; same shape as ClubPage so
  * adding a new gametype that supports solo play surfaces here
@@ -121,7 +121,7 @@ export function HomePage({ session }: Props) {
       setSoloClubId(clubData.id)
 
       const { data: kindsData } = await commonDb
-        .from('club_game_kinds')
+        .from('clubs_gametypes')
         .select('gametype')
         .eq('club_id', clubData.id)
       if (!mounted) return

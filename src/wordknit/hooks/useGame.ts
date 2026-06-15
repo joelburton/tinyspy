@@ -262,7 +262,7 @@ export function useGame(
       // Roster: same cross-schema PostgREST workaround the other
       // games use — two queries, merge in JS.
       const { data: memberRows } = await commonDb
-        .from('club_members')
+        .from('clubs_members')
         .select('user_id')
         .eq('club_id', row.club_id)
       if (!mounted) return

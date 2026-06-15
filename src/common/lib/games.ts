@@ -140,7 +140,7 @@ export type GameManifest = {
    * Supported player-count range. The shell uses this to decide
    * whether a "Start X" button is rendered for a given club:
    *
-   *   - hidden if there's no `common.club_game_kinds` row for
+   *   - hidden if there's no `common.clubs_gametypes` row for
    *     (club, gametype)
    *   - visible-but-disabled (with a "needs N members" tooltip)
    *     if the row exists but the club's member count is outside
