@@ -136,8 +136,10 @@ describe('useBoard', () => {
     await waitFor(() => expect(result.current.peerKey).toEqual(peerKey))
 
     rerender({ revealPeer: false })
-    // Synchronous in the effect: when revealPeer is false the hook calls
-    // setPeerKey(null) immediately. No fetch to wait on.
+    // peerKey is a derived value (revealPeer && fetchedFor === `${gameId}:${userId}`
+    // ? fetchedPeerKey : null). Flipping revealPeer to false makes the
+    // derivation evaluate to null on the next render — no clear-state
+    // action needed inside the hook.
     await waitFor(() => expect(result.current.peerKey).toBeNull())
   })
 })

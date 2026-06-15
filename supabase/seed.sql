@@ -1,6 +1,7 @@
 -- Seed data applied after `supabase db reset`.
 --
--- The Duet word list now lives in a migration (20260612000001_seed_word_pool.sql)
--- so it ships to hosted projects via `supabase db push`. This file is kept
--- so the Supabase CLI doesn't complain about a missing seed file; add
+-- The Duet word list lives at the bottom of the tinyspy baseline
+-- migration (20260612000001_tinyspy_baseline.sql) so it ships to
+-- hosted projects via `supabase db push`. This file is kept so the
+-- Supabase CLI doesn't complain about a missing seed file; add
 -- per-env one-off data here if needed.

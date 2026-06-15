@@ -11,7 +11,7 @@
 -- state and the teaching commentary worth keeping.
 --
 -- Tinyspy is Codenames Duet for two: a cooperative word-guessing
--- game played by exactly two club members. See docs/duet-rules.md
+-- game played by exactly two club members. See docs/tinyspy.md
 -- for the rules; the RPCs in this file are the canonical
 -- implementation.
 --
@@ -160,7 +160,7 @@ create policy games_select on tinyspy.games
 -- it isn't leaked in practice. For a hardened version, drop this
 -- in favor of own-row reads plus a game_players_roster view that
 -- omits key_card. Deliberately deferred for v1 — see
--- CODE_REVIEW.md item 13.
+-- docs/deferred.md → Tinyspy ("Harden `game_players_select`").
 create policy game_players_select on tinyspy.game_players
   for select to authenticated
   using (tinyspy.is_player_in_game(game_id));

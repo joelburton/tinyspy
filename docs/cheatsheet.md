@@ -104,7 +104,7 @@ rollback;
 | `select plan(N)` | Declare you'll run N assertions. pgTAP errors if the actual count differs — catches dropped/extra asserts. |
 | `select is(actual, expected, description)` | `actual = expected`, NULL-safe. The everyday assertion. |
 | `select ok(boolean, description)` | The expression is true. Use when there's no obvious "expected value." |
-| `select throws_ok($$ <sql> $$, sqlstate, message_substring, description)` | The wrapped SQL raises an exception matching SQLSTATE and (substring of) message. Pass `null` for the message to match any. |
+| `select throws_ok($$ <sql> $$, sqlstate,` `message_substring, description)` | The wrapped SQL raises an exception matching SQLSTATE and (substring of) message. Pass `null` for the message to match any. |
 | `select lives_ok($$ <sql> $$, description)` | The wrapped SQL doesn't raise. The "no error" partner of `throws_ok`. |
 | `select * from finish()` | Closing TAP footer. Always immediately before `rollback`. |
 

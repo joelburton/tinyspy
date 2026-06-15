@@ -27,9 +27,9 @@ type Props = {
  * server-side RPC uses `auth.uid()` directly. The prop is here so
  * we have it if a future "this is who you are" affordance shows
  * up, and so the App.tsx routing block can pass it uniformly to
- * every page-level component.
- *
- * eslint-disable-next-line @typescript-eslint/no-unused-vars
+ * every page-level component. The next-line disable acknowledges
+ * the intentional unused — this project's lint config doesn't
+ * auto-exempt underscore-prefixed names.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function CreateClubPage({ session: _session }: Props) {

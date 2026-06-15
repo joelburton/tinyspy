@@ -10,7 +10,6 @@
 export type Seat = 'A' | 'B'
 
 export type GameStatus =
-  | 'lobby'
   | 'active'
   | 'sudden_death'
   | 'won'
