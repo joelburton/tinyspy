@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { useCallback, useEffect, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase'
 import { db as commonDb } from '../../common/db'
+import { computeFreeze } from '../../common/hooks/useGameFreeze'
+import type { SetupMember } from '../../common/lib/games'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Board, GroupLevel } from '../lib/board'
@@ -38,55 +40,119 @@ export type WordknitGame = {
   board: Board
 }
 
-export type Member = { user_id: string; username: string }
+export type Member = SetupMember
 
 /**
- * Loads the wordknit game row + guesses + found-groups + the
- * club's members, and exposes a `channel` handle for the
- * shared-selection / presence hooks to attach to.
- *
- * Realtime: subscribes to postgres-changes on games / guesses /
- * found_groups for this game. The same channel is the host for
- * the Broadcast (selection events) and Presence (who's here)
- * subscriptions managed by `useSharedSelection` and
- * `useGameFreeze`. Combining lets us keep one channel-per-game
- * with a unified subscribe lifecycle.
- *
- * The board (groups + tile order) is fetched once at load and
- * never re-fetched on realtime events — it doesn't change after
- * create_game, so the snapshot is canonical. Mutable state
- * (status, mistakes) is re-derived from realtime events; the
- * hook also refetches on SUBSCRIBED so we recover from any
- * events missed between initial load and channel-live.
+ * Broadcast event shape carried over the realtime channel for
+ * shared-selection mutations.
  */
-export function useGame(gameId: string): {
+type SelectionEvent =
+  | { type: 'select'; tile: string; userId: string }
+  | { type: 'deselect'; tile: string }
+  | { type: 'clear' }
+
+export type SelectionMap = ReadonlyMap<string, string[]>
+
+/**
+ * The one realtime entry point for a wordknit game.
+ *
+ * Why everything lives in one hook: supabase-js requires every
+ * `.on('postgres_changes' | 'broadcast' | 'presence', ...)` to
+ * be registered BEFORE `.subscribe()`. If we split the channel
+ * across multiple hooks, the consumers' effects run later than
+ * the owner's — listeners arrive post-subscribe and supabase-js
+ * errors out. The pragmatic shape is: one hook owns the channel
+ * end-to-end, attaches every handler synchronously in a single
+ * effect, then subscribes.
+ *
+ * Returns:
+ *   - game / guesses / foundGroups / members — postgres-derived
+ *     state, refetched on every realtime row event
+ *   - selections / unionTiles — shared peer-selection state
+ *     driven by Broadcast events
+ *   - toggleTile / sendClear — emit selection events
+ *   - frozen / missing — derived from Presence
+ *   - loading — false once initial fetch completes
+ *
+ * See docs/wordknit.md → "Realtime: three subscriptions on one
+ * channel" for the architectural picture.
+ */
+export function useGame(
+  session: Session,
+  gameId: string,
+): {
   game: WordknitGame | null
   guesses: GuessRow[]
   foundGroups: FoundGroupRow[]
   members: Member[]
-  channel: RealtimeChannel | null
+  selections: SelectionMap
+  unionTiles: string[]
+  toggleTile: (tile: string) => void
+  sendClear: () => void
+  frozen: boolean
+  missing: Member[]
   loading: boolean
 } {
   const [game, setGame] = useState<WordknitGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [foundGroups, setFoundGroups] = useState<FoundGroupRow[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [selections, setSelections] = useState<Map<string, string[]>>(
+    () => new Map(),
+  )
+  const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const [loading, setLoading] = useState(true)
 
-  // Create the channel synchronously via useMemo so it's
-  // available on first render — the BoardScreen passes it into
-  // useGameFreeze and useSharedSelection, which would otherwise
-  // skip a first-render's subscription. The hook re-creates the
-  // channel when gameId changes (each game gets its own). The
-  // matching cleanup lives in the effect below.
-  const channel = useMemo(
-    () => supabase.channel(`wordknit:${gameId}:${crypto.randomUUID()}`),
-    [gameId],
-  )
+  // The channel handle for sending broadcasts. Held in state so a
+  // new effect run (StrictMode double-mount, gameId change) gets a
+  // fresh channel and re-renders the BoardScreen. The
+  // setChannel-in-effect below is intentional even though the
+  // react-hooks rule discourages it: here the external system
+  // (the realtime channel) IS what we're syncing into React, and
+  // there's no alternative shape that lets us tear down old
+  // channels on cleanup without going through state.
+  const [channel, setChannel] = useState<
+    ReturnType<typeof supabase.channel> | null
+  >(null)
 
-  // Fetch + realtime-subscribe to the game's tables and roster.
-  // Re-runs only on gameId change; within a game, postgres_changes
-  // drive load() directly.
+  // Apply an incoming selection event to local state. Idempotent —
+  // adding an already-present tile is a no-op, deselecting an
+  // absent tile is a no-op — so echoes of our own broadcasts are
+  // safe.
+  const applySelection = useCallback((event: SelectionEvent) => {
+    setSelections((prev) => {
+      const next = new Map(prev)
+      if (event.type === 'clear') {
+        if (next.size === 0) return prev
+        next.clear()
+        return next
+      }
+      if (event.type === 'select') {
+        const list = next.get(event.userId) ?? []
+        if (list.includes(event.tile)) return prev
+        next.set(event.userId, [...list, event.tile])
+        return next
+      }
+      // event.type === 'deselect' — remove from whoever has it
+      let mutated = false
+      for (const [uid, list] of next) {
+        if (list.includes(event.tile)) {
+          const filtered = list.filter((t) => t !== event.tile)
+          if (filtered.length === 0) next.delete(uid)
+          else next.set(uid, filtered)
+          mutated = true
+        }
+      }
+      return mutated ? next : prev
+    })
+  }, [])
+
+  // Single effect: load data, create channel, attach all
+  // listeners, subscribe. Re-runs on gameId change (a different
+  // game) or session.user.id change (a different user — rare in
+  // practice but defensive).
   useEffect(() => {
     let mounted = true
 
@@ -135,11 +201,8 @@ export function useGame(gameId: string): {
         })),
       )
 
-      // Pull the club's roster so the shared-selection hook can
-      // label peer selections with usernames, and so useGameFreeze
-      // has the expected member set. Same cross-schema pattern as
-      // tinyspy / psychic-num (PostgREST embeds don't traverse
-      // common → wordknit, so we resolve in two queries).
+      // Roster: same cross-schema PostgREST workaround the other
+      // games use — two queries, merge in JS.
       const { data: memberRows } = await commonDb
         .from('club_members')
         .select('user_id')
@@ -160,42 +223,145 @@ export function useGame(gameId: string): {
       setLoading(false)
     }
 
-    load()
+    // Create the channel, attach every listener, then subscribe.
+    // All `.on()` calls must precede `.subscribe()` — supabase-js
+    // rejects late attachments.
+    const ch = supabase.channel(
+      `wordknit:${gameId}:${crypto.randomUUID()}`,
+    )
 
-    // Attach handlers to the channel built above. Broadcast +
-    // presence subscriptions are attached by the consumer hooks
-    // (useSharedSelection, useGameFreeze) on the same channel —
-    // one channel per game, multiple listener concerns.
-    channel
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'wordknit', table: 'games', filter: `id=eq.${gameId}` },
-        load,
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'wordknit', table: 'guesses', filter: `game_id=eq.${gameId}` },
-        load,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'wordknit',
-          table: 'found_groups',
-          filter: `game_id=eq.${gameId}`,
-        },
-        load,
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load()
-      })
+    // Postgres Changes: refetch on every row event for this game.
+    ch.on(
+      'postgres_changes',
+      { event: '*', schema: 'wordknit', table: 'games', filter: `id=eq.${gameId}` },
+      load,
+    )
+    ch.on(
+      'postgres_changes',
+      { event: '*', schema: 'wordknit', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      load,
+    )
+    ch.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'wordknit',
+        table: 'found_groups',
+        filter: `game_id=eq.${gameId}`,
+      },
+      load,
+    )
+
+    // Broadcast: shared selection events. Idempotent apply handles
+    // echoes of our own sends.
+    ch.on('broadcast', { event: 'selection' }, ({ payload }) =>
+      applySelection(payload as SelectionEvent),
+    )
+
+    // Presence: derive `presentUserIds` from the merged state.
+    // Several tabs of the same user are fine — we dedupe to
+    // user_ids.
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState() as Record<
+        string,
+        Array<{ user_id?: string }>
+      >
+      const ids = new Set<string>()
+      for (const list of Object.values(state)) {
+        for (const entry of list) {
+          if (entry.user_id) ids.add(entry.user_id)
+        }
+      }
+      setPresentUserIds(ids)
+    })
+
+    // Subscribe. On SUBSCRIBED we refetch (recover from any
+    // missed events) and track our own presence.
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        load()
+        ch.track({ user_id: session.user.id })
+      }
+    })
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChannel(ch)
+
+    load()
 
     return () => {
       mounted = false
-      supabase.removeChannel(channel)
+      try {
+        ch.untrack()
+      } catch {
+        // ignore — channel may already be closed
+      }
+      supabase.removeChannel(ch)
+      setChannel(null)
     }
-  }, [channel, gameId])
+  }, [applySelection, gameId, session.user.id])
 
-  return { game, guesses, foundGroups, members, channel, loading }
+  // Send a broadcast event + apply locally (optimistic). The
+  // local apply ensures the clicker sees the change immediately;
+  // the echo-back of the broadcast is a no-op due to idempotency
+  // inside applySelection.
+  const broadcast = useCallback(
+    (event: SelectionEvent) => {
+      if (!channel) return
+      applySelection(event)
+      channel.send({ type: 'broadcast', event: 'selection', payload: event })
+    },
+    [applySelection, channel],
+  )
+
+  // Toggle handler — see docs/wordknit.md → "Peer selection".
+  const toggleTile = useCallback(
+    (tile: string) => {
+      // Is the tile already in some player's selection? Any click
+      // on it removes from the union.
+      let alreadySelected = false
+      for (const list of selections.values()) {
+        if (list.includes(tile)) {
+          alreadySelected = true
+          break
+        }
+      }
+      if (alreadySelected) {
+        broadcast({ type: 'deselect', tile })
+        return
+      }
+      let unionSize = 0
+      for (const list of selections.values()) unionSize += list.length
+      if (unionSize >= 4) return
+      broadcast({ type: 'select', tile, userId: session.user.id })
+    },
+    [broadcast, selections, session.user.id],
+  )
+
+  const sendClear = useCallback(() => {
+    broadcast({ type: 'clear' })
+  }, [broadcast])
+
+  // Flat union for submit + display.
+  const unionTiles: string[] = []
+  for (const list of selections.values()) {
+    for (const t of list) {
+      if (!unionTiles.includes(t)) unionTiles.push(t)
+    }
+  }
+
+  const { frozen, missing } = computeFreeze(presentUserIds, members)
+
+  return {
+    game,
+    guesses,
+    foundGroups,
+    members,
+    selections,
+    unionTiles,
+    toggleTile,
+    sendClear,
+    frozen,
+    missing,
+    loading,
+  }
 }
