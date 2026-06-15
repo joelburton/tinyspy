@@ -23,7 +23,7 @@ type GameRow = Pick<
  *
  * See docs/wordknit.md for the rules, the architectural
  * decisions (FE-knows-the-answer, Presence + Broadcast for
- * shared selection, freeze-on-disconnect), and the deferred
+ * shared selection, pause-on-disconnect), and the deferred
  * features list.
  */
 export const wordknitGame: GameManifest = {

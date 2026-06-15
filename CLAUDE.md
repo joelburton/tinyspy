@@ -9,7 +9,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant |
 | [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
 | [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [docs/wordknit.md](docs/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, freeze-on-disconnect pattern, peer-selection via Broadcast |
+| [docs/wordknit.md](docs/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
 | [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |

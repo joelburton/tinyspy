@@ -35,7 +35,7 @@ type Props = {
 /**
  * Club detail page — accessed via `/c/<handle>`.
  *
- * Shows: club name, member roster, games (active / paused /
+ * Shows: club name, member roster, games (active / suspended /
  * completed), per-gametype "Start" buttons, and chat.
  *
  * RLS gates everything: a non-member's `clubs.select` returns zero
@@ -258,11 +258,11 @@ export function ClubPage({ session, handle }: Props) {
   const isSoloClub = club.handle.startsWith('=')
 
   // Classify games — active is the one matching club_active_game,
-  // completed are terminal, paused is everything else.
+  // completed are terminal, suspended is everything else.
   const activeGame = activeGameId
     ? allGames.find((g) => g.gameId === activeGameId) ?? null
     : null
-  const pausedGames = allGames.filter(
+  const suspendedGames = allGames.filter(
     (g) => !g.isTerminal && g.gameId !== activeGameId,
   )
   const completedGames = allGames.filter((g) => g.isTerminal)
@@ -312,11 +312,11 @@ export function ClubPage({ session, handle }: Props) {
         </section>
       )}
 
-      {pausedGames.length > 0 && (
+      {suspendedGames.length > 0 && (
         <section>
-          <h3>Paused games</h3>
+          <h3>Suspended games</h3>
           <ul>
-            {pausedGames.map((g) => (
+            {suspendedGames.map((g) => (
               <li key={g.gameId}>
                 <Link to={`/g/${g.gameType}/${g.gameId}`}>
                   {gameName(g.gameType)} — {g.statusLabel}
@@ -366,7 +366,7 @@ export function ClubPage({ session, handle }: Props) {
         </div>
         {activeGame && (
           <p className="muted">
-            Starting a new game will pause the currently active one (you
+            Starting a new game will suspend the currently active one (you
             can resume it later from this page).
           </p>
         )}

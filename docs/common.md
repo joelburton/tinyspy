@@ -53,7 +53,7 @@ This table is the most architecturally interesting piece of `common`. Two things
 
 1. **`(game_id, gametype)` is a soft FK.** The real FK can't be declared because the target schema varies per row — `tinyspy.games(id)` for tinyspy rows, `psychicnum.games(id)` for psychic-num rows, etc. Cleanup of orphan rows when a gametype is dropped is part of the drop-a-game recipe, not enforced by referential integrity.
 
-2. **The `pk(club_id)` is load-bearing.** With it, starting a new game upserts the row, which auto-pauses whatever was previously active — by simply overwriting the pointer. The previously-active game's internal status (`tinyspy.games.status`) is untouched; "paused" is a club-level concept derived from "this game exists but isn't pointed at by `club_active_game`."
+2. **The `pk(club_id)` is load-bearing.** With it, starting a new game upserts the row, which auto-suspends whatever was previously active — by simply overwriting the pointer. The previously-active game's internal status (`tinyspy.games.status`) is untouched; "suspended" is a club-level concept derived from "this game exists but isn't pointed at by `club_active_game`."
 
 The auto-pause behavior is felt on the FE side via realtime: when `common.club_active_game` changes, every club member's UI subscribes and navigates them to the new active game's URL. See [`ClubPage`](#frontend) for the auto-nav handler.
 
@@ -64,7 +64,7 @@ Game instances within a club have three derived states. None of them are columns
 | club-level state | derivation |
 |---|---|
 | **active** | game is non-terminal AND `club_active_game` points at it |
-| **paused** | game is non-terminal AND no `club_active_game` row points at it |
+| **suspended** | game is non-terminal AND no `club_active_game` row points at it |
 | **completed** | game's status is terminal (won, lost, solved — depends on the gametype) |
 
 Each gametype's termination trigger (e.g. `tinyspy.clear_active_on_termination`, `psychicnum.clear_active_on_termination`) deletes the matching `club_active_game` row when a game flips to a terminal status. This is what makes a completed game stop being "active" automatically.
@@ -205,7 +205,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `name`, `blurb` | Human-readable. Used in pickers and titles. |
 | `Root` | Lazy-loaded React component. The shell mounts this for `/g/<gametype>/<id>` URLs. |
 | `startGameInClub(clubId)` | Async. Called by the "Start X" button on `ClubPage`. Returns `{id}` on success or `{error}` on failure. |
-| `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/paused/completed list. |
+| `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/suspended/completed list. |
 
 Adding a game is one line in `src/games.ts` plus the new folder. Removing a game is one line removed plus `rm -rf` the folder plus dropping the schema. Nothing else in the codebase names a specific game.
 

@@ -1,6 +1,6 @@
 /* Wordknit board layout.
  *
- * The .boardArea is `position: relative` so the FrozenOverlay
+ * The .boardArea is `position: relative` so the PauseOverlay
  * can absolute-position over the play surface (the chat panel
  * below stays unaffected). The grid auto-flows; with 16-N tiles
  * remaining (N = 4 × foundGroups count) it naturally re-flows

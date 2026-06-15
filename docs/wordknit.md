@@ -1,6 +1,6 @@
 # Wordknit
 
-A NYT-Connections-style word-grouping puzzle. The third registered gametype in this monorepo, and the first to introduce several new patterns: FE-evaluated rules, shared selection state via Supabase Realtime Broadcast, and the "freeze the game when a peer disconnects" pattern.
+A NYT-Connections-style word-grouping puzzle. The third registered gametype in this monorepo, and the first to introduce several new patterns: FE-evaluated rules, shared selection state via Supabase Realtime Broadcast, and the "pause the game when a peer disconnects" pattern.
 
 "Wordknit" is the codename (analogous to how "Tinyspy" is the codename for Codenames Duet). User-facing copy is "Wordknit"; folder / schema / RPC names are all `wordknit`.
 
@@ -20,13 +20,13 @@ Levels 0..3 map to NYT's yellow / green / blue / purple band colors — increasi
 
 ## POC scope (current state)
 
-This is the first port of an existing personal project ([`../connections`](https://github.com/joelburton/...)) into this codebase. The POC implements the core wiring — game lifecycle, real shared coop play, the freeze-on-disconnect pattern — with a **hardcoded board**: 16 words, 4 groups (A-words / B-words / C-words / D-words). Easy to verify visually; impossible to actually challenge anyone with.
+This is the first port of an existing personal project ([`../connections`](https://github.com/joelburton/...)) into this codebase. The POC implements the core wiring — game lifecycle, real shared coop play, the pause-on-disconnect pattern — with a **hardcoded board**: 16 words, 4 groups (A-words / B-words / C-words / D-words). Easy to verify visually; impossible to actually challenge anyone with.
 
 In scope today:
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.groups` directly — no separate RPC, see "FE-knows" below)
 - Shared selection across all connected players via Broadcast
-- Freeze-on-disconnect overlay via Presence
+- Pause-on-disconnect overlay via Presence
 - Common chat (the existing `ClubChatPanel`)
 
 Deliberately deferred (per the architecture-shake-out priority):
@@ -124,7 +124,7 @@ src/wordknit/
   theme.css               NYT level palette (yellow/green/blue/purple).
 
   components/
-    BoardScreen.tsx       The play surface — header, found-group bands, tile grid, actions, freeze overlay, chat.
+    BoardScreen.tsx       The play surface — header, found-group bands, tile grid, actions, pause overlay, chat.
     BoardScreen.module.css
     Setup.tsx             POC placeholder dialog — gestures at the future date picker.
 
@@ -153,7 +153,7 @@ The per-game channel is `wordknit:<gameId>:<uuid>`. The UUID suffix is the Stric
 |---|---|---|
 | Postgres Changes | game row / guesses / found_groups events | `useGame` (refetches on each event) |
 | Broadcast | shared-selection events (select / deselect / clear) | `useSharedSelection` |
-| Presence | "who's connected to this game right now" | `useGameFreeze` (returns the freeze flag) |
+| Presence | "who's connected to this game right now" | `computePause` (returns the paused flag) |
 
 Combining onto one channel keeps the lifecycle clean: one `subscribe()`, one `removeChannel()`. The channel handle is created by `useGame` via `useMemo` so it's available on first render (consumer hooks can wire up handlers immediately, no "waited for first effect to land" gap).
 
@@ -161,26 +161,26 @@ Combining onto one channel keeps the lifecycle clean: one `subscribe()`, one `re
 
 Wordknit is the first place in this codebase that uses Realtime Broadcast and Presence (everything else uses only Postgres Changes). The pattern is worth documenting because it'll repeat for future games with transient shared state.
 
-**Selection semantics:** click acts on the **union** of all players' selections, not on each player's private list. Each tile has at most one contributor; clicking a tile already in the union removes it (regardless of who put it there); clicking an unselected tile adds it to MY contribution. Submit / "deselect all" / freeze-on-disconnect all broadcast a `clear` event that empties every client's local map.
+**Selection semantics:** click acts on the **union** of all players' selections, not on each player's private list. Each tile has at most one contributor; clicking a tile already in the union removes it (regardless of who put it there); clicking an unselected tile adds it to MY contribution. Submit / "deselect all" / pause-on-disconnect all broadcast a `clear` event that empties every client's local map.
 
-**Why Broadcast (not Presence-state) for the selection:** events are the natural unit here ("I selected X", "deselect X"). The state is reconstructable by listening from the moment you join — and we don't worry about late-joiners or mid-session rejoins because [we freeze the game on any disconnect](#freeze-on-disconnect-frozen--paused). State lives in client memory, gets reset on every freeze.
+**Why Broadcast (not Presence-state) for the selection:** events are the natural unit here ("I selected X", "deselect X"). The state is reconstructable by listening from the moment you join — and we don't worry about late-joiners or mid-session rejoins because [we pause the game on any disconnect](#pause-on-disconnect-paused--suspended). State lives in client memory, gets reset on every pause.
 
-**Why Presence (not Broadcast) for "who's here":** Presence is exactly the primitive for this — it auto-cleans up on disconnect (no heartbeat plumbing), and its state-carrier capability gives us a stable list of connected `user_id`s without any custom join/leave protocol. `useGameFreeze` derives the `frozen` boolean from `presence diff expected members`.
+**Why Presence (not Broadcast) for "who's here":** Presence is exactly the primitive for this — it auto-cleans up on disconnect (no heartbeat plumbing), and its state-carrier capability gives us a stable list of connected `user_id`s without any custom join/leave protocol. `computePause` derives the `paused` boolean from `presence diff expected members`.
 
 **The split is honest:** events that are events use Broadcast; state that's intrinsically "what is currently true for each connected user" uses Presence. The two complement rather than overlap.
 
-### Freeze on disconnect ("frozen" ≠ "paused")
+### Pause on disconnect ("paused" ≠ "suspended")
 
-When a peer disconnects, the game **freezes**: a `FrozenOverlay` renders over the board (`common/components/FrozenOverlay.tsx`), tile clicks are disabled, every client's selection broadcasts a clear. The game stays open and active in the DB; nothing about `common.club_active_game` changes. When the peer reconnects (their tab comes back, their Presence rejoins the channel), the overlay drops and play resumes with empty selections.
+When a peer disconnects, the game **pauses**: a `PauseOverlay` renders over the board (`common/components/PauseOverlay.tsx`), tile clicks are disabled, every client's selection broadcasts a clear. The game stays open and active in the DB; nothing about `common.club_active_game` changes. When the peer reconnects (their tab comes back, their Presence rejoins the channel), the overlay drops and play resumes with empty selections.
 
-**Frozen vs paused** is a real terminology distinction:
+**Paused vs suspended** is a real terminology distinction:
 
-- **Frozen** (this hook + overlay): transient, client-side, peer-disconnect-driven. Resolves automatically when the peer's Presence comes back. Game is still "active" at the club level.
-- **Paused** (existing club-level concept in `common.md`): persistent, "this game is not the one `common.club_active_game` is pointing at." Caused by another game being started in the club. Resolves when someone navigates to the paused game and starts playing again.
+- **Paused** (this overlay + helper): the transient gameplay-pause state — same UX as a video player's pause: clock stops, no moves accepted, overlay shows. Triggers: presence-disconnect (today) or manual Pause button (planned). Resolves automatically when the peer's Presence comes back (for presence-pause) or when anyone clicks Resume (for manual-pause). Game is still "active" at the club level.
+- **Suspended** (existing club-level concept in `common.md`): persistent, "this game is not the one `common.club_active_game` is pointing at." Caused by another game being started in the club. Resolves when someone navigates to the suspended game and starts playing again.
 
-The two can't coexist on the same game today — a paused game isn't being looked at by anyone, so there's no Presence channel to track for it.
+The two can't coexist on the same game today — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
 
-**Future rollout:** the `useGameFreeze` hook + `FrozenOverlay` component live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern later. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/`.
+**Future rollout:** the `computePause` helper + `PauseOverlay` component live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern later. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/`.
 
 ### Code-splitting
 
@@ -225,5 +225,5 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | What does the play surface look like | [`src/wordknit/components/BoardScreen.tsx`](../src/wordknit/components/BoardScreen.tsx) |
 | How shared selection works | [`src/wordknit/hooks/useSharedSelection.ts`](../src/wordknit/hooks/useSharedSelection.ts) |
-| The freeze-on-disconnect pattern | [`src/common/hooks/useGameFreeze.ts`](../src/common/hooks/useGameFreeze.ts) + [`src/common/components/FrozenOverlay.tsx`](../src/common/components/FrozenOverlay.tsx) |
+| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) |
 | The evaluator | [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) |

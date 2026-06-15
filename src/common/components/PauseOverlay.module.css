@@ -1,7 +1,7 @@
-/* Frozen-state overlay. Renders as a sticky-positioned layer
+/* Pause-state overlay. Renders as a sticky-positioned layer
  * over whatever the host wraps it around. The dim/blur effect
  * is similar to the dialog backdrop but lighter — we're
- * indicating "this is paused" rather than "this is modal."
+ * indicating "this game is paused" rather than "this is modal."
  *
  * pointer-events: all on the overlay → clicks on it are
  * captured (don't reach the disabled-but-still-rendered tiles

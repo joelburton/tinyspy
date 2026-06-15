@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase'
 import { db as commonDb } from '../../common/db'
-import { computeFreeze } from '../../common/hooks/useGameFreeze'
+import { computePause } from '../../common/lib/pause'
 import type { SetupMember } from '../../common/lib/games'
 import { db } from '../db'
 import type { Database } from '../../types/db'
@@ -71,7 +71,7 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *   - selections / unionTiles — shared peer-selection state
  *     driven by Broadcast events
  *   - toggleTile / sendClear — emit selection events
- *   - frozen / missing — derived from Presence
+ *   - paused / missing — derived from Presence
  *   - loading — false once initial fetch completes
  *
  * See docs/wordknit.md → "Realtime: three subscriptions on one
@@ -89,7 +89,7 @@ export function useGame(
   unionTiles: string[]
   toggleTile: (tile: string) => void
   sendClear: () => void
-  frozen: boolean
+  paused: boolean
   missing: Member[]
   loading: boolean
 } {
@@ -362,7 +362,7 @@ export function useGame(
     }
   }
 
-  const { frozen, missing } = computeFreeze(presentUserIds, members)
+  const { paused, missing } = computePause(presentUserIds, members)
 
   return {
     game,
@@ -373,7 +373,7 @@ export function useGame(
     unionTiles,
     toggleTile,
     sendClear,
-    frozen,
+    paused,
     missing,
     loading,
   }

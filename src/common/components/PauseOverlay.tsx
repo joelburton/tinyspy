@@ -1,29 +1,32 @@
 import type { SetupMember } from '../lib/games'
-import styles from './FrozenOverlay.module.css'
+import styles from './PauseOverlay.module.css'
 
 type Props = {
-  /** Whose absence is freezing the game. */
+  /** Whose absence is pausing the game. */
   missing: SetupMember[]
 }
 
 /**
- * Banner + dim overlay rendered when a game is "frozen" — i.e.,
+ * Banner + dim overlay rendered when a game is paused — i.e.,
  * not everyone expected at the game is currently connected to
- * its realtime channel. See `useGameFreeze` for the trigger
+ * its realtime channel. See `computePause` for the trigger
  * logic and `docs/wordknit.md` for the wider pattern.
  *
- * Frozen ≠ paused. Frozen is a transient client-side state that
- * resolves automatically when the missing peer reconnects — the
- * game stays open and active in the DB. Paused (club-level) is
- * about which game `common.club_active_game` points at.
+ * Paused ≠ suspended. Paused is the transient gameplay-pause
+ * state (same UX as a video player's pause: clock stops, no
+ * moves accepted, overlay shows). It resolves automatically
+ * when the missing peer reconnects — the game stays open and
+ * active in the DB. Suspended (club-level) is about which game
+ * `common.club_active_game` points at; that concept lives in
+ * the ClubPage's "Suspended games" section.
  *
  * The overlay is sticky-positioned across the host's content
  * area; the host is expected to wrap its main interactive
- * surface so the overlay covers it while frozen. Pointer events
+ * surface so the overlay covers it while paused. Pointer events
  * are blocked at the overlay layer so clicks don't reach
  * underlying tiles / buttons.
  */
-export function FrozenOverlay({ missing }: Props) {
+export function PauseOverlay({ missing }: Props) {
   if (missing.length === 0) return null
 
   const names = missing.map((m) => m.username)

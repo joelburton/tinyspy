@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { cls } from '../../common/lib/cls'
 import { ClubChatPanel } from '../../common/components/ClubChatPanel'
-import { FrozenOverlay } from '../../common/components/FrozenOverlay'
+import { PauseOverlay } from '../../common/components/PauseOverlay'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -36,7 +36,7 @@ const LEVEL_TOKEN: Record<GroupLevel, string> = {
  *   - action row: Submit (enabled iff union has 4 tiles), Clear
  *   - transient feedback banner ("One away!", "Already tried
  *     that", "Not quite")
- *   - FrozenOverlay over the play area when a peer disconnects
+ *   - PauseOverlay over the play area when a peer disconnects
  *   - shared chat panel
  *
  * The submission flow:
@@ -59,25 +59,25 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
     unionTiles,
     toggleTile,
     sendClear,
-    frozen,
+    paused,
     missing,
     loading,
   } = useGame(session, gameId)
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Broadcast a selection-clear on the transition INTO frozen so
+  // Broadcast a selection-clear on the transition INTO paused so
   // every connected client drops its current selection. Reconnect-
   // ing peers land in an empty-selection state.
-  const wasFrozenRef = useRef(false)
+  const wasPausedRef = useRef(false)
   useEffect(() => {
-    if (frozen && !wasFrozenRef.current) {
-      wasFrozenRef.current = true
+    if (paused && !wasPausedRef.current) {
+      wasPausedRef.current = true
       sendClear()
-    } else if (!frozen) {
-      wasFrozenRef.current = false
+    } else if (!paused) {
+      wasPausedRef.current = false
     }
-  }, [frozen, sendClear])
+  }, [paused, sendClear])
 
   // Auto-clear the transient banner after a beat.
   useEffect(() => {
@@ -107,7 +107,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   async function handleSubmit() {
-    if (frozen || submitting) return
+    if (paused || submitting) return
     if (unionTiles.length !== 4 || !game) return
 
     // Dup detection (FE-side per the FE-knows model). If this
@@ -142,12 +142,12 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   }
 
   function handleClear() {
-    if (frozen) return
+    if (paused) return
     sendClear()
   }
 
   const canSubmit =
-    !frozen && unionTiles.length === 4 && !submitting && game.status === 'in_progress'
+    !paused && unionTiles.length === 4 && !submitting && game.status === 'in_progress'
   const gameOver = game.status !== 'in_progress'
   const foundLevels = new Set(foundGroups.map((f) => f.level))
   const unfound = gameOver
@@ -223,7 +223,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
                   className={cls(
                     styles.tile,
                     isMine && styles.tileSelected,
-                    frozen && styles.tileDisabled,
+                    paused && styles.tileDisabled,
                   )}
                   style={
                     isPeer && ownerId
@@ -232,8 +232,8 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
                         }
                       : undefined
                   }
-                  onClick={() => !frozen && toggleTile(tile)}
-                  disabled={frozen}
+                  onClick={() => !paused && toggleTile(tile)}
+                  disabled={paused}
                 >
                   {tile}
                 </button>
@@ -248,7 +248,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
               type="button"
               className="secondary"
               onClick={handleClear}
-              disabled={frozen || unionTiles.length === 0}
+              disabled={paused || unionTiles.length === 0}
             >
               Clear
             </button>
@@ -274,7 +274,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
           </div>
         )}
 
-        {frozen && <FrozenOverlay missing={missing} />}
+        {paused && <PauseOverlay missing={missing} />}
       </div>
 
       <ClubChatPanel clubId={game.club_id} members={members} />
