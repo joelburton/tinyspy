@@ -69,6 +69,9 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
     sendClear,
     paused,
     missing,
+    manuallyPausedBy,
+    sendManualPause,
+    sendManualUnpause,
     loading,
   } = useGame(session, gameId)
   const [transient, setTransient] = useState<string | null>(null)
@@ -161,19 +164,32 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
               : `Mistakes left: ${4 - game.mistakes}`}
           </div>
         </div>
-        <button
-          type="button"
-          className={cls('link-button', styles.leave)}
-          onClick={onLeave}
-        >
-          Leave game
-        </button>
+        <div className={styles.headerActions}>
+          {!paused && !gameOver && (
+            <button
+              type="button"
+              className="secondary"
+              onClick={sendManualPause}
+            >
+              Pause
+            </button>
+          )}
+          <button
+            type="button"
+            className={cls('link-button', styles.leave)}
+            onClick={onLeave}
+          >
+            Leave game
+          </button>
+        </div>
       </header>
 
       <PauseBoundary
         paused={paused}
         missing={missing}
+        manuallyPausedBy={manuallyPausedBy}
         onPause={sendClear}
+        onResume={sendManualUnpause}
         className={styles.boardArea}
       >
         {foundGroups

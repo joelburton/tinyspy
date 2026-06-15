@@ -2,49 +2,73 @@ import type { SetupMember } from '../lib/games'
 import styles from './PauseOverlay.module.css'
 
 type Props = {
-  /** Whose absence is pausing the game. */
+  /** Members expected at the game who aren't currently on the
+   *  realtime channel. Populated for presence-driven pauses. */
   missing: SetupMember[]
+  /** Set when a player clicked the Pause button. Drives the
+   *  "X paused the game" copy line. null when the pause has no
+   *  manual source (e.g. presence-only). */
+  manuallyPausedBy?: SetupMember | null
+  /** Resume handler — rendered as a Resume button when
+   *  `manuallyPausedBy` is set. Any connected player can call
+   *  it; there's no privileged "original pauser" check. */
+  onResume?: () => void
 }
 
 /**
- * Banner + dim overlay rendered when a game is paused — i.e.,
- * not everyone expected at the game is currently connected to
- * its realtime channel. See `computePause` for the trigger
- * logic and `docs/wordknit.md` for the wider pattern.
+ * Banner + dim overlay rendered when a game is paused. Composes
+ * its copy from the two possible pause sources:
+ *
+ *   - **presence-only** (missing[].length > 0, !manuallyPausedBy):
+ *     "Waiting for Bea to reconnect…"
+ *   - **manual-only** (!missing[].length, manuallyPausedBy set):
+ *     "Bea paused the game" + Resume button
+ *   - **both** (both populated): stack both messages; Resume
+ *     button still shown (clicking Resume only clears the
+ *     manual pause; presence-pause stays until everyone's back)
  *
  * Paused ≠ suspended. Paused is the transient gameplay-pause
- * state (same UX as a video player's pause: clock stops, no
- * moves accepted, overlay shows). It resolves automatically
- * when the missing peer reconnects — the game stays open and
+ * state — same UX as a video player's pause: clock stops, no
+ * moves accepted, overlay shows. Resolves automatically when
+ * the missing peer reconnects (for presence-pause) or when
+ * anyone clicks Resume (for manual-pause). Game stays open and
  * active in the DB. Suspended (club-level) is about which game
  * `common.club_active_game` points at; that concept lives in
  * the ClubPage's "Suspended games" section.
- *
- * The overlay is sticky-positioned across the host's content
- * area; the host is expected to wrap its main interactive
- * surface so the overlay covers it while paused. Pointer events
- * are blocked at the overlay layer so clicks don't reach
- * underlying tiles / buttons.
  */
-export function PauseOverlay({ missing }: Props) {
-  if (missing.length === 0) return null
+export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
+  if (missing.length === 0 && !manuallyPausedBy) return null
 
-  const names = missing.map((m) => m.username)
-  const list =
-    names.length === 1
-      ? names[0]
-      : names.length === 2
-        ? `${names[0]} and ${names[1]}`
-        : `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+  const missingNames = missing.map((m) => m.username)
+  const missingList =
+    missingNames.length === 1
+      ? missingNames[0]
+      : missingNames.length === 2
+        ? `${missingNames[0]} and ${missingNames[1]}`
+        : missingNames.length > 2
+          ? `${missingNames.slice(0, -1).join(', ')}, and ${missingNames[missingNames.length - 1]}`
+          : ''
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
       <div className={styles.banner}>
-        <strong>Waiting for {list} to reconnect…</strong>
+        {missing.length > 0 && (
+          <strong>Waiting for {missingList} to reconnect…</strong>
+        )}
+        {manuallyPausedBy && (
+          <strong>{manuallyPausedBy.username} paused the game.</strong>
+        )}
         <p className="muted">
-          The game pauses while anyone's offline. It'll pick back up
-          automatically — your in-progress selections will reset.
+          The game pauses while anyone's offline, and any player can pause it.
+          Your in-progress selections reset on every pause.
         </p>
+        {onResume && manuallyPausedBy && (
+          <div className={styles.actions}>
+            <button type="button" onClick={onResume}>
+              Resume
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

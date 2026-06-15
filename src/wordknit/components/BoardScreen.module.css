@@ -32,6 +32,12 @@
   padding: 1rem 1.25rem;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .leave {
   align-self: center;
 }

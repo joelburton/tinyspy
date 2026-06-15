@@ -51,6 +51,19 @@ type SelectionEvent =
   | { type: 'deselect'; tile: string }
   | { type: 'clear' }
 
+/**
+ * Broadcast event shape for the manual-pause feature. The pauser's
+ * user_id rides along so peers can render the "Bea paused the
+ * game" overlay copy; the receiver looks up the member by id
+ * (no need to ship usernames over the wire).
+ *
+ * Any-player-resume: there's no privileged "original pauser"
+ * check. Any connected player can fire `manualUnpause`.
+ */
+type ManualPauseEvent =
+  | { type: 'manualPause'; userId: string }
+  | { type: 'manualUnpause' }
+
 export type SelectionMap = ReadonlyMap<string, string[]>
 
 /**
@@ -71,7 +84,12 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *   - selections / unionTiles — shared peer-selection state
  *     driven by Broadcast events
  *   - toggleTile / sendClear — emit selection events
- *   - paused / missing — derived from Presence
+ *   - paused / missing — union of presence-pause + manual-pause;
+ *     missing is the presence-side detail (for the overlay copy)
+ *   - manuallyPausedBy — the member who clicked Pause (null if
+ *     the pause is presence-only); also for overlay copy
+ *   - sendManualPause / sendManualUnpause — broadcast handlers
+ *     for the Pause / Resume buttons
  *   - loading — false once initial fetch completes
  *
  * See docs/wordknit.md → "Realtime: three subscriptions on one
@@ -91,6 +109,9 @@ export function useGame(
   sendClear: () => void
   paused: boolean
   missing: Member[]
+  manuallyPausedBy: Member | null
+  sendManualPause: () => void
+  sendManualUnpause: () => void
   loading: boolean
 } {
   const [game, setGame] = useState<WordknitGame | null>(null)
@@ -102,6 +123,13 @@ export function useGame(
   )
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
+  )
+  // user_id of whoever clicked the most recent un-resolved manual
+  // pause. null when no manual pause is in effect. The receiver
+  // looks up the member by id rather than shipping a full member
+  // object over Broadcast — usernames are stable and locally known.
+  const [manuallyPausedById, setManuallyPausedById] = useState<string | null>(
+    null,
   )
   const [loading, setLoading] = useState(true)
 
@@ -116,6 +144,17 @@ export function useGame(
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)
+
+  // Apply an incoming manual-pause event. Setter-based so idempotent
+  // with echoes of our own sends — re-applying the same state is a
+  // no-op via React's referential-equality check on setState.
+  const applyManualPause = useCallback((event: ManualPauseEvent) => {
+    if (event.type === 'manualPause') {
+      setManuallyPausedById(event.userId)
+    } else {
+      setManuallyPausedById(null)
+    }
+  }, [])
 
   // Apply an incoming selection event to local state. Idempotent —
   // adding an already-present tile is a no-op, deselecting an
@@ -271,6 +310,12 @@ export function useGame(
       applySelection(payload as SelectionEvent),
     )
 
+    // Broadcast: manual-pause events (Pause / Resume button clicks).
+    // Same idempotent-apply pattern.
+    ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
+      applyManualPause(payload as ManualPauseEvent),
+    )
+
     // Presence: derive `presentUserIds` from the merged state.
     // Several tabs of the same user are fine — we dedupe to
     // user_ids.
@@ -311,7 +356,31 @@ export function useGame(
       supabase.removeChannel(ch)
       setChannel(null)
     }
-  }, [applySelection, gameId, session.user.id])
+  }, [applyManualPause, applySelection, gameId, session.user.id])
+
+  // Re-broadcast active manual-pause whenever the set of connected
+  // peers changes, so a peer joining mid-pause (or reconnecting
+  // after the original pauser closed their tab) lands in the same
+  // paused state instead of seeing a phantom-resumed board.
+  //
+  // The "joining" detection is implicit: presentUserIds-change
+  // triggers this effect. We rebroadcast on every change rather
+  // than diffing the set — broadcasts are cheap, the receiver is
+  // idempotent, and the alternative (track "who was here last
+  // time" in a ref) is more code for no real benefit.
+  //
+  // If no manual pause is in effect, this is a no-op. If one is in
+  // effect, every connected client re-broadcasts on every presence
+  // change — including the original pauser's broadcast — which is
+  // fine because applyManualPause is idempotent.
+  useEffect(() => {
+    if (!channel || manuallyPausedById === null) return
+    channel.send({
+      type: 'broadcast',
+      event: 'manualPause',
+      payload: { type: 'manualPause', userId: manuallyPausedById },
+    })
+  }, [channel, manuallyPausedById, presentUserIds])
 
   // Send a broadcast event + apply locally (optimistic). The
   // local apply ensures the clicker sees the change immediately;
@@ -354,6 +423,26 @@ export function useGame(
     broadcast({ type: 'clear' })
   }, [broadcast])
 
+  // Manual-pause broadcasters. Optimistic local apply + broadcast
+  // (same shape as the selection broadcaster); receivers — including
+  // ourselves on the echo — apply idempotently.
+  const sendManualPause = useCallback(() => {
+    if (!channel) return
+    const event: ManualPauseEvent = {
+      type: 'manualPause',
+      userId: session.user.id,
+    }
+    applyManualPause(event)
+    channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
+  }, [applyManualPause, channel, session.user.id])
+
+  const sendManualUnpause = useCallback(() => {
+    if (!channel) return
+    const event: ManualPauseEvent = { type: 'manualUnpause' }
+    applyManualPause(event)
+    channel.send({ type: 'broadcast', event: 'manualPause', payload: event })
+  }, [applyManualPause, channel])
+
   // Flat union for submit + display.
   const unionTiles: string[] = []
   for (const list of selections.values()) {
@@ -362,7 +451,18 @@ export function useGame(
     }
   }
 
-  const { paused, missing } = computePause(presentUserIds, members)
+  // Presence-pause + manual-pause unify into a single `paused`
+  // flag for consumers. The two sources can coexist (presence-
+  // missing AND someone manually paused); the union truthy-ness
+  // is what the BoardScreen + PauseBoundary care about.
+  const { paused: presencePaused, missing } = computePause(
+    presentUserIds,
+    members,
+  )
+  const manuallyPausedBy = manuallyPausedById
+    ? members.find((m) => m.user_id === manuallyPausedById) ?? null
+    : null
+  const paused = presencePaused || manuallyPausedBy !== null
 
   return {
     game,
@@ -375,6 +475,9 @@ export function useGame(
     sendClear,
     paused,
     missing,
+    manuallyPausedBy,
+    sendManualPause,
+    sendManualUnpause,
     loading,
   }
 }

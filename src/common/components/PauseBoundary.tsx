@@ -96,17 +96,12 @@ type Props = {
 export function PauseBoundary({
   paused,
   missing,
+  manuallyPausedBy,
   onPause,
+  onResume,
   className,
   children,
 }: Props) {
-  // `manuallyPausedBy` and `onResume` from Props are intentionally
-  // not destructured today — they're part of the future-shaped API
-  // (manual-pause feature) but inert in current usage. Adding them
-  // here will land alongside the broadcast / Resume-button work in
-  // the manual-pause commit; until then, accepting them as props
-  // means call sites won't need to change shape when the feature
-  // lands.
   // Edge-trigger onPause on transition false → true. The ref
   // resets to false on the reverse transition, so a future
   // unpause + repause fires the callback again.
@@ -123,7 +118,13 @@ export function PauseBoundary({
   return (
     <div className={cls(styles.boundary, className)}>
       <div className={cls(paused && styles.hidden)}>{children}</div>
-      {paused && <PauseOverlay missing={missing} />}
+      {paused && (
+        <PauseOverlay
+          missing={missing}
+          manuallyPausedBy={manuallyPausedBy}
+          onResume={onResume}
+        />
+      )}
     </div>
   )
 }
