@@ -96,6 +96,7 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 
 - `game:<game_id>:<uuid>` — tinyspy game subscription
 - `psychicnum:<game_id>:<uuid>` — psychic-num game subscription
+- `wordknit:<game_id>:<uuid>` — wordknit game subscription (carries postgres-changes + broadcast + presence on a single channel)
 - `club-active:<club_id>:<uuid>` — club active-game pointer
 - `club-chat:<club_id>:<uuid>` — club chat messages
 

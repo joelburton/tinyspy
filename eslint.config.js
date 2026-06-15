@@ -15,7 +15,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
  * 3+ games; the dup is one line each and the lint failure on a missed
  * update is obvious.)
  */
-const GAMETYPES = ['tinyspy', 'psychicnum']
+const GAMETYPES = ['tinyspy', 'psychicnum', 'wordknit']
 
 /**
  * Build the `patterns` array for `no-restricted-imports` that blocks

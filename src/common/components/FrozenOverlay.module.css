@@ -1,0 +1,40 @@
+/* Frozen-state overlay. Renders as a sticky-positioned layer
+ * over whatever the host wraps it around. The dim/blur effect
+ * is similar to the dialog backdrop but lighter — we're
+ * indicating "this is paused" rather than "this is modal."
+ *
+ * pointer-events: all on the overlay → clicks on it are
+ * captured (don't reach the disabled-but-still-rendered tiles
+ * underneath). The banner itself stops propagation explicitly
+ * so a click on the message doesn't fall through.
+ */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  max-width: 32rem;
+  text-align: center;
+}
+
+.banner strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.banner p {
+  margin: 0;
+}

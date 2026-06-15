@@ -553,6 +553,136 @@ export type Database = {
       [_ in never]: never
     }
   }
+  wordknit: {
+    Tables: {
+      found_groups: {
+        Row: {
+          found_at: string
+          game_id: string
+          group_name: string
+          level: number
+          members: string[]
+        }
+        Insert: {
+          found_at?: string
+          game_id: string
+          group_name: string
+          level: number
+          members: string[]
+        }
+        Update: {
+          found_at?: string
+          game_id?: string
+          group_name?: string
+          level?: number
+          members?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "found_groups_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          board: Json
+          club_id: string
+          config: Json
+          created_at: string
+          id: string
+          mistakes: number
+          status: string
+        }
+        Insert: {
+          board: Json
+          club_id: string
+          config: Json
+          created_at?: string
+          id?: string
+          mistakes?: number
+          status?: string
+        }
+        Update: {
+          board?: Json
+          club_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          mistakes?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          id: string
+          matched_level: number | null
+          result: string
+          tiles: string[]
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          id?: string
+          matched_level?: number | null
+          result: string
+          tiles: string[]
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          id?: string
+          matched_level?: number | null
+          result?: string
+          tiles?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      create_game: {
+        Args: { config: Json; target_club: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      submit_guess: {
+        Args: {
+          matched_level?: number
+          result: string
+          target_game: string
+          tiles: string[]
+        }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -686,6 +816,9 @@ export const Constants = {
     Enums: {},
   },
   tinyspy: {
+    Enums: {},
+  },
+  wordknit: {
     Enums: {},
   },
 } as const
