@@ -279,12 +279,11 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 ### Tinyspy-specific test helpers
 
-These live inline in the test files that need them — not promoted to `_shared/setup.psql` because they're tinyspy-specific:
+Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/setup.psql`](../supabase/tests/tinyspy/setup.psql) per the promotion threshold in [`testing.md`](testing.md). Each tinyspy test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
 
-- **`pg_temp.find_position(g uuid, s text, target text) → int`** (in `game_loop_test.sql`, `sudden_death_test.sql`): "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game; the test can't hardcode positions.
-- **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** (in `win_test.sql`): array-returning variant for "find all positions matching." The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
-
-If a future game accumulates three or more of these per-game helpers, that's the signal to promote them to a `tests/<game>/setup.psql` file — see [`testing.md`](testing.md) for the deferred pattern.
+- **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
+- **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
+- **`pg_temp.tinyspy_cfg(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` config. Defaults to the standard 9-turn game with ada as first clue-giver; override either to test variations (`tinyspy_cfg(11)`, `tinyspy_cfg(9, bea_uuid)`).
 
 ### The key-card distribution test
 

@@ -153,24 +153,26 @@ Tests assert on the code, not the wording. The exact error string is described i
 
 `_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychic-num or tinyspy.
 
-When that pain shows up, the pattern is:
+The pattern in use:
 
 ```
 supabase/tests/
   _shared/
     setup.psql                 # ada/bea/cade/dee/eda + as_user (everyone uses this)
-  boggle/
-    setup.psql                 # boggle-specific helpers (every boggle test uses this)
-    score_test.sql             # \ir ../_shared/setup.psql
-                               # \ir ../boggle/setup.psql
+  tinyspy/
+    setup.psql                 # find_position, find_position_set, tinyspy_cfg
+    create_game_test.sql       # \ir ../_shared/setup.psql
+                               # \ir setup.psql
                                # ...test body...
 ```
 
-The doubly-included pattern: every test imports `_shared/setup.psql` first (everyone needs personas), then optionally a per-gametype `setup.psql` if the game has accumulated enough shared scaffolding to justify it. The per-gametype file would live alongside the tests in `supabase/tests/<game>/`, using the same `.psql` extension trick to stay invisible to discovery.
+The doubly-included pattern: every test imports `_shared/setup.psql` first (everyone needs personas), then optionally a per-gametype `setup.psql` if the game has accumulated enough shared scaffolding to justify it. The per-gametype file lives alongside the tests in `supabase/tests/<game>/`, using the same `.psql` extension trick to stay invisible to discovery.
+
+We import both explicitly, rather than chaining the shared include from inside the per-gametype file. The reader sees every dependency at the top of the test without having to open `setup.psql` to learn what it pulls in.
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Per-gametype helpers (`find_position` for tinyspy, target-pinning for psychic-num) are at three sites or fewer and currently stay inline in each test. That's fine.
+Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_cfg`). **psychic-num**'s only helper is inline target-pinning at one site — still below the promotion threshold.
 
 ## Frontend testing
 

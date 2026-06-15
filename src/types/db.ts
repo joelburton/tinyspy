@@ -394,6 +394,7 @@ export type Database = {
       games: {
         Row: {
           club_id: string
+          config: Json
           created_at: string
           current_clue_giver: string | null
           id: string
@@ -403,6 +404,7 @@ export type Database = {
         }
         Insert: {
           club_id: string
+          config: Json
           created_at?: string
           current_clue_giver?: string | null
           id?: string
@@ -412,6 +414,7 @@ export type Database = {
         }
         Update: {
           club_id?: string
+          config?: Json
           created_at?: string
           current_clue_giver?: string | null
           id?: string
@@ -478,7 +481,7 @@ export type Database = {
     Functions: {
       _end_turn: { Args: { target_game: string }; Returns: undefined }
       create_game: {
-        Args: { target_club: string }
+        Args: { config: Json; target_club: string }
         Returns: {
           id: string
         }[]

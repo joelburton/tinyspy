@@ -1,0 +1,74 @@
+-- ============================================================
+-- Tinyspy-shared test setup
+-- ============================================================
+--
+-- Included by every tinyspy test file alongside the shared
+-- personas + as_user helper:
+--
+--   \ir ../_shared/setup.psql
+--   \ir setup.psql
+--
+-- (`\ir` is psql's relative include — paths resolve relative to
+-- the including file's directory, so the same two lines work from
+-- every tinyspy test regardless of the caller's cwd.)
+--
+-- This file holds tinyspy-specific helpers. It deliberately does
+-- NOT chain `_shared/setup.psql` — every test still imports that
+-- explicitly, so a reader can see both dependencies at the top of
+-- the file without having to chase down what `setup.psql` pulls in.
+--
+-- Promotion from inlined helpers per the threshold in
+-- docs/testing.md: tinyspy now uses three shared helpers
+-- (find_position, find_position_set, tinyspy_cfg) — past the
+-- "three or more" trigger — so they live here rather than being
+-- copy-pasted into each test.
+
+-- ─── find_position ─────────────────────────────────────
+-- "Find the first board position whose label on seat `s`'s view
+-- is `target`." The key card is random per-game; tests can't
+-- hardcode positions for a green / neutral / assassin reveal.
+create function pg_temp.find_position(g uuid, s text, target text) returns int
+language sql as $$
+  select (ord - 1)::int
+  from tinyspy.game_players gp,
+       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
+  where gp.game_id = g and gp.seat = s and t.label = target
+  limit 1;
+$$;
+
+-- ─── find_position_set ─────────────────────────────────
+-- Array-returning variant for "find all positions matching."
+-- The positional `with ordinality` unnest avoids the
+-- `row_number()`-vs-SRF trap. Used by tests that walk through
+-- every green agent (the win test in particular).
+create function pg_temp.find_position_set(g uuid, s text, target text) returns int[]
+language sql as $$
+  select coalesce(array_agg((ord - 1)::int), array[]::int[])
+  from tinyspy.game_players gp,
+       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
+  where gp.game_id = g and gp.seat = s and t.label = target;
+$$;
+
+-- ─── tinyspy_cfg ───────────────────────────────────────
+-- Build a valid create_game config payload. Defaults to the
+-- standard 9-turn game with ada (the canonical "default test
+-- subject" per the personas convention) as the first clue-giver.
+-- Tests override turns or first_user as needed:
+--
+--   tinyspy_cfg()                              -- 9 turns, ada
+--   tinyspy_cfg(11)                            -- 11 turns, ada
+--   tinyspy_cfg(9, 'bea22222-...'::uuid)       -- 9 turns, bea
+--
+-- The shape mirrors src/tinyspy/lib/config.ts (TinyspyConfig).
+-- create_game validates the payload server-side; this helper is
+-- purely a typing-saver, not a validator.
+create function pg_temp.tinyspy_cfg(
+  turns int default 9,
+  first_user uuid default 'ada11111-1111-1111-1111-111111111111'::uuid
+) returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'turns', turns,
+    'firstClueGiverUserId', first_user
+  );
+$$;

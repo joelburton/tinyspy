@@ -29,15 +29,7 @@ set search_path = tinyspy, common, public, extensions;
 select plan(5);
 
 \ir ../_shared/setup.psql
-
-create function pg_temp.find_position(g uuid, s text, target text) returns int
-language sql as $$
-  select (ord - 1)::int
-  from tinyspy.game_players gp,
-       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-  where gp.game_id = g and gp.seat = s and t.label = target
-  limit 1;
-$$;
+\ir setup.psql
 
 -- ============================================================
 -- Set up an active game and force-flip it to sudden_death
@@ -47,7 +39,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club));
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
 
 -- Force the game into sudden_death. We swap back to the superuser
 -- because the `games` table has no UPDATE policy/grant for the

@@ -22,30 +22,20 @@ set search_path = tinyspy, common, public, extensions;
 select plan(18);
 
 \ir ../_shared/setup.psql
-
--- Find the first board position whose label on a given seat's key view is
--- `target`. The key card is random, so the test can't hardcode positions —
--- we have to look them up in each game.
-create function pg_temp.find_position(g uuid, s text, target text) returns int
-language sql as $$
-  select (ord - 1)::int
-  from tinyspy.game_players gp,
-       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-  where gp.game_id = g and gp.seat = s and t.label = target
-  limit 1;
-$$;
+\ir setup.psql
 
 -- ============================================================
 -- Game 1: full active-play loop
 -- ============================================================
 -- Ada creates the 2-member club; tinyspy.create_game seats both
--- members and brings the game straight to 'active'.
+-- members per the config (ada as first clue-giver → seat A) and
+-- brings the game straight to 'active'.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g1 on commit drop as
-select * from tinyspy.create_game((select id from club));
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
 
 -- ----- Phase-enforcement rejections -----
 -- Bea is not the clue-giver (Ada is), so submit_clue must reject.
@@ -187,7 +177,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from tinyspy.create_game((select id from club));
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
 select submit_clue((select id from g2), 'DOOM', 1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

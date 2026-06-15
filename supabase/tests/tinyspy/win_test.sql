@@ -28,16 +28,7 @@ set search_path = tinyspy, common, public, extensions;
 select plan(4);
 
 \ir ../_shared/setup.psql
-
--- Return all positions where a seat's view has the given label. The
--- positional unnest with ordinality avoids the row_number-vs-SRF trap.
-create function pg_temp.find_position_set(g uuid, s text, target text) returns int[]
-language sql as $$
-  select array_agg((ord - 1)::int order by ord)
-  from tinyspy.game_players gp,
-       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-  where gp.game_id = g and gp.seat = s and t.label = target;
-$$;
+\ir setup.psql
 
 -- ============================================================
 -- Create the club + game (single create_game seats both members)
@@ -47,7 +38,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club));
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
 
 -- ============================================================
 -- Turn 1: Ada gives a clue, Bea reveals all 9 of Ada's
