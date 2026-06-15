@@ -26,7 +26,7 @@ Concretely:
 - Every game's `games` table has `club_id NOT NULL`. The FK is to `common.clubs`; there is no "solo" alternative.
 - Each user gets a **solo club** (handle `=<username>`) auto-created at first sign-in by the `handle_new_user` trigger. The solo club is the venue for that user's solo play — when a future gametype plays naturally as 1-player (a single-player boggle puzzle, a daily crossword), the user enters their solo club and starts it there. Same shell, same routing, same `create_game` RPC.
 - Game-internal logic (score reports, replay history, board generation) is the same regardless of club size.
-- A gametype's supported player-count range is declared on its manifest (deferred — see [docs/deferred.md](deferred.md)). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. Tinyspy [2, 2] never appears in a solo club; psychic-num [1, ∞] appears in both; a future boggle [1, N] appears in both with the dialog narrowing mode choices based on member count.
+- A gametype's supported player-count range is declared on its manifest (`numberOfPlayers: [min, max | null]`). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. Tinyspy `[2, 2]` never appears in a solo club; psychic-num and wordknit (both `[1, null]`) appear in both solo and multi-member clubs; a future game with `[3, 5]` would only appear in clubs sized 3-5. ClubPage hides the button entirely when there's no `club_game_kinds` row, and disables it with a tooltip when the row exists but the count is out of range — see `playerCountFits` / `playerCountLabel` in `src/common/lib/games.ts`.
 - Mode-specific UX, where it exists (a game that asks "cooperative or competitive?" only when multi-player), lives inside that game's setup form — same `config jsonb` pattern as the existing setup options. The form's body is free to render different fields based on the mode choice; the shell doesn't notice.
 
 The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_id` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
@@ -55,7 +55,7 @@ This table is the most architecturally interesting piece of `common`. Two things
 
 2. **The `pk(club_id)` is load-bearing.** With it, starting a new game upserts the row, which auto-suspends whatever was previously active — by simply overwriting the pointer. The previously-active game's internal status (`tinyspy.games.status`) is untouched; "suspended" is a club-level concept derived from "this game exists but isn't pointed at by `club_active_game`."
 
-The auto-pause behavior is felt on the FE side via realtime: when `common.club_active_game` changes, every club member's UI subscribes and navigates them to the new active game's URL. See [`ClubPage`](#frontend) for the auto-nav handler.
+The auto-suspend behavior is felt on the FE side via realtime: when `common.club_active_game` changes, every club member's UI subscribes and navigates them to the new active game's URL. See [`ClubPage`](#frontend) for the auto-nav handler.
 
 ### Three-state game lifecycle
 
@@ -75,7 +75,7 @@ Every user gets a solo club on first sign-in, materialized by the `handle_new_us
 
 Solo clubs are intended as the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The FE hides them from the regular clubs list — they're visible to their owner but not surfaced as a navigation target. Most game logic doesn't distinguish solo clubs from regular ones; the `club_id` is just non-null in both cases.
 
-In v1, solo clubs are **mostly latent infrastructure**. Tinyspy requires exactly 2 club members and psychic-num requires no specific count, so neither has a meaningful solo-play surface yet. When a future game wants real solo-mode play, the solo-club already exists for it to attach to.
+Wordknit and psychic-num both have `numberOfPlayers: [1, null]`, so both appear as Play-solo buttons on the HomePage's solo-games section (keyed on the user's solo club). Tinyspy stays multi-member-only by virtue of its `[2, 2]` range. The HomePage's filtering logic is the same as ClubPage's: intersect the manifest range with the solo club's `club_game_kinds` rows and show what fits.
 
 ## RPCs
 
@@ -105,7 +105,7 @@ Writes go through this RPC only; the table itself has no insert grant on `authen
 
 | function | role |
 |---|---|
-| `common.handle_new_user()` | Trigger on `auth.users` insert. Materializes a `profiles` row + a solo club. A username collision (unique constraint) aborts sign-in entirely. |
+| `common.handle_new_user()` | Trigger on `auth.users` insert. Materializes a `profiles` row + a solo club + `club_game_kinds` rows for every gametype in `common.gametypes`. A username collision (unique constraint) aborts sign-in entirely. |
 | `common.is_club_member(target_club uuid) → boolean` | Security-definer RLS helper. Used by every `common.*` table's SELECT policy. Marked `stable` so Postgres can cache it within a SELECT — the RLS layer calls it once per row otherwise. |
 | `common.slugify_club_name(name text) → text` | Lowercase → non-alnum to `-` → trim → cap at 40 chars. Strips `=` along the way, which is what keeps user-typed names from producing solo-club handles. |
 
@@ -148,19 +148,33 @@ src/
 
   common/
     components/
-      HomePage.tsx         Landing — your clubs list + create-club link
+      HomePage.tsx         Landing — your clubs list + create-club link + Play-solo buttons
       CreateClubPage.tsx   The club-creation form
       ClubPage.tsx         A specific club's room — roster, games sections, chat, "Start X" buttons
       ClubChatPanel.tsx    Reused chat panel; every game's BoardScreen mounts this
       LoginScreen.tsx      Magic-link sign-in
+      SetupGameDialog.tsx  Modal wrapper around per-game setup forms (one per gametype)
+      PauseBoundary.tsx    Wraps a game's play area; renders children or PauseOverlay
+                           based on the paused flag. Used by every game with realtime
+                           presence (today: wordknit; future: tinyspy, psychic-num).
+      PauseOverlay.tsx     The dim-overlay UI when a game is paused. Adapts copy to
+                           presence-pause / manual-pause / both. Includes the Resume
+                           button for the manual-pause case.
     hooks/
       useSession.ts        Auth session subscription
       useClubChat.ts       Subscribes to a club's chat log
+      useGameTimer.ts      Browser-side countdown / count-up timer hook. Anchors at
+                           a server-stamped startedAt, ticks locally via
+                           useSyncExternalStore, observes a paused flag. See
+                           docs/wordknit.md → "Timer" for the design rationale.
     lib/
       supabase.ts          The supabase client (browser SDK)
       router.ts            Hand-rolled router — usePath() hook + navigate() function (~40 lines)
       Link.tsx             Path-based link component; cmd-click passes through to the browser
-      games.ts             The GameManifest type
+      games.ts             GameManifest type, TimerMode type, playerCountFits /
+                           playerCountLabel helpers
+      pause.ts             computePause helper — pure derivation of
+                           { paused, missing } from presentUserIds + members
       cls.ts               Tiny class-name combiner (hand-rolled `clsx` equivalent)
     db.ts                  export const db = supabase.schema('common')
     theme.css              Global design tokens at :root + utility classes (.card, .muted, etc.)
@@ -192,8 +206,9 @@ The shell never imports a specific game. It iterates a registry:
 // src/games.ts — the ONE file that lists games
 import { tinyspyGame } from './tinyspy/manifest'
 import { psychicnumGame } from './psychicnum/manifest'
+import { wordknitGame } from './wordknit/manifest'
 
-export const games: GameManifest[] = [tinyspyGame, psychicnumGame]
+export const games: GameManifest[] = [tinyspyGame, psychicnumGame, wordknitGame]
 ```
 
 Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts):
@@ -203,8 +218,11 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `gametype` | URL-safe identifier; matches the Postgres schema name by convention. The `<gametype>` segment in `/g/<gametype>/<id>` looks this up. |
 | `schema` | Postgres schema where the game's tables and RPCs live. Same as `gametype` today, but kept as a separate field in case they ever diverge. |
 | `name`, `blurb` | Human-readable. Used in pickers and titles. |
+| `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
 | `Root` | Lazy-loaded React component. The shell mounts this for `/g/<gametype>/<id>` URLs. |
-| `startGameInClub(clubId)` | Async. Called by the "Start X" button on `ClubPage`. Returns `{id}` on success or `{error}` on failure. |
+| `setup` | `{ Component, defaults } \| null` — the per-game setup dialog body + initial config. `null` for games whose start needs no choices; the dialog is then bypassed entirely. |
+| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` in the BoardScreen. Tinyspy and psychic-num omit; wordknit sets `{ kind: 'countdown', seconds: 600 }`. |
+| `startGameInClub(clubId, config)` | Async. Called by the SetupGameDialog (or directly by ClubPage when `setup: null`). Receives the dialog's collected config. Returns `{id}` on success or `{error}` on failure. |
 | `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/suspended/completed list. |
 
 Adding a game is one line in `src/games.ts` plus the new folder. Removing a game is one line removed plus `rm -rf` the folder plus dropping the schema. Nothing else in the codebase names a specific game.
@@ -217,7 +235,7 @@ The most interesting piece of common-side game state is in [`ClubPage.tsx`](../s
 
 This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's active game changes, every member's UI follows.
 
-DELETE events (game completion, future explicit pause) do NOT navigate anyone — players already in the game stay on the game-over screen; players on the club page see the game move from Active to Completed in the list. The `if (window.location.pathname !== target)` guard prevents the member who initiated the change (and was already navigated by `startGameInClub`) from getting a duplicate history entry when their own INSERT echoes back over realtime.
+DELETE events (game completion, future explicit suspend) do NOT navigate anyone — players already in the game stay on the game-over screen; players on the club page see the game move from Active to Completed in the list. The `if (window.location.pathname !== target)` guard prevents the member who initiated the change (and was already navigated by `startGameInClub`) from getting a duplicate history entry when their own INSERT echoes back over realtime.
 
 ## Theme & styling
 
@@ -258,7 +276,7 @@ There are no FE tests covering routing as a whole (no E2E in this project), but 
 
 See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 
-- **`common.club_game_kinds` m2m.** Per-club opt-in of which games are enabled. Not built. Every club can play every registered game in v1; the m2m table lands when "this club only plays crosswords" becomes a real request.
 - **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; the registry-dispatch `fetchClubGames` is fine at current scale.
 - **Friends / presence.** The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
+- **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.club_game_kinds` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.
