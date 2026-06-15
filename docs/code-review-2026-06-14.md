@@ -1,5 +1,18 @@
 # Code review — 2026-06-14
 
+> **Status: closed 2026-06-14.** All eleven queue items in §1–§4 landed in
+> `8f0c8af` (mechanical drift batch) and `8e0623e` (decision items +
+> remaining cleanups). One follow-up convention from this work added to
+> [`code-conventions.md`](code-conventions.md) in `933fa3c` ("extract a
+> small helper over a deeply-nested ternary"). HowToPlayModal wiring
+> smoke-tested in a browser by Joel. The one open thread — the Netlify
+> URL in `README.md` line 93 — is deferred to whenever the deploy gets
+> renamed; left as `tinyspy.netlify.app` for now because it's still the
+> live address.
+>
+> Document preserved verbatim below as the historical record of what was
+> found and how it got framed; don't edit the body.
+
 A read of the whole tree after the recent refactor round, against the prior set out
 in [`CLAUDE.md`](../CLAUDE.md), [`code-conventions.md`](code-conventions.md),
 and [`testing.md`](testing.md). Audience: Joel, then future-Joel.
