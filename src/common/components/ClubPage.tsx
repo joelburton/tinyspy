@@ -8,6 +8,7 @@ import { ClubChatPanel } from './ClubChatPanel'
 import { SetupGameDialog } from './SetupGameDialog'
 import { games } from '../../games'
 import type { ClubGameEntry, GameManifest } from '../lib/games'
+import { playerCountFits, playerCountLabel } from '../lib/games'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -61,6 +62,13 @@ export function ClubPage({ session, handle }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
   const [starting, setStarting] = useState<string | null>(null)
+  // The set of gametypes this club is allowed to play, read from
+  // common.club_game_kinds. v1 populates this with every registered
+  // gametype at club-creation time; per-club opt-out is deferred.
+  // We still gate FE rendering on this set so a future
+  // gametype-not-auto-added-to-this-club state works correctly,
+  // and so the shape is in place for the eventual club-settings UI.
+  const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(new Set())
   // The manifest currently being set up in the dialog, or null if
   // the dialog isn't open. Setting this opens the dialog (the
   // dialog component is mounted iff this is non-null); the dialog
@@ -136,6 +144,18 @@ export function ClubPage({ session, handle }: Props) {
       } else {
         setMembers([])
       }
+
+      // Fetch the m2m rows for this club — drives which Start
+      // buttons render. The intersection with the FE registry
+      // (computed at render time) naturally hides gametypes the
+      // DB knows about but this FE bundle doesn't.
+      const { data: kindsData } = await commonDb
+        .from('club_game_kinds')
+        .select('gametype')
+        .eq('club_id', clubData.id)
+      if (!mounted) return
+      setAllowedGametypes(new Set((kindsData ?? []).map((k) => k.gametype)))
+
       setLoading(false)
     }
 
@@ -312,23 +332,37 @@ export function ClubPage({ session, handle }: Props) {
 
       <section>
         <h3>Start a new game</h3>
-        {/* Iterate the games registry — one button per gametype,
-            calling its manifest's startGameInClub. ClubPage stays
-            game-agnostic; tinyspy's RPC call lives inside the
-            tinyspy manifest. Add boggle later and a button appears
-            here automatically. */}
+        {/* Iterate the games registry filtered by the club's
+            allowed-gametype m2m — one button per gametype this
+            club may play. ClubPage stays game-agnostic; the RPC
+            call lives inside the manifest. Add boggle later and
+            (assuming the m2m is populated for this club) a
+            button appears here automatically.
+
+            Each button additionally checks the manifest's
+            numberOfPlayers range against the club's member count.
+            If the club is out of range, the button renders
+            disabled with a tooltip — "Tinyspy needs exactly 2
+            members" — so the user can see why the game's offered
+            but unavailable rather than wondering where it went. */}
         <div className="actions">
-          {games.map((g) => (
-            <button
-              key={g.gametype}
-              type="button"
-              onClick={() => handleStart(g.gametype)}
-              disabled={starting !== null}
-              title={g.blurb}
-            >
-              {starting === g.gametype ? 'Starting…' : `Start ${g.name}`}
-            </button>
-          ))}
+          {games
+            .filter((g) => allowedGametypes.has(g.gametype))
+            .map((g) => {
+              const fits = playerCountFits(g.numberOfPlayers, members.length)
+              const title = fits ? g.blurb : playerCountLabel(g.numberOfPlayers)
+              return (
+                <button
+                  key={g.gametype}
+                  type="button"
+                  onClick={() => handleStart(g.gametype)}
+                  disabled={starting !== null || !fits}
+                  title={title}
+                >
+                  {starting === g.gametype ? 'Starting…' : `Start ${g.name}`}
+                </button>
+              )
+            })}
         </div>
         {activeGame && (
           <p className="muted">

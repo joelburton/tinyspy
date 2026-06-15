@@ -226,3 +226,44 @@ export type ClubGameEntry = {
   isTerminal: boolean
   statusLabel: string
 }
+
+/**
+ * Does a club's member count fall inside a gametype's supported
+ * range? `range[1] === null` means "no upper bound."
+ *
+ * Pure helper — used by both ClubPage (deciding to enable/disable
+ * a Start button) and HomePage (deciding which solo-game buttons
+ * to surface).
+ */
+export function playerCountFits(
+  range: GameManifest['numberOfPlayers'],
+  count: number,
+): boolean {
+  const [min, max] = range
+  if (count < min) return false
+  if (max !== null && count > max) return false
+  return true
+}
+
+/**
+ * Human-readable description of the player-count requirement,
+ * for tooltip text on a disabled Start button.
+ *
+ * Examples:
+ *   [2, 2]    → "Needs exactly 2 members"
+ *   [1, 4]    → "Needs 1–4 members"
+ *   [3, null] → "Needs at least 3 members"
+ *   [1, null] → "Needs at least 1 member" (but this never disables)
+ */
+export function playerCountLabel(
+  range: GameManifest['numberOfPlayers'],
+): string {
+  const [min, max] = range
+  if (max === null) {
+    return `Needs at least ${min} ${min === 1 ? 'member' : 'members'}`
+  }
+  if (min === max) {
+    return `Needs exactly ${min} ${min === 1 ? 'member' : 'members'}`
+  }
+  return `Needs ${min}–${max} members`
+}
