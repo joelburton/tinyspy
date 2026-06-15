@@ -30,10 +30,22 @@ export const tinyspyGame: GameManifest = {
   blurb: 'Cooperative Codenames Duet for two.',
   Root: lazy(() => import('./Root').then((m) => ({ default: m.TinyspyRoot }))),
 
+  // Setup form not wired up yet — landing in a follow-up commit
+  // that adds turn-count + first-clue-giver options. Until then
+  // ClubPage's start-button bypasses the dialog and fires this
+  // RPC directly with config=null.
+  setup: null,
+
   // Called by the common ClubPage's "Start Tinyspy" button. The RPC
   // does all the work — verifies caller is in the 2-member club,
   // seats both, picks words, generates the key card, and upserts
   // common.club_active_game.
+  //
+  // `config` is the typed setup payload the dialog would have
+  // collected, but with `setup: null` it's always null and we don't
+  // bother declaring the parameter. TypeScript's contravariance on
+  // function parameter count lets this satisfy the manifest's
+  // (clubId, config) signature with a (clubId)-only implementation.
   startGameInClub: async (clubId) => {
     const { data, error } = await db
       .rpc('create_game', { target_club: clubId })

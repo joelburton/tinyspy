@@ -1,0 +1,47 @@
+/* The native <dialog> for the per-game setup overlay.
+ *
+ * Same styling shape as HowToPlayModal — surface tokens,
+ * backdrop dim + blur, content padding. The only meaningful
+ * difference is the actions row at the bottom is horizontal
+ * (Cancel | Start), unlike the global .actions class which
+ * stacks vertically inside cards.
+ */
+
+dialog.setupDialog {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: 32rem;
+  width: calc(100vw - 4rem);
+}
+
+dialog.setupDialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.content {
+  padding: 2rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.content h2 {
+  margin-top: 0;
+}
+
+/* Horizontal action row — overrides the vertical .actions in
+   theme.css (which is for stacked-buttons-inside-a-card use).
+   Cancel on the left, Start on the right. */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.actions button {
+  min-width: 6rem;
+}

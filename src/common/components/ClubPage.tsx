@@ -5,8 +5,9 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { ClubChatPanel } from './ClubChatPanel'
+import { SetupGameDialog } from './SetupGameDialog'
 import { games } from '../../games'
-import type { ClubGameEntry } from '../lib/games'
+import type { ClubGameEntry, GameManifest } from '../lib/games'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -60,13 +61,27 @@ export function ClubPage({ session, handle }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
   const [starting, setStarting] = useState<string | null>(null)
+  // The manifest currently being set up in the dialog, or null if
+  // the dialog isn't open. Setting this opens the dialog (the
+  // dialog component is mounted iff this is non-null); the dialog
+  // calls back into us via onStarted / onCancel to close.
+  const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
 
   async function handleStart(gametype: string) {
     const game = games.find((g) => g.gametype === gametype)
     if (!club || !game) return
     setStartError(null)
+    // Games that declare a setup form route through the modal —
+    // it collects the config, calls startGameInClub itself, and
+    // either fires onStarted (we navigate) or onCancel (we close).
+    // Games with `setup: null` skip the modal and call create_game
+    // immediately, the same shape ClubPage has always had.
+    if (game.setup) {
+      setPendingSetup(game)
+      return
+    }
     setStarting(gametype)
-    const result = await game.startGameInClub(club.id)
+    const result = await game.startGameInClub(club.id, null)
     setStarting(null)
     if ('error' in result) {
       setStartError(result.error)
@@ -352,6 +367,25 @@ export function ClubPage({ session, handle }: Props) {
           ← Back home
         </Link>
       </p>
+
+      {pendingSetup && (
+        <SetupGameDialog
+          manifest={pendingSetup}
+          members={members}
+          clubId={club.id}
+          onStarted={(id) => {
+            // Capture gametype before clearing pendingSetup —
+            // the state setter is asynchronous but our reference
+            // to pendingSetup inside this closure is the one
+            // from this render, so reading .gametype here is
+            // safe regardless of ordering.
+            const gametype = pendingSetup.gametype
+            setPendingSetup(null)
+            navigate(`/g/${gametype}/${id}`)
+          }}
+          onCancel={() => setPendingSetup(null)}
+        />
+      )}
     </div>
   )
 }

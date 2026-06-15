@@ -29,6 +29,62 @@ export type GameRootProps = {
 }
 
 /**
+ * One club member's identity, surfaced into per-game setup forms
+ * so they can render member-aware choices (e.g. Tinyspy's "who
+ * gives the first clue?" picker). Shape matches what ClubPage
+ * already builds for its roster + chat panel — passed straight
+ * through, no transformation.
+ */
+export type SetupMember = {
+  user_id: string
+  username: string
+}
+
+/**
+ * Props a per-game setup-form body receives from the common
+ * `SetupGameDialog` wrapper. The body is **controlled**: state
+ * lives in the wrapper, the body renders `value` and signals
+ * edits via `onChange`. The wrapper is the one place that holds
+ * the form state, persists defaults, and decides when to fire
+ * `startGameInClub`.
+ *
+ * `value` and `onChange` are typed `unknown` at this boundary so
+ * `GameManifest` can stay non-generic (the registry holds
+ * `GameManifest[]`, which can't carry per-game type parameters).
+ * Each game's setup component starts with a single
+ * `value as TinyspyConfig` cast at the top and is then fully
+ * typed inside.
+ */
+export type SetupBodyProps = {
+  members: SetupMember[]
+  value: unknown
+  onChange: (next: unknown) => void
+}
+
+/**
+ * What a game's manifest declares about its setup form: the
+ * lazy-loaded body component plus the initial config the wrapper
+ * uses to seed its state when the dialog opens.
+ *
+ * Lazy-loading means the form ships in the game's chunk, not in
+ * the registry bundle. A first-time click on "Start" pays a tiny
+ * fetch (cached for the session afterwards); the trade is that
+ * the registry stays a thin manifest of gametypes — the same
+ * argument that justifies lazy-loading `Root`. See
+ * docs/common.md for the "inline what the club page renders
+ * idle; lazy-load what's gated behind user intent" rule.
+ *
+ * `defaults` lives directly in the manifest (NOT lazy-loaded)
+ * because the wrapper needs an initial config the moment the
+ * modal opens — before the chunk has arrived. It's a tiny
+ * object literal so the size cost is negligible.
+ */
+export type GameSetup = {
+  Component: ComponentType<SetupBodyProps>
+  defaults: unknown
+}
+
+/**
  * Manifest exported by each game's `manifest.ts`. The shell consumes
  * the registry of manifests (`src/games.ts`) and never names a
  * specific game directly. This is what makes adding or removing a
@@ -75,20 +131,39 @@ export type GameManifest = {
   Root: ComponentType<GameRootProps>
 
   /**
-   * Start a new game of this gametype inside the given club. Called
-   * by the club page's "Start X" button (one per registered game).
-   * Returns the new game's id on success, or null + an error message
-   * the UI can surface verbatim.
-   *
-   * Each game implements this against its own RPCs (Tinyspy calls
-   * tinyspy.create_game(target_club); Boggle eventually will call
-   * boggle.create_game with whatever shape it wants). The function
-   * lives ON the manifest so common code (ClubPage) can iterate
-   * `games` and offer a button per gametype without ever importing
-   * from a game folder — preserving the import-direction rules from
-   * docs/code-conventions.md.
+   * Per-game setup options shown in a modal before `create_game`
+   * fires. `null` for games whose start-button needs no choices —
+   * the dialog is bypassed and `startGameInClub` is called
+   * directly. (No game uses `null` today now that both Tinyspy
+   * and Psychic Num have configurable options, but the shape is
+   * preserved so a future zero-config game can opt out without
+   * needing an empty form.)
    */
-  startGameInClub: (clubId: string) => Promise<{ id: string } | { error: string }>
+  setup: GameSetup | null
+
+  /**
+   * Start a new game of this gametype inside the given club.
+   * Receives the typed config the dialog wrapper collected from
+   * the setup form, or `null` when the manifest declared
+   * `setup: null`. The game's own implementation casts the
+   * config to its narrow shape and forwards it to its
+   * `create_game` RPC (which validates the shape server-side —
+   * the FE config is not trusted).
+   *
+   * Returns the new game's id on success, or `{error}` whose
+   * message the UI surfaces verbatim.
+   *
+   * Each game implements this against its own RPCs. The function
+   * lives ON the manifest so common code (`ClubPage`,
+   * `SetupGameDialog`) can iterate `games` and offer a setup
+   * dialog + start affordance per gametype without ever importing
+   * from a game folder — preserving the import-direction rules
+   * from docs/code-conventions.md.
+   */
+  startGameInClub: (
+    clubId: string,
+    config: unknown,
+  ) => Promise<{ id: string } | { error: string }>
 
   /**
    * List this gametype's games for a club. The common ClubPage
