@@ -31,7 +31,7 @@
 .logGuess {
   margin-left: 1rem;
   padding: 0.1rem 0;
-  color: #ccc;
+  color: var(--color-text);
 }
 
 /* Inline label chip — the colored bubble showing what the guess
@@ -43,8 +43,8 @@
   font-weight: 600;
 }
 .logLabelG {
-  background: var(--tinyspy-green-soft-bright);
-  color: var(--tinyspy-green-text);
+  background: var(--tinyspy-agent-soft-bright);
+  color: var(--tinyspy-agent-text);
 }
 .logLabelN {
   background: var(--tinyspy-neutral-soft-bright);

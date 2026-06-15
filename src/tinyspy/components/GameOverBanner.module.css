@@ -19,8 +19,8 @@
 }
 
 .win {
-  background: var(--tinyspy-green-soft-banner);
-  border: 1px solid var(--tinyspy-green);
+  background: var(--tinyspy-agent-soft-banner);
+  border: 1px solid var(--tinyspy-agent);
 }
 
 .loss {

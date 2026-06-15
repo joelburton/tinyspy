@@ -17,12 +17,18 @@ import styles from './BoardScreen.module.css'
 /**
  * Per-label module-class lookup. Local to BoardScreen since it's
  * the only consumer; the actual style rules live in
- * BoardScreen.module.css under `.tileGreen`, `.tileNeutral`,
+ * BoardScreen.module.css under `.tileAgent`, `.tileNeutral`,
  * `.tileAssassin`. Indirection lets the rest of the file say
  * `styles[TILE_BG[label]]` and have everything stay scoped.
+ *
+ * The data-side KeyLabel ('G'|'N'|'A') keeps its single-letter
+ * shape — those letters are persisted in tinyspy.words.revealed_as
+ * and tinyspy.game_players.key_card. The mapping below is the one
+ * place that translates from the data alphabet to the
+ * presentation-layer's semantic class names.
  */
-const TILE_BG: Record<KeyLabel, 'tileGreen' | 'tileNeutral' | 'tileAssassin'> = {
-  G: 'tileGreen',
+const TILE_BG: Record<KeyLabel, 'tileAgent' | 'tileNeutral' | 'tileAssassin'> = {
+  G: 'tileAgent',
   N: 'tileNeutral',
   A: 'tileAssassin',
 }

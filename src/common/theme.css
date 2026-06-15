@@ -22,29 +22,35 @@
 /* ---------- Design tokens ---------- */
 
 :root {
-  /* Surface palette — neutral grays for the dark theme. */
-  --color-bg:                 #111;
-  --color-surface:            #1c1c1c;
-  --color-surface-border:     #2a2a2a;
-  --color-surface-hover:      #2a2a2a;
+  /* Surface palette — light theme. The page is off-white so pure-
+     white cards have a subtle ground; borders are a pale gray
+     just visible against the bg. */
+  --color-bg:                 #fafafa;
+  --color-surface:            #ffffff;
+  --color-surface-border:     #e2e2e2;
+  --color-surface-hover:      #f0f0f0;
 
-  /* Form control palette. */
-  --color-control-bg:         #222;
-  --color-control-border:     #333;
-  --color-control-border-2:   #444;
-  --color-control-text-2:     #aaa;
+  /* Form control palette. Inputs sit on white with a soft gray
+     border; secondary buttons use a slightly stronger border so
+     they read as bordered rather than ghost-y. */
+  --color-control-bg:         #ffffff;
+  --color-control-border:     #cfcfcf;
+  --color-control-border-2:   #b0b0b0;
+  --color-control-text-2:     #555;
 
-  /* Text palette. */
-  --color-text:               #eee;
-  --color-muted:              #888;
-  --color-divider:            #666;
-  --color-dot:                #555;
-  --color-error:              #ff6b6b;
-  --color-error-soft-text:    #ffb6b6;
+  /* Text palette. Near-black for body, medium gray for muted,
+     darker gray for dividers (which sit on the bg, not on cards). */
+  --color-text:               #1a1a1a;
+  --color-muted:              #6b6b6b;
+  --color-divider:            #8a8a8a;
+  --color-dot:                #a0a0a0;
+  --color-error:              #c62828;
+  --color-error-soft-text:    #d32f2f;
 
-  /* Accent — links, primary buttons, focus outlines. */
-  --color-accent:             #4a90e2;
-  --color-accent-hover:       #5aa0f2;
+  /* Accent — links, primary buttons, focus outlines. Material
+     Blue 700; white-on-this passes AA contrast for button labels. */
+  --color-accent:             #1976d2;
+  --color-accent-hover:       #1565c0;
 
   /* Radii. */
   --radius-md:                6px;   /* buttons, inputs, panels */
@@ -55,7 +61,7 @@
 
   background: var(--color-bg);
   color: var(--color-text);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* ---------- Element resets ---------- */

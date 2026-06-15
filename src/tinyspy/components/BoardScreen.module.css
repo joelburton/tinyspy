@@ -108,8 +108,8 @@
 
 /* Hint variant: tinted background that previews the seat's key
  * label without committing to a reveal. */
-.tileHint.tileGreen {
-  background: var(--tinyspy-green-soft);
+.tileHint.tileAgent {
+  background: var(--tinyspy-agent-soft);
   border-color: rgba(56, 161, 105, 0.4);
 }
 .tileHint.tileNeutral {
@@ -126,9 +126,9 @@
 .tileRevealed {
   color: white;
 }
-.tileRevealed.tileGreen {
-  background: var(--tinyspy-green);
-  border-color: var(--tinyspy-green);
+.tileRevealed.tileAgent {
+  background: var(--tinyspy-agent);
+  border-color: var(--tinyspy-agent);
 }
 .tileRevealed.tileNeutral {
   background: var(--tinyspy-neutral);
@@ -180,8 +180,8 @@
   padding: 0.15rem 0.4rem;
   color: rgba(0, 0, 0, 0.65);
 }
-.tileStripe.tileGreen {
-  background: var(--tinyspy-green);
+.tileStripe.tileAgent {
+  background: var(--tinyspy-agent);
   color: white;
 }
 .tileStripe.tileNeutral {
@@ -189,7 +189,10 @@
 }
 .tileStripe.tileAssassin {
   background: var(--tinyspy-assassin-bg);
-  color: var(--color-text);
+  /* Hardcoded white because --tinyspy-assassin-bg is a dark fill in
+     both themes (the "ominous" look); --color-text inverts with the
+     theme and would go invisible-on-dark in light mode. */
+  color: white;
 }
 
 /* --------- Desktop three-column layout --------- */

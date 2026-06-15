@@ -1,10 +1,19 @@
 /* ============================================================
  * tinyspy/theme.css — color tokens specific to Tinyspy.
  *
- * The three Duet roles (green agent, neutral bystander, assassin)
- * each get a small palette of opacities + a "hint" soft variant
- * and a "revealed" solid variant. Components reference these via
- * var(--color-tinyspy-green) etc. from their own *.module.css.
+ * The three Duet roles (agent, neutral bystander, assassin) each
+ * get a small palette of opacities + a "hint" soft variant and a
+ * "revealed" solid variant. Components reference these via
+ * var(--tinyspy-agent) etc. from their own *.module.css.
+ *
+ * Token names are semantic to Duet's vocabulary, not to colors:
+ * `--tinyspy-agent` (green-ish) rather than `--tinyspy-green`,
+ * since "agent" is the *role* the token paints. See docs/ui.md
+ * for the wider rationale.
+ *
+ * Tuned for the light common theme (off-white bg). When dark mode
+ * lands as a user option, this file gets a sibling [data-theme]
+ * block — the names stay the same, the values shift.
  *
  * Loaded with the Tinyspy chunk (imported from src/tinyspy/Root.tsx).
  * When Boggle / Crosswords / etc. land, they bring their own
@@ -13,27 +22,30 @@
  * ============================================================ */
 
 :root {
-  /* Green agent — the "good" target color. */
-  --tinyspy-green:              #38a169;
-  --tinyspy-green-soft:         rgba(56, 161, 105, 0.18);
-  --tinyspy-green-soft-bright:  rgba(56, 161, 105, 0.30);
-  --tinyspy-green-soft-banner:  rgba(56, 161, 105, 0.20);
-  --tinyspy-green-text:         #6cd29c;
+  /* Agent — the "good" target color. Deep forest green; reads as
+     saturated on white without screaming. */
+  --tinyspy-agent:               #2e7d32;
+  --tinyspy-agent-soft:          rgba(46, 125, 50, 0.16);
+  --tinyspy-agent-soft-bright:   rgba(46, 125, 50, 0.28);
+  --tinyspy-agent-soft-banner:   rgba(46, 125, 50, 0.18);
+  --tinyspy-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
 
-  /* Neutral bystander — warm-tan, low-contrast. */
-  --tinyspy-neutral:            #b4986e;
-  --tinyspy-neutral-soft:       rgba(180, 152, 110, 0.12);
-  --tinyspy-neutral-soft-bright:rgba(180, 152, 110, 0.25);
-  --tinyspy-neutral-text:       #d4b88a;
-  --tinyspy-neutral-text-dark:  #1a1a1a;  /* on solid neutral bg */
+  /* Neutral bystander — warm tan, low-key on the board. */
+  --tinyspy-neutral:             #b4986e;
+  --tinyspy-neutral-soft:        rgba(180, 152, 110, 0.16);
+  --tinyspy-neutral-soft-bright: rgba(180, 152, 110, 0.30);
+  --tinyspy-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
+  --tinyspy-neutral-text-dark:   #1a1a1a;  /* on the mid-tone solid neutral bg */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
-     wrapper border and the error-banner inside the board area. */
-  --tinyspy-assassin:           #be3c3c;
-  --tinyspy-assassin-soft:      rgba(190, 60, 60, 0.18);
-  --tinyspy-assassin-soft-dim:  rgba(190, 60, 60, 0.04);
-  --tinyspy-assassin-soft-banner:rgba(190, 60, 60, 0.20);
-  --tinyspy-assassin-soft-bright:rgba(190, 60, 60, 0.30);
-  --tinyspy-assassin-bg:        #1a1a1a;  /* the dark fill behind the revealed assassin tile */
-  --tinyspy-assassin-text:      #ff8e8e;
+     wrapper border and the in-board error banner. The revealed-
+     assassin tile keeps a dark fill (#1a1a1a) regardless of
+     theme — the "you died" look survives both light and dark. */
+  --tinyspy-assassin:            #be3c3c;
+  --tinyspy-assassin-soft:       rgba(190, 60, 60, 0.16);
+  --tinyspy-assassin-soft-dim:   rgba(190, 60, 60, 0.05);
+  --tinyspy-assassin-soft-banner:rgba(190, 60, 60, 0.18);
+  --tinyspy-assassin-soft-bright:rgba(190, 60, 60, 0.28);
+  --tinyspy-assassin-bg:         #1a1a1a;  /* dark fill behind the revealed assassin tile */
+  --tinyspy-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
 }

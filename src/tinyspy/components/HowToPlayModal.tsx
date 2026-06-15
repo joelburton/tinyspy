@@ -51,7 +51,7 @@ export function HowToPlayModal({ open, onClose }: Props) {
           You see a 5×5 grid, tinted with <em>your</em> view of each card:
         </p>
         <ul>
-          <li><strong className={styles.hintGreen}>Green</strong> — an agent (you're hunting these)</li>
+          <li><strong className={styles.hintAgent}>Green</strong> — an agent (you're hunting these)</li>
           <li><strong className={styles.hintNeutral}>Tan</strong> — a bystander</li>
           <li><strong className={styles.hintAssassin}>Red</strong> — the assassin (revealing one ends the game)</li>
         </ul>
