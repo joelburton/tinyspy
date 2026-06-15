@@ -17,19 +17,21 @@ The payoff is the **removability invariant**: any game must be removable in thre
 
 This applies on the database side too: the `common` schema must not reference any game schema. Game schemas reference common (`tinyspy.games.club_id → common.clubs.id`), never the reverse.
 
-## Solo and multiplayer modes — keep them orthogonal
+## Solo and multiplayer play — both live in clubs
 
-The architecture supports two modes of play: **solo** (a single user playing alone) and **multiplayer** (a club's members playing together). The directive for any new gametype: **the same code and tables should handle both modes wherever possible** — avoid forked code paths or duplicated tables for "solo version" vs "club version."
+The architecture treats solo and multi-player uniformly: **every game has a club, and "solo" just means a club with one member.** There is no separate solo-game code path, no nullable-`club_id` sentinel, no `solo_games` table — solo is a club-size case of the same flow.
 
 Concretely:
 
-- A game's `games` table should accommodate both with a nullable `club_id` (null = solo, non-null = club-played) rather than separate `solo_games` / `club_games` tables.
-- Score reports, replay history, board generation, and any other game-internal logic should be the same code regardless of mode.
-- Mode-specific behavior lives at the **edges**: RLS (who can see the game), the entry flow (who can join), the post-game screen (invite-club-to-rematch vs. play-again-alone).
+- Every game's `games` table has `club_id NOT NULL`. The FK is to `common.clubs`; there is no "solo" alternative.
+- Each user gets a **solo club** (handle `=<username>`) auto-created at first sign-in by the `handle_new_user` trigger. The solo club is the venue for that user's solo play — when a future gametype plays naturally as 1-player (a single-player boggle puzzle, a daily crossword), the user enters their solo club and starts it there. Same shell, same routing, same `create_game` RPC.
+- Game-internal logic (score reports, replay history, board generation) is the same regardless of club size.
+- A gametype's supported player-count range is declared on its manifest (deferred — see [docs/deferred.md](deferred.md)). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. Tinyspy [2, 2] never appears in a solo club; psychic-num [1, ∞] appears in both; a future boggle [1, N] appears in both with the dialog narrowing mode choices based on member count.
+- Mode-specific UX, where it exists (a game that asks "cooperative or competitive?" only when multi-player), lives inside that game's setup form — same `config jsonb` pattern as the existing setup options. The form's body is free to render different fields based on the mode choice; the shell doesn't notice.
 
-Tinyspy is the structural exception that proves the rule — its `club_id` is `not null` because Codenames Duet is intrinsically a 2-player game. Psychic Num's `club_id` is also `not null` today, but only because no solo-mode UI has been wired up yet (the RPCs would work fine with any club size). A future Boggle's `club_id` should be nullable from day one because Boggle plays naturally in both modes.
+The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_id` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
 
-Solo clubs (handle `=<username>`) exist as the anchor for solo play — even "solo" play in this codebase technically happens *inside* a club, just one with a single member. That's what lets per-user stats and history tables join cleanly on `club_id` without a separate "solo records" table.
+Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to this rule — they're just where its `[2, 2]` player-count range lands. Same shape as any other gametype.
 
 ## Schema: `common.*`
 
