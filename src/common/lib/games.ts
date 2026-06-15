@@ -52,7 +52,7 @@ export type SetupMember = {
  * `GameManifest` can stay non-generic (the registry holds
  * `GameManifest[]`, which can't carry per-game type parameters).
  * Each game's setup component starts with a single
- * `value as TinyspyConfig` cast at the top and is then fully
+ * `value as TinyspySetup` cast at the top and is then fully
  * typed inside.
  */
 export type SetupBodyProps = {
@@ -63,7 +63,7 @@ export type SetupBodyProps = {
 
 /**
  * What a game's manifest declares about its setup form: the
- * lazy-loaded body component plus the initial config the wrapper
+ * lazy-loaded body component plus the initial values the wrapper
  * uses to seed its state when the dialog opens.
  *
  * Lazy-loading means the form ships in the game's chunk, not in
@@ -75,11 +75,17 @@ export type SetupBodyProps = {
  * idle; lazy-load what's gated behind user intent" rule.
  *
  * `defaults` lives directly in the manifest (NOT lazy-loaded)
- * because the wrapper needs an initial config the moment the
- * modal opens — before the chunk has arrived. It's a tiny
+ * because the wrapper needs an initial setup value the moment
+ * the modal opens — before the chunk has arrived. It's a tiny
  * object literal so the size cost is negligible.
+ *
+ * Naming note: the manifest field is `setupForm` (the *form
+ * definition*) to keep it cleanly distinct from `<gametype>.games.setup`
+ * (the form *output*, frozen onto the game row). Same root word
+ * because they're two faces of the same concept; the suffix tells
+ * you which face you have. See docs/naming.md.
  */
-export type GameSetup = {
+export type GameSetupForm = {
   Component: ComponentType<SetupBodyProps>
   defaults: unknown
 }
@@ -165,24 +171,24 @@ export type GameManifest = {
   Root: ComponentType<GameRootProps>
 
   /**
-   * Per-game setup options shown in a modal before `create_game`
-   * fires. `null` for games whose start-button needs no choices —
-   * the dialog is bypassed and `startGameInClub` is called
-   * directly. (No game uses `null` today now that both Tinyspy
-   * and Psychic Num have configurable options, but the shape is
-   * preserved so a future zero-config game can opt out without
-   * needing an empty form.)
+   * Per-game setup-form declaration shown in a modal before
+   * `create_game` fires. `null` for games whose start-button
+   * needs no choices — the dialog is bypassed and
+   * `startGameInClub` is called directly. (No game uses `null`
+   * today now that all three games have setup options, but the
+   * shape is preserved so a future zero-setup game can opt out
+   * without needing an empty form.)
    */
-  setup: GameSetup | null
+  setupForm: GameSetupForm | null
 
   /**
    * Start a new game of this gametype inside the given club.
-   * Receives the typed config the dialog wrapper collected from
-   * the setup form, or `null` when the manifest declared
-   * `setup: null`. The game's own implementation casts the
-   * config to its narrow shape and forwards it to its
+   * Receives the typed setup value the dialog wrapper collected
+   * from the setup form, or `null` when the manifest declared
+   * `setupForm: null`. The game's own implementation casts the
+   * setup to its narrow shape and forwards it to its
    * `create_game` RPC (which validates the shape server-side —
-   * the FE config is not trusted).
+   * the FE setup is not trusted).
    *
    * Returns the new game's id on success, or `{error}` whose
    * message the UI surfaces verbatim.
@@ -196,7 +202,7 @@ export type GameManifest = {
    */
   startGameInClub: (
     clubId: string,
-    config: unknown,
+    setup: unknown,
   ) => Promise<{ id: string } | { error: string }>
 
   /**

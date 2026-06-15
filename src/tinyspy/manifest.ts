@@ -1,7 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_TINYSPY_CONFIG, type TinyspyConfig } from './lib/config'
+import { DEFAULT_TINYSPY_SETUP, type TinyspySetup } from './lib/setup'
 
 /**
  * Tinyspy's registration with the shell. Exported as the only thing
@@ -39,31 +39,31 @@ export const tinyspyGame: GameManifest = {
 
   Root: lazy(() => import('./Root').then((m) => ({ default: m.TinyspyRoot }))),
 
-  // Per-game setup: turn-count radio + first-clue-giver radio.
-  // The Component is lazy-loaded so the form ships in tinyspy's
-  // chunk (not the registry); `defaults` is a tiny literal that
-  // travels with the manifest itself. See src/common/lib/games.ts
-  // for why this split.
-  setup: {
+  // Per-game setup form: turn-count radio + first-clue-giver
+  // radio. The Component is lazy-loaded so the form ships in
+  // tinyspy's chunk (not the registry); `defaults` is a tiny
+  // literal that travels with the manifest itself. See
+  // src/common/lib/games.ts for why this split.
+  setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.TinyspySetup })),
+      import('./components/Setup').then((m) => ({ default: m.TinyspySetupForm })),
     ),
-    defaults: DEFAULT_TINYSPY_CONFIG,
+    defaults: DEFAULT_TINYSPY_SETUP,
   },
 
   // Called by SetupGameDialog when the player clicks Start. The
-  // RPC validates the config shape server-side and uses it to
-  // initialize the game (turns_remaining from cfg.turns; seat A
-  // assigned to cfg.firstClueGiverUserId). See the
-  // 20260614000002_tinyspy_setup_config migration.
+  // RPC validates the setup shape server-side and uses it to
+  // initialize the game (turns_remaining from s.turns; seat A
+  // assigned to s.firstClueGiverUserId). See the
+  // 20260614000002_tinyspy_setup migration.
   //
-  // The `unknown` → TinyspyConfig cast is safe because we own
-  // both ends of the boundary (this manifest's setup.Component
-  // is the only thing populating the wrapper's value).
-  startGameInClub: async (clubId, config) => {
-    const cfg = config as TinyspyConfig
+  // The `unknown` → TinyspySetup cast is safe because we own
+  // both ends of the boundary (this manifest's setupForm
+  // Component is the only thing populating the wrapper's value).
+  startGameInClub: async (clubId, setup) => {
+    const s = setup as TinyspySetup
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId, config: cfg })
+      .rpc('create_game', { target_club: clubId, setup: s })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start tinyspy game' }

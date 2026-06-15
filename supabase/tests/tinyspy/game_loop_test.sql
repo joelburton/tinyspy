@@ -28,14 +28,14 @@ select plan(18);
 -- Game 1: full active-play loop
 -- ============================================================
 -- Ada creates the 2-member club; tinyspy.create_game seats both
--- members per the config (ada as first clue-giver → seat A) and
+-- members per the setup (ada as first clue-giver → seat A) and
 -- brings the game straight to 'active'.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g1 on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
 
 -- ----- Phase-enforcement rejections -----
 -- Bea is not the clue-giver (Ada is), so submit_clue must reject.
@@ -177,7 +177,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
 select submit_clue((select id from g2), 'DOOM', 1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

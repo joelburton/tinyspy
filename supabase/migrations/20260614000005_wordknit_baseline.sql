@@ -89,7 +89,7 @@ create table wordknit.games (
   mistake_count int not null default 0
     check (mistake_count between 0 and 4),
   board jsonb not null,
-  config jsonb not null,
+  setup jsonb not null,
   created_at timestamptz not null default now()
 );
 
@@ -181,7 +181,7 @@ alter publication supabase_realtime add table wordknit.guesses;
 -- the manifest's setup dialog already gestures at this with a
 -- placeholder message.
 
-create function wordknit.create_game(target_club uuid, config jsonb)
+create function wordknit.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -241,12 +241,12 @@ begin
     tile_order[j] := tmp;
   end loop;
 
-  insert into wordknit.games (club_id, board, config)
+  insert into wordknit.games (club_id, board, setup)
   values (
     target_club,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order)),
-    config
+    setup
   )
   returning games.id into new_id;
 

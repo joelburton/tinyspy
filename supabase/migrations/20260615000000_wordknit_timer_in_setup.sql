@@ -1,14 +1,14 @@
 -- ============================================================
--- wordknit: timer moves from manifest field to setup config
+-- wordknit: timer moves from manifest field to setup payload
 -- ============================================================
 --
 -- The wordknit timer used to be a hardcoded manifest field
 -- (`timerMode: { kind: 'countdown', seconds: 600 }`). It's now
 -- a player-configurable setup choice, stored on
--- `wordknit.games.config`'s new `timer` field. This migration
+-- `wordknit.games.setup`'s new `timer` field. This migration
 -- updates `wordknit.create_game` to validate the new shape.
 --
--- Config shape (extended):
+-- Setup shape (extended):
 --   {
 --     "timer": (
 --         { "kind": "none" }
@@ -18,9 +18,9 @@
 --   }
 --
 -- Validation rules:
---   - config.timer.kind must be one of 'none' / 'countup' /
+--   - setup.timer.kind must be one of 'none' / 'countup' /
 --     'countdown'
---   - When kind = 'countdown', config.timer.seconds must be an
+--   - When kind = 'countdown', setup.timer.seconds must be an
 --     integer between 1 (no zero-length games) and 3600 (1
 --     hour cap — Joel's call; longer games would be a
 --     different product entirely)
@@ -38,7 +38,7 @@
 -- OR REPLACE in sync with baseline so the apply-order
 -- (baseline → timer) lands on the right body.
 
-create or replace function wordknit.create_game(target_club uuid, config jsonb)
+create or replace function wordknit.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -71,31 +71,31 @@ begin
   -- Must agree with the `numberOfPlayers: [1, null]` declaration
   -- in src/wordknit/manifest.ts.
 
-  -- ─── Validate config.timer shape ──────────────────────
+  -- ─── Validate setup.timer shape ──────────────────────
   -- Missing-vs-bad split for clear error messages (same
-  -- pattern as tinyspy / psychic-num config validation).
-  timer_obj := config->'timer';
+  -- pattern as tinyspy / psychic-num setup validation).
+  timer_obj := setup->'timer';
   if timer_obj is null then
-    raise exception 'config.timer is required' using errcode = 'P0001';
+    raise exception 'setup.timer is required' using errcode = 'P0001';
   end if;
 
   timer_kind := timer_obj->>'kind';
   if timer_kind not in ('none', 'countup', 'countdown') then
     raise exception
-      'config.timer.kind must be none, countup, or countdown (got %)',
+      'setup.timer.kind must be none, countup, or countdown (got %)',
       coalesce(timer_kind, '<null>')
       using errcode = 'P0001';
   end if;
 
   if timer_kind = 'countdown' then
     if (timer_obj->>'seconds') is null then
-      raise exception 'config.timer.seconds is required for countdown'
+      raise exception 'setup.timer.seconds is required for countdown'
         using errcode = 'P0001';
     end if;
     timer_seconds := (timer_obj->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
       raise exception
-        'config.timer.seconds must be 1..3600 (got %)',
+        'setup.timer.seconds must be 1..3600 (got %)',
         timer_seconds
         using errcode = 'P0001';
     end if;
@@ -128,12 +128,12 @@ begin
     tile_order[j] := tmp;
   end loop;
 
-  insert into wordknit.games (club_id, board, config)
+  insert into wordknit.games (club_id, board, setup)
   values (
     target_club,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order)),
-    config
+    setup
   )
   returning games.id into new_id;
 

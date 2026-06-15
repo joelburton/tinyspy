@@ -1,8 +1,8 @@
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
-  type PsychicnumConfig,
-} from '../lib/config'
+  type PsychicnumSetup,
+} from '../lib/setup'
 import styles from './Setup.module.css'
 
 /**
@@ -19,12 +19,16 @@ import styles from './Setup.module.css'
  *
  * Controlled component pattern, same as the tinyspy form: state
  * lives in the wrapper; we render from `value` and signal via
- * `onChange`. The single `value as PsychicnumConfig` cast at
- * the top is the boundary between the manifest's `unknown`
- * config type and psychicnum's narrow shape.
+ * `onChange`. The single `value as PsychicnumSetup` cast at
+ * the top is the boundary between the manifest's `unknown` setup
+ * type and psychicnum's narrow shape.
+ *
+ * Export name `PsychicnumSetupForm` matches `manifest.setupForm` —
+ * this is the *form definition*, distinct from `PsychicnumSetup`
+ * (the *data shape* the form produces).
  */
-export function PsychicnumSetup({ value, onChange }: SetupBodyProps) {
-  const cfg = value as PsychicnumConfig
+export function PsychicnumSetupForm({ value, onChange }: SetupBodyProps) {
+  const s = value as PsychicnumSetup
 
   return (
     <div className={styles.setup}>
@@ -40,8 +44,8 @@ export function PsychicnumSetup({ value, onChange }: SetupBodyProps) {
               <input
                 type="radio"
                 name="guesses"
-                checked={cfg.guesses === n}
-                onChange={() => onChange({ ...cfg, guesses: n })}
+                checked={s.guesses === n}
+                onChange={() => onChange({ ...s, guesses: n })}
               />
               {n}
             </label>

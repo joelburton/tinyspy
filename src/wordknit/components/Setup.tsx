@@ -4,8 +4,8 @@ import { formatTimerSeconds } from '../../common/hooks/useGameTimer'
 import {
   MAX_COUNTDOWN_SECONDS,
   MIN_COUNTDOWN_SECONDS,
-  type WordknitConfig,
-} from '../lib/config'
+  type WordknitSetup,
+} from '../lib/setup'
 import styles from './Setup.module.css'
 
 /**
@@ -17,9 +17,9 @@ import styles from './Setup.module.css'
  * editable when "Down" is selected.
  *
  * The MM:SS text input is parsed on every change. When the
- * input is well-formed and in range, the underlying config
+ * input is well-formed and in range, the underlying setup
  * updates to the new seconds value. When it's malformed, the
- * displayed text reflects what the user typed but the config
+ * displayed text reflects what the user typed but the setup
  * carries the most recent *valid* value — so hitting Start
  * always sends something the server will accept. If the user
  * does manage to hit Start with an invalid value, the server-
@@ -32,17 +32,21 @@ import styles from './Setup.module.css'
  *
  * Future setup fields (puzzle date picker, etc.) land
  * alongside the timer fieldset.
+ *
+ * Export name `WordknitSetupForm` matches `manifest.setupForm` —
+ * this is the *form definition*, distinct from `WordknitSetup`
+ * (the *data shape* the form produces).
  */
-export function WordknitSetup({ value, onChange }: SetupBodyProps) {
-  const cfg = value as WordknitConfig
+export function WordknitSetupForm({ value, onChange }: SetupBodyProps) {
+  const s = value as WordknitSetup
   // Local text state for the MM:SS input. Initialized from the
-  // current config when countdown, otherwise a sensible default.
-  // The text and the config can diverge briefly while the user
+  // current setup when countdown, otherwise a sensible default.
+  // The text and the setup can diverge briefly while the user
   // types something invalid; the latest *valid* parse goes into
-  // the config.
+  // the setup.
   const [timerText, setTimerText] = useState(() =>
-    cfg.timer.kind === 'countdown'
-      ? formatTimerSeconds(cfg.timer.seconds)
+    s.timer.kind === 'countdown'
+      ? formatTimerSeconds(s.timer.seconds)
       : formatTimerSeconds(600),
   )
 
@@ -52,23 +56,23 @@ export function WordknitSetup({ value, onChange }: SetupBodyProps) {
       // If it's a valid MM:SS, use it; otherwise fall back to
       // 10:00 so the radio change doesn't fail silently.
       const seconds = parseMmSs(timerText) ?? 600
-      onChange({ ...cfg, timer: { kind: 'countdown', seconds } })
+      onChange({ ...s, timer: { kind: 'countdown', seconds } })
     } else {
-      onChange({ ...cfg, timer: { kind } })
+      onChange({ ...s, timer: { kind } })
     }
   }
 
   function setTimerTextAndUpdate(text: string) {
     setTimerText(text)
-    if (cfg.timer.kind === 'countdown') {
+    if (s.timer.kind === 'countdown') {
       const seconds = parseMmSs(text)
       if (seconds !== null) {
-        onChange({ ...cfg, timer: { kind: 'countdown', seconds } })
+        onChange({ ...s, timer: { kind: 'countdown', seconds } })
       }
     }
   }
 
-  const downSelected = cfg.timer.kind === 'countdown'
+  const downSelected = s.timer.kind === 'countdown'
   const textValid = parseMmSs(timerText) !== null
 
   return (
@@ -85,7 +89,7 @@ export function WordknitSetup({ value, onChange }: SetupBodyProps) {
             <input
               type="radio"
               name="timerKind"
-              checked={cfg.timer.kind === 'none'}
+              checked={s.timer.kind === 'none'}
               onChange={() => setKind('none')}
             />
             None
@@ -94,7 +98,7 @@ export function WordknitSetup({ value, onChange }: SetupBodyProps) {
             <input
               type="radio"
               name="timerKind"
-              checked={cfg.timer.kind === 'countup'}
+              checked={s.timer.kind === 'countup'}
               onChange={() => setKind('countup')}
             />
             Up

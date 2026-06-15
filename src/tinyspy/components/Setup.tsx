@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   TURN_OPTIONS,
-  type TinyspyConfig,
-} from '../lib/config'
+  type TinyspySetup,
+} from '../lib/setup'
 import styles from './Setup.module.css'
 
 /**
@@ -25,23 +25,27 @@ import styles from './Setup.module.css'
  *
  * Controlled component pattern: state lives in the wrapper,
  * we render from `value` and signal via `onChange`. The single
- * `value as TinyspyConfig` cast at the top is the boundary
- * between the manifest's `unknown` config type and tinyspy's
+ * `value as TinyspySetup` cast at the top is the boundary
+ * between the manifest's `unknown` setup type and tinyspy's
  * narrow shape — see the SetupBodyProps doc in
  * src/common/lib/games.ts.
+ *
+ * Export name `TinyspySetupForm` matches `manifest.setupForm` —
+ * this is the *form definition*, distinct from `TinyspySetup`
+ * (the *data shape* the form produces).
  */
-export function TinyspySetup({ members, value, onChange }: SetupBodyProps) {
-  const cfg = value as TinyspyConfig
+export function TinyspySetupForm({ members, value, onChange }: SetupBodyProps) {
+  const s = value as TinyspySetup
 
   // Auto-pick the first member as first-clue-giver when the form
   // first sees a populated member list with an empty selection.
   // Once firstClueGiverUserId is set, the inner condition is
-  // false and this is a no-op — including on cfg-change reruns.
+  // false and this is a no-op — including on s-change reruns.
   useEffect(() => {
-    if (cfg.firstClueGiverUserId === '' && members.length > 0) {
-      onChange({ ...cfg, firstClueGiverUserId: members[0].user_id })
+    if (s.firstClueGiverUserId === '' && members.length > 0) {
+      onChange({ ...s, firstClueGiverUserId: members[0].user_id })
     }
-  }, [cfg, members, onChange])
+  }, [s, members, onChange])
 
   return (
     <div className={styles.setup}>
@@ -57,8 +61,8 @@ export function TinyspySetup({ members, value, onChange }: SetupBodyProps) {
               <input
                 type="radio"
                 name="turns"
-                checked={cfg.turns === t}
-                onChange={() => onChange({ ...cfg, turns: t })}
+                checked={s.turns === t}
+                onChange={() => onChange({ ...s, turns: t })}
               />
               {t}
             </label>
@@ -78,9 +82,9 @@ export function TinyspySetup({ members, value, onChange }: SetupBodyProps) {
               <input
                 type="radio"
                 name="firstClueGiver"
-                checked={cfg.firstClueGiverUserId === m.user_id}
+                checked={s.firstClueGiverUserId === m.user_id}
                 onChange={() =>
-                  onChange({ ...cfg, firstClueGiverUserId: m.user_id })
+                  onChange({ ...s, firstClueGiverUserId: m.user_id })
                 }
               />
               {m.username}

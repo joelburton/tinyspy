@@ -47,7 +47,7 @@ After the game ends, players can call `reveal_target` to learn what the number w
 
 | table | purpose |
 |---|---|
-| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`, `config` (the start-game-dialog choices, jsonb). |
+| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`, `setup` (the start-game-dialog choices, jsonb). |
 | `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. Used both for rendering the history in the UI and as the audit trail for "what happened." |
 
 There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table. It co-locates onto the game row.
@@ -58,7 +58,7 @@ There is no separate `boards` table. The only datum that fits the "board" concep
 
 - **active** — guesses being submitted. The default; no other entry state.
 - **won** — a correct guess landed. Terminal.
-- **lost** — the last wrong guess (the one that took the budget to 0) landed. Terminal. The "last" varies with the setup dialog's `guesses` choice (3, 5, 7, or 9 — see [Setup config](#setup-config) below).
+- **lost** — the last wrong guess (the one that took the budget to 0) landed. Terminal. The "last" varies with the setup dialog's `guesses` choice (3, 5, 7, or 9 — see [Setup](#setup) below).
 
 Simpler than tinyspy's enum (no sudden_death, no multi-axis loss reasons). This is one of the things Psychic Num is testing — that the architecture doesn't accidentally hardcode tinyspy's specific states.
 
@@ -106,13 +106,13 @@ Tinyspy doesn't use this pattern because tinyspy has no true secrets — both pl
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `psychicnum, common, public, extensions`.
 
-### `psychicnum.create_game(target_club uuid, config jsonb) → table(id uuid)`
+### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-Caller must be a club member. Validates the config shape, picks a random target 1–10, inserts the game row in `active` with `guesses_remaining` initialized from `config.guesses`, upserts `common.club_active_game` pointing at it.
+Caller must be a club member. Validates the setup shape, picks a random target 1–10, inserts the game row in `active` with `guesses_remaining` initialized from `setup.guesses`, upserts `common.club_active_game` pointing at it.
 
 **No minimum-club-size check.** The game logic plays fine with any membership count — 1 (solo club, deferred), 2, 5, whatever. The current FE doesn't surface solo-club play, but the RPC doesn't reject it.
 
-Reject reasons: not authenticated; not a member; `config.guesses` not in {3, 5, 7, 9}; `config.guesses` missing.
+Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing.
 
 ### `psychicnum.submit_guess(target_game uuid, guess int) → text`
 
@@ -144,15 +144,15 @@ Reject reasons: not authenticated; not a club member; game still active.
 
 `psychicnum.clear_active_on_termination()` — fires on `psychicnum.games.status` UPDATE. When status flips from `active` to `won` or `lost`, deletes the matching `common.club_active_game` row. Same pattern as [tinyspy's equivalent](tinyspy.md#helpers-not-callable-from-the-client).
 
-## Setup config
+## Setup
 
 The start-game dialog collects one option from the players before `create_game` fires:
 
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default (parity with the previous hardcoded value); 3 is the hard mode; 5 medium; 9 the easy warm-up.
 
-Shape stored on `psychicnum.games.config` (jsonb): `{ "guesses": 3 | 5 | 7 | 9 }`. The mutable `guesses_remaining` counter is initialized from `config.guesses` at create-game time; the column persists the original choice so end-of-game review can display "this game was played with 5 guesses" without trying to infer it from a counter that's already been decremented to 0.
+Shape stored on `psychicnum.games.setup` (jsonb): `{ "guesses": 3 | 5 | 7 | 9 }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the column persists the original choice so end-of-game review can display "this game was played with 5 guesses" without trying to infer it from a counter that's already been decremented to 0.
 
-The FE side: `src/psychicnum/lib/config.ts` (the `PsychicnumConfig` type) and `src/psychicnum/components/Setup.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
+The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/Setup.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
 
 ## Row-level security
 

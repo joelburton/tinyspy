@@ -3,7 +3,7 @@ import type { GameManifest } from '../common/lib/games'
 import { db as commonDb } from '../common/db'
 import type { Database } from '../types/db'
 import { db } from './db'
-import { DEFAULT_PSYCHICNUM_CONFIG, type PsychicnumConfig } from './lib/config'
+import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's
 // "Avoid SELECT *". Adding a column to psychicnum.games requires
@@ -45,32 +45,32 @@ export const psychicnumGame: GameManifest = {
     import('./Root').then((m) => ({ default: m.PsychicnumRoot })),
   ),
 
-  // Per-game setup: a single-fieldset guess-budget radio. The
-  // Component is lazy-loaded so the form ships in psychicnum's
-  // chunk (not the registry); `defaults` is a tiny literal that
-  // travels with the manifest. See src/common/lib/games.ts for
-  // the split's reasoning.
-  setup: {
+  // Per-game setup form: a single-fieldset guess-budget radio.
+  // The Component is lazy-loaded so the form ships in
+  // psychicnum's chunk (not the registry); `defaults` is a tiny
+  // literal that travels with the manifest. See
+  // src/common/lib/games.ts for the split's reasoning.
+  setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.PsychicnumSetup })),
+      import('./components/Setup').then((m) => ({ default: m.PsychicnumSetupForm })),
     ),
-    defaults: DEFAULT_PSYCHICNUM_CONFIG,
+    defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
   // Called by SetupGameDialog when the player clicks Start. The
-  // RPC picks the random target server-side, validates the config
-  // shape, initializes guesses_remaining from config.guesses, and
+  // RPC picks the random target server-side, validates the setup
+  // shape, initializes guesses_remaining from setup.guesses, and
   // upserts common.club_active_game (auto-pausing any prior
   // active game in the club, per the v1 active-per-club
   // invariant).
   //
-  // The `unknown` → PsychicnumConfig cast is safe because we own
-  // both ends of the boundary (this manifest's setup.Component is
-  // the only thing populating the wrapper's value).
-  startGameInClub: async (clubId, config) => {
-    const cfg = config as PsychicnumConfig
+  // The `unknown` → PsychicnumSetup cast is safe because we own
+  // both ends of the boundary (this manifest's setupForm
+  // Component is the only thing populating the wrapper's value).
+  startGameInClub: async (clubId, setup) => {
+    const s = setup as PsychicnumSetup
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId, config: cfg })
+      .rpc('create_game', { target_club: clubId, setup: s })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start psychic num game' }

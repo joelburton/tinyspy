@@ -80,11 +80,12 @@ export function ClubPage({ session, handle }: Props) {
     if (!club || !game) return
     setStartError(null)
     // Games that declare a setup form route through the modal —
-    // it collects the config, calls startGameInClub itself, and
+    // it collects the setup, calls startGameInClub itself, and
     // either fires onStarted (we navigate) or onCancel (we close).
-    // Games with `setup: null` skip the modal and call create_game
-    // immediately, the same shape ClubPage has always had.
-    if (game.setup) {
+    // Games with `setupForm: null` skip the modal and call
+    // create_game immediately, the same shape ClubPage has always
+    // had.
+    if (game.setupForm) {
       setPendingSetup(game)
       return
     }

@@ -7,7 +7,7 @@ import type { SetupMember } from '../../common/lib/games'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Board, CategoryRank } from '../lib/board'
-import type { WordknitConfig } from '../lib/config'
+import type { WordknitSetup } from '../lib/setup'
 
 // Narrower than Database[...]['Row']. The board jsonb column is
 // read once on load and stays put — only mutable fields (status,
@@ -20,7 +20,7 @@ type GameRow = Pick<
   | 'status'
   | 'mistake_count'
   | 'board'
-  | 'config'
+  | 'setup'
   | 'created_at'
 >
 
@@ -57,7 +57,7 @@ export type WordknitGame = {
   /** The frozen-at-create-time player choices: timer mode +
    *  (future) puzzle date etc. Read by BoardScreen to drive
    *  useGameTimer; server-side validated in create_game. */
-  config: WordknitConfig
+  setup: WordknitSetup
   /** Server-stamped game-start timestamp, ISO. Used as the
    *  anchor for the browser-side countdown timer. */
   created_at: string
@@ -224,7 +224,7 @@ export function useGame(
         db
           .from('games')
           .select(
-            'id, club_id, status, mistake_count, board, config, created_at',
+            'id, club_id, status, mistake_count, board, setup, created_at',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -249,7 +249,7 @@ export function useGame(
         status: row.status as WordknitGame['status'],
         mistake_count: row.mistake_count,
         board: row.board as Board,
-        config: row.config as WordknitConfig,
+        setup: row.setup as WordknitSetup,
         created_at: row.created_at,
       })
       setGuesses(

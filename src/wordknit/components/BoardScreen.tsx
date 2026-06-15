@@ -12,7 +12,7 @@ import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { colorForUserId } from '../lib/peerColor'
 import type { CategoryRank } from '../lib/board'
-import { DEFAULT_WORDKNIT_CONFIG } from '../lib/config'
+import { DEFAULT_WORDKNIT_SETUP } from '../lib/setup'
 import styles from './BoardScreen.module.css'
 
 type Props = {
@@ -87,7 +87,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   // stable ISO timestamp from the server) and ticks locally;
   // pauses freeze it; no server sync. The mode is per-game,
   // chosen by the player(s) in the setup dialog and stored on
-  // game.config.timer. See useGameTimer's doc for the design
+  // game.setup.timer. See useGameTimer's doc for the design
   // choice and drift bounds.
   //
   // While game is loading (null), pass placeholder anchor +
@@ -96,7 +96,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
   const timer = useGameTimer({
     startedAt: game?.created_at ?? new Date().toISOString(),
     paused,
-    mode: game?.config.timer ?? DEFAULT_WORDKNIT_CONFIG.timer,
+    mode: game?.setup.timer ?? DEFAULT_WORDKNIT_SETUP.timer,
   })
 
   // Auto-clear the transient banner after a beat.
@@ -212,7 +212,7 @@ export function BoardScreen({ session, gameId, onLeave }: Props) {
             ) : (
               <>
                 Mistakes left: {4 - game.mistake_count}
-                {game.config.timer.kind !== 'none' && (
+                {game.setup.timer.kind !== 'none' && (
                   <>
                     {' · '}
                     <span className={styles.timer}>

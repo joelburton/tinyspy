@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: wordknit.create_game(target_club, config)
+-- Test: wordknit.create_game(target_club, setup)
 -- ============================================================
 --
 -- Doubles as the pgTAP primer for the wordknit suite. See
@@ -9,11 +9,11 @@
 -- Coverage:
 --   - rejection: not authenticated
 --   - rejection: caller is not a member of the target club
---   - rejection: bad config.timer shapes (missing, bad kind,
+--   - rejection: bad setup.timer shapes (missing, bad kind,
 --     missing seconds, out-of-range seconds)
 --   - acceptance: timer.kind in {none, countup}
 --   - happy path: returns one row, status='in_progress',
---     mistake_count=0, config persists, board hardcoded with 4
+--     mistake_count=0, setup persists, board hardcoded with 4
 --     categories × 4 tiles each, tile order is a shuffle of all
 --     16 tiles, club_active_game is upserted
 --   - The board.categories and board.tileOrder shape is what
@@ -70,7 +70,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- Config-shape validation
+-- Setup-shape validation
 -- ============================================================
 -- Missing-vs-bad split so each rejection has its own clean
 -- message. The dialog never produces these payloads in
@@ -87,8 +87,8 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.timer is required',
-  'create_game: missing config.timer is rejected'
+  'setup.timer is required',
+  'create_game: missing setup.timer is rejected'
 );
 
 -- timer.kind is bogus
@@ -98,7 +98,7 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.timer.kind must be none, countup, or countdown (got fast)',
+  'setup.timer.kind must be none, countup, or countdown (got fast)',
   'create_game: bogus timer.kind is rejected'
 );
 
@@ -109,7 +109,7 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.timer.seconds is required for countdown',
+  'setup.timer.seconds is required for countdown',
   'create_game: countdown without seconds is rejected'
 );
 
@@ -120,7 +120,7 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.timer.seconds must be 1..3600 (got 0)',
+  'setup.timer.seconds must be 1..3600 (got 0)',
   'create_game: countdown with seconds=0 is rejected'
 );
 
@@ -131,7 +131,7 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.timer.seconds must be 1..3600 (got 3601)',
+  'setup.timer.seconds must be 1..3600 (got 3601)',
   'create_game: countdown over 60min is rejected'
 );
 
@@ -234,13 +234,13 @@ select is(
   'create_game: tileOrder is exactly a permutation of the category tiles'
 );
 
--- config is persisted as-given. End-of-game review surfaces (a
+-- setup is persisted as-given. End-of-game review surfaces (a
 -- "this game was played with a 10-minute timer" badge, etc.) read
 -- this column.
 select is(
-  (select config from wordknit.games where id = (select id from created)),
+  (select setup from wordknit.games where id = (select id from created)),
   '{"timer":{"kind":"countdown","seconds":600}}'::jsonb,
-  'create_game: config column persists the passed-in jsonb'
+  'create_game: setup column persists the passed-in jsonb'
 );
 
 -- club_active_game upserted: this new game is the club's active.

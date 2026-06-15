@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: psychicnum.create_game(target_club, config)
+-- Test: psychicnum.create_game(target_club, setup)
 -- ============================================================
 --
 -- Doubles as the pgTAP primer for the psychicnum test suite.
@@ -9,12 +9,12 @@
 -- What we check here:
 --   1. unauthenticated callers rejected (42501)
 --   2. non-member callers rejected (42501)
---   3. config validation: out-of-range guesses, missing guesses
+--   3. setup validation: out-of-range guesses, missing guesses
 --   4. happy path: returns a game id, picks a target in 1..10,
---      sets guesses_remaining = config.guesses, status = 'active'
---   5. config column persists the player's choice (for end-of-
+--      sets guesses_remaining = setup.guesses, status = 'active'
+--   5. setup column persists the player's choice (for end-of-
 --      game review)
---   6. guesses_remaining is initialized from config.guesses (a
+--   6. guesses_remaining is initialized from setup.guesses (a
 --      non-default test value pins the linkage)
 --   7. the call upserts common.club_active_game pointing at it
 --   8. a second create in the same club replaces (auto-pauses)
@@ -88,8 +88,8 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.guesses must be 3, 5, 7, or 9 (got 4)',
-  'create_game: config.guesses outside {3,5,7,9} is rejected'
+  'setup.guesses must be 3, 5, 7, or 9 (got 4)',
+  'create_game: setup.guesses outside {3,5,7,9} is rejected'
 );
 
 select throws_ok(
@@ -98,8 +98,8 @@ select throws_ok(
     (select id from club)
   ),
   'P0001',
-  'config.guesses is required',
-  'create_game: missing config.guesses is rejected'
+  'setup.guesses is required',
+  'create_game: missing setup.guesses is rejected'
 );
 
 -- ============================================================
@@ -130,7 +130,7 @@ select is(
 select is(
   (select guesses_remaining from psychicnum.games where id = (select id from g)),
   7,
-  'newly-created game starts with 7 guesses remaining (config-driven)'
+  'newly-created game starts with 7 guesses remaining (setup-driven)'
 );
 select ok(
   (select target between 1 and 10 from psychicnum.games where id = (select id from g)),
@@ -183,7 +183,7 @@ select is(
 -- ============================================================
 -- Use a non-default value (5) so the assertion proves the link
 -- (without varying, "guesses_remaining = 7" could just be the
--- old hardcoded default leaking through). config column also
+-- old hardcoded default leaking through). setup column also
 -- captures the original intent for end-of-game review.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -197,12 +197,12 @@ reset role;
 select is(
   (select guesses_remaining from psychicnum.games where id = (select id from g3)),
   5,
-  'guesses_remaining is initialized from config.guesses'
+  'guesses_remaining is initialized from setup.guesses'
 );
 select is(
-  (select config->>'guesses' from psychicnum.games where id = (select id from g3)),
+  (select setup->>'guesses' from psychicnum.games where id = (select id from g3)),
   '5',
-  'config column persists the starting guesses value'
+  'setup column persists the starting guesses value'
 );
 
 -- ============================================================

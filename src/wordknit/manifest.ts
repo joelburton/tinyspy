@@ -3,7 +3,7 @@ import type { GameManifest } from '../common/lib/games'
 import { db as commonDb } from '../common/db'
 import type { Database } from '../types/db'
 import { db } from './db'
-import { DEFAULT_WORDKNIT_CONFIG, type WordknitConfig } from './lib/config'
+import { DEFAULT_WORDKNIT_SETUP, type WordknitSetup } from './lib/setup'
 
 // Narrower than Database[...]['Row']. Adding a new column to
 // wordknit.games requires explicitly listing it here AND in the
@@ -49,22 +49,24 @@ export const wordknitGame: GameManifest = {
     import('./Root').then((m) => ({ default: m.WordknitRoot })),
   ),
 
-  // POC setup is a placeholder dialog with no inputs — see
-  // src/wordknit/components/Setup.tsx for the rationale.
-  setup: {
+  // Setup form: timer-mode picker (None / Up / Down with MM:SS).
+  // The Component is lazy-loaded so the form ships in wordknit's
+  // chunk (not the registry); `defaults` is a tiny literal that
+  // travels with the manifest.
+  setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.WordknitSetup })),
+      import('./components/Setup').then((m) => ({ default: m.WordknitSetupForm })),
     ),
-    defaults: DEFAULT_WORDKNIT_CONFIG,
+    defaults: DEFAULT_WORDKNIT_SETUP,
   },
 
   // SetupGameDialog calls this on submit. The RPC validates the
   // payload shape and writes the new game; the board is hardcoded
   // server-side for the POC.
-  startGameInClub: async (clubId, config) => {
-    const cfg = config as WordknitConfig
+  startGameInClub: async (clubId, setup) => {
+    const s = setup as WordknitSetup
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId, config: cfg })
+      .rpc('create_game', { target_club: clubId, setup: s })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start wordknit game' }

@@ -1,13 +1,13 @@
 -- ============================================================
--- psychicnum: per-game setup config (guess budget)
+-- psychicnum: per-game setup (guess budget)
 -- ============================================================
 --
--- Adds a `config jsonb` column on psychicnum.games and reshapes
--- create_game to accept (target_club, config) — the two-arg
+-- Adds a `setup jsonb` column on psychicnum.games and reshapes
+-- create_game to accept (target_club, setup) — the two-arg
 -- signature replaces the one-arg signature this same file
 -- drops below.
 --
--- Config shape:
+-- Setup shape:
 --   { "guesses": 3 | 5 | 7 | 9 }
 --
 -- One option for now: starting guess budget. 7 was the
@@ -24,20 +24,20 @@
 -- (echoing the same call we made on the tinyspy side): the
 -- mutable `guesses_remaining` counter decrements during play,
 -- so by end-of-game it can't tell you what the starting budget
--- was. Persisting the original config in jsonb preserves intent
+-- was. Persisting the original setup in jsonb preserves intent
 -- for game review and keeps future psychicnum options behind a
 -- single column rather than per-feature column churn.
 --
 -- Validation is server-side: create_game rejects malformed
 -- payloads (missing or out-of-range `guesses`). The FE's
--- PsychicnumConfig type is advisory only.
+-- PsychicnumSetup type is advisory only.
 
--- ─── The config column ──────────────────────────────────
+-- ─── The setup column ──────────────────────────────────
 -- Existing rows (legacy games from local dev resets, if any)
 -- get '{}'::jsonb. The new RPC is the only code that reads
 -- this column; legacy rows just carry an empty shape.
-alter table psychicnum.games add column config jsonb not null default '{}'::jsonb;
-alter table psychicnum.games alter column config drop default;
+alter table psychicnum.games add column setup jsonb not null default '{}'::jsonb;
+alter table psychicnum.games alter column setup drop default;
 
 -- ─── Widen the guesses_remaining check ──────────────────
 -- The anonymous inline check from the baseline is named
@@ -55,7 +55,7 @@ alter table psychicnum.games
 -- one-arg version explicitly.
 drop function if exists psychicnum.create_game(uuid);
 
-create function psychicnum.create_game(target_club uuid, config jsonb)
+create function psychicnum.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -64,7 +64,7 @@ as $$
 declare
   caller_id uuid;
   new_id uuid;
-  cfg_guesses int;
+  s_guesses int;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -83,7 +83,7 @@ begin
   -- in src/psychicnum/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts" for the cross-reference convention.
 
-  -- ─── Validate config shape ────────────────────────────
+  -- ─── Validate setup shape ────────────────────────────
   -- One option, four allowed values. We don't trust the FE for
   -- any of this — the dialog narrows TypeScript to the same set,
   -- but a curious client could send anything.
@@ -92,25 +92,25 @@ begin
   -- message. Otherwise PL/pgSQL's % placeholder substitutes NULL
   -- as the empty string and we'd raise "...must be 3, 5, 7, or 9
   -- (got )" — readable, but confusingly empty in the parens.
-  if (config->>'guesses') is null then
-    raise exception 'config.guesses is required' using errcode = 'P0001';
+  if (setup->>'guesses') is null then
+    raise exception 'setup.guesses is required' using errcode = 'P0001';
   end if;
-  cfg_guesses := (config->>'guesses')::int;
-  if cfg_guesses not in (3, 5, 7, 9) then
-    raise exception 'config.guesses must be 3, 5, 7, or 9 (got %)', cfg_guesses
+  s_guesses := (setup->>'guesses')::int;
+  if s_guesses not in (3, 5, 7, 9) then
+    raise exception 'setup.guesses must be 3, 5, 7, or 9 (got %)', s_guesses
       using errcode = 'P0001';
   end if;
 
-  -- Insert the game row. guesses_remaining seeds from cfg;
-  -- config itself is persisted for game-review surfaces. target
-  -- is the random 1..10 secret, hidden by the column-level
-  -- grant.
-  insert into psychicnum.games (club_id, target, guesses_remaining, config)
+  -- Insert the game row. guesses_remaining seeds from
+  -- s_guesses; setup itself is persisted for game-review
+  -- surfaces. target is the random 1..10 secret, hidden by the
+  -- column-level grant.
+  insert into psychicnum.games (club_id, target, guesses_remaining, setup)
   values (
     target_club,
     1 + floor(random() * 10)::int,
-    cfg_guesses,
-    config
+    s_guesses,
+    setup
   )
   returning games.id into new_id;
 

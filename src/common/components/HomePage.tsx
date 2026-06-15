@@ -139,10 +139,10 @@ export function HomePage({ session }: Props) {
     if (!soloClubId || !game) return
     setStartError(null)
     // Same shape as ClubPage's handleStart — games with a setup
-    // form go through the modal; games with setup: null fire the
-    // RPC immediately. The dialog is keyed on the solo club's id,
-    // so create_game lands the game there.
-    if (game.setup) {
+    // form go through the modal; games with setupForm: null fire
+    // the RPC immediately. The dialog is keyed on the solo club's
+    // id, so create_game lands the game there.
+    if (game.setupForm) {
       setPendingSetup(game)
       return
     }

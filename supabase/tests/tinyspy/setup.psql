@@ -19,7 +19,7 @@
 --
 -- Promotion from inlined helpers per the threshold in
 -- docs/testing.md: tinyspy now uses three shared helpers
--- (find_position, find_position_set, tinyspy_cfg) — past the
+-- (find_position, find_position_set, tinyspy_setup) — past the
 -- "three or more" trigger — so they live here rather than being
 -- copy-pasted into each test.
 
@@ -49,20 +49,20 @@ language sql as $$
   where gp.game_id = g and gp.seat = s and t.label = target;
 $$;
 
--- ─── tinyspy_cfg ───────────────────────────────────────
--- Build a valid create_game config payload. Defaults to the
+-- ─── tinyspy_setup ─────────────────────────────────────
+-- Build a valid create_game setup payload. Defaults to the
 -- standard 9-turn game with ada (the canonical "default test
 -- subject" per the personas convention) as the first clue-giver.
 -- Tests override turns or first_user as needed:
 --
---   tinyspy_cfg()                              -- 9 turns, ada
---   tinyspy_cfg(11)                            -- 11 turns, ada
---   tinyspy_cfg(9, 'bea22222-...'::uuid)       -- 9 turns, bea
+--   tinyspy_setup()                              -- 9 turns, ada
+--   tinyspy_setup(11)                            -- 11 turns, ada
+--   tinyspy_setup(9, 'bea22222-...'::uuid)       -- 9 turns, bea
 --
--- The shape mirrors src/tinyspy/lib/config.ts (TinyspyConfig).
+-- The shape mirrors src/tinyspy/lib/setup.ts (TinyspySetup).
 -- create_game validates the payload server-side; this helper is
 -- purely a typing-saver, not a validator.
-create function pg_temp.tinyspy_cfg(
+create function pg_temp.tinyspy_setup(
   turns int default 9,
   first_user uuid default 'ada11111-1111-1111-1111-111111111111'::uuid
 ) returns jsonb

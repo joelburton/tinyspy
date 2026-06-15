@@ -1,13 +1,13 @@
 -- ============================================================
--- tinyspy: per-game setup config (turns + first clue-giver)
+-- tinyspy: per-game setup (turns + first clue-giver)
 -- ============================================================
 --
--- Adds a `config jsonb` column on tinyspy.games and reshapes
--- create_game to accept (target_club, config) — the two-arg
+-- Adds a `setup jsonb` column on tinyspy.games and reshapes
+-- create_game to accept (target_club, setup) — the two-arg
 -- signature replaces the one-arg signature this same file drops
 -- below.
 --
--- Config shape:
+-- Setup shape:
 --   {
 --     "turns": 9 | 10 | 11,
 --     "firstClueGiverUserId": "<uuid of one of the two club members>"
@@ -36,27 +36,27 @@
 -- preserves intent for end-of-game review (and a future
 -- "this game was played with 11 turns" badge) without
 -- per-feature column churn. Future games that add their own
--- options reuse the same `config jsonb` shape — see
+-- options reuse the same `setup jsonb` shape — see
 -- docs/common.md.
 --
 -- Mutable counters (`turns_remaining`) still exist and are
--- initialized from config at create-game time. Config captures
+-- initialized from setup at create-game time. Setup captures
 -- intent; counters track state.
 --
 -- Validation is server-side: create_game inspects the jsonb
--- shape and rejects malformed payloads. The FE's TinyspyConfig
+-- shape and rejects malformed payloads. The FE's TinyspySetup
 -- type is advisory only — a curious client could fire any
 -- payload, and the server is the only thing protecting state
 -- correctness.
 
--- ─── The config column ──────────────────────────────────
+-- ─── The setup column ──────────────────────────────────
 -- Existing rows (legacy games left over from local dev resets,
 -- if any) get '{}'::jsonb, which doesn't match the new shape
 -- but doesn't break anything either — the new RPC is the only
 -- code that interprets the column, and only games it inserts
 -- have meaningful content.
-alter table tinyspy.games add column config jsonb not null default '{}'::jsonb;
-alter table tinyspy.games alter column config drop default;
+alter table tinyspy.games add column setup jsonb not null default '{}'::jsonb;
+alter table tinyspy.games alter column setup drop default;
 
 -- ─── Replace the create_game RPC ────────────────────────
 -- The signature changes (added jsonb param), so we drop the
@@ -66,7 +66,7 @@ alter table tinyspy.games alter column config drop default;
 -- familiar key-card distribution.
 drop function if exists tinyspy.create_game(uuid);
 
-create function tinyspy.create_game(target_club uuid, config jsonb)
+create function tinyspy.create_game(target_club uuid, setup jsonb)
 returns table(id uuid)
 language plpgsql
 security definer
@@ -83,8 +83,8 @@ declare
   b_view text[];
   j int;
   tmp jsonb;
-  cfg_turns int;
-  cfg_first uuid;
+  s_turns int;
+  s_first uuid;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -116,23 +116,23 @@ begin
    where club_id = target_club and user_id <> caller_id
    limit 1;
 
-  -- ─── Validate config shape ────────────────────────────
+  -- ─── Validate setup shape ────────────────────────────
   -- Pulled out as int / uuid casts so a wrong type fails fast
   -- with a clearer message than "key not found." We don't trust
   -- the FE for any of this — the dialog narrows TypeScript types
   -- to the same shape, but a curious client could send anything.
   --
   -- Missing-vs-bad-value split (same pattern as psychic-num's
-  -- config validation) so each rejection has its own clear
+  -- setup validation) so each rejection has its own clear
   -- message. Otherwise PL/pgSQL's % placeholder substitutes NULL
   -- as the empty string and we'd raise "...must be 9, 10, or 11
   -- (got )" — readable, but confusingly empty in the parens.
-  if (config->>'turns') is null then
-    raise exception 'config.turns is required' using errcode = 'P0001';
+  if (setup->>'turns') is null then
+    raise exception 'setup.turns is required' using errcode = 'P0001';
   end if;
-  cfg_turns := (config->>'turns')::int;
-  if cfg_turns not in (9, 10, 11) then
-    raise exception 'config.turns must be 9, 10, or 11 (got %)', cfg_turns
+  s_turns := (setup->>'turns')::int;
+  if s_turns not in (9, 10, 11) then
+    raise exception 'setup.turns must be 9, 10, or 11 (got %)', s_turns
       using errcode = 'P0001';
   end if;
 
@@ -140,18 +140,18 @@ begin
   -- malformed → "must be a uuid" (via the cast exception
   -- handler); present and parseable but not a member of this
   -- club → "must be a club member."
-  if (config->>'firstClueGiverUserId') is null then
-    raise exception 'config.firstClueGiverUserId is required'
+  if (setup->>'firstClueGiverUserId') is null then
+    raise exception 'setup.firstClueGiverUserId is required'
       using errcode = 'P0001';
   end if;
   begin
-    cfg_first := (config->>'firstClueGiverUserId')::uuid;
+    s_first := (setup->>'firstClueGiverUserId')::uuid;
   exception when invalid_text_representation then
-    raise exception 'config.firstClueGiverUserId must be a uuid'
+    raise exception 'setup.firstClueGiverUserId must be a uuid'
       using errcode = 'P0001';
   end;
-  if cfg_first not in (caller_id, other_id) then
-    raise exception 'config.firstClueGiverUserId must be a club member'
+  if s_first not in (caller_id, other_id) then
+    raise exception 'setup.firstClueGiverUserId must be a club member'
       using errcode = 'P0001';
   end if;
 
@@ -195,22 +195,22 @@ begin
   end loop;
 
   -- Insert the game row. turns_remaining is seeded from
-  -- cfg_turns; config itself is persisted so future review can
-  -- see the starting setup.
+  -- s_turns; setup itself is persisted so future review can
+  -- see the starting choices.
   insert into tinyspy.games (
-    club_id, status, current_clue_giver, turns_remaining, config
+    club_id, status, current_clue_giver, turns_remaining, setup
   ) values (
-    target_club, 'active', 'A', cfg_turns, config
+    target_club, 'active', 'A', s_turns, setup
   )
   returning games.id into new_id;
 
   -- Seat the chosen first-clue-giver as A; the other member
   -- gets seat B.
   insert into tinyspy.game_players (game_id, user_id, seat, key_card) values
-    (new_id, cfg_first, 'A', to_jsonb(a_view)),
+    (new_id, s_first, 'A', to_jsonb(a_view)),
     (
       new_id,
-      case cfg_first when caller_id then other_id else caller_id end,
+      case s_first when caller_id then other_id else caller_id end,
       'B',
       to_jsonb(b_view)
     );

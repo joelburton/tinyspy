@@ -25,7 +25,7 @@ type Props = {
  * Modal shell for collecting per-game setup options before
  * `create_game` fires. The chrome (backdrop, focus trap, Cancel
  * / Start buttons, busy + error state) lives here once; the
- * body is per-game and lazy-loaded from `manifest.setup`.
+ * body is per-game and lazy-loaded from `manifest.setupForm`.
  *
  * Lifecycle model: the parent (ClubPage) conditionally renders
  * this component — mounting it opens the dialog, unmounting it
@@ -38,12 +38,12 @@ type Props = {
  * `HowToPlayModal`: ref + `showModal()` to engage the backdrop
  * + focus trap, native `cancel` event (Esc) wired to onCancel.
  *
- * Config flow: the wrapper owns `value` state (seeded from
- * `manifest.setup.defaults` on mount). The body renders against
- * `value` and reports changes via `onChange`. On Start we hand
- * the collected value to `manifest.startGameInClub`. Server-side
- * validation rejects malformed configs — see each game's
- * `create_game` RPC.
+ * Setup-value flow: the wrapper owns `setup` state (seeded from
+ * `manifest.setupForm.defaults` on mount). The body renders
+ * against it and reports changes via `onChange`. On Start we
+ * hand the collected value to `manifest.startGameInClub`.
+ * Server-side validation rejects malformed payloads — see each
+ * game's `create_game` RPC.
  *
  * Cancel during a pending start: we don't try to abort the RPC.
  * If the user cancels after clicking Start, the RPC keeps going
@@ -56,11 +56,11 @@ export function SetupGameDialog({
   manifest, members, clubId, onStarted, onCancel,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  // Seed config from the manifest's defaults on mount. We don't
+  // Seed setup from the manifest's defaults on mount. We don't
   // re-seed on prop changes — the parent unmounts and remounts
   // us per game-start attempt, so each open starts fresh by
   // construction.
-  const [config, setConfig] = useState<unknown>(manifest.setup?.defaults)
+  const [setup, setSetup] = useState<unknown>(manifest.setupForm?.defaults)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,16 +71,17 @@ export function SetupGameDialog({
     dialogRef.current?.showModal()
   }, [])
 
-  // Safety net: a parent that opens us for a setup-less manifest
-  // is a bug, not a UX state we should render around. Bail loudly
-  // in dev by rendering nothing; production behavior is the same.
-  if (!manifest.setup) return null
-  const SetupBody = manifest.setup.Component
+  // Safety net: a parent that opens us for a setupForm-less
+  // manifest is a bug, not a UX state we should render around.
+  // Bail loudly in dev by rendering nothing; production
+  // behavior is the same.
+  if (!manifest.setupForm) return null
+  const SetupBody = manifest.setupForm.Component
 
   async function handleStart() {
     setBusy(true)
     setError(null)
-    const result = await manifest.startGameInClub(clubId, config)
+    const result = await manifest.startGameInClub(clubId, setup)
     if ('error' in result) {
       setBusy(false)
       setError(result.error)
@@ -104,7 +105,7 @@ export function SetupGameDialog({
       <div className={styles.content}>
         <h2>Start {manifest.name}</h2>
         <Suspense fallback={<p className="muted">Loading options…</p>}>
-          <SetupBody members={members} value={config} onChange={setConfig} />
+          <SetupBody members={members} value={setup} onChange={setSetup} />
         </Suspense>
         {error && <p className="error">{error}</p>}
         <div className={styles.actions}>

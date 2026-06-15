@@ -1,9 +1,9 @@
 -- ============================================================
--- Test: tinyspy.create_game(target_club, config)
+-- Test: tinyspy.create_game(target_club, setup)
 -- ============================================================
 --
 -- create_game is the one entry-point RPC for starting a tinyspy
--- game: it takes a target_club + a jsonb config, validates
+-- game: it takes a target_club + a jsonb setup, validates
 -- both, seats both members, picks the 25 words, generates the
 -- Duet key card, sets status='active', and upserts
 -- common.club_active_game.
@@ -12,15 +12,15 @@
 --   - rejection: not authenticated
 --   - rejection: caller is not a member of the target club
 --   - rejection: club has != 2 members
---   - rejection: config.turns out of {9, 10, 11}
---   - rejection: config.firstClueGiverUserId not a uuid
---   - rejection: config.firstClueGiverUserId not in club
+--   - rejection: setup.turns out of {9, 10, 11}
+--   - rejection: setup.firstClueGiverUserId not a uuid
+--   - rejection: setup.firstClueGiverUserId not in club
 --   - happy path: returns one row, status='active', club_id
 --     correct, both seats filled, 25 words inserted,
 --     club_active_game upserted
---   - config is persisted on the row (game review can see the
+--   - setup is persisted on the row (game review can see the
 --     original setup)
---   - turns_remaining initialized from config.turns (a non-9
+--   - turns_remaining initialized from setup.turns (a non-9
 --     test value pins the link)
 --   - first-clue-giver lands in seat A (ada when she's chosen,
 --     bea when she's chosen — exercises both directions)
@@ -28,7 +28,7 @@
 --
 -- Doubles as the pgTAP primer for the rest of the test suite —
 -- the as_user helper + begin/rollback structure are introduced
--- here. Tinyspy-specific helpers (find_position, tinyspy_cfg)
+-- here. Tinyspy-specific helpers (find_position, tinyspy_setup)
 -- live in setup.psql, included below.
 
 begin;
@@ -56,19 +56,19 @@ create temp table club3 on commit drop as
 select * from common.create_club('Trio', array['ada','bea','cade']);
 
 -- ============================================================
--- Rejection paths — auth + membership (config valid in all)
+-- Rejection paths — auth + membership (setup valid in all)
 -- ============================================================
--- These check the gates that fire BEFORE config validation, so
--- they each pass a valid config. The point is to confirm the
--- membership gate still works when the config is fine — if a
--- caller can't reach config validation, the config never matters.
+-- These check the gates that fire BEFORE setup validation, so
+-- they each pass a valid setup. The point is to confirm the
+-- membership gate still works when the setup is fine — if a
+-- caller can't reach setup validation, the setup never matters.
 
 select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_cfg()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
     (select id from club2)
   ),
   '42501',
@@ -81,7 +81,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_cfg()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
     (select id from club2)
   ),
   '42501',
@@ -89,13 +89,13 @@ select throws_ok(
   'create_game: non-member is rejected'
 );
 
--- ada in the 3-member club: rejected on size before config is
+-- ada in the 3-member club: rejected on size before setup is
 -- even looked at.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_cfg()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
     (select id from club3)
   ),
   'P0001',
@@ -104,7 +104,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- Rejection paths — config validation
+-- Rejection paths — setup validation
 -- ============================================================
 -- These fire after auth + membership pass. Use club2 (ada+bea)
 -- as ada throughout.
@@ -122,8 +122,8 @@ select throws_ok(
     (select id from club2)
   ),
   'P0001',
-  'config.turns must be 9, 10, or 11 (got 7)',
-  'create_game: config.turns outside {9,10,11} is rejected'
+  'setup.turns must be 9, 10, or 11 (got 7)',
+  'create_game: setup.turns outside {9,10,11} is rejected'
 );
 
 -- turns missing entirely
@@ -138,8 +138,8 @@ select throws_ok(
     (select id from club2)
   ),
   'P0001',
-  'config.turns is required',
-  'create_game: missing config.turns is rejected with its own message'
+  'setup.turns is required',
+  'create_game: missing setup.turns is rejected with its own message'
 );
 
 -- firstClueGiverUserId missing entirely
@@ -152,7 +152,7 @@ select throws_ok(
     (select id from club2)
   ),
   'P0001',
-  'config.firstClueGiverUserId is required',
+  'setup.firstClueGiverUserId is required',
   'create_game: missing firstClueGiverUserId is rejected with its own message'
 );
 
@@ -169,7 +169,7 @@ select throws_ok(
     (select id from club2)
   ),
   'P0001',
-  'config.firstClueGiverUserId must be a uuid',
+  'setup.firstClueGiverUserId must be a uuid',
   'create_game: malformed firstClueGiverUserId is rejected'
 );
 
@@ -178,12 +178,12 @@ select throws_ok(
   format(
     $q$ select tinyspy.create_game(
       %L::uuid,
-      pg_temp.tinyspy_cfg(9, 'dee44444-4444-4444-4444-444444444444'::uuid)
+      pg_temp.tinyspy_setup(9, 'dee44444-4444-4444-4444-444444444444'::uuid)
     ) $q$,
     (select id from club2)
   ),
   'P0001',
-  'config.firstClueGiverUserId must be a club member',
+  'setup.firstClueGiverUserId must be a club member',
   'create_game: firstClueGiverUserId not in the club is rejected'
 );
 
@@ -194,7 +194,7 @@ select throws_ok(
 create temp table created on commit drop as
 select * from tinyspy.create_game(
   (select id from club2),
-  pg_temp.tinyspy_cfg(11)  -- turns=11, first_user=ada (default)
+  pg_temp.tinyspy_setup(11)  -- turns=11, first_user=ada (default)
 );
 
 select is(
@@ -218,21 +218,21 @@ select is(
 select is(
   (select turns_remaining from tinyspy.games where id = (select id from created)),
   11,
-  'create_game: turns_remaining is initialized from config.turns'
+  'create_game: turns_remaining is initialized from setup.turns'
 );
 
--- The config column captures the original intent — used by
+-- The setup column captures the original intent — used by
 -- end-of-game review to display "this game was played with 11
 -- turns" without inferring from a now-decremented counter.
 select is(
-  (select config->>'turns' from tinyspy.games where id = (select id from created)),
+  (select setup->>'turns' from tinyspy.games where id = (select id from created)),
   '11',
-  'create_game: config column persists the starting turns value'
+  'create_game: setup column persists the starting turns value'
 );
 select is(
-  (select config->>'firstClueGiverUserId' from tinyspy.games where id = (select id from created)),
+  (select setup->>'firstClueGiverUserId' from tinyspy.games where id = (select id from created)),
   'ada11111-1111-1111-1111-111111111111',
-  'create_game: config column persists firstClueGiverUserId'
+  'create_game: setup column persists firstClueGiverUserId'
 );
 
 select is(
@@ -281,14 +281,14 @@ select is(
 -- ============================================================
 -- Happy path #2: ada calls but picks bea as first clue-giver
 -- ============================================================
--- Verifies the seating actually depends on config — not on
+-- Verifies the seating actually depends on setup — not on
 -- "caller always gets A." With bea as the chosen first
 -- clue-giver, bea lands in A and ada (the caller) lands in B.
 
 create temp table created2 on commit drop as
 select * from tinyspy.create_game(
   (select id from club2),
-  pg_temp.tinyspy_cfg(9, 'bea22222-2222-2222-2222-222222222222'::uuid)
+  pg_temp.tinyspy_setup(9, 'bea22222-2222-2222-2222-222222222222'::uuid)
 );
 
 select is(

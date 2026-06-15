@@ -283,7 +283,7 @@ Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
-- **`pg_temp.tinyspy_cfg(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` config. Defaults to the standard 9-turn game with ada as first clue-giver; override either to test variations (`tinyspy_cfg(11)`, `tinyspy_cfg(9, bea_uuid)`).
+- **`pg_temp.tinyspy_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver; override either to test variations (`tinyspy_setup(11)`, `tinyspy_setup(9, bea_uuid)`).
 
 ### The key-card distribution test
 

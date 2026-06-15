@@ -160,7 +160,7 @@ supabase/tests/
   _shared/
     setup.psql                 # ada/bea/cade/dee/eda + as_user (everyone uses this)
   tinyspy/
-    setup.psql                 # find_position, find_position_set, tinyspy_cfg
+    setup.psql                 # find_position, find_position_set, tinyspy_setup
     create_game_test.sql       # \ir ../_shared/setup.psql
                                # \ir setup.psql
                                # ...test body...
@@ -172,7 +172,7 @@ We import both explicitly, rather than chaining the shared include from inside t
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_cfg`). **psychic-num**'s only helper is inline target-pinning at one site — still below the promotion threshold.
+Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_setup`). **psychic-num**'s only helper is inline target-pinning at one site — still below the promotion threshold.
 
 ## Frontend testing
 

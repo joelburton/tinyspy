@@ -19,7 +19,7 @@ select plan(6);
 \ir ../_shared/setup.psql
 \ir setup.psql
 
--- Set up an active game with ada as clue-giver (tinyspy_cfg()
+-- Set up an active game with ada as clue-giver (tinyspy_setup()
 -- defaults to ada as first clue-giver, so she's seated as A).
 -- Dee isn't in the club, so she'll exercise the non-player
 -- rejection path.
@@ -27,7 +27,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
 
 -- ============================================================
 -- (1) Non-player rejection
@@ -64,7 +64,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_game on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
 reset role;
 update tinyspy.games set status = 'won', current_clue_giver = null
   where id = (select id from done_game);

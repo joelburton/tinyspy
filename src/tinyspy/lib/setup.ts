@@ -1,8 +1,8 @@
 /**
- * Tinyspy's per-game setup config — collected by the start-game
- * dialog, persisted to `tinyspy.games.config`, and validated
- * server-side in `tinyspy.create_game` (the canonical authority
- * for what shapes are accepted).
+ * Tinyspy's per-game setup — the choices collected by the
+ * start-game dialog, persisted to `tinyspy.games.setup`, and
+ * validated server-side in `tinyspy.create_game` (the canonical
+ * authority for what shapes are accepted).
  *
  * The literal-union on `turns` mirrors the SQL check; the
  * TypeScript narrowing here is advisory (a curious client could
@@ -12,10 +12,10 @@
  * Lives in `lib/` rather than inline in `manifest.ts` so the
  * Setup body component can import the same type without dragging
  * the whole manifest in (which would defeat the lazy-load
- * point — the manifest's setup field would prevent code-splitting
- * the form's chunk).
+ * point — the manifest's setupForm field would prevent
+ * code-splitting the form's chunk).
  */
-export type TinyspyConfig = {
+export type TinyspySetup = {
   /**
    * Starting timer-token count. Matches the Duet rulebook's
    * mission/campaign starting values for easier difficulties (9
@@ -34,14 +34,14 @@ export type TinyspyConfig = {
 }
 
 /**
- * Initial config the manifest hands the SetupGameDialog wrapper
+ * Initial setup the manifest hands the SetupGameDialog wrapper
  * as `defaults`. `firstClueGiverUserId` starts empty — the
  * defaults are evaluated at module-load time, before any club
  * is known, so a real user-id can't be filled in until the body
  * mounts inside a specific club's dialog. The Setup component
  * auto-picks the first member on mount.
  */
-export const DEFAULT_TINYSPY_CONFIG: TinyspyConfig = {
+export const DEFAULT_TINYSPY_SETUP: TinyspySetup = {
   turns: 9,
   firstClueGiverUserId: '',
 }

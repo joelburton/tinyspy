@@ -42,7 +42,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_cfg());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
 select submit_clue((select id from g), 'TOOLS', 2);
 
 -- ============================================================
