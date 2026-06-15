@@ -14,19 +14,9 @@ import { BoardScreen } from './components/BoardScreen'
  * utility classes from `src/common/theme.css`.
  */
 export function PsychicnumRoot({ gameId }: GameRootProps) {
-  function enterGame(id: string) {
-    navigate(`/g/psychicnum/${id}`)
-  }
-
   function leaveGame() {
     navigate('/')
   }
 
-  return (
-    <BoardScreen
-      gameId={gameId}
-      onLeave={leaveGame}
-      onEnterGame={enterGame}
-    />
-  )
+  return <BoardScreen gameId={gameId} onLeave={leaveGame} />
 }

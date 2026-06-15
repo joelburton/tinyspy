@@ -14,18 +14,9 @@ import './theme.css'  // tinyspy-specific color tokens (lazy-loaded with this ch
  * time and the game starts directly in 'active' — so there's no
  * lobby branch to handle, and the Root collapses to: load the
  * game, render a loading/not-found gate, mount BoardScreen.
- *
- * `play_again`'s "enter the new game" hop hard-codes the tinyspy
- * gametype, since this Root only ever exists for tinyspy games.
- * The gametype-in-URL machinery sits in common code; the
- * per-game Root just knows its own name.
  */
 export function TinyspyRoot({ session, gameId }: GameRootProps) {
   const { game, loading } = useGame(gameId)
-
-  function enterGame(id: string) {
-    navigate(`/g/tinyspy/${id}`)
-  }
 
   function leaveGame() {
     // Drop the user back at the home page. Could navigate to the
@@ -42,7 +33,6 @@ export function TinyspyRoot({ session, gameId }: GameRootProps) {
       session={session}
       gameId={gameId}
       onLeave={leaveGame}
-      onEnterGame={enterGame}
     />
   )
 }

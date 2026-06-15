@@ -47,7 +47,7 @@ After the game ends, players can call `reveal_target` to learn what the number w
 
 | table | purpose |
 |---|---|
-| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`, `next_game_id` (for `play_again`). |
+| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`. |
 | `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. Used both for rendering the history in the UI and as the audit trail for "what happened." |
 
 There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table. It co-locates onto the game row.
@@ -74,7 +74,7 @@ The trick is a **column-level grant** that excludes `target` from the SELECT per
 
 ```sql
 grant select
-  (id, club_id, status, guesses_remaining, winner_id, next_game_id, created_at)
+  (id, club_id, status, guesses_remaining, winner_id, created_at)
   on psychicnum.games to authenticated;
 ```
 
@@ -134,12 +134,6 @@ Reject reasons:
 - not a club member
 - game status ≠ active
 
-### `psychicnum.play_again(prev_game uuid) → table(id uuid)`
-
-Same idempotency contract as tinyspy's. Whichever member arrives first creates the successor; a later caller from the same `prev_game` gets back the same id. Upserts `common.club_active_game`.
-
-Reject reasons: not authenticated; previous game not ended; not a club member.
-
 ### `psychicnum.reveal_target(target_game uuid) → int`
 
 Returns the target. Gated on status being non-active. See [The hidden-target mechanic](#the-hidden-target-mechanic) above.
@@ -197,7 +191,7 @@ A single card with four sections:
 
 1. **Header**: title, back-to-home link.
 2. **Active state**: "X guesses left" prompt, a number input, a Submit button. Disabled while submitting.
-3. **Terminal state**: a result banner with "We won! [winner] guessed it." or "We lost. The number was X." Followed by a "Play again" button.
+3. **Terminal state**: a result banner with "We won! [winner] guessed it." or "We lost. The number was X." The user navigates back to the club to start another game via the standard "Start" flow.
 4. **Guess history**: every guess with username, value, and correct/nope.
 5. **Chat**: the shared `ClubChatPanel` (same component every game uses).
 
@@ -223,7 +217,6 @@ See [`testing.md`](testing.md) for theory and shared setup. Psychic-num-specific
 |---|---|
 | `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, auto-pause via `club_active_game` upsert, column-level grant blocks SELECT of `target`. |
 | `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, trigger clears `club_active_game` on termination. |
-| `tests/psychicnum/play_again_test.sql` | Reject-while-active, idempotency on `next_game_id`, successor becomes active. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables, mutating RPCs throw, `reveal_target` rejects while active, returns the target after game end for any member. |
 
 ### Pinning the target in tests

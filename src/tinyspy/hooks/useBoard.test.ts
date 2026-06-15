@@ -125,9 +125,14 @@ describe('useBoard', () => {
   })
 
   it('clears the peer key when revealPeer flips back to false', async () => {
-    // The scenario that matters: user finishes game 1, sees the peer key
-    // in the post-game review, clicks Play again → revealPeer goes back
-    // to false in the fresh game. peerKey must be cleared, not stale.
+    // The contract: if revealPeer ever flips back to false, peerKey
+    // must clear so a previous game's partner-key can't leak into a
+    // re-rendered view. In today's FE this transition isn't reached
+    // in practice (App.tsx keys each game's Root by gameId, so
+    // navigating between games remounts the hook from scratch
+    // rather than rerendering it with new props). The test stays
+    // as a guard against future refactors that retain the hook
+    // across game changes.
     const { result, rerender } = renderHook(
       ({ revealPeer }: { revealPeer: boolean }) => useBoard(GAME_ID, USER_ID, revealPeer),
       { initialProps: { revealPeer: true } },

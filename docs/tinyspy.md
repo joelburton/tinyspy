@@ -84,7 +84,7 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 
 | table | purpose |
 |---|---|
-| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `status`, `turn_number`, `turns_remaining`, `current_clue_giver`, `next_game_id` (set by `play_again`). |
+| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `status`, `turn_number`, `turns_remaining`, `current_clue_giver`. |
 | `game_players` | Two seated players per game. Holds each player's `key_card` jsonb — a 25-element array of `'G' \| 'N' \| 'A'` matching `words.position`. FK to `common.profiles`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
@@ -124,7 +124,7 @@ The one entry point. Verifies caller is in a 2-member club, seats both, picks 25
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members.
 
-The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. The same logic runs in `play_again` — refactoring it out would buy ~30 lines but cost the ability to read each RPC linearly. Currently it's inlined in both.
+The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. Inlined directly in `create_game` rather than extracted into a helper — `create_game` is the only place that generates a board, so there's no duplication to factor out.
 
 ### `tinyspy.submit_clue(target_game uuid, word text, clue_count int)`
 
@@ -164,12 +164,6 @@ The status flip to terminal fires the `clear_active_on_termination` trigger, whi
 
 Voluntary turn-end during the guess phase. Spends one timer token, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; status ≠ active.
 
-### `tinyspy.play_again(prev_game uuid) → table(id uuid)`
-
-From a finished game, creates a successor in the same club with fresh words + key card. Both players are pre-seated in the same seats. Idempotent via `prev.next_game_id`: whichever caller arrives first creates; a later call from the same `prev_game` returns the existing successor id. Upserts `common.club_active_game` to the new game.
-
-Reject reasons: not authenticated; previous game not ended; not a player in the previous game.
-
 ### `tinyspy.get_clue_context(target_game uuid) → jsonb`
 
 Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of an active (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
@@ -186,7 +180,7 @@ Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-cl
 
 Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_in_game(game_id)`. No INSERT/UPDATE/DELETE policies anywhere — writes go through the RPCs.
 
-`word_pool` has **no policies at all and no grants** for `authenticated`. Only security-definer RPCs (`create_game`, `play_again`) read from it. There's no need for clients to see the word pool.
+`word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 
 The one liberal policy is `game_players_select` — it returns *all columns* of `game_players` for any player in the game, including the partner's `key_card`. Client code by convention filters to `user_id = self`. A harder version would split this into own-row reads + a `game_players_roster` view that omits `key_card`. See the policy comment in the baseline migration for the trade-off.
 
@@ -223,7 +217,7 @@ src/tinyspy/
     GameLog.tsx           Reveal-history list (which player guessed what, when).
     GameLog.module.css
     GameLog.test.tsx
-    GameOverBanner.tsx    The win/loss banner + "Play again" button.
+    GameOverBanner.tsx    The win/loss banner + back-to-home action.
     GameOverBanner.module.css
     HowToPlayModal.tsx    Rules popup. Closeable, dismissed by default after first view.
     HowToPlayModal.module.css
@@ -262,7 +256,7 @@ During active play, each player's own `key_card` is what tints the board ([`useB
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `BoardScreen` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
-The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Flipping back into a fresh game (via Play again) makes the derivation evaluate to null on the next render — no manual clear needed. See `useBoard.test.ts` for the test that pins this behavior.
+The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today the Root component is keyed by `gameId`, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
 
 ### Code-splitting
 
@@ -280,7 +274,6 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
-| `tests/tinyspy/play_again_test.sql` | Reject-while-active, reject-non-player, successor creation, idempotency on `next_game_id`, successor becomes the club's active game. |
 | `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 
@@ -288,7 +281,7 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 These live inline in the test files that need them — not promoted to `_shared/setup.psql` because they're tinyspy-specific:
 
-- **`pg_temp.find_position(g uuid, s text, target text) → int`** (in `game_loop_test.sql`, `sudden_death_test.sql`, `play_again_test.sql`): "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game; the test can't hardcode positions.
+- **`pg_temp.find_position(g uuid, s text, target text) → int`** (in `game_loop_test.sql`, `sudden_death_test.sql`): "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game; the test can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** (in `win_test.sql`): array-returning variant for "find all positions matching." The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
 
 If a future game accumulates three or more of these per-game helpers, that's the signal to promote them to a `tests/<game>/setup.psql` file — see [`testing.md`](testing.md) for the deferred pattern.

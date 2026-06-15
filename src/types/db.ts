@@ -219,7 +219,6 @@ export type Database = {
           created_at: string
           guesses_remaining: number
           id: string
-          next_game_id: string | null
           status: string
           target: number
           winner_id: string | null
@@ -229,7 +228,6 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id?: string
-          next_game_id?: string | null
           status?: string
           target: number
           winner_id?: string | null
@@ -239,20 +237,11 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id?: string
-          next_game_id?: string | null
           status?: string
           target?: number
           winner_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "games_next_game_id_fkey"
-            columns: ["next_game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       guesses: {
         Row: {
@@ -296,12 +285,6 @@ export type Database = {
     Functions: {
       create_game: {
         Args: { target_club: string }
-        Returns: {
-          id: string
-        }[]
-      }
-      play_again: {
-        Args: { prev_game: string }
         Returns: {
           id: string
         }[]
@@ -414,7 +397,6 @@ export type Database = {
           created_at: string
           current_clue_giver: string | null
           id: string
-          next_game_id: string | null
           status: string
           turn_number: number
           turns_remaining: number
@@ -424,7 +406,6 @@ export type Database = {
           created_at?: string
           current_clue_giver?: string | null
           id?: string
-          next_game_id?: string | null
           status?: string
           turn_number?: number
           turns_remaining?: number
@@ -434,20 +415,11 @@ export type Database = {
           created_at?: string
           current_clue_giver?: string | null
           id?: string
-          next_game_id?: string | null
           status?: string
           turn_number?: number
           turns_remaining?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "games_next_game_id_fkey"
-            columns: ["next_game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       word_pool: {
         Row: {
@@ -514,12 +486,6 @@ export type Database = {
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
-      play_again: {
-        Args: { prev_game: string }
-        Returns: {
-          id: string
-        }[]
-      }
       submit_clue: {
         Args: { clue_count: number; target_game: string; word: string }
         Returns: undefined

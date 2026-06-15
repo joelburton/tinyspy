@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import { db } from '../db'
 import styles from './GameOverBanner.module.css'
 
 const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
@@ -12,80 +10,35 @@ const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
 type Props = {
   /** Current game's status — anything in `STATUS_BANNER`. */
   status: string
-  /** UUID of the just-finished game, passed to `play_again`. */
-  gameId: string
-  /** Set on `games.next_game_id` once a successor exists. */
-  nextGameId: string | null
-  /** Opponent display name, used in the button label. */
-  opponentName?: string
-  /** Cancel: go back to the home screen (clears the URL hash). */
+  /** Cancel: go back to the home screen. */
   onLeave: () => void
-  /** Successfully started a new game — App enters it and updates the URL. */
-  onEnterGame: (id: string) => void
 }
 
 /**
  * Banner shown when a game enters a terminal state (won / lost_*).
  *
- * Offers two actions:
- *   - **Play again**: calls the `play_again` RPC. The first caller
- *     creates the successor (in the same club, with fresh words +
- *     key card, both players pre-seated, status='active' directly);
- *     a later caller from the same finished game gets the same id
- *     back (idempotent), so both players end up on the same new
- *     board regardless of who clicks first.
- *   - **Back to home**: leaves the current game, returning to /.
+ * Single action: "Back to home", from which the user can navigate
+ * back into the club to start a new game. There's no in-banner
+ * "play again" shortcut — the club page is the one and only place
+ * games are started, so every new game flows through the setup
+ * dialog (which owns the turn-count and first-clue-giver choices).
  *
- * The label flips to "Join {opponent}'s new game" once the partner
- * has already clicked Play again — `nextGameId` becomes non-null
- * via Realtime propagation from the prev game's
- * `games.next_game_id` column.
+ * Keeping creation gated through the club page also means we never
+ * have a second copy of the create-game logic to keep in sync with
+ * any future changes to setup options.
  */
-export function GameOverBanner({
-  status,
-  gameId,
-  nextGameId,
-  opponentName,
-  onLeave,
-  onEnterGame,
-}: Props) {
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function GameOverBanner({ status, onLeave }: Props) {
   const banner = STATUS_BANNER[status]
   if (!banner) return null
-
-  async function playAgain() {
-    setError(null)
-    setBusy(true)
-    const { data, error } = await db
-      .rpc('play_again', { prev_game: gameId })
-      .single()
-    setBusy(false)
-    if (error || !data) {
-      setError(error?.message ?? 'failed to start a new game')
-      return
-    }
-    onEnterGame(data.id)
-  }
-
-  const playAgainLabel = nextGameId
-    ? `Join ${opponentName ?? 'partner'}'s new game`
-    : opponentName
-      ? `Play again with ${opponentName}`
-      : 'Play again'
 
   return (
     <div className={cls(styles.gameOver, styles[banner.tone])}>
       <strong>{banner.text}</strong>
       <div className={styles.gameOverActions}>
-        <button type="button" onClick={playAgain} disabled={busy}>
-          {busy ? '…' : playAgainLabel}
-        </button>
-        <button type="button" className="secondary" onClick={onLeave}>
+        <button type="button" onClick={onLeave}>
           Back to home
         </button>
       </div>
-      {error && <p className="error">{error}</p>}
     </div>
   )
 }

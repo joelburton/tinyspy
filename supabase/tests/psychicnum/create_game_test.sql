@@ -141,9 +141,9 @@ select is(
 -- (8) target is hidden from authenticated SELECT
 -- ============================================================
 -- The column-level grant on psychicnum.games includes id, club_id,
--- status, guesses_remaining, winner_id, next_game_id, created_at
--- — but NOT target. Selecting target as the authenticated role
--- should raise SQLSTATE 42501 ("permission denied for column").
+-- status, guesses_remaining, winner_id, created_at — but NOT
+-- target. Selecting target as the authenticated role should raise
+-- SQLSTATE 42501 ("permission denied for column").
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(

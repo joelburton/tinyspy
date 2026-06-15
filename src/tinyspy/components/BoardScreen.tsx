@@ -36,10 +36,8 @@ const TILE_BG: Record<KeyLabel, 'tileAgent' | 'tileNeutral' | 'tileAssassin'> = 
 type Props = {
   session: Session
   gameId: string
-  /** Leave the game and clear the URL hash, going back to home. */
+  /** Leave the game, going back to home. */
   onLeave: () => void
-  /** Enter a new game (used by GameOverBanner's "Play again"). */
-  onEnterGame: (id: string) => void
 }
 
 /**
@@ -47,7 +45,7 @@ type Props = {
  *
  * Lays out the header (code, seats, agent count, tokens), the contextual
  * clue panel, the 5×5 board, and the game log. Game-over states swap the
- * clue panel for a banner with Play-again / Leave actions.
+ * clue panel for a banner whose only action is leaving the game.
  *
  * Most of the game logic is server-side (in plpgsql RPCs); this component's
  * job is to:
@@ -59,7 +57,7 @@ type Props = {
  * subscribe to their own table, so when the partner gives a clue or makes a
  * guess on their machine, our view updates without a round trip.
  */
-export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
+export function BoardScreen({ session, gameId, onLeave }: Props) {
   const { game, players } = useGame(gameId)
   // `gameOver` is derived early so we can pass `revealPeer` into useBoard;
   // until `game` loads it's `false`, and useBoard reads `null` for peerKey.
@@ -150,14 +148,7 @@ export function BoardScreen({ session, gameId, onLeave, onEnterGame }: Props) {
 
       {gameOver && (
         <div className={styles.gameOverSlot}>
-          <GameOverBanner
-            status={game.status}
-            gameId={gameId}
-            nextGameId={game.next_game_id}
-            opponentName={opponent?.username}
-            onLeave={onLeave}
-            onEnterGame={onEnterGame}
-          />
+          <GameOverBanner status={game.status} onLeave={onLeave} />
         </div>
       )}
 

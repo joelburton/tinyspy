@@ -6,7 +6,6 @@ import { ClubChatPanel } from '../../common/components/ClubChatPanel'
 type Props = {
   gameId: string
   onLeave: () => void
-  onEnterGame: (id: string) => void
 }
 
 /**
@@ -30,7 +29,7 @@ type Props = {
  *   - On game end, we lazily fetch the target via reveal_target
  *     (the column is hidden from authenticated SELECT) and show it
  */
-export function BoardScreen({ gameId, onLeave, onEnterGame }: Props) {
+export function BoardScreen({ gameId, onLeave }: Props) {
   const { game, guesses, members, loading } = useGame(gameId)
   const [entry, setEntry] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -78,17 +77,6 @@ export function BoardScreen({ gameId, onLeave, onEnterGame }: Props) {
       return
     }
     setEntry('')
-  }
-
-  async function handlePlayAgain() {
-    const { data, error: rpcError } = await db
-      .rpc('play_again', { prev_game: gameId })
-      .single()
-    if (rpcError || !data) {
-      setError(rpcError?.message ?? 'failed to start a new game')
-      return
-    }
-    onEnterGame(data.id)
   }
 
   if (loading) return <div className="card">Loading game…</div>
@@ -145,10 +133,6 @@ export function BoardScreen({ gameId, onLeave, onEnterGame }: Props) {
               : 'Somebody guessed it.'}
             {revealedTarget !== null && ` The number was ${revealedTarget}.`}
           </p>
-          <button type="button" onClick={handlePlayAgain}>
-            Play again
-          </button>
-          {error && <p className="error">{error}</p>}
         </section>
       )}
 
@@ -160,10 +144,6 @@ export function BoardScreen({ gameId, onLeave, onEnterGame }: Props) {
               ? `The number was ${revealedTarget}.`
               : 'Out of guesses.'}
           </p>
-          <button type="button" onClick={handlePlayAgain}>
-            Play again
-          </button>
-          {error && <p className="error">{error}</p>}
         </section>
       )}
 

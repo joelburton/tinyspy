@@ -9,7 +9,7 @@ import type { Database } from '../../types/db'
 // explicitly listing it here AND in the select() below.
 type GameRow = Pick<
   Database['tinyspy']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'status' | 'turns_remaining' | 'turn_number' | 'current_clue_giver' | 'next_game_id'
+  'id' | 'club_id' | 'status' | 'turns_remaining' | 'turn_number' | 'current_clue_giver'
 >
 
 export type Player = {
@@ -75,7 +75,7 @@ export function useGame(gameId: string) {
       const [gameRes, playersRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_id, status, turns_remaining, turn_number, current_clue_giver, next_game_id')
+          .select('id, club_id, status, turns_remaining, turn_number, current_clue_giver')
           .eq('id', gameId)
           .single(),
         db.from('game_players').select('user_id, seat').eq('game_id', gameId).order('seat'),

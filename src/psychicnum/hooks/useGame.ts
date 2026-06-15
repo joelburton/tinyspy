@@ -16,7 +16,6 @@ export type PsychicnumGame = {
   status: 'active' | 'won' | 'lost'
   guesses_remaining: number
   winner_id: string | null
-  next_game_id: string | null
   created_at: string
 }
 
@@ -68,7 +67,7 @@ export function useGame(gameId: string) {
       const { data: gameData } = await db
         .from('games')
         .select(
-          'id, club_id, status, guesses_remaining, winner_id, next_game_id, created_at',
+          'id, club_id, status, guesses_remaining, winner_id, created_at',
         )
         .eq('id', gameId)
         .maybeSingle()
