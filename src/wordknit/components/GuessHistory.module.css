@@ -1,0 +1,94 @@
+/* ============================================================
+ * Guess-history sidebar for the wordknit PlayArea.
+ *
+ * Sits to the right of the board (see PlayArea.module.css for
+ * the layout grid). Capped width so a long history doesn't
+ * push the board narrower than the 4×4 grid's natural read
+ * size on mid-width screens.
+ *
+ * Row backgrounds come from the common outcome tokens
+ * (--color-outcome-{won,lost,near}-{bg,border}); see
+ * common/theme.css. The component is wordknit-specific but the
+ * palette is shared so future games' equivalent history surfaces
+ * can adopt the same look without copying colors.
+ * ============================================================ */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Min/max width so the column is consistent: narrow enough that
+     the board keeps its center-stage role, wide enough that a 4-
+     tile guess like ALPHA · BANANA · CASTLE · DAGGER fits on one
+     row at the default font size. */
+  min-width: 14rem;
+  max-width: 18rem;
+}
+
+.heading {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Scroll the list, not the whole panel, when guesses pile up.
+     Caps the visual real estate the history claims when the
+     friends really start running into mistake-territory. */
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.item {
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.item_correct {
+  background: var(--color-outcome-won-bg);
+  border-color: var(--color-outcome-won-border);
+}
+.item_wrong {
+  background: var(--color-outcome-lost-bg);
+  border-color: var(--color-outcome-lost-border);
+}
+.item_oneAway {
+  background: var(--color-outcome-near-bg);
+  border-color: var(--color-outcome-near-border);
+}
+
+.tiles {
+  /* Tiles read as UPPERCASE on the board; keep the convention here
+     so the line reads as "these are the words I clicked." Tabular
+     spacing isn't useful (variable-width words), but the small
+     letter-spacing matches the tile look. */
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+  /* Soft wrap on long tile sets — the dot separator gives the
+     browser natural break points. */
+  word-break: break-word;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--color-text);
+}
+
+.user {
+  font-weight: 600;
+}
+
+.separator {
+  color: var(--color-muted);
+}

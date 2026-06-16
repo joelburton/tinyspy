@@ -4,6 +4,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { CategoryBands } from './CategoryBands'
+import { GuessHistory } from './GuessHistory'
 import { HintModal } from './HintModal'
 import { TileGrid } from './TileGrid'
 import styles from './PlayArea.module.css'
@@ -37,6 +38,7 @@ import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 export function PlayArea({
   session,
   gameId,
+  members,
   playState,
   isTerminal,
   timer,
@@ -129,68 +131,86 @@ export function PlayArea({
 
   return (
     <div className={styles.boardArea}>
-      <div className="muted">
-        {gameOver ? (
-          playState === 'solved'
-            ? 'Solved!'
-            : timer.expired
-              ? 'Out of time.'
-              : 'Out of guesses.'
-        ) : (
-          <>
-            Mistakes left: {4 - game.mistake_count}
-            {' · '}
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setHintsOpen(true)}
-            >
-              Hints
-            </button>
-          </>
-        )}
-      </div>
+      <div className={styles.layout}>
+        {/* Board column (left): all the gameplay UI that was the
+            entire PlayArea before the history sidebar landed.
+            Wrapping in a column so the history sits beside it on
+            wide screens (and stacks below on narrow ones — see
+            the CSS media query). */}
+        <div className={styles.boardCol}>
+          <div className="muted">
+            {gameOver ? (
+              playState === 'solved'
+                ? 'Solved!'
+                : timer.expired
+                  ? 'Out of time.'
+                  : 'Out of guesses.'
+            ) : (
+              <>
+                Mistakes left: {4 - game.mistake_count}
+                {' · '}
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => setHintsOpen(true)}
+                >
+                  Hints
+                </button>
+              </>
+            )}
+          </div>
 
-      <HintModal
-        categories={game.board.categories}
-        open={hintsOpen}
-        onClose={() => setHintsOpen(false)}
-      />
+          <HintModal
+            categories={game.board.categories}
+            open={hintsOpen}
+            onClose={() => setHintsOpen(false)}
+          />
 
-      <CategoryBands matched={matchedCategories} unmatched={unmatched} />
+          <CategoryBands matched={matchedCategories} unmatched={unmatched} />
 
-      {!gameOver && (
-        <TileGrid
-          tiles={remainingTiles}
-          ownerByTile={ownerByTile}
-          selfUserId={session.user.id}
-          onToggle={toggleTile}
-        />
-      )}
+          {!gameOver && (
+            <TileGrid
+              tiles={remainingTiles}
+              ownerByTile={ownerByTile}
+              selfUserId={session.user.id}
+              onToggle={toggleTile}
+            />
+          )}
 
-      {!gameOver && (
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className="secondary"
-            onClick={handleClear}
-            disabled={unionTiles.length === 0}
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-          >
-            {submitting ? 'Submitting…' : 'Submit'}
-          </button>
+          {!gameOver && (
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleClear}
+                disabled={unionTiles.length === 0}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+              >
+                {submitting ? 'Submitting…' : 'Submit'}
+              </button>
+            </div>
+          )}
+
+          {transient && (
+            <div className={styles.transient}>{transient}</div>
+          )}
         </div>
-      )}
 
-      {transient && (
-        <div className={styles.transient}>{transient}</div>
-      )}
+        {/* History sidebar (right): per-guess outcome log. Shows
+            during play and after the game ends (the trail matters
+            for post-game review). */}
+        <GuessHistory
+          guesses={guesses}
+          matchedCategories={matchedCategories}
+          members={members}
+        />
+      </div>
     </div>
   )
 }

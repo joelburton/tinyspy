@@ -69,6 +69,15 @@
   --color-outcome-lost-border:#ef5350;   /* red 400 */
   --color-outcome-active-bg:  #fff9c4;   /* yellow 100 */
   --color-outcome-active-border: #fdd835; /* yellow 600 */
+  /* "Near miss" — a partial-credit signal distinct from active-
+     yellow. Used today by wordknit's GuessHistory for the
+     `oneAway` row state ("three of the four tiles were in the
+     same category"); future games with a "you were close" signal
+     can reuse it (a hypothetical Boggle "valid word, wrong
+     length"; a future psychic-num "within ±1"). Amber/orange
+     to read as warning-flavored rather than wait-flavored. */
+  --color-outcome-near-bg:    #ffe0b2;   /* amber 100 */
+  --color-outcome-near-border: #ffb74d;  /* amber 300 */
 
   /* Radii. */
   --radius-md:                6px;   /* buttons, inputs, panels */
