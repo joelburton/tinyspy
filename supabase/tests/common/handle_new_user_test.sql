@@ -35,7 +35,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(10);
+select plan(13);
 
 -- We deliberately do NOT \ir ../_shared/setup.psql here — that
 -- file inserts the standard personas, which would mask the
@@ -72,6 +72,38 @@ select is(
     where user_id = 'f1a66666-6666-6666-6666-666666666666'),
   1,
   'profile row landed exactly once (no double-fire)'
+);
+
+-- Color: seeded from common.color_for_username at signup. Must
+-- be one of the 8 palette names; must equal what
+-- color_for_username returns for the derived username (so the
+-- trigger and the helper agree). The exact name isn't pinned
+-- here because adding a name to the palette later shouldn't
+-- force a test rewrite — see common.color_for_username's own
+-- unit-of-truth comment in the migration.
+
+select ok(
+  (select color from common.profiles
+    where user_id = 'f1a66666-6666-6666-6666-666666666666')
+    = any (array['red','orange','yellow','green','teal','blue','purple','pink']),
+  'profile.color is one of the 8 palette names'
+);
+
+select is(
+  (select color from common.profiles
+    where user_id = 'f1a66666-6666-6666-6666-666666666666'),
+  common.color_for_username('fia'),
+  'profile.color matches what color_for_username returns for the username'
+);
+
+-- Determinism: the helper must return the same color on every
+-- call for the same input. Without this, db:reset would produce
+-- different colors run-to-run and tests / FE caching would
+-- thrash.
+select is(
+  common.color_for_username('fia'),
+  common.color_for_username('fia'),
+  'color_for_username is deterministic for the same input'
 );
 
 -- ============================================================

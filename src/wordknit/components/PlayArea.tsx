@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
+import { colorByUserIdMap } from '../../common/lib/peerColor'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -169,6 +170,12 @@ export function PlayArea({
     for (const t of list) ownerByTile.set(t, userId)
   }
 
+  // Pre-resolve each member's profile color to a CSS var string,
+  // built once per members-array reference change so TileGrid can
+  // look up by user_id at render time without re-walking the
+  // roster per tile. See common/lib/peerColor.ts for the helper.
+  const colorByUserId = colorByUserIdMap(members)
+
   const canSubmit =
     unionTiles.length === 4
     && !submitting
@@ -226,6 +233,7 @@ export function PlayArea({
               selfUserId={session.user.id}
               onToggle={toggleTile}
               shakingTiles={shakingTiles}
+              colorByUserId={colorByUserId}
             />
           )}
 

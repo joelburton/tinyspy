@@ -242,7 +242,7 @@ export function useCommonGame(
       if (userIds.length > 0) {
         const { data: profileData } = await commonDb
           .from('profiles')
-          .select('user_id, username')
+          .select('user_id, username, color')
           .in('user_id', userIds)
         if (!mounted) return
         memberList = (profileData ?? []) as Member[]

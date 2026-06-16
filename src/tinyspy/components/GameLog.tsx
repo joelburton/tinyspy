@@ -1,12 +1,18 @@
 import type { ClueRow } from '../hooks/useClues'
 import type { WordRow } from '../hooks/useBoard'
+import type { Player } from '../hooks/useGame'
 import { cls } from '../../common/lib/cls'
+import { colorVarFor } from '../../common/lib/peerColor'
 import { labelName } from '../lib/labels'
 import styles from './GameLog.module.css'
 
 type Props = {
   clues: ClueRow[]
   words: WordRow[]
+  /** Both seated players, with profile colors. Used to color the
+   *  seat letter on each clue/guess row so the log reads as
+   *  "this person did that." */
+  players: Player[]
 }
 
 /**
@@ -25,8 +31,17 @@ type Props = {
  * and lets the inner <ol> scroll; we don't reverse guesses-within-turn
  * because reading order matters more than recency at that grain.
  */
-export function GameLog({ clues, words }: Props) {
+export function GameLog({ clues, words, players }: Props) {
   if (clues.length === 0) return null
+
+  // seat letter → CSS var for that seat's profile color.
+  // Both seats are always populated by create_game, so the
+  // lookup never misses in a valid game. Key type is `string`
+  // (not the narrower `'A' | 'B'`) so the lookup works on the
+  // db-derived `by_seat` / `revealed_by` strings without casts.
+  const colorBySeat = new Map<string, string>(
+    players.map((p) => [p.seat, colorVarFor(p.color)] as const),
+  )
 
   const guesses = words
     .filter((w) => w.revealed_at !== null)
@@ -57,12 +72,25 @@ export function GameLog({ clues, words }: Props) {
               <span className="muted">turn {t}</span>
               {clue && (
                 <span>
-                  {' '}· <strong>{clue.by_seat}</strong>: {clue.word.toUpperCase()} · {clue.count}
+                  {' '}·{' '}
+                  <strong style={{ color: colorBySeat.get(clue.by_seat) }}>
+                    {clue.by_seat}
+                  </strong>
+                  : {clue.word.toUpperCase()} · {clue.count}
                 </span>
               )}
               {turnGuesses.map((g) => (
                 <div key={g.position} className={styles.logGuess}>
-                  <strong>{g.revealed_by}</strong> → {g.word}{' '}
+                  <strong
+                    style={{
+                      color: g.revealed_by
+                        ? colorBySeat.get(g.revealed_by)
+                        : undefined,
+                    }}
+                  >
+                    {g.revealed_by}
+                  </strong>{' '}
+                  → {g.word}{' '}
                   <span className={cls(styles.logLabel, styles[`logLabel${g.revealed_as}`])}>
                     {labelName(g.revealed_as)}
                   </span>

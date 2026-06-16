@@ -1,5 +1,4 @@
 import { cls } from '../../common/lib/cls'
-import { colorForUserId } from '../lib/peerColor'
 import styles from './PlayArea.module.css'
 
 type Props = {
@@ -24,6 +23,12 @@ type Props = {
    *  jiggle class. Optional — omitting it (or passing an empty
    *  set) renders the grid plain. */
   shakingTiles?: ReadonlySet<string>
+  /** user_id → CSS var string for that user's profile color.
+   *  Used to draw the peer-selection frame on a tile owned by
+   *  someone else. PlayArea builds the map via
+   *  `colorByUserIdMap(members)` so the values are pre-resolved
+   *  to `var(--color-peer-NAME)` strings ready for inline style. */
+  colorByUserId: ReadonlyMap<string, string>
 }
 
 /**
@@ -52,6 +57,7 @@ export function TileGrid({
   selfUserId,
   onToggle,
   shakingTiles,
+  colorByUserId,
 }: Props) {
   return (
     <div className={styles.grid}>
@@ -72,7 +78,9 @@ export function TileGrid({
             style={
               isPeer && ownerId
                 ? {
-                    boxShadow: `inset 0 0 0 4px ${colorForUserId(ownerId)}`,
+                    boxShadow: `inset 0 0 0 4px ${
+                      colorByUserId.get(ownerId) ?? 'transparent'
+                    }`,
                   }
                 : undefined
             }

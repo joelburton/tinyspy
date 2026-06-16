@@ -24,6 +24,9 @@ export type Player = {
   user_id: string
   seat: 'A' | 'B'
   username: string
+  /** Identity color name from common.profiles.color. See
+   *  src/common/lib/peerColor.ts for the FE-side palette. */
+  color: string
 }
 
 /**
@@ -105,23 +108,34 @@ export function useGame(gameId: string) {
       const userIds = [g.user_a_id, g.user_b_id]
       const profilesRes = await commonDb
         .from('profiles')
-        .select('user_id, username')
+        .select('user_id, username, color')
         .in('user_id', userIds)
       if (!mounted) return
-      const usernameByUserId = new Map<string, string>(
-        (profilesRes.data ?? []).map((p) => [p.user_id, p.username]),
+      // Single lookup map carrying both fields — the seats
+      // assembly below needs username AND color per uid, and
+      // building one map is cheaper to read than two.
+      const profileByUserId = new Map<
+        string,
+        { username: string; color: string }
+      >(
+        (profilesRes.data ?? []).map((p) => [
+          p.user_id,
+          { username: p.username, color: p.color },
+        ]),
       )
+      const lookup = (uid: string) =>
+        profileByUserId.get(uid) ?? { username: '?', color: 'blue' }
 
       setPlayers([
         {
           user_id: g.user_a_id,
           seat: 'A',
-          username: usernameByUserId.get(g.user_a_id) ?? '?',
+          ...lookup(g.user_a_id),
         },
         {
           user_id: g.user_b_id,
           seat: 'B',
-          username: usernameByUserId.get(g.user_b_id) ?? '?',
+          ...lookup(g.user_b_id),
         },
       ])
 

@@ -22,7 +22,17 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { GameLog } from './GameLog'
+import type { Player } from '../hooks/useGame'
 import type { Database } from '../../types/db'
+
+// Stable two-seat roster for every test render. The colors
+// aren't asserted on — the component picks them up via a style
+// attribute the tests don't introspect — but the prop is
+// required and the lookup map needs both seats.
+const PLAYERS: Player[] = [
+  { user_id: 'ada', seat: 'A', username: 'ada', color: 'red' },
+  { user_id: 'bea', seat: 'B', username: 'bea', color: 'blue' },
+]
 
 type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
 type WordRow = Database['tinyspy']['Tables']['words']['Row']
@@ -55,7 +65,7 @@ function word(overrides: Partial<WordRow>): WordRow {
 
 describe('GameLog', () => {
   it('renders nothing when there are no clues', () => {
-    const { container } = render(<GameLog clues={[]} words={[]} />)
+    const { container } = render(<GameLog clues={[]} words={[]} players={PLAYERS} />)
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -77,7 +87,7 @@ describe('GameLog', () => {
       }),
     ]
 
-    render(<GameLog clues={clues} words={words} />)
+    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
 
     const turns = screen.getAllByRole('listitem')
     expect(turns).toHaveLength(2)
@@ -113,7 +123,7 @@ describe('GameLog', () => {
       }),
     ]
 
-    render(<GameLog clues={clues} words={words} />)
+    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
 
     // Pull the textContent of the single turn slot and confirm FIRST
     // appears before LATER.
@@ -137,7 +147,7 @@ describe('GameLog', () => {
              revealed_at: '2026-06-12T18:03:00Z', revealed_in_turn: 1 }),
     ]
 
-    render(<GameLog clues={clues} words={words} />)
+    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
 
     expect(screen.getByText('green')).toBeInTheDocument()
     expect(screen.getByText('neutral')).toBeInTheDocument()

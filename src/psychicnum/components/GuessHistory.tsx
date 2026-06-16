@@ -1,3 +1,4 @@
+import { colorVarFor } from '../../common/lib/peerColor'
 import type { SetupMember } from '../../common/lib/games'
 import type { PsychicnumGuess } from '../hooks/useGame'
 
@@ -20,8 +21,8 @@ type Props = {
  * resolve attribution.
  */
 export function GuessHistory({ guesses, members }: Props) {
-  const usernameFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)?.username ?? 'someone'
+  const memberFor = (userId: string) =>
+    members.find((m) => m.user_id === userId)
 
   return (
     <section>
@@ -30,14 +31,19 @@ export function GuessHistory({ guesses, members }: Props) {
         <p className="muted">No guesses yet.</p>
       ) : (
         <ul>
-          {guesses.map((g) => (
-            <li key={g.id}>
-              <strong>{usernameFor(g.user_id)}</strong> guessed{' '}
-              <strong>{g.number}</strong>
-              {' — '}
-              {g.was_correct ? 'correct!' : 'nope'}
-            </li>
-          ))}
+          {guesses.map((g) => {
+            const guesser = memberFor(g.user_id)
+            return (
+              <li key={g.id}>
+                <strong style={{ color: colorVarFor(guesser?.color) }}>
+                  {guesser?.username ?? 'someone'}
+                </strong>{' '}
+                guessed <strong>{g.number}</strong>
+                {' — '}
+                {g.was_correct ? 'correct!' : 'nope'}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>

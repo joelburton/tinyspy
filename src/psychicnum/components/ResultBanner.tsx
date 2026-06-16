@@ -1,3 +1,4 @@
+import { colorVarFor } from '../../common/lib/peerColor'
 import type { SetupMember } from '../../common/lib/games'
 
 type Props = {
@@ -51,17 +52,25 @@ export function ResultBanner({
   timerExpired,
   members,
 }: Props) {
-  const usernameFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)?.username ?? 'someone'
+  const memberFor = (userId: string) =>
+    members.find((m) => m.user_id === userId)
 
   if (status === 'won') {
+    const winner = winnerId ? memberFor(winnerId) : null
     return (
       <section>
         <h2>We won!</h2>
         <p>
-          {winnerId
-            ? `${usernameFor(winnerId)} guessed it.`
-            : 'Somebody guessed it.'}
+          {winner ? (
+            <>
+              <strong style={{ color: colorVarFor(winner.color) }}>
+                {winner.username}
+              </strong>{' '}
+              guessed it.
+            </>
+          ) : (
+            'Somebody guessed it.'
+          )}
           {target !== null && ` The number was ${target}.`}
         </p>
       </section>

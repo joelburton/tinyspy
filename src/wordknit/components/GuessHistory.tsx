@@ -1,3 +1,4 @@
+import { colorVarFor } from '../../common/lib/peerColor'
 import type { SetupMember } from '../../common/lib/games'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
@@ -39,8 +40,8 @@ type Props = {
  * shows the current state; the history shows the path to it.
  */
 export function GuessHistory({ guesses, matchedCategories, members }: Props) {
-  const usernameFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)?.username ?? 'someone'
+  const memberFor = (userId: string) =>
+    members.find((m) => m.user_id === userId)
 
   // Build a rank → name lookup once for the matched-category
   // attribution. Each rank appears at most once in
@@ -58,19 +59,27 @@ export function GuessHistory({ guesses, matchedCategories, members }: Props) {
         <p className="muted">No guesses yet.</p>
       ) : (
         <ol className={styles.list}>
-          {[...guesses].reverse().map((g) => (
-            <li
-              key={g.id}
-              className={`${styles.item} ${styles[`item_${g.result}`]}`}
-            >
-              <div className={styles.tiles}>{g.tiles.join(' · ')}</div>
-              <div className={styles.meta}>
-                <span className={styles.user}>{usernameFor(g.user_id)}</span>
-                <span className={styles.separator}> · </span>
-                <span>{verdictLabel(g, nameByRank)}</span>
-              </div>
-            </li>
-          ))}
+          {[...guesses].reverse().map((g) => {
+            const guesser = memberFor(g.user_id)
+            return (
+              <li
+                key={g.id}
+                className={`${styles.item} ${styles[`item_${g.result}`]}`}
+              >
+                <div className={styles.tiles}>{g.tiles.join(' · ')}</div>
+                <div className={styles.meta}>
+                  <span
+                    className={styles.user}
+                    style={{ color: colorVarFor(guesser?.color) }}
+                  >
+                    {guesser?.username ?? 'someone'}
+                  </span>
+                  <span className={styles.separator}> · </span>
+                  <span>{verdictLabel(g, nameByRank)}</span>
+                </div>
+              </li>
+            )
+          })}
         </ol>
       )}
     </section>

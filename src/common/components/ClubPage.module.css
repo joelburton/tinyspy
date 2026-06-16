@@ -1,0 +1,46 @@
+/* ClubPage component-scoped styles. Most of the page leans on
+ * global utility classes (.card, .muted, .cardList) — this
+ * module exists for the member-list dot affordance, which is
+ * the first piece of ClubPage UI to need real component-scoped
+ * styling. */
+
+.memberList {
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  /* Vertical breathing room without making each row look
+     button-ish — these are static identity rows, not click
+     targets like the clubs list on HomePage. */
+  padding: 0.15rem 0;
+}
+
+/* Per-user identity dot. Filled with the member's profile color
+ * (set inline by ClubPage from colorVarFor(m.color)) so the
+ * value comes from the common.profiles palette via the
+ * `--color-peer-*` theme tokens. Size is just visible enough to
+ * read at body-font scale without dominating the row.
+ *
+ * A 1px white border keeps the dot legible on any palette color
+ * — the outer edge doesn't blur into a colored background if
+ * the surrounding context ever gets one. */
+.memberDot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-surface);
+  /* Subtle outer ring so the dot reads as a deliberate symbol
+     rather than a CSS artifact on light palette colors (yellow,
+     teal). */
+  box-shadow: 0 0 0 1px var(--color-surface-border);
+  flex-shrink: 0;
+}

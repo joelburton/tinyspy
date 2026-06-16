@@ -4,6 +4,7 @@ import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
+import { colorVarFor } from '../lib/peerColor'
 import { ClubChatPanel } from './ClubChatPanel'
 import { ClubGameCard } from './ClubGameCard'
 import { SetupGameDialog } from './SetupGameDialog'
@@ -11,6 +12,7 @@ import { StartGameButtons } from './StartGameButtons'
 import { games } from '../../games'
 import type { CommonGameListRow, GameManifest } from '../lib/games'
 import type { Database } from '../../types/db'
+import styles from './ClubPage.module.css'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to common.clubs requires
@@ -26,7 +28,7 @@ type GameRow = Pick<
   Database['common']['Tables']['games']['Row'],
   'id' | 'club_id' | 'gametype' | 'is_current_view'
 >
-type Member = { user_id: string; username: string }
+type Member = { user_id: string; username: string; color: string }
 
 /**
  * Display shape for one game in the club's games list. Built from
@@ -237,7 +239,7 @@ export function ClubPage({ session, handle }: Props) {
       if (userIds.length > 0) {
         const { data: profilesData } = await commonDb
           .from('profiles')
-          .select('user_id, username')
+          .select('user_id, username, color')
           .in('user_id', userIds)
         if (!mounted) return
         setMembers((profilesData ?? []) as Member[])
@@ -422,9 +424,14 @@ export function ClubPage({ session, handle }: Props) {
 
       <section>
         <h3>Members ({members.length})</h3>
-        <ul>
+        <ul className={styles.memberList}>
           {members.map((m) => (
-            <li key={m.user_id}>
+            <li key={m.user_id} className={styles.memberItem}>
+              <span
+                className={styles.memberDot}
+                style={{ background: colorVarFor(m.color) }}
+                aria-hidden="true"
+              />
               {m.username}
               {m.user_id === session.user.id && (
                 <span className="muted"> (you)</span>

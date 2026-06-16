@@ -81,6 +81,24 @@ grant usage on schema common to authenticated;
 create table common.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text unique not null,
+  -- Visual identity color, drawn from a fixed 8-name palette.
+  -- Stored as a NAME (not a hex) so the FE theme can translate it
+  -- per context — the hex for "blue" on a white page-background
+  -- can differ from "blue" on a colored tile, and a future dark
+  -- theme can map the same name to a different shade entirely
+  -- without rewriting every consumer.
+  --
+  -- Used wherever a user's identity needs to be visually anchored:
+  -- the colored circle next to their name in member lists, the
+  -- bold name in chat messages, the wordknit per-peer tile-
+  -- selection borders, per-game guess/clue history attribution.
+  --
+  -- Auto-seeded at signup by handle_new_user from a deterministic
+  -- hash of the username (see common.color_for_username below);
+  -- a future profile page will let users change it.
+  color text not null check (color in (
+    'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'
+  )),
   created_at timestamptz not null default now()
 );
 
@@ -566,6 +584,41 @@ as $$
     ),
     1, 40
   );
+$$;
+
+-- ============================================================
+-- common.color_for_username — deterministic palette pick
+-- ============================================================
+--
+-- Maps a username to one of the 8 profile palette names by
+-- hashing the string and indexing into the palette array.
+-- Deterministic: the same username always yields the same color,
+-- so the choice is stable across signup, db:reset, and test
+-- fixtures.
+--
+-- The palette array MUST stay in sync with the check constraint
+-- on common.profiles.color — if a new name is added, update
+-- both AND consider what should happen to existing rows whose
+-- old hash now maps differently. (Today's friends-only scale
+-- makes "wipe and rebuild" the answer; if production data ever
+-- exists, this becomes a real migration concern.)
+--
+-- `abs(hashtext(...))` keeps the modulo positive without
+-- bringing in a CASE or COALESCE — hashtext can return negative
+-- integers. The +1 shifts from PostgreSQL's 1-based array
+-- indexing.
+--
+-- Marked `immutable` so it composes cleanly into INSERT
+-- expressions (used by handle_new_user below).
+
+create function common.color_for_username(username text)
+returns text
+language sql
+immutable
+as $$
+  select (array[
+    'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'
+  ])[(abs(hashtext(username)) % 8) + 1];
 $$;
 
 -- ============================================================
@@ -1374,8 +1427,12 @@ declare
 begin
   derived_username := coalesce(nullif(split_part(new.email, '@', 1), ''), 'player');
 
-  insert into common.profiles (user_id, username)
-  values (new.id, derived_username);
+  -- color is derived from the username, not random — that way a
+  -- user's color is deterministic across db:reset, and tests
+  -- can predict it without setup overhead.
+  insert into common.profiles (user_id, username, color)
+  values (new.id, derived_username,
+          common.color_for_username(derived_username));
 
   insert into common.clubs (handle, name, created_by)
   values ('=' || derived_username, derived_username, new.id)

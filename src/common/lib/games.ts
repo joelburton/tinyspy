@@ -51,6 +51,13 @@ export type GamePageCtx = {
 export type SetupMember = {
   user_id: string
   username: string
+  /** Identity color name from common.profiles.color. One of
+   *  the 8 palette entries (red/orange/yellow/green/teal/blue/
+   *  purple/pink). Used by render sites that want to color the
+   *  member's name or render a colored circle next to it — pass
+   *  through `colorVarFor` (src/common/lib/peerColor.ts) to get
+   *  the matching CSS variable. */
+  color: string
 }
 
 /**

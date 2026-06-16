@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react'
 import type { SetupMember } from '../lib/games'
+import { colorVarFor } from '../lib/peerColor'
 import styles from './PauseOverlay.module.css'
 
 type Props = {
@@ -42,15 +44,11 @@ type Props = {
 export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
   if (missing.length === 0 && !manuallyPausedBy) return null
 
-  const missingNames = missing.map((m) => m.username)
-  const missingList =
-    missingNames.length === 1
-      ? missingNames[0]
-      : missingNames.length === 2
-        ? `${missingNames[0]} and ${missingNames[1]}`
-        : missingNames.length > 2
-          ? `${missingNames.slice(0, -1).join(', ')}, and ${missingNames[missingNames.length - 1]}`
-          : ''
+  // Each name is its own colored span so the attribution stays
+  // legible even when several peers are missing. The connective
+  // text ("and", ", ") sits outside the colored spans in the
+  // body-text color.
+  const missingList = joinNames(missing.map(memberToColoredName))
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
@@ -59,7 +57,12 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
           <strong>Waiting for {missingList} to reconnect…</strong>
         )}
         {manuallyPausedBy && (
-          <strong>{manuallyPausedBy.username} paused the game.</strong>
+          <strong>
+            <span style={{ color: colorVarFor(manuallyPausedBy.color) }}>
+              {manuallyPausedBy.username}
+            </span>{' '}
+            paused the game.
+          </strong>
         )}
         <p className="muted">
           The game pauses while anyone's offline, and any player can pause it.
@@ -75,4 +78,41 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
       </div>
     </div>
   )
+}
+
+/** Render one member's name with their profile color applied. */
+function memberToColoredName(m: SetupMember): ReactNode {
+  return (
+    <span key={m.user_id} style={{ color: colorVarFor(m.color) }}>
+      {m.username}
+    </span>
+  )
+}
+
+/**
+ * English-style join of a list of name spans. Equivalent to the
+ * plain-string form for 1/2/many cases, but keeps each name as
+ * its own colored span so the reader can tell who's who when
+ * multiple peers are missing simultaneously.
+ *
+ *   1 name  → [N]
+ *   2 names → [N] and [N]
+ *   3+      → [N], [N], and [N]
+ */
+function joinNames(nodes: ReactNode[]): ReactNode {
+  if (nodes.length === 0) return null
+  if (nodes.length === 1) return nodes[0]
+  if (nodes.length === 2) {
+    return (
+      <>
+        {nodes[0]} and {nodes[1]}
+      </>
+    )
+  }
+  return nodes.map((node, i) => (
+    <span key={i}>
+      {node}
+      {i < nodes.length - 2 ? ', ' : i === nodes.length - 2 ? ', and ' : ''}
+    </span>
+  ))
 }

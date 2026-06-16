@@ -265,16 +265,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          color: string
           created_at: string
           user_id: string
           username: string
         }
         Insert: {
+          color: string
           created_at?: string
           user_id: string
           username: string
         }
         Update: {
+          color?: string
           created_at?: string
           user_id?: string
           username?: string
@@ -286,6 +289,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      color_for_username: { Args: { username: string }; Returns: string }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }
         Returns: {

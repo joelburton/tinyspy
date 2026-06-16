@@ -114,7 +114,7 @@ export function PlayArea({
       />
 
       <div className={styles.gameLogSlot}>
-        <GameLog clues={clues} words={words} />
+        <GameLog clues={clues} words={words} players={players} />
       </div>
     </div>
   )
