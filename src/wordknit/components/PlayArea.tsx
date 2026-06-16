@@ -3,9 +3,11 @@ import type { GamePageCtx } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
+import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import { CategoryBands } from './CategoryBands'
 import { GuessHistory } from './GuessHistory'
 import { HintModal } from './HintModal'
+import { MistakeDots } from './MistakeDots'
 import { TileGrid } from './TileGrid'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
@@ -56,6 +58,20 @@ export function PlayArea({
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [hintsOpen, setHintsOpen] = useState(false)
+  // Per-player local tile order. NULL = use upstream
+  // `remainingTiles` as-is (the shuffle the create_game RPC
+  // baked in, same for every player). Setting to a permutation
+  // gives this client its own view; doesn't broadcast. See
+  // src/wordknit/lib/localOrder.ts for the reconciliation rule
+  // when categories get matched mid-game.
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null)
+  // Tiles currently playing the wrong-guess shake. PlayArea sets
+  // this for ~500ms after `submit_guess` returns 'wrong', then
+  // the cleanup effect below clears it. TileGrid reads the set
+  // and applies its shake class.
+  const [shakingTiles, setShakingTiles] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
 
   // Auto-clear the transient banner after a beat.
   useEffect(() => {
@@ -63,6 +79,15 @@ export function PlayArea({
     const t = setTimeout(() => setTransient(null), 2200)
     return () => clearTimeout(t)
   }, [transient])
+
+  // Auto-clear the shake set ~500ms after we set it (just past
+  // the animation's 400ms duration). Effect-based so the timeout
+  // is cleaned up on unmount / re-shake correctly.
+  useEffect(() => {
+    if (shakingTiles.size === 0) return
+    const t = setTimeout(() => setShakingTiles(new Set()), 500)
+    return () => clearTimeout(t)
+  }, [shakingTiles])
 
   async function handleSubmit() {
     if (submitting) return
@@ -92,12 +117,29 @@ export function PlayArea({
       return
     }
     if (verdict.kind === 'oneAway') setTransient('One away!')
-    else if (verdict.kind === 'wrong') setTransient('Incorrect')
+    else if (verdict.kind === 'wrong') {
+      setTransient('Incorrect')
+      // Capture the just-submitted tiles into the shake set
+      // BEFORE sendClear drops the selection — once cleared,
+      // unionTiles will be empty on the next render. The cleanup
+      // effect above clears the set ~500ms later, matching the
+      // animation duration.
+      setShakingTiles(new Set(unionTiles))
+    }
     sendClear()
   }
 
   function handleClear() {
     sendClear()
+  }
+
+  function handleShuffle() {
+    // Compute the shuffle off the CURRENTLY-DISPLAYED tiles, not
+    // the upstream `remainingTiles`. That way a click on Shuffle
+    // re-randomizes what the player is looking at right now,
+    // rather than reverting-and-reshuffling — feels natural for
+    // "I want a fresh take on this set."
+    setLocalOrder(shuffleTiles(displayedTiles))
   }
 
   if (loading) return <p>Loading board…</p>
@@ -110,6 +152,14 @@ export function PlayArea({
   const remainingTiles = game.board.tileOrder.filter(
     (t) => !matchedTiles.has(t),
   )
+
+  // Apply the local-shuffle overlay if the player has shuffled.
+  // The reconcile helper drops any tiles that just got matched
+  // while preserving the player's chosen order for the rest.
+  // Without a localOrder, the upstream order is the display.
+  const displayedTiles = localOrder
+    ? reconcileLocalOrder(localOrder, remainingTiles)
+    : remainingTiles
 
   // tile → user_id: at most one owner under the union semantics,
   // but `selections` is the map of userId → tiles[] so we invert
@@ -147,7 +197,8 @@ export function PlayArea({
                   : 'Out of guesses.'
             ) : (
               <>
-                Mistakes left: {4 - game.mistake_count}
+                Mistakes remaining
+                <MistakeDots used={game.mistake_count} />
                 {' · '}
                 <button
                   type="button"
@@ -170,15 +221,24 @@ export function PlayArea({
 
           {!gameOver && (
             <TileGrid
-              tiles={remainingTiles}
+              tiles={displayedTiles}
               ownerByTile={ownerByTile}
               selfUserId={session.user.id}
               onToggle={toggleTile}
+              shakingTiles={shakingTiles}
             />
           )}
 
           {!gameOver && (
             <div className={styles.actions}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleShuffle}
+                disabled={displayedTiles.length === 0}
+              >
+                Shuffle
+              </button>
               <button
                 type="button"
                 className="secondary"

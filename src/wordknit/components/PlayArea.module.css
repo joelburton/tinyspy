@@ -148,6 +148,34 @@
   background: var(--wordknit-tile-selected-bg);
 }
 
+/* Wrong-guess shake animation: a brief horizontal jiggle that
+ * runs on the tiles named in the rejected guess. Set by PlayArea
+ * for ~500ms after the server returns 'wrong', then cleared.
+ * Pure CSS — the animation is short enough that no JS pacing is
+ * needed beyond the toggle-class-and-timeout shape PlayArea uses.
+ *
+ * The 4-step shake (±4px) over 0.4s reads as "no" without being
+ * disruptive. Honors prefers-reduced-motion below. */
+.tileShaking {
+  animation: tile-shake 0.4s ease-in-out;
+}
+
+@keyframes tile-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tileShaking {
+    /* Strip the animation; the wrong-guess feedback still lands
+     * via the transient banner + the mistake-dot fill. */
+    animation: none;
+  }
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

@@ -18,6 +18,12 @@ type Props = {
   /** Click handler. Receives the tile string. Wired to the
    *  shared selection broadcaster from useGame. */
   onToggle: (tile: string) => void
+  /** Tiles currently playing the wrong-guess shake animation.
+   *  PlayArea sets this transiently when `submit_guess` returns
+   *  `wrong` and clears it ~500ms later; tiles named here get the
+   *  jiggle class. Optional — omitting it (or passing an empty
+   *  set) renders the grid plain. */
+  shakingTiles?: ReadonlySet<string>
 }
 
 /**
@@ -45,6 +51,7 @@ export function TileGrid({
   ownerByTile,
   selfUserId,
   onToggle,
+  shakingTiles,
 }: Props) {
   return (
     <div className={styles.grid}>
@@ -52,11 +59,16 @@ export function TileGrid({
         const ownerId = ownerByTile.get(tile)
         const isMine = ownerId === selfUserId
         const isPeer = ownerId !== undefined && !isMine
+        const isShaking = shakingTiles?.has(tile) ?? false
         return (
           <button
             key={tile}
             type="button"
-            className={cls(styles.tile, isMine && styles.tileSelected)}
+            className={cls(
+              styles.tile,
+              isMine && styles.tileSelected,
+              isShaking && styles.tileShaking,
+            )}
             style={
               isPeer && ownerId
                 ? {
