@@ -27,7 +27,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 
 -- ============================================================
 -- (1) Non-player rejection
@@ -37,8 +37,8 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   '42501',
-  'not a player in this game',
-  'get_clue_context rejects a non-player caller'
+  'not playing this game',
+  'get_clue_context rejects a non-player caller (via require_game_player)'
 );
 
 -- ============================================================
@@ -64,7 +64,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_game on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 reset role;
 update tinyspy.games set status = 'won', current_clue_giver = null
   where id = (select id from done_game);

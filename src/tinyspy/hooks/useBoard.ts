@@ -56,26 +56,34 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     let mounted = true
 
     async function load() {
-      const [wordsRes, keyRes] = await Promise.all([
+      // Seats + key cards are now columns on tinyspy.games (not a
+      // separate game_players table). Pull the row, pick the column
+      // matching the caller's seat.
+      const [wordsRes, gameRes] = await Promise.all([
         db
           .from('words')
           .select('position, word, revealed_by, revealed_as, revealed_at, revealed_in_turn')
           .eq('game_id', gameId)
           .order('position'),
         db
-          .from('game_players')
-          .select('key_card')
-          .eq('game_id', gameId)
-          .eq('user_id', userId)
+          .from('games')
+          .select('user_a_id, user_b_id, key_card_a, key_card_b')
+          .eq('id', gameId)
           .single(),
       ])
       if (!mounted) return
       if (wordsRes.data) setWords(wordsRes.data)
-      // key_card is `jsonb` in the schema and typed as `Json | null` here;
-      // start_game guarantees it's a length-25 array of KeyLabels by the time
-      // we're rendering the board.
-      if (keyRes.data?.key_card) {
-        setMyKey(keyRes.data.key_card as unknown as KeyLabel[])
+      const g = gameRes.data
+      if (g) {
+        // key_card_X is `jsonb` in the schema and typed as `Json` here;
+        // create_game guarantees it's a length-25 array of KeyLabels.
+        const myKeyJson =
+          userId === g.user_a_id ? g.key_card_a
+          : userId === g.user_b_id ? g.key_card_b
+          : null
+        if (myKeyJson) {
+          setMyKey(myKeyJson as unknown as KeyLabel[])
+        }
       }
       setLoading(false)
     }
@@ -110,15 +118,18 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     if (!revealPeer) return
     let mounted = true
     db
-      .from('game_players')
-      .select('key_card')
-      .eq('game_id', gameId)
-      .neq('user_id', userId)
+      .from('games')
+      .select('user_a_id, key_card_a, key_card_b')
+      .eq('id', gameId)
       .single()
       .then(({ data }) => {
-        if (!mounted) return
-        if (data?.key_card) {
-          setFetchedPeerKey(data.key_card as unknown as KeyLabel[])
+        if (!mounted || !data) return
+        // Peer = the seat I'm NOT in. If I'm A (userId === user_a_id),
+        // the peer key is key_card_b; otherwise key_card_a.
+        const peerKeyJson =
+          userId === data.user_a_id ? data.key_card_b : data.key_card_a
+        if (peerKeyJson) {
+          setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
           setFetchedFor(`${gameId}:${userId}`)
         }
       })

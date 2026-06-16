@@ -515,68 +515,48 @@ export type Database = {
           },
         ]
       }
-      game_players: {
-        Row: {
-          game_id: string
-          joined_at: string
-          key_card: Json | null
-          seat: string
-          user_id: string
-        }
-        Insert: {
-          game_id: string
-          joined_at?: string
-          key_card?: Json | null
-          seat: string
-          user_id: string
-        }
-        Update: {
-          game_id?: string
-          joined_at?: string
-          key_card?: Json | null
-          seat?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "game_players_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       games: {
         Row: {
           club_id: string
           created_at: string
           current_clue_giver: string | null
           id: string
+          key_card_a: Json
+          key_card_b: Json
           setup: Json
           status: string
           turn_number: number
           turns_remaining: number
+          user_a_id: string
+          user_b_id: string
         }
         Insert: {
           club_id: string
           created_at?: string
           current_clue_giver?: string | null
-          id?: string
+          id: string
+          key_card_a: Json
+          key_card_b: Json
           setup: Json
           status?: string
           turn_number?: number
           turns_remaining?: number
+          user_a_id: string
+          user_b_id: string
         }
         Update: {
           club_id?: string
           created_at?: string
           current_clue_giver?: string | null
           id?: string
+          key_card_a?: Json
+          key_card_b?: Json
           setup?: Json
           status?: string
           turn_number?: number
           turns_remaining?: number
+          user_a_id?: string
+          user_b_id?: string
         }
         Relationships: []
       }
@@ -637,13 +617,12 @@ export type Database = {
     Functions: {
       _end_turn: { Args: { target_game: string }; Returns: undefined }
       create_game: {
-        Args: { setup: Json; target_club: string }
+        Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: {
           id: string
         }[]
       }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
-      is_player_in_game: { Args: { target_game: string }; Returns: boolean }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
         Args: { clue_count: number; target_game: string; word: string }

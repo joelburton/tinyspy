@@ -38,7 +38,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 
 -- ============================================================
 -- Turn 1: Ada gives a clue, Bea reveals all 9 of Ada's
@@ -89,18 +89,20 @@ declare
   bob_unique int[];
   p int;
 begin
-  -- Positions where Ada's view != G but Bea's view = G.
+  -- Positions where Ada's view != G but Bea's view = G. Both
+  -- key views are now columns on tinyspy.games (key_card_a,
+  -- key_card_b), not rows in a side table.
   with a as (
     select t.label as la, t.ord
-    from tinyspy.game_players gp,
-         jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-    where gp.game_id = (select id from g) and gp.seat = 'A'
+    from tinyspy.games g,
+         jsonb_array_elements_text(g.key_card_a) with ordinality as t(label, ord)
+    where g.id = (select id from g)
   ),
   b as (
     select t.label as lb, t.ord
-    from tinyspy.game_players gp,
-         jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-    where gp.game_id = (select id from g) and gp.seat = 'B'
+    from tinyspy.games g,
+         jsonb_array_elements_text(g.key_card_b) with ordinality as t(label, ord)
+    where g.id = (select id from g)
   )
   select array_agg((a.ord - 1)::int order by a.ord)
     into bob_unique
@@ -132,12 +134,10 @@ select is(
   submit_guess(
     (select id from g),
     (select (a.ord - 1)::int
-     from tinyspy.game_players gpa,
-          jsonb_array_elements_text(gpa.key_card) with ordinality as a(label, ord),
-          tinyspy.game_players gpb,
-          jsonb_array_elements_text(gpb.key_card) with ordinality as b(label, ord)
-     where gpa.game_id = (select id from g) and gpa.seat = 'A'
-       and gpb.game_id = (select id from g) and gpb.seat = 'B'
+     from tinyspy.games g,
+          jsonb_array_elements_text(g.key_card_a) with ordinality as a(label, ord),
+          jsonb_array_elements_text(g.key_card_b) with ordinality as b(label, ord)
+     where g.id = (select id from g)
        and a.ord = b.ord
        and a.label <> 'G' and b.label = 'G'
        and not exists (

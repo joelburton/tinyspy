@@ -68,7 +68,7 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
     (select id from club2)
   ),
   '42501',
@@ -81,7 +81,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
     (select id from club2)
   ),
   '42501',
@@ -89,18 +89,21 @@ select throws_ok(
   'create_game: non-member is rejected'
 );
 
--- ada in the 3-member club: rejected on size before setup is
--- even looked at.
+-- player_user_ids size mismatch: tinyspy needs exactly 2 players.
+-- Even from a 3-member club, listing 3 players is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup()) $q$,
+    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(),
+        array['ada11111-1111-1111-1111-111111111111'::uuid,
+              'bea22222-2222-2222-2222-222222222222'::uuid,
+              'cade3333-3333-3333-3333-333333333333'::uuid]) $q$,
     (select id from club3)
   ),
   'P0001',
-  'tinyspy requires a 2-member club (this club has 3)',
-  'create_game: wrong-size club is rejected with the actual member count'
+  'tinyspy requires exactly 2 players (got 3)',
+  'create_game: wrong-size player_user_ids is rejected with the actual count'
 );
 
 -- ============================================================
@@ -117,7 +120,8 @@ select throws_ok(
       jsonb_build_object(
         'turns', 7,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
-      )
+      ),
+      pg_temp.tinyspy_players()
     ) $q$,
     (select id from club2)
   ),
@@ -133,7 +137,8 @@ select throws_ok(
       %L::uuid,
       jsonb_build_object(
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
-      )
+      ),
+      pg_temp.tinyspy_players()
     ) $q$,
     (select id from club2)
   ),
@@ -147,7 +152,8 @@ select throws_ok(
   format(
     $q$ select tinyspy.create_game(
       %L::uuid,
-      jsonb_build_object('turns', 9)
+      jsonb_build_object('turns', 9),
+      pg_temp.tinyspy_players()
     ) $q$,
     (select id from club2)
   ),
@@ -164,7 +170,8 @@ select throws_ok(
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'not-a-uuid'
-      )
+      ),
+      pg_temp.tinyspy_players()
     ) $q$,
     (select id from club2)
   ),
@@ -173,18 +180,22 @@ select throws_ok(
   'create_game: malformed firstClueGiverUserId is rejected'
 );
 
--- firstClueGiverUserId is a uuid, but it's dee — who isn't in club2.
+-- firstClueGiverUserId is a uuid, but it's dee — who isn't in
+-- player_user_ids (dee is also not in club2, but the
+-- "must be one of player_user_ids" check fires first under the
+-- new validation order).
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
       %L::uuid,
-      pg_temp.tinyspy_setup(9, 'dee44444-4444-4444-4444-444444444444'::uuid)
+      pg_temp.tinyspy_setup(9, 'dee44444-4444-4444-4444-444444444444'::uuid),
+      pg_temp.tinyspy_players()
     ) $q$,
     (select id from club2)
   ),
   'P0001',
-  'setup.firstClueGiverUserId must be a club member',
-  'create_game: firstClueGiverUserId not in the club is rejected'
+  'setup.firstClueGiverUserId must be one of player_user_ids',
+  'create_game: firstClueGiverUserId not in player_user_ids is rejected'
 );
 
 -- ============================================================
@@ -194,7 +205,8 @@ select throws_ok(
 create temp table created on commit drop as
 select * from tinyspy.create_game(
   (select id from club2),
-  pg_temp.tinyspy_setup(11)  -- turns=11, first_user=ada (default)
+  pg_temp.tinyspy_setup(11),  -- turns=11, first_user=ada (default)
+  pg_temp.tinyspy_players()
 );
 
 select is(
@@ -235,25 +247,26 @@ select is(
   'create_game: setup column persists firstClueGiverUserId'
 );
 
+-- Both players are recorded in common.game_players (one row each).
 select is(
-  (select count(*) from tinyspy.game_players where game_id = (select id from created)),
-  2::bigint,
-  'create_game: both club members are seated'
+  (select count(*)::int from common.game_players
+    where game_id = (select id from created)),
+  2,
+  'create_game: both players are recorded in common.game_players'
 );
 
--- Ada is the chosen first clue-giver → seat A. Bea → seat B.
+-- Ada is the chosen first clue-giver → seat A column. Bea → seat B
+-- column. (Seats are now columns on tinyspy.games, not a side table.)
 select is(
-  (select user_id from tinyspy.game_players
-    where game_id = (select id from created) and seat = 'A'),
-  'ada11111-1111-1111-1111-111111111111',
-  'create_game: chosen first-clue-giver lands in seat A'
+  (select user_a_id from tinyspy.games where id = (select id from created)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'create_game: chosen first-clue-giver lands as user_a_id'
 );
 
 select is(
-  (select user_id from tinyspy.game_players
-    where game_id = (select id from created) and seat = 'B'),
-  'bea22222-2222-2222-2222-222222222222',
-  'create_game: the other player gets seat B'
+  (select user_b_id from tinyspy.games where id = (select id from created)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'create_game: the other player lands as user_b_id'
 );
 
 select is(
@@ -288,20 +301,20 @@ select is(
 create temp table created2 on commit drop as
 select * from tinyspy.create_game(
   (select id from club2),
-  pg_temp.tinyspy_setup(9, 'bea22222-2222-2222-2222-222222222222'::uuid)
+  pg_temp.tinyspy_setup(9, 'bea22222-2222-2222-2222-222222222222'::uuid),
+  pg_temp.tinyspy_players()
 );
 
 select is(
-  (select user_id from tinyspy.game_players
-    where game_id = (select id from created2) and seat = 'A'),
-  'bea22222-2222-2222-2222-222222222222',
+  (select user_a_id from tinyspy.games
+    where id = (select id from created2)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
   'create_game: bea is seated as A when chosen as first clue-giver'
 );
 
 select is(
-  (select user_id from tinyspy.game_players
-    where game_id = (select id from created2) and seat = 'B'),
-  'ada11111-1111-1111-1111-111111111111',
+  (select user_b_id from tinyspy.games where id = (select id from created2)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
   'create_game: ada is seated as B when bea is chosen as first clue-giver'
 );
 
@@ -318,14 +331,11 @@ select is(
   (
     with joint as (
       select
-        (gpa.key_card ->> w.position) as a_label,
-        (gpb.key_card ->> w.position) as b_label,
+        (g.key_card_a ->> w.position) as a_label,
+        (g.key_card_b ->> w.position) as b_label,
         count(*) as n
       from tinyspy.words w
-      join tinyspy.game_players gpa
-        on gpa.game_id = w.game_id and gpa.seat = 'A'
-      join tinyspy.game_players gpb
-        on gpb.game_id = w.game_id and gpb.seat = 'B'
+      join tinyspy.games g on g.id = w.game_id
       where w.game_id = (select id from created)
       group by 1, 2
     )

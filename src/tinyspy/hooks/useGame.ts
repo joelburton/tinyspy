@@ -9,7 +9,16 @@ import type { Database } from '../../types/db'
 // explicitly listing it here AND in the select() below.
 type GameRow = Pick<
   Database['tinyspy']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'status' | 'turns_remaining' | 'turn_number' | 'current_clue_giver'
+  | 'id'
+  | 'club_id'
+  | 'status'
+  | 'turns_remaining'
+  | 'turn_number'
+  | 'current_clue_giver'
+  | 'user_a_id'
+  | 'user_b_id'
+  | 'key_card_a'
+  | 'key_card_b'
 >
 
 export type Player = {
@@ -22,22 +31,22 @@ export type Player = {
  * Subscribes to a single game's row and its player roster.
  *
  * Returns:
- *  - `game`: the `games` row (status, current_clue_giver, turn_number, etc.)
- *  - `players`: the (≤ 2) seated players, with usernames embedded
+ *  - `game`: the `games` row (status, current_clue_giver, turn_number,
+ *    seat user_ids, key cards, etc.)
+ *  - `players`: the 2 seated players, with usernames embedded
  *  - `loading`: true until the first load completes
  *
- * Realtime: subscribes to `games` and `game_players` postgres_changes for
- * this game. Any event triggers a full re-fetch (`load()`) — chatty but
- * simpler than diffing payloads, and trivial at this data volume.
+ * Realtime: subscribes to `games` postgres_changes for this game. Any
+ * event triggers a full re-fetch (`load()`) — chatty but simpler than
+ * diffing payloads, and trivial at this data volume.
  *
- * Roster query: we fetch `tinyspy.game_players` and `common.profiles`
- * in two separate calls and merge in JS rather than using PostgREST's
- * embedded-resource syntax. The cross-schema FK exists in Postgres
- * but PostgREST's schema cache doesn't discover relationships across
- * schemas, so the `profiles(...)` embed returns PGRST200. See the
- * inline comment in `load()` for the gory details, and
- * code-conventions.md's "Cross-schema embeds" note for the
- * project-level guidance.
+ * Roster query: the user_ids come straight off the `games` row
+ * (user_a_id + user_b_id columns; seats are columns now, not a side
+ * table). We then fetch the (≤ 2) profiles for those uids in a
+ * second query and merge in JS. We don't use PostgREST's
+ * embedded-resource syntax because its schema cache doesn't discover
+ * cross-schema FKs (the user_a_id/user_b_id → common.profiles.user_id
+ * relationships exist in Postgres but aren't embeddable).
  *
  * Channel-name suffix: `supabase-js` caches channels by name, and in React
  * StrictMode the effect runs twice on mount. Without a unique suffix the
@@ -50,59 +59,56 @@ export function useGame(gameId: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Fetch + realtime-subscribe to the games row and player roster.
-  // Re-runs only on gameId change; within a game, realtime
-  // postgres_changes on `games` and `game_players` drive load()
-  // directly.
+  // Fetch + realtime-subscribe to the games row. The player roster
+  // (user_a_id, user_b_id) is on the games row itself now; no
+  // separate game_players query.
   useEffect(() => {
     let mounted = true
 
     async function load() {
-      // Game row + roster fetch happen in parallel. We do NOT try to
-      // embed `common.profiles` via PostgREST's `profiles(...)` syntax
-      // here: PostgREST's schema cache only discovers FK relationships
-      // within a single schema (the parent's schema), so the
-      // `tinyspy.game_players.user_id -> common.profiles.user_id` FK
-      // doesn't show up as an embeddable relationship even though it
-      // exists in Postgres. Both the no-hint and `!fkname`-hinted
-      // embed syntaxes return PGRST200 ("Could not find a relationship
-      // ... in the schema cache").
-      //
-      // Workaround: fetch the (≤ 2) profiles in a second query, keyed
-      // by the user_ids we just learned. Cheap at this scale; honest
-      // about the cross-schema boundary; doesn't depend on PostgREST
-      // behavior we'd like it to have but doesn't.
-      const [gameRes, playersRes] = await Promise.all([
-        db
-          .from('games')
-          .select('id, club_id, status, turns_remaining, turn_number, current_clue_giver')
-          .eq('id', gameId)
-          .single(),
-        db.from('game_players').select('user_id, seat').eq('game_id', gameId).order('seat'),
-      ])
-
-      const userIds = (playersRes.data ?? []).map((p) => p.user_id)
-      const profilesRes = userIds.length > 0
-        ? await commonDb
-            .from('profiles')
-            .select('user_id, username')
-            .in('user_id', userIds)
-        : null
-      const usernameByUserId = new Map<string, string>(
-        (profilesRes?.data ?? []).map((p) => [p.user_id, p.username]),
-      )
+      const gameRes = await db
+        .from('games')
+        .select(
+          'id, club_id, status, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
+        )
+        .eq('id', gameId)
+        .single()
 
       if (!mounted) return
-      if (gameRes.data) setGame(gameRes.data)
-      if (playersRes.data) {
-        setPlayers(
-          playersRes.data.map((p) => ({
-            user_id: p.user_id,
-            seat: p.seat as 'A' | 'B',
-            username: usernameByUserId.get(p.user_id) ?? '?',
-          })),
-        )
+      if (!gameRes.data) {
+        setLoading(false)
+        return
       }
+
+      const g = gameRes.data
+      setGame(g)
+
+      // Roster from the columns. Cross-schema profile fetch for the
+      // usernames — PostgREST schema cache doesn't embed common.profiles
+      // for these FKs.
+      const userIds = [g.user_a_id, g.user_b_id]
+      const profilesRes = await commonDb
+        .from('profiles')
+        .select('user_id, username')
+        .in('user_id', userIds)
+      if (!mounted) return
+      const usernameByUserId = new Map<string, string>(
+        (profilesRes.data ?? []).map((p) => [p.user_id, p.username]),
+      )
+
+      setPlayers([
+        {
+          user_id: g.user_a_id,
+          seat: 'A',
+          username: usernameByUserId.get(g.user_a_id) ?? '?',
+        },
+        {
+          user_id: g.user_b_id,
+          seat: 'B',
+          username: usernameByUserId.get(g.user_b_id) ?? '?',
+        },
+      ])
+
       setLoading(false)
     }
 
@@ -113,16 +119,6 @@ export function useGame(gameId: string) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'tinyspy', table: 'games', filter: `id=eq.${gameId}` },
-        load,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'tinyspy',
-          table: 'game_players',
-          filter: `game_id=eq.${gameId}`,
-        },
         load,
       )
       // Refetch on every SUBSCRIBED status — fires on initial subscribe AND

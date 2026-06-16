@@ -27,12 +27,18 @@
 -- "Find the first board position whose label on seat `s`'s view
 -- is `target`." The key card is random per-game; tests can't
 -- hardcode positions for a green / neutral / assassin reveal.
+--
+-- Reads the key view from the corresponding column on tinyspy.games
+-- (key_card_a or key_card_b) — seats are columns now, not a side
+-- table.
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$
   select (ord - 1)::int
-  from tinyspy.game_players gp,
-       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-  where gp.game_id = g and gp.seat = s and t.label = target
+  from tinyspy.games gm,
+       jsonb_array_elements_text(
+         case s when 'A' then gm.key_card_a else gm.key_card_b end
+       ) with ordinality as t(label, ord)
+  where gm.id = g and t.label = target
   limit 1;
 $$;
 
@@ -44,9 +50,11 @@ $$;
 create function pg_temp.find_position_set(g uuid, s text, target text) returns int[]
 language sql as $$
   select coalesce(array_agg((ord - 1)::int), array[]::int[])
-  from tinyspy.game_players gp,
-       jsonb_array_elements_text(gp.key_card) with ordinality as t(label, ord)
-  where gp.game_id = g and gp.seat = s and t.label = target;
+  from tinyspy.games gm,
+       jsonb_array_elements_text(
+         case s when 'A' then gm.key_card_a else gm.key_card_b end
+       ) with ordinality as t(label, ord)
+  where gm.id = g and t.label = target;
 $$;
 
 -- ─── tinyspy_setup ─────────────────────────────────────
@@ -71,4 +79,18 @@ language sql as $$
     'turns', turns,
     'firstClueGiverUserId', first_user
   );
+$$;
+
+-- ─── tinyspy_players ──────────────────────────────────
+-- The standard 2-player roster for tinyspy tests: ada + bea.
+-- Tests use this as the third arg to create_game (which now takes
+-- player_user_ids: uuid[] per the Phase 2c refactor).
+--
+--   tinyspy_players()                            -- [ada, bea]
+create function pg_temp.tinyspy_players() returns uuid[]
+language sql as $$
+  select array[
+    'ada11111-1111-1111-1111-111111111111'::uuid,
+    'bea22222-2222-2222-2222-222222222222'::uuid
+  ];
 $$;

@@ -44,18 +44,21 @@ import { useBoard } from './useBoard'
 const GAME_ID = '00000000-0000-0000-0000-00000000aaaa'
 const USER_ID = '00000000-0000-0000-0000-00000000bbbb'
 
-// Build a supabase chain mock that recognizes the patterns the hook uses
-// and returns matching shapes. The distinguishing feature between the
-// own-key and peer-key queries is `.neq('user_id', ...)` (peer) vs a
-// second `.eq('user_id', ...)` (own).
+// Build a supabase chain mock that recognizes the patterns the hook uses.
+// With seats now as columns on tinyspy.games, both the own-key and
+// peer-key queries read from `games` — the hook picks the right column
+// (key_card_a vs key_card_b) based on whether userId === user_a_id.
+//
+// In these tests USER_ID plays seat A by construction, so:
+//   - key_card_a = the caller's own key (ownKey)
+//   - key_card_b = the peer's key (peerKey)
 function buildSupabaseMock() {
   mockFrom.mockImplementation((table: string) => {
-    const chain: Record<string, unknown> & { _table: string; _neq: boolean } = {
+    const chain: Record<string, unknown> & { _table: string } = {
       _table: table,
-      _neq: false,
       select() { return chain },
       eq() { return chain },
-      neq() { chain._neq = true; return chain },
+      neq() { return chain },
       order() {
         // Only words uses .order() — return 25 word rows.
         return Promise.resolve({
@@ -72,10 +75,18 @@ function buildSupabaseMock() {
         })
       },
       single() {
-        if (chain._neq) {
-          return Promise.resolve({ data: { key_card: peerKey }, error: null })
-        }
-        return Promise.resolve({ data: { key_card: ownKey }, error: null })
+        // games row — caller (USER_ID) is in seat A; the other seat
+        // belongs to a sentinel uuid. Both key columns are returned;
+        // the hook chooses based on user_a_id/user_b_id comparison.
+        return Promise.resolve({
+          data: {
+            user_a_id: USER_ID,
+            user_b_id: '00000000-0000-0000-0000-00000000cccc',
+            key_card_a: ownKey,
+            key_card_b: peerKey,
+          },
+          error: null,
+        })
       },
     }
     return chain

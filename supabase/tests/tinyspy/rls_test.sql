@@ -26,7 +26,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(8);
+select plan(7);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -42,7 +42,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup());
+select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 select submit_clue((select id from g), 'TOOLS', 2);
 
 -- ============================================================
@@ -66,72 +66,70 @@ select is(
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
+-- RLS shape changed: visibility is now club-wide (not
+-- player-restricted). Dee is a non-club-member, so she sees nothing
+-- from tinyspy.games / tinyspy.words / tinyspy.clues — gated by
+-- is_club_member(club_id), which fails for her.
 select is(
   (select count(*) from games where id = (select id from g)),
   0::bigint,
-  'dee cannot SELECT a games row she is not a player in'
-);
-
-select is(
-  (select count(*) from game_players where game_id = (select id from g)),
-  0::bigint,
-  'dee cannot SELECT game_players rows for a game she is outside'
+  'dee cannot SELECT a games row for a club she is not in'
 );
 
 select is(
   (select count(*) from words where game_id = (select id from g)),
   0::bigint,
-  'dee cannot SELECT words for a game she is outside'
+  'dee cannot SELECT words for a club she is not in'
 );
 
 select is(
   (select count(*) from clues where game_id = (select id from g)),
   0::bigint,
-  'dee cannot SELECT clues for a game she is outside'
+  'dee cannot SELECT clues for a club she is not in'
 );
 
 -- ============================================================
 -- Dee's mutating RPCs must throw.
 -- ============================================================
--- These all raise SQLSTATE 42501 from the RPC's own auth check —
--- the RPC body uses `is_player_in_game` (which bypasses RLS via
--- security definer) to decide whether to proceed.
+-- The RPCs use common.require_game_player as the auth gate.
+-- Since dee isn't in common.game_players for this game, she's
+-- rejected with 'not playing this game' — different reject path
+-- than the old "not a player in this game" message that came
+-- from the per-game is_player_in_game helper (now retired).
 
 select throws_ok(
   $$ select submit_clue((select id from g), 'X', 1) $$,
   '42501',
-  'not a player in this game',
-  'dee cannot call submit_clue on a game she is outside'
+  'not playing this game',
+  'dee cannot call submit_clue on a game she didn''t play'
 );
 
 select throws_ok(
   $$ select submit_guess((select id from g), 0) $$,
   '42501',
-  'not a player in this game',
-  'dee cannot call submit_guess on a game she is outside'
+  'not playing this game',
+  'dee cannot call submit_guess on a game she didn''t play'
 );
 
 -- ============================================================
 -- Dee can't write directly to game tables either.
 -- ============================================================
--- This is actually defense-in-depth: the baseline migration only
--- `grant select` to the authenticated role on every game table —
--- no INSERT/UPDATE/DELETE grants. PostgreSQL blocks the write at
--- the grant layer ("permission denied") *before* RLS even gets to
--- evaluate it. The RLS policies are still there as a second
+-- This is defense-in-depth: the baseline migration only `grant
+-- select` to the authenticated role on every game table — no
+-- INSERT/UPDATE/DELETE grants. PostgreSQL blocks the write at
+-- the grant layer ("permission denied") *before* RLS even gets
+-- to evaluate it. The RLS policies are still there as a second
 -- guard, but the missing grant is what trips first.
 --
 -- Net effect either way: all writes have to go through the
 -- security-definer RPCs.
 
 select throws_ok(
-  $$ insert into game_players (game_id, user_id, seat)
-     values ((select id from g),
-             'dee44444-4444-4444-4444-444444444444',
-             'B') $$,
+  $$ insert into words (game_id, position, word)
+     values ((select id from g), 0, 'BOGUS') $$,
   '42501',
-  'permission denied for table game_players',
-  'direct INSERT into game_players is blocked (no grant on authenticated)'
+  'permission denied for table words',
+  'direct INSERT into words is blocked (no grant on authenticated)'
 );
 
 -- ============================================================
