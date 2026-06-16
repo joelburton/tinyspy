@@ -143,6 +143,84 @@ export type Database = {
           },
         ]
       }
+      game_players: {
+        Row: {
+          game_id: string
+          joined_at: string
+          result: Json | null
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          joined_at?: string
+          result?: Json | null
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          joined_at?: string
+          result?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          club_id: string
+          ended_at: string | null
+          gametype: string
+          id: string
+          started_at: string
+          status_summary: Json | null
+        }
+        Insert: {
+          club_id: string
+          ended_at?: string | null
+          gametype: string
+          id?: string
+          started_at?: string
+          status_summary?: Json | null
+        }
+        Update: {
+          club_id?: string
+          ended_at?: string | null
+          gametype?: string
+          id?: string
+          started_at?: string
+          status_summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_gametype_fkey"
+            columns: ["gametype"]
+            isOneToOne: false
+            referencedRelation: "gametypes"
+            referencedColumns: ["gametype"]
+          },
+        ]
+      }
       gametypes: {
         Row: {
           gametype: string
@@ -224,8 +302,25 @@ export type Database = {
           id: string
         }[]
       }
+      create_game: {
+        Args: {
+          gametype: string
+          player_user_ids: string[]
+          target_club: string
+        }
+        Returns: string
+      }
+      end_game: {
+        Args: {
+          player_results: Json
+          status_summary: Json
+          target_game: string
+        }
+        Returns: undefined
+      }
       is_club_member: { Args: { target_club: string }; Returns: boolean }
       require_club_member: { Args: { target_club: string }; Returns: string }
+      require_game_player: { Args: { target_game: string }; Returns: string }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined

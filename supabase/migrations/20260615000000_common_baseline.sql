@@ -30,18 +30,34 @@
 --   - clubs               — fixed-membership rooms friends play in
 --                            together. Cross-game social primitive.
 --   - clubs_members       — m2m between clubs and profiles.
---   - club_active_game    — at-most-one row per club; tracks which
---                            game the club is currently playing
---                            (across all gametypes). Auto-cleared
---                            by each game's own termination trigger.
---   - messages            — per-club chat. Single thread per club,
---                            persists across gametype switches.
 --   - gametypes           — registered-gametype list. Each game's
 --                            baseline migration self-registers via
 --                            an INSERT ... ON CONFLICT DO NOTHING.
+--   - games               — universal game-record header (the
+--                            "index"). One row per game-playing
+--                            across all gametypes. Holds club_id,
+--                            gametype, timestamps, and a
+--                            status_summary jsonb the gametype's
+--                            manifest renders. Per-gametype detail
+--                            (board, secret, current turn, etc.)
+--                            lives on `<gametype>.games`, which
+--                            shares an id with this row via FK.
+--   - game_players        — who played each game + their per-player
+--                            outcome (`result jsonb`, populated at
+--                            game-end). Persisted "who played" is a
+--                            distinct concept from current club
+--                            membership — game_players is frozen
+--                            at game-create time, while clubs_members
+--                            is the durable membership of the room.
+--   - club_active_game    — at-most-one row per club; tracks which
+--                            game the club is currently playing
+--                            (across all gametypes). Cleared by
+--                            common.end_game at terminal transitions.
 --   - clubs_gametypes     — m2m saying "this club may play this
 --                            gametype." Populated for every new
 --                            club by handle_new_user / create_club.
+--   - messages            — per-club chat. Single thread per club,
+--                            persists across gametype switches.
 --
 -- Naming note: m2m tables are pluralized on both sides
 -- (`clubs_members`, `clubs_gametypes`) so they read as m:m at a
@@ -152,6 +168,78 @@ create table common.gametypes (
 );
 
 -- ============================================================
+-- common.games — the universal game record (header)
+-- ============================================================
+-- One row per game-playing, across all gametypes. The "header"
+-- table in a classical header-detail split:
+--
+--   common.games            — cross-cutting fields (club, gametype,
+--                              timestamps, summary status)
+--   <gametype>.games        — gametype-specific game state (board,
+--                              secrets, current turn, …) FK'd to
+--                              this row's id via id PK
+--
+-- This split powers the "list all games in a club" surface — one
+-- query against common.games replaces today's registry-dispatch
+-- through each manifest's fetchClubGames. Per-gametype detail
+-- stays lazy-loaded (matches the FE's chunk-per-game pattern).
+--
+-- `status_summary jsonb` is the gametype's structured description
+-- of "where is this game now" — populated by each gametype's
+-- end-of-game flow. The manifest is the only thing that knows
+-- how to render it (typed by the gametype, not by common).
+--
+-- ended_at is null while in_progress and set at terminal
+-- transition by common.end_game.
+--
+-- `gametype` FKs to common.gametypes(gametype) ON DELETE CASCADE,
+-- so dropping a gametype from the registry auto-cleans its games.
+
+create table common.games (
+  id uuid primary key default gen_random_uuid(),
+  club_id uuid not null references common.clubs(id) on delete cascade,
+  gametype text not null references common.gametypes(gametype) on delete cascade,
+  status_summary jsonb,
+  started_at timestamptz not null default now(),
+  ended_at timestamptz
+);
+
+create index common_games_club_id_started_at_idx
+  on common.games (club_id, started_at desc);
+
+-- ============================================================
+-- common.game_players — who played + per-player outcome
+-- ============================================================
+-- One row per (game, player) — the persisted record of who
+-- actually played a specific game. Frozen at game-create time;
+-- not updated when clubs_members grows (a friend joining the
+-- club later doesn't retroactively appear in past games'
+-- game_players).
+--
+-- This distinguishes "current membership of the social space"
+-- (clubs_members) from "people who played this specific game"
+-- (game_players). Both reads are useful — clubs_members for
+-- chat / invitations / future-game eligibility, game_players
+-- for "who was at this game" historical accuracy.
+--
+-- `result jsonb` is the per-player end-state — null while the
+-- game is in progress, populated by common.end_game at terminal
+-- transition. The gametype's manifest knows the shape (won/lost
+-- flag for cooperative games, score for boggle, etc.) and how
+-- to render it.
+
+create table common.game_players (
+  game_id uuid not null references common.games(id) on delete cascade,
+  user_id uuid not null references common.profiles(user_id) on delete cascade,
+  result jsonb,
+  joined_at timestamptz not null default now(),
+  primary key (game_id, user_id)
+);
+
+create index common_game_players_user_id_idx
+  on common.game_players (user_id);
+
+-- ============================================================
 -- common.club_active_game — "what is this club playing now"
 -- ============================================================
 --
@@ -160,16 +248,15 @@ create table common.gametypes (
 -- all gametypes" rule. Presence of a row → club has an active
 -- game; absence → nothing is active for the club.
 --
--- `gametype` is a real FK to common.gametypes(gametype) with
--- ON DELETE CASCADE — when a gametype is removed from the
--- registry (the "delete a game in three actions" recipe), its
--- active-game pointers are auto-cleaned.
+-- `gametype` is a real FK to common.gametypes(gametype) ON DELETE
+-- CASCADE — dropping a gametype from the registry auto-cleans its
+-- active-game pointers.
 --
--- `game_id` is a soft FK into <gametype>.games(id). The real
--- FK can't be declared because the target schema varies per row
--- (tinyspy.games for tinyspy, psychicnum.games for psychicnum,
--- future games for theirs). Cleanup of orphan rows from the
--- gametype-side is handled in the drop-a-game recipe.
+-- `game_id` is currently a soft FK into <gametype>.games(id). The
+-- canonical `common.games(id)` FK target will land in Phase 2
+-- once every gametype's create_game writes to common.games first
+-- — until then this stays soft so existing per-game RPCs that
+-- haven't been refactored still work.
 
 create table common.club_active_game (
   club_id uuid primary key references common.clubs(id) on delete cascade,
@@ -229,10 +316,12 @@ create index messages_club_id_sent_at_idx
 alter table common.profiles         enable row level security;
 alter table common.clubs            enable row level security;
 alter table common.clubs_members    enable row level security;
-alter table common.club_active_game enable row level security;
-alter table common.messages         enable row level security;
 alter table common.gametypes        enable row level security;
+alter table common.games            enable row level security;
+alter table common.game_players     enable row level security;
+alter table common.club_active_game enable row level security;
 alter table common.clubs_gametypes  enable row level security;
+alter table common.messages         enable row level security;
 
 create function common.is_club_member(target_club uuid)
 returns boolean
@@ -297,6 +386,28 @@ create policy clubs_gametypes_select on common.clubs_gametypes
   for select to authenticated
   using (common.is_club_member(club_id));
 
+-- Game records are club-wide: any club member can see every game
+-- ever played in the club, regardless of whether they were one of
+-- the players themselves. "History belongs to the club." Same
+-- model as messages — chat threads span game playings and aren't
+-- per-game-private.
+create policy games_select on common.games
+  for select to authenticated
+  using (common.is_club_member(club_id));
+
+-- Game-player records inherit visibility from their parent game.
+-- The EXISTS subquery mirrors the per-gametype `*_select` policy
+-- shape (psychicnum.guesses, wordknit.guesses, etc.).
+create policy game_players_select on common.game_players
+  for select to authenticated
+  using (
+    exists (
+      select 1 from common.games g
+       where g.id = game_players.game_id
+         and common.is_club_member(g.club_id)
+    )
+  );
+
 -- No insert/update/delete policies on any of these tables. Writes
 -- go through the security-definer RPCs defined below (create_club,
 -- send_message) and, for game-lifecycle transitions, through each
@@ -306,20 +417,27 @@ create policy clubs_gametypes_select on common.clubs_gametypes
 grant select, update on common.profiles        to authenticated;
 grant select on common.clubs                   to authenticated;
 grant select on common.clubs_members           to authenticated;
-grant select on common.club_active_game        to authenticated;
-grant select on common.messages                to authenticated;
 grant select on common.gametypes               to authenticated;
+grant select on common.games                   to authenticated;
+grant select on common.game_players            to authenticated;
+grant select on common.club_active_game        to authenticated;
 grant select on common.clubs_gametypes         to authenticated;
+grant select on common.messages                to authenticated;
 
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- The four club tables broadcast so the FE can subscribe to:
+-- Six tables broadcast so the FE can subscribe to:
 --   - clubs              new club created / renamed
 --   - clubs_members      roster changes (deferred to v2 but free)
 --   - club_active_game   the "every member follows the active game"
 --                        auto-nav rule lives on this one
 --   - messages           chat
+--   - games              new games appear in club history; ended_at
+--                        flips drive end-of-game UI transitions
+--                        across all gametypes uniformly
+--   - game_players       end-of-game `result` writes trigger
+--                        per-player outcome rendering
 --
 -- Profiles is deliberately NOT in the publication — usernames
 -- don't change during a session and the realtime traffic isn't
@@ -334,6 +452,8 @@ alter publication supabase_realtime add table common.clubs;
 alter publication supabase_realtime add table common.clubs_members;
 alter publication supabase_realtime add table common.club_active_game;
 alter publication supabase_realtime add table common.messages;
+alter publication supabase_realtime add table common.games;
+alter publication supabase_realtime add table common.game_players;
 
 -- ============================================================
 -- common.slugify_club_name — user-typed name → URL handle
@@ -541,6 +661,209 @@ $$;
 -- No grant to authenticated; internal helper (see
 -- require_club_member's note).
 revoke execute on function common.set_club_active_game(uuid, text, uuid) from public;
+
+-- ─── common.create_game ────────────────────────────────
+-- The common (header) half of starting a new game. Called by
+-- every gametype's `<gametype>.create_game` first to get the
+-- canonical game id; the gametype then inserts its detail row
+-- using that id.
+--
+-- Responsibilities:
+--   - Auth + caller membership in target_club (via
+--     require_club_member). The caller must be a club member to
+--     start a game in this club; they do NOT have to appear in
+--     player_user_ids (the "Ada facilitates a game between Bea
+--     and Cade" case is supported).
+--   - Validate every uid in player_user_ids is a member of
+--     target_club at game-create time. Players are frozen at
+--     creation; later membership changes to clubs_members don't
+--     affect this game's roster.
+--   - Insert the common.games row (gets a fresh uuid).
+--   - Insert one common.game_players row per uid.
+--   - Return the new game id.
+--
+-- Size constraints (exactly-2 for tinyspy, at-least-1 for the
+-- open games) live in the gametype's `<gametype>.create_game`,
+-- not here — common doesn't know each gametype's rules. This
+-- helper just enforces "all listed players are club members."
+--
+-- Raises:
+--   - 42501  'must be authenticated' / 'not a member of this club'
+--                                          (via require_club_member)
+--   - P0001  'player_user_ids must not be empty'
+--   - P0001  'player_user_ids contains non-members: X, Y'
+
+create function common.create_game(
+  target_club uuid,
+  gametype text,
+  player_user_ids uuid[]
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  new_id uuid;
+  non_members text[];
+begin
+  -- Caller must be a club member (raises if not auth/not member).
+  perform common.require_club_member(target_club);
+
+  if player_user_ids is null
+     or array_length(player_user_ids, 1) is null
+     or array_length(player_user_ids, 1) = 0 then
+    raise exception 'player_user_ids must not be empty'
+      using errcode = 'P0001';
+  end if;
+
+  -- Identify any listed uid that isn't in clubs_members for this
+  -- club. The COALESCE-to-empty-array guard keeps the IF below
+  -- behaving when the result is null (no non-members).
+  select coalesce(array_agg(uid::text), array[]::text[]) into non_members
+  from unnest(player_user_ids) as uid
+  where not exists (
+    select 1 from common.clubs_members
+     where club_id = target_club and user_id = uid
+  );
+
+  if array_length(non_members, 1) > 0 then
+    raise exception 'player_user_ids contains non-members: %',
+      array_to_string(non_members, ', ')
+      using errcode = 'P0001';
+  end if;
+
+  insert into common.games (club_id, gametype)
+  values (target_club, gametype)
+  returning id into new_id;
+
+  insert into common.game_players (game_id, user_id)
+  select new_id, uid from unnest(player_user_ids) as uid;
+
+  return new_id;
+end;
+$$;
+
+-- No grant to authenticated; internal helper.
+revoke execute on function common.create_game(uuid, text, uuid[]) from public;
+
+-- ─── common.require_game_player ───────────────────────
+-- "Caller must be authenticated AND have a game_players row for
+-- target_game." Used by mid-game RPCs (submit_guess, submit_clue,
+-- etc.) where the question is "is this caller actually playing
+-- this specific game" — finer than club membership, since with
+-- the per-game player roster a club member who didn't sit down at
+-- this game can't take actions in it (but can still watch via
+-- the club-wide RLS on common.games).
+--
+-- Returns the caller's user_id, which mid-game RPCs use for
+-- their downstream inserts.
+--
+-- Raises:
+--   - 42501 'must be authenticated'    when auth.uid() is null
+--   - 42501 'not playing this game'    when caller isn't in
+--                                       common.game_players
+
+create function common.require_game_player(target_game uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+begin
+  caller_id := auth.uid();
+  if caller_id is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1 from common.game_players
+    where game_id = target_game and user_id = caller_id
+  ) then
+    raise exception 'not playing this game' using errcode = '42501';
+  end if;
+
+  return caller_id;
+end;
+$$;
+
+-- No grant to authenticated; internal helper.
+revoke execute on function common.require_game_player(uuid) from public;
+
+-- ─── common.end_game ───────────────────────────────────
+-- The terminal-transition counterpart to create_game. Called by
+-- each gametype's RPC at the moment its game-specific rule says
+-- "this game is over" — 4 mistakes in wordknit, assassin in
+-- tinyspy, last guess used in psychic-num, countdown expired,
+-- player-confirmed suspend, etc. The helper writes:
+--
+--   - common.games.ended_at      = now()
+--   - common.games.status_summary = status_summary (manifest-shaped)
+--   - common.game_players.result for each user in player_results
+--   - delete club_active_game row for this game (auto-uncloaks
+--     "completed" status on the FE)
+--
+-- player_results is a jsonb object keyed by user_id string:
+--
+--   { "ada11111-...": {"won": true, "score": 12},
+--     "bea22222-...": {"won": false} }
+--
+-- Each top-level value is the per-player outcome the gametype
+-- defines — the helper just persists whatever jsonb it's handed.
+--
+-- Idempotency: a second call on an already-ended game is a no-op
+-- on ended_at (left as the first call's value) and overwrites
+-- status_summary + player_results. The current pattern of
+-- "termination fires once from one RPC" makes the idempotency
+-- detail moot in practice.
+
+create function common.end_game(
+  target_game uuid,
+  status_summary jsonb,
+  player_results jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  player_key text;
+  player_result jsonb;
+begin
+  update common.games
+     set ended_at = coalesce(ended_at, now()),
+         status_summary = end_game.status_summary
+   where id = target_game;
+
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  -- Per-player results — iterate the jsonb object.
+  if player_results is not null then
+    for player_key, player_result in
+      select * from jsonb_each(player_results)
+    loop
+      update common.game_players
+         set result = player_result
+       where game_id = target_game and user_id = player_key::uuid;
+    end loop;
+  end if;
+
+  -- Clear the active-game pointer for this club. The FK from
+  -- club_active_game.game_id to common.games(id) does CASCADE on
+  -- DELETE of the games row, but we're just ending the game (not
+  -- deleting it), so the explicit DELETE here is the way the
+  -- pointer goes away on natural termination.
+  delete from common.club_active_game where game_id = target_game;
+end;
+$$;
+
+-- No grant to authenticated; internal helper.
+revoke execute on function common.end_game(uuid, jsonb, jsonb) from public;
 
 -- ============================================================
 -- common.create_club RPC
