@@ -400,8 +400,6 @@ export function ClubPage({ session, handle }: Props) {
     )
   }
 
-  const isSoloClub = club.handle.startsWith('=')
-
   // Classify games. The current game is the one whose id matches
   // the is_current_view=true row from common.games — that one
   // gets its own prominent section. Everything else collapses
@@ -417,15 +415,9 @@ export function ClubPage({ session, handle }: Props) {
     <div className="card">
       <header>
         <h1>{club.name}</h1>
-        {isSoloClub ? (
-          <p className="muted">
-            Your personal solo space. Hidden from your clubs list.
-          </p>
-        ) : (
-          <p className="muted">
-            <code>/c/{club.handle}</code>
-          </p>
-        )}
+        <p className="muted">
+          <code>/c/{club.handle}</code>
+        </p>
       </header>
 
       <section>
