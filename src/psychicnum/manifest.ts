@@ -60,9 +60,9 @@ export const psychicnumGame: GameManifest = {
   // Called by SetupGameDialog when the player clicks Start. The
   // RPC picks the random target server-side, validates the setup
   // shape, initializes guesses_remaining from setup.guesses, and
-  // upserts common.club_active_game (auto-pausing any prior
-  // active game in the club, per the v1 active-per-club
-  // invariant).
+  // (via common.create_game) flips is_active=true on the new
+  // common.games row — auto-suspending any prior active game in
+  // the club per the v1 active-per-club invariant.
   //
   // The `unknown` → PsychicnumSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm

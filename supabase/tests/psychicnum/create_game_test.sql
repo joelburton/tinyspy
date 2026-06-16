@@ -139,26 +139,28 @@ select ok(
   'target is in the 1..10 range'
 );
 
--- (5) club_active_game points at this game, gametype 'psychicnum'.
+-- (5) common.games.is_active=true for this game, gametype 'psychicnum'.
 select is(
-  (select game_id from common.club_active_game where club_id = (select id from club)),
+  (select id from common.games
+    where club_id = (select id from club) and is_active = true),
   (select id from g),
-  'club_active_game points at the new game'
+  'common.games row for this game has is_active=true'
 );
 select is(
-  (select gametype from common.club_active_game where club_id = (select id from club)),
+  (select gametype from common.games
+    where club_id = (select id from club) and is_active = true),
   'psychicnum',
-  'club_active_game records gametype = psychicnum'
+  'active common.games row has gametype = psychicnum'
 );
 
 -- ============================================================
 -- (6) A second create in the same club auto-pauses the first
 -- ============================================================
--- common.club_active_game has primary key (club_id) so the
--- on-conflict-do-update path in create_game replaces the row.
--- The first game's `psychicnum.games.status` stays 'active' —
--- "paused" is purely a derived club-level state (no
--- club_active_game row pointing at it).
+-- The partial unique index on (club_id) where is_active=true
+-- forces common.create_game to clear the prior active row before
+-- inserting the new one. The first game's psychicnum.games.status
+-- stays 'active' — "suspended" is purely a derived club-level
+-- state (is_active=false AND ended_at IS NULL).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -169,9 +171,10 @@ select * from psychicnum.create_game(
 );
 
 select is(
-  (select game_id from common.club_active_game where club_id = (select id from club)),
+  (select id from common.games
+    where club_id = (select id from club) and is_active = true),
   (select id from g2),
-  'second create_game replaces club_active_game with new game'
+  'second create_game: new game is the club''s active one'
 );
 
 reset role;

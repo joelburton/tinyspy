@@ -30,7 +30,7 @@ Multi-schema layout:
 | schema | what lives there |
 |---|---|
 | `public` | Postgres-managed stuff: `gen_random_uuid`, extension functions, anything we didn't put there. **We do not add tables here.** |
-| `common` | Shared user-data tables and helpers used by every game: profiles, clubs, clubs_members, club_active_game, messages. **Must not reference any game schema.** |
+| `common` | Shared user-data tables and helpers used by every game: profiles, clubs, clubs_members, games, messages. **Must not reference any game schema.** |
 | `tinyspy`, `psychicnum`, `<game>` | One schema per gametype; that game owns its tables, RPCs, and policies inside it. |
 
 **Search path:** `extra_search_path = common, public, extensions`. Game schemas are deliberately *not* in the search path — every game reference is fully qualified (`tinyspy.games`, `psychicnum.games`) in SQL, and goes through `supabase.schema('<game>')` in the FE.

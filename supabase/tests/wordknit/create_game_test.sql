@@ -15,7 +15,7 @@
 --   - happy path: returns one row, status='in_progress',
 --     mistake_count=0, setup persists, board hardcoded with 4
 --     categories × 4 tiles each, tile order is a shuffle of all
---     16 tiles, club_active_game is upserted
+--     16 tiles, the common.games row is_active=true
 --   - The board.categories and board.tileOrder shape is what
 --     the FE expects to read directly (FE-knows-the-answer
 --     model).
@@ -243,19 +243,22 @@ select is(
   'create_game: setup column persists the passed-in jsonb'
 );
 
--- club_active_game upserted: this new game is the club's active.
+-- This new game is the club's active one (is_active=true). The
+-- partial unique index on (club_id) where is_active = true
+-- guarantees at most one such row per club, so the bare query
+-- without LIMIT 1 is safe.
 select is(
-  (select game_id from common.club_active_game
-    where club_id = (select id from club)),
+  (select id from common.games
+    where club_id = (select id from club) and is_active = true),
   (select id from created),
-  'create_game: club_active_game points at the new game'
+  'create_game: common.games row is the club''s active game'
 );
 
 select is(
-  (select gametype from common.club_active_game
-    where club_id = (select id from club)),
+  (select gametype from common.games
+    where club_id = (select id from club) and is_active = true),
   'wordknit',
-  'create_game: club_active_game records gametype = wordknit'
+  'create_game: active common.games row has gametype = wordknit'
 );
 
 -- ============================================================

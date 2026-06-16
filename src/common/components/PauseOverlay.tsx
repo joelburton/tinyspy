@@ -31,10 +31,12 @@ type Props = {
  * state — same UX as a video player's pause: clock stops, no
  * moves accepted, overlay shows. Resolves automatically when
  * the missing peer reconnects (for presence-pause) or when
- * anyone clicks Resume (for manual-pause). Game stays open and
- * active in the DB. Suspended (club-level) is about which game
- * `common.club_active_game` points at; that concept lives in
- * the ClubPage's "Suspended games" section.
+ * anyone clicks Resume (for manual-pause). Game stays
+ * is_active=true in common.games. Suspended (club-level) is
+ * about whether the game's common.games row has is_active=true
+ * for this club (it stops being the active game when a new one
+ * starts and flips the prior); that concept surfaces in the
+ * ClubPage's "Suspended games" section.
  */
 export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
   if (missing.length === 0 && !manuallyPausedBy) return null

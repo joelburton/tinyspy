@@ -197,12 +197,12 @@ alter publication supabase_realtime add table wordknit.guesses;
 --
 --   1. common.create_game(target_club, 'wordknit', player_user_ids)
 --      — validates caller is in the club, validates every uid in
---      player_user_ids is in clubs_members, inserts the common.games
---      header row + one common.game_players row per uid, returns
---      the canonical game id.
+--      player_user_ids is in clubs_members, clears any prior
+--      active game for this club, inserts the common.games header
+--      row (with is_active=true) + one common.game_players row
+--      per uid, returns the canonical game id.
 --   2. INSERT INTO wordknit.games using that id — landing the
 --      gametype-specific board + setup data.
---   3. set_club_active_game — takes the club's active slot.
 --
 -- player_user_ids is the explicit list of who's actually playing
 -- THIS game. Defaults are not enforced server-side; the FE's setup
@@ -294,9 +294,6 @@ begin
                        'tileOrder',  to_jsonb(tile_order)),
     setup
   );
-
-  -- Take the club's active-game slot (auto-pauses any prior).
-  perform common.set_club_active_game(target_club, 'wordknit', new_id);
 
   return query select new_id;
 end;

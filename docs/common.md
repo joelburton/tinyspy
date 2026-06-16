@@ -42,32 +42,35 @@ Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 | `profiles` | One row per auth user. Holds `username` (unique). Materialized by the `handle_new_user` trigger on first sign-in; persists across sign-out. Cascades from `auth.users`. |
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. |
 | `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
-| `club_active_game` | Pointer table. PK on `club_id` alone (not on `(club_id, gametype, game_id)`) is what enforces the **one active game per club, across all gametypes** rule. Presence of a row → club has an active game; absence → nothing is active. |
 | `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
+| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `is_active`, `status_summary` jsonb, `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. |
+| `game_players` | M2M between games and profiles, recording who played each game. Frozen at game-create time — distinct from `clubs_members`, which is current membership of the club. The `result jsonb` column carries each player's outcome (won/lost flag, score, etc.), populated by `common.end_game` at terminal transition. |
 | `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. |
 | `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. The 1–1000 character constraint matches what game-scoped chat used to have, before chat moved to common. |
 
-### The club_active_game pointer
+### The is_active flag on common.games
 
-This table is the most architecturally interesting piece of `common`. Two things to keep in mind:
+`common.games.is_active` carries the **one active game per club, across all gametypes** invariant. Two things to keep in mind:
 
-1. **`gametype` is a real FK to `common.gametypes(gametype)` with ON DELETE CASCADE; `game_id` is a soft FK.** The real FK on `game_id` can't be declared because the target schema varies per row — `tinyspy.games(id)` for tinyspy rows, `psychicnum.games(id)` for psychic-num rows, etc. Cleanup of `game_id`-orphan rows (a game row gets deleted by its own schema's cascade) is part of the drop-a-game recipe, not enforced by referential integrity. The `gametype` FK does carry CASCADE, so removing a gametype from the registry — the "delete a game in three actions" recipe — auto-clears its active-game pointers.
+1. **A partial unique index on `(club_id) where is_active = true`** is what enforces the invariant. The index only contains the active rows; multiple `is_active=false` rows per club are fine (the index doesn't index them). A second `is_active=true` row for the same club would raise `unique_violation` — which would be a `common.create_game` bug, since that RPC explicitly flips the prior active row off before inserting the new one.
 
-2. **The `pk(club_id)` is load-bearing.** With it, starting a new game upserts the row, which auto-suspends whatever was previously active — by simply overwriting the pointer. The previously-active game's internal status (`tinyspy.games.status`) is untouched; "suspended" is a club-level concept derived from "this game exists but isn't pointed at by `club_active_game`."
+2. **Starting a new game auto-suspends whatever was previously active.** `common.create_game` does `UPDATE common.games SET is_active = false WHERE club_id = X AND is_active = true` before inserting the new row with `is_active = true`. The previously-active game's `is_active` flips to false; its `<gametype>.games.status` stays as it was (non-terminal). "Suspended" is the club-level state derived from `is_active = false AND ended_at IS NULL`.
 
-The auto-suspend behavior is felt on the FE side via realtime: when `common.club_active_game` changes, every club member's UI subscribes and navigates them to the new active game's URL. See [`ClubPage`](#frontend) for the auto-nav handler.
+The auto-suspend behavior is felt on the FE side via realtime: when `common.games` changes for this club, every member's UI subscribes and navigates them into the new active game (if the new row has `is_active = true`). See [`ClubPage`](#frontend) for the auto-nav handler.
+
+(An earlier iteration had a separate `club_active_game` pointer table. That table's three roles — mark which game is active, enforce one-active-per-club, drive realtime auto-nav — all collapsed onto `common.games.is_active` once `common.games` itself existed.)
 
 ### Three-state game lifecycle
 
-Game instances within a club have three derived states. None of them are columns; they're functions of `(game.status, presence-of-club_active_game-row)`:
+Game instances within a club have three derived states. None of them are columns by themselves; they're functions of `(is_active, ended_at)`:
 
 | club-level state | derivation |
 |---|---|
-| **active** | game is non-terminal AND `club_active_game` points at it |
-| **suspended** | game is non-terminal AND no `club_active_game` row points at it |
-| **completed** | game's status is terminal (won, lost, solved — depends on the gametype) |
+| **active** | `is_active = true` (implies `ended_at IS NULL`) |
+| **suspended** | `is_active = false AND ended_at IS NULL` |
+| **completed** | `ended_at IS NOT NULL` |
 
-Each gametype's termination trigger (e.g. `tinyspy.clear_active_on_termination`, `psychicnum.clear_active_on_termination`) deletes the matching `club_active_game` row when a game flips to a terminal status. This is what makes a completed game stop being "active" automatically.
+The active → completed transition happens inside `common.end_game`, which sets `ended_at = now()`, populates `status_summary`, and flips `is_active = false`. The active → suspended transition happens inside `common.create_game` for the prior active row when a new game is started (overwriting the active slot via the partial unique index).
 
 ### Solo clubs
 
@@ -117,7 +120,9 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 |---|---|
 | `common.require_club_member(target_club uuid) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_id comes off the game row, e.g. `submit_guess`). |
 | `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
-| `common.set_club_active_game(target_club uuid, gametype text, game_id uuid) → void` | Upserts the (club, gametype, game_id) pointer in `club_active_game`, replacing whatever was active. The single-row-per-club PK enforces "one active game per club, across all gametypes" — the upsert auto-suspends whatever was previously active. Use at the end of every `create_game` after inserting the game row. |
+| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[]) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, clears the prior active game for this club (UPDATE is_active=false), inserts the new `common.games` row with `is_active = true`, inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` calls this first, then inserts its detail row using the returned id. |
+| `common.require_game_player(target_game uuid) → uuid` | Auth + game-player gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not playing this game'` if the caller isn't in `common.game_players` for the target game. Returns the caller's `user_id`. Use in mid-game RPCs (submit_guess, submit_clue, etc.) where the question is "is this caller actually playing this game" — finer than just club-membership. |
+| `common.end_game(target_game uuid, status_summary jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = now()`, `status_summary` on `common.games`, flips `is_active = false`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). |
 
 Canonical pattern for a new gametype's `create_game`:
 
@@ -139,7 +144,8 @@ begin
   -- gametype-specific board generation + game-row insert
   insert into <gametype>.games (...) values (...) returning id into new_id;
 
-  perform common.set_club_active_game(target_club, '<gametype>', new_id);
+  -- (set_club_active_game is gone — common.create_game above already
+  -- inserted the row with is_active=true.)
 
   return query select new_id;
 end;
@@ -169,7 +175,7 @@ Four club tables are in `supabase_realtime`:
 
 - `clubs` — new club, rename
 - `clubs_members` — roster changes (deferred to v2, but free)
-- `club_active_game` — the "every member follows the active game" auto-nav rule lives on this one
+- `games` — new games (INSERT with is_active=true) and end_game (UPDATE flipping is_active to false) drive the "every member follows the active game" auto-nav. Also: `status_summary` writes update the club's games list.
 - `messages` — chat
 
 Profiles is deliberately NOT in the publication — usernames don't change during a session and the realtime traffic isn't worth it.
@@ -270,7 +276,7 @@ ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.c
 
 ### ClubPage's auto-nav
 
-The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.club_active_game`. When the row changes (a member started a game, switched the active one, or ended a game), every member subscribed to the club is automatically navigated to the new active game's URL.
+The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_id. When a row INSERTs or UPDATEs with `is_active = true` (a member started a game or switched the active one), every member subscribed to the club is automatically navigated to the new active game's URL.
 
 This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's active game changes, every member's UI follows.
 

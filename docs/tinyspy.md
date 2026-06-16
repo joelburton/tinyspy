@@ -120,7 +120,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `tinyspy.create_game(target_club uuid) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, picks 25 words, generates the Duet key-card distribution, sets status='active', upserts `common.club_active_game` (auto-pausing any prior active game). One call, no lobby state.
+The one entry point. Verifies caller is in a 2-member club, seats both, picks 25 words, generates the Duet key-card distribution, sets status='active', upserts `common.games (is_active=true)` (auto-pausing any prior active game). One call, no lobby state.
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members.
 
@@ -158,7 +158,7 @@ Logic in order:
    - Green → check if `count(revealed_as = 'G') >= 15` → `status = 'won'`. Either way, turn continues, return `'G'`.
    - Neutral (in active play) → `_end_turn`, return `'N'`.
 
-The status flip to terminal fires the `clear_active_on_termination` trigger, which deletes the matching `common.club_active_game` row.
+The status flip to terminal fires the `clear_active_on_termination` trigger, which deletes the matching `common.games (is_active=true)` row.
 
 ### `tinyspy.pass_turn(target_game uuid)`
 
@@ -174,7 +174,7 @@ Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-cl
 |---|---|
 | `tinyspy.is_player_in_game(target_game uuid) → boolean` | Security-definer RLS helper. Bypasses RLS in its body to prevent recursion when `game_players` policies need to ask "is the caller a player?". Marked `stable` so Postgres can cache it within a SELECT. |
 | `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, flips to `sudden_death` at zero. Underscore-prefixed by convention to signal "internal." |
-| `tinyspy.clear_active_on_termination()` | Trigger on `tinyspy.games`. When status flips from non-terminal to terminal, deletes the matching `common.club_active_game` row so the club-level state becomes "completed." |
+| `tinyspy.clear_active_on_termination()` | Trigger on `tinyspy.games`. When status flips from non-terminal to terminal, deletes the matching `common.games (is_active=true)` row so the club-level state becomes "completed." |
 
 ## Row-level security
 
@@ -270,7 +270,7 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 | file | covers |
 |---|---|
-| `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, club_active_game upsert, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
+| `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |

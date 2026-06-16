@@ -162,10 +162,10 @@ alter publication supabase_realtime add table psychicnum.guesses;
 --
 --   1. common.create_game(target_club, 'psychicnum', player_user_ids)
 --      — validates auth + caller club-membership + every uid in
---      player_user_ids is in clubs_members, inserts common.games +
---      one common.game_players per uid, returns the canonical id.
+--      player_user_ids is in clubs_members, clears any prior active
+--      game for this club, inserts common.games (with is_active=true)
+--      + one common.game_players per uid, returns the canonical id.
 --   2. INSERT INTO psychicnum.games using that id.
---   3. set_club_active_game — takes the club's active slot.
 --
 -- Setup shape: { "guesses": 3 | 5 | 7 | 9 }
 --
@@ -223,9 +223,6 @@ begin
     s_guesses,
     setup
   );
-
-  -- Take the club's active-game slot (auto-pauses any prior).
-  perform common.set_club_active_game(target_club, 'psychicnum', new_id);
 
   return query select new_id;
 end;

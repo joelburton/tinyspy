@@ -171,9 +171,10 @@ select is(
 -- of token count. status flips to lost_assassin and current_clue_giver
 -- is cleared.
 
--- Game 2 reuses the same club. create_game upserts club_active_game,
--- so g1 implicitly becomes a paused (non-active) game — fine for
--- this test, which doesn't poke at the active-game pointer.
+-- Game 2 reuses the same club. common.create_game flips the prior
+-- active row to is_active=false before inserting the new one with
+-- is_active=true, so g1 implicitly becomes suspended — fine for
+-- this test, which doesn't poke at the is_active state directly.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as

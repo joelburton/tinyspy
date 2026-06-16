@@ -108,7 +108,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-Caller must be a club member. Validates the setup shape, picks a random target 1–10, inserts the game row in `active` with `guesses_remaining` initialized from `setup.guesses`, upserts `common.club_active_game` pointing at it.
+Caller must be a club member. Validates the setup shape, picks a random target 1–10, inserts the game row in `active` with `guesses_remaining` initialized from `setup.guesses`, upserts `common.games (is_active=true)` pointing at it.
 
 **No minimum-club-size check.** The game logic plays fine with any membership count — 1 (solo club, deferred), 2, 5, whatever. The current FE doesn't surface solo-club play, but the RPC doesn't reject it.
 
@@ -142,7 +142,7 @@ Reject reasons: not authenticated; not a club member; game still active.
 
 ### Trigger
 
-`psychicnum.clear_active_on_termination()` — fires on `psychicnum.games.status` UPDATE. When status flips from `active` to `won` or `lost`, deletes the matching `common.club_active_game` row. Same pattern as [tinyspy's equivalent](tinyspy.md#helpers-not-callable-from-the-client).
+`psychicnum.clear_active_on_termination()` — fires on `psychicnum.games.status` UPDATE. When status flips from `active` to `won` or `lost`, deletes the matching `common.games (is_active=true)` row. Same pattern as [tinyspy's equivalent](tinyspy.md#helpers-not-callable-from-the-client).
 
 ## Setup
 
@@ -225,8 +225,8 @@ See [`testing.md`](testing.md) for theory and shared setup. Psychic-num-specific
 
 | file | covers |
 |---|---|
-| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, auto-pause via `club_active_game` upsert, column-level grant blocks SELECT of `target`. |
-| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, trigger clears `club_active_game` on termination. |
+| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, auto-pause via `common.games` (with is_active filter) upsert, column-level grant blocks SELECT of `target`. |
+| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, trigger clears `common.games` (with is_active filter) on termination. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables, mutating RPCs throw, `reveal_target` rejects while active, returns the target after game end for any member. |
 
 ### Pinning the target in tests

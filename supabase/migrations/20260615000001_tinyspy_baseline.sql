@@ -401,8 +401,6 @@ begin
     values (new_id, i, picked_words[i+1]);
   end loop;
 
-  perform common.set_club_active_game(target_club, 'tinyspy', new_id);
-
   return query select new_id;
 end;
 $$;

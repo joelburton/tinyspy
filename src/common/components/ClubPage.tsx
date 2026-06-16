@@ -18,12 +18,12 @@ type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
   'id' | 'handle' | 'name'
 >
-// The realtime payload's `.new` field. We only read the two fields
-// needed to build the navigate() URL; the Pick anchors the field
-// set to the schema rather than to a hand-written shape.
-type ActiveGameRow = Pick<
-  Database['common']['Tables']['club_active_game']['Row'],
-  'game_id' | 'gametype'
+// The realtime payload's `.new` field for common.games. We only
+// read the fields needed to drive auto-nav + active-game tracking;
+// the Pick anchors the field set to the schema.
+type GameRow = Pick<
+  Database['common']['Tables']['games']['Row'],
+  'id' | 'club_id' | 'gametype' | 'is_active'
 >
 type Member = { user_id: string; username: string }
 
@@ -41,12 +41,12 @@ type Props = {
  * RLS gates everything: a non-member's `clubs.select` returns zero
  * rows, so visiting `/c/some-other-club` shows a "not found" rather
  * than a forbidden-style error. Same protection covers
- * `clubs_members`, `club_active_game`, each game's tables (via the
- * gametype's own RLS), and `messages` (covered transitively by
- * useClubChat).
+ * `clubs_members`, `common.games` (gates on is_club_member(club_id)),
+ * each game's tables (via the gametype's own RLS), and `messages`
+ * (covered transitively by useClubChat).
  *
- * Realtime: subscribed to common.club_active_game changes for this
- * club. When another tab (different member, or yourself in another
+ * Realtime: subscribed to common.games changes for this club. When
+ * another tab (different member, or yourself in another
  * window) starts/ends a game, the active pointer changes and we
  * refetch — so the games section updates without a manual refresh.
  * Within-game updates (chat, board state, etc.) belong to other
@@ -173,65 +173,70 @@ export function ClubPage({ session, handle }: Props) {
     }
   }, [handle])
 
-  // Step 2: load games for this club + the active-game pointer.
-  // Re-runs whenever realtime tells us club_active_game changed
-  // (which happens on game start, game end via the termination
-  // trigger, or game switch). Also fires on initial mount.
+  // Step 2: load games for this club + the active-game id. Re-runs
+  // whenever realtime tells us a games row for this club changed
+  // (new game inserted, end_game flipped is_active to false, etc.).
+  // Also fires on initial mount.
   useEffect(() => {
     if (!club) return
     const clubId = club.id
     let mounted = true
 
     async function loadGames() {
+      // Active game derives from common.games where is_active=true.
+      // The partial unique index guarantees at most one such row.
       const activeRes = await commonDb
-        .from('club_active_game')
-        .select('game_id')
+        .from('games')
+        .select('id')
         .eq('club_id', clubId)
+        .eq('is_active', true)
         .maybeSingle()
       const results = await Promise.all(
         games.map((g) => g.fetchClubGames(clubId)),
       )
       if (!mounted) return
-      setActiveGameId(activeRes.data?.game_id ?? null)
+      setActiveGameId(activeRes.data?.id ?? null)
       setAllGames(results.flat())
     }
 
     loadGames()
 
-    // Subscribe to club_active_game changes for this club. New-game
-    // start, game completion (via the termination trigger), and
-    // explicit pause/resume (if added later) all surface here.
+    // Subscribe to common.games changes for this club. New-game
+    // start (INSERT with is_active=true), end_game (UPDATE flipping
+    // is_active to false), and create_game's auto-suspend of the
+    // prior active game (UPDATE flipping is_active to false) all
+    // surface here.
     //
-    // On INSERT or UPDATE — the club picked a new active game —
-    // auto-navigate every member into it. This is a club-level
-    // invariant: when a club is playing, the whole club is in the
-    // same game; no "I'll catch up later." (Solo play is what solo
-    // clubs are for, and they have a single member so this just
-    // navigates that one user, which is fine.) DELETE events
-    // happen on game completion + future explicit-pause and do
-    // NOT navigate anyone — players already in the game stay on
-    // the game-over screen; players on the club page just see the
-    // game move from Active to Completed in the list.
+    // On INSERT or UPDATE whose new row has is_active=true — the
+    // club picked a new active game — auto-navigate every member
+    // into it. This is a club-level invariant: when a club is
+    // playing, the whole club is in the same game; no "I'll catch
+    // up later." (Solo clubs trivially satisfy this — single
+    // member.) is_active=false UPDATEs do NOT navigate anyone —
+    // players already in the game stay on the game-over screen;
+    // players on the club page just see the game move from Active
+    // to Completed in the list.
     //
     // The "already there" guard prevents the player who clicked
     // Start (and was already navigated by `handleStart`) from
     // getting a duplicate history entry when the realtime echo of
     // their own INSERT arrives.
     const channel = supabase
-      .channel(`club-active:${clubId}:${crypto.randomUUID()}`)
+      .channel(`club-games:${clubId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'common',
-          table: 'club_active_game',
+          table: 'games',
           filter: `club_id=eq.${clubId}`,
         },
         (payload) => {
           loadGames()
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const row = payload.new as ActiveGameRow
-            const target = `/g/${row.gametype}/${row.game_id}`
+            const row = payload.new as GameRow
+            if (!row.is_active) return
+            const target = `/g/${row.gametype}/${row.id}`
             if (window.location.pathname !== target) {
               navigate(target)
             }
@@ -265,8 +270,9 @@ export function ClubPage({ session, handle }: Props) {
 
   const isSoloClub = club.handle.startsWith('=')
 
-  // Classify games — active is the one matching club_active_game,
-  // completed are terminal, suspended is everything else.
+  // Classify games — active is the one whose id matches the
+  // is_active=true row from common.games, completed are terminal,
+  // suspended is everything else.
   const activeGame = activeGameId
     ? allGames.find((g) => g.gameId === activeGameId) ?? null
     : null

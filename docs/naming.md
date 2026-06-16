@@ -132,7 +132,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit`). Column on `common.club_active_game` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
+| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit`). Column on `common.games (is_active=true)` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
 | `status` | The `text` column on `<gametype>.games` carrying the lifecycle enum. Each gametype's enum *values* differ; the column NAME is always `status`. |
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |
 | `club_id` | The FK to `common.clubs(id)` on every `<gametype>.games` table. |

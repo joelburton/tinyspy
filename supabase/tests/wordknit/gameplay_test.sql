@@ -14,9 +14,9 @@
 --     race idempotency: a second 'correct' for the same rank is
 --     a silent no-op
 --   - 4 mistakes flips status to 'lost', clears
---     club_active_game via the termination trigger
+--     is_active flipped via common.end_game
 --   - 4 matched categories flips status to 'solved', clears
---     club_active_game via the termination trigger
+--     is_active flipped via common.end_game
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
 -- simulation primer.
@@ -208,12 +208,12 @@ select is(
   'submit_guess: 4 matched categories flips status to solved'
 );
 
--- The termination trigger clears the club_active_game pointer.
+-- end_game flips is_active=false → no active game for this club.
 select is(
-  (select count(*) from common.club_active_game
-    where club_id = (select id from club)),
+  (select count(*) from common.games
+    where club_id = (select id from club) and is_active = true),
   0::bigint,
-  'submit_guess: trigger clears club_active_game on win'
+  'submit_guess: end_game flips is_active=false on win'
 );
 
 -- ============================================================
@@ -300,14 +300,12 @@ select is(
   'submit_timeout: flips status to lost'
 );
 
--- The termination trigger clears the club_active_game pointer
--- (same as the other loss paths — single trigger handles all
--- transitions to terminal status).
+-- end_game flips is_active=false on timeout-loss too.
 select is(
-  (select count(*) from common.club_active_game
-    where club_id = (select id from club)),
+  (select count(*) from common.games
+    where club_id = (select id from club) and is_active = true),
   0::bigint,
-  'submit_timeout: trigger clears club_active_game on timeout-loss'
+  'submit_timeout: end_game flips is_active=false on timeout-loss'
 );
 
 -- Idempotency: a second call from any caller on the already-

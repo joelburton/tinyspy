@@ -11,16 +11,16 @@
 --     membership, both rows landed
 --   - common.require_game_player: auth + game-player gate
 --   - common.end_game: ended_at + status_summary +
---     per-player results + club_active_game cleared
+--     per-player results + is_active flipped to false
 --
--- Per-game tests (tinyspy/psychicnum/wordknit) will exercise
--- these helpers indirectly through their own create_game RPCs
--- in Phase 2; this file pins the contract directly.
+-- Per-game tests (tinyspy/psychicnum/wordknit) exercise these
+-- helpers indirectly through their own create_game RPCs; this
+-- file pins the contract directly.
 --
--- The hard FK on club_active_game.game_id → common.games(id) is
--- deferred to the end of Phase 2 (when every gametype's
--- create_game writes to common.games first). For now that column
--- stays a soft FK.
+-- "Which game is active for this club" is now derived from
+-- common.games.is_active (with a partial unique index enforcing
+-- one-active-per-club). The separate club_active_game pointer
+-- table is gone.
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / personas
 -- primer, and helpers_test.sql for the "as_jwt_only" trick we
@@ -230,24 +230,17 @@ select is(
 -- ============================================================
 -- common.end_game
 -- ============================================================
--- First mark the game as active in club_active_game so we can
--- assert end_game clears it. (Phase 2 will move this concern
--- inside each gametype's create_game.)
+-- Precondition: common.create_game left this row in is_active=true
+-- (the create_game RPC's transition). end_game should flip it off.
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
-select common.set_club_active_game(
-  (select id from club),
-  'wordknit',
-  current_setting('test.created_game_id')::uuid
-);
-
 select is(
-  (select count(*)::int from common.club_active_game
-    where club_id = (select id from club)),
-  1,
-  'precondition: club_active_game row exists for this game'
+  (select is_active from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  true,
+  'precondition: game starts is_active=true after create_game'
 );
 
 -- Now end the game with status_summary + per-player results.
@@ -292,10 +285,10 @@ select is(
 );
 
 select is(
-  (select count(*)::int from common.club_active_game
-    where club_id = (select id from club)),
-  0,
-  'end_game: club_active_game row deleted'
+  (select is_active from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  false,
+  'end_game: is_active flipped to false'
 );
 
 -- ============================================================

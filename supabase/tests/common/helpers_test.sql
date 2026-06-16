@@ -1,6 +1,5 @@
 -- ============================================================
--- Test: common helpers (require_club_member, validate_timer,
---                       set_club_active_game)
+-- Test: common helpers (require_club_member, validate_timer)
 -- ============================================================
 --
 -- These helpers are the canonical building blocks for every
@@ -30,7 +29,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(17);
+select plan(13);
 
 \ir ../_shared/setup.psql
 
@@ -176,54 +175,14 @@ select lives_ok(
 );
 
 -- ============================================================
--- common.set_club_active_game
+-- (set_club_active_game tests removed)
 -- ============================================================
--- No auth dependency in the helper itself; it's only called from
--- SECURITY DEFINER RPCs in practice. We call it directly here.
-
--- (14) Initial insert: row appears with the right values.
--- The game_id arg is a placeholder UUID — set_club_active_game
--- doesn't enforce a FK on game_id (that FK is "soft" per the
--- schema doc, since the target schema varies per gametype). The
--- gametype FK does fire if you pass an unregistered string, but
--- 'wordknit' is registered by its own baseline.
-select common.set_club_active_game(
-  (select id from club),
-  'wordknit',
-  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid
-);
-
-select is(
-  (select gametype from common.club_active_game where club_id = (select id from club)),
-  'wordknit',
-  'set_club_active_game: row created with gametype=wordknit'
-);
-
-select is(
-  (select game_id from common.club_active_game where club_id = (select id from club)),
-  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
-  'set_club_active_game: row created with the passed-in game_id'
-);
-
--- (16) Re-call with a different (gametype, game_id) replaces the
--- row (auto-suspends whatever was active for this club).
-select common.set_club_active_game(
-  (select id from club),
-  'tinyspy',
-  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid
-);
-
-select is(
-  (select gametype from common.club_active_game where club_id = (select id from club)),
-  'tinyspy',
-  'set_club_active_game: second call overwrites gametype'
-);
-
-select is(
-  (select game_id from common.club_active_game where club_id = (select id from club)),
-  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid,
-  'set_club_active_game: second call overwrites game_id'
-);
+-- The set_club_active_game helper and the club_active_game table
+-- are gone. Their job is now done by `common.create_game` (which
+-- flips is_active on common.games) and `common.end_game` (which
+-- flips it back off). Coverage for the auto-suspend / flip
+-- behavior lives in games_test.sql alongside the create_game and
+-- end_game tests.
 
 -- ============================================================
 select * from finish();

@@ -132,12 +132,12 @@ select is(
   'winner_id is set to the correct-guesser'
 );
 
--- (6) club_active_game pointer cleared by the termination trigger.
+-- (6) is_active flipped to false by common.end_game on win.
 select is(
-  (select count(*) from common.club_active_game
-    where club_id = (select id from club)),
+  (select count(*) from common.games
+    where club_id = (select id from club) and is_active = true),
   0::bigint,
-  'club_active_game row removed by the termination trigger on win'
+  'no active common.games row remains after end_game on win'
 );
 
 -- (7) No more guesses accepted on the won game.

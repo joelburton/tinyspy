@@ -3,10 +3,11 @@
 -- ============================================================
 --
 -- create_game is the one entry-point RPC for starting a tinyspy
--- game: it takes a target_club + a jsonb setup, validates
--- both, seats both members, picks the 25 words, generates the
--- Duet key card, sets status='active', and upserts
--- common.club_active_game.
+-- game: it takes a target_club + a jsonb setup + player_user_ids,
+-- validates them, seats both players (user_a_id/user_b_id
+-- columns), picks the 25 words, generates the Duet key card,
+-- sets status='active'. The common.games row created by
+-- common.create_game gets is_active=true.
 --
 -- Coverage:
 --   - rejection: not authenticated
@@ -17,7 +18,7 @@
 --   - rejection: setup.firstClueGiverUserId not in club
 --   - happy path: returns one row, status='active', club_id
 --     correct, both seats filled, 25 words inserted,
---     club_active_game upserted
+--     common.games row created with is_active=true
 --   - setup is persisted on the row (game review can see the
 --     original setup)
 --   - turns_remaining initialized from setup.turns (a non-9
@@ -276,19 +277,21 @@ select is(
 );
 
 -- ============================================================
--- club_active_game: the new game is the club's active game
+-- common.games: the new game has is_active=true for this club
 -- ============================================================
 
 select is(
-  (select game_id from common.club_active_game where club_id = (select id from club2)),
+  (select id from common.games
+    where club_id = (select id from club2) and is_active = true),
   (select id from created),
-  'create_game: club_active_game points at the new game'
+  'create_game: this game is the club''s active common.games row'
 );
 
 select is(
-  (select gametype from common.club_active_game where club_id = (select id from club2)),
+  (select gametype from common.games
+    where club_id = (select id from club2) and is_active = true),
   'tinyspy',
-  'create_game: gametype is recorded as tinyspy'
+  'create_game: active common.games row has gametype = tinyspy'
 );
 
 -- ============================================================

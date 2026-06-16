@@ -110,7 +110,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `wordknit.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-The one entry point. Verifies caller is a club member, validates `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), builds the hardcoded POC board (4 categories × 4 tiles), shuffles the 16 tiles into `board.tileOrder`, inserts the row in `in_progress`, upserts `common.club_active_game`.
+The one entry point. Verifies caller is a club member, validates `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), builds the hardcoded POC board (4 categories × 4 tiles), shuffles the 16 tiles into `board.tileOrder`, inserts the row in `in_progress`, upserts `common.games (is_active=true)`.
 
 Reject reasons: not authenticated; not a member; bad setup.timer.
 
@@ -132,7 +132,7 @@ Fires when the countdown timer expires; flips `status` to `lost`. Idempotent —
 
 ### `wordknit.clear_active_on_termination` (trigger)
 
-Fires on `status` UPDATE from `in_progress` to terminal. Deletes the matching `common.club_active_game` row. Same pattern as tinyspy / psychic-num.
+Fires on `status` UPDATE from `in_progress` to terminal. Deletes the matching `common.games (is_active=true)` row. Same pattern as tinyspy / psychic-num.
 
 ## Row-level security
 
@@ -228,7 +228,7 @@ On the *transition* into paused (false → true), `PauseBoundary`'s `onPause` ca
 **Paused vs suspended** — code-level terminology distinction worth knowing:
 
 - **Paused** (this overlay + the `PauseBoundary` wrapper + `computePause` helper): the transient gameplay-pause state — same UX as a video player's pause: clock stops, no moves accepted, overlay shows. Triggers: presence-disconnect or manual Pause button (both shipped). Resolves automatically when presence comes back, or when anyone clicks Resume.
-- **Suspended** (club-level concept in `common.md`): persistent, "this game is not the one `common.club_active_game` is pointing at." Caused by another game being started in the club. Resolves when someone navigates to the suspended game and starts playing again.
+- **Suspended** (club-level concept in `common.md`): persistent, "this game is not the one `common.games (is_active=true)` is pointing at." Caused by another game being started in the club. Resolves when someone navigates to the suspended game and starts playing again.
 
 The two never coexist on the same game — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
 
@@ -262,7 +262,7 @@ Same pattern as tinyspy and psychic-num — `Root` is lazy-loaded in the manifes
 
 | file | covers |
 |---|---|
-| `tests/wordknit/create_game_test.sql` | Auth, membership, setup.timer shape validation (missing / bad kind / missing or out-of-range seconds, accept none/countup), returns id row, status/mistake_count initial values, hardcoded board shape (4 categories × 4 tiles, 16-element tileOrder, tileOrder is a permutation), setup persistence, club_active_game upsert. |
+| `tests/wordknit/create_game_test.sql` | Auth, membership, setup.timer shape validation (missing / bad kind / missing or out-of-range seconds, accept none/countup), returns id row, status/mistake_count initial values, hardcoded board shape (4 categories × 4 tiles, 16-element tileOrder, tileOrder is a permutation), setup persistence, active-flag tracking via common.games. |
 | `tests/wordknit/gameplay_test.sql` | Payload validation (tile count, result enum, rank-iff-correct), member-only enforcement, wrong/oneAway → mistake_count++, correct → guesses row + win check, 4-correct → status=solved, 4-mistakes → status=lost, race idempotency on (game_id, matched_category_rank) via the partial unique index, submit_timeout happy + idempotency paths. |
 | `tests/wordknit/rls_test.sql` | dee (non-member) sees zero rows from both tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
 

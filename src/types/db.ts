@@ -9,42 +9,6 @@ export type Json =
 export type Database = {
   common: {
     Tables: {
-      club_active_game: {
-        Row: {
-          club_id: string
-          game_id: string
-          gametype: string
-          set_active_at: string
-        }
-        Insert: {
-          club_id: string
-          game_id: string
-          gametype: string
-          set_active_at?: string
-        }
-        Update: {
-          club_id?: string
-          game_id?: string
-          gametype?: string
-          set_active_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "club_active_game_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: true
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "club_active_game_gametype_fkey"
-            columns: ["gametype"]
-            isOneToOne: false
-            referencedRelation: "gametypes"
-            referencedColumns: ["gametype"]
-          },
-        ]
-      }
       clubs: {
         Row: {
           created_at: string
@@ -185,6 +149,7 @@ export type Database = {
           ended_at: string | null
           gametype: string
           id: string
+          is_active: boolean
           started_at: string
           status_summary: Json | null
         }
@@ -193,6 +158,7 @@ export type Database = {
           ended_at?: string | null
           gametype: string
           id?: string
+          is_active?: boolean
           started_at?: string
           status_summary?: Json | null
         }
@@ -201,6 +167,7 @@ export type Database = {
           ended_at?: string | null
           gametype?: string
           id?: string
+          is_active?: boolean
           started_at?: string
           status_summary?: Json | null
         }
@@ -323,10 +290,6 @@ export type Database = {
       require_game_player: { Args: { target_game: string }; Returns: string }
       send_message: {
         Args: { content: string; target_club: string }
-        Returns: undefined
-      }
-      set_club_active_game: {
-        Args: { game_id: string; gametype: string; target_club: string }
         Returns: undefined
       }
       slugify_club_name: { Args: { name: string }; Returns: string }
