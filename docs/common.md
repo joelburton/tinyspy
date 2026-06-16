@@ -66,7 +66,7 @@ The auto-suspend behavior is felt on the FE side via realtime: when `common.game
 
 | gametype | formula | rationale |
 |---|---|---|
-| wordknit | first 4 tiles alphabetically, joined by `", "` | Picks something stable about the puzzle. POC's hardcoded A/B/C/D board makes this degenerate to `"ALPHA, ANGEL, APPLE, ARROW"` every time — the rule survives unchanged when real puzzles arrive. |
+| wordknit | `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles | Each puzzle's NYT number + date is the canonical identity; the 2 tiles ground it in something memorable ("oh, the one with BUCKS and HAIL"). Built at create_game time from the chosen `wordknit.puzzles` row. |
 | psychic-num | the target number as text (`"7"`) | Toy game, target is meant to be revealed in the title — the column-level grant hiding `psychicnum.games.target` from authenticated SELECT stays as the educational example of the column-grant pattern, but in practice the title leaks it anyway. |
 | tinyspy | `"<seatA-username>-v-<seatB-username>: <4 picked words>"` | Two-player invariant means seats are stable; the words anchor recognizing one game vs. another in a club's history. |
 

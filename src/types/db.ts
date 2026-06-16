@@ -652,6 +652,7 @@ export type Database = {
           created_at: string
           id: string
           mistake_count: number
+          puzzle_id: string
           status: string
         }
         Insert: {
@@ -660,6 +661,7 @@ export type Database = {
           created_at?: string
           id: string
           mistake_count?: number
+          puzzle_id: string
           status?: string
         }
         Update: {
@@ -668,9 +670,18 @@ export type Database = {
           created_at?: string
           id?: string
           mistake_count?: number
+          puzzle_id?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guesses: {
         Row: {
@@ -709,6 +720,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      puzzles: {
+        Row: {
+          categories: Json
+          id: string
+          imported_at: string
+          nyt_date: string
+          source_id: string
+        }
+        Insert: {
+          categories: Json
+          id?: string
+          imported_at?: string
+          nyt_date: string
+          source_id: string
+        }
+        Update: {
+          categories?: Json
+          id?: string
+          imported_at?: string
+          nyt_date?: string
+          source_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

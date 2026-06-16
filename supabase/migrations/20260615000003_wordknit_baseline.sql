@@ -96,18 +96,73 @@ grant usage on schema wordknit to authenticated;
 -- The denormalization is safe — club_id is set at create-game time
 -- and never changes.
 
+-- ============================================================
+-- wordknit.puzzles — the source-of-truth puzzle library
+-- ============================================================
+-- A *puzzle* is a prewritten, replayable board shape: one date's
+-- NYT Connections puzzle, imported from the Eyefyre/
+-- NYT-Connections-Answers repo via the npm `puzzles:import`
+-- script. Distinct from a *game's* `board` jsonb (below), which
+-- is the per-game-instance copy plus that game's shuffled
+-- `tileOrder`. Puzzles stay pristine; games copy from them.
+--
+-- Two unique identifiers we preserve from NYT:
+--   - `source_id` — the NYT puzzle number ("1", "500"). Text
+--     because it's used as a number-in-display but a future NYT
+--     could publish "500-bonus" without breaking the schema.
+--   - `nyt_date`  — the calendar date NYT published. Drives the
+--     setup-form date picker.
+--
+-- `categories` is a jsonb array matching the shape of
+-- `wordknit.games.board.categories`:
+--     [{ rank: 0..3, name: text, tiles: text[4] }, …]
+-- The importer normalizes the NYT shape (rank from array index,
+-- name from `group`, tiles from `members`).
+
+create table wordknit.puzzles (
+  id uuid primary key default gen_random_uuid(),
+  source_id text not null unique,
+  nyt_date date not null unique,
+  categories jsonb not null,
+  imported_at timestamptz not null default now()
+);
+
+-- Public knowledge — puzzles aren't sensitive. The setup-form
+-- date picker reads this list to render available dates; the
+-- create_game RPC reads `categories` to build the board.
+grant select on wordknit.puzzles to authenticated;
+
+-- The puzzle-import script (supabase/scripts/import-wordknit-
+-- puzzles.ts) connects as the service_role and needs USAGE on
+-- the schema + INSERT on this table. authenticated has no INSERT
+-- grant; writes go through service_role only.
+grant usage on schema wordknit to service_role;
+grant insert, select on wordknit.puzzles to service_role;
+
 create table wordknit.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_id uuid not null references common.clubs(id) on delete cascade,
+  -- The puzzle this game was created from. ON DELETE RESTRICT
+  -- because deleting a puzzle that has games against it would
+  -- leave dangling references — alpha-stage policy is "clean up
+  -- games first, then drop the puzzle." Set at create_game time;
+  -- never updated.
+  puzzle_id uuid not null references wordknit.puzzles(id) on delete restrict,
   status text not null default 'in_progress'
     check (status in ('in_progress', 'solved', 'lost')),
   mistake_count int not null default 0
     check (mistake_count between 0 and 4),
+  -- Frozen per-game copy of the puzzle's categories + this game's
+  -- shuffled tileOrder. Keeping the copy means the played board is
+  -- self-contained: if the source puzzle row were ever corrected
+  -- upstream and re-imported, in-flight games stay on the version
+  -- they started with.
   board jsonb not null,
   created_at timestamptz not null default now()
 );
 
 create index wordknit_games_club_id_idx on wordknit.games (club_id);
+create index wordknit_games_puzzle_id_idx on wordknit.games (puzzle_id);
 
 -- ============================================================
 -- wordknit.guesses — append-only log
@@ -191,28 +246,30 @@ alter publication supabase_realtime add table wordknit.guesses;
 -- ============================================================
 -- wordknit.create_game — start a new game in a club
 -- ============================================================
--- Validates the setup.timer shape, builds the hardcoded POC board
--- (4 categories × 4 tiles) and a shuffled tile order, then
--- coordinates the two-write game-creation:
+-- Validates the setup shape, looks up the puzzle by id, builds
+-- the per-game board (the puzzle's categories + a freshly-shuffled
+-- tileOrder), then coordinates the two-write game-creation:
 --
---   1. common.create_game(target_club, 'wordknit', player_user_ids)
+--   1. common.create_game(target_club, 'wordknit', player_user_ids,
+--                          title, setup)
 --      — validates caller is in the club, validates every uid in
 --      player_user_ids is in clubs_members, clears any prior
 --      active game for this club, inserts the common.games header
 --      row (with is_active=true) + one common.game_players row
 --      per uid, returns the canonical game id.
 --   2. INSERT INTO wordknit.games using that id — landing the
---      gametype-specific board + setup data.
+--      gametype-specific board + puzzle reference.
 --
 -- player_user_ids is the explicit list of who's actually playing
--- THIS game. Defaults are not enforced server-side; the FE's setup
--- dialog defaults to all current club members but lets the player
--- pick a subset. The caller does NOT have to be in
+-- THIS game. Defaults are not enforced server-side; the FE's
+-- setup dialog defaults to all current club members but lets the
+-- player pick a subset. The caller does NOT have to be in
 -- player_user_ids (the "Ada facilitates a game between Bea and
 -- Cade" case is supported).
 --
 -- Setup shape:
 --   {
+--     "puzzleId": "<uuid>",         -- references wordknit.puzzles(id)
 --     "timer": (
 --         { "kind": "none" }
 --       | { "kind": "countup" }
@@ -220,9 +277,10 @@ alter publication supabase_realtime add table wordknit.guesses;
 --     )
 --   }
 --
--- Future work will swap the body's hardcoded board for a date-
--- picker + puzzle-database lookup; the manifest's setup dialog
--- already gestures at this.
+-- Title formula: "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where
+-- TILE1/TILE2 are the first 2 alphabetical tiles across all 16.
+-- A puzzle is hard to remember by date alone; the tiles ground it
+-- in something memorable ("oh, that one with BUCKS and HAIL").
 
 create function wordknit.create_game(
   target_club uuid,
@@ -236,10 +294,13 @@ set search_path = wordknit, common, public, extensions
 as $$
 declare
   new_id uuid;
+  s_puzzle_id uuid;
+  puzzle_row wordknit.puzzles%rowtype;
   board_categories jsonb;
   tile_order text[];
   j int;
   tmp text;
+  first_two_tiles text;
   game_title text;
 begin
   -- No member-count check — wordknit plays with any club size.
@@ -247,45 +308,58 @@ begin
   -- in src/wordknit/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts" for the cross-reference convention.
 
+  -- ─── Validate setup shape ────────────────────────────
+  -- Missing-vs-bad-value split so each rejection has a clean,
+  -- field-named message. The FE's date-picker can't normally
+  -- produce these, but a curious client could send anything.
+  if (setup->>'puzzleId') is null then
+    raise exception 'setup.puzzleId is required' using errcode = 'P0001';
+  end if;
+  begin
+    s_puzzle_id := (setup->>'puzzleId')::uuid;
+  exception when invalid_text_representation then
+    raise exception 'setup.puzzleId must be a uuid'
+      using errcode = 'P0001';
+  end;
+
   -- Canonical timer-shape validation. See common.validate_timer
   -- for the accepted shapes and the exact raise messages.
   perform common.validate_timer(setup->'timer');
 
-  -- Hardcoded POC board. Ranks 0..3 map to NYT yellow/green/
-  -- blue/purple in the FE's theme.css. The categories are obvious
-  -- ("words starting with A") to keep the POC trivially solvable
-  -- while we shake out the wiring.
-  board_categories := $json$[
-    {"rank": 0, "name": "Words starting with A",
-     "tiles": ["ALPHA","ANGEL","APPLE","ARROW"]},
-    {"rank": 1, "name": "Words starting with B",
-     "tiles": ["BANANA","BIRCH","BREAD","BRICK"]},
-    {"rank": 2, "name": "Words starting with C",
-     "tiles": ["CASTLE","CIRCLE","CLOUD","CROWN"]},
-    {"rank": 3, "name": "Words starting with D",
-     "tiles": ["DAGGER","DELTA","DIAMOND","DRAGON"]}
-  ]$json$::jsonb;
+  -- Load the puzzle. The FK on wordknit.games.puzzle_id would also
+  -- catch a bad id at INSERT time, but a clear "puzzle not found"
+  -- error is friendlier than a foreign-key violation. RLS-free
+  -- read (the table has a permissive SELECT grant).
+  select * into puzzle_row from wordknit.puzzles
+   where wordknit.puzzles.id = s_puzzle_id;
+  if not found then
+    raise exception 'puzzle not found' using errcode = 'P0002';
+  end if;
 
-  -- Extract all 16 tiles.
+  board_categories := puzzle_row.categories;
+
+  -- Extract all 16 tiles from the puzzle's categories.
   select array_agg(t)
     into tile_order
     from jsonb_array_elements(board_categories) c,
          jsonb_array_elements_text(c->'tiles') t;
 
-  -- Title = first 4 tiles alphabetically, joined by ", ".
-  -- For the POC's hardcoded board this is always
-  -- "ALPHA, ANGEL, APPLE, ARROW" — degenerate, but the rule
-  -- carries forward unchanged when real puzzles arrive (each
-  -- puzzle's tiles vary, so titles will too).
-  select string_agg(t, ', ' order by t) into game_title
+  -- Title = "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where
+  -- TILE1/TILE2 are the first 2 alphabetical tiles across the 16.
+  -- Built BEFORE the shuffle since alphabetical order is order-
+  -- independent.
+  select string_agg(t, '/' order by t) into first_two_tiles
     from (
       select unnest(tile_order) as t
       order by 1
-      limit 4
-    ) first4;
+      limit 2
+    ) first2;
+  game_title := format('#%s %s (%s)',
+                       puzzle_row.source_id,
+                       puzzle_row.nyt_date,
+                       first_two_tiles);
 
-  -- Fisher-Yates shuffle for the display order (AFTER computing
-  -- the alphabetical title — the title is order-independent).
+  -- Fisher-Yates shuffle for the display order.
   for i in reverse 16..2 loop
     j := 1 + floor(random() * i)::int;
     tmp := tile_order[i];
@@ -295,18 +369,21 @@ begin
 
   -- Common-side coordination: validates auth + caller membership +
   -- player_user_ids membership, inserts common.games (with title +
-  -- setup) + game_players, returns the canonical id we'll use below.
+  -- setup) + game_players, returns the canonical id we'll use
+  -- below.
   new_id := common.create_game(
     target_club, 'wordknit', player_user_ids, game_title, setup
   );
 
   -- Insert with the canonical id. Note: id NOT default-generated;
-  -- it comes from common.create_game above and FKs to common.games(id).
-  -- Setup lives on common.games.setup, not duplicated here.
-  insert into wordknit.games (id, club_id, board)
+  -- it comes from common.create_game above and FKs to
+  -- common.games(id). Setup lives on common.games.setup, not
+  -- duplicated here.
+  insert into wordknit.games (id, club_id, puzzle_id, board)
   values (
     new_id,
     target_club,
+    s_puzzle_id,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order))
   );

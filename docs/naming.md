@@ -32,6 +32,19 @@ The *static starting state* of a game — the inert configuration that could be 
 
 The distinguishing test: would two different games on the same setup be a meaningful concept for this gametype? If yes, that setup is a board. If no, the concept is too thin to bother extracting.
 
+### puzzle
+
+A *prewritten, replayable game source* — distinct from `board` (the per-game-instance copy of the puzzle's content, with any per-game state like a shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list (today: a date picker; eventually a calendar) and `create_game` copies it into a fresh `board`.
+
+The split lets the source stay pristine across multiple plays (a club can replay yesterday's puzzle without contaminating it) and gives us a place to attach puzzle-source metadata (NYT puzzle number + date for wordknit; future Sunday-NYT-crossword constructor names).
+
+Two kinds of gametype shake out from this:
+
+- **Generated-board games** (tinyspy, psychic-num): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
+- **Puzzle-based games** (wordknit, future crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker.
+
+Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK; a future per-club replay-tracking layer would join across those rather than centralize the storage.
+
 ### club
 
 A fixed-membership room formed by one creator. The cross-game social primitive: a club might play tinyspy on Monday and a hypothetical boggle on Friday, and the same friendship/conversation persists across both.

@@ -1,0 +1,103 @@
+-- ============================================================
+-- Wordknit-shared test setup
+-- ============================================================
+--
+-- Included by every wordknit test file alongside the shared
+-- personas + as_user helper:
+--
+--   \ir ../_shared/setup.psql
+--   \ir setup.psql
+--
+-- (`\ir` is psql's relative include — paths resolve relative to
+-- the including file's directory, so the same two lines work
+-- from every wordknit test regardless of the caller's cwd.)
+--
+-- This file holds wordknit-specific helpers. Today: two helpers
+-- (`wordknit_puzzle` inserts a known fixture puzzle;
+-- `wordknit_setup` builds a valid setup payload referencing
+-- that puzzle). Per docs/testing.md's threshold ("three or more
+-- shared helpers" promotes to a file), we're below the bar — but
+-- both helpers are non-trivial AND every test needs them, so a
+-- shared file beats copy-pasting.
+
+-- ─── wordknit_puzzle ────────────────────────────────────
+-- Insert a deterministic test puzzle and return its id. Every
+-- wordknit test calls this before create_game; the returned id
+-- becomes the `puzzleId` field on the setup payload.
+--
+-- The source_id (`TEST-FIXTURE`) and date (`1900-01-01`) are
+-- chosen to never collide with real NYT data — NYT Connections
+-- launched 2023-06-12, all upstream source_ids are numeric. Both
+-- dimensions are unique-constrained on the table, so an overlap
+-- would cause the INSERT to raise. The fixture's deliberately-
+-- alien identifiers also make it obvious in any test debug dump
+-- that the row isn't real data.
+--
+-- The 16 tiles are chosen so the title formula assertion is
+-- predictable:
+--
+--   alphabetical first 2 of all 16 = ALPHA, ANGEL
+--   → title = "#TEST-FIXTURE 1900-01-01 (ALPHA/ANGEL)"
+--
+-- Idempotency: the source_id and nyt_date are constants, so the
+-- INSERT would fail on a second call within the same
+-- transaction. Tests wrap in begin/rollback, so each test gets a
+-- fresh puzzle; this helper doesn't need to be re-callable.
+--
+-- SECURITY DEFINER so the helper can INSERT into wordknit.puzzles
+-- regardless of which role the current test is running as. The
+-- function is owned by postgres (pg_temp's creator) and runs
+-- with postgres's privileges — wordknit.puzzles has no INSERT
+-- grant to `authenticated`, but tests typically `as_user` into an
+-- authenticated role before calling this helper.
+create function pg_temp.wordknit_puzzle() returns uuid
+language plpgsql security definer as $$
+declare
+  new_id uuid;
+begin
+  insert into wordknit.puzzles (source_id, nyt_date, categories)
+  values (
+    'TEST-FIXTURE',
+    '1900-01-01',
+    $cats$[
+      {"rank": 0, "name": "Words starting with A",
+       "tiles": ["ALPHA","ANGEL","APPLE","ARROW"]},
+      {"rank": 1, "name": "Words starting with B",
+       "tiles": ["BANANA","BIRCH","BREAD","BRICK"]},
+      {"rank": 2, "name": "Words starting with C",
+       "tiles": ["CASTLE","CIRCLE","CLOUD","CROWN"]},
+      {"rank": 3, "name": "Words starting with D",
+       "tiles": ["DAGGER","DELTA","DIAMOND","DRAGON"]}
+    ]$cats$::jsonb
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- ─── wordknit_setup ─────────────────────────────────────
+-- Build a valid create_game setup payload that references the
+-- fixture puzzle. Defaults to a 10-minute countdown timer; tests
+-- override timer to exercise specific validation paths. Mirrors
+-- tinyspy_setup in spirit — a typing-saver, not a validator.
+--
+--   wordknit_setup(puzzle_id)                  -- 10-min countdown
+--   wordknit_setup(puzzle_id, '{"kind":"none"}'::jsonb)
+--   wordknit_setup(puzzle_id, '{"kind":"countup"}'::jsonb)
+--
+-- Tests that need a setup MISSING a field (no puzzleId, no
+-- timer) skip the helper and build jsonb_build_object inline so
+-- the test reads as "what malformed shape am I testing."
+create function pg_temp.wordknit_setup(
+  puzzle_id uuid,
+  timer jsonb default jsonb_build_object(
+    'kind', 'countdown',
+    'seconds', 600
+  )
+) returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'puzzleId', puzzle_id,
+    'timer', timer
+  );
+$$;

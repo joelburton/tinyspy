@@ -20,16 +20,23 @@ set search_path = wordknit, common, public, extensions;
 select plan(7);
 
 \ir ../_shared/setup.psql
+\ir setup.psql
 
 -- ============================================================
--- Set up a club + a game in progress
+-- Set up a club + a game in progress (from the fixture puzzle)
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
+create temp table puzzle on commit drop as
+select pg_temp.wordknit_puzzle() as id;
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from wordknit.create_game(
+  (select id from club),
+  pg_temp.wordknit_setup((select id from puzzle)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+);
 
 -- A wrong guess so there's a row in wordknit.guesses for dee
 -- not to see.
@@ -91,8 +98,8 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
-    (select id from club)
+    $$ select wordknit.create_game(%L::uuid, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club), (select id from puzzle)
   ),
   '42501',
   'not a member of this club',

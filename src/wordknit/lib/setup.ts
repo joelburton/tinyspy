@@ -2,31 +2,41 @@ import type { TimerMode } from '../../common/lib/games'
 
 /**
  * Wordknit's per-game setup — the choices collected by the
- * start-game dialog, persisted to `wordknit.games.setup`, and
+ * start-game dialog, persisted to `common.games.setup`, and
  * validated server-side in `wordknit.create_game`.
  *
- * Today's one option: timer mode (none / countup / countdown
- * with a player-chosen duration). The choice is per-game rather
- * than per-gametype because Joel wants groups to pick their own
- * challenge per puzzle ("can you solve this in 5 minutes?" vs
- * "let's just enjoy ourselves without a clock").
+ * Two fields today:
+ *   - `puzzleId` — the `wordknit.puzzles` row the game is sourced
+ *     from. The setup form's date picker resolves a date to its
+ *     puzzle id. Required; the RPC raises P0001 if missing.
+ *   - `timer` — wall-clock mode. Per-game rather than per-
+ *     gametype because Joel wants groups to pick their own
+ *     challenge per puzzle ("can you solve this in 5 minutes?"
+ *     vs "let's enjoy ourselves without a clock").
  *
- * Future fields land alongside `timer` as the puzzle archive
- * and other setup options arrive. The jsonb storage on
- * `games.setup` accommodates new optional fields without
- * schema churn — only the RPC's shape validator changes.
+ * Future fields (e.g. difficulty filter on the picker) land
+ * alongside. The jsonb storage on `common.games.setup`
+ * accommodates new optional fields without schema churn — only
+ * the RPC's shape validator changes.
  */
 export type WordknitSetup = {
+  puzzleId: string
   timer: TimerMode
 }
 
 /**
  * Initial setup the manifest hands the SetupGameDialog wrapper
- * as `defaults`. A 10-minute count-down is a reasonable default
- * for the POC's hardcoded board — solvable but with a real
- * sense of clock. Players who want no clock or count-up can
- * switch in the setup dialog.
+ * as `defaults`. `puzzleId` starts empty — the defaults are
+ * evaluated at module-load time, before any puzzles are
+ * fetched, so the real id can't be filled in until the form
+ * body mounts. The SetupForm auto-picks today's puzzle (or the
+ * most-recent available) on mount.
+ *
+ * A 10-minute count-down is a reasonable default — solvable but
+ * with a real sense of clock. Players who want no clock or
+ * count-up can switch in the setup dialog.
  */
 export const DEFAULT_WORDKNIT_SETUP: WordknitSetup = {
+  puzzleId: '',
   timer: { kind: 'countdown', seconds: 600 },
 }

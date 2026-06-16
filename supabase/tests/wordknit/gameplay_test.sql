@@ -28,16 +28,26 @@ set search_path = wordknit, common, public, extensions;
 select plan(19);
 
 \ir ../_shared/setup.psql
+\ir setup.psql
 
 -- ============================================================
--- Set up an active game
+-- Set up an active game from the fixture puzzle. The fixture's
+-- 16 tiles (ALPHA, ANGEL, APPLE, ARROW, BANANA, BIRCH, BREAD,
+-- BRICK, CASTLE, CIRCLE, CLOUD, CROWN, DAGGER, DELTA, DIAMOND,
+-- DRAGON) are what the wrong/correct assertions below reference.
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
+create temp table puzzle on commit drop as
+select pg_temp.wordknit_puzzle() as id;
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from wordknit.create_game(
+  (select id from club),
+  pg_temp.wordknit_setup((select id from puzzle)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+);
 
 -- ============================================================
 -- (1) Wrong tile count is rejected
@@ -222,7 +232,11 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from wordknit.create_game(
+  (select id from club),
+  pg_temp.wordknit_setup((select id from puzzle)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+);
 
 -- Four wrong guesses with distinct tile sets so they pass the
 -- "exactly 4 tiles" payload check. (Tile membership / dup check
@@ -282,7 +296,11 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from wordknit.create_game(
+  (select id from club),
+  pg_temp.wordknit_setup((select id from puzzle)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+);
 
 -- Happy path: in_progress → submit_timeout → lost.
 select lives_ok(
