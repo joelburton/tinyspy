@@ -1,26 +1,8 @@
 import { cls } from '../../common/lib/cls'
-import type { Board, CategoryRank } from '../lib/board'
+import type { Board } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
+import { RANK_TOKEN } from '../lib/rankColors'
 import styles from './PlayArea.module.css'
-
-/**
- * Per-rank background color tokens. NYT's yellow / green / blue
- * / purple band colors map to rank 0..3 (increasing difficulty).
- * The actual color values live in
- * `src/wordknit/theme.css` under `--wordknit-rank-N`; this map
- * just translates the rank to the CSS-variable lookup.
- *
- * Lives here rather than in PlayArea because the band-rendering
- * concept is what cares about this mapping — moving it down with
- * the bands keeps PlayArea free of the wordknit-internal color
- * vocabulary.
- */
-const RANK_TOKEN: Record<CategoryRank, string> = {
-  0: 'var(--wordknit-rank-0)',
-  1: 'var(--wordknit-rank-1)',
-  2: 'var(--wordknit-rank-2)',
-  3: 'var(--wordknit-rank-3)',
-}
 
 type Props = {
   /** Categories that have been resolved by a correct guess. Each

@@ -4,6 +4,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { CategoryBands } from './CategoryBands'
+import { HintModal } from './HintModal'
 import { TileGrid } from './TileGrid'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
@@ -46,6 +47,7 @@ export function PlayArea({ session, gameId, timer }: GamePageCtx) {
   } = useGame(session, gameId)
   const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [hintsOpen, setHintsOpen] = useState(false)
 
   // Auto-clear the transient banner after a beat.
   useEffect(() => {
@@ -129,9 +131,25 @@ export function PlayArea({ session, gameId, timer }: GamePageCtx) {
               ? 'Out of time.'
               : 'Out of guesses.'
         ) : (
-          <>Mistakes left: {4 - game.mistake_count}</>
+          <>
+            Mistakes left: {4 - game.mistake_count}
+            {' · '}
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setHintsOpen(true)}
+            >
+              Hints
+            </button>
+          </>
         )}
       </div>
+
+      <HintModal
+        categories={game.board.categories}
+        open={hintsOpen}
+        onClose={() => setHintsOpen(false)}
+      />
 
       <CategoryBands matched={matchedCategories} unmatched={unmatched} />
 
