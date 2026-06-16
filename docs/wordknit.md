@@ -155,11 +155,19 @@ src/wordknit/
                           Imported by PlayArea.tsx so it loads with the chunk.
 
   components/
-    PlayArea.tsx          The game-specific play surface — matched-category bands, tile grid,
-                          submit/clear actions. Mounted by <GamePage> as its render-prop
-                          child; receives { session, gameId, members, timer } (GamePageCtx)
-                          as props. Header / pause / chat / timer live in <GamePage>.
+    PlayArea.tsx          Thin composition file. Loads via useGame, derives remaining-tiles
+                          and ownerByTile, mounts the pieces, owns the submit/clear handlers
+                          + transient banner. Mounted by <GamePage> as its render-prop child;
+                          receives { session, gameId, members, timer } (GamePageCtx) as
+                          props. Header / pause / chat / timer live in <GamePage>.
     PlayArea.module.css
+    CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
+                          unmatched-revealed bands rendered on game-over loss). Owns the
+                          RANK_TOKEN rank → CSS-variable map.
+    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isPeer selection
+                          attribution. Pure render against the (tiles, ownerByTile,
+                          selfUserId, onToggle) props — the shared-selection machinery
+                          lives in useGame.
     SetupForm.tsx         Timer-mode + (future) puzzle-date picker.
     SetupForm.module.css
 
@@ -294,6 +302,8 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | What does the create_game / submit_guess RPC do | [`supabase/migrations/20260614000005_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
+| What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
 | How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |

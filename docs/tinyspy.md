@@ -243,21 +243,30 @@ src/tinyspy/
   theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
 
   components/
-    PlayArea.tsx          The game-specific play surface — 5×5 board + clue panel + game log.
-                          Mounted by <GamePage> as its render-prop child; receives the
-                          GamePageCtx ({ session, gameId, members, timer }) as props.
-                          Header / pause / chat live in <GamePage>.
+    PlayArea.tsx          Thin composition file. Loads via the three hooks, derives phase,
+                          mounts the pieces. Mounted by <GamePage> as its render-prop
+                          child; receives GamePageCtx ({ session, gameId, members, timer })
+                          as props. Header / pause / chat live in <GamePage>.
     PlayArea.module.css
+    GameHeader.tsx        Seat / opponent / agents-found / tokens-remaining / How-to-play
+                          strip above the board. Owns howToPlayOpen + the HowToPlayModal
+                          mount.
+    BoardGrid.tsx         The 5×5 tile grid + per-tile tint/click/post-game-stripe logic.
+                          Owns pendingPos + guessError + the submit_guess RPC dispatch
+                          (state-locality: those three are only meaningful to the board).
+                          The TILE_BG (KeyLabel → CSS class) map lives here.
     CluePanel.tsx         The clue-giver's input area + "Need a clue?" button + AI suggestion display.
     CluePanel.module.css
     GameLog.tsx           Reveal-history list (which player guessed what, when).
     GameLog.module.css
     GameLog.test.tsx
-    GameOverBanner.tsx    The win/loss banner + back-to-home action.
+    GameOverBanner.tsx    The win/loss banner. Purely informational — no action button
+                          (GamePage's header owns Back-to-club).
     GameOverBanner.module.css
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
     SetupForm.module.css
     HowToPlayModal.tsx    Rules popup. Closeable, dismissed by default after first view.
+                          Mounted by GameHeader, not PlayArea.
     HowToPlayModal.module.css
 
   hooks/
@@ -362,7 +371,8 @@ Deferred or sketched but not built:
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../supabase/tests/tinyspy/) |
-| What does the board look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| What does the board look like | [`src/tinyspy/components/BoardGrid.tsx`](../src/tinyspy/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
+| What does the page composition look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
 | How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/tinyspy/lib/phase.ts`](../src/tinyspy/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts) |
