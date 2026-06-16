@@ -4,7 +4,7 @@ import {
   TURN_OPTIONS,
   type TinyspySetup,
 } from '../lib/setup'
-import styles from './Setup.module.css'
+import styles from './SetupForm.module.css'
 
 /**
  * Tinyspy's per-game setup form, rendered inside the common
@@ -30,11 +30,14 @@ import styles from './Setup.module.css'
  * narrow shape — see the SetupBodyProps doc in
  * src/common/lib/games.ts.
  *
- * Export name `TinyspySetupForm` matches `manifest.setupForm` —
- * this is the *form definition*, distinct from `TinyspySetup`
- * (the *data shape* the form produces).
+ * Component name `SetupForm` matches the file + the
+ * `manifest.setupForm` field — this is the *form definition*,
+ * distinct from `TinyspySetup` (the *data shape* the form
+ * produces, stored on `common.games.setup`). The folder path
+ * (`tinyspy/components/SetupForm.tsx`) disambiguates from the
+ * other games' SetupForm components.
  */
-export function TinyspySetupForm({ members, value, onChange }: SetupBodyProps) {
+export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   const s = value as TinyspySetup
 
   // Auto-pick the first member as first-clue-giver when the form

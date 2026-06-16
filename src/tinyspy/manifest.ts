@@ -48,7 +48,7 @@ export const tinyspyGame: GameManifest = {
   // src/common/lib/games.ts for why this split.
   setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.TinyspySetupForm })),
+      import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_TINYSPY_SETUP,
   },

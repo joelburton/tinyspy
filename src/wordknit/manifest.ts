@@ -55,7 +55,7 @@ export const wordknitGame: GameManifest = {
   // travels with the manifest.
   setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.WordknitSetupForm })),
+      import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_WORDKNIT_SETUP,
   },

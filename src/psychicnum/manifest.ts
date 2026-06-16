@@ -52,7 +52,7 @@ export const psychicnumGame: GameManifest = {
   // src/common/lib/games.ts for the split's reasoning.
   setupForm: {
     Component: lazy(() =>
-      import('./components/Setup').then((m) => ({ default: m.PsychicnumSetupForm })),
+      import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_PSYCHICNUM_SETUP,
   },

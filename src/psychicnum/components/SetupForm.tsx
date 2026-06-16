@@ -4,7 +4,7 @@ import {
   GUESS_OPTIONS,
   type PsychicnumSetup,
 } from '../lib/setup'
-import styles from './Setup.module.css'
+import styles from './SetupForm.module.css'
 
 /**
  * Psychic Num's per-game setup form, rendered inside the common
@@ -24,11 +24,14 @@ import styles from './Setup.module.css'
  * the top is the boundary between the manifest's `unknown` setup
  * type and psychicnum's narrow shape.
  *
- * Export name `PsychicnumSetupForm` matches `manifest.setupForm` —
- * this is the *form definition*, distinct from `PsychicnumSetup`
- * (the *data shape* the form produces).
+ * Component name `SetupForm` matches the file + the
+ * `manifest.setupForm` field — this is the *form definition*,
+ * distinct from `PsychicnumSetup` (the *data shape* the form
+ * produces, stored on `common.games.setup`). The folder path
+ * (`psychicnum/components/SetupForm.tsx`) disambiguates from the
+ * other games' SetupForm components.
  */
-export function PsychicnumSetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as PsychicnumSetup
 
   return (

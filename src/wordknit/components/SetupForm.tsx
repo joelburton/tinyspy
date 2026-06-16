@@ -1,7 +1,7 @@
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { WordknitSetup } from '../lib/setup'
-import styles from './Setup.module.css'
+import styles from './SetupForm.module.css'
 
 /**
  * Wordknit's per-game setup form.
@@ -11,11 +11,14 @@ import styles from './Setup.module.css'
  * Future fields (puzzle date picker once the archive lands, etc.)
  * land alongside it as additional siblings inside `.setup`.
  *
- * Export name `WordknitSetupForm` matches `manifest.setupForm` —
- * this is the *form definition*, distinct from `WordknitSetup`
- * (the *data shape* the form produces).
+ * Component name `SetupForm` matches the file + the
+ * `manifest.setupForm` field — this is the *form definition*,
+ * distinct from `WordknitSetup` (the *data shape* the form
+ * produces, stored on `common.games.setup`). The folder path
+ * (`wordknit/components/SetupForm.tsx`) disambiguates from the
+ * other games' SetupForm components.
  */
-export function WordknitSetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as WordknitSetup
   return (
     <div className={styles.setup}>
