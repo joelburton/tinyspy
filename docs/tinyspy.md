@@ -204,14 +204,16 @@ The trust model here is "we're not the gatekeeper of cheating" — a clue-giver 
 
 ```
 src/tinyspy/
-  Root.tsx                Mounted by App.tsx for /g/tinyspy/<id>. Receives gameId as a prop.
-  manifest.ts             GameManifest registration.
+  manifest.ts             GameManifest registration. Lazy-loads ./components/PlayArea
+                          directly (no Root.tsx).
   db.ts                   export const db = supabase.schema('tinyspy')
-  theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by Root.tsx so it loads with the chunk.
+  theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
 
   components/
     PlayArea.tsx          The game-specific play surface — 5×5 board + clue panel + game log.
-                          Header / pause / chat live in <GamePage> (mounted by Root.tsx).
+                          Mounted by <GamePage> as its render-prop child; receives the
+                          GamePageCtx ({ session, gameId, members, timer }) as props.
+                          Header / pause / chat live in <GamePage>.
     PlayArea.module.css
     CluePanel.tsx         The clue-giver's input area + "Need a clue?" button + AI suggestion display.
     CluePanel.module.css
@@ -220,6 +222,8 @@ src/tinyspy/
     GameLog.test.tsx
     GameOverBanner.tsx    The win/loss banner + back-to-home action.
     GameOverBanner.module.css
+    SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
+    SetupForm.module.css
     HowToPlayModal.tsx    Rules popup. Closeable, dismissed by default after first view.
     HowToPlayModal.module.css
 
@@ -261,11 +265,11 @@ During active play, each player's own `key_card` is what tints the board ([`useB
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
-The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today the Root component is keyed by `gameId`, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
+The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today `<GamePage>` is keyed by `gameId` at the route level, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
 
 ### Code-splitting
 
-`Root` is lazy-loaded in the manifest (`React.lazy(() => import('./Root'))`). The Vite build emits tinyspy's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/tinyspy/<id>` fetches the chunk.
+The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits tinyspy's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/tinyspy/<id>` fetches the chunk.
 
 ## Tinyspy testing
 
@@ -324,7 +328,7 @@ Deferred or sketched but not built:
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../supabase/tests/tinyspy/) |
-| What does the board look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (wrapped by `<GamePage>` in `Root.tsx`) |
+| What does the board look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
 | How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/tinyspy/lib/phase.ts`](../src/tinyspy/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts) |

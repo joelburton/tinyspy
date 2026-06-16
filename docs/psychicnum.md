@@ -169,7 +169,7 @@ The start-game dialog collects two options from the players before `create_game`
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
 
-The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/Setup.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
+The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
 
 ## Timer (browser-side, no server sync)
 
@@ -187,7 +187,7 @@ Drift bounds: the FE clock is anchored to the server timestamp, so a few hundred
 
 Two pause sources, OR'd into a single `paused` flag:
 
-1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused. The boundary is enforced by the shared `PauseBoundary` component — children are hidden via `visibility: hidden` while paused, so click handlers are inert without the per-handler `disabled` plumbing.
+1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused. The boundary is enforced by the shared `PauseBoundary` component — children **unmount** while paused (conditional render), so any per-game form state resets and click handlers are gone wholesale.
 2. **Manual pause**: any connected player can click Pause in the header, which fires a Broadcast event. Any connected player can Resume. There's no privileged "original pauser" check.
 
 The pause state propagates via the same realtime channel used for postgres-changes. Mirrors wordknit's pattern exactly — see [`docs/common.md`](common.md) and wordknit.md for the wider picture. Same hook shape (`useGame` returns `paused`, `missing`, `manuallyPausedBy`, `sendManualPause`, `sendManualUnpause`).
@@ -220,9 +220,8 @@ Realtime publication includes both `psychicnum.games` and `psychicnum.guesses` s
 
 ```
 src/psychicnum/
-  Root.tsx                Mounted by App.tsx for /g/psychicnum/<id>. Mounts <GamePage>
-                          with the PlayArea as its child.
-  manifest.ts             GameManifest registration (incl. submitTimeout dispatch).
+  manifest.ts             GameManifest registration. Lazy-loads ./components/PlayArea
+                          directly (no Root.tsx); declares submitTimeout dispatch.
   db.ts                   export const db = supabase.schema('psychicnum')
 
   components/
@@ -230,10 +229,14 @@ src/psychicnum/
                             GuessForm (input + submit_guess RPC)
                             GuessHistory (pure render of the guesses log)
                             ResultBanner (win/loss panel, rendered conditionally)
+                          Mounted by <GamePage> as its render-prop child; receives the
+                          GamePageCtx ({ session, gameId, members, timer }) as props.
                           Chat / header / pause / timer live in <GamePage>, not here.
     GuessForm.tsx         Owns input state + submit_guess dispatch.
     GuessHistory.tsx      Pure render of the guesses log with username attribution.
     ResultBanner.tsx      Win/loss panel; receives narrowed `status: 'won' | 'lost'`.
+    SetupForm.tsx         The setup form (guess budget + timer) mounted in the
+                          common SetupGameDialog.
 
   hooks/
     useGame.ts            Loads the game row (from games_state, so target appears on
@@ -246,7 +249,7 @@ That's it. No theme.css, no *.module.css, no per-component styling — the game 
 
 ### `PlayArea`
 
-A thin composition file. Renders `<GuessForm>` while `game.status === 'active'`, and `<ResultBanner status={game.status}>` (ternary narrowing the `'won' | 'lost'` type) when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` in `Root.tsx`.
+A thin composition file. Renders `<GuessForm>` while `game.status === 'active'`, and `<ResultBanner status={game.status}>` (ternary narrowing the `'won' | 'lost'` type) when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` (mounted at the route level by App.tsx).
 
 ### `useGame`
 
@@ -258,7 +261,7 @@ The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution com
 
 ### Code-splitting
 
-Same pattern as tinyspy — `Root` is lazy-loaded in the manifest. The build emits psychicnum's JS as its own chunk (~4 KB gzipped); users who only play tinyspy never download it.
+Same pattern as tinyspy — the manifest's `PlayArea` is lazy-loaded. The build emits psychicnum's JS as its own chunk (~4 KB gzipped); users who only play tinyspy never download it.
 
 ## Psychic-num testing
 

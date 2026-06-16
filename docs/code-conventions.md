@@ -125,13 +125,16 @@ Roles, not implementations:
 
 | role | name | shared or per-game? |
 |---|---|---|
-| The common shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
-| The game-specific play surface that mounts inside `<GamePage>` | `PlayArea` | per-game |
+| The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
+| The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
+| The gametype-specific setup form mounted inside the common `SetupGameDialog` | `SetupForm` | per-game |
 | End-of-game result banner | `GameOverBanner` (tinyspy) / `ResultBanner` (psychic-num) | per-game; same role, different content |
 | Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
 A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) or just a text input (psychic-num). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
+
+**File name matches component name; folder context disambiguates same-named components across games.** `src/wordknit/components/PlayArea.tsx` exports `PlayArea`; `src/tinyspy/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `WordknitPlayArea` / `TinyspySetupForm` prefixes anywhere.
 
 ### Import-direction rules
 
@@ -213,7 +216,7 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 | `WordRow`, `GameRow`, `ClueRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[…]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubGameEntry`, `ClubListEntry` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" describes their role. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GameRootProps` | React component prop types. |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, members, timer }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
 If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading. (`ClubGameRow` was an example of this and got renamed to `ClubGameEntry`.)

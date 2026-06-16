@@ -148,18 +148,20 @@ No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPC
 
 ```
 src/wordknit/
-  Root.tsx                Mounted by App.tsx for /g/wordknit/<id>. Mounts <GamePage>
-                          with the PlayArea as its child (render-prop receives
-                          { members, timer } from useCommonGame).
-  manifest.ts             GameManifest registration (incl. submitTimeout dispatch).
+  manifest.ts             GameManifest registration. Lazy-loads ./components/PlayArea
+                          directly (no Root.tsx); declares submitTimeout dispatch.
   db.ts                   export const db = supabase.schema('wordknit')
   theme.css               NYT rank palette (yellow/green/blue/purple = --wordknit-rank-0..3).
+                          Imported by PlayArea.tsx so it loads with the chunk.
 
   components/
     PlayArea.tsx          The game-specific play surface — matched-category bands, tile grid,
-                          submit/clear actions. Header / pause / chat / timer live in <GamePage>.
+                          submit/clear actions. Mounted by <GamePage> as its render-prop
+                          child; receives { session, gameId, members, timer } (GamePageCtx)
+                          as props. Header / pause / chat / timer live in <GamePage>.
     PlayArea.module.css
-    Setup.tsx             Timer-mode + (future) puzzle-date picker.
+    SetupForm.tsx         Timer-mode + (future) puzzle-date picker.
+    SetupForm.module.css
 
   hooks/
     useGame.ts            Slimmed: now owns just postgres-changes (games / guesses) on its
@@ -212,7 +214,7 @@ The game has a single `paused` flag with two trigger sources, both treated ident
 - **Presence-pause**: derived from `computePause(presentUserIds, members)`. True when some expected club member isn't on the channel.
 - **Manual-pause**: any player clicks the Pause button in the header → broadcasts a `manualPause` event with their `user_id` → all clients (including self) set `manuallyPausedById`. Any player can click Resume in the overlay → broadcasts `manualUnpause`. No privileged "original pauser" check; we're friends, not cutthroat competitors.
 
-When `paused` is true (from either source), the `PauseBoundary` (`common/components/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — hides the children via `visibility: hidden` (so the boundary keeps its layout dimensions for the overlay to fill) and renders the `PauseOverlay` (`common/components/PauseOverlay.tsx`) on top. The overlay's copy adapts to the source:
+When `paused` is true (from either source), the `PauseBoundary` (`common/components/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — **conditionally renders**: the PlayArea unmounts entirely and `PauseOverlay` (`common/components/PauseOverlay.tsx`) renders in its place. The overlay's copy adapts to the source:
 
 | source | overlay copy | Resume button? |
 |---|---|---|
@@ -220,7 +222,7 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 | manual-only | "Bea paused the game" | yes — any player can click |
 | both | both messages stacked | yes — clearing manual leaves presence-pause still active |
 
-On the *transition* into paused (false → true), `PauseBoundary`'s `onPause` callback fires. Wordknit's `Root` passes `sendClear` to `<GamePage>` as `onPauseTransition`, which forwards it to `PauseBoundary.onPause` — so all clients' shared selections empty when the game pauses. Reconnecting peers land in a clean state rather than seeing stale tile highlights.
+**Clean-by-unmount.** Wordknit's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the post-submit clear after a guess resolves.
 
 **Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Lives in `useCommonGame.ts` now (alongside the rest of the presence + manual-pause plumbing).
 
@@ -253,7 +255,7 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 ### Code-splitting
 
-Same pattern as tinyspy and psychic-num — `Root` is lazy-loaded in the manifest (`React.lazy(() => import('./Root'))`). The Vite build emits wordknit's JS + CSS as separate chunks; users who only play tinyspy never download it. The lazy boundary for the Setup form is separate (also lazy via the manifest's `setup.Component` field) so the form lands in wordknit's chunk too.
+Same pattern as tinyspy and psychic-num — the manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits wordknit's JS + CSS as separate chunks; users who only play tinyspy never download it. The lazy boundary for the SetupForm is separate (also lazy via the manifest's `setupForm.Component` field) so the form lands in wordknit's chunk too.
 
 ## Tests
 
@@ -291,7 +293,7 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 |---|---|
 | What does the create_game / submit_guess RPC do | [`supabase/migrations/20260614000005_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
-| What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (wrapped by `<GamePage>` in `Root.tsx`) |
+| What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
 | How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |

@@ -213,19 +213,21 @@ src/
                            Per-state CSS treatments live in ClubGameCard.module.css.
       StartGameButtons.tsx Shared between ClubPage and HomePage. Takes filtered `games`,
                            `memberCount`, `getLabel`, `starting`, `onStart`.
-      GamePage.tsx         The common shell every game's PlayArea mounts inside. Renders the
-                           header (title from common.games.title, timer, Pause, Back-to-club),
-                           wraps children in PauseBoundary, mounts ClubChatPanel. Children may
-                           be a render-prop receiving { members, timer }. Forwards
-                           onPauseTransition to PauseBoundary.onPause (wordknit uses for
-                           sendClear). Fires per-gametype submitTimeout via manifest dispatch
-                           on countdown expiry.
+      GamePage.tsx         The route-level shell mounted by App.tsx for /g/<gametype>/<id>.
+                           Renders the header (title from common.games.title, timer, Pause,
+                           Back-to-club), wraps children in PauseBoundary, mounts
+                           ClubChatPanel. Children are a render-prop receiving a
+                           GamePageCtx ({ session, gameId, members, timer }) — the
+                           gametype's PlayArea is mounted as that child. Fires per-gametype
+                           submitTimeout via manifest dispatch on countdown expiry.
       TimerField.tsx       The shared None / Up / Down radio + MM:SS input used by wordknit and
                            psychic-num setup forms. Tokens in TimerField.module.css.
       LoginScreen.tsx      Magic-link sign-in
       SetupGameDialog.tsx  Modal wrapper around per-game setup forms (one per gametype)
-      PauseBoundary.tsx    Wraps a game's play area; renders children or PauseOverlay
-                           based on the paused flag. Mounted by GamePage.
+      PauseBoundary.tsx    Wraps a game's play area; conditionally renders children OR
+                           PauseOverlay based on the paused flag (children UNMOUNT on
+                           pause — no visibility-hidden). Mounted by GamePage. See the
+                           "should this survive a pause?" rule below.
       PauseOverlay.tsx     The dim-overlay UI when a game is paused. Adapts copy to
                            presence-pause / manual-pause / both. Includes the Resume
                            button for the manual-pause case.
@@ -242,7 +244,10 @@ src/
                            `missing`, `manuallyPausedBy`, `sendManualPause`,
                            `sendManualUnpause`), and the timer (via useGameTimer against
                            common.games.setup.timer). Opens a stable channel named
-                           `game:${gameId}`. Per-game useGame hooks no longer own any of
+                           `game:${gameId}`. `paused` short-circuits to false once
+                           common.games.ended_at is non-null — terminal games never
+                           render the pause overlay even if a stale-tab peer is still
+                           broadcasting. Per-game useGame hooks no longer own any of
                            this — they subscribe to their own per-tab UUID-suffixed
                            channel for postgres-changes only.
     lib/
@@ -269,12 +274,14 @@ Routes the shell knows about:
 | `/` | `HomePage` — clubs list + create-club link |
 | `/c/new` | `CreateClubPage` |
 | `/c/<handle>` | `ClubPage` |
-| `/g/<gametype>/<gameId>` | The matching manifest's `Root` (lazy-loaded chunk) |
+| `/g/<gametype>/<gameId>` | `<GamePage>` with the manifest's `PlayArea` (lazy-loaded chunk) as its render-prop child |
 | anything else | `HomePage` (forgiving fallback, not a 404) |
 
-The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx looks up the manifest by gametype, then mounts its lazy `Root` with `gameId` as a prop, keyed by `gameId` so navigation between games remounts the Root (fresh state, no leaked subscriptions).
+The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx mounts `<GamePage>` directly with the manifest's lazy `PlayArea` as its render-prop child, keyed by `gameId` so navigation between games remounts cleanly (fresh state, no leaked subscriptions).
 
-Every game's `Root` mounts `<GamePage>` as the shared shell. GamePage owns the cross-cutting chrome — header (title / timer / Pause / Back-to-club), `<PauseBoundary>`, and `<ClubChatPanel>` — and renders the per-game `<PlayArea>` as its child. `useCommonGame` is what GamePage and PlayArea both pull from for the cross-cutting state (members, paused, timer). The per-game `useGame` is now just the postgres-changes subscription for that gametype's own tables.
+`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<ClubChatPanel>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives `{ session, gameId, members, timer }` (the `GamePageCtx` type exported from `src/common/lib/games.ts`) as props through the render prop. The per-game `useGame` is now just the postgres-changes subscription for that gametype's own tables.
+
+**"Should this survive a pause?" is the rule that decides where state lives.** Because `PauseBoundary` unmounts its children on pause, anything inside the per-game `PlayArea` (component state, `useGame`-local state, form input) resets every time the game pauses. That's deliberate UX — clean slate on resume. State that *must* survive a pause goes either in the DB or in `useCommonGame` above the boundary (members, presence, the timer's pause-accumulator). State that's specifically transient (wordknit's shared-tile selections, an in-flight submit form) lives in PlayArea and clears naturally on unmount.
 
 Why hand-rolled instead of react-router: the app has five routes, flat structure, no need for loaders or nested layouts. react-router adds 30–50 KB and a learning curve for what we'd write in ~40 lines.
 
@@ -299,7 +306,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `schema` | Postgres schema where the game's tables and RPCs live. Same as `gametype` today, but kept as a separate field in case they ever diverge. |
 | `name`, `blurb` | Human-readable. Used in pickers and titles. |
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
-| `Root` | Lazy-loaded React component. The shell mounts this for `/g/<gametype>/<id>` URLs. |
+| `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. (Replaces the old `Root` field; per-game `Root.tsx` files are gone — per-game `theme.css` imports moved into `PlayArea.tsx`.) |
 | `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |
 | `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). Today no game uses this field; wordknit and psychic-num both put the timer on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/`). The field is preserved for the per-gametype-constant case. |
 | `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC (psychicnum and wordknit do; tinyspy currently no-ops because it has no setup-side timer). Returns `{ error? }`. |
