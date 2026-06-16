@@ -98,11 +98,20 @@ type SuspendEvent = { type: 'suspend' }
  * need every connected player on the SAME Realtime channel name
  * (presence rosters are per-channel-name; broadcasts only reach
  * channel-name peers). This hook opens a stable-name channel
- * (`game:${gameId}`) for that purpose. Per-gametype hooks
- * (`useWordknitGame`, etc.) open their own UUID-suffixed
- * channels for postgres-changes on their game-specific tables —
- * those don't need to coordinate across peers, so a per-tab
- * channel is fine and avoids supabase-js's
+ * (`game:${gameId}`) for that purpose. The stability is
+ * non-negotiable, not a convenience: this channel is the FE-side
+ * meeting place for the **one-current-view-per-club** invariant
+ * the DB-side partial unique index enforces. If peers ended up on
+ * differently-named channels (a UUID suffix per tab), presence
+ * sets wouldn't merge, the unset_current_view cleanup wouldn't
+ * know whether it was the last viewer leaving, and the invariant
+ * would surface as either stuck pointers (nobody clears) or
+ * thrash (everyone clears).
+ *
+ * Per-gametype hooks (`useWordknitGame`, etc.) open their own
+ * UUID-suffixed channels for postgres-changes on their game-
+ * specific tables — those don't need to coordinate across peers,
+ * so a per-tab channel is fine and avoids supabase-js's
  * "attach-all-.on()-before-.subscribe()" rule (no other hook
  * needs to attach handlers to *this* channel after it subscribes).
  *
@@ -262,7 +271,7 @@ export function useCommonGame(
     const ch = supabase.channel(`game:${gameId}`)
 
     // Postgres-changes on common.games for this gameId. Drives
-    // refetch on is_active flip, ended_at set, status_summary
+    // refetch on is_current_view flip, ended_at set, status jsonb
     // populate — the cross-cutting transitions every consumer
     // cares about.
     ch.on(
@@ -327,6 +336,17 @@ export function useCommonGame(
         // member who reconnects re-asserts they're viewing.
         // See docs/states.md → "Lifecycle: when is_current_view
         // flips" and the matching common.set_current_view RPC.
+        //
+        // Fragile: errors are logged-and-swallowed. The RPC is
+        // idempotent (its `is_current_view = false` guard absorbs
+        // double-fires), and the next SUBSCRIBED reconnect re-
+        // asserts state — so transient failures self-heal at the
+        // next network blip. A persistent failure (RLS broken,
+        // RPC dropped) goes unnoticed by the user. Acceptable
+        // under the friends-alpha posture; revisit when there's a
+        // user-visible error-surface story.
+        // See docs/code-review-2026-06-16.md §1.2 +
+        // docs/deferred.md → Common.
         commonDb
           .rpc('set_current_view', { target_game: gameId })
           .then((res) => {
@@ -360,6 +380,14 @@ export function useCommonGame(
       const iAmLastOrUnknown =
         ids.size === 0 || (ids.size === 1 && ids.has(session.user.id))
       if (iAmLastOrUnknown) {
+        // Fragile, same shape as set_current_view above: errors
+        // logged-and-swallowed. The RPC is idempotent (its
+        // `is_current_view = true` guard absorbs no-ops). A
+        // persistent failure leaves the club's pointer stuck on
+        // a stale game — recoverable by the next set_current_view
+        // (its vacate-others step clears stragglers), but the gap
+        // until then is silent. Same friends-alpha tradeoff as
+        // above; revisit alongside that one.
         commonDb
           .rpc('unset_current_view', { target_game: gameId })
           .then((res) => {

@@ -276,7 +276,7 @@ export type GameManifest = {
    * RPCs each flip their own `<gametype>.games.status` to the
    * gametype-specific lost-state (wordknit's 'lost', tinyspy's
    * 'lost_clock', psychic-num's 'lost') and call common.end_game
-   * with a `status_summary` carrying gametype-specific counters
+   * with a `status` jsonb carrying gametype-specific counters
    * (mistake_count, turns_used, guesses_used). A consolidated
    * common RPC would force per-gametype dispatch on the SQL side;
    * dispatching here is cleaner.

@@ -50,6 +50,18 @@ export function useSession() {
       if (!mounted) return
       if (error) {
         // Network/RLS hiccup — don't punish the user, assume the session is valid.
+        //
+        // Fragile: this branch is right for transient mid-session
+        // failures (one bad fetch shouldn't sign someone out) but
+        // over-permissive on initial restore — a startup-time
+        // PostgREST outage or RLS bug looks identical to "no
+        // profile yet" and gates pass anyway. Acceptable under
+        // friends-alpha; revisit when there's a real auth path
+        // (passwords, third-party providers) and a startup-vs-
+        // mid-session distinction would let us be stricter only
+        // where it matters.
+        // See docs/code-review-2026-06-16.md §1.3 +
+        // docs/deferred.md → Common.
         console.warn('profile verify failed', error)
         setSession(next)
         setLoading(false)

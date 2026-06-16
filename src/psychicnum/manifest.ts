@@ -50,9 +50,10 @@ export const psychicnumGame: GameManifest = {
   // Called by SetupGameDialog when the player clicks Start. The
   // RPC picks the random target server-side, validates the setup
   // shape, initializes guesses_remaining from setup.guesses, and
-  // (via common.create_game) flips is_active=true on the new
-  // common.games row — auto-suspending any prior active game in
-  // the club per the v1 active-per-club invariant.
+  // (via common.create_game) flips is_current_view=true on the new
+  // common.games row — auto-suspending any prior current-view game
+  // in the club per the one-current-view-per-club invariant
+  // enforced by the partial unique index on common.games.
   //
   // The `unknown` → PsychicnumSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
@@ -98,8 +99,8 @@ export const psychicnumGame: GameManifest = {
   },
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // The RPC flips this gametype's status to 'lost' and writes
-  // status_summary.outcome='lost_timeout'. Idempotent on the
+  // The RPC flips this gametype's play_state to 'lost' and writes
+  // common.games.status.outcome='lost_timeout'. Idempotent on the
   // terminal-state check, so peers racing to fire is fine.
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })

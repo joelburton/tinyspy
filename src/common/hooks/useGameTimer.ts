@@ -78,7 +78,12 @@ export function useGameTimer({
    * 5 minutes still reads 9:50, not 4:50. Updated by
    * common.set_current_view (which folds the last idle window)
    * and refreshed via the postgres-changes subscription on
-   * common.games. Defaults to 0 when omitted.
+   * common.games.
+   *
+   * Defaults to 0 when omitted — lets callers that don't yet
+   * track idle (or solo games where no idle window can
+   * accumulate, since the single player is also the only viewer)
+   * use the hook without threading 0 explicitly.
    */
   idleSeconds?: number
 }): { displaySeconds: number; expired: boolean } {

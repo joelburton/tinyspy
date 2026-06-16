@@ -1009,9 +1009,12 @@ begin
 
   -- Set the target current. If it had been idle, fold the idle
   -- window into total_idle_seconds and clear idle_since. The
-  -- coalesce(idle_since, now()) makes the subtraction safe when
-  -- the row was never idle (re-mount of an already-current
-  -- game) — the result is now-now=0 and the +0 is harmless.
+  -- coalesce(idle_since, now()) covers the case where idle_since
+  -- was never stamped (a row created and immediately set current
+  -- with no prior unset_current_view) — the result is now-now=0
+  -- and the +0 is harmless. (The WHERE clause skips re-mounts of
+  -- an already-current game; the arithmetic above only runs when
+  -- the row was non-current.)
   update common.games
      set is_current_view = true,
          total_idle_seconds = total_idle_seconds

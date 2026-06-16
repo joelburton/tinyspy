@@ -53,6 +53,16 @@ export type Player = {
  * second `.on()` chain would target the already-subscribed cached channel
  * and throw "cannot add postgres_changes after subscribe". Appending a
  * UUID per effect invocation sidesteps the cache.
+ *
+ * Hook split (useGame here + useBoard + useClues, three hooks):
+ * deliberate, matches the per-concern PlayArea decomposition. The
+ * tradeoff is three SUBSCRIBED refetches on reconnect (one per
+ * channel) instead of one batched fetch — accepted as the cost of
+ * keeping each concern's data lifecycle independent. Don't
+ * consolidate without rethinking the PlayArea component split.
+ * Psychicnum + wordknit use the alternative one-hook-many-tables
+ * shape, which is the right choice when the data flows back to a
+ * single PlayArea component.
  */
 export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)
@@ -76,6 +86,12 @@ export function useGame(gameId: string) {
 
       if (!mounted) return
       if (!gameRes.data) {
+        // Explicit null on not-found — without this, a server-side
+        // delete (e.g. db:reset during dev) leaves the previously-
+        // loaded game state in place and the PlayArea keeps
+        // rendering it. Matches psychicnum / wordknit useGame.
+        setGame(null)
+        setPlayers([])
         setLoading(false)
         return
       }

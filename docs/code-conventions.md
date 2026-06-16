@@ -155,6 +155,15 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 The reason both rules matter: this codebase is shaped to host ~7 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
+#### Per-game `useGame` shape — pick the right template
+
+When porting a new game, the per-game `useGame` hook's shape depends on whether the game has fixed seats:
+
+- **Fixed-seat games** (tinyspy is the example: two players, identified by columns `user_a_id` / `user_b_id`): the hook **fetches its own roster**. The seat ⇄ user_id mapping is intrinsic to the per-game row, so the roster has to be loaded alongside the game data — no upstream component can pre-compute it. The hook also fetches profiles (cross-schema) to embed usernames; the canonical example is `src/tinyspy/hooks/useGame.ts`.
+- **N-player open games** (psychicnum, wordknit are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `members` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
+
+The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
+
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
 - Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `useGame` (every game).

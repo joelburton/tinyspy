@@ -191,10 +191,11 @@ export function ClubPage({ session, handle }: Props) {
     }
   }, [handle])
 
-  // Step 2: load games for this club + the active-game id. Re-runs
-  // whenever realtime tells us a games row for this club changed
-  // (new game inserted, end_game flipped is_active to false, etc.).
-  // Also fires on initial mount.
+  // Step 2: load games for this club + the current-view game id.
+  // Re-runs whenever realtime tells us a games row for this club
+  // changed (new game inserted, end_game wrote a terminal
+  // play_state, set_current_view / unset_current_view flipped the
+  // is_current_view pointer, etc.). Also fires on initial mount.
   useEffect(() => {
     if (!club) return
     const clubId = club.id

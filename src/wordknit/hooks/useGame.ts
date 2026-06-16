@@ -190,9 +190,22 @@ export function useGame(
     }
 
     // Stable channel name — selection Broadcast needs a shared
-    // room across peers. The cleanup-then-recreate cycle in this
-    // effect handles StrictMode's double-mount via
+    // room across peers (broadcasts only reach channel-name peers,
+    // so a UUID-suffix would put each tab in its own room and
+    // selections would never propagate). The cleanup-then-recreate
+    // cycle in this effect handles StrictMode's double-mount via
     // removeChannel(ch) before the second effect run.
+    //
+    // Tradeoff worth naming: this channel ALSO carries the
+    // postgres_changes subscriptions for wordknit.{games,guesses}
+    // below, which don't need shared-room semantics — each tab
+    // could read its own changefeed. Future games that mix
+    // broadcast + postgres_changes (e.g. Boggle with shared
+    // selection) should consider splitting into two channels — a
+    // stable one for broadcast + a UUID-suffixed one for
+    // postgres_changes — to avoid the two concerns sharing
+    // reconnect semantics. See docs/code-review-2026-06-16.md §4.3
+    // and docs/deferred.md → Wordknit.
     const ch = supabase.channel(`wordknit:${gameId}`)
 
     ch.on(
@@ -209,13 +222,16 @@ export function useGame(
       applySelection(payload as SelectionEvent),
     )
 
+    // SUBSCRIBED fires on initial subscribe AND on every reconnect,
+    // so this single hook covers both the mount-time fetch and the
+    // missed-events-on-reconnect refetch. (No separate explicit
+    // load() after .subscribe() — it would just double-fetch on
+    // mount.)
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') load()
     })
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setChannel(ch)
-
-    load()
 
     return () => {
       mounted = false

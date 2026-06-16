@@ -89,9 +89,9 @@ export const tinyspyGame: GameManifest = {
   // Called by common's GamePage when its countdown timer hits 0.
   // The RPC flips tinyspy.games.status to 'lost_timeout' (distinct
   // from 'lost_clock', which is the Duet rulebook's timer-tokens-
-  // exhausted ending) and writes status_summary.outcome='lost_timeout'.
-  // Idempotent on the active-state check, so peers racing to fire
-  // is fine.
+  // exhausted ending) and writes common.games.status.outcome=
+  // 'lost_timeout'. Idempotent on the terminal-state check, so
+  // peers racing to fire is fine.
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })
     if (error) return { error: error.message }

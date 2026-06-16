@@ -94,9 +94,9 @@ export const wordknitGame: GameManifest = {
   },
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // The RPC flips wordknit.games.status to 'lost' and writes
-  // status_summary.outcome='lost_timeout'. Idempotent on the
-  // terminal-state check.
+  // The RPC flips common.games.play_state to 'lost' and writes
+  // status.outcome='lost_timeout'. Idempotent on the terminal-
+  // state check.
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })
     if (error) return { error: error.message }
