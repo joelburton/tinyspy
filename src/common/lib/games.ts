@@ -1,9 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType } from 'react'
 
-import { db as commonDb } from '../db'
-import { navigate } from './router'
-
 /**
  * What `<GamePage>` exposes to each game's PlayArea via its
  * render-prop children. The shell wraps PlayArea in a `<GamePage>`
@@ -344,34 +341,4 @@ export function playerCountLabel(
     return `Needs exactly ${min} ${min === 1 ? 'member' : 'members'}`
   }
   return `Needs ${min}–${max} members`
-}
-
-/**
- * Leave the given game and land on the club it belongs to.
- *
- * Used by every game's Root for its "leave game" / end-of-game
- * "back to club" affordance — the user always returns to the club
- * the game was played in, never to the home page. (A home-page
- * exit was the previous behavior; once games are firmly nested
- * inside clubs in the UX, dropping the user out to a flat list
- * isn't useful.)
- *
- * Implementation: one common-schema read joining `games → clubs`
- * to resolve the club's URL handle, then `navigate` to `/c/<handle>`.
- * Lazy (only fires when the user actually leaves) so we don't pay
- * the round-trip on every game mount.
- *
- * The fallback to `/` is defensive — if the game row's gone (the
- * game was just deleted, or the id was bad) we have no club to
- * route to. In practice this shouldn't fire; the user is already
- * inside the game, so the row was visible to them moments ago.
- */
-export async function navigateToGameClub(gameId: string): Promise<void> {
-  const { data } = await commonDb
-    .from('games')
-    .select('clubs(handle)')
-    .eq('id', gameId)
-    .maybeSingle()
-  const handle = data?.clubs?.handle
-  navigate(handle ? `/c/${handle}` : '/')
 }

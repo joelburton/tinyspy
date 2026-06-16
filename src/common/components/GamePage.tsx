@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { games } from '../../games'
-import { navigateToGameClub, type GamePageCtx } from '../lib/games'
+import { type GamePageCtx } from '../lib/games'
+import { Link } from '../lib/Link'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
 import { ClubChatPanel } from './ClubChatPanel'
@@ -117,13 +118,12 @@ export function GamePage({
               Pause
             </button>
           )}
-          <button
-            type="button"
+          <Link
+            to={`/c/${commonGame.club_handle}`}
             className="link-button"
-            onClick={() => void navigateToGameClub(gameId)}
           >
             ← Back to club
-          </button>
+          </Link>
         </div>
       </header>
 

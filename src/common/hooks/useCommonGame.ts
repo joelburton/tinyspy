@@ -15,6 +15,12 @@ import { useGameTimer } from './useGameTimer'
 export type CommonGame = {
   id: string
   club_id: string
+  /** The owning club's URL handle, eagerly resolved here so the
+   *  GamePage header can render Back-to-club as a real `<Link>`
+   *  (with browser-visible href on hover, middle-click-to-open-
+   *  in-new-tab, etc.) rather than a click-handler button doing
+   *  a deferred fetch. */
+  club_handle: string
   gametype: string
   title: string
   setup: { timer?: TimerMode } & Record<string, unknown>
@@ -136,11 +142,14 @@ export function useCommonGame(
       // Two queries instead of an embed because game_players →
       // profiles is on user_id, which PostgREST resolves cleanly
       // but we want explicit control over the columns selected.
+      // Eager-join to common.clubs for the URL handle, so GamePage
+      // can render Back-to-club as a real <Link>. PostgREST resolves
+      // the games.club_id → clubs.id FK automatically.
       const [{ data: gameData }, { data: playerRows }] = await Promise.all([
         commonDb
           .from('games')
           .select(
-            'id, club_id, gametype, title, setup, is_active, status_summary, started_at, ended_at',
+            'id, club_id, gametype, title, setup, is_active, status_summary, started_at, ended_at, clubs(handle)',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -169,8 +178,12 @@ export function useCommonGame(
         memberList = (profileData ?? []) as Member[]
       }
 
+      const clubHandle =
+        (gameData.clubs as { handle: string } | null)?.handle ?? ''
+
       setCommonGame({
         ...gameData,
+        club_handle: clubHandle,
         setup: gameData.setup as CommonGame['setup'],
         status_summary:
           gameData.status_summary as CommonGame['status_summary'],
