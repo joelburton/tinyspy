@@ -75,9 +75,15 @@ create function pg_temp.tinyspy_setup(
   first_user uuid default 'ada11111-1111-1111-1111-111111111111'::uuid
 ) returns jsonb
 language sql as $$
+  -- timer defaults to kind=none so gameplay tests (which don't
+  -- exercise the wall-clock timer) pass create_game's
+  -- common.validate_timer gate without further setup. The
+  -- create_game and submit_timeout-specific tests pass an
+  -- explicit countdown timer where they need it.
   select jsonb_build_object(
     'turns', turns,
-    'firstClueGiverUserId', first_user
+    'firstClueGiverUserId', first_user,
+    'timer', jsonb_build_object('kind', 'none')
   );
 $$;
 

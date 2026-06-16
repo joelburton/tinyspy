@@ -634,6 +634,7 @@ export type Database = {
         Args: { target_game: string; target_position: number }
         Returns: string
       }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

@@ -4,7 +4,8 @@ import styles from './GameOverBanner.module.css'
 const STATUS_BANNER: Record<string, { text: string; tone: 'win' | 'loss' }> = {
   won: { text: 'Victory! All 15 agents found.', tone: 'win' },
   lost_assassin: { text: 'Game over — an assassin was revealed.', tone: 'loss' },
-  lost_clock: { text: 'Game over — ran out of time in sudden death.', tone: 'loss' },
+  lost_clock: { text: 'Game over — ran out of tokens in sudden death.', tone: 'loss' },
+  lost_timeout: { text: 'Game over — out of time.', tone: 'loss' },
 }
 
 type Props = {

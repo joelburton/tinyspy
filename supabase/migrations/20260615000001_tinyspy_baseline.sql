@@ -70,8 +70,22 @@ grant usage on schema tinyspy to authenticated;
 create table tinyspy.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_id uuid not null references common.clubs(id) on delete cascade,
+  -- Status enum:
+  --   active        — turn-based clue/guess loop (default at create).
+  --   sudden_death  — timer-token-clock ran out, agents remain.
+  --   won           — all 15 greens revealed (terminal).
+  --   lost_assassin — assassin revealed (terminal).
+  --   lost_clock    — sudden-death reveal was non-green (terminal).
+  --   lost_timeout  — wall-clock countdown hit 0 (terminal).
+  --
+  -- `lost_timeout` is distinct from `lost_clock`: the former is
+  -- the FE-driven wall-clock running out (setup.timer.countdown);
+  -- the latter is the Duet rulebook's "timer tokens exhausted +
+  -- a wrong sudden-death guess." Conceptually both are
+  -- time-related losses but the mechanic and the UX copy differ.
   status text not null default 'active'
-    check (status in ('active', 'sudden_death', 'won', 'lost_assassin', 'lost_clock')),
+    check (status in ('active', 'sudden_death', 'won',
+                      'lost_assassin', 'lost_clock', 'lost_timeout')),
   turns_remaining int not null default 9,
   turn_number int not null default 1,
   current_clue_giver text check (current_clue_giver in ('A', 'B')),
@@ -319,6 +333,14 @@ begin
     raise exception 'setup.firstClueGiverUserId must be a uuid'
       using errcode = 'P0001';
   end;
+
+  -- Timer is a per-game setup choice. Shape validation is shared
+  -- across gametypes — see common.validate_timer for the exact
+  -- message set ('setup.timer is required', 'kind must be ...',
+  -- 'seconds must be 1..3600 (got X)', etc.). When kind=countdown,
+  -- the FE's wall-clock timer counts down; expiry fires
+  -- tinyspy.submit_timeout (below).
+  perform common.validate_timer(setup->'timer');
 
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- Tinyspy is intrinsically 2-player.
@@ -651,6 +673,76 @@ $$;
 
 revoke execute on function tinyspy.submit_guess(uuid, int) from public;
 grant execute on function tinyspy.submit_guess(uuid, int) to authenticated;
+
+-- ============================================================
+-- tinyspy.submit_timeout — wall-clock countdown expired
+-- ============================================================
+-- The FE clock is browser-side (count-down ticks locally); when
+-- it hits zero, the FE fires this. We flip the game to
+-- `lost_timeout` (distinct from `lost_clock`, which is the
+-- timer-tokens-exhausted Duet ending) and call common.end_game
+-- with outcome='lost_timeout'.
+--
+-- Idempotency: the active-state guard means a second concurrent
+-- call from another tab raises P0001 'game is not active'. The
+-- FE swallows that — losing once is enough.
+--
+-- Mirrors wordknit.submit_timeout / psychicnum.submit_timeout —
+-- see those for the rationale on FE-driven clock + idempotent
+-- server flip.
+
+create function tinyspy.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = tinyspy, common, public, extensions
+as $$
+declare
+  g_row tinyspy.games%rowtype;
+  player_results jsonb;
+begin
+  select * into g_row from tinyspy.games
+   where tinyspy.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  -- Auth + game-player gate. See common.require_game_player.
+  perform common.require_game_player(target_game);
+
+  if g_row.status not in ('active', 'sudden_death') then
+    raise exception 'game is not active' using errcode = 'P0001';
+  end if;
+
+  update tinyspy.games
+     set status = 'lost_timeout', current_clue_giver = null
+   where tinyspy.games.id = target_game;
+
+  -- Cooperative loss: both players lose together.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  -- turns_used in the status_summary reads from common.games.setup
+  -- (canonical setup location post-Phase-A) minus what's left.
+  perform common.end_game(
+    target_game,
+    jsonb_build_object(
+      'outcome', 'lost_timeout',
+      'turns_used',
+        (select (setup->>'turns')::int
+           from common.games where id = target_game)
+          - g_row.turns_remaining
+    ),
+    player_results
+  );
+end;
+$$;
+
+revoke execute on function tinyspy.submit_timeout(uuid) from public;
+grant execute on function tinyspy.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
 -- tinyspy.pass_turn

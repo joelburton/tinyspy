@@ -15,6 +15,7 @@ export type GameStatus =
   | 'won'
   | 'lost_assassin'
   | 'lost_clock'
+  | 'lost_timeout'
 
 export type PhaseInputs = {
   /** Current games.status. */

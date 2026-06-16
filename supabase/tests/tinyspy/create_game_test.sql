@@ -36,7 +36,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(25);
+select plan(30);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -197,6 +197,108 @@ select throws_ok(
   'P0001',
   'setup.firstClueGiverUserId must be one of player_user_ids',
   'create_game: firstClueGiverUserId not in player_user_ids is rejected'
+);
+
+-- ============================================================
+-- Timer-shape validation (via common.validate_timer)
+-- ============================================================
+-- The shared validator's full case grid is exercised in
+-- wordknit's create_game_test. Here we only spot-check that this
+-- gametype's create_game actually wires the helper up — one
+-- missing-timer, one bad-kind, one missing-seconds, one
+-- countup-accepted. Point: "the call is hooked up," not "re-test
+-- every branch of validate_timer."
+
+-- missing timer
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'turns', 9,
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
+      ),
+      pg_temp.tinyspy_players()
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'setup.timer is required',
+  'create_game: missing setup.timer is rejected'
+);
+
+-- bogus timer.kind
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'turns', 9,
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'timer', jsonb_build_object('kind', 'fast')
+      ),
+      pg_temp.tinyspy_players()
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'setup.timer.kind must be none, countup, or countdown (got fast)',
+  'create_game: bogus timer.kind is rejected'
+);
+
+-- countdown without seconds
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'turns', 9,
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'timer', jsonb_build_object('kind', 'countdown')
+      ),
+      pg_temp.tinyspy_players()
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'setup.timer.seconds is required for countdown',
+  'create_game: countdown without seconds is rejected'
+);
+
+-- countdown with out-of-range seconds
+select throws_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'turns', 9,
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'timer', jsonb_build_object('kind', 'countdown', 'seconds', 0)
+      ),
+      pg_temp.tinyspy_players()
+    ) $q$,
+    (select id from club2)
+  ),
+  'P0001',
+  'setup.timer.seconds must be 1..3600 (got 0)',
+  'create_game: countdown with seconds=0 is rejected'
+);
+
+-- countup is accepted (no seconds needed)
+select lives_ok(
+  format(
+    $q$ select tinyspy.create_game(
+      %L::uuid,
+      jsonb_build_object(
+        'turns', 9,
+        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'timer', jsonb_build_object('kind', 'countup')
+      ),
+      pg_temp.tinyspy_players()
+    ) $q$,
+    (select id from club2)
+  ),
+  'create_game: timer.kind=countup is accepted (no seconds needed)'
 );
 
 -- ============================================================

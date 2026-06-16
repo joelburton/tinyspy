@@ -95,19 +95,23 @@ export const tinyspyGame: GameManifest = {
       startedAt: g.created_at,
       isTerminal: g.status === 'won'
         || g.status === 'lost_assassin'
-        || g.status === 'lost_clock',
+        || g.status === 'lost_clock'
+        || g.status === 'lost_timeout',
       statusLabel: STATUS_LABEL[g.status] ?? g.status,
     }))
   },
 
-  // Tinyspy doesn't expose a timer in its setup form yet (the
-  // 'lost_clock' status is reserved for the turn-counter clock,
-  // a deferred mechanic — see docs/deferred.md). When the
-  // wall-clock timer lands, this dispatches to the upcoming
-  // tinyspy.submit_timeout RPC. For now it's a no-op: GamePage
-  // only fires this on a countdown expiry, which can't happen
-  // here because the setup never produces `timer.kind = 'countdown'`.
-  submitTimeout: async () => ({}),
+  // Called by common's GamePage when its countdown timer hits 0.
+  // The RPC flips tinyspy.games.status to 'lost_timeout' (distinct
+  // from 'lost_clock', which is the Duet rulebook's timer-tokens-
+  // exhausted ending) and writes status_summary.outcome='lost_timeout'.
+  // Idempotent on the active-state check, so peers racing to fire
+  // is fine.
+  submitTimeout: async (gameId) => {
+    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
 }
 
 // Per-status display strings tinyspy owns — the common ClubPage
@@ -117,5 +121,6 @@ const STATUS_LABEL: Record<string, string> = {
   sudden_death: 'sudden death',
   won: 'won',
   lost_assassin: 'lost (assassin)',
-  lost_clock: 'lost (ran out of time)',
+  lost_clock: 'lost (ran out of tokens)',
+  lost_timeout: 'lost (ran out of time)',
 }

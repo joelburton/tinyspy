@@ -92,13 +92,14 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 
 ### Status enum
 
-`games.status text not null check (status in ('active', 'sudden_death', 'won', 'lost_assassin', 'lost_clock'))`
+`games.status text not null check (status in ('active', 'sudden_death', 'won', 'lost_assassin', 'lost_clock', 'lost_timeout'))`
 
 - **active** — turn-based clue/guess loop. The most common status.
 - **sudden_death** — timer tokens are spent. No more clues; any wrong guess loses.
 - **won** — all 15 greens revealed. Terminal.
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
+- **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-browser-side-no-server-sync) below.
 
 There is **no `lobby` status** — under the club model, both members are seated at game-creation time and the game starts directly in `active`. The lobby state existed in an earlier shape of the codebase (join-code based) and was removed when tinyspy adopted clubs.
 
@@ -120,9 +121,9 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `tinyspy.create_game(target_club uuid) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`, auto-pausing any prior active game), then inserts the tinyspy detail row with status `active`. One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`, auto-pausing any prior active game), then inserts the tinyspy detail row with status `active`. One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
-Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members.
+Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)).
 
 The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. Inlined directly in `create_game` rather than extracted into a helper — `create_game` is the only place that generates a board, so there's no duplication to factor out.
 
@@ -164,6 +165,14 @@ The status flip to terminal fires the `clear_active_on_termination` trigger, whi
 
 Voluntary turn-end during the guess phase. Spends one timer token, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; status ≠ active.
 
+### `tinyspy.submit_timeout(target_game uuid)`
+
+Fires when the FE's count-down timer expires. Flips `status` to `lost_timeout` (distinct from `lost_clock`, which is the rulebook's timer-tokens-exhausted ending) and calls `common.end_game` with `status_summary.outcome = 'lost_timeout'`.
+
+Accepts `active` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
+
+Reject reasons: not authenticated; not a game player; game not found; status terminal.
+
 ### `tinyspy.get_clue_context(target_game uuid) → jsonb`
 
 Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of an active (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
@@ -183,6 +192,30 @@ Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_
 `word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 
 The one liberal policy is `game_players_select` — it returns *all columns* of `game_players` for any player in the game, including the partner's `key_card`. Client code by convention filters to `user_id = self`. A harder version would split this into own-row reads + a `game_players_roster` view that omits `key_card`. See the policy comment in the baseline migration for the trade-off.
+
+## Timer (browser-side, no server sync)
+
+Same model as wordknit and psychic-num: the wall-clock timer is **browser-side only**, anchored to `common.games.started_at` and ticked locally via the shared `useGameTimer` hook in `src/common/hooks/`. No periodic server sync, no `paused_at` / `time_elapsed_ms` columns — pauses freeze the displayed value via accumulated-pause-duration tracking in the hook.
+
+**This is distinct from the rulebook's timer tokens.** Duet has its own clock (the 9 starting tokens, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
+
+- `lost_clock` — Duet's rulebook ending (sudden death + non-green reveal).
+- `lost_timeout` — wall-clock countdown hit 0.
+
+Behaviors per `setup.timer.kind`:
+
+- **`none`**: no wall-clock rendered. The default, since the rulebook's pacing already comes from the tokens.
+- **`countup`**: informational. Header shows elapsed MM:SS. Never expires.
+- **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `tinyspy.submit_timeout`, which flips status to `lost_timeout`. Idempotent on the server side — multiple peers racing to fire is fine.
+
+## Pause-on-disconnect
+
+Tinyspy inherits the shared pause behavior by adopting the common `<GamePage>` shell. Two pause sources, OR'd into a single `paused` flag:
+
+1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused.
+2. **Manual pause**: any connected player can click Pause in the GamePage header; Resume is exposed in the overlay.
+
+PauseBoundary conditional-renders PlayArea — on pause, the play surface unmounts and remounts on resume. Tinyspy's per-tab postgres-changes channel tears down and reconnects, covered by the on-SUBSCRIBED refetch. See `docs/common.md` for the wider pattern.
 
 ## Edge Function: `tinyspy-suggest-clue`
 
@@ -279,10 +312,11 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 | file | covers |
 |---|---|
-| `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
+| `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in wordknit's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
+| `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `active` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status_summary.outcome plumbing. |
 | `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 
@@ -292,7 +326,7 @@ Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
-- **`pg_temp.tinyspy_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver; override either to test variations (`tinyspy_setup(11)`, `tinyspy_setup(9, bea_uuid)`).
+- **`pg_temp.tinyspy_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver and `timer.kind = 'none'`; override turns or first_user to test variations (`tinyspy_setup(11)`, `tinyspy_setup(9, bea_uuid)`). Timer-specific tests pass a literal jsonb so the timer mode is explicit.
 
 ### The key-card distribution test
 

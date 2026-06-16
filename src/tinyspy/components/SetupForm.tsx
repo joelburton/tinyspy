@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   TURN_OPTIONS,
@@ -95,6 +96,11 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           ))}
         </div>
       </fieldset>
+
+      <TimerField
+        value={s.timer}
+        onChange={(timer) => onChange({ ...s, timer })}
+      />
     </div>
   )
 }

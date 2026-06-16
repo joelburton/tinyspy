@@ -1,6 +1,8 @@
+import type { TimerMode } from '../../common/lib/games'
+
 /**
  * Tinyspy's per-game setup — the choices collected by the
- * start-game dialog, persisted to `tinyspy.games.setup`, and
+ * start-game dialog, persisted to `common.games.setup`, and
  * validated server-side in `tinyspy.create_game` (the canonical
  * authority for what shapes are accepted).
  *
@@ -10,7 +12,7 @@
  * doesn't match — see the migration's validation block.
  *
  * Lives in `lib/` rather than inline in `manifest.ts` so the
- * Setup body component can import the same type without dragging
+ * SetupForm component can import the same type without dragging
  * the whole manifest in (which would defeat the lazy-load
  * point — the manifest's setupForm field would prevent
  * code-splitting the form's chunk).
@@ -31,6 +33,19 @@ export type TinyspySetup = {
    * makes it an explicit player choice.
    */
   firstClueGiverUserId: string
+  /**
+   * Browser-side wall-clock timer mode. `none` (no clock) and
+   * `countup` (informational) are display-only; `countdown`
+   * flips the game to `lost_timeout` when the clock hits 0 (via
+   * tinyspy.submit_timeout). Validated server-side by
+   * `common.validate_timer`.
+   *
+   * Distinct from the rulebook's `turns` (timer-tokens) above —
+   * that's the per-turn token-spend clock; this is the
+   * external wall-clock countdown players can choose to layer
+   * on top.
+   */
+  timer: TimerMode
 }
 
 /**
@@ -38,12 +53,17 @@ export type TinyspySetup = {
  * as `defaults`. `firstClueGiverUserId` starts empty — the
  * defaults are evaluated at module-load time, before any club
  * is known, so a real user-id can't be filled in until the body
- * mounts inside a specific club's dialog. The Setup component
- * auto-picks the first member on mount.
+ * mounts inside a specific club's dialog. The SetupForm
+ * component auto-picks the first member on mount.
+ *
+ * Timer defaults to `none` — Duet's pacing already comes from
+ * the timer-token clock; a wall-clock countdown is opt-in for
+ * players who want extra pressure.
  */
 export const DEFAULT_TINYSPY_SETUP: TinyspySetup = {
   turns: 9,
   firstClueGiverUserId: '',
+  timer: { kind: 'none' },
 }
 
 /** The allowed `turns` values — drives the radio rendering. */
