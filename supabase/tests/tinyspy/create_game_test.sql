@@ -36,7 +36,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(30);
+select plan(31);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -356,6 +356,25 @@ select is(
     where game_id = (select id from created)),
   2,
   'create_game: both players are recorded in common.game_players'
+);
+
+-- Exact roster check — the game_players rows hold {ada, bea}
+-- and only {ada, bea}. The count==2 assertion above catches a
+-- missing or extra row; this assertion catches the subtler
+-- failure of "two rows but wrong user_ids" (e.g. ada inserted
+-- twice, or caller-id swapped in for one of the players). The
+-- PK (game_id, user_id) makes duplicates impossible at the DB
+-- layer, so a wrong-user_ids regression is the realistic risk.
+select results_eq(
+  format(
+    $$ select user_id from common.game_players
+        where game_id = %L::uuid order by user_id $$,
+    (select id from created)
+  ),
+  $$ values
+      ('ada11111-1111-1111-1111-111111111111'::uuid),
+      ('bea22222-2222-2222-2222-222222222222'::uuid) $$,
+  'create_game: common.game_players holds exactly ada + bea'
 );
 
 -- Ada is the chosen first clue-giver → seat A column. Bea → seat B

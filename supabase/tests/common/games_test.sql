@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(38);
+select plan(40);
 
 \ir ../_shared/setup.psql
 
@@ -542,6 +542,47 @@ select cmp_ok(
   '<=',
   7,
   'idle: total_idle_seconds didn''t pick up implausible extra'
+);
+
+-- ============================================================
+-- Partial unique index: one current-view game per club, enforced
+-- at the storage layer (not just by the RPC's vacate-first step)
+-- ============================================================
+-- The set_current_view RPC vacates any prior current-view game
+-- *before* setting the target current, so the RPC itself never
+-- trips the index. But the index is the DB-level invariant that
+-- makes the FE's "auto-nav into the current game" semantics
+-- coherent: if two backends raced and both tried to set a
+-- different game current for the same club, the partial unique
+-- index (`unique (club_id) where is_current_view`) would reject
+-- the second write with a unique_violation.
+--
+-- Test the index directly by bypassing the RPC: as postgres,
+-- try to flip a second game's is_current_view to true while one
+-- is already current. The expectation is a unique violation —
+-- the DB-side check that the RPC's vacate-first step relies on.
+--
+-- Precondition coming out of the idle-accounting block above:
+-- created_game_id is the current view; second_game_id is not.
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  true,
+  'precondition: first game is the current view'
+);
+
+select throws_ok(
+  format(
+    $$ update common.games set is_current_view = true where id = %L::uuid $$,
+    current_setting('test.second_game_id')::uuid
+  ),
+  '23505',
+  null,
+  'partial unique index: a second is_current_view=true for the same club is rejected (23505)'
 );
 
 -- ============================================================
