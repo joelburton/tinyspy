@@ -1,12 +1,18 @@
 /* HomePage clubs list.
  *
- * The list is a column of row-styled items rather than a plain
- * <ul> so we can give the solo club a subtle visual lift (tinted
- * background + star icon + Solo badge) and keep regular clubs
- * looking like normal rows.
+ * Each row is the Link itself — the whole tinted surface is the
+ * click target, so a user can click anywhere on the row (name,
+ * handle, whitespace) to navigate, not just the text label.
+ * Browser middle-click / cmd-click for "open in new tab" still
+ * works because the row IS an anchor.
  *
- * Solo always sorts to the top regardless of created_at — see
- * HomePage's partition pass.
+ * Solo clubs share the row surface with regular clubs; the only
+ * visual distinction is an outlined "Solo" pill in the row
+ * (rendered by HomePage's render-time partition, with solo
+ * sorted to the top). Earlier iterations layered a star icon +
+ * tinted background + filled badge, which read as too much
+ * signal for one piece of information — the pill alone is
+ * sufficient distinction.
  */
 
 .clubsList {
@@ -18,26 +24,31 @@
   gap: 0.35rem;
 }
 
+/* The clickable row — applied directly to the Link element so
+ * the whole tinted area routes on click. Button-like surface
+ * (soft fill + border + radius) so it reads as "this is the
+ * thing you press" without competing with the page's primary
+ * accent-filled buttons. */
 .clubItem {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.65rem;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-surface-border);
+  text-decoration: none;
+  color: var(--color-text);
   transition: background 100ms ease, border-color 100ms ease;
 }
 .clubItem:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-surface-border);
+  border-color: var(--color-control-border-2);
+  text-decoration: none;
 }
 
-.clubLink {
-  text-decoration: none;
-  color: var(--color-text);
+.clubName {
   font-weight: 500;
-}
-.clubLink:hover {
-  text-decoration: underline;
 }
 
 .handle {
@@ -47,38 +58,21 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-/* Solo treatment: a subtle accent-tinted background + star icon
- * + Solo badge. Distinct enough to read at a glance, soft
- * enough that it doesn't shout from a page that's mostly
- * regular clubs.
- *
- * The star is intentionally a Unicode glyph rather than an SVG
- * — keeps the bundle clean and the icon is small enough that a
- * font glyph reads well at the surrounding text size. */
-
-.soloItem {
-  background: var(--color-surface-hover);
-  border-color: var(--color-surface-border);
-}
-.soloItem:hover {
-  background: var(--color-surface-hover);
-  border-color: var(--color-control-border-2);
-}
-
-.soloIcon {
-  color: var(--color-accent);
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
+/* Solo pill — outlined accent rather than filled. Quieter than
+ * a solid-fill badge while still anchoring the row as "this is
+ * your solo space." The same accent color as link affordances
+ * elsewhere on the page, so the visual vocabulary stays
+ * consistent. */
 .soloBadge {
   display: inline-block;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 700;
-  background: var(--color-accent);
-  color: white;
-  padding: 0.15rem 0.45rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  padding: 0.1rem 0.45rem;
   border-radius: 999px;
+  line-height: 1.2;
 }

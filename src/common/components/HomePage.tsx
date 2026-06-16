@@ -3,7 +3,6 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { db as commonDb } from '../db'
-import { cls } from '../lib/cls'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -115,26 +114,20 @@ export function HomePage({ session }: Props) {
         ) : (
           <ul className={styles.clubsList}>
             {soloClubs.map((c) => (
-              <li
-                key={c.id}
-                className={cls(styles.clubItem, styles.soloItem)}
-              >
-                <span className={styles.soloIcon} aria-hidden="true">
-                  ★
-                </span>
-                <Link to={`/c/${c.handle}`} className={styles.clubLink}>
-                  {c.name}
+              <li key={c.id}>
+                <Link to={`/c/${c.handle}`} className={styles.clubItem}>
+                  <span className={styles.clubName}>{c.name}</span>
+                  <span className={styles.soloBadge}>Solo</span>
+                  <span className={styles.handle}>/c/{c.handle}</span>
                 </Link>
-                <span className={styles.soloBadge}>Solo</span>
-                <span className={styles.handle}>/c/{c.handle}</span>
               </li>
             ))}
             {regularClubs.map((c) => (
-              <li key={c.id} className={styles.clubItem}>
-                <Link to={`/c/${c.handle}`} className={styles.clubLink}>
-                  {c.name}
+              <li key={c.id}>
+                <Link to={`/c/${c.handle}`} className={styles.clubItem}>
+                  <span className={styles.clubName}>{c.name}</span>
+                  <span className={styles.handle}>/c/{c.handle}</span>
                 </Link>
-                <span className={styles.handle}>/c/{c.handle}</span>
               </li>
             ))}
           </ul>
