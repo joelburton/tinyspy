@@ -1,17 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { db as commonDb } from '../common/db'
-import type { Database } from '../types/db'
 import { db } from './db'
 import { DEFAULT_WORDKNIT_SETUP, type WordknitSetup } from './lib/setup'
-
-// Narrower than Database[...]['Row']. Adding a new column to
-// wordknit.games requires explicitly listing it here AND in the
-// select() below — see code-conventions.md's "Avoid SELECT *".
-type GameRow = Pick<
-  Database['wordknit']['Tables']['games']['Row'],
-  'id' | 'status' | 'mistake_count' | 'created_at'
->
 
 /**
  * Wordknit's registration with the shell.
@@ -83,51 +73,24 @@ export const wordknitGame: GameManifest = {
     return { id: data.id }
   },
 
-  // Lists this gametype's games for a club. RLS scopes to clubs
-  // the caller is a member of. We fold in a separate batched
-  // fetch of the correct-guess counts so the status label can
-  // read "2/4 categories matched" while in progress.
+  // Render the per-row label from a common.games row. Pure,
+  // synchronous: every piece comes off the row.
   //
-  // (Pre-rename, this used a `found_groups` table — that table
-  // is gone; one correct guess per rank, enforced by the partial
-  // unique index, is the equivalent record.)
-  fetchClubGames: async (clubId) => {
-    const { data: games, error } = await db
-      .from('games')
-      .select('id, status, mistake_count, created_at')
-      .eq('club_id', clubId)
-      .order('created_at', { ascending: false })
-    if (error || !games) return []
-
-    const gameIds = games.map((g) => g.id)
-    const matchedByGame = new Map<string, number>()
-    if (gameIds.length > 0) {
-      const { data: rows } = await db
-        .from('guesses')
-        .select('game_id')
-        .in('game_id', gameIds)
-        .eq('result', 'correct')
-      for (const r of rows ?? []) {
-        matchedByGame.set(r.game_id, (matchedByGame.get(r.game_id) ?? 0) + 1)
-      }
+  // Mid-game `status` carries `{ matched_count, mistake_count }`
+  // (written by submit_guess via common.update_state). Terminal
+  // `status` carries `{ outcome, matched_count, mistake_count }`
+  // (set by submit_guess / submit_timeout via common.end_game).
+  labelFor: (row) => {
+    const s = (row.status ?? {}) as Record<string, unknown>
+    const matched = (s.matched_count as number | undefined) ?? 0
+    const mistakes = (s.mistake_count as number | undefined) ?? 0
+    if (row.play_state === 'playing') {
+      return `${matched}/4 categories · ${mistakes}/4 mistakes`
     }
-
-    function labelFor(g: GameRow): string {
-      const matched = matchedByGame.get(g.id) ?? 0
-      if (g.status === 'in_progress') {
-        return `${matched}/4 categories · ${g.mistake_count}/4 mistakes`
-      }
-      if (g.status === 'solved') return `solved · ${g.mistake_count} mistakes`
-      return `lost · ${matched}/4 matched`
+    if (row.play_state === 'solved') {
+      return `solved · ${mistakes} mistakes`
     }
-
-    return games.map((g) => ({
-      gameType: 'wordknit',
-      gameId: g.id,
-      startedAt: g.created_at,
-      isTerminal: g.status !== 'in_progress',
-      statusLabel: labelFor(g),
-    }))
+    return `lost · ${matched}/4 matched`
   },
 
   // Called by common's GamePage when its countdown timer hits 0.
@@ -141,7 +104,3 @@ export const wordknitGame: GameManifest = {
   },
 }
 
-// Silence the "imported but unused" warning if a future cleanup
-// drops the commonDb usage. The import is here defensively for
-// the pattern shared with other games' manifests.
-void commonDb

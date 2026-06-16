@@ -11,7 +11,7 @@
 --   2. non-member callers rejected (42501)
 --   3. setup validation: out-of-range guesses, missing guesses
 --   4. happy path: returns a game id, picks a target in 1..10,
---      sets guesses_remaining = setup.guesses, status = 'active'
+--      sets guesses_remaining = setup.guesses, play_state = 'playing'
 --   5. setup column persists the player's choice (for end-of-
 --      game review)
 --   6. guesses_remaining is initialized from setup.guesses (a
@@ -183,9 +183,9 @@ select is(
 -- below). The other column reads are fine either way.
 reset role;
 select is(
-  (select status from psychicnum.games where id = (select id from g)),
-  'active',
-  'newly-created game has status = active'
+  (select play_state from common.games where id = (select id from g)),
+  'playing',
+  'newly-created game has play_state = playing'
 );
 select is(
   (select guesses_remaining from psychicnum.games where id = (select id from g)),
@@ -197,18 +197,18 @@ select ok(
   'target is in the 1..10 range'
 );
 
--- (5) common.games.is_active=true for this game, gametype 'psychicnum'.
+-- (5) common.games.is_current_view=true for this game, gametype 'psychicnum'.
 select is(
   (select id from common.games
-    where club_id = (select id from club) and is_active = true),
+    where club_id = (select id from club) and is_current_view = true),
   (select id from g),
-  'common.games row for this game has is_active=true'
+  'common.games row for this game has is_current_view=true'
 );
 select is(
   (select gametype from common.games
-    where club_id = (select id from club) and is_active = true),
+    where club_id = (select id from club) and is_current_view = true),
   'psychicnum',
-  'active common.games row has gametype = psychicnum'
+  'current-view common.games row has gametype = psychicnum'
 );
 
 -- Title = the target number as text (psychic-num is a toy game,
@@ -224,11 +224,11 @@ select is(
 -- ============================================================
 -- (6) A second create in the same club auto-pauses the first
 -- ============================================================
--- The partial unique index on (club_id) where is_active=true
--- forces common.create_game to clear the prior active row before
--- inserting the new one. The first game's psychicnum.games.status
--- stays 'active' — "suspended" is purely a derived club-level
--- state (is_active=false AND ended_at IS NULL).
+-- The partial unique index on (club_id) where is_current_view=true
+-- forces common.create_game to clear the prior current-view row before
+-- inserting the new one. The first game's common.games.play_state
+-- stays 'playing' — "suspended" is purely a derived club-level
+-- state (is_current_view=false AND ended_at IS NULL).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -240,16 +240,16 @@ select * from psychicnum.create_game(
 
 select is(
   (select id from common.games
-    where club_id = (select id from club) and is_active = true),
+    where club_id = (select id from club) and is_current_view = true),
   (select id from g2),
-  'second create_game: new game is the club''s active one'
+  'second create_game: new game is the club''s current-view one'
 );
 
 reset role;
 select is(
-  (select status from psychicnum.games where id = (select id from g)),
-  'active',
-  'first game still has status = active (paused is a club-level state, not a row state)'
+  (select play_state from common.games where id = (select id from g)),
+  'playing',
+  'first game still has play_state = playing (paused is a club-level state, not a row state)'
 );
 
 -- ============================================================
@@ -284,9 +284,10 @@ select is(
 -- (8) target is hidden from authenticated SELECT
 -- ============================================================
 -- The column-level grant on psychicnum.games includes id, club_id,
--- status, guesses_remaining, winner_id, created_at — but NOT
--- target. Selecting target as the authenticated role should raise
--- SQLSTATE 42501 ("permission denied for column").
+-- guesses_remaining, winner_id, created_at — but NOT target.
+-- (Play state now lives on common.games, not here.) Selecting target
+-- as the authenticated role should raise SQLSTATE 42501
+-- ("permission denied for column").
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(

@@ -66,7 +66,9 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table done_game on commit drop as
 select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 reset role;
-update tinyspy.games set status = 'won', current_clue_giver = null
+update common.games set play_state = 'won', is_terminal = true, ended_at = now()
+  where id = (select id from done_game);
+update tinyspy.games set current_clue_giver = null
   where id = (select id from done_game);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(

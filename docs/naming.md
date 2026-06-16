@@ -145,8 +145,9 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit`). Column on `common.games (is_active=true)` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
-| `status` | The `text` column on `<gametype>.games` carrying the lifecycle enum. Each gametype's enum *values* differ; the column NAME is always `status`. |
+| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit`). Column on `common.games` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
+| `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. Values differ per gametype (wordknit: `playing` / `solved` / `lost`; tinyspy: `playing` / `sudden_death` / `won` / `lost_assassin` / `lost_clock` / `lost_timeout`; psychic-num: `playing` / `won` / `lost`); the column NAME is always `play_state`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
+| `is_current_view` | The boolean column on `common.games` carrying the **one current-view game per club** invariant (partial unique index on `(club_id) where is_current_view = true`). See [`states.md`](states.md) for view-state vs play-state. |
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |
 | `club_id` | The FK to `common.clubs(id)` on every `<gametype>.games` table. |
 | `target_game` | The conventional name for the game-UUID parameter on every gametype's mutating RPCs (`submit_guess(target_game uuid, …)`). `target_<noun>` is the broader pattern for RPC params pointing at row IDs. |
@@ -177,6 +178,7 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 | file | what's there |
 |---|---|
 | [`common.md`](common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant, the FE shell |
+| [`states.md`](states.md) | The view-state / play-state vocabulary and how the suspend / current / pause concepts compose |
 | [`tinyspy.md`](tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
 | [`psychicnum.md`](psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
 | [`wordknit.md`](wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |

@@ -77,29 +77,14 @@ export const tinyspyGame: GameManifest = {
     return { id: data.id }
   },
 
-  // Called by the common ClubPage to list tinyspy games for a club.
-  // RLS limits the result to games the caller is a player in —
-  // since tinyspy clubs are 2-member and both members are seated
-  // on every game in the club, that lands at the same answer as
-  // "every tinyspy game in this club."
-  fetchClubGames: async (clubId) => {
-    const { data, error } = await db
-      .from('games')
-      .select('id, status, created_at')
-      .eq('club_id', clubId)
-      .order('created_at', { ascending: false })
-    if (error || !data) return []
-    return data.map((g) => ({
-      gameType: 'tinyspy',
-      gameId: g.id,
-      startedAt: g.created_at,
-      isTerminal: g.status === 'won'
-        || g.status === 'lost_assassin'
-        || g.status === 'lost_clock'
-        || g.status === 'lost_timeout',
-      statusLabel: STATUS_LABEL[g.status] ?? g.status,
-    }))
-  },
+  // Render the per-row label from a common.games row. Tinyspy's
+  // play_state vocabulary is rich enough to label every row
+  // without reading status jsonb (won / lost_assassin /
+  // lost_clock / lost_timeout each get their own copy). Map
+  // misses fall back to the raw play_state, so a future
+  // play_state value renders something sensible until we add
+  // its copy.
+  labelFor: (row) => STATUS_LABEL[row.play_state] ?? row.play_state,
 
   // Called by common's GamePage when its countdown timer hits 0.
   // The RPC flips tinyspy.games.status to 'lost_timeout' (distinct
@@ -114,10 +99,10 @@ export const tinyspyGame: GameManifest = {
   },
 }
 
-// Per-status display strings tinyspy owns — the common ClubPage
-// renders these verbatim. Other games will define their own.
+// Per-play-state display strings tinyspy owns — the common
+// ClubPage renders these verbatim. Other games define their own.
 const STATUS_LABEL: Record<string, string> = {
-  active: 'in progress',
+  playing: 'in progress',
   sudden_death: 'sudden death',
   won: 'won',
   lost_assassin: 'lost (assassin)',

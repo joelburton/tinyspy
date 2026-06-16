@@ -57,7 +57,7 @@
 -- │ submit_guess.                                          │
 -- └────────────────────────────────────────────────────────┘
 --
--- Depends on `common` (clubs, profiles, club_active_game,
+-- Depends on `common` (clubs, profiles, games, game_players,
 -- is_club_member, gametypes). Per the removability invariant in
 -- docs/common.md, common MUST NOT reference wordknit back.
 
@@ -148,8 +148,10 @@ create table wordknit.games (
   -- games first, then drop the puzzle." Set at create_game time;
   -- never updated.
   puzzle_id uuid not null references wordknit.puzzles(id) on delete restrict,
-  status text not null default 'in_progress'
-    check (status in ('in_progress', 'solved', 'lost')),
+  -- play_state lives on common.games. Wordknit's enum values are
+  -- 'playing' / 'solved' / 'lost' (covering both
+  -- 4-mistakes-loss and wall-clock-timeout-loss; the distinction
+  -- lives in common.games.status.outcome).
   mistake_count int not null default 0
     check (mistake_count between 0 and 4),
   -- Frozen per-game copy of the puzzle's categories + this game's
@@ -193,13 +195,11 @@ create index wordknit_guesses_game_id_idx on wordknit.guesses (game_id);
 -- raises unique_violation, which submit_guess catches and
 -- treats as "already matched, no-op."
 --
--- An earlier iteration of this schema had a separate
--- found_groups table whose (game_id, level) PK provided this
--- guarantee. We dropped the table when we realized the data was
--- fully derivable from `guesses` filtered to result='correct'
--- plus the static board; the partial index gives the same
--- idempotency property with one fewer table to fan postgres-
--- changes events out of.
+-- The set of matched categories is fully derivable from
+-- `guesses` filtered to result='correct' plus the static board,
+-- so there's no separate matched-categories table — the partial
+-- index gives the same idempotency property with one fewer
+-- table to fan postgres-changes events out of.
 create unique index wordknit_guesses_one_correct_per_rank
   on wordknit.guesses (game_id, matched_category_rank)
   where result = 'correct';
@@ -253,10 +253,11 @@ alter publication supabase_realtime add table wordknit.guesses;
 --   1. common.create_game(target_club, 'wordknit', player_user_ids,
 --                          title, setup)
 --      — validates caller is in the club, validates every uid in
---      player_user_ids is in clubs_members, clears any prior
---      active game for this club, inserts the common.games header
---      row (with is_active=true) + one common.game_players row
---      per uid, returns the canonical game id.
+--      player_user_ids is in clubs_members, vacates any prior
+--      current-view game for this club, inserts the common.games
+--      header row (with is_current_view=true, play_state='playing')
+--      + one common.game_players row per uid, returns the
+--      canonical game id.
 --   2. INSERT INTO wordknit.games using that id — landing the
 --      gametype-specific board + puzzle reference.
 --
@@ -437,11 +438,12 @@ as $$
 declare
   caller_id uuid;
   g_row wordknit.games%rowtype;
+  current_play_state text;
   matched_count int;
   new_mistake_count int;
   player_results jsonb;
 begin
-  -- Lock the game row for atomic mistake_count++ and status
+  -- Lock the game row for atomic mistake_count++ and play_state
   -- flips.
   select * into g_row from wordknit.games
    where wordknit.games.id = target_game
@@ -457,7 +459,10 @@ begin
   -- still WATCH it (club-wide RLS) but can't act.
   caller_id := common.require_game_player(target_game);
 
-  if g_row.status <> 'in_progress' then
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
@@ -508,9 +513,6 @@ begin
       from wordknit.guesses gu
      where gu.game_id = target_game and gu.result = 'correct';
     if matched_count >= 4 then
-      update wordknit.games set status = 'solved'
-       where wordknit.games.id = target_game;
-
       -- Cooperative win: every player gets {"won": true}. Build
       -- the per-player map from common.game_players for this game.
       select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
@@ -520,12 +522,24 @@ begin
 
       perform common.end_game(
         target_game,
+        'solved',
         jsonb_build_object(
           'outcome', 'solved',
           'mistake_count', g_row.mistake_count,
           'matched_count', 4
         ),
         player_results
+      );
+    else
+      -- Non-terminal correct guess: bump the listing snapshot so
+      -- the club page shows the new matched_count.
+      perform common.update_state(
+        target_game,
+        'playing',
+        jsonb_build_object(
+          'mistake_count', g_row.mistake_count,
+          'matched_count', matched_count
+        )
       );
     end if;
 
@@ -540,12 +554,16 @@ begin
   values
     (target_game, caller_id, tiles, result, null);
 
-  if new_mistake_count >= 4 then
-    update wordknit.games
-      set mistake_count = new_mistake_count,
-          status = 'lost'
-     where wordknit.games.id = target_game;
+  update wordknit.games
+    set mistake_count = new_mistake_count
+   where wordknit.games.id = target_game;
 
+  -- Count current matched categories for the listing snapshot.
+  select count(*) into matched_count
+    from wordknit.guesses gu
+   where gu.game_id = target_game and gu.result = 'correct';
+
+  if new_mistake_count >= 4 then
     -- Cooperative loss: every player gets {"won": false}.
     select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
       into player_results
@@ -554,6 +572,7 @@ begin
 
     perform common.end_game(
       target_game,
+      'lost',
       jsonb_build_object(
         'outcome', 'lost_mistakes',
         'mistake_count', new_mistake_count,
@@ -562,9 +581,14 @@ begin
       player_results
     );
   else
-    update wordknit.games
-      set mistake_count = new_mistake_count
-     where wordknit.games.id = target_game;
+    perform common.update_state(
+      target_game,
+      'playing',
+      jsonb_build_object(
+        'mistake_count', new_mistake_count,
+        'matched_count', matched_count
+      )
+    );
   end if;
 end;
 $$;
@@ -591,7 +615,7 @@ grant execute on function wordknit.submit_guess(uuid, text[], text, int) to auth
 -- realtime will propagate the loss to all clients.
 --
 -- common.end_game handles the cross-cutting termination work
--- (club_active_game cleanup, status_summary, per-player results).
+-- (play_state + is_terminal + status + per-player results).
 
 create function wordknit.submit_timeout(target_game uuid)
 returns void
@@ -601,6 +625,7 @@ set search_path = wordknit, common, public, extensions
 as $$
 declare
   g_row wordknit.games%rowtype;
+  current_play_state text;
   matched_count int;
   player_results jsonb;
 begin
@@ -614,14 +639,14 @@ begin
   -- Auth + game-player gate. See common.require_game_player.
   perform common.require_game_player(target_game);
 
-  if g_row.status <> 'in_progress' then
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
-  update wordknit.games set status = 'lost'
-   where wordknit.games.id = target_game;
-
-  -- Build cooperative loss player_results + status_summary.
+  -- Build cooperative loss player_results + status jsonb.
   select count(*) into matched_count
     from wordknit.guesses gu
    where gu.game_id = target_game and gu.result = 'correct';
@@ -633,6 +658,7 @@ begin
 
   perform common.end_game(
     target_game,
+    'lost',
     jsonb_build_object(
       'outcome', 'lost_timeout',
       'mistake_count', g_row.mistake_count,
@@ -646,15 +672,11 @@ $$;
 revoke execute on function wordknit.submit_timeout(uuid) from public;
 grant execute on function wordknit.submit_timeout(uuid) to authenticated;
 
--- (No clear_active_on_termination trigger here. Earlier iterations
--- had one — its job was to delete common.club_active_game when
--- status flipped terminal. That responsibility moved into
--- common.end_game, which the submit_guess and submit_timeout RPCs
--- now call explicitly at the moment they decide the game is over.
--- The single-write-path is cleaner than the trigger-fires-on-status-
--- change side-effect, especially since common.end_game also writes
--- common.games.ended_at + status_summary + per-player results — all
--- the terminal-transition coordination in one place.)
+-- Terminal-transition cleanup happens inline: submit_guess and
+-- submit_timeout call common.end_game explicitly at the moment
+-- the game is decided over. Single write path keeps all the
+-- termination coordination (ended_at, play_state, is_terminal,
+-- status, player_results) in one place.
 
 -- ============================================================
 -- Register wordknit with common.gametypes

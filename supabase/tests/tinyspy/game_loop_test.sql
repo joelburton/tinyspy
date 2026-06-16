@@ -10,7 +10,7 @@
 --   1. A full active-play loop with clue, green guess, neutral
 --      guess (turn ends), pass (zero-guess turn ends).
 --   2. A fresh game where the first guess hits an assassin —
---      the game ends immediately in `lost_assassin`.
+--      the game ends immediately in `lost_assassin` play_state.
 --
 -- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
@@ -29,7 +29,7 @@ select plan(18);
 -- ============================================================
 -- Ada creates the 2-member club; tinyspy.create_game seats both
 -- members per the setup (ada as first clue-giver → seat A) and
--- brings the game straight to 'active'.
+-- brings the game straight to play_state='playing'.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -168,13 +168,13 @@ select is(
 -- Game 2: assassin reveal
 -- ============================================================
 -- Bea guesses Ada's assassin cell — game ends immediately, regardless
--- of token count. status flips to lost_assassin and current_clue_giver
+-- of token count. play_state flips to lost_assassin and current_clue_giver
 -- is cleared.
 
 -- Game 2 reuses the same club. common.create_game flips the prior
--- active row to is_active=false before inserting the new one with
--- is_active=true, so g1 implicitly becomes suspended — fine for
--- this test, which doesn't poke at the is_active state directly.
+-- current-view row to is_current_view=false before inserting the new one with
+-- is_current_view=true, so g1 implicitly stops being the current view — fine
+-- for this test, which doesn't poke at the is_current_view state directly.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
@@ -192,9 +192,9 @@ select is(
 );
 
 select is(
-  (select status from games where id = (select id from g2)),
+  (select play_state from common.games where id = (select id from g2)),
   'lost_assassin',
-  'assassin reveal sets status = lost_assassin'
+  'assassin reveal sets play_state = lost_assassin'
 );
 
 -- ============================================================

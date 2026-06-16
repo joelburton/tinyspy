@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { games } from '../../games'
 import { type GamePageCtx } from '../lib/games'
@@ -7,6 +7,7 @@ import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
 import { ClubChatPanel } from './ClubChatPanel'
 import { PauseBoundary } from './PauseBoundary'
+import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import styles from './GamePage.module.css'
 
 type Props = {
@@ -51,6 +52,13 @@ type Props = {
  * to false once `common.games.ended_at` is populated, so a game
  * that ends mid-pause (stale-tab edge case) cleanly transitions
  * to "PlayArea mounted, ResultBanner shown."
+ *
+ * Back-to-club asymmetry (per docs/states.md → "Leaving the
+ * game page"): terminal games leave with a single click — no
+ * progress to lose. Non-terminal games intercept the click,
+ * open the suspend-confirm modal, and on accept fire
+ * `sendSuspend` (broadcast → every peer navigates back to the
+ * club page; last-leaver clears is_current_view).
  */
 export function GamePage({
   gameId,
@@ -66,9 +74,15 @@ export function GamePage({
     manuallyPausedBy,
     sendManualPause,
     sendManualUnpause,
+    sendSuspend,
     timer,
     loading,
   } = useCommonGame(gameId, session)
+  // Open/closed state for the suspend-confirm modal. Set true
+  // when the non-terminal Back-to-club click is intercepted;
+  // cleared on Cancel or after Suspend (sendSuspend navigates
+  // away, which unmounts this component anyway).
+  const [confirmingSuspend, setConfirmingSuspend] = useState(false)
 
   // Edge-trigger timeout-loss when countdown hits 0. The
   // submittedTimeoutRef gate prevents double-firing within this
@@ -118,12 +132,40 @@ export function GamePage({
               Pause
             </button>
           )}
-          <Link
-            to={`/c/${commonGame.club_handle}`}
-            className="link-button"
-          >
-            ← Back to club
-          </Link>
+          {gameOver ? (
+            // Terminal: single-click back. Real <Link> so the
+            // browser shows the href on hover / middle-click /
+            // right-click. Last-viewer cleanup will fire
+            // unset_current_view via useCommonGame's unmount.
+            <Link
+              to={`/c/${commonGame.club_handle}`}
+              className="link-button"
+            >
+              ← Back to club
+            </Link>
+          ) : (
+            // Non-terminal: intercept the click and open the
+            // suspend-confirm modal. Rendered as an <a> with the
+            // matching href so it still looks/middle-clicks like
+            // a link; the preventDefault on plain-click is what
+            // opens the modal instead of navigating.
+            <a
+              href={`/c/${commonGame.club_handle}`}
+              className="link-button"
+              onClick={(e) => {
+                // Honour middle-click / cmd+click as a normal
+                // open-in-new-tab — only intercept plain clicks.
+                if (e.button !== 0 || e.metaKey || e.ctrlKey
+                  || e.shiftKey || e.altKey) {
+                  return
+                }
+                e.preventDefault()
+                setConfirmingSuspend(true)
+              }}
+            >
+              ← Back to club
+            </a>
+          )}
         </div>
       </header>
 
@@ -133,10 +175,30 @@ export function GamePage({
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}
       >
-        {children({ session, gameId, members, timer })}
+        {children({
+          session,
+          gameId,
+          members,
+          playState: commonGame.play_state,
+          isTerminal: commonGame.is_terminal,
+          timer,
+        })}
       </PauseBoundary>
 
       <ClubChatPanel clubId={commonGame.club_id} members={members} />
+
+      {confirmingSuspend && (
+        <SuspendConfirmDialog
+          title={commonGame.title}
+          onCancel={() => setConfirmingSuspend(false)}
+          onSuspend={() => {
+            // sendSuspend broadcasts + navigates self. Peers
+            // navigate themselves on receipt; the last leaver
+            // clears is_current_view via cleanup.
+            sendSuspend()
+          }}
+        />
+      )}
     </div>
   )
 }

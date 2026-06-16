@@ -29,14 +29,18 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  * partner gives a clue or makes a guess on their machine, our
  * view updates without a round trip.
  */
-export function PlayArea({ session, gameId }: GamePageCtx) {
+export function PlayArea({
+  session,
+  gameId,
+  playState,
+  isTerminal,
+}: GamePageCtx) {
   const { game, players } = useGame(gameId)
-  // `gameOver` is derived early so we can pass `revealPeer` into
-  // useBoard; until `game` loads it's `false`, and useBoard reads
-  // `null` for peerKey.
-  const gameOver = game
-    ? game.status !== 'active' && game.status !== 'sudden_death'
-    : false
+  // `gameOver` mirrors common.games.is_terminal — derived early so
+  // we can pass `revealPeer` into useBoard. `playState` carries the
+  // gametype-specific value ('playing', 'sudden_death', 'won', ...)
+  // for the phase derivation and the GameOverBanner copy.
+  const gameOver = isTerminal
   const { words, myKey, peerKey, loading } = useBoard(
     gameId,
     session.user.id,
@@ -63,7 +67,7 @@ export function PlayArea({ session, gameId }: GamePageCtx) {
   // see there for the full clickability / phase matrix.
   const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } =
     derivePhase({
-      status: game.status as GameStatus,
+      status: playState as GameStatus,
       currentClueGiver: game.current_clue_giver as Seat | null,
       mySeat,
       hasCurrentTurnClue: currentTurnClue !== null,
@@ -83,7 +87,7 @@ export function PlayArea({ session, gameId }: GamePageCtx) {
 
       {gameOver && (
         <div className={styles.gameOverSlot}>
-          <GameOverBanner status={game.status} />
+          <GameOverBanner status={playState} />
         </div>
       )}
 

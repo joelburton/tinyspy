@@ -122,7 +122,7 @@ assertion, or to override a column the FE has no grant on):
 
 ```sql
 reset role;
-update tinyspy.games set status = 'won' where id = ...;
+update common.games set play_state = 'won', is_terminal = true where id = ...;
 ```
 
 To simulate an *unauthenticated* caller (clears the JWT claim while

@@ -6,17 +6,17 @@
 --   - payload rejections (wrong tile count, bad result enum,
 --     bad matched_category_rank)
 --   - phase rejections (unauth, non-member, finished game)
---   - wrong path: mistake_count++, status stays in_progress
+--   - wrong path: mistake_count++, play_state stays playing
 --   - oneAway path: also counts as mistake
 --   - correct path: a guesses row with result='correct' lands
 --   - the partial unique index on (game_id,
 --     matched_category_rank) where result='correct' provides
 --     race idempotency: a second 'correct' for the same rank is
 --     a silent no-op
---   - 4 mistakes flips status to 'lost', clears
---     is_active flipped via common.end_game
---   - 4 matched categories flips status to 'solved', clears
---     is_active flipped via common.end_game
+--   - 4 mistakes flips play_state to 'lost', clears
+--     is_current_view flipped via common.end_game
+--   - 4 matched categories flips play_state to 'solved', clears
+--     is_current_view flipped via common.end_game
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
 -- simulation primer.
@@ -137,9 +137,9 @@ select is(
 );
 
 select is(
-  (select status from wordknit.games where id = (select id from g)),
-  'in_progress',
-  'submit_guess: wrong guess leaves status in_progress'
+  (select play_state from common.games where id = (select id from g)),
+  'playing',
+  'submit_guess: wrong guess leaves play_state playing'
 );
 
 -- ============================================================
@@ -213,17 +213,17 @@ select wordknit.submit_guess(
 
 reset role;
 select is(
-  (select status from wordknit.games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'solved',
-  'submit_guess: 4 matched categories flips status to solved'
+  'submit_guess: 4 matched categories flips play_state to solved'
 );
 
--- end_game flips is_active=false → no active game for this club.
+-- end_game marks the row terminal (is_current_view is left alone
+-- — the post-game review still lives on the current-view row).
 select is(
-  (select count(*) from common.games
-    where club_id = (select id from club) and is_active = true),
-  0::bigint,
-  'submit_guess: end_game flips is_active=false on win'
+  (select is_terminal from common.games where id = (select id from g)),
+  true,
+  'submit_guess: end_game sets is_terminal=true on win'
 );
 
 -- ============================================================
@@ -259,19 +259,19 @@ select wordknit.submit_guess(
 );
 
 reset role;
--- After 3 wrong, mistake_count = 3, status still in_progress.
+-- After 3 wrong, mistake_count = 3, play_state still playing.
 select is(
   (select mistake_count from wordknit.games where id = (select id from g2)),
   3,
   'submit_guess: 3 wrong guesses leaves mistake_count at 3'
 );
 select is(
-  (select status from wordknit.games where id = (select id from g2)),
-  'in_progress',
-  'submit_guess: 3 wrong guesses leaves status in_progress'
+  (select play_state from common.games where id = (select id from g2)),
+  'playing',
+  'submit_guess: 3 wrong guesses leaves play_state playing'
 );
 
--- The 4th wrong takes mistake_count to 4 and flips status to lost.
+-- The 4th wrong takes mistake_count to 4 and flips play_state to lost.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordknit.submit_guess(
   (select id from g2),
@@ -281,16 +281,17 @@ select wordknit.submit_guess(
 
 reset role;
 select is(
-  (select status from wordknit.games where id = (select id from g2)),
+  (select play_state from common.games where id = (select id from g2)),
   'lost',
-  'submit_guess: 4th wrong guess flips status to lost'
+  'submit_guess: 4th wrong guess flips play_state to lost'
 );
 
 -- ============================================================
 -- (15)–(18) submit_timeout — timeout-loss path
 -- ============================================================
 -- The FE fires this when the count-down timer hits 0. Sets
--- status='lost' just like a 4-mistakes-loss. Idempotent: a
+-- play_state='lost' just like a 4-mistakes-loss (the timeout
+-- distinction lives in status->>'outcome'). Idempotent: a
 -- second concurrent call from a racing client raises a clean
 -- P0001 "game is not in progress" which the FE swallows.
 
@@ -302,28 +303,27 @@ select * from wordknit.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
--- Happy path: in_progress → submit_timeout → lost.
+-- Happy path: playing → submit_timeout → lost.
 select lives_ok(
   format(
     $$ select wordknit.submit_timeout(%L::uuid) $$,
     (select id from g3)
   ),
-  'submit_timeout: in-progress game accepts the call'
+  'submit_timeout: playing game accepts the call'
 );
 
 reset role;
 select is(
-  (select status from wordknit.games where id = (select id from g3)),
+  (select play_state from common.games where id = (select id from g3)),
   'lost',
-  'submit_timeout: flips status to lost'
+  'submit_timeout: flips play_state to lost'
 );
 
--- end_game flips is_active=false on timeout-loss too.
+-- end_game marks the row terminal on timeout-loss too.
 select is(
-  (select count(*) from common.games
-    where club_id = (select id from club) and is_active = true),
-  0::bigint,
-  'submit_timeout: end_game flips is_active=false on timeout-loss'
+  (select is_terminal from common.games where id = (select id from g3)),
+  true,
+  'submit_timeout: end_game sets is_terminal=true on timeout-loss'
 );
 
 -- Idempotency: a second call from any caller on the already-

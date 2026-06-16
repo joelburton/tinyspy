@@ -149,33 +149,48 @@ export type Database = {
           ended_at: string | null
           gametype: string
           id: string
-          is_active: boolean
+          idle_since: string | null
+          is_current_view: boolean
+          is_terminal: boolean
+          paused: boolean
+          play_state: string
           setup: Json
           started_at: string
-          status_summary: Json | null
+          status: Json | null
           title: string
+          total_idle_seconds: number
         }
         Insert: {
           club_id: string
           ended_at?: string | null
           gametype: string
           id?: string
-          is_active?: boolean
+          idle_since?: string | null
+          is_current_view?: boolean
+          is_terminal?: boolean
+          paused?: boolean
+          play_state?: string
           setup: Json
           started_at?: string
-          status_summary?: Json | null
+          status?: Json | null
           title: string
+          total_idle_seconds?: number
         }
         Update: {
           club_id?: string
           ended_at?: string | null
           gametype?: string
           id?: string
-          is_active?: boolean
+          idle_since?: string | null
+          is_current_view?: boolean
+          is_terminal?: boolean
+          paused?: boolean
+          play_state?: string
           setup?: Json
           started_at?: string
-          status_summary?: Json | null
+          status?: Json | null
           title?: string
+          total_idle_seconds?: number
         }
         Relationships: [
           {
@@ -287,8 +302,9 @@ export type Database = {
       }
       end_game: {
         Args: {
+          play_state: string
           player_results: Json
-          status_summary: Json
+          status: Json
           target_game: string
         }
         Returns: undefined
@@ -300,7 +316,13 @@ export type Database = {
         Args: { content: string; target_club: string }
         Returns: undefined
       }
+      set_current_view: { Args: { target_game: string }; Returns: undefined }
       slugify_club_name: { Args: { name: string }; Returns: string }
+      unset_current_view: { Args: { target_game: string }; Returns: undefined }
+      update_state: {
+        Args: { play_state: string; status: Json; target_game: string }
+        Returns: undefined
+      }
       validate_timer: { Args: { timer_obj: Json }; Returns: undefined }
     }
     Enums: {
@@ -343,7 +365,6 @@ export type Database = {
           created_at: string
           guesses_remaining: number
           id: string
-          status: string
           target: number
           winner_id: string | null
         }
@@ -352,7 +373,6 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id: string
-          status?: string
           target: number
           winner_id?: string | null
         }
@@ -361,7 +381,6 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id?: string
-          status?: string
           target?: number
           winner_id?: string | null
         }
@@ -417,7 +436,6 @@ export type Database = {
           created_at: string | null
           guesses_remaining: number | null
           id: string | null
-          status: string | null
           target: number | null
           winner_id: string | null
         }
@@ -426,7 +444,6 @@ export type Database = {
           created_at?: string | null
           guesses_remaining?: number | null
           id?: string | null
-          status?: string | null
           target?: never
           winner_id?: string | null
         }
@@ -435,7 +452,6 @@ export type Database = {
           created_at?: string | null
           guesses_remaining?: number | null
           id?: string | null
-          status?: string | null
           target?: never
           winner_id?: string | null
         }
@@ -528,7 +544,6 @@ export type Database = {
           id: string
           key_card_a: Json
           key_card_b: Json
-          status: string
           turn_number: number
           turns_remaining: number
           user_a_id: string
@@ -541,7 +556,6 @@ export type Database = {
           id: string
           key_card_a: Json
           key_card_b: Json
-          status?: string
           turn_number?: number
           turns_remaining?: number
           user_a_id: string
@@ -554,7 +568,6 @@ export type Database = {
           id?: string
           key_card_a?: Json
           key_card_b?: Json
-          status?: string
           turn_number?: number
           turns_remaining?: number
           user_a_id?: string
@@ -653,7 +666,6 @@ export type Database = {
           id: string
           mistake_count: number
           puzzle_id: string
-          status: string
         }
         Insert: {
           board: Json
@@ -662,7 +674,6 @@ export type Database = {
           id: string
           mistake_count?: number
           puzzle_id: string
-          status?: string
         }
         Update: {
           board?: Json
@@ -671,7 +682,6 @@ export type Database = {
           id?: string
           mistake_count?: number
           puzzle_id?: string
-          status?: string
         }
         Relationships: [
           {

@@ -6,8 +6,8 @@
 -- game: it takes a target_club + a jsonb setup + player_user_ids,
 -- validates them, seats both players (user_a_id/user_b_id
 -- columns), picks the 25 words, generates the Duet key card,
--- sets status='active'. The common.games row created by
--- common.create_game gets is_active=true.
+-- sets play_state='playing'. The common.games row created by
+-- common.create_game gets is_current_view=true.
 --
 -- Coverage:
 --   - rejection: not authenticated
@@ -16,9 +16,9 @@
 --   - rejection: setup.turns out of {9, 10, 11}
 --   - rejection: setup.firstClueGiverUserId not a uuid
 --   - rejection: setup.firstClueGiverUserId not in club
---   - happy path: returns one row, status='active', club_id
+--   - happy path: returns one row, play_state='playing', club_id
 --     correct, both seats filled, 25 words inserted,
---     common.games row created with is_active=true
+--     common.games row created with is_current_view=true
 --   - setup is persisted on the row (game review can see the
 --     original setup)
 --   - turns_remaining initialized from setup.turns (a non-9
@@ -319,9 +319,9 @@ select is(
 );
 
 select is(
-  (select status from tinyspy.games where id = (select id from created)),
-  'active',
-  'create_game: new game starts in active status (no lobby)'
+  (select play_state from common.games where id = (select id from created)),
+  'playing',
+  'create_game: new game starts in playing status (no lobby)'
 );
 
 select is(
@@ -379,21 +379,21 @@ select is(
 );
 
 -- ============================================================
--- common.games: the new game has is_active=true for this club
+-- common.games: the new game has is_current_view=true for this club
 -- ============================================================
 
 select is(
   (select id from common.games
-    where club_id = (select id from club2) and is_active = true),
+    where club_id = (select id from club2) and is_current_view = true),
   (select id from created),
-  'create_game: this game is the club''s active common.games row'
+  'create_game: this game is the club''s current-view common.games row'
 );
 
 select is(
   (select gametype from common.games
-    where club_id = (select id from club2) and is_active = true),
+    where club_id = (select id from club2) and is_current_view = true),
   'tinyspy',
-  'create_game: active common.games row has gametype = tinyspy'
+  'create_game: current-view common.games row has gametype = tinyspy'
 );
 
 -- Title shape: "<seatA-username>-v-<seatB-username>: 4 words".

@@ -4,13 +4,13 @@
 --
 -- Mirrors wordknit / psychic-num: the FE fires this RPC when its
 -- count-down timer hits 0. The server-side gate is the
--- non-terminal-status check; status flips to 'lost_timeout' and
+-- non-terminal-play_state check; play_state flips to 'lost_timeout' and
 -- common.end_game records outcome='lost_timeout'. Idempotent on
 -- the gate — a second call (e.g. a peer's racing tab) raises
 -- a clean P0001 the FE silently swallows.
 --
 -- Coverage:
---   - happy path from active: status → lost_timeout, ended_at set
+--   - happy path from playing: play_state → lost_timeout, ended_at set
 --   - happy path from sudden_death (the other non-terminal state)
 --   - idempotency: second call on a terminal game is rejected
 --   - require_game_player: non-player is rejected
@@ -34,7 +34,7 @@ create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 
 -- ============================================================
--- (1) Happy path: active → lost_timeout via submit_timeout
+-- (1) Happy path: playing → lost_timeout via submit_timeout
 -- ============================================================
 
 create temp table g on commit drop as
@@ -56,30 +56,29 @@ select lives_ok(
     $$ select tinyspy.submit_timeout(%L::uuid) $$,
     (select id from g)
   ),
-  'submit_timeout: active game accepts the call'
+  'submit_timeout: playing game accepts the call'
 );
 
 reset role;
 select is(
-  (select status from tinyspy.games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'lost_timeout',
-  'submit_timeout: flips status to lost_timeout'
+  'submit_timeout: flips play_state to lost_timeout'
 );
 
--- end_game closes the common.games row.
+-- end_game marks the common.games row terminal.
 select is(
-  (select count(*) from common.games
-    where club_id = (select id from club) and is_active = true),
-  0::bigint,
-  'submit_timeout: end_game flips is_active=false on the common header'
+  (select is_terminal from common.games where id = (select id from g)),
+  true,
+  'submit_timeout: end_game sets is_terminal=true on the common header'
 );
 
--- Status-summary outcome carried through to common.games.
+-- Status outcome carried through to common.games.
 select is(
-  (select status_summary->>'outcome' from common.games
+  (select status->>'outcome' from common.games
     where id = (select id from g)),
   'lost_timeout',
-  'submit_timeout: status_summary.outcome = lost_timeout'
+  'submit_timeout: status.outcome = lost_timeout'
 );
 
 -- ============================================================
@@ -126,12 +125,12 @@ select throws_ok(
 -- ============================================================
 -- (4) Happy path from sudden_death
 -- ============================================================
--- Tinyspy's other non-terminal status is `sudden_death`. The
+-- Tinyspy's other non-terminal play_state is `sudden_death`. The
 -- timer can expire in that state too — submit_timeout should
 -- still flip to lost_timeout.
 
 reset role;
-update tinyspy.games set status = 'sudden_death'
+update common.games set play_state = 'sudden_death'
  where id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -145,7 +144,7 @@ select lives_ok(
 
 reset role;
 select is(
-  (select status from tinyspy.games where id = (select id from g2)),
+  (select play_state from common.games where id = (select id from g2)),
   'lost_timeout',
   'submit_timeout: sudden_death → lost_timeout (not lost_clock)'
 );

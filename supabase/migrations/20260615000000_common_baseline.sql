@@ -1,26 +1,10 @@
 -- ============================================================
--- common schema — baseline (squashed)
+-- common schema — baseline
 -- ============================================================
 --
--- Squashed from three originally-separate migrations:
---
---   2026-06-12  common_baseline           — profiles, clubs,
---                                            clubs_members, club_active_game,
---                                            messages, slugify, create_club,
---                                            send_message, is_club_member,
---                                            handle_new_user trigger
---   2026-06-14  common_club_game_kinds    — gametypes registry +
---                                            clubs_gametypes m2m, with
---                                            handle_new_user / create_club
---                                            extended to populate it
---
--- The pre-squash files lived behind several CREATE OR REPLACE
--- patches on top of the original baseline. The squash collapses
--- them into a single forward definition: every table created once
--- with its final shape, every function created once with its final
--- body. The original migration files (and their CREATE OR REPLACE
--- dances) live in git history for anyone curious about the
--- evolution.
+-- The forward definition of every `common.*` table, function,
+-- index, and policy. Each table created once with its final
+-- shape; each function created once with its final body.
 --
 -- What `common` holds:
 --   - profiles            — one row per auth user (created on
@@ -36,14 +20,15 @@
 --   - games               — universal game-record header (the
 --                            "index"). One row per game-playing
 --                            across all gametypes. Holds club_id,
---                            gametype, timestamps, status_summary
---                            jsonb, and `is_active` (the per-club
---                            active-game flag, enforced by a partial
---                            unique index — at most one active row
---                            per club). Per-gametype detail (board,
+--                            gametype, timestamps, view state
+--                            (is_current_view, paused), play state
+--                            (play_state, is_terminal), and `status`
+--                            jsonb for the club-page listing
+--                            label. Per-gametype detail (board,
 --                            secret, current turn, etc.) lives on
 --                            `<gametype>.games`, which shares an id
---                            with this row via FK.
+--                            with this row via FK. See
+--                            docs/states.md.
 --   - game_players        — who played each game + their per-player
 --                            outcome (`result jsonb`, populated at
 --                            game-end). Persisted "who played" is a
@@ -56,12 +41,6 @@
 --                            club by handle_new_user / create_club.
 --   - messages            — per-club chat. Single thread per club,
 --                            persists across gametype switches.
---
--- (An earlier iteration had a separate `club_active_game` pointer
--- table. That table's three roles — mark which game is active,
--- enforce one-active-per-club, drive realtime auto-nav — all
--- collapsed onto `common.games.is_active` once `common.games`
--- itself existed.)
 --
 -- Naming note: m2m tables are pluralized on both sides
 -- (`clubs_members`, `clubs_gametypes`) so they read as m:m at a
@@ -184,16 +163,18 @@ create table common.gametypes (
 --                              this row's id via id PK
 --
 -- This split powers the "list all games in a club" surface — one
--- query against common.games replaces today's registry-dispatch
--- through each manifest's fetchClubGames. Per-gametype detail
--- stays lazy-loaded (matches the FE's chunk-per-game pattern).
+-- query against common.games is all ClubPage needs; each
+-- manifest's `labelFor(row)` renders the per-row status label
+-- from this row's `status` jsonb. Per-gametype detail stays
+-- lazy-loaded (matches the FE's chunk-per-game pattern).
 --
--- `status_summary jsonb` is the gametype's structured description
--- of "where is this game now" — populated by each gametype's
--- end-of-game flow. The manifest is the only thing that knows
--- how to render it (typed by the gametype, not by common).
+-- `status jsonb` is the gametype's structured "where is this
+-- game now" snapshot — kept current by every state-transition
+-- RPC (the duplicate-write discipline; see docs/states.md). The
+-- manifest is the only thing that knows how to render it (typed
+-- by the gametype, not by common).
 --
--- ended_at is null while in_progress and set at terminal
+-- ended_at is null while non-terminal and set at terminal
 -- transition by common.end_game.
 --
 -- `gametype` FKs to common.gametypes(gametype) ON DELETE CASCADE,
@@ -234,14 +215,64 @@ create table common.gametypes (
 -- field-level validation (e.g. setup.guesses ∈ {3,5,7,9}) AND
 -- calls `common.validate_timer(setup->'timer')` before passing
 -- the whole blob up to `common.create_game`.
+-- View-state vs play-state vocabulary (see docs/states.md):
+--
+--   View states (where this game sits in the club's "what are we
+--   looking at right now" picture):
+--     - is_current_view — true iff at least one member is viewing
+--                          the GamePage. At most one current
+--                          game per club, enforced by the partial
+--                          unique index below.
+--     - paused          — true iff presence-pause OR manual-pause
+--                          is in effect. Only meaningful when
+--                          is_current_view = true; defaults false
+--                          for non-current games.
+--
+--   Play states (the game's rules-side situation, totally
+--   independent of view state):
+--     - play_state  — text; the gametype's enum value (e.g.
+--                      'playing', 'won', 'lost_timeout'). Every
+--                      gametype uses 'playing' for its standard
+--                      mid-game value — see docs/states.md for
+--                      the no-'active'-as-play_state rule.
+--                      No CHECK constraint here — common stays
+--                      gametype-blind. The per-gametype RPCs
+--                      are the gate.
+--     - is_terminal — boolean; materialized derivation. Each
+--                      gametype's RPC writes it in the same
+--                      transaction as play_state. Avoids
+--                      callers having to interpret per-gametype
+--                      terminal-sets.
+--     - status      — jsonb; gametype-specific data for the
+--                      club-page listing label (rendered by
+--                      `manifest.labelFor`). Kept current on
+--                      every state-transition RPC via the
+--                      duplicate-write discipline: each gametype
+--                      RPC writes its foo.games row AND the
+--                      common.games status in one transaction.
 create table common.games (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references common.clubs(id) on delete cascade,
   gametype text not null references common.gametypes(gametype) on delete cascade,
   title text not null check (length(trim(title)) > 0),
   setup jsonb not null,
-  is_active boolean not null default false,
-  status_summary jsonb,
+  is_current_view boolean not null default false,
+  paused boolean not null default false,
+  play_state text not null default 'playing',
+  is_terminal boolean not null default false,
+  status jsonb,
+  -- Timer-state preservation: when the last viewer leaves (or
+  -- a vacate path runs), idle_since is stamped with now(). On
+  -- the next set_current_view, (now - idle_since) is added
+  -- into total_idle_seconds and idle_since is cleared. The FE
+  -- timer hook subtracts total_idle_seconds from elapsed so a
+  -- 10-minute countdown that sat unseen for 5 minutes still
+  -- shows 9:50, not 4:50. Invariant: idle_since IS NULL iff
+  -- is_current_view = true. See common.set_current_view /
+  -- common.unset_current_view + docs/deferred.md → "Timer
+  -- counts wall-clock time while no one's on the game (bug)."
+  idle_since timestamptz,
+  total_idle_seconds int not null default 0,
   started_at timestamptz not null default now(),
   ended_at timestamptz
 );
@@ -249,15 +280,13 @@ create table common.games (
 create index common_games_club_id_started_at_idx
   on common.games (club_id, started_at desc);
 
--- "At most one active game per club, across all gametypes" is
--- enforced by this partial unique index. Multiple is_active=false
--- rows per club are fine (the index doesn't include them); a
--- second is_active=true row for the same club would raise
--- unique_violation, which would be a create_game bug — the RPC's
--- "clear current active" step handles the transition.
-create unique index common_games_one_active_per_club
+-- "At most one current-view game per club, across all gametypes"
+-- — the same invariant the old `is_active` partial index
+-- enforced. The "clear prior current" step in common.create_game
+-- handles the transition.
+create unique index common_games_one_current_view_per_club
   on common.games (club_id)
-  where is_active = true;
+  where is_current_view = true;
 
 -- ============================================================
 -- common.game_players — who played + per-player outcome
@@ -450,11 +479,11 @@ grant select on common.messages                to authenticated;
 --   - clubs              new club created / renamed
 --   - clubs_members      roster changes (deferred to v2 but free)
 --   - messages           chat
---   - games              new games appear; status_summary, ended_at,
---                        is_active flips drive list updates AND the
---                        "every member follows the active game"
---                        auto-nav (which used to live on a separate
---                        club_active_game pointer table)
+--   - games              new games appear; status, play_state,
+--                        is_terminal, ended_at, is_current_view
+--                        flips drive list updates AND the
+--                        "every member follows the current-view
+--                        game" auto-nav
 --   - game_players       end-of-game `result` writes trigger
 --                        per-player outcome rendering
 --
@@ -659,14 +688,14 @@ revoke execute on function common.validate_timer(jsonb) from public;
 --     target_club at game-create time. Players are frozen at
 --     creation; later membership changes to clubs_members don't
 --     affect this game's roster.
---   - Clear any prior active game for this club (UPDATE is_active
---     = false on whichever row currently holds is_active = true).
---     This is the "auto-suspend the previous game" behavior; the
---     prior game stays in common.games for history but loses its
---     active flag.
---   - Insert the new common.games row with is_active = true. The
---     partial unique index on (club_id) where is_active = true
---     guarantees the just-cleared step worked.
+--   - Vacate any prior current-view game for this club (UPDATE
+--     is_current_view = false on whichever row currently holds
+--     it). This is the "auto-suspend the previous game" behavior;
+--     the prior game stays in common.games but loses its
+--     current-view flag.
+--   - Insert the new common.games row with is_current_view = true.
+--     The partial unique index on (club_id) where is_current_view
+--     = true guarantees the just-cleared step worked.
 --   - Insert one common.game_players row per uid.
 --   - Return the new game id.
 --
@@ -723,20 +752,24 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- Auto-suspend the prior active game (if any) for this club —
-  -- the partial unique index would reject the new is_active=true
-  -- row otherwise. The previously-active game stays in
-  -- common.games with is_active=false; it's now in the
-  -- "suspended" state per the three-state lifecycle (still
-  -- non-terminal, just no longer the club's active focus).
+  -- Vacate the prior current-view game (if any) for this club —
+  -- the partial unique index would reject the new
+  -- is_current_view=true row otherwise. The previously-current
+  -- game stays in common.games with is_current_view=false;
+  -- it's now a suspended game (non-current, non-terminal).
+  -- Stamp idle_since=now() as we vacate so the per-game idle
+  -- accumulator stays correct (see common.games.idle_since for
+  -- the invariant).
   update common.games
-     set is_active = false
-   where club_id = target_club and is_active = true;
+     set is_current_view = false,
+         idle_since = now()
+   where club_id = target_club and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
   -- does field-level checks + common.validate_timer before calling
-  -- here). We just persist what we're handed.
-  insert into common.games (club_id, gametype, title, setup, is_active)
+  -- here). We just persist what we're handed. play_state defaults
+  -- to 'playing'; is_terminal defaults to false.
+  insert into common.games (club_id, gametype, title, setup, is_current_view)
   values (target_club, gametype, title, setup, true)
   returning id into new_id;
 
@@ -795,20 +828,75 @@ $$;
 -- No grant to authenticated; internal helper.
 revoke execute on function common.require_game_player(uuid) from public;
 
+-- ─── common.update_state ───────────────────────────────
+-- The mid-game state-write helper. Per-gametype RPCs call this
+-- after any state transition that's NOT a game-end — wordknit's
+-- mistake-count bump, tinyspy's sudden-death entry, psychic-num's
+-- guesses_remaining decrement, etc. Updates `play_state` (the
+-- gametype's enum value) + `status` (the listing-label jsonb) +
+-- `is_terminal` (always false here by definition; the column
+-- exists so the same write-pattern works for both mid-game and
+-- end-game).
+--
+-- This is half of the "duplicate-write discipline": each
+-- per-gametype RPC that mutates state writes BOTH its own
+-- foo.games row (mistake_count, key_card, etc.) AND calls this
+-- helper to mirror the listing-visible bits into common.games.
+-- Same transaction; readers see a coherent snapshot.
+--
+-- Why play_state lives on common.games (not on the per-gametype
+-- foo.games row): the club-page listing needs to query play_state
+-- without joining to per-gametype tables. See docs/states.md →
+-- "Where the two tables sit."
+
+create function common.update_state(
+  target_game uuid,
+  play_state text,
+  status jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+begin
+  update common.games
+     set play_state = update_state.play_state,
+         status = update_state.status,
+         is_terminal = false
+   where id = target_game;
+
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+-- No grant to authenticated; internal helper.
+revoke execute on function common.update_state(uuid, text, jsonb) from public;
+
 -- ─── common.end_game ───────────────────────────────────
--- The terminal-transition counterpart to create_game. Called by
+-- The terminal-transition counterpart to create_game + the
+-- end-game half of the duplicate-write discipline. Called by
 -- each gametype's RPC at the moment its game-specific rule says
 -- "this game is over" — 4 mistakes in wordknit, assassin in
 -- tinyspy, last guess used in psychic-num, countdown expired,
--- player-confirmed suspend, etc. The helper writes:
+-- etc. Writes:
 --
---   - common.games.ended_at      = now()
---   - common.games.status_summary = status_summary (manifest-shaped)
---   - common.games.is_active     = false (so this game is no
---                                  longer the club's active one;
---                                  the partial unique index allows
---                                  a future game to take the slot)
+--   - common.games.ended_at        = now()
+--   - common.games.play_state      = play_state (the terminal
+--                                     value: 'won', 'lost_timeout',
+--                                     etc. — gametype-specific)
+--   - common.games.is_terminal     = true
+--   - common.games.status          = status (manifest-shaped jsonb
+--                                     for the listing label)
 --   - common.game_players.result for each user in player_results
+--
+-- Note: is_current_view is NOT cleared here. A finished game can
+-- still have viewers reviewing it (the "we lost — let's look at
+-- the unmatched bands" experience); the view-state lifecycle is
+-- separate from terminal transition. is_current_view clears when
+-- the last viewer actually leaves the page.
 --
 -- player_results is a jsonb object keyed by user_id string:
 --
@@ -820,13 +908,14 @@ revoke execute on function common.require_game_player(uuid) from public;
 --
 -- Idempotency: a second call on an already-ended game is a no-op
 -- on ended_at (left as the first call's value) and overwrites
--- status_summary + player_results. The current pattern of
+-- status / play_state / player_results. The current pattern of
 -- "termination fires once from one RPC" makes the idempotency
 -- detail moot in practice.
 
 create function common.end_game(
   target_game uuid,
-  status_summary jsonb,
+  play_state text,
+  status jsonb,
   player_results jsonb
 )
 returns void
@@ -840,8 +929,9 @@ declare
 begin
   update common.games
      set ended_at = coalesce(ended_at, now()),
-         status_summary = end_game.status_summary,
-         is_active = false
+         play_state = end_game.play_state,
+         is_terminal = true,
+         status = end_game.status
    where id = target_game;
 
   if not found then
@@ -862,7 +952,118 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.end_game(uuid, jsonb, jsonb) from public;
+revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
+
+-- ─── common.set_current_view ───────────────────────────────
+-- Fired from the FE when the first viewer mounts a game's
+-- GamePage. Sets common.games.is_current_view=true on this game
+-- and clears it on any other game in the same club (the partial
+-- unique index `(club_id) where is_current_view=true` would
+-- otherwise reject the new true).
+--
+-- Idempotent: re-mounting the already-current game writes the
+-- same row's value back to true (still satisfies the index).
+-- Concurrent mounts of two different games in the same club
+-- serialize via the index — last writer wins, the loser's FE
+-- realtime auto-nav pulls them into the winner's game.
+--
+-- Auth: caller must be a member of the game's club. We use
+-- require_club_member rather than require_game_player so a
+-- non-player club member can still view (and become the
+-- current viewer of) a game they weren't seated in. Today's
+-- seating model puts every club member in game_players for
+-- every game, but the looser gate is the future-correct one.
+--
+-- Companion to unset_current_view (called when the last viewer
+-- leaves). See docs/states.md → "Lifecycle: when
+-- is_current_view flips" for the full story.
+
+create function common.set_current_view(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  target_club uuid;
+begin
+  select club_id into target_club from common.games where id = target_game;
+  if target_club is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_club_member(target_club);
+
+  -- Vacate any other current-view game for this club. Done
+  -- first so the partial unique index doesn't reject the
+  -- target's write. The `id <> target_game` clause keeps this
+  -- a no-op when the target is already current (it won't write
+  -- itself to false-then-true). Stamp idle_since=now() on the
+  -- vacated row so its idle accumulator stays correct.
+  update common.games
+     set is_current_view = false,
+         idle_since = now()
+   where club_id = target_club
+     and is_current_view = true
+     and id <> target_game;
+
+  -- Set the target current. If it had been idle, fold the idle
+  -- window into total_idle_seconds and clear idle_since. The
+  -- coalesce(idle_since, now()) makes the subtraction safe when
+  -- the row was never idle (re-mount of an already-current
+  -- game) — the result is now-now=0 and the +0 is harmless.
+  update common.games
+     set is_current_view = true,
+         total_idle_seconds = total_idle_seconds
+           + extract(epoch from (now() - coalesce(idle_since, now())))::int,
+         idle_since = null
+   where id = target_game
+     and is_current_view = false;
+end;
+$$;
+
+revoke execute on function common.set_current_view(uuid) from public;
+grant execute on function common.set_current_view(uuid) to authenticated;
+
+-- ─── common.unset_current_view ─────────────────────────────
+-- Fired from the FE when the last viewer's tab is leaving a
+-- GamePage (presence-sync sees only-me + I'm unmounting). Clears
+-- is_current_view on the target game. Idempotent via the
+-- `where is_current_view=true` guard: a second concurrent call
+-- from another tab is a silent no-op.
+--
+-- Auth: same club_member gate as set_current_view — symmetry
+-- matters and "you can flip your club's current pointer if
+-- you're a member" is the right granularity.
+
+create function common.unset_current_view(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  target_club uuid;
+begin
+  select club_id into target_club from common.games where id = target_game;
+  if target_club is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_club_member(target_club);
+
+  -- Stamp idle_since=now() as we clear current-view so the idle
+  -- accumulator picks up the gap until the next viewer arrives.
+  update common.games
+     set is_current_view = false,
+         idle_since = now()
+   where id = target_game
+     and is_current_view = true;
+end;
+$$;
+
+revoke execute on function common.unset_current_view(uuid) from public;
+grant execute on function common.unset_current_view(uuid) to authenticated;
 
 -- ============================================================
 -- common.create_club RPC

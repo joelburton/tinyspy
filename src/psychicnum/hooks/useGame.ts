@@ -4,26 +4,31 @@ import { db } from '../db'
 
 /**
  * The FE-ready game state. Sourced from the
- * `psychicnum.games_state` view, which combines the table's
- * directly-readable columns with the conditional `target`
+ * `psychicnum.games_state` view, which surfaces this game's
+ * directly-readable columns plus the conditional `target`
  * reveal:
  *
- *   - While `status = 'active'`, the view returns `target = null`.
- *   - Once status flips terminal, the view returns the real value.
+ *   - While the game is non-terminal, the view returns
+ *     `target = null`.
+ *   - Once `common.games.is_terminal` flips true, the view
+ *     returns the real value.
  *
  * The reveal gate lives in SQL (a SECURITY DEFINER helper inside
  * the view's column expression — see the psychicnum baseline
  * migration). The FE doesn't issue a separate "reveal" call:
  * one SELECT from games_state gives the complete picture.
+ *
+ * Note that `play_state` itself isn't on this row — it lives on
+ * common.games and arrives via GamePageCtx. PlayArea reads it
+ * from the ctx alongside `isTerminal`.
  */
 export type PsychicnumGame = {
   id: string
   club_id: string
-  status: 'active' | 'won' | 'lost'
   guesses_remaining: number
   winner_id: string | null
-  /** The 1..10 secret. Null while status is 'active' (gated by
-   *  the view's helper function); the real value once terminal. */
+  /** The 1..10 secret. Null while non-terminal (gated by the
+   *  view's helper function); the real value once terminal. */
   target: number | null
   created_at: string
 }
@@ -83,7 +88,7 @@ export function useGame(gameId: string): {
       const { data: gameData } = await db
         .from('games_state')
         .select(
-          'id, club_id, status, guesses_remaining, winner_id, target, created_at',
+          'id, club_id, guesses_remaining, winner_id, target, created_at',
         )
         .eq('id', gameId)
         .maybeSingle()
@@ -106,7 +111,6 @@ export function useGame(gameId: string): {
       setGame({
         id: gameData.id as string,
         club_id: gameData.club_id as string,
-        status: gameData.status as PsychicnumGame['status'],
         guesses_remaining: gameData.guesses_remaining as number,
         winner_id: gameData.winner_id as string | null,
         target: gameData.target as number | null,

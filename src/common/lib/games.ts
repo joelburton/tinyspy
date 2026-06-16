@@ -21,6 +21,20 @@ export type GamePageCtx = {
   session: Session
   gameId: string
   members: SetupMember[]
+  /**
+   * Cross-cutting play state for the game, read directly from
+   * `common.games.play_state`. Gametype-specific string —
+   * `'playing'` (and `'sudden_death'` for tinyspy) are the
+   * non-terminal values; everything else is terminal. The
+   * `isTerminal` boolean below is the materialized "is this any
+   * terminal value" shorthand from `common.games.is_terminal`, so
+   * consumers usually pair the two: `isTerminal` for gate, then
+   * `playState` for the specific banner copy.
+   */
+  playState: string
+  /** True once `common.games.is_terminal` flips. Composable
+   *  shorthand for "any terminal play_state." */
+  isTerminal: boolean
   timer: {
     displaySeconds: number
     expired: boolean
@@ -223,27 +237,32 @@ export type GameManifest = {
   ) => Promise<{ id: string } | { error: string }>
 
   /**
-   * List this gametype's games for a club. The common ClubPage
-   * iterates the games registry, calls each manifest's
-   * fetchClubGames in parallel, and merges + classifies the results
-   * into active/paused/completed sections.
+   * Render a one-line label for a single common.games row, for
+   * the club page's games list. **Pure and synchronous**: no I/O,
+   * no follow-up queries — everything labelFor needs comes off
+   * the row.
    *
-   * Each entry tells us:
-   *   - `gameId`        — the id to route to (`/g/<gameType>/<gameId>`)
-   *   - `gameType`      — back-pointer to the manifest's gametype
-   *                        (redundant but keeps merged arrays
-   *                        self-describing)
-   *   - `startedAt`     — for sort + "started <date>" display
-   *   - `isTerminal`    — game has ended (won, lost, solved, etc.).
-   *                        ClubPage uses this + the club's active
-   *                        pointer to classify the row as one of
-   *                        active / paused / completed.
-   *   - `statusLabel`   — free-form display string the game owns
-   *                        ("in progress", "won", "lost (assassin)",
-   *                        "13/15 agents", etc.). ClubPage renders
-   *                        verbatim.
+   * That contract is what makes ClubPage simple: it queries
+   * `common.games` once for the club, then dispatches each row
+   * to the matching manifest's `labelFor`. No per-gametype
+   * fetch fan-out, no Promise.all, no merging.
+   *
+   * The state-transition RPCs write everything labelFor needs
+   * into `common.games.status` (jsonb) — the duplicate-write
+   * discipline (see docs/states.md). Examples:
+   *   - wordknit: `{ matched_count, mistake_count }` while
+   *     playing; `{ outcome, matched_count, mistake_count }`
+   *     on terminal.
+   *   - psychic-num: `{ guesses_remaining }` while playing;
+   *     `{ outcome, guesses_used }` on terminal.
+   *   - tinyspy: just play_state — the gametype's terminal
+   *     vocabulary (won, lost_assassin, lost_clock, lost_timeout)
+   *     is rich enough to label the row by itself.
+   *
+   * Returns a display string the ClubPage renders verbatim
+   * ("in progress", "won", "13/16 matched · 1 mistake", etc.).
    */
-  fetchClubGames: (clubId: string) => Promise<ClubGameEntry[]>
+  labelFor: (row: CommonGameListRow) => string
 
   /**
    * Fire the per-gametype timeout RPC. Called by the common
@@ -266,15 +285,22 @@ export type GameManifest = {
 }
 
 /**
- * One game's-eye view of itself within a club, for the ClubPage's
- * games section. See `GameManifest.fetchClubGames` for fields.
+ * The slice of a `common.games` row the per-gametype `labelFor`
+ * sees. ClubPage queries common.games once for the club and
+ * passes each row through this shape into the matching
+ * manifest's `labelFor`.
+ *
+ * Stays narrow on purpose: anything labelFor needs must live on
+ * `common.games` (status jsonb covers the gametype-specific
+ * payload). That's the contract that keeps the listing path
+ * one-query and synchronous.
  */
-export type ClubGameEntry = {
-  gameType: string
-  gameId: string
-  startedAt: string
-  isTerminal: boolean
-  statusLabel: string
+export type CommonGameListRow = {
+  id: string
+  gametype: string
+  play_state: string
+  is_terminal: boolean
+  status: Record<string, unknown> | null
 }
 
 /**

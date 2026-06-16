@@ -2,13 +2,21 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-The flagship game is **Tinyspy** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. A tiny second game (**Psychic Num**) is also live, deliberately minimal — it exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic. Boggle, crosswords, and others slot in next.
+The flagship game is **Tinyspy** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **Wordknit** is a Connections-style word-grouping puzzle. A tiny third game (**Psychic Num**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. Boggle, crosswords, and others slot in next; the rough trajectory is ~7 games total, most of them ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
 Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — a ~40-line hand-rolled router covers the flat route set.
 
 ## Audience
 
-This is software for **groups of friends** playing together — not a public matchmaking platform. The social primitive is a **club**: a named, fixed-membership room you create with the friends you want to play with. The whole club plays every game together, a persistent club chat threads across all games, one game is "active" at a time across all gametypes, and starting a new game auto-pauses the previously-active one (which stays resumable). No invitations, no public lobby, no random pairings — friends-only by construction.
+This is software for **groups of friends** playing together — not a public matchmaking platform.
+
+The metaphor that anchors everything: this app **replaces a group of friends on a Zoom call playing one game together**. Not a games server, not a community hub. Like a Zoom call:
+
+- **everyone present is playing** (there aren't spectators);
+- **only one game happens at a time** — the whole group is on the same thing;
+- **starting a new game pulls the whole group into it** (you don't half-join a Zoom call).
+
+The social primitive is the **club**: a named, fixed-membership room you create with the friends you want to play with. The club is the "Zoom call" — a persistent place where chat threads across every game the friends play. One game is the "current view" at a time across all gametypes; starting a new game suspends the previously-current one (which stays resumable). No invitations, no public lobby, no random pairings — friends-only by construction.
 
 See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`](CLAUDE.md) for the project-level priors (educational clarity, server-authoritative for cleanliness not anti-cheat, alpha-software-break-things-freely posture).
 

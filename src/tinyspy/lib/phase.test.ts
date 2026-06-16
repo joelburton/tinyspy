@@ -15,7 +15,7 @@ import { derivePhase, type PhaseInputs } from './phase'
 /** Reusable defaults so each test only states what it changes. */
 function inputs(overrides: Partial<PhaseInputs> = {}): PhaseInputs {
   return {
-    status: 'active',
+    status: 'playing',
     currentClueGiver: 'A',
     mySeat: 'A',
     hasCurrentTurnClue: false,
@@ -30,8 +30,8 @@ describe('derivePhase — gameOver flag', () => {
     }
   })
 
-  it('is false during active play and sudden death', () => {
-    expect(derivePhase(inputs({ status: 'active' })).gameOver).toBe(false)
+  it('is false during the playing and sudden_death states', () => {
+    expect(derivePhase(inputs({ status: 'playing' })).gameOver).toBe(false)
     expect(derivePhase(inputs({ status: 'sudden_death' })).gameOver).toBe(false)
   })
 })
@@ -63,11 +63,11 @@ describe('derivePhase — isGuessPhase', () => {
 
 describe('derivePhase — cellsClickable', () => {
   // The interesting matrix. The expected behavior:
-  //   gameOver                              → never
-  //   sudden_death (regardless of seat)     → always
-  //   active + guess phase + not clue-giver → yes (the guesser's window)
-  //   active + clue phase                   → no (no clue to guess against)
-  //   active + guess phase + clue-giver     → no (you submitted the clue)
+  //   gameOver                                → never
+  //   sudden_death (regardless of seat)       → always
+  //   playing + guess phase + not clue-giver  → yes (the guesser's window)
+  //   playing + clue phase                    → no (no clue to guess against)
+  //   playing + guess phase + clue-giver      → no (you submitted the clue)
 
   it('is false when the game is over (any terminal status)', () => {
     for (const status of ['won', 'lost_assassin', 'lost_clock'] as const) {
@@ -87,7 +87,7 @@ describe('derivePhase — cellsClickable', () => {
   it('is true for the guesser during guess phase in active play', () => {
     expect(
       derivePhase(inputs({
-        status: 'active',
+        status: 'playing',
         mySeat: 'B',
         currentClueGiver: 'A',
         hasCurrentTurnClue: true,
@@ -98,7 +98,7 @@ describe('derivePhase — cellsClickable', () => {
   it('is false for the clue-giver even during guess phase', () => {
     expect(
       derivePhase(inputs({
-        status: 'active',
+        status: 'playing',
         mySeat: 'A',
         currentClueGiver: 'A',
         hasCurrentTurnClue: true,
@@ -109,7 +109,7 @@ describe('derivePhase — cellsClickable', () => {
   it('is false during the clue phase (no clue yet this turn)', () => {
     expect(
       derivePhase(inputs({
-        status: 'active',
+        status: 'playing',
         mySeat: 'B',
         currentClueGiver: 'A',
         hasCurrentTurnClue: false,

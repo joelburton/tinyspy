@@ -10,7 +10,7 @@ The server picks a random number 1–10. Any club member guesses any number at a
 
 It's deliberately a toy. The point isn't to be fun; the point is to exercise the multi-game wiring (manifest registry, schema-per-game, per-game RLS, per-game chunk split, common ClubPage + chat reuse) with a game small enough that the architectural patterns dominate the file you're reading.
 
-Psychic Num is also a stand-in for "the second game" until something substantial (Boggle) lands. When that happens, Psychic Num may be removed — and doing so will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the entry from `src/games.ts`, drop the migration file. If anything else breaks, the architecture leaked.
+Psychic Num is a stand-in until enough "real" games are live. **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the entry from `src/games.ts`, drop the migration file. If anything else breaks, the architecture leaked.
 
 ## The rules
 
@@ -47,16 +47,16 @@ After the game ends, the target becomes readable to club members via the `psychi
 
 | table | purpose |
 |---|---|
-| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`. (The start-game-dialog choices live on `common.games.setup` — the per-gametype `setup` column was dropped when the blob moved to common.) |
+| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `target` (the secret), `guesses_remaining`, `winner_id`. Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games` — the per-gametype row carries only gametype-specific mechanics. |
 | `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. Used both for rendering the history in the UI and as the audit trail for "what happened." |
 
 There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table. It co-locates onto the game row.
 
-### Status enum
+### Play-state enum
 
-`games.status text not null check (status in ('active', 'won', 'lost'))`
+`common.games.play_state` carries psychic-num's lifecycle enum. Accepted values:
 
-- **active** — guesses being submitted. The default; no other entry state.
+- **playing** — guesses being submitted. The default; no other entry state.
 - **won** — a correct guess landed. Terminal.
 - **lost** — the last wrong guess (the one that took the budget to 0) landed. Terminal. The "last" varies with the setup dialog's `guesses` choice (3, 5, 7, or 9 — see [Setup](#setup) below).
 
@@ -72,7 +72,7 @@ The base table grants SELECT to `authenticated` on every column *except* `target
 
 ```sql
 grant select
-  (id, club_id, status, guesses_remaining, winner_id, created_at)
+  (id, club_id, guesses_remaining, winner_id, created_at)
   on psychicnum.games to authenticated;
 ```
 
@@ -80,12 +80,12 @@ A direct `SELECT target FROM psychicnum.games WHERE id = ?` as `authenticated` r
 
 ### Layer 2 — `psychicnum.games_state` view + `_target_for` helper (conditional exposure)
 
-The FE never reads from `psychicnum.games` directly anymore — it reads from a view that conditionally exposes `target` based on game status:
+The FE never reads from `psychicnum.games` directly anymore — it reads from a view that conditionally exposes `target` based on `common.games.is_terminal`:
 
 ```sql
 create or replace view psychicnum.games_state
   with (security_invoker = true) as
-select g.id, g.club_id, g.status, g.guesses_remaining, g.winner_id, g.created_at,
+select g.id, g.club_id, g.guesses_remaining, g.winner_id, g.created_at,
        psychicnum._target_for(g.id) as target
   from psychicnum.games g;
 ```
@@ -93,15 +93,17 @@ select g.id, g.club_id, g.status, g.guesses_remaining, g.winner_id, g.created_at
 Two settings carry the design:
 
 - **`security_invoker = true`** on the view means RLS is evaluated as the *caller*, not the view-owner — so the `is_club_member` policy on `psychicnum.games` decides row visibility normally.
-- **`psychicnum._target_for(uuid)`** is a `SECURITY DEFINER` helper that runs as `postgres`. It bypasses the column-grant (which only binds the `authenticated` role) and returns the target — but **only when status is terminal**:
+- **`psychicnum._target_for(uuid)`** is a `SECURITY DEFINER` helper that runs as `postgres`. It bypasses the column-grant (which only binds the `authenticated` role) and returns the target — but **only when `common.games.is_terminal` is true**:
 
   ```sql
   -- inside _target_for(g uuid):
-  select case when status in ('won', 'lost') then target end
-    from psychicnum.games where id = g;
+  select case when c.is_terminal then p.target end
+    from psychicnum.games p
+    join common.games c on c.id = p.id
+   where p.id = g;
   ```
 
-The net effect: one FE query (`db.from('games_state').select(...)`) returns the row with `target` populated when terminal, `null` when active. Row visibility is gated by RLS (invoker); column exposure is gated by the helper's CASE.
+The net effect: one FE query (`db.from('games_state').select(...)`) returns the row with `target` populated once terminal, `null` while playing. Row visibility is gated by RLS (invoker); column exposure is gated by the helper's CASE.
 
 The old `reveal_target` RPC is **gone** — the view subsumes its role.
 
@@ -124,7 +126,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`), then inserts the psychic-num detail row in `active` with `guesses_remaining` initialized from `setup.guesses`. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
+Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the psychic-num detail row with `guesses_remaining` initialized from `setup.guesses`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('guesses_remaining', setup.guesses))` to seed the listing-label payload. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
 
 A note on the title: putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
 
@@ -140,7 +142,7 @@ The only mid-game action. Returns one of:
 - `'wrong'` — game continues with `guesses_remaining - 1`.
 - `'lost'` — caller's wrong guess took the budget to zero; status flipped to `lost`.
 
-Locks the game row with `SELECT ... FOR UPDATE` to serialize concurrent guesses. With "first correct guess wins" semantics, if two players guess the target at the same instant, whichever transaction commits first is the winner; the second sees `status != 'active'` and raises `'game is not active'`.
+Locks the gametype row with `SELECT ... FOR UPDATE` to serialize concurrent guesses, then reads `play_state` from `common.games` in a separate query (the foo-lock guarantees that by the time we read play_state, any concurrent submit that ended the game has already committed). With "first correct guess wins" semantics, if two players guess the target at the same instant, whichever transaction commits first is the winner; the second sees `play_state != 'playing'` and raises `'game is not active'`.
 
 Records every guess in `psychicnum.guesses` with `was_correct` set. Duplicate guesses (someone guessed 7 already, you guess 7 too) are allowed and decrement the counter normally.
 
@@ -154,7 +156,7 @@ Reject reasons:
 
 ### `psychicnum.submit_timeout(target_game uuid)`
 
-Fires when the FE's count-down timer expires. Flips `status` to `lost` and calls `common.end_game` with `status_summary.outcome = 'lost_timeout'` — distinct from the regular `lost` (exhausted guesses) so end-of-game review can show the right reason.
+Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost'` and `status->>'outcome' = 'lost_timeout'` — distinct from the regular `lost` (exhausted guesses) so end-of-game review can show the right reason.
 
 Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
@@ -249,7 +251,7 @@ That's it. No theme.css, no *.module.css, no per-component styling — the game 
 
 ### `PlayArea`
 
-A thin composition file. Renders `<GuessForm>` while `game.status === 'active'`, and `<ResultBanner status={game.status}>` (ternary narrowing the `'won' | 'lost'` type) when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` (mounted at the route level by App.tsx).
+A thin composition file. Reads `playState` + `isTerminal` from the `GamePageCtx` render-prop props (those come off `common.games`). Renders `<GuessForm>` while `!isTerminal`, and `<ResultBanner status={playState === 'won' ? 'won' : 'lost'}>` when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` (mounted at the route level by App.tsx).
 
 ### `useGame`
 
@@ -271,8 +273,8 @@ See [`testing.md`](testing.md) for theory and shared setup. Psychic-num-specific
 
 | file | covers |
 |---|---|
-| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.guesses` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in wordknit's create_game test), auto-pause via `common.games.is_active`, title formula, column-level grant blocks SELECT of `target`. |
-| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, `common.end_game` flips `is_active=false` on termination, `submit_timeout` happy path + idempotency + non-player rejection. |
+| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.guesses` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in wordknit's create_game test), `is_current_view` flips via `common.games`, title formula, column-level grant blocks SELECT of `target`. |
+| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips `play_state` to `won` and freezes `winner_username` into `status`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, `common.end_game` flips `is_terminal=true` on termination, `submit_timeout` happy path + idempotency + non-player rejection. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `target IS NULL` while active and the actual value once status is terminal — exercising both the `security_invoker` row-gating and the `_target_for` helper's CASE. |
 
 ### Pinning the target in tests
@@ -299,7 +301,7 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 
 ### `winner_id` is overspec'd
 
-The schema has `psychicnum.games.winner_id` and the FE shows "alice guessed it" attribution. **This wasn't in the original spec** — the spec was "if any player guesses, the team wins," with no individual attribution. The `winner_id` got added unilaterally during implementation, importing a pattern from tinyspy (which tracks lots of who-did-what for its turn-based logic).
+The schema has `psychicnum.games.winner_id` and the FE shows "alice guessed it" attribution. **This contradicts the cooperative spec** — the spec is "if any player guesses, the team wins," with no individual attribution. The `winner_id` tracking is overspec — a pattern that fits tinyspy's turn-based who-did-what model but doesn't belong in a cooperative-team game.
 
 This is harmless but contrary to the cooperative-team framing. The cleanup, when someone wants to do it:
 
@@ -308,7 +310,7 @@ This is harmless but contrary to the cooperative-team framing. The cleanup, when
 | `psychicnum_baseline.sql` | `winner_id` column on `psychicnum.games`; the `update ... set winner_id = caller_id` line in `submit_guess` |
 | `src/psychicnum/hooks/useGame.ts` | `winner_id` field on `PsychicnumGame` and from the `games_state` SELECT list |
 | `src/psychicnum/components/ResultBanner.tsx` | the "[winner] guessed it" rendering on the win banner |
-| `src/psychicnum/manifest.ts` | the winner-name batch lookup in `fetchClubGames`; status label becomes just `"won"` |
+| `src/psychicnum/manifest.ts` | the `labelFor` already doesn't read `winner_id` directly (it reads `winner_username` from `common.games.status`, frozen there by `submit_guess`); just drop the `update ... set winner_id` line from the RPC, no FE change needed |
 | `tests/psychicnum/gameplay_test.sql` | the `winner_id` assertion |
 
 ~30 lines of removal across 5 files. Not done yet because there's no functional pressure.

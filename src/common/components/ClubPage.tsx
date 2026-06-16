@@ -9,7 +9,7 @@ import { ClubGameCard } from './ClubGameCard'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
 import { games } from '../../games'
-import type { ClubGameEntry, GameManifest } from '../lib/games'
+import type { CommonGameListRow, GameManifest } from '../lib/games'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -20,13 +20,29 @@ type ClubRow = Pick<
   'id' | 'handle' | 'name'
 >
 // The realtime payload's `.new` field for common.games. We only
-// read the fields needed to drive auto-nav + active-game tracking;
+// read the fields needed to drive auto-nav + current-view tracking;
 // the Pick anchors the field set to the schema.
 type GameRow = Pick<
   Database['common']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'gametype' | 'is_active'
+  'id' | 'club_id' | 'gametype' | 'is_current_view'
 >
 type Member = { user_id: string; username: string }
+
+/**
+ * Display shape for one game in the club's games list. Built from
+ * a common.games row plus the dispatched `labelFor` output. The
+ * card component reads this verbatim; ClubPage's classify-into-
+ * sections logic also reads `isTerminal` to assign the right
+ * state for CSS treatment.
+ */
+type ListedGame = {
+  gameId: string
+  gametype: string
+  title: string
+  startedAt: string
+  isTerminal: boolean
+  statusLabel: string
+}
 
 type Props = {
   session: Session
@@ -48,23 +64,18 @@ type Props = {
  *
  * Realtime: subscribed to common.games changes for this club. When
  * another tab (different member, or yourself in another
- * window) starts/ends a game, the active pointer changes and we
- * refetch — so the games section updates without a manual refresh.
- * Within-game updates (chat, board state, etc.) belong to other
- * subscriptions inside those views; ClubPage only cares about the
- * club's active-game pointer + the games-list shape.
+ * window) starts/ends a game, the current-view pointer changes
+ * and we refetch — so the games section updates without a
+ * manual refresh. Within-game updates (chat, board state, etc.)
+ * belong to other subscriptions inside those views; ClubPage
+ * only cares about the club's current-view pointer + the
+ * games-list shape.
  */
 export function ClubPage({ session, handle }: Props) {
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
-  const [allGames, setAllGames] = useState<ClubGameEntry[]>([])
+  const [allGames, setAllGames] = useState<ListedGame[]>([])
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
-  // gameId → title, sourced from common.games. Populated alongside
-  // the per-gametype fetchClubGames calls below. Render-time
-  // decoration so each game's list-row reads "<gametypeName>: <title>".
-  const [titleByGameId, setTitleByGameId] = useState<Map<string, string>>(
-    () => new Map(),
-  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
@@ -190,46 +201,68 @@ export function ClubPage({ session, handle }: Props) {
     let mounted = true
 
     async function loadGames() {
-      // Three reads in parallel:
-      //   - active-game id (from common.games where is_active=true)
-      //   - per-gametype fetchClubGames (rendered status, isTerminal)
-      //   - all games' titles (from common.games), keyed by id for
-      //     render-time decoration
-      const [activeRes, titlesRes, results] = await Promise.all([
-        commonDb
-          .from('games')
-          .select('id')
-          .eq('club_id', clubId)
-          .eq('is_active', true)
-          .maybeSingle(),
-        commonDb.from('games').select('id, title').eq('club_id', clubId),
-        Promise.all(games.map((g) => g.fetchClubGames(clubId))),
-      ])
+      // One read into common.games — the labelFor refactor moved
+      // all the listing data here, so per-gametype fan-out is
+      // gone. Each row's label comes from the matching manifest's
+      // pure `labelFor`. Games whose gametype isn't in this FE's
+      // registry are silently skipped (the same forward-compat
+      // posture used for Start buttons).
+      const { data } = await commonDb
+        .from('games')
+        .select(
+          'id, gametype, title, play_state, is_terminal, status, started_at, is_current_view',
+        )
+        .eq('club_id', clubId)
+        .order('started_at', { ascending: false })
       if (!mounted) return
-      setActiveGameId(activeRes.data?.id ?? null)
-      setAllGames(results.flat())
-      setTitleByGameId(
-        new Map((titlesRes.data ?? []).map((t) => [t.id, t.title])),
-      )
+
+      const rows = data ?? []
+      let currentId: string | null = null
+      const listed: ListedGame[] = []
+      for (const r of rows) {
+        if (r.is_current_view) currentId = r.id
+        const manifest = games.find((g) => g.gametype === r.gametype)
+        if (!manifest) continue
+        const listRow: CommonGameListRow = {
+          id: r.id,
+          gametype: r.gametype,
+          play_state: r.play_state,
+          is_terminal: r.is_terminal,
+          status: r.status as Record<string, unknown> | null,
+        }
+        listed.push({
+          gameId: r.id,
+          gametype: r.gametype,
+          title: r.title,
+          startedAt: r.started_at,
+          isTerminal: r.is_terminal,
+          statusLabel: manifest.labelFor(listRow),
+        })
+      }
+      setActiveGameId(currentId)
+      setAllGames(listed)
     }
 
     loadGames()
 
     // Subscribe to common.games changes for this club. New-game
-    // start (INSERT with is_active=true), end_game (UPDATE flipping
-    // is_active to false), and create_game's auto-suspend of the
-    // prior active game (UPDATE flipping is_active to false) all
-    // surface here.
+    // start (INSERT with is_current_view=true), set_current_view
+    // (UPDATE on a different row), and unset_current_view /
+    // create_game's auto-vacate (UPDATE flipping is_current_view
+    // to false) all surface here. end_game does NOT touch
+    // is_current_view — a terminal game stays current-view until
+    // the last viewer leaves (review-the-final-state is a
+    // legitimate use of the current slot).
     //
-    // On INSERT or UPDATE whose new row has is_active=true — the
-    // club picked a new active game — auto-navigate every member
-    // into it. This is a club-level invariant: when a club is
-    // playing, the whole club is in the same game; no "I'll catch
-    // up later." (Solo clubs trivially satisfy this — single
-    // member.) is_active=false UPDATEs do NOT navigate anyone —
-    // players already in the game stay on the game-over screen;
-    // players on the club page just see the game move from Active
-    // to Completed in the list.
+    // On INSERT or UPDATE whose new row has is_current_view=true —
+    // the club picked a new current game — auto-navigate every
+    // member into it. This is a club-level invariant: when a
+    // club is playing, the whole club is in the same game; no
+    // "I'll catch up later." (Solo clubs trivially satisfy this —
+    // single member.) is_current_view=false UPDATEs do NOT
+    // navigate anyone — players already in the game stay on the
+    // game-over screen; players on the club page just see the
+    // game move out of the Current section in the list.
     //
     // The "already there" guard prevents the player who clicked
     // Start (and was already navigated by `handleStart`) from
@@ -249,7 +282,7 @@ export function ClubPage({ session, handle }: Props) {
           loadGames()
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const row = payload.new as GameRow
-            if (!row.is_active) return
+            if (!row.is_current_view) return
             const target = `/g/${row.gametype}/${row.id}`
             if (window.location.pathname !== target) {
               navigate(target)
@@ -284,16 +317,16 @@ export function ClubPage({ session, handle }: Props) {
 
   const isSoloClub = club.handle.startsWith('=')
 
-  // Classify games — active is the one whose id matches the
-  // is_active=true row from common.games, completed are terminal,
-  // suspended is everything else.
+  // Classify games. The current game is the one whose id matches
+  // the is_current_view=true row from common.games — that one
+  // gets its own prominent section. Everything else collapses
+  // into a single "other games" list, with terminal vs non-
+  // terminal distinguished by CSS (per docs/states.md → "no
+  // special 'suspended' category in the schema or the listing").
   const activeGame = activeGameId
     ? allGames.find((g) => g.gameId === activeGameId) ?? null
     : null
-  const suspendedGames = allGames.filter(
-    (g) => !g.isTerminal && g.gameId !== activeGameId,
-  )
-  const completedGames = allGames.filter((g) => g.isTerminal)
+  const otherGames = allGames.filter((g) => g.gameId !== activeGameId)
 
   return (
     <div className="card">
@@ -328,26 +361,13 @@ export function ClubPage({ session, handle }: Props) {
         <section>
           <h3>Active game</h3>
           <ClubGameCard
-            entry={activeGame}
-            title={titleByGameId.get(activeGame.gameId)}
+            gameId={activeGame.gameId}
+            gametype={activeGame.gametype}
+            title={activeGame.title}
+            statusLabel={activeGame.statusLabel}
+            startedAt={activeGame.startedAt}
             state="active"
           />
-        </section>
-      )}
-
-      {suspendedGames.length > 0 && (
-        <section>
-          <h3>Suspended games</h3>
-          <div className="cardList">
-            {suspendedGames.map((g) => (
-              <ClubGameCard
-                key={g.gameId}
-                entry={g}
-                title={titleByGameId.get(g.gameId)}
-                state="suspended"
-              />
-            ))}
-          </div>
         </section>
       )}
 
@@ -376,22 +396,25 @@ export function ClubPage({ session, handle }: Props) {
         {startError && <p className="error">{startError}</p>}
       </section>
 
-      {completedGames.length > 0 && (
+      {otherGames.length > 0 && (
         <section>
-          <h3>Completed games ({completedGames.length})</h3>
+          <h3>Other games ({otherGames.length})</h3>
           <div className="cardList">
-            {completedGames.slice(0, 20).map((g) => (
+            {otherGames.slice(0, 20).map((g) => (
               <ClubGameCard
                 key={g.gameId}
-                entry={g}
-                title={titleByGameId.get(g.gameId)}
-                state="completed"
+                gameId={g.gameId}
+                gametype={g.gametype}
+                title={g.title}
+                statusLabel={g.statusLabel}
+                startedAt={g.startedAt}
+                state={g.isTerminal ? 'completed' : 'suspended'}
               />
             ))}
           </div>
-          {completedGames.length > 20 && (
+          {otherGames.length > 20 && (
             <p className="muted">
-              + {completedGames.length - 20} older games not shown.
+              + {otherGames.length - 20} older games not shown.
             </p>
           )}
         </section>

@@ -12,21 +12,29 @@ import { ResultBanner } from './ResultBanner'
  *
  * Composes the gametype-specific pieces:
  *   - `<GuessForm>` owns input state + submit_guess RPC.
- *   - `<ResultBanner>` (gated by status === 'active' ternary)
- *     owns the won/lost copy.
+ *   - `<ResultBanner>` (gated by `isTerminal` from ctx) owns the
+ *     won/lost copy.
  *   - `<GuessHistory>` renders the append-only log.
  *
- * Cross-cutting state (members, timer, paused, chat) lives in
- * `<GamePage>` above this component. PlayArea unmounts on pause
- * — its local state (currently none directly; `useGame`'s state
- * is the per-tab postgres-changes channel) goes with it.
+ * Cross-cutting state (members, timer, play_state, paused, chat)
+ * lives in `<GamePage>` above this component. PlayArea unmounts
+ * on pause — its local state (currently none directly;
+ * `useGame`'s state is the per-tab postgres-changes channel)
+ * goes with it.
  *
  * `useGame` reads from the `psychicnum.games_state` view, which
- * surfaces `target` conditionally on terminal status. PlayArea
- * reads `game.target` directly without knowing about the
- * view-vs-table split.
+ * surfaces `target` conditionally on the game being terminal.
+ * PlayArea reads `game.target` directly without knowing about
+ * the view-vs-table split.
  */
-export function PlayArea({ session, gameId, members, timer }: GamePageCtx) {
+export function PlayArea({
+  session,
+  gameId,
+  members,
+  playState,
+  isTerminal,
+  timer,
+}: GamePageCtx) {
   // session intentionally unused — psychic-num has no per-self
   // rendering today, but the prop is part of the GamePage contract
   // so future per-self UI (winner-highlight, etc.) doesn't need
@@ -40,7 +48,7 @@ export function PlayArea({ session, gameId, members, timer }: GamePageCtx) {
 
   return (
     <>
-      {game.status === 'active' ? (
+      {!isTerminal ? (
         <section>
           <p>
             Guess the number (1–10).{' '}
@@ -51,7 +59,7 @@ export function PlayArea({ session, gameId, members, timer }: GamePageCtx) {
         </section>
       ) : (
         <ResultBanner
-          status={game.status}
+          status={playState === 'won' ? 'won' : 'lost'}
           winnerId={game.winner_id}
           target={game.target}
           timerExpired={timer.expired}

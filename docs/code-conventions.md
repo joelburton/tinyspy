@@ -136,6 +136,30 @@ A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) o
 
 **File name matches component name; folder context disambiguates same-named components across games.** `src/wordknit/components/PlayArea.tsx` exports `PlayArea`; `src/tinyspy/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `WordknitPlayArea` / `TinyspySetupForm` prefixes anywhere.
 
+### Shared vs game-specific
+
+Two-rule heuristic for deciding where a piece of UI / logic lives:
+
+1. **If two games have a very similar requirement, extract it into `common/`.** Default lean: **extract early.** Even when only two games use it and only one of them is non-trivial, name the shared shape now. Three reasons:
+   - The named seam is a forcing function for future design work. A reader (or Joel himself) is more likely to invest in making `ClubGameCard` look nicer than in making "the section of ClubPage that renders games."
+   - It amortizes the "what is this thing called" cognitive load before the component grows fancier.
+   - By the time three call sites exist, the abstraction is usually compromised because the second call site informed the shape without anyone noticing. Earlier extraction means the shape is set when the cases are still simple.
+
+   This **overrides** the standard "defer extraction until complexity justifies it" agent default. Don't propose "let's wait until X grows." The principle also applies to React component splits driven by state locality, not just cross-game duplication — if state lives in one section of a render, splitting that section out is a clarity win even in a single-use component.
+
+   Counter-cases where extraction IS premature:
+   - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
+   - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
+
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `ResultBanner`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinyspyPlayArea`, `WordknitSetupForm`) — the folder already says which game.
+
+The reason both rules matter: this codebase is shaped to host ~7 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+
+Concrete examples in the tree today:
+- Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
+- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `useGame` (every game).
+- Different name, divergent role: tinyspy's `GameOverBanner` vs psychic-num's `ResultBanner` — flagged in [`ui.md` → Consistency across games](ui.md#consistency-across-games) as a candidate for a future common `GameResultBanner` when a third game would benefit.
+
 ### Import-direction rules
 
 Enforced by ESLint's `no-restricted-imports` (see [`eslint.config.js`](../eslint.config.js)):
@@ -215,11 +239,12 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 |---|---|
 | `WordRow`, `GameRow`, `ClueRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[…]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
-| `ClubGameEntry`, `ClubListEntry` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" describes their role. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, members, timer }`). |
+| `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
+| `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, members, playState, isTerminal, timer }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
-If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading. (`ClubGameRow` was an example of this and got renamed to `ClubGameEntry`.)
+If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
 
 #### Other casing rules
 

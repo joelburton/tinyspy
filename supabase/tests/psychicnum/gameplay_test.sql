@@ -4,10 +4,10 @@
 --
 -- Covers:
 --   - phase rejections: unauth, non-member, inactive game, bad range
---   - wrong-guess path: guesses_remaining decrements, status stays
---   - correct-guess path: status = won, winner_id set, club_active
+--   - wrong-guess path: guesses_remaining decrements, play_state stays
+--   - correct-guess path: play_state = won, winner_id set, club_active
 --     pointer cleared by the termination trigger
---   - exhaustion path: 7th wrong guess → status = lost, pointer
+--   - exhaustion path: 7th wrong guess → play_state = lost, pointer
 --     cleared
 --   - duplicate guesses are allowed (you can guess 7 even after
 --     someone already wrongly guessed 7 — silly but legal)
@@ -26,7 +26,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(22);
+select plan(23);
 
 -- Cast: ada + bea are club members; dee is outside.
 
@@ -90,9 +90,9 @@ select is(
   'guesses_remaining decremented 7 → 6'
 );
 select is(
-  (select status from psychicnum.games where id = (select id from g)),
-  'active',
-  'status stays active after a wrong guess'
+  (select play_state from common.games where id = (select id from g)),
+  'playing',
+  'play_state stays playing after a wrong guess'
 );
 
 -- ============================================================
@@ -122,9 +122,9 @@ select is(
   'a correct guess returns "correct"'
 );
 select is(
-  (select status from psychicnum.games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'won',
-  'status flips to won on a correct guess'
+  'play_state flips to won on a correct guess'
 );
 select is(
   (select winner_id from psychicnum.games where id = (select id from g)),
@@ -132,12 +132,26 @@ select is(
   'winner_id is set to the correct-guesser'
 );
 
--- (6) is_active flipped to false by common.end_game on win.
+-- (6) is_terminal flipped to true by common.end_game on win.
+-- (is_current_view stays true — end_game doesn't touch it; the
+-- post-game review still lives on the current-view row until
+-- the FE explicitly closes it.)
 select is(
-  (select count(*) from common.games
-    where club_id = (select id from club) and is_active = true),
-  0::bigint,
-  'no active common.games row remains after end_game on win'
+  (select is_terminal from common.games where id = (select id from g)),
+  true,
+  'common.games row is_terminal=true after end_game on win'
+);
+
+-- The winner's username is frozen into status at end-of-game
+-- time so the FE listing label ("won — bea guessed it") renders
+-- from the row alone, no follow-up profile fetch. Stale-on-
+-- rename is the trade we accept; see psychicnum.manifest's
+-- labelFor for the why.
+select is(
+  (select status->>'winner_username' from common.games
+    where id = (select id from g)),
+  'bea',
+  'submit_guess: winner_username frozen into status on a win'
 );
 
 -- (7) No more guesses accepted on the won game.
@@ -177,11 +191,11 @@ select psychicnum.submit_guess((select id from g2), 5);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from g2), 6);
 
--- After 6 wrong, status still active, 1 guess remaining.
+-- After 6 wrong, play_state still playing, 1 guess remaining.
 select is(
-  (select status from psychicnum.games where id = (select id from g2)),
-  'active',
-  'after 6 wrong guesses status is still active'
+  (select play_state from common.games where id = (select id from g2)),
+  'playing',
+  'after 6 wrong guesses play_state is still playing'
 );
 select is(
   (select guesses_remaining from psychicnum.games where id = (select id from g2)),
@@ -198,16 +212,16 @@ select is(
 );
 
 select is(
-  (select status from psychicnum.games where id = (select id from g2)),
+  (select play_state from common.games where id = (select id from g2)),
   'lost',
-  'status flips to lost after the 7th wrong guess'
+  'play_state flips to lost after the 7th wrong guess'
 );
 
 -- ============================================================
 -- (9) submit_timeout — countdown expired (FE-driven)
 -- ============================================================
 -- The FE fires this when the count-down timer hits 0. We flip
--- status='lost' and call common.end_game with outcome='lost_timeout'
+-- play_state='lost' and call common.end_game with outcome='lost_timeout'
 -- (distinct from the regular `lost` of exhausted guesses).
 -- Idempotency: a second call on the already-terminal game raises
 -- a clean P0001 that the FE swallows.
@@ -220,28 +234,27 @@ select * from psychicnum.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
--- Happy path: active → submit_timeout → lost.
+-- Happy path: playing → submit_timeout → lost.
 select lives_ok(
   format(
     $$ select psychicnum.submit_timeout(%L::uuid) $$,
     (select id from g3)
   ),
-  'submit_timeout: active game accepts the call'
+  'submit_timeout: playing game accepts the call'
 );
 
 reset role;
 select is(
-  (select status from psychicnum.games where id = (select id from g3)),
+  (select play_state from common.games where id = (select id from g3)),
   'lost',
-  'submit_timeout: flips status to lost'
+  'submit_timeout: flips play_state to lost'
 );
 
--- end_game flips is_active=false on timeout-loss.
+-- end_game marks the row terminal on timeout-loss too.
 select is(
-  (select count(*) from common.games
-    where club_id = (select id from club) and is_active = true),
-  0::bigint,
-  'submit_timeout: end_game flips is_active=false on timeout-loss'
+  (select is_terminal from common.games where id = (select id from g3)),
+  true,
+  'submit_timeout: end_game sets is_terminal=true on timeout-loss'
 );
 
 -- Idempotency: a second call from any caller on the already-lost

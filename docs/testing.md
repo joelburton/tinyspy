@@ -21,7 +21,7 @@ Use this when you're about to write a test:
 |---|---|---|
 | An RPC returns the right value or raises the right error | pgTAP | "`tinyspy.submit_guess` returns `'G'` and decrements `turns_remaining`" |
 | RLS prevents the wrong user from seeing data | pgTAP | "dee can't `SELECT` from `tinyspy.games` she's not a player in" |
-| A trigger fires on the right state transition | pgTAP | "ending a tinyspy game deletes the matching `common.games` (with is_active filter) row" |
+| An RPC writes the right state transition | pgTAP | "ending a tinyspy game flips `common.games.is_terminal=true` and writes the outcome jsonb" |
 | A check constraint rejects bad input | pgTAP | "`messages.content` must be 1–1000 chars" |
 | Server-side randomness produces the right distribution | pgTAP | tinyspy's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |

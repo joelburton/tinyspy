@@ -7,7 +7,7 @@
 --   - dee's SELECTs against psychicnum tables return zero rows
 --     (RLS, both the raw table and the games_state view)
 --   - dee's mutating RPCs throw
---   - games_state hides target while status='active' (even for
+--   - games_state hides target while play_state='playing' (even for
 --     members — the secret is hidden until end of game)
 --   - games_state surfaces target after game end
 --   - games_state surfaces target for any club member, not just
@@ -93,23 +93,23 @@ select throws_ok(
 );
 
 -- ============================================================
--- games_state.target gate: NULL while active, even for members
+-- games_state.target gate: NULL while playing, even for members
 -- ============================================================
--- The CASE expression in the view returns NULL when status =
--- 'active', regardless of who's looking. This is the
+-- The CASE expression in the view returns NULL when play_state =
+-- 'playing', regardless of who's looking. This is the
 -- (previously RPC-enforced) terminal-only gate, now declarative.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select target from psychicnum.games_state where id = (select id from g)),
   null::int,
-  'games_state.target is NULL while status=active (member can see the row but not the secret)'
+  'games_state.target is NULL while play_state=playing (member can see the row but not the secret)'
 );
 
 -- ============================================================
 -- After game end, games_state.target is the real value
 -- ============================================================
--- Ada guesses 7 → win, status flips to 'won', target = 7.
+-- Ada guesses 7 → win, play_state flips to 'won', target = 7.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g), 7);
@@ -117,7 +117,7 @@ select psychicnum.submit_guess((select id from g), 7);
 select is(
   (select target from psychicnum.games_state where id = (select id from g)),
   7,
-  'games_state.target surfaces the real value once status is terminal'
+  'games_state.target surfaces the real value once play_state is terminal'
 );
 
 -- Bea (the other member) sees it too — not caller-only.
@@ -133,7 +133,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
   (select count(*) from psychicnum.games_state where id = (select id from g)),
   0::bigint,
-  'dee STILL sees no row in games_state after the game ends (RLS unchanged by terminal status)'
+  'dee STILL sees no row in games_state after the game ends (RLS unchanged by terminal play_state)'
 );
 
 -- ============================================================

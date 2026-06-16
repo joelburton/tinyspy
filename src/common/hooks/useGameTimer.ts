@@ -66,10 +66,21 @@ export function useGameTimer({
   startedAt,
   paused,
   mode,
+  idleSeconds,
 }: {
   startedAt: string
   paused: boolean
   mode: TimerMode
+  /**
+   * Server-tracked accumulator of "wall-clock time during which
+   * no one was viewing this game." Subtracted from the elapsed
+   * computation so a 10-minute countdown that sat unseen for
+   * 5 minutes still reads 9:50, not 4:50. Updated by
+   * common.set_current_view (which folds the last idle window)
+   * and refreshed via the postgres-changes subscription on
+   * common.games. Defaults to 0 when omitted.
+   */
+  idleSeconds?: number
 }): { displaySeconds: number; expired: boolean } {
   // Anchor: parse the ISO timestamp once per startedAt change.
   // (Almost always once per hook lifetime — created_at doesn't
@@ -132,12 +143,13 @@ export function useGameTimer({
       now -
         startedAtMs -
         accumulatedPauseMsRef.current -
-        currentPauseMs,
+        currentPauseMs -
+        (idleSeconds ?? 0) * 1000,
     )
     const elapsedSeconds = Math.floor(elapsedMs / 1000)
     if (mode.kind === 'countup') return elapsedSeconds
     return Math.max(0, mode.seconds - elapsedSeconds)
-  }, [mode, startedAtMs])
+  }, [mode, startedAtMs, idleSeconds])
 
   const displaySeconds = useSyncExternalStore(subscribe, getSnapshot)
   const expired = mode.kind === 'countdown' && displaySeconds === 0

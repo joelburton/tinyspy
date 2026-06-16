@@ -1,5 +1,5 @@
 -- ============================================================
--- psychicnum schema — baseline (squashed)
+-- psychicnum schema — baseline
 -- ============================================================
 --
 -- Psychic Num is a tiny cooperative number-guessing game: pick a
@@ -16,8 +16,8 @@
 --   - A genuine server-side secret (the target), hidden from the
 --     client even with devtools open via a column-level grant
 --     that excludes `target` from authenticated SELECT
---   - A different status enum (active/won/lost — no sudden_death,
---     no multi-axis loss reasons)
+--   - A simpler play_state enum (playing/won/lost — no
+--     sudden_death, no multi-axis loss reasons)
 --
 -- The static-starting-state vocabulary calls for a "boards" table
 -- in some games (boggle's dice, crosswords' grid). Psychic Num's
@@ -25,7 +25,7 @@
 -- its own table, so it co-locates onto the game row, matching how
 -- tinyspy keeps its words alongside the game.
 --
--- Depends on `common` (clubs, profiles, club_active_game,
+-- Depends on `common` (clubs, profiles, games, game_players,
 -- is_club_member, gametypes). Per the removability invariant,
 -- common MUST NOT reference psychicnum back.
 
@@ -42,8 +42,8 @@ grant usage on schema psychicnum to authenticated;
 -- `target` is the secret 1..10; column-grant excludes it from
 -- authenticated SELECT (see grants below). RPCs run as the
 -- postgres role under security definer and can read it freely;
--- the FE only learns it via the reveal_target RPC after the game
--- ends.
+-- the FE only learns it once the game is terminal, via the
+-- `psychicnum.games_state` view + `_target_for` helper pattern.
 --
 -- (Setup lives on common.games.setup — the player choices
 -- {guesses, timer} are persisted there as one canonical blob.
@@ -61,11 +61,13 @@ grant usage on schema psychicnum to authenticated;
 -- club_id stays on this row (denormalized from common.games.club_id)
 -- so the RLS policy can ask is_club_member(club_id) without a join.
 
+-- play_state lives on common.games now, not here. Psychic-num's
+-- enum values are 'playing' / 'won' / 'lost'. Mid-game RPCs (and
+-- the FE) read play_state from common.games rather than from this
+-- row. See docs/states.md → "Where the two tables sit."
 create table psychicnum.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_id uuid not null references common.clubs(id) on delete cascade,
-  status text not null default 'active'
-    check (status in ('active', 'won', 'lost')),
   target int not null check (target between 1 and 10),
   guesses_remaining int not null default 7
     check (guesses_remaining between 0 and 9),
@@ -133,7 +135,7 @@ create policy guesses_select on psychicnum.guesses
 -- authenticated role can never SELECT target directly.
 
 grant select
-  (id, club_id, status, guesses_remaining, winner_id, created_at)
+  (id, club_id, guesses_remaining, winner_id, created_at)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.guesses to authenticated;
@@ -141,15 +143,19 @@ grant select on psychicnum.guesses to authenticated;
 -- ============================================================
 -- psychicnum.games_state — FE-ready read view
 -- ============================================================
--- The single thing the FE reads to render a psychic-num game.
--- Combines what's directly readable from psychicnum.games with
--- the conditional `target` reveal:
+-- The single thing the FE reads to render a psychic-num game's
+-- gametype-specific fields. Combines what's directly readable
+-- from psychicnum.games with the conditional `target` reveal:
 --
---   - While `status = 'active'`, target is NULL.
---   - Once status flips terminal ('won' or 'lost'), target is
---     the real 1..10 value.
+--   - While the game's play_state is 'playing', target is NULL.
+--   - Once play_state flips terminal ('won' or 'lost'), target
+--     is the real 1..10 value.
 --
--- Two layers of protection on the secret, both explicit:
+-- play_state itself lives on common.games and is read by the FE
+-- via useCommonGame — this view does NOT include it. The view's
+-- only job is gametype-specific data + the gated reveal.
+--
+-- Two layers of protection on the target secret, both explicit:
 --
 --   1. **Storage layer** — the column-level grant on
 --      `psychicnum.games` excludes target. Any direct SELECT
@@ -158,27 +164,23 @@ grant select on psychicnum.guesses to authenticated;
 --      educational "true server-side secret" pattern.
 --   2. **API layer** — this view's `target` expression calls a
 --      SECURITY DEFINER helper (`_target_for`) that gates on
---      terminal status. The view itself is `security_invoker`
---      so the row-visibility check still goes through the
---      table's RLS as the calling role.
---
--- The view replaces what used to be a `reveal_target` RPC. The
--- helper function is the gate; the FE shape is just "select
--- from games_state."
+--      common.games.is_terminal. The view itself is
+--      `security_invoker` so the row-visibility check still
+--      goes through the table's RLS as the calling role.
 --
 -- Realtime: the view itself is NOT in the publication. The FE
--- subscribes to psychicnum.games for change events (status
--- flips, guesses_remaining decrement) and refetches from this
--- view in response.
---
--- Writes: revoked below. Authenticated callers attempting an
--- INSERT/UPDATE/DELETE here get 42501.
+-- subscribes to psychicnum.games for change events (winner_id,
+-- guesses_remaining decrement) and refetches from this view in
+-- response. Terminal transitions come through common.games via
+-- useCommonGame.
 
 -- Helper: returns the target value if and only if the game is
 -- terminal. Otherwise null. SECURITY DEFINER means it runs as
 -- the function owner (postgres), which has SELECT on the target
--- column despite the authenticated-role column grant exclusion.
--- The "terminal-only" gate is the CASE expression here.
+-- column (and on common.games.is_terminal) despite the
+-- authenticated-role column grant exclusion. The "terminal-only"
+-- gate reads from common.games.is_terminal — the single source
+-- of truth for "did this game end?"
 --
 -- This is the only place authenticated callers can transitively
 -- read `target`, and only via the games_state view that calls it.
@@ -190,11 +192,12 @@ returns int
 language sql
 stable
 security definer
-set search_path = psychicnum, public, extensions
+set search_path = psychicnum, common, public, extensions
 as $$
-  select case when status = 'active' then null else target end
-    from psychicnum.games
-   where id = g_id
+  select case when c.is_terminal then p.target else null end
+    from psychicnum.games p
+    join common.games c on c.id = p.id
+   where p.id = g_id
 $$;
 
 revoke execute on function psychicnum._target_for(uuid) from public;
@@ -220,7 +223,6 @@ as
   select
     id,
     club_id,
-    status,
     guesses_remaining,
     winner_id,
     created_at,
@@ -246,11 +248,13 @@ alter publication supabase_realtime add table psychicnum.guesses;
 -- Validates setup shape, then coordinates the two-write game-
 -- creation (common-side then gametype-side):
 --
---   1. common.create_game(target_club, 'psychicnum', player_user_ids)
---      — validates auth + caller club-membership + every uid in
---      player_user_ids is in clubs_members, clears any prior active
---      game for this club, inserts common.games (with is_active=true)
---      + one common.game_players per uid, returns the canonical id.
+--   1. common.create_game(target_club, 'psychicnum', player_user_ids,
+--                          title, setup) — validates auth + caller
+--      club-membership + every uid in player_user_ids is in
+--      clubs_members, vacates any prior current-view game for
+--      this club, inserts common.games (is_current_view=true,
+--      play_state='playing', is_terminal=false) + one
+--      common.game_players per uid, returns the canonical id.
 --   2. INSERT INTO psychicnum.games using that id.
 --
 -- Setup shape:
@@ -260,7 +264,7 @@ alter publication supabase_realtime add table psychicnum.guesses;
 --
 -- Timer is browser-side (anchored to common.games.started_at,
 -- ticked locally). When `countdown` hits 0 the FE fires
--- psychicnum.submit_timeout (below) and the game flips to `lost`.
+-- psychicnum.submit_timeout (below) and the game flips to 'lost'.
 -- The `none` / `countup` modes have no server-side timeout
 -- behavior at all — they're just FE display choices.
 --
@@ -374,18 +378,27 @@ as $$
 declare
   caller_id uuid;
   g psychicnum.games%rowtype;
-  -- Initial guess budget pulled from common.games.setup (the
-  -- canonical setup location post-migration). Used to compute
-  -- `guesses_used` in the terminal status_summary blobs below.
+  current_play_state text;
+  -- Initial guess budget from common.games.setup. Used to compute
+  -- `guesses_used` in the listing-label / end-game status jsonb.
   initial_guesses int;
   is_correct boolean;
   remaining int;
   player_results jsonb;
+  -- The guesser's username, frozen into status on a win so the
+  -- club-page listing can render "won — <name>" from the row
+  -- alone (no follow-up profile fetch on the FE).
+  winner_name text;
 begin
   if guess is null or guess < 1 or guess > 10 then
     raise exception 'guess must be between 1 and 10' using errcode = 'P0001';
   end if;
 
+  -- Lock the gametype row for serialization of concurrent
+  -- submits. play_state lives on common.games now, read in a
+  -- separate query below — the foo-lock guarantees that by the
+  -- time we read play_state, any concurrent submit that ended
+  -- the game has already committed.
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
@@ -397,12 +410,16 @@ begin
   -- a club member who didn't sit down at this game can't guess.
   caller_id := common.require_game_player(target_game);
 
-  if g.status <> 'active' then
+  -- Read play_state + initial guess budget from common.games.
+  -- Cross-schema lookup against the foo-locked id is safe: the
+  -- FOR UPDATE above serializes concurrent submits.
+  select play_state, (setup->>'guesses')::int
+    into current_play_state, initial_guesses
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
-
-  select (setup->>'guesses')::int into initial_guesses
-    from common.games where id = target_game;
 
   is_correct := (guess = g.target);
 
@@ -411,8 +428,7 @@ begin
 
   if is_correct then
     update psychicnum.games
-       set status = 'won',
-           winner_id = caller_id,
+       set winner_id = caller_id,
            guesses_remaining = guesses_remaining - 1
      where psychicnum.games.id = target_game;
 
@@ -424,12 +440,26 @@ begin
       from common.game_players
      where game_id = target_game;
 
+    -- Resolve the guesser's username at end-of-game time. We
+    -- freeze it into status so the club-page listing label
+    -- ("won — bea guessed it") can be rendered from the row
+    -- alone, with no follow-up profile fetch on the FE.
+    -- Stale-on-rename is fine (renames are rare, and the
+    -- frozen value reflects who-they-were-when-they-won, which
+    -- is arguably the right thing to show).
+    select username into winner_name
+      from common.profiles where user_id = caller_id;
+
+    -- common.end_game writes play_state='won', is_terminal=true,
+    -- status (the listing-label jsonb), and per-player results.
     perform common.end_game(
       target_game,
+      'won',
       jsonb_build_object(
         'outcome', 'won',
         -- initial budget minus the post-guess remaining count
-        'guesses_used', initial_guesses - (g.guesses_remaining - 1)
+        'guesses_used', initial_guesses - (g.guesses_remaining - 1),
+        'winner_username', winner_name
       ),
       player_results
     );
@@ -441,8 +471,7 @@ begin
 
   if remaining <= 0 then
     update psychicnum.games
-       set status = 'lost',
-           guesses_remaining = 0
+       set guesses_remaining = 0
      where psychicnum.games.id = target_game;
 
     -- Team loss: everyone loses together.
@@ -453,6 +482,7 @@ begin
 
     perform common.end_game(
       target_game,
+      'lost',
       jsonb_build_object(
         'outcome', 'lost',
         'guesses_used', initial_guesses
@@ -463,9 +493,20 @@ begin
     return 'lost';
   end if;
 
+  -- Mid-game wrong guess. Update guesses_remaining on foo.games,
+  -- mirror the listing-visible state into common.games via
+  -- common.update_state (the duplicate-write discipline). play_state
+  -- stays 'playing'.
   update psychicnum.games
      set guesses_remaining = remaining
    where psychicnum.games.id = target_game;
+
+  perform common.update_state(
+    target_game,
+    'playing',
+    jsonb_build_object('guesses_remaining', remaining)
+  );
+
   return 'wrong';
 end;
 $$;
@@ -497,9 +538,12 @@ set search_path = psychicnum, common, public, extensions
 as $$
 declare
   g psychicnum.games%rowtype;
+  current_play_state text;
   initial_guesses int;
   player_results jsonb;
 begin
+  -- Lock the gametype row; read play_state + initial guess budget
+  -- from common.games separately.
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
@@ -510,12 +554,13 @@ begin
   -- Auth + game-player gate. See common.require_game_player.
   perform common.require_game_player(target_game);
 
-  if g.status <> 'active' then
+  select play_state, (setup->>'guesses')::int
+    into current_play_state, initial_guesses
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
-
-  update psychicnum.games set status = 'lost'
-   where psychicnum.games.id = target_game;
 
   -- Team loss: everyone loses together.
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -523,13 +568,9 @@ begin
     from common.game_players
    where game_id = target_game;
 
-  -- Initial guess budget for the `guesses_used` summary field. Read
-  -- from common.games.setup (canonical setup location).
-  select (setup->>'guesses')::int into initial_guesses
-    from common.games where id = target_game;
-
   perform common.end_game(
     target_game,
+    'lost',
     jsonb_build_object(
       'outcome', 'lost_timeout',
       -- How many guesses had been used before the clock ran out.
@@ -543,12 +584,8 @@ $$;
 revoke execute on function psychicnum.submit_timeout(uuid) from public;
 grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 
--- (No reveal_target RPC. An earlier iteration had one — a
--- security-definer function that returned `target` after checking
--- the terminal-status precondition. That precondition is now the
--- CASE expression inside the `games_state` view above, which the
--- FE reads directly. The view collapses the two-step
--- fetch-then-reveal flow into a single SELECT.)
+-- (The target-reveal flow is the games_state view above + the
+-- _target_for helper. Single SELECT — no separate reveal RPC.)
 
 -- ============================================================
 -- Register psychicnum with common.gametypes

@@ -25,10 +25,10 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 | term | what it means |
 |---|---|
 | **category** | one of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere) |
-| **rank** | the difficulty index 0..3 of a category (was "level" — renamed because "level" overloads with puzzle-difficulty levels, app-routing levels, etc.) |
-| **tile** | one of the 16 selectable words on the board (was "member" inside the JSON — renamed because "member" already means a person in a club) |
-| **matched** | the resolution state for a category once a correct guess identifies it (was "found" — `matched` unifies with the `matched_category_rank` column and reads cohesively across copy + code) |
-| **mistake_count** | the integer column counting wrong+oneAway submissions for a game (was `mistakes` — `_count` is explicit that it's a number, not the mistakes themselves) |
+| **rank** | the difficulty index 0..3 of a category (not "level" — that word overloads with puzzle-difficulty levels, app-routing levels, etc.) |
+| **tile** | one of the 16 selectable words on the board (not "member" — that already means a person in a club) |
+| **matched** | the resolution state for a category once a correct guess identifies it (unifies with the `matched_category_rank` column and reads cohesively across copy + code) |
+| **mistake_count** | the integer column counting wrong+oneAway submissions for a game (the `_count` suffix is explicit that it's a number, not the mistakes themselves) |
 
 ## Scope (current state)
 
@@ -71,7 +71,7 @@ Unlike tinyspy and psychic-num — where the server holds a secret and validates
 | table | purpose |
 |---|---|
 | `puzzles` | The source-of-truth puzzle archive. One row per NYT Connections puzzle, with `source_id` (the NYT puzzle number, as text), `nyt_date`, and `categories` jsonb (matching the games.board.categories shape). Imported via `npm run puzzles:import`. Publicly readable. Distinct from `games.board` — puzzles stay pristine; games copy from them. See [Puzzles](#puzzles) below. |
-| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. `puzzle_id` (not null) references the puzzle this game was created from. Holds `status`, `mistake_count`, `board` (jsonb — the puzzle's categories + this game's shuffled tileOrder — publicly readable). (The setup blob — puzzleId + timer mode — lives on `common.games.setup`; the per-gametype `setup` column was dropped when the blob moved to common.) |
+| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. `puzzle_id` (not null) references the puzzle this game was created from. Holds `mistake_count` and `board` (jsonb — the puzzle's categories + this game's shuffled tileOrder — publicly readable). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. A partial unique index on `(game_id, matched_category_rank) where result = 'correct'` enforces one match per category per game. |
 
 ### `board` jsonb shape
@@ -88,11 +88,11 @@ Unlike tinyspy and psychic-num — where the server holds a secret and validates
 
 The whole board is publicly readable. The FE reads `board.categories` to evaluate guesses (FE-knows-the-answer) and to render the colored bands on reveal; it reads `board.tileOrder` for the 4×4 grid display order.
 
-### Status enum
+### Play-state enum
 
-`games.status text not null check (status in ('in_progress', 'solved', 'lost'))`
+`common.games.play_state` carries wordknit's lifecycle enum. Accepted values:
 
-- **in_progress** — guesses being submitted. The default; no other entry state.
+- **playing** — guesses being submitted. The default; no other entry state.
 - **solved** — all 4 categories have been matched. Terminal.
 - **lost** — mistakes hit 4 (or the countdown timer expired). Terminal.
 
@@ -105,7 +105,7 @@ In tinyspy, the 25 words live in their own `tinyspy.words` table — one row per
 
 So `tileOrder` lives in the `board` jsonb alongside `categories`, and the FE filters out matched tiles at render time. Saves a 16-rows-per-game table for nothing.
 
-Earlier versions of this schema had a separate `wordknit.found_groups` table whose PK on `(game_id, level)` provided the race-idempotency for concurrent correct submissions. That's been collapsed into the partial unique index on `guesses` — same guarantee, one less table, one less postgres-changes fan-out for the FE to subscribe to.
+Race-idempotency for concurrent correct submissions is provided by the partial unique index on `guesses (game_id, matched_category_rank) where result = 'correct'` — one correct row per rank per game, enforced at the DB layer.
 
 ## RPCs
 
@@ -113,7 +113,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `wordknit.create_game(target_club uuid, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `wordknit.puzzles`) and `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16, calls `common.create_game(target_club, 'wordknit', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`), then inserts the wordknit detail row referencing `puzzle_id` with status `in_progress`. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; the puzzle row stays pristine.
+The one entry point. Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `wordknit.puzzles`) and `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16, calls `common.create_game(target_club, 'wordknit', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the wordknit detail row referencing `puzzle_id`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('matched_count', 0, 'mistake_count', 0))` to seed the listing-label payload. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; the puzzle row stays pristine.
 
 Reject reasons: not authenticated; not a member; missing/malformed `setup.puzzleId`; `setup.puzzleId` doesn't reference a known puzzle (P0002 `'puzzle not found'`); bad `setup.timer` shape.
 
@@ -121,21 +121,19 @@ Reject reasons: not authenticated; not a member; missing/malformed `setup.puzzle
 
 ### `wordknit.submit_guess(target_game uuid, tiles text[], result text, matched_category_rank int default null)`
 
-The only mid-game action. Validates the payload shape (4 tiles, valid result enum, rank present iff correct), then records what the caller tells it. For `correct`: inserts a `result='correct'` row into `guesses` (the partial unique index on `(game_id, matched_category_rank)` filtered to correct rows is the race-idempotency check), then counts correct rows to detect the win (4 correct → solved). For `wrong` / `oneAway`: records the guess, increments `mistake_count`, checks loss (4 mistakes → lost).
+The only mid-game action. Validates the payload shape (4 tiles, valid result enum, rank present iff correct), then records what the caller tells it. For `correct`: inserts a `result='correct'` row into `guesses` (the partial unique index on `(game_id, matched_category_rank)` filtered to correct rows is the race-idempotency check), then counts correct rows to detect the win (4 correct → terminal). For `wrong` / `oneAway`: records the guess, increments `mistake_count`, checks loss (4 mistakes → terminal). Mid-game (non-terminal) transitions write the current snapshot via `common.update_state(target_game, 'playing', jsonb_build_object('matched_count', M, 'mistake_count', K))`; terminal transitions call `common.end_game(target_game, 'solved'|'lost', …)`.
 
-`SELECT FOR UPDATE` on the games row serializes concurrent submissions.
+`SELECT FOR UPDATE` on the gametype row serializes concurrent submissions; play_state is read from `common.games` in a separate query after the lock.
 
-The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql).)
+The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../supabase/migrations/20260615000003_wordknit_baseline.sql).)
 
-Reject reasons: not authenticated; not a club member; game not in progress; tile count ≠ 4; bad result enum; missing or out-of-range `matched_category_rank` when result is correct.
+Reject reasons: not authenticated; not a club member; play_state ≠ playing; tile count ≠ 4; bad result enum; missing or out-of-range `matched_category_rank` when result is correct.
 
 ### `wordknit.submit_timeout(target_game uuid)`
 
-Fires when the countdown timer expires; flips `status` to `lost`. Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
+Fires when the countdown timer expires. Calls `common.end_game(target_game, 'lost', jsonb_build_object('outcome', 'lost_timeout', …), player_results)`. Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
-### `wordknit.clear_active_on_termination` (trigger)
-
-Fires on `status` UPDATE from `in_progress` to terminal. Deletes the matching `common.games (is_active=true)` row. Same pattern as tinyspy / psychic-num.
+Terminal transitions write `common.games.play_state` + `is_terminal=true` + the `status` jsonb via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
 
 ## Row-level security
 
@@ -176,7 +174,7 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 ### Title formula
 
-`"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Example: `"#1 2023-06-12 (BUCKS/HAIL)"`. Built at create_game time from the puzzle's data, so it carries forward unchanged for the life of the game. The previous (POC-era) formula was "first 4 alphabetical tiles, comma-joined" — degenerate for the hardcoded board; replaced once real puzzles arrived.
+`"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Example: `"#1 2023-06-12 (BUCKS/HAIL)"`. Built at create_game time from the puzzle's data, so it carries forward unchanged for the life of the game.
 
 ## Frontend
 
@@ -211,11 +209,11 @@ src/wordknit/
     SetupForm.module.css
 
   hooks/
-    useGame.ts            Slimmed: now owns just postgres-changes (games / guesses) on its
-                          own per-tab UUID-suffixed channel, AND the shared-selection
-                          Broadcast events on a separate stable channel
-                          `wordknit:${gameId}`. Presence / manual-pause / members / timer
-                          all moved to common's useCommonGame (consumed by GamePage).
+    useGame.ts            Owns postgres-changes (games / guesses) on its own per-tab
+                          UUID-suffixed channel, AND the shared-selection Broadcast events
+                          on a separate stable channel `wordknit:${gameId}`. Cross-cutting
+                          state (presence, manual-pause, members, timer) lives on
+                          common's useCommonGame, consumed by GamePage.
 
   lib/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
@@ -276,15 +274,15 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 **Paused vs suspended** — code-level terminology distinction worth knowing:
 
 - **Paused** (this overlay + the `PauseBoundary` wrapper + `computePause` helper): the transient gameplay-pause state — same UX as a video player's pause: clock stops, no moves accepted, overlay shows. Triggers: presence-disconnect or manual Pause button (both shipped). Resolves automatically when presence comes back, or when anyone clicks Resume.
-- **Suspended** (club-level concept in `common.md`): persistent, "this game is not the one `common.games (is_active=true)` is pointing at." Caused by another game being started in the club. Resolves when someone navigates to the suspended game and starts playing again.
+- **Suspended** (club-level concept in `common.md`): persistent, "this game's `common.games.is_current_view` is false but it isn't terminal either." Caused by another game being started in the club, or by the last viewer leaving via the suspend-confirm modal. Resolves when someone navigates back to the game (which fires `common.set_current_view` and re-flips it to current).
 
 The two never coexist on the same game — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
 
-**Future rollout:** the `computePause` helper + `PauseOverlay` + `PauseBoundary` + `useCommonGame` live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern. With `useCommonGame` owning presence + manual-pause centrally and `<GamePage>` wrapping every PlayArea in `<PauseBoundary>`, the rollout is essentially free — any gametype that mounts GamePage gets the pause behavior. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md`.
+**Rollout status:** all three games inherit pause for free via `<GamePage>` + `useCommonGame` — the `computePause` helper + `PauseOverlay` + `PauseBoundary` machinery runs uniformly under every gametype that mounts the common shell. No per-gametype wiring is required. See the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md` for the durable principle.
 
 ### Timer (browser-side, no server sync)
 
-The timer is a **per-game setup choice**, not a manifest-level constant. The setup dialog renders a None / Up / Down radio + an MM:SS input for the count-down case (1 second to 60 minutes); the choice lives on `wordknit.games.setup.timer` and is server-side validated in `create_game`. The default is countdown 10:00. When a count-down hits 0, the FE fires `wordknit.submit_timeout` and the game's status flips to `lost`.
+The timer is a **per-game setup choice**, not a manifest-level constant. The setup dialog renders a None / Up / Down radio + an MM:SS input for the count-down case (1 second to 60 minutes); the choice lives on `common.games.setup.timer` and is server-side validated in `create_game`. The default is countdown 10:00. When a count-down hits 0, the FE fires `wordknit.submit_timeout` and the game's play_state flips to `lost`.
 
 **Browser-side, not server-synced.** Every client anchors at `games.created_at` (a server-stamped ISO timestamp), then ticks locally using `Date.now()`. There's no heartbeat back to the server, no periodic sync, no pause-log column.
 

@@ -81,10 +81,10 @@ body {
   place-items: start center;
 }
 
-/* #root no longer caps width — that's the responsibility of each
-   top-level screen, so the narrow card-based screens (login, home,
-   club page) can stay readable while the board claims wide-desktop
-   space. */
+/* #root intentionally doesn't cap width — width-capping is each
+   top-level screen's responsibility, so the narrow card-based
+   screens (login, home, club page) can stay readable while the
+   board claims wide-desktop space. */
 #root {
   width: 100%;
 }

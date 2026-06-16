@@ -11,7 +11,6 @@ type GameRow = Pick<
   Database['tinyspy']['Tables']['games']['Row'],
   | 'id'
   | 'club_id'
-  | 'status'
   | 'turns_remaining'
   | 'turn_number'
   | 'current_clue_giver'
@@ -31,8 +30,9 @@ export type Player = {
  * Subscribes to a single game's row and its player roster.
  *
  * Returns:
- *  - `game`: the `games` row (status, current_clue_giver, turn_number,
- *    seat user_ids, key cards, etc.)
+ *  - `game`: the `games` row (current_clue_giver, turn_number,
+ *    seat user_ids, key cards, etc. — play_state moved to
+ *    common.games and arrives via GamePageCtx)
  *  - `players`: the 2 seated players, with usernames embedded
  *  - `loading`: true until the first load completes
  *
@@ -69,7 +69,7 @@ export function useGame(gameId: string) {
       const gameRes = await db
         .from('games')
         .select(
-          'id, club_id, status, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
+          'id, club_id, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
         )
         .eq('id', gameId)
         .single()

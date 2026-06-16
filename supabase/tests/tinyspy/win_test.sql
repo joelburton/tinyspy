@@ -3,7 +3,7 @@
 -- ============================================================
 --
 -- The win check lives at the end of submit_guess: after a green
--- reveal, count the total greens; if it's ≥ 15, set status = won
+-- reveal, count the total greens; if it's ≥ 15, set play_state = won
 -- and clear the clue-giver.
 --
 -- Of the 15 unique green agents, 9 are visible on Ada's side
@@ -76,7 +76,7 @@ end $$;
 -- gives a clue and Ada guesses, the reveal uses Bea's view —
 -- which is 'G' for all 6 of these cells.
 --
--- The 14th green keeps status='active'; the 15th flips it to 'won'.
+-- The 14th green keeps play_state='playing'; the 15th flips it to 'won'.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g), 'TARGETS', 6);
@@ -123,13 +123,13 @@ select is(
   '14 greens have been revealed (sanity)'
 );
 select is(
-  (select status from games where id = (select id from g)),
-  'active',
-  'status stays active after only 14 of 15 greens'
+  (select play_state from common.games where id = (select id from g)),
+  'playing',
+  'play_state stays playing after only 14 of 15 greens'
 );
 
 -- The 15th and final reveal. submit_guess returns 'G', and inside the
--- same RPC call the win check flips status.
+-- same RPC call the win check flips play_state.
 select is(
   submit_guess(
     (select id from g),
@@ -152,11 +152,11 @@ select is(
   'the 15th green reveal returns G'
 );
 
--- (4) Status flips to won.
+-- (4) Play state flips to won.
 select is(
-  (select status from games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'won',
-  'finding the 15th agent sets status = won'
+  'finding the 15th agent sets play_state = won'
 );
 
 -- ============================================================

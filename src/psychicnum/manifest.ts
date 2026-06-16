@@ -1,17 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { db as commonDb } from '../common/db'
-import type { Database } from '../types/db'
 import { db } from './db'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
-
-// Narrower than Database[...]['Row'] — see code-conventions.md's
-// "Avoid SELECT *". Adding a column to psychicnum.games requires
-// listing it here AND in the select() below.
-type GameRow = Pick<
-  Database['psychicnum']['Tables']['games']['Row'],
-  'id' | 'status' | 'guesses_remaining' | 'winner_id' | 'created_at'
->
 
 /**
  * Psychic Num's registration with the shell. Mirrors the shape
@@ -82,66 +72,29 @@ export const psychicnumGame: GameManifest = {
     return { id: data.id }
   },
 
-  // Lists this gametype's games for a club. RLS restricts the
-  // result to clubs the caller is a member of.
+  // Render the per-row label from a common.games row. Pure,
+  // synchronous: every piece comes off the row.
   //
-  // For won games we want the status label to say
-  // "won — <username> guessed it", which needs the winner's
-  // username. We batch-fetch profiles for all winners in a
-  // single follow-up query rather than doing N+1 lookups; the
-  // result count per club is small so the cost is negligible.
-  fetchClubGames: async (clubId) => {
-    const { data: games, error } = await db
-      .from('games')
-      .select('id, status, guesses_remaining, winner_id, created_at')
-      .eq('club_id', clubId)
-      .order('created_at', { ascending: false })
-    if (error || !games) return []
-
-    const winnerIds = Array.from(
-      new Set(
-        games
-          .map((g) => g.winner_id)
-          .filter((id): id is string => id !== null),
-      ),
-    )
-    const winnerName: Record<string, string> = {}
-    if (winnerIds.length > 0) {
-      const { data: profiles } = await commonDb
-        .from('profiles')
-        .select('user_id, username')
-        .in('user_id', winnerIds)
-      for (const p of profiles ?? []) {
-        winnerName[p.user_id] = p.username
-      }
+  // Mid-game `status` carries `{ guesses_remaining }` (written by
+  // submit_guess via common.update_state). Terminal-on-win
+  // `status` carries `{ outcome, guesses_used, winner_username }`
+  // — the username is frozen by the RPC at end-of-game time so
+  // the label renders without a follow-up profile fetch. Stale
+  // on rename is fine (rare; arguably the right thing to show
+  // anyway, since it's "who they were when they won"). Terminal-
+  // on-loss `status` carries `{ outcome, guesses_used }`.
+  labelFor: (row) => {
+    const s = (row.status ?? {}) as Record<string, unknown>
+    if (row.play_state === 'playing') {
+      const remaining = (s.guesses_remaining as number | undefined) ?? 0
+      const word = remaining === 1 ? 'guess' : 'guesses'
+      return `${remaining} ${word} left`
     }
-
-    // Build the human-readable per-row status. Lifted out of the
-    // .map() ternary nest so each branch reads on its own line.
-    //
-    // The 'won' branch's winner-name lookup is the one expected to
-    // disappear when the winner_id overspec is removed (see
-    // docs/deferred.md → Psychic Num); that'll collapse the whole
-    // function to two cases.
-    function labelFor(g: GameRow): string {
-      if (g.status === 'active') {
-        const word = g.guesses_remaining === 1 ? 'guess' : 'guesses'
-        return `${g.guesses_remaining} ${word} left`
-      }
-      if (g.status === 'won') {
-        const name = g.winner_id ? winnerName[g.winner_id] ?? 'someone' : 'someone'
-        return `won — ${name} guessed it`
-      }
-      return 'lost'
+    if (row.play_state === 'won') {
+      const name = (s.winner_username as string | undefined) ?? 'someone'
+      return `won — ${name} guessed it`
     }
-
-    return games.map((g) => ({
-      gameType: 'psychicnum',
-      gameId: g.id,
-      startedAt: g.created_at,
-      isTerminal: g.status !== 'active',
-      statusLabel: labelFor(g),
-    }))
+    return 'lost'
   },
 
   // Called by common's GamePage when its countdown timer hits 0.

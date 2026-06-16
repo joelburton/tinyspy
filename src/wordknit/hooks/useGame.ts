@@ -6,14 +6,13 @@ import type { Database } from '../../types/db'
 import type { Board, CategoryRank } from '../lib/board'
 
 // Narrower than Database[...]['Row']. The board jsonb column is
-// read once on load and stays put — only mutable fields (status,
-// mistake_count) appear on the realtime update payloads we care
-// about.
+// read once on load and stays put — only mutable fields
+// (mistake_count) appear on the realtime update payloads we care
+// about. play_state lives on common.games and arrives via ctx.
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
   | 'id'
   | 'club_id'
-  | 'status'
   | 'mistake_count'
   | 'board'
   | 'created_at'
@@ -30,11 +29,10 @@ export type GuessRow = {
 
 /**
  * One matched category, derived from a `result='correct'` guess
- * row joined with the static board.categories. There's no longer
- * a separate found_groups table — the partial unique index on
- * `guesses (game_id, matched_category_rank) where
+ * row joined with the static board.categories. The partial unique
+ * index on `guesses (game_id, matched_category_rank) where
  * result='correct'` enforces "one match per rank per game" at
- * the DB layer, and we project here.
+ * the DB layer; we project that record here.
  */
 export type MatchedCategory = {
   rank: CategoryRank
@@ -46,7 +44,6 @@ export type MatchedCategory = {
 export type WordknitGame = {
   id: string
   club_id: string
-  status: 'in_progress' | 'solved' | 'lost'
   mistake_count: number
   board: Board
   /** Server-stamped game-start timestamp, ISO. Mirrored from the
@@ -157,7 +154,7 @@ export function useGame(
       const [gameRes, guessesRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_id, status, mistake_count, board, created_at')
+          .select('id, club_id, mistake_count, board, created_at')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -178,7 +175,6 @@ export function useGame(
       setGame({
         id: row.id,
         club_id: row.club_id,
-        status: row.status as WordknitGame['status'],
         mistake_count: row.mistake_count,
         board: row.board as Board,
         created_at: row.created_at,

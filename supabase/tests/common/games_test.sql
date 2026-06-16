@@ -10,17 +10,17 @@
 --   - common.create_game: caller membership, player-uid
 --     membership, both rows landed
 --   - common.require_game_player: auth + game-player gate
---   - common.end_game: ended_at + status_summary +
---     per-player results + is_active flipped to false
+--   - common.end_game: ended_at + play_state + is_terminal + status +
+--     per-player results + is_current_view flipped to false
 --
 -- Per-game tests (tinyspy/psychicnum/wordknit) exercise these
 -- helpers indirectly through their own create_game RPCs; this
 -- file pins the contract directly.
 --
--- "Which game is active for this club" is now derived from
--- common.games.is_active (with a partial unique index enforcing
--- one-active-per-club). The separate club_active_game pointer
--- table is gone.
+-- "Which game is the current view for this club" is now derived
+-- from common.games.is_current_view (with a partial unique index
+-- enforcing one-current-view-per-club). The separate
+-- club_active_game pointer table is gone.
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / personas
 -- primer, and helpers_test.sql for the "as_jwt_only" trick we
@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(21);
+select plan(38);
 
 \ir ../_shared/setup.psql
 
@@ -234,22 +234,28 @@ select is(
 -- ============================================================
 -- common.end_game
 -- ============================================================
--- Precondition: common.create_game left this row in is_active=true
--- (the create_game RPC's transition). end_game should flip it off.
+-- Precondition: common.create_game left this row in is_current_view=true
+-- (the create_game RPC's transition). end_game should flip it off
+-- only indirectly — actually, end_game only flips play_state /
+-- is_terminal / ended_at / status; is_current_view stays true
+-- until the FE explicitly closes the post-game review. So this
+-- test pins what end_game *does* write.
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select is_active from common.games
+  (select is_current_view from common.games
     where id = current_setting('test.created_game_id')::uuid),
   true,
-  'precondition: game starts is_active=true after create_game'
+  'precondition: game starts is_current_view=true after create_game'
 );
 
--- Now end the game with status_summary + per-player results.
+-- Now end the game with play_state + status + per-player results.
+-- The new signature is (target_game, play_state, status, player_results).
 select common.end_game(
   current_setting('test.created_game_id')::uuid,
+  'solved',
   '{"outcome": "solved", "matched": 4, "mistakes": 1}'::jsonb,
   format(
     '{"%s": {"won": true}, "%s": {"won": true}}',
@@ -266,10 +272,24 @@ select isnt(
 );
 
 select is(
-  (select status_summary->>'outcome' from common.games
+  (select status->>'outcome' from common.games
     where id = current_setting('test.created_game_id')::uuid),
   'solved',
-  'end_game: status_summary persisted'
+  'end_game: status persisted'
+);
+
+select is(
+  (select play_state from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  'solved',
+  'end_game: play_state written from the new 2nd arg'
+);
+
+select is(
+  (select is_terminal from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  true,
+  'end_game: is_terminal flipped to true'
 );
 
 select is(
@@ -288,23 +308,240 @@ select is(
   'end_game: bea''s per-player result persisted'
 );
 
-select is(
-  (select is_active from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  false,
-  'end_game: is_active flipped to false'
-);
-
 -- ============================================================
 -- common.end_game — unknown game
 -- ============================================================
 
 select throws_ok(
   $$ select common.end_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
-                            '{}'::jsonb, '{}'::jsonb) $$,
+                            'won', '{}'::jsonb, '{}'::jsonb) $$,
   'P0002',
   'game not found',
   'end_game: unknown game raises P0002'
+);
+
+-- ============================================================
+-- common.set_current_view / common.unset_current_view
+-- ============================================================
+-- Mount-time and last-leaver-time view-state writes. Pinned
+-- together here because they're the matching halves of one
+-- contract; the integration with FE presence lives in
+-- useCommonGame. See docs/states.md → "Lifecycle: when
+-- is_current_view flips".
+--
+-- The game from the create_game block above is terminal now
+-- (end_game ran). is_current_view stays true (end_game leaves
+-- it alone). Start a second game in the same club to exercise
+-- the "vacate prior current" behavior.
+
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select set_config(
+  'test.second_game_id',
+  (common.create_game(
+    (select id from club),
+    'wordknit',
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'second',
+    '{}'::jsonb
+  ))::text,
+  true
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- create_game auto-vacated the first game's current-view flag
+-- as part of its insert path. The new game is now current.
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  false,
+  'precondition: create_game auto-vacated the first game'
+);
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.second_game_id')::uuid),
+  true,
+  'precondition: the second game is the current view'
+);
+
+-- set_current_view back on the first game flips it to current
+-- and vacates the second (the partial unique index would
+-- reject otherwise).
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.set_current_view(current_setting('test.created_game_id')::uuid);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  true,
+  'set_current_view: target game becomes the current view'
+);
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.second_game_id')::uuid),
+  false,
+  'set_current_view: the prior current-view game is vacated'
+);
+
+-- Re-mount idempotency: set_current_view on the already-current
+-- game is a no-op (no write to the row itself, no write to
+-- others, no change to total_idle_seconds). The index would
+-- reject a true→true rewrite if we did it naively; the WHERE
+-- clause `and is_current_view = false` in set_current_view's
+-- body is what keeps it a no-op. Force a non-zero baseline on
+-- total_idle_seconds first so the assertion has signal.
+reset role;
+update common.games
+   set total_idle_seconds = 42
+ where id = current_setting('test.created_game_id')::uuid;
+
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select lives_ok(
+  format(
+    $$ select common.set_current_view(%L::uuid) $$,
+    current_setting('test.created_game_id')::uuid
+  ),
+  'set_current_view: re-mount on the already-current game is a no-op'
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  true,
+  'set_current_view: re-mount left current-view = true'
+);
+
+select is(
+  (select total_idle_seconds from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  42,
+  'set_current_view: re-mount did NOT mutate total_idle_seconds'
+);
+
+-- Clear the 42-baseline so the later idle-accounting block
+-- (which expects total_idle_seconds = 0 before its 5-second
+-- window) starts from a clean slate.
+reset role;
+update common.games
+   set total_idle_seconds = 0
+ where id = current_setting('test.created_game_id')::uuid;
+
+-- unset_current_view clears the target's flag. Idempotent on
+-- the `is_current_view = true` guard.
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.unset_current_view(current_setting('test.created_game_id')::uuid);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select is_current_view from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  false,
+  'unset_current_view: target is no longer current'
+);
+
+-- Non-member rejected on both helpers.
+select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
+select throws_ok(
+  format(
+    $$ select common.set_current_view(%L::uuid) $$,
+    current_setting('test.second_game_id')::uuid
+  ),
+  '42501',
+  'not a member of this club',
+  'set_current_view: non-member is rejected'
+);
+select throws_ok(
+  format(
+    $$ select common.unset_current_view(%L::uuid) $$,
+    current_setting('test.second_game_id')::uuid
+  ),
+  '42501',
+  'not a member of this club',
+  'unset_current_view: non-member is rejected'
+);
+
+-- Unknown game raises P0002 (matches end_game's vocabulary).
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select throws_ok(
+  $$ select common.set_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
+  'P0002',
+  'game not found',
+  'set_current_view: unknown game raises P0002'
+);
+
+-- ============================================================
+-- Idle accounting (the timer-state-preservation contract)
+-- ============================================================
+-- The invariant: is_current_view=true iff idle_since IS NULL.
+-- Every transition out of current-view stamps idle_since=now();
+-- every transition into current-view folds the gap into
+-- total_idle_seconds and clears idle_since. See common.games's
+-- column comments for the why.
+--
+-- The first game (current_setting('test.created_game_id')) is
+-- currently non-current (we left it that way after the unset
+-- test above). We use it to exercise idle-set / idle-fold.
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select isnt(
+  (select idle_since from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  null,
+  'idle: unset_current_view stamped idle_since'
+);
+
+select is(
+  (select total_idle_seconds from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  0,
+  'idle: total_idle_seconds is still 0 (the window is open)'
+);
+
+-- Force idle_since back by 5 seconds so set_current_view's fold
+-- has a deterministic gap to add. (now() inside the next RPC
+-- minus this rewound timestamp = ~5 seconds.)
+update common.games
+   set idle_since = now() - interval '5 seconds'
+ where id = current_setting('test.created_game_id')::uuid;
+
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.set_current_view(current_setting('test.created_game_id')::uuid);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select idle_since from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  null,
+  'idle: set_current_view cleared idle_since'
+);
+
+select cmp_ok(
+  (select total_idle_seconds from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  '>=',
+  5,
+  'idle: total_idle_seconds folded in the ~5s window'
+);
+
+select cmp_ok(
+  (select total_idle_seconds from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  '<=',
+  7,
+  'idle: total_idle_seconds didn''t pick up implausible extra'
 );
 
 -- ============================================================

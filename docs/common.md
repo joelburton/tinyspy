@@ -43,22 +43,30 @@ Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. |
 | `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
 | `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
-| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `title`, `is_active`, `status_summary` jsonb, `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. The `title` is a short human-readable label built by each gametype's `create_game` at insert time (see [Title formulas](#title-formulas)) — the FE renders it as `"<gametypeName>: <title>"` in club game lists. |
+| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `title`, the **view-state pair** (`is_current_view`, `paused`), the **play-state pair** (`play_state` text + `is_terminal` boolean), `status` jsonb (the gametype-specific listing-label payload), `idle_since` + `total_idle_seconds` (the timer-preservation accumulator), `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. The `title` is a short human-readable label built by each gametype's `create_game` at insert time (see [Title formulas](#title-formulas)) — the FE renders it as `"<gametypeName>: <title>"` in club game lists. The two state pairs and their orthogonality are written up in [`states.md`](states.md). |
 | `game_players` | M2M between games and profiles, recording who played each game. Frozen at game-create time — distinct from `clubs_members`, which is current membership of the club. The `result jsonb` column carries each player's outcome (won/lost flag, score, etc.), populated by `common.end_game` at terminal transition. |
 | `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. |
-| `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. The 1–1000 character constraint matches what game-scoped chat used to have, before chat moved to common. |
+| `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. 1–1000 character constraint on `content`. |
 
-### The is_active flag on common.games
+### The view-state pair on common.games
 
-`common.games.is_active` carries the **one active game per club, across all gametypes** invariant. Two things to keep in mind:
+`common.games.is_current_view` carries the **one current-view game per club, across all gametypes** invariant. View-state and play-state are orthogonal axes here — see [`states.md`](states.md) for the full picture of how the two columns compose.
 
-1. **A partial unique index on `(club_id) where is_active = true`** is what enforces the invariant. The index only contains the active rows; multiple `is_active=false` rows per club are fine (the index doesn't index them). A second `is_active=true` row for the same club would raise `unique_violation` — which would be a `common.create_game` bug, since that RPC explicitly flips the prior active row off before inserting the new one.
+Two things to keep in mind:
 
-2. **Starting a new game auto-suspends whatever was previously active.** `common.create_game` does `UPDATE common.games SET is_active = false WHERE club_id = X AND is_active = true` before inserting the new row with `is_active = true`. The previously-active game's `is_active` flips to false; its `<gametype>.games.status` stays as it was (non-terminal). "Suspended" is the club-level state derived from `is_active = false AND ended_at IS NULL`.
+1. **A partial unique index on `(club_id) where is_current_view = true`** is what enforces the invariant. The index only contains the current rows; multiple `is_current_view=false` rows per club are fine (the index doesn't index them). A second `is_current_view=true` row for the same club would raise `unique_violation` — which would be a `common.create_game` (or `common.set_current_view`) bug, since both RPCs explicitly flip the prior current row off before flipping the new one on.
 
-The auto-suspend behavior is felt on the FE side via realtime: when `common.games` changes for this club, every member's UI subscribes and navigates them into the new active game (if the new row has `is_active = true`). See [`ClubPage`](#frontend) for the auto-nav handler.
+2. **The view-state flip is presence-driven.** First-viewer-mounts fires `common.set_current_view(target_game)` from `useCommonGame`'s `SUBSCRIBED` handler; last-viewer-leaves fires `common.unset_current_view(target_game)` from cleanup-on-unmount when the local tab's last-known presence was just-me. `common.create_game` ALSO sets `is_current_view=true` on the new row + clears whichever row currently holds the slot (mid-game create-from-club-page would otherwise race against the FE's mount-time write). The replaced row's `is_current_view` flips to false; its `play_state` / `is_terminal` stay as they were. "Suspended" is the club-level state derived from `is_current_view = false AND is_terminal = false`.
 
-(An earlier iteration had a separate `club_active_game` pointer table. That table's three roles — mark which game is active, enforce one-active-per-club, drive realtime auto-nav — all collapsed onto `common.games.is_active` once `common.games` itself existed.)
+The flip is felt on the FE side via realtime: when `common.games` changes for this club, every member's UI subscribes and navigates them into the new current-view game (if the new row has `is_current_view = true`). See [`ClubPage`](#frontend) for the auto-nav handler.
+
+`paused` is the second view-state column. Today it's not used directly (the pause overlay is computed client-side from `useCommonGame`'s presence-pause and manual-pause broadcasts); the column exists for future presence-pause durability. Only meaningful when `is_current_view = true` — pause has no semantics for a game nobody's viewing.
+
+### Idle accounting (timer-state preservation)
+
+`common.games.idle_since` (timestamptz, nullable) + `total_idle_seconds` (int) maintain a per-game accumulator of wall-clock time during which no one was viewing the game. The invariant: `is_current_view = true ⟺ idle_since IS NULL`. Every vacate path stamps `idle_since = now()`; every `set_current_view` that flips a row to current folds `(now - idle_since)` into `total_idle_seconds` and clears the timestamp. The FE timer hook (`useGameTimer`) subtracts `total_idle_seconds * 1000` from the elapsed-ms computation, so a 10-minute countdown that sat unseen for 5 minutes still reads 9:50 when the next viewer arrives — instead of ticking through to 4:50.
+
+The known leak: tab-kill / browser-crash / network-loss don't fire the FE cleanup, so `unset_current_view` doesn't run and that gap is counted as wall-clock time. See `docs/deferred.md` → "Timer-state preservation" for the mitigation options (sendBeacon on beforeunload, mount-time heuristic).
 
 ### Title formulas
 
@@ -72,17 +80,21 @@ The auto-suspend behavior is felt on the FE side via realtime: when `common.game
 
 The "no gametype in the title" rule: titles never embed `"Wordknit"` / `"Tinyspy"` etc. because the FE always prefixes the gametype name from the manifest. Doubled prefixes (`"Wordknit: Wordknit puzzle..."`) would look silly.
 
-### Three-state game lifecycle
+### Club-level game lifecycle
 
-Game instances within a club have three derived states. None of them are columns by themselves; they're functions of `(is_active, ended_at)`:
+Game instances within a club fall into one of two display buckets on the club page, derived from the view-state + play-state pair:
 
 | club-level state | derivation |
 |---|---|
-| **active** | `is_active = true` (implies `ended_at IS NULL`) |
-| **suspended** | `is_active = false AND ended_at IS NULL` |
-| **completed** | `ended_at IS NOT NULL` |
+| **current** | `is_current_view = true` |
+| **other** | everything else (split by CSS treatment into terminal vs non-terminal — the old "Suspended" / "Completed" sections collapsed into one list per [`states.md`](states.md)) |
 
-The active → completed transition happens inside `common.end_game`, which sets `ended_at = now()`, populates `status_summary`, and flips `is_active = false`. The active → suspended transition happens inside `common.create_game` for the prior active row when a new game is started (overwriting the active slot via the partial unique index).
+The transitions that move a row between buckets:
+- `common.create_game` — vacates the prior current-view row (set false), inserts new row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`. The vacated row also gets `idle_since = now()`.
+- `common.set_current_view(target_game)` — same vacate-others + set-target, also folds the target's prior idle window into `total_idle_seconds`.
+- `common.unset_current_view(target_game)` — clears the target (set false, stamp idle_since).
+- `common.end_game` — sets `ended_at = now()`, writes `play_state` (terminal value), `is_terminal = true`, and the listing-label `status` jsonb. **Does NOT touch `is_current_view`** — a terminal game stays in the current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
+- `common.update_state(target_game, play_state, status)` — mid-game state writes (non-terminal). Each gametype's submit_* RPC calls this on every state-affecting move so the listing label rendered by `manifest.labelFor` is always current.
 
 ### Solo clubs
 
@@ -132,9 +144,12 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 |---|---|
 | `common.require_club_member(target_club uuid) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_id comes off the game row, e.g. `submit_guess`). |
 | `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
-| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[], title text) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, clears the prior active game for this club (UPDATE is_active=false), inserts the new `common.games` row with `is_active = true` and the passed `title`, inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
+| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[], title text, setup jsonb) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, vacates the prior current-view game for this club (UPDATE is_current_view=false + idle_since=now()), inserts the new `common.games` row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, the passed `title` and `setup`, and inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
 | `common.require_game_player(target_game uuid) → uuid` | Auth + game-player gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not playing this game'` if the caller isn't in `common.game_players` for the target game. Returns the caller's `user_id`. Use in mid-game RPCs (submit_guess, submit_clue, etc.) where the question is "is this caller actually playing this game" — finer than just club-membership. |
-| `common.end_game(target_game uuid, status_summary jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = now()`, `status_summary` on `common.games`, flips `is_active = false`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). |
+| `common.update_state(target_game uuid, play_state text, status jsonb) → void` | Mid-game state-write helper for the duplicate-write discipline. Each gametype's submit_* RPC calls this on every state-affecting move (after writing its own per-gametype counters) so `common.games.play_state` + `status` stay current for the club-page listing label. `is_terminal` is forced to false; use `common.end_game` for terminal transitions. |
+| `common.end_game(target_game uuid, play_state text, status jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = coalesce(ended_at, now())`, writes the terminal `play_state` + `is_terminal = true` + `status` jsonb on `common.games`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). Does NOT clear `is_current_view` — see the view-state section above. |
+| `common.set_current_view(target_game uuid) → void` | Mount-time view-state write fired by `useCommonGame` on `SUBSCRIBED`. Vacates the club's prior current-view game (with idle_since stamp) and flips the target's `is_current_view = true`, folding any open idle window into `total_idle_seconds`. Idempotent: re-mount of an already-current game is a no-op. |
+| `common.unset_current_view(target_game uuid) → void` | Last-viewer-leaves view-state write fired by `useCommonGame`'s cleanup-on-unmount when the local presence snapshot was just-me (or empty — covers StrictMode quick-mount-unmount and never-synced cases). Clears `is_current_view` and stamps `idle_since = now()`. Idempotent on the `where is_current_view = true` guard. |
 
 Canonical pattern for a new gametype's `create_game`:
 
@@ -156,8 +171,11 @@ begin
   -- gametype-specific board generation + game-row insert
   insert into <gametype>.games (...) values (...) returning id into new_id;
 
-  -- (set_club_active_game is gone — common.create_game above already
-  -- inserted the row with is_active=true.)
+  -- Optional: prime common.games.status with initial label
+  -- payload (mistake_count = 0, guesses_remaining = N, etc.).
+  -- common.update_state writes play_state='playing' + status; see
+  -- the per-gametype baseline migrations for examples.
+  perform common.update_state(new_id, 'playing', jsonb_build_object(...));
 
   return query select new_id;
 end;
@@ -187,7 +205,7 @@ Four club tables are in `supabase_realtime`:
 
 - `clubs` — new club, rename
 - `clubs_members` — roster changes (deferred to v2, but free)
-- `games` — new games (INSERT with is_active=true) and end_game (UPDATE flipping is_active to false) drive the "every member follows the active game" auto-nav. Also: `status_summary` writes update the club's games list.
+- `games` — new games (INSERT with `is_current_view=true`), `common.set_current_view` (UPDATE flipping current-view to a different game), and the suspend-broadcast cascade (UPDATE flipping current-view to false) drive the "every member follows the current game" auto-nav. Also: `status` jsonb writes from each gametype's `common.update_state` calls refresh the club's games list labels.
 - `messages` — chat
 
 Profiles is deliberately NOT in the publication — usernames don't change during a session and the realtime traffic isn't worth it.
@@ -209,8 +227,13 @@ src/
       CreateClubPage.tsx   The club-creation form
       ClubPage.tsx         A specific club's room — roster, games sections, chat, "Start X" buttons
       ClubChatPanel.tsx    Reused chat panel; mounted once by GamePage (not by each game's PlayArea)
-      ClubGameCard.tsx     One card for an active / suspended / completed game entry on ClubPage.
-                           Per-state CSS treatments live in ClubGameCard.module.css.
+      ClubGameCard.tsx     One card for a current / suspended / completed game entry on ClubPage.
+                           Takes flat props (gameId, gametype, title, statusLabel, startedAt,
+                           state); per-state CSS treatments live in ClubGameCard.module.css.
+      SuspendConfirmDialog.tsx
+                           Modal shown when a viewer clicks Back-to-club on a non-terminal
+                           game. Accept fires sendSuspend (broadcast → every peer navigates
+                           back to the club page; last-leaver clears is_current_view).
       StartGameButtons.tsx Shared between ClubPage and HomePage. Takes filtered `games`,
                            `memberCount`, `getLabel`, `starting`, `onStart`.
       GamePage.tsx         The route-level shell mounted by App.tsx for /g/<gametype>/<id>.
@@ -219,7 +242,8 @@ src/
                            ClubChatPanel. Children are a render-prop receiving a
                            GamePageCtx ({ session, gameId, members, timer }) — the
                            gametype's PlayArea is mounted as that child. Fires per-gametype
-                           submitTimeout via manifest dispatch on countdown expiry.
+                           submitTimeout via manifest dispatch on countdown expiry. Intercepts
+                           Back-to-club on non-terminal games to open SuspendConfirmDialog.
       TimerField.tsx       The shared None / Up / Down radio + MM:SS input used by wordknit and
                            psychic-num setup forms. Tokens in TimerField.module.css.
       LoginScreen.tsx      Magic-link sign-in
@@ -242,14 +266,16 @@ src/
                            common.games row, common.game_players + profile usernames
                            (`members`), presence + manual-pause broadcasts (`paused`,
                            `missing`, `manuallyPausedBy`, `sendManualPause`,
-                           `sendManualUnpause`), and the timer (via useGameTimer against
-                           common.games.setup.timer). Opens a stable channel named
-                           `game:${gameId}`. `paused` short-circuits to false once
-                           common.games.ended_at is non-null — terminal games never
-                           render the pause overlay even if a stale-tab peer is still
-                           broadcasting. Per-game useGame hooks no longer own any of
-                           this — they subscribe to their own per-tab UUID-suffixed
-                           channel for postgres-changes only.
+                           `sendManualUnpause`), the suspend broadcast (`sendSuspend`),
+                           the view-state writes (set/unset_current_view on mount/last-
+                           leaver-unmount), and the timer (via useGameTimer against
+                           common.games.setup.timer + total_idle_seconds). Opens a stable
+                           channel named `game:${gameId}`. `paused` short-circuits to
+                           false once common.games.ended_at is non-null — terminal games
+                           never render the pause overlay even if a stale-tab peer is
+                           still broadcasting. Per-game useGame hooks own only their own
+                           per-tab UUID-suffixed postgres-changes channel for the
+                           gametype's own tables; cross-cutting state lives here.
     lib/
       supabase.ts          The supabase client (browser SDK)
       router.ts            Hand-rolled router — usePath() hook + navigate() function (~40 lines)
@@ -279,7 +305,7 @@ Routes the shell knows about:
 
 The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx mounts `<GamePage>` directly with the manifest's lazy `PlayArea` as its render-prop child, keyed by `gameId` so navigation between games remounts cleanly (fresh state, no leaked subscriptions).
 
-`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<ClubChatPanel>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives `{ session, gameId, members, timer }` (the `GamePageCtx` type exported from `src/common/lib/games.ts`) as props through the render prop. The per-game `useGame` is now just the postgres-changes subscription for that gametype's own tables.
+`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<ClubChatPanel>`, `<SuspendConfirmDialog>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives `{ session, gameId, members, playState, isTerminal, timer }` (the `GamePageCtx` type exported from `src/common/lib/games.ts`) as props through the render prop. `playState` mirrors `common.games.play_state` (gametype-specific string); `isTerminal` mirrors `common.games.is_terminal`. The per-game `useGame` is just the postgres-changes subscription for that gametype's own tables — `play_state` lives on `common.games` and arrives via ctx, not on the per-gametype row.
 
 **"Should this survive a pause?" is the rule that decides where state lives.** Because `PauseBoundary` unmounts its children on pause, anything inside the per-game `PlayArea` (component state, `useGame`-local state, form input) resets every time the game pauses. That's deliberate UX — clean slate on resume. State that *must* survive a pause goes either in the DB or in `useCommonGame` above the boundary (members, presence, the timer's pause-accumulator). State that's specifically transient (wordknit's shared-tile selections, an in-flight submit form) lives in PlayArea and clears naturally on unmount.
 
@@ -311,7 +337,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). Today no game uses this field; wordknit and psychic-num both put the timer on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/`). The field is preserved for the per-gametype-constant case. |
 | `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC (psychicnum and wordknit do; tinyspy currently no-ops because it has no setup-side timer). Returns `{ error? }`. |
 | `startGameInClub(clubId, setup)` | Async. Called by the SetupGameDialog (or directly by ClubPage when `setupForm: null`). Receives the dialog's collected setup payload. Returns `{id}` on success or `{error}` on failure. |
-| `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/suspended/completed list. |
+| `labelFor(commonGamesRow)` | **Pure and synchronous.** Given a `common.games` row (`{ id, gametype, play_state, is_terminal, status }`), returns the display string for the club page's games list. No I/O — every piece comes off the row. State-transition RPCs keep `common.games.status` populated with whatever the manifest needs (`{matched_count, mistake_count}` for wordknit, `{guesses_remaining}` for psychic-num, `{winner_username}` on a psychic-num win, etc.). ClubPage queries `common.games` once for the club and dispatches each row to the matching manifest's `labelFor`. |
 
 Adding a game is one line in `src/games.ts` plus the new folder. Removing a game is one line removed plus `rm -rf` the folder plus dropping the schema. Nothing else in the codebase names a specific game.
 
@@ -319,11 +345,11 @@ ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.c
 
 ### ClubPage's auto-nav
 
-The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_id. When a row INSERTs or UPDATEs with `is_active = true` (a member started a game or switched the active one), every member subscribed to the club is automatically navigated to the new active game's URL.
+The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_id. When a row INSERTs or UPDATEs with `is_current_view = true` (a member started a game, switched the current one via `set_current_view`, or `common.create_game` set the slot), every member subscribed to the club is automatically navigated to the new current game's URL.
 
-This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's active game changes, every member's UI follows.
+This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's current game changes, every member's UI follows.
 
-DELETE events (game completion, future explicit suspend) do NOT navigate anyone — players already in the game stay on the game-over screen; players on the club page see the game move from Active to Completed in the list. The `if (window.location.pathname !== target)` guard prevents the member who initiated the change (and was already navigated by `startGameInClub`) from getting a duplicate history entry when their own INSERT echoes back over realtime.
+`is_current_view=false` UPDATEs (suspend broadcast, last-leaver clears, end_game does NOT do this — see the view-state section) do NOT navigate anyone — players already in the game stay on the game-over screen; players on the club page see the game move out of the Current slot and into the Other games list. The `if (window.location.pathname !== target)` guard prevents the member who initiated the change (and was already navigated by `startGameInClub`) from getting a duplicate history entry when their own INSERT echoes back over realtime.
 
 ## Theme & styling
 
@@ -364,7 +390,7 @@ There are no FE tests covering routing as a whole (no E2E in this project), but 
 
 See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 
-- **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; the registry-dispatch `fetchClubGames` is fine at current scale.
+- **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; ClubPage's one-query-on-common.games + per-row `labelFor` dispatch is fine at current scale.
 - **Friends / presence.** The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
 - **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.clubs_gametypes` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.

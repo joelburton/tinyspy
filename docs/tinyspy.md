@@ -84,24 +84,26 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 
 | table | purpose |
 |---|---|
-| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `status`, `turn_number`, `turns_remaining`, `current_clue_giver`. |
+| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. Play-state (`play_state` + `is_terminal`) lives on `common.games` — the per-gametype row carries only gametype-specific mechanics. |
 | `game_players` | Two seated players per game. Holds each player's `key_card` jsonb — a 25-element array of `'G' \| 'N' \| 'A'` matching `words.position`. FK to `common.profiles`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
 
-### Status enum
+### Play-state enum
 
-`games.status text not null check (status in ('active', 'sudden_death', 'won', 'lost_assassin', 'lost_clock', 'lost_timeout'))`
+`common.games.play_state` carries tinyspy's lifecycle enum. Tinyspy's accepted values are:
 
-- **active** — turn-based clue/guess loop. The most common status.
+- **playing** — turn-based clue/guess loop. The most common state.
 - **sudden_death** — timer tokens are spent. No more clues; any wrong guess loses.
 - **won** — all 15 greens revealed. Terminal.
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
 - **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-browser-side-no-server-sync) below.
 
-There is **no `lobby` status** — under the club model, both members are seated at game-creation time and the game starts directly in `active`. The lobby state existed in an earlier shape of the codebase (join-code based) and was removed when tinyspy adopted clubs.
+The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
+
+There is **no `lobby` state** — under the club model, both members are seated at game-creation time and the game starts directly in `playing`.
 
 ### Key-card representation
 
@@ -121,7 +123,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `tinyspy.create_game(target_club uuid) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`, auto-pausing any prior active game), then inserts the tinyspy detail row with status `active`. One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the tinyspy detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)).
 
@@ -134,7 +136,7 @@ Inserts a clue for the current turn. Reject reasons:
 - not authenticated
 - not your turn (`caller_seat ≠ current_clue_giver`)
 - a clue already exists for this `turn_number` (enforced by the `unique (game_id, turn_number)` constraint, but checked explicitly in the RPC for a cleaner error message)
-- game status ≠ active (no clues in sudden death — guesses come from memory only)
+- play_state ≠ playing (no clues in sudden death — guesses come from memory only)
 
 Parameter is `clue_count` (not `count`) to avoid shadowing the SQL aggregate; the matching column on `tinyspy.clues` stays `count` since it's only referenced in column lists.
 
@@ -145,45 +147,44 @@ The complex one. Returns the revealed label (`'G' | 'N' | 'A'`) for caller conve
 Logic in order:
 
 1. Range-check `target_position` (0–24).
-2. Lock the game row (`FOR UPDATE`).
-3. Verify status is `active` or `sudden_death`.
+2. Lock the gametype row (`FOR UPDATE`) — this serializes concurrent guesses; the play_state read against `common.games` happens after the lock so any prior committed transition is visible.
+3. Read `play_state` from `common.games`; verify it's `playing` or `sudden_death`.
 4. Verify caller is a player.
 5. Determine **whose key view labels this reveal**:
-   - During `active`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
+   - During `playing`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
    - During `sudden_death`: the partner's view (the seat opposite the caller).
 6. Verify the cell isn't already revealed.
 7. Insert the reveal into `tinyspy.words`.
 8. Resolve the outcome:
-   - Assassin → `status = 'lost_assassin'`, return `'A'`.
-   - Sudden death + non-green → `status = 'lost_clock'`, return label.
-   - Green → check if `count(revealed_as = 'G') >= 15` → `status = 'won'`. Either way, turn continues, return `'G'`.
-   - Neutral (in active play) → `_end_turn`, return `'N'`.
+   - Assassin → `common.end_game(target_game, 'lost_assassin', …)`, return `'A'`.
+   - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`, return label.
+   - Green → check if `count(revealed_as = 'G') >= 15` → `common.end_game(target_game, 'won', …)`; otherwise mid-game `common.update_state(target_game, 'playing'|'sudden_death', …)`. Return `'G'`.
+   - Neutral (in regular play) → `_end_turn`, then mid-game `common.update_state(…)`, return `'N'`.
 
-The status flip to terminal fires the `clear_active_on_termination` trigger, which deletes the matching `common.games (is_active=true)` row.
+Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, greens_found, turns_used}`) via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
 
 ### `tinyspy.pass_turn(target_game uuid)`
 
-Voluntary turn-end during the guess phase. Spends one timer token, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; status ≠ active.
+Voluntary turn-end during the guess phase. Spends one timer token, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; play_state ≠ playing.
 
 ### `tinyspy.submit_timeout(target_game uuid)`
 
-Fires when the FE's count-down timer expires. Flips `status` to `lost_timeout` (distinct from `lost_clock`, which is the rulebook's timer-tokens-exhausted ending) and calls `common.end_game` with `status_summary.outcome = 'lost_timeout'`.
+Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's timer-tokens-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
 
-Accepts `active` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
+Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
-Reject reasons: not authenticated; not a game player; game not found; status terminal.
+Reject reasons: not authenticated; not a game player; game not found; already terminal.
 
 ### `tinyspy.get_clue_context(target_game uuid) → jsonb`
 
-Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of an active (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
+Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of a playing (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
 
 ### Helpers (not callable from the client)
 
 | function | role |
 |---|---|
 | `tinyspy.is_player_in_game(target_game uuid) → boolean` | Security-definer RLS helper. Bypasses RLS in its body to prevent recursion when `game_players` policies need to ask "is the caller a player?". Marked `stable` so Postgres can cache it within a SELECT. |
-| `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, flips to `sudden_death` at zero. Underscore-prefixed by convention to signal "internal." |
-| `tinyspy.clear_active_on_termination()` | Trigger on `tinyspy.games`. When status flips from non-terminal to terminal, deletes the matching `common.games (is_active=true)` row so the club-level state becomes "completed." |
+| `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
 
 ## Row-level security
 
@@ -273,8 +274,7 @@ src/tinyspy/
     useGame.ts            Loads the game row + players + their key cards, subscribes to realtime
                           on its own per-tab UUID-suffixed channel for postgres-changes only.
                           (Members, presence, manual-pause, timer are NOT here — they live in
-                          common's useCommonGame, consumed by GamePage. The hook's shape is
-                          otherwise unchanged from before the refactor.)
+                          common's useCommonGame, consumed by GamePage.)
     useBoard.ts           Loads words + reveal state, subscribes to realtime.
     useBoard.test.ts
     useClues.ts           Loads the clue history.
@@ -325,7 +325,7 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
-| `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `active` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status_summary.outcome plumbing. |
+| `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
 | `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 

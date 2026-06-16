@@ -87,17 +87,32 @@ A token (or class) earns promotion to global when **both**:
 
 ## Consistency across games
 
+Players should be able to **switch between games without relearning the frame**. The chrome reads the same; only the play surface changes. This is the consistency goal that justifies extracting shared components even when only two games use them today.
+
+### What every game has
+
+These aren't optional capabilities a gametype opts into — they're part of the shared frame, and every game must support them:
+
+- **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
+- **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
+- **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; psychic-num and tinyspy default to none), but the *option* is universal.
+- **Back-to-club + suspend-confirm.** Non-terminal navigation-away opens the suspend modal; terminal is a single-click back. Owned by `<GamePage>`.
+
+A new gametype that wants to omit one of these isn't building "a new gametype" — it's stepping outside the frame, and that's a CLAUDE.md-priors conversation, not a manifest field to toggle.
+
+### Components
+
 Same principle, applied to components.
 
 **The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
 
-- `ClubChatPanel` is shared (every game's `BoardScreen` mounts it).
+- `ClubChatPanel`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmDialog`, `TimerField`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
 - `.card`, `.muted`, `.error`, `.link-button`, `.actions` are universal utility classes in `common/theme.css`.
 
 **The game-mechanic UI is per-game.** The board, rules display, input affordance (clue form vs number input vs guess box) — each game owns these. That's what the per-game `components/` directory is for.
 
-**The current grey zone: game-end banners.** Tinyspy has a styled [`GameOverBanner.tsx`](../src/tinyspy/components/GameOverBanner.tsx); psychicnum has a bare `<h2>We won!</h2>` inline in [`BoardScreen.tsx`](../src/psychicnum/components/BoardScreen.tsx). They look different and probably shouldn't. The right move when we touch either next: extract a `common/components/GameResultBanner.tsx` that both consume, with `{ outcome, title, detail?, actions? }` props. Same component, per-game copy.
+**The current grey zone: game-end banners.** Tinyspy has a styled [`GameOverBanner.tsx`](../src/tinyspy/components/GameOverBanner.tsx) with tone-tagged CSS (win / loss); psychic-num has a [`ResultBanner.tsx`](../src/psychicnum/components/ResultBanner.tsx) that's a bare `<section>` + `<h2>` with no styling; wordknit renders its terminal copy ("Solved!" / "Out of time.") inline in `PlayArea.tsx` with no banner component at all. Three games, three shapes. The right move when a fourth game would benefit (or when this drift gets visibly painful): extract `common/components/GameResultBanner.tsx` that all three consume, with `{ outcome, title, detail?, actions? }` props. Same component, per-game copy.
 
 ## Explicitly deferred
 

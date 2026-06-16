@@ -46,20 +46,22 @@ select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup()
 -- authenticated role — all real state changes go through RPCs. Tests
 -- can write directly because they run as postgres by default.
 reset role;
-update games set status = 'sudden_death', turns_remaining = 0, current_clue_giver = null
+update common.games set play_state = 'sudden_death'
+  where id = (select id from g);
+update tinyspy.games set turns_remaining = 0, current_clue_giver = null
   where id = (select id from g);
 
 -- ============================================================
 -- (1) submit_clue is rejected in sudden death
 -- ============================================================
--- The RPC guards on status='active' and raises P0001 otherwise.
+-- The RPC guards on play_state='playing' and raises P0001 otherwise.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select submit_clue((select id from g), 'CLUE', 1) $$,
   'P0001',
   'clues only allowed during active play',
-  'submit_clue is rejected when status = sudden_death'
+  'submit_clue is rejected when play_state = sudden_death'
 );
 
 -- ============================================================
@@ -78,9 +80,9 @@ select is(
 );
 
 select is(
-  (select status from games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'sudden_death',
-  'status stays sudden_death after a green reveal'
+  'play_state stays sudden_death after a green reveal'
 );
 
 -- ============================================================
@@ -98,9 +100,9 @@ select is(
 );
 
 select is(
-  (select status from games where id = (select id from g)),
+  (select play_state from common.games where id = (select id from g)),
   'lost_clock',
-  'a non-green reveal in sudden death sets status = lost_clock'
+  'a non-green reveal in sudden death sets play_state = lost_clock'
 );
 
 -- ============================================================

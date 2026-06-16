@@ -10,7 +10,7 @@
 export type Seat = 'A' | 'B'
 
 export type GameStatus =
-  | 'active'
+  | 'playing'
   | 'sudden_death'
   | 'won'
   | 'lost_assassin'
@@ -18,7 +18,7 @@ export type GameStatus =
   | 'lost_timeout'
 
 export type PhaseInputs = {
-  /** Current games.status. */
+  /** Current common.games.play_state (gametype-specific string). */
   status: GameStatus
   /** games.current_clue_giver — null when the game has ended. */
   currentClueGiver: Seat | null
@@ -48,12 +48,12 @@ export type PhaseDerived = {
 
 export function derivePhase(inputs: PhaseInputs): PhaseDerived {
   const { status, currentClueGiver, mySeat, hasCurrentTurnClue } = inputs
-  const gameOver = status !== 'active' && status !== 'sudden_death'
+  const gameOver = status !== 'playing' && status !== 'sudden_death'
   const inSuddenDeath = status === 'sudden_death'
   const isGuessPhase = hasCurrentTurnClue
   const isClueGiver = mySeat !== undefined && mySeat === currentClueGiver
   const cellsClickable =
     !gameOver &&
-    (inSuddenDeath || (status === 'active' && isGuessPhase && !isClueGiver))
+    (inSuddenDeath || (status === 'playing' && isGuessPhase && !isClueGiver))
   return { gameOver, inSuddenDeath, isGuessPhase, isClueGiver, cellsClickable }
 }

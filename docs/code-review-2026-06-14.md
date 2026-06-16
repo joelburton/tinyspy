@@ -1,17 +1,39 @@
 # Code review — 2026-06-14
 
-> **Status: closed 2026-06-14.** All eleven queue items in §1–§4 landed in
-> `8f0c8af` (mechanical drift batch) and `8e0623e` (decision items +
-> remaining cleanups). One follow-up convention from this work added to
-> [`code-conventions.md`](code-conventions.md) in `933fa3c` ("extract a
-> small helper over a deeply-nested ternary"). HowToPlayModal wiring
-> smoke-tested in a browser by Joel. The one open thread — the Netlify
-> URL in `README.md` line 93 — is deferred to whenever the deploy gets
-> renamed; left as `tinyspy.netlify.app` for now because it's still the
-> live address.
+> ⚠️ **HISTORICAL ARTIFACT — DO NOT REVIEW AS CURRENT CODE.**
 >
-> Document preserved verbatim below as the historical record of what was
-> found and how it got framed; don't edit the body.
+> **Reviewers (human and Claude): skip this file.** It's a dated
+> snapshot of the codebase as of 2026-06-14, captured before the
+> state-vocabulary refactor (phases 1–4, landed 2026-06-16). Every
+> code snippet, column name, and architectural reference below is
+> from the **pre-refactor** shape:
+>
+> - References to `is_active`, `status_summary`, `club_active_game`,
+>   `'active'` / `'in_progress'` as play_state values, the
+>   `clear_active_on_termination` trigger pattern, and
+>   `manifest.fetchClubGames` are all **stale**. The current
+>   vocabulary is `is_current_view`, `status` jsonb, `play_state` /
+>   `is_terminal`, `common.set_current_view` / `unset_current_view`,
+>   and `manifest.labelFor`. See [`states.md`](states.md) and
+>   [`common.md`](common.md) for the current model.
+> - The "queue items" / "follow-ups" / "open threads" in the body
+>   are all closed long ago.
+>
+> The file is preserved as the historical record of what that
+> review found and how it got framed. Do not edit the body, do
+> not flag its contents as drift in any current review, and do
+> not propagate any vocabulary from it into new code.
+>
+> ---
+>
+> **Original closing note (2026-06-14):** All eleven queue items in
+> §1–§4 landed in `8f0c8af` (mechanical drift batch) and `8e0623e`
+> (decision items + remaining cleanups). One follow-up convention
+> from this work added to [`code-conventions.md`](code-conventions.md)
+> in `933fa3c` ("extract a small helper over a deeply-nested ternary").
+> HowToPlayModal wiring smoke-tested in a browser by Joel. The one
+> open thread — the Netlify URL in `README.md` line 93 — was deferred
+> to whenever the deploy gets renamed.
 
 A read of the whole tree after the recent refactor round, against the prior set out
 in [`CLAUDE.md`](../CLAUDE.md), [`code-conventions.md`](code-conventions.md),

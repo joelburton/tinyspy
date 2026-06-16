@@ -14,10 +14,10 @@
 --   - rejection: bad setup.timer shapes (missing, bad kind,
 --     missing seconds, out-of-range seconds)
 --   - acceptance: timer.kind in {none, countup}
---   - happy path: returns one row, status='in_progress',
+--   - happy path: returns one row, play_state='playing',
 --     mistake_count=0, setup persists, board sourced from the
 --     puzzle (4 categories × 4 tiles), tile order is a shuffle
---     of all 16 tiles, the common.games row is_active=true,
+--     of all 16 tiles, the common.games row is_current_view=true,
 --     wordknit.games.puzzle_id is set, title formula matches the
 --     puzzle's source_id + date + first-two alphabetical tiles
 --
@@ -228,9 +228,9 @@ select is(
 reset role;
 
 select is(
-  (select status from wordknit.games where id = (select id from created)),
-  'in_progress',
-  'create_game: new game starts in in_progress status'
+  (select play_state from common.games where id = (select id from created)),
+  'playing',
+  'create_game: new game starts in playing play_state'
 );
 
 select is(
@@ -309,22 +309,22 @@ select is(
   'create_game: common.games.setup persists the passed-in jsonb'
 );
 
--- This new game is the club's active one (is_active=true). The
--- partial unique index on (club_id) where is_active = true
+-- This new game is the club's current-view one (is_current_view=true).
+-- The partial unique index on (club_id) where is_current_view = true
 -- guarantees at most one such row per club, so the bare query
 -- without LIMIT 1 is safe.
 select is(
   (select id from common.games
-    where club_id = (select id from club) and is_active = true),
+    where club_id = (select id from club) and is_current_view = true),
   (select id from created),
-  'create_game: common.games row is the club''s active game'
+  'create_game: common.games row is the club''s current-view game'
 );
 
 select is(
   (select gametype from common.games
-    where club_id = (select id from club) and is_active = true),
+    where club_id = (select id from club) and is_current_view = true),
   'wordknit',
-  'create_game: active common.games row has gametype = wordknit'
+  'create_game: current-view common.games row has gametype = wordknit'
 );
 
 -- Title = "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where

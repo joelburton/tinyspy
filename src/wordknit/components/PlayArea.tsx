@@ -34,7 +34,13 @@ import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
  * pause wiring. The realtime channel teardown + re-subscribe gap
  * is covered by the on-SUBSCRIBED refetch.
  */
-export function PlayArea({ session, gameId, timer }: GamePageCtx) {
+export function PlayArea({
+  session,
+  gameId,
+  playState,
+  isTerminal,
+  timer,
+}: GamePageCtx) {
   const {
     game,
     guesses,
@@ -114,8 +120,8 @@ export function PlayArea({ session, gameId, timer }: GamePageCtx) {
   const canSubmit =
     unionTiles.length === 4
     && !submitting
-    && game.status === 'in_progress'
-  const gameOver = game.status !== 'in_progress'
+    && !isTerminal
+  const gameOver = isTerminal
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
   const unmatched = gameOver
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
@@ -125,7 +131,7 @@ export function PlayArea({ session, gameId, timer }: GamePageCtx) {
     <div className={styles.boardArea}>
       <div className="muted">
         {gameOver ? (
-          game.status === 'solved'
+          playState === 'solved'
             ? 'Solved!'
             : timer.expired
               ? 'Out of time.'
