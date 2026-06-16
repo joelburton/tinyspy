@@ -150,8 +150,10 @@ export type Database = {
           gametype: string
           id: string
           is_active: boolean
+          setup: Json
           started_at: string
           status_summary: Json | null
+          title: string
         }
         Insert: {
           club_id: string
@@ -159,8 +161,10 @@ export type Database = {
           gametype: string
           id?: string
           is_active?: boolean
+          setup: Json
           started_at?: string
           status_summary?: Json | null
+          title: string
         }
         Update: {
           club_id?: string
@@ -168,8 +172,10 @@ export type Database = {
           gametype?: string
           id?: string
           is_active?: boolean
+          setup?: Json
           started_at?: string
           status_summary?: Json | null
+          title?: string
         }
         Relationships: [
           {
@@ -273,7 +279,9 @@ export type Database = {
         Args: {
           gametype: string
           player_user_ids: string[]
+          setup: Json
           target_club: string
+          title: string
         }
         Returns: string
       }
@@ -335,7 +343,6 @@ export type Database = {
           created_at: string
           guesses_remaining: number
           id: string
-          setup: Json
           status: string
           target: number
           winner_id: string | null
@@ -345,7 +352,6 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id: string
-          setup: Json
           status?: string
           target: number
           winner_id?: string | null
@@ -355,7 +361,6 @@ export type Database = {
           created_at?: string
           guesses_remaining?: number
           id?: string
-          setup?: Json
           status?: string
           target?: number
           winner_id?: string | null
@@ -395,24 +400,61 @@ export type Database = {
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      games_state: {
+        Row: {
+          club_id: string | null
+          created_at: string | null
+          guesses_remaining: number | null
+          id: string | null
+          status: string | null
+          target: number | null
+          winner_id: string | null
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string | null
+          guesses_remaining?: number | null
+          id?: string | null
+          status?: string | null
+          target?: never
+          winner_id?: string | null
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string | null
+          guesses_remaining?: number | null
+          id?: string | null
+          status?: string | null
+          target?: never
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      _target_for: { Args: { g_id: string }; Returns: number }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: {
           id: string
         }[]
       }
-      reveal_target: { Args: { target_game: string }; Returns: number }
       submit_guess: {
         Args: { guess: number; target_game: string }
         Returns: string
       }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -486,7 +528,6 @@ export type Database = {
           id: string
           key_card_a: Json
           key_card_b: Json
-          setup: Json
           status: string
           turn_number: number
           turns_remaining: number
@@ -500,7 +541,6 @@ export type Database = {
           id: string
           key_card_a: Json
           key_card_b: Json
-          setup: Json
           status?: string
           turn_number?: number
           turns_remaining?: number
@@ -514,7 +554,6 @@ export type Database = {
           id?: string
           key_card_a?: Json
           key_card_b?: Json
-          setup?: Json
           status?: string
           turn_number?: number
           turns_remaining?: number
@@ -612,7 +651,6 @@ export type Database = {
           created_at: string
           id: string
           mistake_count: number
-          setup: Json
           status: string
         }
         Insert: {
@@ -621,7 +659,6 @@ export type Database = {
           created_at?: string
           id: string
           mistake_count?: number
-          setup: Json
           status?: string
         }
         Update: {
@@ -630,7 +667,6 @@ export type Database = {
           created_at?: string
           id?: string
           mistake_count?: number
-          setup?: Json
           status?: string
         }
         Relationships: []

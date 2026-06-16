@@ -97,6 +97,15 @@ export const tinyspyGame: GameManifest = {
       statusLabel: STATUS_LABEL[g.status] ?? g.status,
     }))
   },
+
+  // Tinyspy doesn't expose a timer in its setup form yet (the
+  // 'lost_clock' status is reserved for the turn-counter clock,
+  // a deferred mechanic — see docs/deferred.md). When the
+  // wall-clock timer lands, this dispatches to the upcoming
+  // tinyspy.submit_timeout RPC. For now it's a no-op: GamePage
+  // only fires this on a countdown expiry, which can't happen
+  // here because the setup never produces `timer.kind = 'countdown'`.
+  submitTimeout: async () => ({}),
 }
 
 // Per-status display strings tinyspy owns — the common ClubPage

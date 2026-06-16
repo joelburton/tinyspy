@@ -68,7 +68,7 @@ Unlike tinyspy and psychic-num — where the server holds a secret and validates
 
 | table | purpose |
 |---|---|
-| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. Holds `status`, `mistake_count`, `board` (jsonb — categories + tileOrder — publicly readable), `setup` (jsonb — timer mode + future puzzle-date). |
+| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. Holds `status`, `mistake_count`, `board` (jsonb — categories + tileOrder — publicly readable). (The setup blob — timer mode + future puzzle-date — lives on `common.games.setup`; the per-gametype `setup` column was dropped when the blob moved to common.) |
 | `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. A partial unique index on `(game_id, matched_category_rank) where result = 'correct'` enforces one match per category per game. |
 
 ### `board` jsonb shape
@@ -110,7 +110,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `wordknit.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-The one entry point. Verifies caller is a club member, validates `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), builds the hardcoded POC board (4 categories × 4 tiles), shuffles the 16 tiles into `board.tileOrder`, inserts the row in `in_progress`, upserts `common.games (is_active=true)`.
+The one entry point. Verifies caller is a club member, validates `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), builds the hardcoded POC board (4 categories × 4 tiles), shuffles the 16 tiles into `board.tileOrder`, builds the title (first 4 tiles alphabetically, joined by `", "` — degenerate `"ALPHA, ANGEL, APPLE, ARROW"` against the POC's A/B/C/D board, but the rule survives unchanged when real puzzles arrive), calls `common.create_game(target_club, 'wordknit', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`), then inserts the wordknit detail row with status `in_progress`.
 
 Reject reasons: not authenticated; not a member; bad setup.timer.
 
@@ -148,24 +148,25 @@ No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPC
 
 ```
 src/wordknit/
-  Root.tsx                Mounted by App.tsx for /g/wordknit/<id>. Receives gameId as prop.
-  manifest.ts             GameManifest registration.
+  Root.tsx                Mounted by App.tsx for /g/wordknit/<id>. Mounts <GamePage>
+                          with the PlayArea as its child (render-prop receives
+                          { members, timer } from useCommonGame).
+  manifest.ts             GameManifest registration (incl. submitTimeout dispatch).
   db.ts                   export const db = supabase.schema('wordknit')
   theme.css               NYT rank palette (yellow/green/blue/purple = --wordknit-rank-0..3).
 
   components/
-    BoardScreen.tsx       The play surface — header, matched-category bands, tile grid, actions, pause overlay, chat.
-    BoardScreen.module.css
+    PlayArea.tsx          The game-specific play surface — matched-category bands, tile grid,
+                          submit/clear actions. Header / pause / chat / timer live in <GamePage>.
+    PlayArea.module.css
     Setup.tsx             Timer-mode + (future) puzzle-date picker.
 
   hooks/
-    useGame.ts            The one realtime entry point. Owns the per-game channel
-                          end-to-end: postgres-changes (games / guesses),
-                          broadcast (shared selection + manual-pause events),
-                          and presence (who's connected). Returns a flat surface
-                          the BoardScreen consumes — data, matchedCategories
-                          projection, selections, paused flag, pause helpers,
-                          member list.
+    useGame.ts            Slimmed: now owns just postgres-changes (games / guesses) on its
+                          own per-tab UUID-suffixed channel, AND the shared-selection
+                          Broadcast events on a separate stable channel
+                          `wordknit:${gameId}`. Presence / manual-pause / members / timer
+                          all moved to common's useCommonGame (consumed by GamePage).
 
   lib/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
@@ -176,19 +177,17 @@ src/wordknit/
     setup.ts              WordknitSetup type (timer mode) + defaults.
 ```
 
-### Realtime: two subscriptions on one channel
+### Realtime: two channels now
 
-The per-game channel is `wordknit:<gameId>` — **no per-tab UUID suffix**, unlike tinyspy / psychic-num. The UUID workaround used elsewhere sidesteps supabase-js's per-client channel cache, but it does that by putting each tab in its own Realtime "room." For wordknit we *need* every tab in the same room because broadcast and presence only merge across clients with matching channel names. The StrictMode-double-mount issue is handled by the hook's own cleanup: `removeChannel()` clears the cache before the next effect run. See `docs/code-conventions.md` → "Realtime channel names."
+Two channels, with deliberately different cache shapes:
 
-One channel carries three concerns:
+| channel | who opens it | what rides on it |
+|---|---|---|
+| `game:${gameId}` (stable, no suffix) | `useCommonGame` | Presence + manual-pause Broadcast. Stable name because broadcast + presence only merge across clients with matching channel names. StrictMode handled by the hook's own `removeChannel()` cleanup. |
+| `wordknit:${gameId}` (stable, no suffix) | wordknit's `useGame` | Shared-selection Broadcast (select / deselect / clear). Same stable-name rationale. |
+| `wordknit:${gameId}:${uuid}` | wordknit's `useGame` | Postgres-changes on `wordknit.{games, guesses}`. Per-tab UUID-suffixed because postgres-changes don't need cross-client merging; the suffix sidesteps supabase-js's StrictMode-cache bite. |
 
-| subscription | purpose |
-|---|---|
-| Postgres Changes | game row + guesses events drive `useGame`'s refetch. (Two tables now — collapsed from three when `found_groups` went away.) |
-| Broadcast | shared-selection events (select / deselect / clear) and manual-pause events (manualPause / manualUnpause) |
-| Presence | each client's `track({ user_id })` builds the connected-users set; the `paused` flag is derived from `presence vs. expected members` via `computePause` |
-
-**Why one channel, not three:** supabase-js requires every `.on()` listener to be registered *before* `.subscribe()`. Splitting across hooks would mean each hook's effect attaches its listeners separately — but consumer hooks' effects run after the channel-owner's, so their `.on()` calls would land post-subscribe and supabase-js rejects them. The pragmatic shape is one hook (`useGame`) attaching everything synchronously in a single effect. (Previous iterations split into `useGameFreeze` + `useSharedSelection` + `useGame` and hit this constraint head-on; the merge is the resolution.)
+See `docs/code-conventions.md` → "Realtime channel names" for the cache-shape framing.
 
 ### `matchedCategories` is a projection
 
@@ -213,7 +212,7 @@ The game has a single `paused` flag with two trigger sources, both treated ident
 - **Presence-pause**: derived from `computePause(presentUserIds, members)`. True when some expected club member isn't on the channel.
 - **Manual-pause**: any player clicks the Pause button in the header → broadcasts a `manualPause` event with their `user_id` → all clients (including self) set `manuallyPausedById`. Any player can click Resume in the overlay → broadcasts `manualUnpause`. No privileged "original pauser" check; we're friends, not cutthroat competitors.
 
-When `paused` is true (from either source), the `PauseBoundary` (`common/components/PauseBoundary.tsx`) wrapping the play area hides the children via `visibility: hidden` (so the boundary keeps its layout dimensions for the overlay to fill) and renders the `PauseOverlay` (`common/components/PauseOverlay.tsx`) on top. The overlay's copy adapts to the source:
+When `paused` is true (from either source), the `PauseBoundary` (`common/components/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — hides the children via `visibility: hidden` (so the boundary keeps its layout dimensions for the overlay to fill) and renders the `PauseOverlay` (`common/components/PauseOverlay.tsx`) on top. The overlay's copy adapts to the source:
 
 | source | overlay copy | Resume button? |
 |---|---|---|
@@ -221,9 +220,9 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 | manual-only | "Bea paused the game" | yes — any player can click |
 | both | both messages stacked | yes — clearing manual leaves presence-pause still active |
 
-On the *transition* into paused (false → true), `PauseBoundary`'s `onPause` callback fires. Wordknit wires this to `sendClear` so all clients' shared selections empty — reconnecting peers land in a clean state rather than seeing stale tile highlights.
+On the *transition* into paused (false → true), `PauseBoundary`'s `onPause` callback fires. Wordknit's `Root` passes `sendClear` to `<GamePage>` as `onPauseTransition`, which forwards it to `PauseBoundary.onPause` — so all clients' shared selections empty when the game pauses. Reconnecting peers land in a clean state rather than seeing stale tile highlights.
 
-**Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Documented in `useGame.ts`.
+**Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Lives in `useCommonGame.ts` now (alongside the rest of the presence + manual-pause plumbing).
 
 **Paused vs suspended** — code-level terminology distinction worth knowing:
 
@@ -232,7 +231,7 @@ On the *transition* into paused (false → true), `PauseBoundary`'s `onPause` ca
 
 The two never coexist on the same game — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
 
-**Future rollout:** the `computePause` helper + `PauseOverlay` + `PauseBoundary` live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern later. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md`. Each game's BoardScreen wraps its play area in `<PauseBoundary>` once useGame is wired to track presence.
+**Future rollout:** the `computePause` helper + `PauseOverlay` + `PauseBoundary` + `useCommonGame` live in `common/` deliberately so tinyspy and psychic-num can attach the same pattern. With `useCommonGame` owning presence + manual-pause centrally and `<GamePage>` wrapping every PlayArea in `<PauseBoundary>`, the rollout is essentially free — any gametype that mounts GamePage gets the pause behavior. Joel's general principle ("if `#-present` ≠ `#-expected`, the game should pause for UX consistency") applies to all three games. The motivating case here is wordknit (where transient state would be unfair if some players kept clicking through a peer's disconnect), but the pattern transfers cleanly — see the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md`.
 
 ### Timer (browser-side, no server sync)
 
@@ -248,9 +247,9 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 **The `useGameTimer` hook** (`src/common/hooks/useGameTimer.ts`) implements this. Built on React's `useSyncExternalStore` — the canonical pattern for "this hook observes an external time source" — so it satisfies the React-19 hook lint rules around impure calls during render. The hook is mode-aware (`countup` / `countdown(seconds)` / `none`), pause-aware (freezes the display while `paused`, accumulates pause windows so resume continues from where it left off), and recomputes-from-`Date.now()` rather than incrementing a counter (so backgrounded tabs and slept laptops catch up correctly when they return).
 
-**Timeout-loss firing.** When `useGameTimer` reports `expired: true`, BoardScreen fires `wordknit.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
+**Timeout-loss firing.** When `useGameTimer` (inside `useCommonGame`) reports `expired: true`, GamePage dispatches the wordknit manifest's `submitTimeout`, which calls `wordknit.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
 
-**Where the mode comes from.** Per-game (like wordknit) lives in `game.setup.timer`; the BoardScreen reads it directly. Per-gametype (a hypothetical Boggle with a fixed-3-minute round) would set `timerMode` on the manifest and skip a per-game choice. Both shapes are supported — the `useGameTimer` hook is mode-agnostic, just consuming whatever `mode` it's handed. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, tinyspy might enter sudden-death, etc.) but they all consume the same hook.
+**Where the mode comes from.** Per-game (like wordknit) lives in `common.games.setup.timer`; `useCommonGame` reads it and drives `useGameTimer`, surfacing the result via GamePage. Per-gametype (a hypothetical Boggle with a fixed-3-minute round) would set `timerMode` on the manifest and skip a per-game choice. Both shapes are supported. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, tinyspy might enter sudden-death, etc.) and exposes it through its manifest's `submitTimeout`, which GamePage fires on countdown expiry.
 
 ### Code-splitting
 
@@ -273,7 +272,7 @@ Same pattern as tinyspy and psychic-num — `Root` is lazy-loaded in the manifes
 | `src/wordknit/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
 | `src/wordknit/lib/peerColor.test.ts` | The user_id → color hash: deterministic, distinct for the two persona UUIDs we care about, output is a CSS hex string. |
 
-No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the BoardScreen there.
+No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the PlayArea there.
 
 ## Open items
 
@@ -292,7 +291,7 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 |---|---|
 | What does the create_game / submit_guess RPC do | [`supabase/migrations/20260614000005_wordknit_baseline.sql`](../supabase/migrations/20260614000005_wordknit_baseline.sql) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
-| What does the play surface look like | [`src/wordknit/components/BoardScreen.tsx`](../src/wordknit/components/BoardScreen.tsx) |
+| What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (wrapped by `<GamePage>` in `Root.tsx`) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
 | How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |

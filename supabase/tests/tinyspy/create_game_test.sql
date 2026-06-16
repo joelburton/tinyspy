@@ -36,7 +36,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(23);
+select plan(25);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -238,12 +238,12 @@ select is(
 -- end-of-game review to display "this game was played with 11
 -- turns" without inferring from a now-decremented counter.
 select is(
-  (select setup->>'turns' from tinyspy.games where id = (select id from created)),
+  (select setup->>'turns' from common.games where id = (select id from created)),
   '11',
   'create_game: setup column persists the starting turns value'
 );
 select is(
-  (select setup->>'firstClueGiverUserId' from tinyspy.games where id = (select id from created)),
+  (select setup->>'firstClueGiverUserId' from common.games where id = (select id from created)),
   'ada11111-1111-1111-1111-111111111111',
   'create_game: setup column persists firstClueGiverUserId'
 );
@@ -292,6 +292,23 @@ select is(
     where club_id = (select id from club2) and is_active = true),
   'tinyspy',
   'create_game: active common.games row has gametype = tinyspy'
+);
+
+-- Title shape: "<seatA-username>-v-<seatB-username>: 4 words".
+-- Words are randomly drawn from a 390-word pool so we can't
+-- pin the exact words; assert the prefix (which is deterministic
+-- — ada is first-clue-giver, bea is the other) and the comma count.
+select is(
+  (select substring(title from 1 for 11)
+     from common.games where id = (select id from created)),
+  'ada-v-bea: ',
+  'create_game: title starts with "<seatA>-v-<seatB>: "'
+);
+select is(
+  (select length(title) - length(replace(title, ', ', ''))
+     from common.games where id = (select id from created)),
+  6,  -- 3 commas × 2 chars each = 6 (between 4 words)
+  'create_game: title body has 4 comma-separated words'
 );
 
 -- ============================================================

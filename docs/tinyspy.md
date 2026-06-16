@@ -120,7 +120,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `tinyspy.create_game(target_club uuid) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, picks 25 words, generates the Duet key-card distribution, sets status='active', upserts `common.games (is_active=true)` (auto-pausing any prior active game). One call, no lobby state.
+The one entry point. Verifies caller is in a 2-member club, seats both, picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`, auto-pausing any prior active game), then inserts the tinyspy detail row with status `active`. One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members.
 
@@ -210,8 +210,9 @@ src/tinyspy/
   theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by Root.tsx so it loads with the chunk.
 
   components/
-    BoardScreen.tsx       The main play surface — header + 5×5 board + clue panel + game log + chat.
-    BoardScreen.module.css
+    PlayArea.tsx          The game-specific play surface — 5×5 board + clue panel + game log.
+                          Header / pause / chat live in <GamePage> (mounted by Root.tsx).
+    PlayArea.module.css
     CluePanel.tsx         The clue-giver's input area + "Need a clue?" button + AI suggestion display.
     CluePanel.module.css
     GameLog.tsx           Reveal-history list (which player guessed what, when).
@@ -223,7 +224,11 @@ src/tinyspy/
     HowToPlayModal.module.css
 
   hooks/
-    useGame.ts            Loads the game row + players + their key cards, subscribes to realtime.
+    useGame.ts            Loads the game row + players + their key cards, subscribes to realtime
+                          on its own per-tab UUID-suffixed channel for postgres-changes only.
+                          (Members, presence, manual-pause, timer are NOT here — they live in
+                          common's useCommonGame, consumed by GamePage. The hook's shape is
+                          otherwise unchanged from before the refactor.)
     useBoard.ts           Loads words + reveal state, subscribes to realtime.
     useBoard.test.ts
     useClues.ts           Loads the clue history.
@@ -254,7 +259,7 @@ Components consume the phase as a single value and render accordingly. Centraliz
 
 During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Open items → Harden `game_players_select`](#open-items)), the convention is "don't ask, don't see."
 
-Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `BoardScreen` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
+Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
 The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today the Root component is keyed by `gameId`, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
 
@@ -319,7 +324,7 @@ Deferred or sketched but not built:
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../supabase/tests/tinyspy/) |
-| What does the board look like | [`src/tinyspy/components/BoardScreen.tsx`](../src/tinyspy/components/BoardScreen.tsx) |
+| What does the board look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (wrapped by `<GamePage>` in `Root.tsx`) |
 | How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/tinyspy/lib/phase.ts`](../src/tinyspy/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts) |

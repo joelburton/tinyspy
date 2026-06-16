@@ -45,12 +45,10 @@ grant usage on schema psychicnum to authenticated;
 -- the FE only learns it via the reveal_target RPC after the game
 -- ends.
 --
--- `setup jsonb` is the frozen-at-create-time player choices —
--- today just `{ "guesses": 3 | 5 | 7 | 9 }`. Persisted because the
--- mutable `guesses_remaining` counter decrements during play, so
--- after the game ends the counter at 0 doesn't tell you what the
--- starting budget was. The `setup` column preserves intent for
--- end-of-game review.
+-- (Setup lives on common.games.setup — the player choices
+-- {guesses, timer} are persisted there as one canonical blob.
+-- Per-gametype create_game validates the field shape but doesn't
+-- duplicate the storage.)
 --
 -- The `guesses_remaining between 0 and 9` constraint matches the
 -- max allowed setup.guesses value.
@@ -72,7 +70,6 @@ create table psychicnum.games (
   guesses_remaining int not null default 7
     check (guesses_remaining between 0 and 9),
   winner_id uuid references common.profiles(user_id) on delete set null,
-  setup jsonb not null,
   created_at timestamptz not null default now()
 );
 
@@ -130,19 +127,108 @@ create policy guesses_select on psychicnum.guesses
 -- ============================================================
 -- Default `grant select` would include `target`, defeating the
 -- "backend-authoritative secret" property. Column-list grant
--- whitelists every column EXCEPT `target`. The RPCs run as the
--- postgres role (security definer) and can read `target`
--- freely; the authenticated role cannot.
---
--- After game termination, players reveal `target` via the
--- `reveal_target` RPC (see below), which gate-checks the
--- terminal-status precondition.
+-- whitelists every column EXCEPT `target`. RPCs that need to read
+-- target (the games_state view below, the game-end status_summary
+-- builders) run as the postgres role and bypass this; the
+-- authenticated role can never SELECT target directly.
 
 grant select
-  (id, club_id, status, guesses_remaining, winner_id, setup, created_at)
+  (id, club_id, status, guesses_remaining, winner_id, created_at)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.guesses to authenticated;
+
+-- ============================================================
+-- psychicnum.games_state — FE-ready read view
+-- ============================================================
+-- The single thing the FE reads to render a psychic-num game.
+-- Combines what's directly readable from psychicnum.games with
+-- the conditional `target` reveal:
+--
+--   - While `status = 'active'`, target is NULL.
+--   - Once status flips terminal ('won' or 'lost'), target is
+--     the real 1..10 value.
+--
+-- Two layers of protection on the secret, both explicit:
+--
+--   1. **Storage layer** — the column-level grant on
+--      `psychicnum.games` excludes target. Any direct SELECT
+--      against the table by `authenticated` can't see target;
+--      Postgres raises 42501 on the column. This is the
+--      educational "true server-side secret" pattern.
+--   2. **API layer** — this view's `target` expression calls a
+--      SECURITY DEFINER helper (`_target_for`) that gates on
+--      terminal status. The view itself is `security_invoker`
+--      so the row-visibility check still goes through the
+--      table's RLS as the calling role.
+--
+-- The view replaces what used to be a `reveal_target` RPC. The
+-- helper function is the gate; the FE shape is just "select
+-- from games_state."
+--
+-- Realtime: the view itself is NOT in the publication. The FE
+-- subscribes to psychicnum.games for change events (status
+-- flips, guesses_remaining decrement) and refetches from this
+-- view in response.
+--
+-- Writes: revoked below. Authenticated callers attempting an
+-- INSERT/UPDATE/DELETE here get 42501.
+
+-- Helper: returns the target value if and only if the game is
+-- terminal. Otherwise null. SECURITY DEFINER means it runs as
+-- the function owner (postgres), which has SELECT on the target
+-- column despite the authenticated-role column grant exclusion.
+-- The "terminal-only" gate is the CASE expression here.
+--
+-- This is the only place authenticated callers can transitively
+-- read `target`, and only via the games_state view that calls it.
+-- A direct call to this function from the FE would also be gated
+-- (terminal-only), but we revoke EXECUTE from public anyway —
+-- the view is the intended call site.
+create function psychicnum._target_for(g_id uuid)
+returns int
+language sql
+stable
+security definer
+set search_path = psychicnum, public, extensions
+as $$
+  select case when status = 'active' then null else target end
+    from psychicnum.games
+   where id = g_id
+$$;
+
+revoke execute on function psychicnum._target_for(uuid) from public;
+-- Grant to authenticated so the view (which runs as the invoker
+-- under security_invoker) can call it. The function's SECURITY
+-- DEFINER property switches identity *inside* the call — that's
+-- the bit that lets it read the target column.
+grant execute on function psychicnum._target_for(uuid) to authenticated;
+
+-- The view itself runs with the invoker's identity
+-- (security_invoker = true). That's what makes RLS on the
+-- underlying psychicnum.games apply to the calling user:
+-- non-members see zero rows, just like a direct SELECT.
+--
+-- The trade for getting correct RLS: we can't put `target`
+-- directly in the SELECT list, because the invoker doesn't have
+-- SELECT on that column. The helper function above is the
+-- workaround — it's SECURITY DEFINER, so the column access
+-- inside the function uses postgres' identity.
+create view psychicnum.games_state
+  with (security_invoker = true)
+as
+  select
+    id,
+    club_id,
+    status,
+    guesses_remaining,
+    winner_id,
+    created_at,
+    psychicnum._target_for(id) as target
+  from psychicnum.games;
+
+grant select on psychicnum.games_state to authenticated;
+revoke insert, update, delete on psychicnum.games_state from authenticated;
 
 -- ============================================================
 -- Realtime publication
@@ -167,7 +253,16 @@ alter publication supabase_realtime add table psychicnum.guesses;
 --      + one common.game_players per uid, returns the canonical id.
 --   2. INSERT INTO psychicnum.games using that id.
 --
--- Setup shape: { "guesses": 3 | 5 | 7 | 9 }
+-- Setup shape:
+--   { "guesses": 3 | 5 | 7 | 9,
+--     "timer":   { "kind": "none" | "countup" }
+--             |  { "kind": "countdown", "seconds": 1..3600 } }
+--
+-- Timer is browser-side (anchored to common.games.started_at,
+-- ticked locally). When `countdown` hits 0 the FE fires
+-- psychicnum.submit_timeout (below) and the game flips to `lost`.
+-- The `none` / `countup` modes have no server-side timeout
+-- behavior at all — they're just FE display choices.
 --
 -- No member-count check — psychic-num plays with any club size.
 -- Must agree with the `numberOfPlayers: [1, null]` declaration in
@@ -187,6 +282,7 @@ as $$
 declare
   new_id uuid;
   s_guesses int;
+  s_target int;
 begin
   -- ─── Validate setup shape ────────────────────────────
   -- One option, four allowed values. We don't trust the FE for
@@ -206,22 +302,40 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- Common-side coordination: validates auth + caller membership +
-  -- player_user_ids membership, inserts common.games + game_players,
-  -- returns the canonical id.
-  new_id := common.create_game(target_club, 'psychicnum', player_user_ids);
+  -- Timer is a per-game setup choice. Shape validation is shared
+  -- across gametypes — see common.validate_timer for the exact
+  -- message set ('setup.timer is required', 'kind must be ...',
+  -- 'seconds must be 1..3600 (got X)', etc.).
+  perform common.validate_timer(setup->'timer');
 
-  -- Insert the game row using the canonical id. guesses_remaining
-  -- seeds from s_guesses; setup itself is persisted for game-
-  -- review surfaces. target is the random 1..10 secret, hidden by
-  -- the column-level grant.
-  insert into psychicnum.games (id, club_id, target, guesses_remaining, setup)
+  -- Pick the random target now (instead of inline in the INSERT)
+  -- so we can use it in the title. NOTE: this LEAKS the target
+  -- via common.games.title — psychic-num is a toy game and the
+  -- title carries no anti-cheat expectation. The column-level
+  -- grant on psychicnum.games.target stays as the canonical
+  -- "true server-side secret" example for future games (memory-
+  -- pairing layouts, hidden Boggle boards) — see psychicnum.md.
+  s_target := 1 + floor(random() * 10)::int;
+
+  -- Common-side coordination: validates auth + caller membership +
+  -- player_user_ids membership, inserts common.games (with title +
+  -- setup) + game_players, returns the canonical id. Setup lives on
+  -- common.games.setup — we pass it through verbatim now that it's
+  -- shape-validated.
+  new_id := common.create_game(
+    target_club, 'psychicnum', player_user_ids,
+    s_target::text,
+    setup
+  );
+
+  -- Insert the gametype-specific row using the canonical id.
+  -- guesses_remaining seeds from s_guesses.
+  insert into psychicnum.games (id, club_id, target, guesses_remaining)
   values (
     new_id,
     target_club,
-    1 + floor(random() * 10)::int,
-    s_guesses,
-    setup
+    s_target,
+    s_guesses
   );
 
   return query select new_id;
@@ -260,6 +374,10 @@ as $$
 declare
   caller_id uuid;
   g psychicnum.games%rowtype;
+  -- Initial guess budget pulled from common.games.setup (the
+  -- canonical setup location post-migration). Used to compute
+  -- `guesses_used` in the terminal status_summary blobs below.
+  initial_guesses int;
   is_correct boolean;
   remaining int;
   player_results jsonb;
@@ -282,6 +400,9 @@ begin
   if g.status <> 'active' then
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
+
+  select (setup->>'guesses')::int into initial_guesses
+    from common.games where id = target_game;
 
   is_correct := (guess = g.target);
 
@@ -308,8 +429,7 @@ begin
       jsonb_build_object(
         'outcome', 'won',
         -- initial budget minus the post-guess remaining count
-        'guesses_used',
-          (g.setup->>'guesses')::int - (g.guesses_remaining - 1)
+        'guesses_used', initial_guesses - (g.guesses_remaining - 1)
       ),
       player_results
     );
@@ -335,7 +455,7 @@ begin
       target_game,
       jsonb_build_object(
         'outcome', 'lost',
-        'guesses_used', (g.setup->>'guesses')::int
+        'guesses_used', initial_guesses
       ),
       player_results
     );
@@ -354,43 +474,81 @@ revoke execute on function psychicnum.submit_guess(uuid, int) from public;
 grant execute on function psychicnum.submit_guess(uuid, int) to authenticated;
 
 -- ============================================================
--- psychicnum.reveal_target — surfaces the secret after game end
+-- psychicnum.submit_timeout — countdown expired
 -- ============================================================
--- The `target` column is hidden from authenticated SELECT via
--- column-level grant (see the grants section). Players need to
--- see the number after a loss ("the number was 7"); this RPC is
--- the gated path. Rejects while the game is still active so a
--- curious client can't peek mid-game.
+-- The FE clock is browser-side (count-down ticks locally); when it
+-- hits zero, the FE fires this. We flip the game to `lost` and call
+-- common.end_game with an outcome of 'lost_timeout' to distinguish
+-- it from the regular `lost` (exhausted guesses).
+--
+-- Idempotency: terminal-state guard via the `status <> 'active'`
+-- check means a second concurrent call from another tab raises
+-- P0001 'game is not active'. The FE swallows that — losing once
+-- is enough.
+--
+-- Mirrors wordknit.submit_timeout exactly. See its header for the
+-- pattern's rationale (FE-driven clock + idempotent server flip).
 
-create function psychicnum.reveal_target(target_game uuid)
-returns int
+create function psychicnum.submit_timeout(target_game uuid)
+returns void
 language plpgsql
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
 declare
   g psychicnum.games%rowtype;
+  initial_guesses int;
+  player_results jsonb;
 begin
   select * into g from psychicnum.games
-   where psychicnum.games.id = target_game;
+   where psychicnum.games.id = target_game
+   for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  -- Auth + membership (deferred to after the lookup so we can use
-  -- the game row's club_id). See common.require_club_member.
-  perform common.require_club_member(g.club_id);
+  -- Auth + game-player gate. See common.require_game_player.
+  perform common.require_game_player(target_game);
 
-  if g.status = 'active' then
-    raise exception 'game is still active' using errcode = 'P0001';
+  if g.status <> 'active' then
+    raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
-  return g.target;
+  update psychicnum.games set status = 'lost'
+   where psychicnum.games.id = target_game;
+
+  -- Team loss: everyone loses together.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  -- Initial guess budget for the `guesses_used` summary field. Read
+  -- from common.games.setup (canonical setup location).
+  select (setup->>'guesses')::int into initial_guesses
+    from common.games where id = target_game;
+
+  perform common.end_game(
+    target_game,
+    jsonb_build_object(
+      'outcome', 'lost_timeout',
+      -- How many guesses had been used before the clock ran out.
+      'guesses_used', initial_guesses - g.guesses_remaining
+    ),
+    player_results
+  );
 end;
 $$;
 
-revoke execute on function psychicnum.reveal_target(uuid) from public;
-grant execute on function psychicnum.reveal_target(uuid) to authenticated;
+revoke execute on function psychicnum.submit_timeout(uuid) from public;
+grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
+
+-- (No reveal_target RPC. An earlier iteration had one — a
+-- security-definer function that returned `target` after checking
+-- the terminal-status precondition. That precondition is now the
+-- CASE expression inside the `games_state` view above, which the
+-- FE reads directly. The view collapses the two-step
+-- fetch-then-reveal flow into a single SELECT.)
 
 -- ============================================================
 -- Register psychicnum with common.gametypes

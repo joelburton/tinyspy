@@ -1,0 +1,94 @@
+/* One card per game entry on ClubPage. Three states, same shape;
+ * the per-state visual tier is in this stylesheet, not in JSX.
+ *
+ * Layout: a small uppercase gametype label, the algorithmic title
+ * as the primary text, then a row with the status string + the
+ * started-at timestamp.
+ */
+
+.card {
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* The Link wrapper around clickable cards. Strips link styles so
+ * the card itself is the affordance; the whole surface clicks. */
+.link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.link:hover .card {
+  border-color: var(--color-text);
+}
+
+/* Gametype label — small, uppercase, muted. The "Wordknit" /
+ * "Tinyspy" tag sitting above the title so the eye sees category
+ * first. */
+.gametype {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* The algorithmic title — the largest text in the card. Per-state
+ * sizing below scales this. word-break for long tinyspy titles. */
+.title {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.status {
+  color: var(--color-text);
+}
+
+.startedAt {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ─── State-specific treatments ────────────────────────────── */
+
+/* Active: this is the game the user is in right now. Bigger
+ * title, accent border for prominence in the page. */
+.active {
+  border-color: var(--color-accent, var(--color-text));
+  border-width: 2px;
+  padding: 1rem 1.25rem;
+}
+
+.active .title {
+  font-size: 1.5rem;
+}
+
+/* Suspended: a real card you can resume. Default treatment. */
+.suspended .title {
+  font-size: 1.1rem;
+}
+
+/* Completed: history. Muted so it doesn't shout from the list. */
+.completed {
+  opacity: 0.7;
+}
+
+.completed .title {
+  font-size: 1rem;
+  font-weight: 500;
+}

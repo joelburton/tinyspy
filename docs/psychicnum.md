@@ -33,7 +33,7 @@ Psychic Num is also a stand-in for "the second game" until something substantial
    - **Win:** any guess matches the target. The game's `status` flips to `won`.
    - **Lose:** the 7th wrong guess is submitted. The game's `status` flips to `lost`.
 
-After the game ends, players can call `reveal_target` to learn what the number was — useful primarily on a loss ("the number was 7"), available on a win for symmetry.
+After the game ends, the target becomes readable to club members via the `psychicnum.games_state` view — useful primarily on a loss ("the number was 7"), available on a win for symmetry. See [The hidden-target mechanic](#the-hidden-target-mechanic) below.
 
 ### What the game is not
 
@@ -47,7 +47,7 @@ After the game ends, players can call `reveal_target` to learn what the number w
 
 | table | purpose |
 |---|---|
-| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`, `setup` (the start-game-dialog choices, jsonb). |
+| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `status`, `target` (the secret), `guesses_remaining`, `winner_id`. (The start-game-dialog choices live on `common.games.setup` — the per-gametype `setup` column was dropped when the blob moved to common.) |
 | `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. Used both for rendering the history in the UI and as the audit trail for "what happened." |
 
 There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table. It co-locates onto the game row.
@@ -64,13 +64,11 @@ Simpler than tinyspy's enum (no sudden_death, no multi-axis loss reasons). This 
 
 ## The hidden-target mechanic
 
-The most architecturally interesting piece of Psychic Num is how it hides `target` from clients.
+The most architecturally interesting piece of Psychic Num is how it hides `target` from clients. Two layers, working together:
 
-A naïve "honor system" approach would put `target` in the table and trust the FE not to display it during active play. That would defeat the "backend-authoritative" intent — anyone with browser devtools could read the value out of a query response. Psychic Num actually hides it.
+### Layer 1 — column-level grant (storage gate)
 
-### How it works
-
-The trick is a **column-level grant** that excludes `target` from the SELECT permission given to `authenticated`:
+The base table grants SELECT to `authenticated` on every column *except* `target`:
 
 ```sql
 grant select
@@ -78,29 +76,47 @@ grant select
   on psychicnum.games to authenticated;
 ```
 
-The `authenticated` role can SELECT every column listed there — but not `target`. The RPCs (which run as `postgres` via `security definer`) can still read it freely; only the FE-facing role is blocked.
+A direct `SELECT target FROM psychicnum.games WHERE id = ?` as `authenticated` raises SQLSTATE 42501 ("permission denied for column target"). The RPCs (which run as `postgres` via `security definer`) can still read it. This is tested in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql).
 
-If a client tries `SELECT target FROM psychicnum.games WHERE id = ?` as `authenticated`, Postgres raises SQLSTATE 42501 ("permission denied for column target"). This is tested in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql).
+### Layer 2 — `psychicnum.games_state` view + `_target_for` helper (conditional exposure)
 
-### How players see the target after the game ends
+The FE never reads from `psychicnum.games` directly anymore — it reads from a view that conditionally exposes `target` based on game status:
 
-A dedicated RPC: `psychicnum.reveal_target(target_game uuid) returns int`. It checks that:
+```sql
+create or replace view psychicnum.games_state
+  with (security_invoker = true) as
+select g.id, g.club_id, g.status, g.guesses_remaining, g.winner_id, g.created_at,
+       psychicnum._target_for(g.id) as target
+  from psychicnum.games g;
+```
 
-1. Caller is authenticated.
-2. Caller is a member of the game's club.
-3. The game's status is not `active` (i.e., it's already terminal).
+Two settings carry the design:
 
-Then returns the target. The terminal-only gate is the load-bearing constraint — without it, a curious client could call `reveal_target` mid-game and cheat. With it, the secret is genuinely server-side until the game ends.
+- **`security_invoker = true`** on the view means RLS is evaluated as the *caller*, not the view-owner — so the `is_club_member` policy on `psychicnum.games` decides row visibility normally.
+- **`psychicnum._target_for(uuid)`** is a `SECURITY DEFINER` helper that runs as `postgres`. It bypasses the column-grant (which only binds the `authenticated` role) and returns the target — but **only when status is terminal**:
+
+  ```sql
+  -- inside _target_for(g uuid):
+  select case when status in ('won', 'lost') then target end
+    from psychicnum.games where id = g;
+  ```
+
+The net effect: one FE query (`db.from('games_state').select(...)`) returns the row with `target` populated when terminal, `null` when active. Row visibility is gated by RLS (invoker); column exposure is gated by the helper's CASE.
+
+The old `reveal_target` RPC is **gone** — the view subsumes its role.
 
 ### Why this matters as a pattern
 
-Psychic Num is the first place we have a true server-only secret. The column-level grant pattern is reusable for any future game that needs hidden per-game state — Boggle's secret board generation, a memory-game's pairing layout, etc. The recipe is:
+This is the canonical recipe for **"expose a column the invoker can't see directly, gated on row state."** The recipe:
 
-1. Put the secret column on the table where it naturally lives.
-2. Grant SELECT to `authenticated` on the safe columns explicitly, omitting the secret.
-3. Provide a security-definer RPC for revealing the secret, gated on whatever condition makes revealing it okay.
+1. Grant SELECT on safe columns to `authenticated`; omit the secret. (Storage lock stays as defense-in-depth.)
+2. Write a `SECURITY DEFINER` helper that reads the secret and returns it conditionally — running as `postgres`, it bypasses the column grant.
+3. Define a view with `security_invoker = true` so RLS still gates row visibility, and call the helper for the secret column.
+4. Point the FE at the view, not the base table.
 
-Tinyspy doesn't use this pattern because tinyspy has no true secrets — both players' key cards are equally available via RLS, and the per-player filtering is by convention rather than enforcement (see [`tinyspy.md`'s note on game_players_select](tinyspy.md#row-level-security)).
+Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
+
+Tinyspy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md`'s note on game_players_select](tinyspy.md#row-level-security)).
 
 ## RPCs
 
@@ -108,11 +124,13 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-Caller must be a club member. Validates the setup shape, picks a random target 1–10, inserts the game row in `active` with `guesses_remaining` initialized from `setup.guesses`, upserts `common.games (is_active=true)` pointing at it.
+Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_active=true`, with `setup` persisted on `common.games.setup`), then inserts the psychic-num detail row in `active` with `guesses_remaining` initialized from `setup.guesses`. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
+
+A note on the title: putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
 
 **No minimum-club-size check.** The game logic plays fine with any membership count — 1 (solo club, deferred), 2, 5, whatever. The current FE doesn't surface solo-club play, but the RPC doesn't reject it.
 
-Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing.
+Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
 
 ### `psychicnum.submit_guess(target_game uuid, guess int) → text`
 
@@ -134,25 +152,45 @@ Reject reasons:
 - not a club member
 - game status ≠ active
 
-### `psychicnum.reveal_target(target_game uuid) → int`
+### `psychicnum.submit_timeout(target_game uuid)`
 
-Returns the target. Gated on status being non-active. See [The hidden-target mechanic](#the-hidden-target-mechanic) above.
+Fires when the FE's count-down timer expires. Flips `status` to `lost` and calls `common.end_game` with `status_summary.outcome = 'lost_timeout'` — distinct from the regular `lost` (exhausted guesses) so end-of-game review can show the right reason.
 
-Reject reasons: not authenticated; not a club member; game still active.
+Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
-### Trigger
-
-`psychicnum.clear_active_on_termination()` — fires on `psychicnum.games.status` UPDATE. When status flips from `active` to `won` or `lost`, deletes the matching `common.games (is_active=true)` row. Same pattern as [tinyspy's equivalent](tinyspy.md#helpers-not-callable-from-the-client).
+Reject reasons: not authenticated; not a game player; game not found; game status ≠ active.
 
 ## Setup
 
-The start-game dialog collects one option from the players before `create_game` fires:
+The start-game dialog collects two options from the players before `create_game` fires:
 
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default (parity with the previous hardcoded value); 3 is the hard mode; 5 medium; 9 the easy warm-up.
+- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field wordknit uses, validated server-side by `common.validate_timer`. See [Timer](#timer-browser-side-no-server-sync) below.
 
-Shape stored on `psychicnum.games.setup` (jsonb): `{ "guesses": 3 | 5 | 7 | 9 }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the column persists the original choice so end-of-game review can display "this game was played with 5 guesses" without trying to infer it from a counter that's already been decremented to 0.
+Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
 
 The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/Setup.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
+
+## Timer (browser-side, no server sync)
+
+Same model as wordknit: the timer is **browser-side only**, anchored to `common.games.started_at` (a server-stamped ISO timestamp) and ticked locally via the shared `useGameTimer` hook in `src/common/hooks/`. No periodic server sync, no `paused_at` / `time_elapsed_ms` columns — pauses freeze the displayed value via accumulated-pause-duration tracking in the hook.
+
+Behaviors per mode:
+
+- **`none`**: no timer rendered. `useGameTimer` returns `displaySeconds: 0` and never expires.
+- **`countup`**: informational. Header shows elapsed MM:SS. Never expires (no server action on any time).
+- **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `psychicnum.submit_timeout`, which flips status to `lost`. Idempotent on the server side — multiple peers racing to fire is fine.
+
+Drift bounds: the FE clock is anchored to the server timestamp, so a few hundred ms of skew is the worst case (Date.now vs server time at game start). For a multi-minute game this is invisible. If a player closes their tab and rejoins, the timer correctly reflects "you've been gone for 30 seconds" because the anchor is the server's `started_at`, not "when this React component mounted."
+
+## Pause-on-disconnect
+
+Two pause sources, OR'd into a single `paused` flag:
+
+1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused. The boundary is enforced by the shared `PauseBoundary` component — children are hidden via `visibility: hidden` while paused, so click handlers are inert without the per-handler `disabled` plumbing.
+2. **Manual pause**: any connected player can click Pause in the header, which fires a Broadcast event. Any connected player can Resume. There's no privileged "original pauser" check.
+
+The pause state propagates via the same realtime channel used for postgres-changes. Mirrors wordknit's pattern exactly — see [`docs/common.md`](common.md) and wordknit.md for the wider picture. Same hook shape (`useGame` returns `paused`, `missing`, `manuallyPausedBy`, `sendManualPause`, `sendManualUnpause`).
 
 ## Row-level security
 
@@ -182,36 +220,41 @@ Realtime publication includes both `psychicnum.games` and `psychicnum.guesses` s
 
 ```
 src/psychicnum/
-  Root.tsx                Mounted by App.tsx for /g/psychicnum/<id>.
-  manifest.ts             GameManifest registration.
+  Root.tsx                Mounted by App.tsx for /g/psychicnum/<id>. Mounts <GamePage>
+                          with the PlayArea as its child.
+  manifest.ts             GameManifest registration (incl. submitTimeout dispatch).
   db.ts                   export const db = supabase.schema('psychicnum')
 
   components/
-    BoardScreen.tsx       The one and only screen — input, submit, history, result, chat panel.
+    PlayArea.tsx          The game-specific play surface — thin composition of:
+                            GuessForm (input + submit_guess RPC)
+                            GuessHistory (pure render of the guesses log)
+                            ResultBanner (win/loss panel, rendered conditionally)
+                          Chat / header / pause / timer live in <GamePage>, not here.
+    GuessForm.tsx         Owns input state + submit_guess dispatch.
+    GuessHistory.tsx      Pure render of the guesses log with username attribution.
+    ResultBanner.tsx      Win/loss panel; receives narrowed `status: 'won' | 'lost'`.
 
   hooks/
-    useGame.ts            Loads the game + guesses + club members, subscribes to realtime.
+    useGame.ts            Loads the game row (from games_state, so target appears on
+                          termination) + guesses, subscribes to realtime. No longer owns
+                          presence / pause / members / timer — those live in
+                          common's useCommonGame, consumed by GamePage.
 ```
 
 That's it. No theme.css, no *.module.css, no per-component styling — the game leans entirely on the global utility classes from [`common/theme.css`](../src/common/theme.css). The visual minimalism is deliberate; the gametype is here to test the wiring, not to be a polished UI.
 
-### `BoardScreen`
+### `PlayArea`
 
-A single card with four sections:
-
-1. **Header**: title, back-to-home link.
-2. **Active state**: "X guesses left" prompt, a number input, a Submit button. Disabled while submitting.
-3. **Terminal state**: a result banner with "We won! [winner] guessed it." or "We lost. The number was X." The user navigates back to the club to start another game via the standard "Start" flow.
-4. **Guess history**: every guess with username, value, and correct/nope.
-5. **Chat**: the shared `ClubChatPanel` (same component every game uses).
-
-When the game ends, the screen lazily fetches the target via `reveal_target` and caches it in local state for the banner.
+A thin composition file. Renders `<GuessForm>` while `game.status === 'active'`, and `<ResultBanner status={game.status}>` (ternary narrowing the `'won' | 'lost'` type) when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` in `Root.tsx`.
 
 ### `useGame`
 
-Fetches game row + guesses + club members in parallel, subscribes to realtime on `psychicnum.{games, guesses}`. On any change, refetches the bundle. Follows the same patterns as tinyspy's hooks (per-effect unique channel name, refetch on `SUBSCRIBED`, separate fetches for cross-schema profile data).
+Reads from `psychicnum.games_state` (the view that exposes `target` conditionally on terminal status — see [The hidden-target mechanic](#the-hidden-target-mechanic)). `game.target: number | null` comes back directly: `null` while active, the actual number once terminal. No separate reveal effect.
 
-The `members` array is what `ClubChatPanel` needs for message attribution, and also what `BoardScreen` uses to render "[ada] guessed 7" attribution in the guess history.
+Subscribes to realtime on `psychicnum.{games, guesses}` over its own per-tab UUID-suffixed channel (`psychicnum:${gameId}:${uuid}`) for postgres-changes only. On any change, refetches the bundle. Follows the same patterns as tinyspy's hooks (per-effect unique channel name, refetch on `SUBSCRIBED`, separate fetches for cross-schema profile data).
+
+The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 
 ### Code-splitting
 
@@ -225,9 +268,9 @@ See [`testing.md`](testing.md) for theory and shared setup. Psychic-num-specific
 
 | file | covers |
 |---|---|
-| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, auto-pause via `common.games` (with is_active filter) upsert, column-level grant blocks SELECT of `target`. |
-| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, trigger clears `common.games` (with is_active filter) on termination. |
-| `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables, mutating RPCs throw, `reveal_target` rejects while active, returns the target after game end for any member. |
+| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.guesses` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in wordknit's create_game test), auto-pause via `common.games.is_active`, title formula, column-level grant blocks SELECT of `target`. |
+| `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips to `won`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, `common.end_game` flips `is_active=false` on termination, `submit_timeout` happy path + idempotency + non-player rejection. |
+| `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `target IS NULL` while active and the actual value once status is terminal — exercising both the `security_invoker` row-gating and the `_target_for` helper's CASE. |
 
 ### Pinning the target in tests
 
@@ -260,8 +303,8 @@ This is harmless but contrary to the cooperative-team framing. The cleanup, when
 | where | what to remove |
 |---|---|
 | `psychicnum_baseline.sql` | `winner_id` column on `psychicnum.games`; the `update ... set winner_id = caller_id` line in `submit_guess` |
-| `src/psychicnum/hooks/useGame.ts` | `winner_id` field on `PsychicnumGame` and from the SELECT list |
-| `src/psychicnum/components/BoardScreen.tsx` | the "[winner] guessed it" rendering on the win banner |
+| `src/psychicnum/hooks/useGame.ts` | `winner_id` field on `PsychicnumGame` and from the `games_state` SELECT list |
+| `src/psychicnum/components/ResultBanner.tsx` | the "[winner] guessed it" rendering on the win banner |
 | `src/psychicnum/manifest.ts` | the winner-name batch lookup in `fetchClubGames`; status label becomes just `"won"` |
 | `tests/psychicnum/gameplay_test.sql` | the `winner_id` assertion |
 
@@ -277,6 +320,6 @@ This is harmless but contrary to the cooperative-team framing. The cleanup, when
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260612000002_psychicnum_baseline.sql`](../supabase/migrations/20260612000002_psychicnum_baseline.sql) |
-| What does the UI look like | [`src/psychicnum/components/BoardScreen.tsx`](../src/psychicnum/components/BoardScreen.tsx) |
-| How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../src/psychicnum/hooks/useGame.ts) |
-| Is the target really hidden? | column-level grant in the migration + the SELECT test in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql) |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` / `ResultBanner.tsx` alongside |
+| How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
+| Is the target really hidden? | column-level grant + `psychicnum.games_state` view with `_target_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../supabase/tests/psychicnum/rls_test.sql) |

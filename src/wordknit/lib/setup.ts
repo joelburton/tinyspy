@@ -30,12 +30,3 @@ export type WordknitSetup = {
 export const DEFAULT_WORDKNIT_SETUP: WordknitSetup = {
   timer: { kind: 'countdown', seconds: 600 },
 }
-
-/**
- * Bounds for the count-down picker. Joel's call: minimum 1
- * second (no zero-length games), max 60 minutes (1 hour is
- * plenty for any wordknit-style puzzle). Server-side validator
- * agrees — see the migration.
- */
-export const MIN_COUNTDOWN_SECONDS = 1
-export const MAX_COUNTDOWN_SECONDS = 60 * 60

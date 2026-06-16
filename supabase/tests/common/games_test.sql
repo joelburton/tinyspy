@@ -75,7 +75,9 @@ select set_config(
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
       'bea22222-2222-2222-2222-222222222222'::uuid
-    ]
+    ],
+    'test-title',
+    '{}'::jsonb
   ))::text,
   true
 );
@@ -115,7 +117,8 @@ select throws_ok(
   format(
     $$ select common.create_game(%L::uuid, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+             'bea22222-2222-2222-2222-222222222222'::uuid],
+       'test-title', '{}'::jsonb) $$,
     (select id from club)
   ),
   '42501',
@@ -130,7 +133,7 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L::uuid, 'wordknit', array[]::uuid[]) $$,
+    $$ select common.create_game(%L::uuid, 'wordknit', array[]::uuid[], 'test-title', '{}'::jsonb) $$,
     (select id from club)
   ),
   'P0001',
@@ -147,7 +150,8 @@ select throws_ok(
   format(
     $$ select common.create_game(%L::uuid, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
-             'dee44444-4444-4444-4444-444444444444'::uuid]) $$,
+             'dee44444-4444-4444-4444-444444444444'::uuid],
+       'test-title', '{}'::jsonb) $$,
     (select id from club)
   ),
   'P0001',

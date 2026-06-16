@@ -143,4 +143,14 @@ export const psychicnumGame: GameManifest = {
       statusLabel: labelFor(g),
     }))
   },
+
+  // Called by common's GamePage when its countdown timer hits 0.
+  // The RPC flips this gametype's status to 'lost' and writes
+  // status_summary.outcome='lost_timeout'. Idempotent on the
+  // terminal-state check, so peers racing to fire is fine.
+  submitTimeout: async (gameId) => {
+    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
 }

@@ -1,3 +1,5 @@
+import type { TimerMode } from '../../common/lib/games'
+
 /**
  * Psychic Num's per-game setup — the choices collected by the
  * start-game dialog, persisted to `psychicnum.games.setup`, and
@@ -21,16 +23,25 @@ export type PsychicnumSetup = {
    * harder/easier alternatives the dialog offers.
    */
   guesses: 3 | 5 | 7 | 9
+  /**
+   * Browser-side timer mode. `none` and `countup` are
+   * informational; `countdown` flips the game to `lost` when the
+   * clock hits 0 (via psychicnum.submit_timeout). Validated
+   * server-side by `common.validate_timer`.
+   */
+  timer: TimerMode
 }
 
 /**
  * Initial setup the manifest hands the SetupGameDialog wrapper
- * as `defaults`. 7 keeps parity with the previous hardcoded
- * value, so the no-op "click Start, accept defaults" path
- * produces the same game shape it always did.
+ * as `defaults`. Guesses=7 keeps parity with the previous
+ * hardcoded value; timer defaults to a 10-minute count-down —
+ * a sensible "casual game with stakes" baseline that players can
+ * dial up or down (or turn off entirely) before starting.
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   guesses: 7,
+  timer: { kind: 'countdown', seconds: 600 },
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */

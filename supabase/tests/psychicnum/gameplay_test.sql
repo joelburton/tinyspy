@@ -26,7 +26,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(17);
+select plan(22);
 
 -- Cast: ada + bea are club members; dee is outside.
 
@@ -36,7 +36,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from psychicnum.create_game((select id from club), '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- Pin the target to 7 for the scenarios. RPCs roll randomly;
 -- we override directly as postgres so the test's guess sequence
@@ -158,7 +158,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
+select * from psychicnum.create_game((select id from club), '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 reset role;
 update psychicnum.games set target = 8 where id = (select id from g2);
@@ -201,6 +201,72 @@ select is(
   (select status from psychicnum.games where id = (select id from g2)),
   'lost',
   'status flips to lost after the 7th wrong guess'
+);
+
+-- ============================================================
+-- (9) submit_timeout — countdown expired (FE-driven)
+-- ============================================================
+-- The FE fires this when the count-down timer hits 0. We flip
+-- status='lost' and call common.end_game with outcome='lost_timeout'
+-- (distinct from the regular `lost` of exhausted guesses).
+-- Idempotency: a second call on the already-terminal game raises
+-- a clean P0001 that the FE swallows.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select * from psychicnum.create_game(
+  (select id from club),
+  '{"guesses": 7, "timer": {"kind": "countdown", "seconds": 600}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+);
+
+-- Happy path: active → submit_timeout → lost.
+select lives_ok(
+  format(
+    $$ select psychicnum.submit_timeout(%L::uuid) $$,
+    (select id from g3)
+  ),
+  'submit_timeout: active game accepts the call'
+);
+
+reset role;
+select is(
+  (select status from psychicnum.games where id = (select id from g3)),
+  'lost',
+  'submit_timeout: flips status to lost'
+);
+
+-- end_game flips is_active=false on timeout-loss.
+select is(
+  (select count(*) from common.games
+    where club_id = (select id from club) and is_active = true),
+  0::bigint,
+  'submit_timeout: end_game flips is_active=false on timeout-loss'
+);
+
+-- Idempotency: a second call from any caller on the already-lost
+-- game raises P0001. FE catches and ignores so a racing peer is silent.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select throws_ok(
+  format(
+    $$ select psychicnum.submit_timeout(%L::uuid) $$,
+    (select id from g3)
+  ),
+  'P0001',
+  'game is not active',
+  'submit_timeout: rejects on already-terminal games'
+);
+
+-- Non-player gate: dee is signed in but didn't play this game.
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select throws_ok(
+  format(
+    $$ select psychicnum.submit_timeout(%L::uuid) $$,
+    (select id from g3)
+  ),
+  '42501',
+  'not playing this game',
+  'submit_timeout: non-player is rejected via require_game_player'
 );
 
 -- ============================================================

@@ -179,6 +179,15 @@ a {
   margin-top: 1.5rem;
 }
 
+/* Vertical stack of cards within a section — used for
+   suspended/completed game lists on ClubPage. The cards bring
+   their own visual treatment; this just spaces them. */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .divider {
   text-align: center;
   color: var(--color-divider);

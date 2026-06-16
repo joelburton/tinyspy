@@ -43,7 +43,7 @@ Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. |
 | `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
 | `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
-| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `is_active`, `status_summary` jsonb, `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. |
+| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `title`, `is_active`, `status_summary` jsonb, `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. The `title` is a short human-readable label built by each gametype's `create_game` at insert time (see [Title formulas](#title-formulas)) — the FE renders it as `"<gametypeName>: <title>"` in club game lists. |
 | `game_players` | M2M between games and profiles, recording who played each game. Frozen at game-create time — distinct from `clubs_members`, which is current membership of the club. The `result jsonb` column carries each player's outcome (won/lost flag, score, etc.), populated by `common.end_game` at terminal transition. |
 | `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. |
 | `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. The 1–1000 character constraint matches what game-scoped chat used to have, before chat moved to common. |
@@ -59,6 +59,18 @@ Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 The auto-suspend behavior is felt on the FE side via realtime: when `common.games` changes for this club, every member's UI subscribes and navigates them into the new active game (if the new row has `is_active = true`). See [`ClubPage`](#frontend) for the auto-nav handler.
 
 (An earlier iteration had a separate `club_active_game` pointer table. That table's three roles — mark which game is active, enforce one-active-per-club, drive realtime auto-nav — all collapsed onto `common.games.is_active` once `common.games` itself existed.)
+
+### Title formulas
+
+`common.games.title` is `not null` and `length(trim(title)) > 0`-checked. Each gametype's `create_game` builds the value at insert time and passes it as the `title` argument to `common.create_game`. Choosing a formula is a per-gametype call — there's no universal-good answer ("just list the players" fails inside a single club where every game has the same 2-3 players). Current formulas:
+
+| gametype | formula | rationale |
+|---|---|---|
+| wordknit | first 4 tiles alphabetically, joined by `", "` | Picks something stable about the puzzle. POC's hardcoded A/B/C/D board makes this degenerate to `"ALPHA, ANGEL, APPLE, ARROW"` every time — the rule survives unchanged when real puzzles arrive. |
+| psychic-num | the target number as text (`"7"`) | Toy game, target is meant to be revealed in the title — the column-level grant hiding `psychicnum.games.target` from authenticated SELECT stays as the educational example of the column-grant pattern, but in practice the title leaks it anyway. |
+| tinyspy | `"<seatA-username>-v-<seatB-username>: <4 picked words>"` | Two-player invariant means seats are stable; the words anchor recognizing one game vs. another in a club's history. |
+
+The "no gametype in the title" rule: titles never embed `"Wordknit"` / `"Tinyspy"` etc. because the FE always prefixes the gametype name from the manifest. Doubled prefixes (`"Wordknit: Wordknit puzzle..."`) would look silly.
 
 ### Three-state game lifecycle
 
@@ -120,7 +132,7 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 |---|---|
 | `common.require_club_member(target_club uuid) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_id comes off the game row, e.g. `submit_guess`). |
 | `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
-| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[]) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, clears the prior active game for this club (UPDATE is_active=false), inserts the new `common.games` row with `is_active = true`, inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` calls this first, then inserts its detail row using the returned id. |
+| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[], title text) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, clears the prior active game for this club (UPDATE is_active=false), inserts the new `common.games` row with `is_active = true` and the passed `title`, inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
 | `common.require_game_player(target_game uuid) → uuid` | Auth + game-player gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not playing this game'` if the caller isn't in `common.game_players` for the target game. Returns the caller's `user_id`. Use in mid-game RPCs (submit_guess, submit_clue, etc.) where the question is "is this caller actually playing this game" — finer than just club-membership. |
 | `common.end_game(target_game uuid, status_summary jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = now()`, `status_summary` on `common.games`, flips `is_active = false`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). |
 
@@ -196,12 +208,24 @@ src/
       HomePage.tsx         Landing — your clubs list + create-club link + Play-solo buttons
       CreateClubPage.tsx   The club-creation form
       ClubPage.tsx         A specific club's room — roster, games sections, chat, "Start X" buttons
-      ClubChatPanel.tsx    Reused chat panel; every game's BoardScreen mounts this
+      ClubChatPanel.tsx    Reused chat panel; mounted once by GamePage (not by each game's PlayArea)
+      ClubGameCard.tsx     One card for an active / suspended / completed game entry on ClubPage.
+                           Per-state CSS treatments live in ClubGameCard.module.css.
+      StartGameButtons.tsx Shared between ClubPage and HomePage. Takes filtered `games`,
+                           `memberCount`, `getLabel`, `starting`, `onStart`.
+      GamePage.tsx         The common shell every game's PlayArea mounts inside. Renders the
+                           header (title from common.games.title, timer, Pause, Back-to-club),
+                           wraps children in PauseBoundary, mounts ClubChatPanel. Children may
+                           be a render-prop receiving { members, timer }. Forwards
+                           onPauseTransition to PauseBoundary.onPause (wordknit uses for
+                           sendClear). Fires per-gametype submitTimeout via manifest dispatch
+                           on countdown expiry.
+      TimerField.tsx       The shared None / Up / Down radio + MM:SS input used by wordknit and
+                           psychic-num setup forms. Tokens in TimerField.module.css.
       LoginScreen.tsx      Magic-link sign-in
       SetupGameDialog.tsx  Modal wrapper around per-game setup forms (one per gametype)
       PauseBoundary.tsx    Wraps a game's play area; renders children or PauseOverlay
-                           based on the paused flag. Used by every game with realtime
-                           presence (today: wordknit; future: tinyspy, psychic-num).
+                           based on the paused flag. Mounted by GamePage.
       PauseOverlay.tsx     The dim-overlay UI when a game is paused. Adapts copy to
                            presence-pause / manual-pause / both. Includes the Resume
                            button for the manual-pause case.
@@ -212,6 +236,15 @@ src/
                            a server-stamped startedAt, ticks locally via
                            useSyncExternalStore, observes a paused flag. See
                            docs/wordknit.md → "Timer" for the design rationale.
+      useCommonGame.ts     The cross-cutting per-game hook every gametype uses. Owns the
+                           common.games row, common.game_players + profile usernames
+                           (`members`), presence + manual-pause broadcasts (`paused`,
+                           `missing`, `manuallyPausedBy`, `sendManualPause`,
+                           `sendManualUnpause`), and the timer (via useGameTimer against
+                           common.games.setup.timer). Opens a stable channel named
+                           `game:${gameId}`. Per-game useGame hooks no longer own any of
+                           this — they subscribe to their own per-tab UUID-suffixed
+                           channel for postgres-changes only.
     lib/
       supabase.ts          The supabase client (browser SDK)
       router.ts            Hand-rolled router — usePath() hook + navigate() function (~40 lines)
@@ -241,6 +274,8 @@ Routes the shell knows about:
 
 The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx looks up the manifest by gametype, then mounts its lazy `Root` with `gameId` as a prop, keyed by `gameId` so navigation between games remounts the Root (fresh state, no leaked subscriptions).
 
+Every game's `Root` mounts `<GamePage>` as the shared shell. GamePage owns the cross-cutting chrome — header (title / timer / Pause / Back-to-club), `<PauseBoundary>`, and `<ClubChatPanel>` — and renders the per-game `<PlayArea>` as its child. `useCommonGame` is what GamePage and PlayArea both pull from for the cross-cutting state (members, paused, timer). The per-game `useGame` is now just the postgres-changes subscription for that gametype's own tables.
+
 Why hand-rolled instead of react-router: the app has five routes, flat structure, no need for loaders or nested layouts. react-router adds 30–50 KB and a learning curve for what we'd write in ~40 lines.
 
 ### The game registry
@@ -266,7 +301,8 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
 | `Root` | Lazy-loaded React component. The shell mounts this for `/g/<gametype>/<id>` URLs. |
 | `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |
-| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` in the BoardScreen — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). Today no game uses this field; wordknit chose to make the timer a per-game setup choice instead (stored on `wordknit.games.setup.timer`, picked in the setup dialog). The field is preserved for the per-gametype-constant case. |
+| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). Today no game uses this field; wordknit and psychic-num both put the timer on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/`). The field is preserved for the per-gametype-constant case. |
+| `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC (psychicnum and wordknit do; tinyspy currently no-ops because it has no setup-side timer). Returns `{ error? }`. |
 | `startGameInClub(clubId, setup)` | Async. Called by the SetupGameDialog (or directly by ClubPage when `setupForm: null`). Receives the dialog's collected setup payload. Returns `{id}` on success or `{error}` on failure. |
 | `fetchClubGames(clubId)` | Async. Returns the gametype's games for a club, for the club page's active/suspended/completed list. |
 

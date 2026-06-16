@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
-import { db as commonDb } from '../../common/db'
 import { db } from '../db'
 
 /**
- * Subset of psychicnum.games visible to authenticated SELECT.
- * `target` is intentionally absent — the column-level grant on the
- * table excludes it from authenticated reads (see the psychicnum
- * baseline migration). To learn the target once the game is over,
- * call the `reveal_target` RPC (which gates on terminal status).
+ * The FE-ready game state. Sourced from the
+ * `psychicnum.games_state` view, which combines the table's
+ * directly-readable columns with the conditional `target`
+ * reveal:
+ *
+ *   - While `status = 'active'`, the view returns `target = null`.
+ *   - Once status flips terminal, the view returns the real value.
+ *
+ * The reveal gate lives in SQL (a SECURITY DEFINER helper inside
+ * the view's column expression — see the psychicnum baseline
+ * migration). The FE doesn't issue a separate "reveal" call:
+ * one SELECT from games_state gives the complete picture.
  */
 export type PsychicnumGame = {
   id: string
@@ -16,6 +22,9 @@ export type PsychicnumGame = {
   status: 'active' | 'won' | 'lost'
   guesses_remaining: number
   winner_id: string | null
+  /** The 1..10 secret. Null while status is 'active' (gated by
+   *  the view's helper function); the real value once terminal. */
+  target: number | null
   created_at: string
 }
 
@@ -27,47 +36,54 @@ export type PsychicnumGuess = {
   guessed_at: string
 }
 
-export type ClubMember = {
-  user_id: string
-  username: string
-}
-
 /**
- * Load everything BoardScreen needs for a single game: the game
- * row, the append-only guesses log, and the club's members (used
- * both for rendering "<username> guessed N" lines and for the
- * ClubChatPanel which expects a members list).
+ * Psychic-num's per-gametype data hook — narrower than it used
+ * to be. Owns the gametype-specific row + guesses log + its own
+ * postgres-changes subscription on `psychicnum.{games,guesses}`.
  *
- * Realtime subscriptions cover the two psychicnum tables; on any
- * change we refetch the whole bundle. The game is small enough
- * (≤ 7 guesses, a handful of members) that a refetch is cheaper
- * to write than to thread partial updates through this hook.
+ * **One read per game-state refetch.** The hook reads from the
+ * `psychicnum.games_state` view, which surfaces target
+ * conditionally on status. No follow-up RPC for the reveal;
+ * PlayArea reads `game.target` like any other field, and the
+ * "secret-until-terminal" rule is enforced entirely server-side
+ * inside the view.
  *
- * Follows the project's standard realtime patterns: a per-effect
- * unique channel name (so React StrictMode's double-mount doesn't
- * collide on channel names) and a refetch when the channel hits
- * `SUBSCRIBED` (recovers from any events missed between the
- * initial fetch and the subscription being live).
+ * Why subscribe to the table, not the view: Supabase Realtime
+ * watches tables. The asymmetry is intentional and contained
+ * here: we subscribe to `psychicnum.games` for change events,
+ * and re-read from `games_state` in response.
+ *
+ * The cross-cutting machinery (members, presence, manual-pause
+ * broadcasts, timer, paused/missing/manuallyPausedBy) lives on
+ * `useCommonGame` inside `GamePage` — see `src/common/hooks/
+ * useCommonGame.ts`. PlayArea consumes both: this hook for the
+ * game-specific surface, useCommonGame (indirectly, via GamePage)
+ * for the chrome.
+ *
+ * Channel-name pattern (`psychicnum:${gameId}:${uuid}`): a per-tab
+ * UUID suffix is intentional — this channel only carries
+ * postgres-changes, which don't need a shared room across peers.
+ * Per-tab channels avoid the supabase-js
+ * "attach-all-.on()-before-.subscribe()" rule colliding with
+ * `useCommonGame`'s channel for the same `gameId`.
  */
-export function useGame(gameId: string) {
+export function useGame(gameId: string): {
+  game: PsychicnumGame | null
+  guesses: PsychicnumGuess[]
+  loading: boolean
+} {
   const [game, setGame] = useState<PsychicnumGame | null>(null)
   const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
-  const [members, setMembers] = useState<ClubMember[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Fetch + realtime-subscribe to the game row, guesses log, and
-  // club roster. Re-runs only on gameId change; within a game,
-  // realtime events on psychicnum.{games,guesses} drive load()
-  // directly.
   useEffect(() => {
     let mounted = true
 
     async function load() {
-      // Game row first — we need club_id from it to fetch members.
       const { data: gameData } = await db
-        .from('games')
+        .from('games_state')
         .select(
-          'id, club_id, status, guesses_remaining, winner_id, created_at',
+          'id, club_id, status, guesses_remaining, winner_id, target, created_at',
         )
         .eq('id', gameId)
         .maybeSingle()
@@ -76,50 +92,29 @@ export function useGame(gameId: string) {
       if (!gameData) {
         setGame(null)
         setGuesses([])
-        setMembers([])
         setLoading(false)
         return
       }
 
-      // Run guesses + in-game players in parallel — independent of
-      // each other. Roster comes from common.game_players (the
-      // people who actually played THIS game), not from clubs_members
-      // (the whole club). A club member who didn't sit down at this
-      // game shouldn't appear in the in-game UI.
-      const [{ data: guessesData }, { data: memberRows }] = await Promise.all([
-        db
-          .from('guesses')
-          .select('id, user_id, number, was_correct, guessed_at')
-          .eq('game_id', gameId)
-          .order('guessed_at', { ascending: true }),
-        commonDb
-          .from('game_players')
-          .select('user_id')
-          .eq('game_id', gameId),
-      ])
+      const { data: guessesData } = await db
+        .from('guesses')
+        .select('id, user_id, number, was_correct, guessed_at')
+        .eq('game_id', gameId)
+        .order('guessed_at', { ascending: true })
       if (!mounted) return
 
-      // Resolve member usernames via a second `common` fetch. We
-      // can't do a single embed because PostgREST's schema cache
-      // doesn't resolve cross-schema FKs (see docs/code-conventions.md).
-      let memberList: ClubMember[] = []
-      const userIds = (memberRows ?? []).map((r) => r.user_id)
-      if (userIds.length > 0) {
-        const { data: profileData } = await commonDb
-          .from('profiles')
-          .select('user_id, username')
-          .in('user_id', userIds)
-        if (!mounted) return
-        memberList = (profileData ?? []) as ClubMember[]
-      }
-
-      setGame(gameData as PsychicnumGame)
+      setGame({
+        id: gameData.id as string,
+        club_id: gameData.club_id as string,
+        status: gameData.status as PsychicnumGame['status'],
+        guesses_remaining: gameData.guesses_remaining as number,
+        winner_id: gameData.winner_id as string | null,
+        target: gameData.target as number | null,
+        created_at: gameData.created_at as string,
+      })
       setGuesses((guessesData ?? []) as PsychicnumGuess[])
-      setMembers(memberList)
       setLoading(false)
     }
-
-    load()
 
     const channel = supabase
       .channel(`psychicnum:${gameId}:${crypto.randomUUID()}`)
@@ -153,5 +148,5 @@ export function useGame(gameId: string) {
     }
   }, [gameId])
 
-  return { game, guesses, members, loading }
+  return { game, guesses, loading }
 }

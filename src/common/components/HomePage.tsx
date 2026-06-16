@@ -5,6 +5,7 @@ import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { db as commonDb } from '../db'
 import { SetupGameDialog } from './SetupGameDialog'
+import { StartGameButtons } from './StartGameButtons'
 import { games } from '../../games'
 import {
   playerCountFits,
@@ -209,19 +210,13 @@ export function HomePage({ session }: Props) {
             from the clubs list above but acts as a regular club
             under the hood (history, settings, chat).
           </p>
-          <div className="actions">
-            {soloGames.map((g) => (
-              <button
-                key={g.gametype}
-                type="button"
-                onClick={() => handleStart(g.gametype)}
-                disabled={starting !== null}
-                title={g.blurb}
-              >
-                {starting === g.gametype ? 'Starting…' : `Play ${g.name} solo`}
-              </button>
-            ))}
-          </div>
+          <StartGameButtons
+            games={soloGames}
+            memberCount={1}
+            getLabel={(g) => `Play ${g.name} solo`}
+            starting={starting}
+            onStart={handleStart}
+          />
           {startError && <p className="error">{startError}</p>}
         </section>
       )}

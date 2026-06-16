@@ -1,6 +1,9 @@
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType } from 'react'
 
+import { db as commonDb } from '../db'
+import { navigate } from './router'
+
 /**
  * Props the shell hands to a game's Root component. A Root takes
  * over once the user is authenticated and the shell has resolved the
@@ -235,6 +238,25 @@ export type GameManifest = {
    *                        verbatim.
    */
   fetchClubGames: (clubId: string) => Promise<ClubGameEntry[]>
+
+  /**
+   * Fire the per-gametype timeout RPC. Called by the common
+   * `GamePage` when `useGameTimer.expired` flips true in
+   * countdown mode. Each gametype's RPC is idempotent on its
+   * terminal-state check (P0001 'game is not active' on a second
+   * concurrent call) — the FE swallows that, so peers racing to
+   * fire the timeout is fine.
+   *
+   * Why per-gametype instead of one common.submit_timeout: the
+   * RPCs each flip their own `<gametype>.games.status` to the
+   * gametype-specific lost-state (wordknit's 'lost', tinyspy's
+   * 'lost_clock', psychic-num's 'lost') and call common.end_game
+   * with a `status_summary` carrying gametype-specific counters
+   * (mistake_count, turns_used, guesses_used). A consolidated
+   * common RPC would force per-gametype dispatch on the SQL side;
+   * dispatching here is cleaner.
+   */
+  submitTimeout: (gameId: string) => Promise<{ error?: string }>
 }
 
 /**
@@ -313,4 +335,34 @@ export function playerCountLabel(
     return `Needs exactly ${min} ${min === 1 ? 'member' : 'members'}`
   }
   return `Needs ${min}–${max} members`
+}
+
+/**
+ * Leave the given game and land on the club it belongs to.
+ *
+ * Used by every game's Root for its "leave game" / end-of-game
+ * "back to club" affordance — the user always returns to the club
+ * the game was played in, never to the home page. (A home-page
+ * exit was the previous behavior; once games are firmly nested
+ * inside clubs in the UX, dropping the user out to a flat list
+ * isn't useful.)
+ *
+ * Implementation: one common-schema read joining `games → clubs`
+ * to resolve the club's URL handle, then `navigate` to `/c/<handle>`.
+ * Lazy (only fires when the user actually leaves) so we don't pay
+ * the round-trip on every game mount.
+ *
+ * The fallback to `/` is defensive — if the game row's gone (the
+ * game was just deleted, or the id was bad) we have no club to
+ * route to. In practice this shouldn't fire; the user is already
+ * inside the game, so the row was visible to them moments ago.
+ */
+export async function navigateToGameClub(gameId: string): Promise<void> {
+  const { data } = await commonDb
+    .from('games')
+    .select('clubs(handle)')
+    .eq('id', gameId)
+    .maybeSingle()
+  const handle = data?.clubs?.handle
+  navigate(handle ? `/c/${handle}` : '/')
 }

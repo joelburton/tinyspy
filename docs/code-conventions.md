@@ -57,6 +57,17 @@ Each game owns its own membership helper (`tinyspy.is_player_in_game`, `psychicn
 
 Helpers are marked `STABLE` so Postgres can cache the result within a single SELECT. RLS policies invoke the helper once per row; without `STABLE` that becomes the dominant cost on any non-trivial query.
 
+### SECURITY DEFINER helper + security_invoker view
+
+When you need to expose a column the calling role can't see directly, gated on row state (e.g., "reveal the answer once the game ends"), reach for this two-layer shape:
+
+1. Keep the column-level grant on the base table — the role can't SELECT the column. (Storage-layer lock.)
+2. Write a `SECURITY DEFINER` helper that reads the column and returns it conditionally based on row state. Running as `postgres`, it bypasses the column grant.
+3. Define a view `with (security_invoker = true)` that calls the helper for the gated column. The `security_invoker` flag means RLS on the base table still gates row visibility *as the caller* — so unauthorized rows stay hidden.
+4. Point the FE at the view, not the base table.
+
+Canonical example: `psychicnum.games_state` + `psychicnum._target_for(uuid)` — see [`psychicnum.md` → The hidden-target mechanic](psychicnum.md#the-hidden-target-mechanic).
+
 ### Migration filenames
 
 Pattern: `<timestamp>_<schema>_<topic>.sql`. The schema-prefix-in-filename gives per-schema grouping without nested directories.
@@ -94,9 +105,9 @@ The model: the two declarations are equally authoritative for their respective l
 
 Pattern: `<topic>:<id>:<unique>`, e.g.:
 
-- `game:<game_id>:<uuid>` — tinyspy game subscription
-- `psychicnum:<game_id>:<uuid>` — psychic-num game subscription
-- `wordknit:<game_id>` — wordknit game subscription (carries postgres-changes + broadcast + presence on a single channel). **No UUID suffix** here — every connected player has to be on the same Realtime "room" for broadcast and presence to merge across clients. The UUID workaround for supabase-js's StrictMode-cache bite would put each tab in its own room and break peer events. The hook handles the StrictMode double-mount via prompt cleanup (`removeChannel` before the next effect run) instead.
+- `game:<game_id>` — the shared cross-cutting channel opened by `useCommonGame`. Stable name (no UUID suffix) because presence + manual-pause broadcasts must merge across every connected client. StrictMode handled by the hook's own `removeChannel` cleanup. Every gametype's `useCommonGame` opens this.
+- `<gametype>:<game_id>:<uuid>` — the per-tab postgres-changes channel each per-game `useGame` opens. UUID suffix sidesteps supabase-js's StrictMode-cache bite; postgres-changes don't need to merge across clients so per-tab rooms are fine.
+- `wordknit:<game_id>` — wordknit's stable channel for shared-selection Broadcast events (select / deselect / clear). Stable for the same reason as `game:<game_id>` — broadcast events need to merge across clients.
 - `club-active:<club_id>:<uuid>` — club active-game pointer
 - `club-chat:<club_id>:<uuid>` — club chat messages
 
@@ -114,12 +125,13 @@ Roles, not implementations:
 
 | role | name | shared or per-game? |
 |---|---|---|
-| The game's main play surface | `BoardScreen` | per-game |
-| End-of-game result banner | `GameOverBanner` | per-game; same role, different content |
-| Reused chat surface | `ClubChatPanel` | shared (`common/components/`) |
+| The common shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
+| The game-specific play surface that mounts inside `<GamePage>` | `PlayArea` | per-game |
+| End-of-game result banner | `GameOverBanner` (tinyspy) / `ResultBanner` (psychic-num) | per-game; same role, different content |
+| Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
-A game's main screen is `BoardScreen.tsx` whether it has a literal grid (tinyspy) or just a text input (psychic-num). The role is "the place where the game happens"; the shape of the game is secondary to the name.
+A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) or just a text input (psychic-num). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
 
 ### Import-direction rules
 
@@ -211,9 +223,9 @@ If you see a type whose fields are snake_case but whose *name* doesn't end in `R
 | kind | convention | examples |
 |---|---|---|
 | Function names, function parameters, local variables | camelCase | `enterGame`, `gameId`, `resolvedIds` |
-| React component names | PascalCase | `ClubPage`, `BoardScreen` |
+| React component names | PascalCase | `ClubPage`, `PlayArea` |
 | Module-level constants | SCREAMING_SNAKE_CASE | `GAMETYPES`, `STATUS_LABEL` |
-| File names — components | PascalCase | `BoardScreen.tsx` |
+| File names — components | PascalCase | `PlayArea.tsx`, `GamePage.tsx` |
 | File names — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
 | File names — docs | kebab-case | `code-conventions.md`, `cheatsheet.md` |
 

@@ -5,10 +5,11 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { ClubChatPanel } from './ClubChatPanel'
+import { ClubGameCard } from './ClubGameCard'
 import { SetupGameDialog } from './SetupGameDialog'
+import { StartGameButtons } from './StartGameButtons'
 import { games } from '../../games'
 import type { ClubGameEntry, GameManifest } from '../lib/games'
-import { playerCountFits, playerCountLabel } from '../lib/games'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -58,6 +59,12 @@ export function ClubPage({ session, handle }: Props) {
   const [members, setMembers] = useState<Member[]>([])
   const [allGames, setAllGames] = useState<ClubGameEntry[]>([])
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
+  // gameId → title, sourced from common.games. Populated alongside
+  // the per-gametype fetchClubGames calls below. Render-time
+  // decoration so each game's list-row reads "<gametypeName>: <title>".
+  const [titleByGameId, setTitleByGameId] = useState<Map<string, string>>(
+    () => new Map(),
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
@@ -183,20 +190,27 @@ export function ClubPage({ session, handle }: Props) {
     let mounted = true
 
     async function loadGames() {
-      // Active game derives from common.games where is_active=true.
-      // The partial unique index guarantees at most one such row.
-      const activeRes = await commonDb
-        .from('games')
-        .select('id')
-        .eq('club_id', clubId)
-        .eq('is_active', true)
-        .maybeSingle()
-      const results = await Promise.all(
-        games.map((g) => g.fetchClubGames(clubId)),
-      )
+      // Three reads in parallel:
+      //   - active-game id (from common.games where is_active=true)
+      //   - per-gametype fetchClubGames (rendered status, isTerminal)
+      //   - all games' titles (from common.games), keyed by id for
+      //     render-time decoration
+      const [activeRes, titlesRes, results] = await Promise.all([
+        commonDb
+          .from('games')
+          .select('id')
+          .eq('club_id', clubId)
+          .eq('is_active', true)
+          .maybeSingle(),
+        commonDb.from('games').select('id, title').eq('club_id', clubId),
+        Promise.all(games.map((g) => g.fetchClubGames(clubId))),
+      ])
       if (!mounted) return
       setActiveGameId(activeRes.data?.id ?? null)
       setAllGames(results.flat())
+      setTitleByGameId(
+        new Map((titlesRes.data ?? []).map((t) => [t.id, t.title])),
+      )
     }
 
     loadGames()
@@ -281,10 +295,6 @@ export function ClubPage({ session, handle }: Props) {
   )
   const completedGames = allGames.filter((g) => g.isTerminal)
 
-  function gameName(gameType: string) {
-    return games.find((g) => g.gametype === gameType)?.name ?? gameType
-  }
-
   return (
     <div className="card">
       <header>
@@ -317,67 +327,46 @@ export function ClubPage({ session, handle }: Props) {
       {activeGame && (
         <section>
           <h3>Active game</h3>
-          <p>
-            <Link to={`/g/${activeGame.gameType}/${activeGame.gameId}`} className="link-button">
-              Resume {gameName(activeGame.gameType)}
-            </Link>{' '}
-            <span className="muted">— {activeGame.statusLabel}</span>
-          </p>
+          <ClubGameCard
+            entry={activeGame}
+            title={titleByGameId.get(activeGame.gameId)}
+            state="active"
+          />
         </section>
       )}
 
       {suspendedGames.length > 0 && (
         <section>
           <h3>Suspended games</h3>
-          <ul>
+          <div className="cardList">
             {suspendedGames.map((g) => (
-              <li key={g.gameId}>
-                <Link to={`/g/${g.gameType}/${g.gameId}`}>
-                  {gameName(g.gameType)} — {g.statusLabel}
-                </Link>{' '}
-                <span className="muted">
-                  · started {new Date(g.startedAt).toLocaleString()}
-                </span>
-              </li>
+              <ClubGameCard
+                key={g.gameId}
+                entry={g}
+                title={titleByGameId.get(g.gameId)}
+                state="suspended"
+              />
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
       <section>
         <h3>Start a new game</h3>
-        {/* Iterate the games registry filtered by the club's
-            allowed-gametype m2m — one button per gametype this
-            club may play. ClubPage stays game-agnostic; the RPC
-            call lives inside the manifest. Add boggle later and
-            (assuming the m2m is populated for this club) a
-            button appears here automatically.
-
-            Each button additionally checks the manifest's
-            numberOfPlayers range against the club's member count.
-            If the club is out of range, the button renders
-            disabled with a tooltip — "Tinyspy needs exactly 2
-            members" — so the user can see why the game's offered
-            but unavailable rather than wondering where it went. */}
-        <div className="actions">
-          {games
-            .filter((g) => allowedGametypes.has(g.gametype))
-            .map((g) => {
-              const fits = playerCountFits(g.numberOfPlayers, members.length)
-              const title = fits ? g.blurb : playerCountLabel(g.numberOfPlayers)
-              return (
-                <button
-                  key={g.gametype}
-                  type="button"
-                  onClick={() => handleStart(g.gametype)}
-                  disabled={starting !== null || !fits}
-                  title={title}
-                >
-                  {starting === g.gametype ? 'Starting…' : `Start ${g.name}`}
-                </button>
-              )
-            })}
-        </div>
+        {/* Filter the registry by the club's allowed-gametype m2m
+            (one button per gametype this club may play) and let
+            StartGameButtons handle the rendering, in-flight state,
+            and disabled-for-doesn't-fit tooltip. ClubPage stays
+            game-agnostic; the RPC call lives inside the manifest.
+            Add boggle later and (assuming the m2m is populated for
+            this club) a button appears here automatically. */}
+        <StartGameButtons
+          games={games.filter((g) => allowedGametypes.has(g.gametype))}
+          memberCount={members.length}
+          getLabel={(g) => `Start ${g.name}`}
+          starting={starting}
+          onStart={handleStart}
+        />
         {activeGame && (
           <p className="muted">
             Starting a new game will suspend the currently active one (you
@@ -390,16 +379,16 @@ export function ClubPage({ session, handle }: Props) {
       {completedGames.length > 0 && (
         <section>
           <h3>Completed games ({completedGames.length})</h3>
-          <ul>
+          <div className="cardList">
             {completedGames.slice(0, 20).map((g) => (
-              <li key={g.gameId}>
-                {gameName(g.gameType)} — {g.statusLabel}{' '}
-                <span className="muted">
-                  · {new Date(g.startedAt).toLocaleString()}
-                </span>
-              </li>
+              <ClubGameCard
+                key={g.gameId}
+                entry={g}
+                title={titleByGameId.get(g.gameId)}
+                state="completed"
+              />
             ))}
-          </ul>
+          </div>
           {completedGames.length > 20 && (
             <p className="muted">
               + {completedGames.length - 20} older games not shown.

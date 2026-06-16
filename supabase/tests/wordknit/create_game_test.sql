@@ -24,7 +24,7 @@ begin;
 
 set search_path = wordknit, common, public, extensions;
 
-select plan(19);
+select plan(20);
 
 \ir ../_shared/setup.psql
 
@@ -234,13 +234,13 @@ select is(
   'create_game: tileOrder is exactly a permutation of the category tiles'
 );
 
--- setup is persisted as-given. End-of-game review surfaces (a
--- "this game was played with a 10-minute timer" badge, etc.) read
--- this column.
+-- setup is persisted as-given on common.games.setup. End-of-game
+-- review surfaces (a "this game was played with a 10-minute timer"
+-- badge, etc.) read this column.
 select is(
-  (select setup from wordknit.games where id = (select id from created)),
+  (select setup from common.games where id = (select id from created)),
   '{"timer":{"kind":"countdown","seconds":600}}'::jsonb,
-  'create_game: setup column persists the passed-in jsonb'
+  'create_game: common.games.setup persists the passed-in jsonb'
 );
 
 -- This new game is the club's active one (is_active=true). The
@@ -259,6 +259,15 @@ select is(
     where club_id = (select id from club) and is_active = true),
   'wordknit',
   'create_game: active common.games row has gametype = wordknit'
+);
+
+-- Title = first 4 tiles alphabetically, joined by ", ". For the
+-- POC's hardcoded board (A/B/C/D words) this is always the four
+-- A-tiles. The rule survives unchanged when real puzzles arrive.
+select is(
+  (select title from common.games where id = (select id from created)),
+  'ALPHA, ANGEL, APPLE, ARROW',
+  'create_game: title is first 4 tiles alphabetically (POC board)'
 );
 
 -- ============================================================

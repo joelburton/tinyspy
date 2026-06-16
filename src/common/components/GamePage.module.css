@@ -1,0 +1,43 @@
+/* The common game-page shell. Owns the layout for every game's
+ * /g/<gametype>/<gameId> route. Header on top, PauseBoundary +
+ * children (the play surface) in the middle, chat below.
+ */
+
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+}
+
+.title {
+  margin: 0;
+  /* The algorithmic title can get long (tinyspy's
+   * "ada-v-bea: SUN, MOON, FOOD, RAIN" runs ~30 chars) — let it
+   * wrap rather than overflow. */
+  word-break: break-word;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* The countdown display in the header. Tabular-nums so the
+ * MM:SS digits don't shift width as they tick down. */
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text);
+}

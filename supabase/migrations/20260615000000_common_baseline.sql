@@ -199,10 +199,47 @@ create table common.gametypes (
 -- `gametype` FKs to common.gametypes(gametype) ON DELETE CASCADE,
 -- so dropping a gametype from the registry auto-cleans its games.
 
+-- `title` is a per-game identity string the FE renders in lists
+-- as "<Manifest.name>: <title>" — gametype is the prefix, title
+-- is the disambiguator. Set at create_game time by the gametype's
+-- own RPC, never updated automatically afterward (a future
+-- player-rename RPC could update it, but isn't planned today).
+--
+-- Each gametype owns its title formula. Today's conventions:
+--
+--   tinyspy:     "<seatA>-v-<seatB>: WORD1, WORD2, WORD3, WORD4"
+--                (alphabetical first 4 of the picked 25)
+--   psychicnum:  "<target-number-as-text>"
+--                (the target IS leaked — psychic-num is a toy
+--                 game; the column-grant pattern on `target` is
+--                 retained for educational value but not for
+--                 actual secrecy)
+--   wordknit:    "TILE1, TILE2, TILE3, TILE4"
+--                (alphabetical first 4 of the 16 board tiles —
+--                 degenerate in the POC since the board is
+--                 hardcoded, but the rule travels forward when
+--                 real puzzles arrive)
+--
+-- Future puzzle-based games (crosswords, NYT Connections, etc.)
+-- will pull title from the puzzle source ("NYT Sun 2026-06-14").
+
+-- `setup jsonb` is the frozen-at-create-time player choices for
+-- this game — the payload the start-game dialog produced. Stored
+-- on common.games (not on `<gametype>.games`) because (a) every
+-- game has one and the shape is canonical here, (b) a single
+-- common-side read can surface setup-derived chrome in club
+-- listings (e.g. a future Boggle's "5x5" badge from setup.boardSize),
+-- and (c) the FE-side `useCommonGame` hook reads timer + paused
+-- state from one place. Each gametype's `create_game` does its own
+-- field-level validation (e.g. setup.guesses ∈ {3,5,7,9}) AND
+-- calls `common.validate_timer(setup->'timer')` before passing
+-- the whole blob up to `common.create_game`.
 create table common.games (
   id uuid primary key default gen_random_uuid(),
   club_id uuid not null references common.clubs(id) on delete cascade,
   gametype text not null references common.gametypes(gametype) on delete cascade,
+  title text not null check (length(trim(title)) > 0),
+  setup jsonb not null,
   is_active boolean not null default false,
   status_summary jsonb,
   started_at timestamptz not null default now(),
@@ -647,7 +684,9 @@ revoke execute on function common.validate_timer(jsonb) from public;
 create function common.create_game(
   target_club uuid,
   gametype text,
-  player_user_ids uuid[]
+  player_user_ids uuid[],
+  title text,
+  setup jsonb
 )
 returns uuid
 language plpgsql
@@ -694,8 +733,11 @@ begin
      set is_active = false
    where club_id = target_club and is_active = true;
 
-  insert into common.games (club_id, gametype, is_active)
-  values (target_club, gametype, true)
+  -- Setup is passed in as-validated (each gametype's create_game
+  -- does field-level checks + common.validate_timer before calling
+  -- here). We just persist what we're handed.
+  insert into common.games (club_id, gametype, title, setup, is_active)
+  values (target_club, gametype, title, setup, true)
   returning id into new_id;
 
   insert into common.game_players (game_id, user_id)
@@ -706,7 +748,7 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.create_game(uuid, text, uuid[]) from public;
+revoke execute on function common.create_game(uuid, text, uuid[], text, jsonb) from public;
 
 -- ─── common.require_game_player ───────────────────────
 -- "Caller must be authenticated AND have a game_players row for

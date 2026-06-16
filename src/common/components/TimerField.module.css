@@ -1,0 +1,68 @@
+/* Shared styles for the <TimerField> component used by every
+ * gametype's setup form. Renders inside a per-game setup dialog,
+ * so layout outside the fieldset is the caller's concern.
+ */
+
+.fieldset {
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.fieldset > p {
+  margin: 0.25rem 0 0.75rem 0;
+}
+
+/* Radios + the inline MM:SS input side by side. flex-wrap for
+ * narrow screens. */
+.timerRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Each radio is a label wrapping the input + its text. The Down
+ * radio's label additionally contains the MM:SS text input so the
+ * gap value accommodates it. */
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.radio input[type='radio'] {
+  margin: 0;
+  /* Override theme.css's input padding (`0.6rem 0.9rem`) — that
+   * sizes text inputs, not radios. */
+  padding: 0;
+}
+
+/* The MM:SS text input inside the Down radio's label. Fixed
+ * width sized for "MM:SS"; tabular-nums so digits don't shift
+ * width as the user types. Disabled state when Down isn't
+ * selected; invalid state for malformed input. */
+.timerInput {
+  width: 4.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin-left: 0.3rem;
+}
+
+.timerInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.timerInput[aria-invalid='true'] {
+  outline: 2px solid var(--color-error);
+  outline-offset: -1px;
+}

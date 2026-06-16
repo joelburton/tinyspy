@@ -1,3 +1,4 @@
+import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
@@ -52,6 +53,10 @@ export function PsychicnumSetupForm({ value, onChange }: SetupBodyProps) {
           ))}
         </div>
       </fieldset>
+      <TimerField
+        value={s.timer}
+        onChange={(timer) => onChange({ ...s, timer })}
+      />
     </div>
   )
 }

@@ -26,7 +26,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(15);
+select plan(21);
 
 \ir ../_shared/setup.psql
 
@@ -46,7 +46,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select psychicnum.create_game(
        '00000000-0000-0000-0000-000000000000'::uuid,
-       '{"guesses": 7}'::jsonb,
+       '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
   '42501',
@@ -69,7 +69,7 @@ select * from common.create_club('test club', array['ada','bea']);
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee, outsider
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   '42501',
@@ -85,7 +85,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 4}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 4, "timer": {"kind": "none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -104,13 +104,71 @@ select throws_ok(
 );
 
 -- ============================================================
+-- (3.5) Timer shape validation (via common.validate_timer)
+-- ============================================================
+-- The shared validator's full case grid is exercised in
+-- wordknit's create_game_test. Here we only spot-check that this
+-- gametype's create_game actually wires the helper up — one
+-- missing-timer, one bad-kind, one missing-seconds, one
+-- countup-accepted. The point is "the call is hooked up," not
+-- "re-test every branch of validate_timer."
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'setup.timer is required',
+  'create_game: missing setup.timer is rejected'
+);
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7, "timer": {"kind": "fast"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'setup.timer.kind must be none, countup, or countdown (got fast)',
+  'create_game: bogus timer.kind is rejected'
+);
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7, "timer": {"kind": "countdown"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'setup.timer.seconds is required for countdown',
+  'create_game: countdown without seconds is rejected'
+);
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7, "timer": {"kind": "countdown", "seconds": 0}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club)
+  ),
+  'P0001',
+  'setup.timer.seconds must be 1..3600 (got 0)',
+  'create_game: countdown with seconds=0 is rejected'
+);
+
+select lives_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7, "timer": {"kind": "countup"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select id from club)
+  ),
+  'create_game: timer.kind=countup is accepted (no seconds needed)'
+);
+
+-- ============================================================
 -- (4) Happy path — ada creates a game with the default-ish 7
 -- ============================================================
 
 create temp table g on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 7}'::jsonb,
+  '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
@@ -153,6 +211,16 @@ select is(
   'active common.games row has gametype = psychicnum'
 );
 
+-- Title = the target number as text (psychic-num is a toy game,
+-- target IS revealed via title — by design; the column-level
+-- grant on psychicnum.games.target stays for educational value).
+select is(
+  (select title::int between 1 and 10 from common.games
+    where id = (select id from g)),
+  true,
+  'create_game: title is the target as text (1..10)'
+);
+
 -- ============================================================
 -- (6) A second create in the same club auto-pauses the first
 -- ============================================================
@@ -166,7 +234,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 7}'::jsonb,
+  '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
@@ -196,7 +264,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 5}'::jsonb,
+  '{"guesses": 5, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
@@ -207,7 +275,7 @@ select is(
   'guesses_remaining is initialized from setup.guesses'
 );
 select is(
-  (select setup->>'guesses' from psychicnum.games where id = (select id from g3)),
+  (select setup->>'guesses' from common.games where id = (select id from g3)),
   '5',
   'setup column persists the starting guesses value'
 );
