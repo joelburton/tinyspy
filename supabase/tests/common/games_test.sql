@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(43);
+select plan(49);
 
 \ir ../_shared/setup.psql
 
@@ -661,6 +661,83 @@ select is(
     where club_id = (select id from club) and gametype = 'wordknit'),
   'marker-2',
   'saved defaults: a subsequent non-null saved_default overwrites the row'
+);
+
+-- ============================================================
+-- common.delete_game — happy path + cascade verification
+-- ============================================================
+-- The RPC permanently removes a game and lets the FK chain
+-- handle cleanup (game_players via the cascading FK on game_id;
+-- per-gametype rows via id-FK chains). Pin both the row removal
+-- and the cascade.
+--
+-- The created_game_id row from the earlier block is still in
+-- common.games at this point (we only ended + flipped its view
+-- state — never deleted it). Use it as the target.
+
+-- Precondition: game exists and has 2 game_players rows.
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select count(*)::int from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  1,
+  'precondition: target game exists in common.games before delete'
+);
+
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = current_setting('test.created_game_id')::uuid),
+  2,
+  'precondition: target game has 2 game_players rows before delete'
+);
+
+-- Delete as ada (club member).
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.delete_game(current_setting('test.created_game_id')::uuid);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select count(*)::int from common.games
+    where id = current_setting('test.created_game_id')::uuid),
+  0,
+  'delete_game: removed the common.games row'
+);
+
+select is(
+  (select count(*)::int from common.game_players
+    where game_id = current_setting('test.created_game_id')::uuid),
+  0,
+  'delete_game: cascaded to common.game_players (FK on delete cascade)'
+);
+
+-- ============================================================
+-- delete_game — authorization + bad input
+-- ============================================================
+-- Non-member rejected (RLS-equivalent gate via require_club_member);
+-- unknown game raises the same P0002 every other game-id-or-die
+-- RPC uses.
+
+select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
+select throws_ok(
+  format(
+    $$ select common.delete_game(%L::uuid) $$,
+    current_setting('test.second_game_id')::uuid
+  ),
+  '42501',
+  'not a member of this club',
+  'delete_game: non-member is rejected'
+);
+
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select throws_ok(
+  $$ select common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
+  'P0002',
+  'game not found',
+  'delete_game: unknown game raises P0002'
 );
 
 -- ============================================================

@@ -1111,6 +1111,63 @@ $$;
 revoke execute on function common.unset_current_view(uuid) from public;
 grant execute on function common.unset_current_view(uuid) to authenticated;
 
+-- ─── common.delete_game ────────────────────────────────────
+-- Permanently remove a game and everything that belongs to it.
+-- Called from the FE when a club member clicks the delete
+-- affordance on a game card.
+--
+-- Authorization: any member of the owning club can delete any
+-- of the club's games. Friends-only trust model — we don't
+-- attribute "who created the game" or restrict to that user
+-- (no owner column today, and the social ask is "the friends
+-- agreed to delete this," not "only the starter can").
+--
+-- Cascade: the FK chain handles cleanup:
+--   - common.game_players      (game_id FK, ON DELETE CASCADE)
+--   - <gametype>.games         (id FK,      ON DELETE CASCADE)
+--     ⤷ which cascades to per-gametype child tables
+--        (tinyspy.words/clues, psychicnum.guesses, wordknit.guesses)
+-- So one DELETE on common.games removes the whole subtree.
+--
+-- This RPC does NOT handle "tell peers viewing the game to
+-- leave first." For a current-view game, the FE caller is
+-- expected to broadcast a `suspend` event on the
+-- `game:<uuid>` channel first so peers navigate to the club
+-- page BEFORE the row vanishes — same broadcast already used
+-- by the suspend-confirm dialog, so peers don't need a new
+-- handler. Non-current games have no viewers by definition;
+-- the FE skips the broadcast in that case.
+--
+-- Raises:
+--   - 42501  via require_club_member (not authenticated, not
+--            a member)
+--   - P0002  'game not found' when target_game is unknown
+--            (matches end_game / unset_current_view's
+--            vocabulary for the same case)
+
+create function common.delete_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  target_club uuid;
+begin
+  select club_id into target_club from common.games where id = target_game;
+  if target_club is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_club_member(target_club);
+
+  delete from common.games where id = target_game;
+end;
+$$;
+
+revoke execute on function common.delete_game(uuid) from public;
+grant execute on function common.delete_game(uuid) to authenticated;
+
 -- ============================================================
 -- common.create_club RPC
 -- ============================================================

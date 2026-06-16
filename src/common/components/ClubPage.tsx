@@ -105,6 +105,68 @@ export function ClubPage({ session, handle }: Props) {
   // calls back into us via onStarted / onCancel to close.
   const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
 
+  /**
+   * Delete a game from this club. Same RPC for current vs
+   * non-current games; the FE-side difference is that the
+   * current-view game has peers on the GamePage who need to be
+   * moved out BEFORE the row vanishes. We broadcast a `suspend`
+   * event on the game's channel — exactly what the suspend-
+   * confirm modal does — and useCommonGame's handler navigates
+   * each peer back to the club page. Once they've cleared, the
+   * DELETE cascades and the postgres-changes subscription on
+   * ClubPage refetches the games list.
+   *
+   * For non-current games no peers are viewing them by
+   * definition (is_current_view=false ⟹ nobody on the GamePage),
+   * so we skip the broadcast and call the RPC directly.
+   *
+   * The card itself owns the confirm-flow state (idle → confirming
+   * → deleting) and the auto-revert timeout; this function is
+   * called only when the user has already confirmed. We surface
+   * errors through `startError` since it's the existing
+   * club-page error channel and a separate `deleteError` slot
+   * would compete for the same screen real estate.
+   */
+  async function handleDelete(gameId: string, isCurrent: boolean) {
+    if (!club) return
+    setStartError(null)
+
+    if (isCurrent) {
+      // Open a temp channel matching the game's stable name and
+      // broadcast the suspend event so any peer on the GamePage
+      // navigates back to the club page. The handler in
+      // useCommonGame is already wired for this. We close the
+      // channel as soon as the send completes — we're not
+      // listening for anything on it.
+      const ch = supabase.channel(`game:${gameId}`)
+      await new Promise<void>((resolve) => {
+        ch.subscribe((status) => {
+          if (status === 'SUBSCRIBED') resolve()
+        })
+      })
+      await ch.send({
+        type: 'broadcast',
+        event: 'suspend',
+        payload: { type: 'suspend' },
+      })
+      supabase.removeChannel(ch)
+      // Brief beat so peers have time to receive + navigate
+      // before the row disappears. They handle a missing game
+      // gracefully (load returns null → "Game not found"), so
+      // this is friendliness, not correctness.
+      await new Promise((r) => setTimeout(r, 150))
+    }
+
+    const { error } = await commonDb.rpc('delete_game', { target_game: gameId })
+    if (error) {
+      setStartError(`Couldn't delete game: ${error.message}`)
+      throw error  // bubble to the card so it returns from 'deleting' to 'idle'
+    }
+    // No explicit list refresh — the postgres-changes
+    // subscription below fires DELETE on common.games and our
+    // loadGames() re-runs.
+  }
+
   async function handleStart(gametype: string) {
     const game = games.find((g) => g.gametype === gametype)
     if (!club || !game) return
@@ -390,6 +452,7 @@ export function ClubPage({ session, handle }: Props) {
             statusLabel={activeGame.statusLabel}
             startedAt={activeGame.startedAt}
             state="active"
+            onDelete={() => handleDelete(activeGame.gameId, true)}
           />
         </section>
       )}
@@ -432,6 +495,7 @@ export function ClubPage({ session, handle }: Props) {
                 statusLabel={g.statusLabel}
                 startedAt={g.startedAt}
                 state={g.isTerminal ? 'completed' : 'suspended'}
+                onDelete={() => handleDelete(g.gameId, false)}
               />
             ))}
           </div>

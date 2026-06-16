@@ -4,7 +4,15 @@
  * Layout: a small uppercase gametype label, the algorithmic title
  * as the primary text, then a row with the status string + the
  * started-at timestamp.
+ *
+ * .wrapper sits outside the Link so the hover-revealed delete
+ * affordance can absolute-position over the corner of the card
+ * without fighting the Link's click target.
  */
+
+.wrapper {
+  position: relative;
+}
 
 .card {
   border: 1px solid var(--color-surface-border);
@@ -91,4 +99,83 @@
 .completed .title {
   font-size: 1rem;
   font-weight: 500;
+}
+
+/* ─── Delete affordance ──────────────────────────────────────
+ *
+ * Lives in the top-right corner of the card. Two visual states
+ * driven by the `deleteButtonActive` modifier class:
+ *
+ *   - **idle** — small × icon, hidden by default; revealed on
+ *     wrapper-hover or keyboard focus-within. Background is
+ *     transparent so it doesn't compete with the card's content
+ *     until the user goes looking for it.
+ *   - **active** (confirming or deleting) — expanded pill with
+ *     red border and warning copy, always visible. The state
+ *     change is loud on purpose so a misclicked × is obvious;
+ *     the auto-revert in the component keeps the loud state
+ *     from sticking around if the user doesn't follow through.
+ *
+ * The button intentionally overrides several global button rules
+ * from theme.css (the filled-accent default, hover background)
+ * so the corner affordance reads as a quiet × until the user
+ * commits to it.
+ */
+
+.deleteButton {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  /* Override global button styles for the corner-icon look. */
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-muted);
+  padding: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Hidden by default; revealed on wrapper hover/focus. */
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease,
+              color 120ms ease, border-color 120ms ease,
+              width 160ms ease;
+}
+
+/* Reveal on hover (mouse) or focus-within (keyboard). */
+.wrapper:hover .deleteButton,
+.wrapper:focus-within .deleteButton {
+  opacity: 1;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  border-color: var(--color-control-border-2);
+}
+
+/* Active (confirming or deleting): full-width pill with warning
+ * red, always visible regardless of wrapper-hover. */
+.deleteButtonActive {
+  opacity: 1;
+  width: auto;
+  padding: 0.3rem 0.7rem;
+  background: var(--color-outcome-lost-bg);
+  color: var(--color-error);
+  border-color: var(--color-outcome-lost-border);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.deleteButtonActive:hover:not(:disabled) {
+  background: var(--color-outcome-lost-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
+  /* Slight darken on hover so the user sees the confirm tap
+     register. */
+  filter: brightness(0.96);
 }

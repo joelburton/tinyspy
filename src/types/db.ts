@@ -304,6 +304,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_game: { Args: { target_game: string }; Returns: undefined }
       end_game: {
         Args: {
           play_state: string
