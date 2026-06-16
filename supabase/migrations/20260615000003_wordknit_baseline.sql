@@ -122,7 +122,18 @@ grant usage on schema wordknit to authenticated;
 create table wordknit.puzzles (
   id uuid primary key default gen_random_uuid(),
   source_id text not null unique,
-  nyt_date date not null unique,
+  -- Nullable on purpose. Today every puzzle comes from the NYT
+  -- importer and carries the puzzle's nyt_date — the date picker
+  -- + calendar widget in the setup form anchor on this column.
+  -- The decision (per Joel): non-NYT puzzles MAY land later (no
+  -- UI for them today; only the date picker), and they'd carry
+  -- NULL here rather than competing for a calendar slot. UNIQUE
+  -- still enforces "at most one puzzle per calendar date" for
+  -- the dated subset; Postgres treats NULLs as distinct under
+  -- UNIQUE by default, so multiple non-dated rows coexist fine.
+  -- The setup form's date-picker query (`.eq('nyt_date', d)
+  -- .maybeSingle()`) then trivially returns 0-or-1 row.
+  nyt_date date unique,
   categories jsonb not null,
   imported_at timestamptz not null default now()
 );
@@ -242,6 +253,50 @@ grant select on wordknit.guesses to authenticated;
 
 alter publication supabase_realtime add table wordknit.games;
 alter publication supabase_realtime add table wordknit.guesses;
+
+-- ============================================================
+-- wordknit.club_game_status — calendar-coloring view
+-- ============================================================
+-- Joins wordknit.games + wordknit.puzzles + common.games to
+-- answer the question the wordknit setup-form calendar asks:
+-- "for this club, which puzzle-dates already have a game, and
+-- in what state?" The FE reads this once on dialog-open, builds
+-- a Map<nyt_date, status>, and colors each calendar square
+-- accordingly (won / lost / in-progress).
+--
+-- security_invoker=true so the view runs with the caller's
+-- privileges — both wordknit.games's RLS policy and
+-- common.games's RLS policy gate visibility. A non-member of
+-- the club sees zero rows; the FE's `.eq('club_id', X)` filter
+-- is belt-and-braces on top.
+--
+-- Why a view rather than two FE queries + JS merge: the
+-- wordknit.games -> common.games relationship is cross-schema,
+-- which PostgREST's embed syntax doesn't resolve (see
+-- code-conventions.md → "Cross-schema embeds"). A view does
+-- the join SQL-side in one round-trip and types cleanly via
+-- supabase gen types. Same shape as psychicnum.games_state.
+--
+-- Filtered to gametype='wordknit' (defensive; common.games.id
+-- ↔ wordknit.games.id is one-to-one by FK, but the join condition
+-- doesn't say "and only wordknit," so the filter makes the
+-- intent visible) and nyt_date IS NOT NULL (a calendar-anchored
+-- view doesn't include rows whose puzzles have no date).
+
+create view wordknit.club_game_status with (security_invoker = true) as
+select
+  cg.id          as game_id,
+  cg.club_id     as club_id,
+  cg.play_state  as play_state,
+  cg.is_terminal as is_terminal,
+  p.nyt_date     as nyt_date
+from wordknit.games wg
+join wordknit.puzzles p on p.id = wg.puzzle_id
+join common.games cg on cg.id = wg.id
+where cg.gametype = 'wordknit'
+  and p.nyt_date is not null;
+
+grant select on wordknit.club_game_status to authenticated;
 
 -- ============================================================
 -- wordknit.create_game — start a new game in a club

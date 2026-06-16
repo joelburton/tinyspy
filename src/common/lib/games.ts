@@ -70,6 +70,11 @@ export type SetupMember = {
  */
 export type SetupBodyProps = {
   members: SetupMember[]
+  /** Club the game would start in. Per-game setup forms that
+   *  need to fetch club-scoped data (wordknit's per-date game
+   *  history for the calendar widget; future stats / replay
+   *  surfaces) read it. Forms that don't need it ignore it. */
+  clubId: string
   value: unknown
   onChange: (next: unknown) => void
 }

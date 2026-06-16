@@ -1,32 +1,55 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { WordknitSetup } from '../lib/setup'
+import { Calendar, type OutcomeBucket } from './Calendar'
 import styles from './SetupForm.module.css'
 
-/** A puzzle entry as the form needs it — just id + date. The
- *  date picker resolves the user's date choice to a puzzle id;
- *  no other puzzle field is read here. */
+/** A puzzle entry as the form needs it — id + date. Date is
+ *  nullable on the table now (non-NYT puzzles may carry NULL),
+ *  but the date-picker and calendar only ever care about
+ *  rows whose nyt_date IS NOT NULL, so we narrow at fetch time. */
 type PuzzleEntry = {
   id: string
+  nyt_date: string
+}
+
+/** Per-club game-state row from `wordknit.club_game_status`. */
+type ClubGameStatusRow = {
+  game_id: string
+  play_state: string
+  is_terminal: boolean
   nyt_date: string
 }
 
 /**
  * Wordknit's per-game setup form. Two choices:
  *
- *   - **Puzzle** — a date picker constrained to dates that have
- *     puzzles in `wordknit.puzzles`. Defaults to today's puzzle
- *     if available, else the most recent. The selected date
- *     resolves to a puzzle id, which becomes `setup.puzzleId`.
+ *   - **Puzzle** — chosen via either the date input or the
+ *     calendar widget. The calendar shows the club's prior
+ *     wordknit games as colored squares (won / lost / in-
+ *     progress) so the friends can visually pick "the next
+ *     puzzle we haven't played" or "go back and finish that
+ *     one we started." The resolved date maps to a
+ *     `wordknit.puzzles` row id, which becomes
+ *     `setup.puzzleId`. Defaults to today's puzzle if
+ *     available, else the most recent.
  *   - **Timer** — delegated to the shared `<TimerField>`
  *     component (None / Up / Down with MM:SS input).
  *
- * On mount we fetch the puzzle list (`id, nyt_date`) and auto-
- * pick the default. If no puzzles are imported yet, we show a
- * help banner and the Start button stays effectively disabled
- * (puzzleId is the empty string; the RPC rejects with P0001).
+ * On mount we fetch two lists:
+ *   1. All puzzles (id + nyt_date), filtered to non-NULL dates
+ *      — drives both the date input's min/max and the calendar
+ *      square selectability.
+ *   2. Per-club game statuses (`wordknit.club_game_status`) —
+ *      drives the calendar's color overlay.
+ *
+ * Find-or-create flow: when the user clicks Start, the manifest's
+ * `startGameInClub` checks for an existing game on the selected
+ * puzzle for this club and either opens it or creates a new one.
+ * The dialog stays oblivious to that branch — it just navigates
+ * to whatever id `startGameInClub` returns.
  *
  * Component name `SetupForm` matches the file + the
  * `manifest.setupForm` field — this is the *form definition*,
@@ -35,17 +58,21 @@ type PuzzleEntry = {
  * (`wordknit/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
   const s = value as WordknitSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
+  const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
 
   // Fetch the puzzle list once on mount. Order descending so
   // index 0 is "most recent" — used as the default-pick fallback
-  // when today's date has no puzzle imported yet.
+  // when today's date has no puzzle imported yet. Filter out
+  // NULL-dated rows: those are non-NYT puzzles that don't belong
+  // on a date-anchored picker.
   useEffect(() => {
     let cancelled = false
     db.from('puzzles')
       .select('id, nyt_date')
+      .not('nyt_date', 'is', null)
       .order('nyt_date', { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return
@@ -60,10 +87,33 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
     }
   }, [])
 
+  // Fetch the club's per-date game statuses for the calendar
+  // overlay. One round-trip via `wordknit.club_game_status`, a
+  // security_invoker view that joins wordknit.games + puzzles +
+  // common.games (the cross-schema join PostgREST embeds can't
+  // resolve). RLS on the underlying tables gates visibility, so
+  // a non-member's query returns zero rows even without the
+  // .eq('club_id') filter — the filter is belt-and-braces.
+  useEffect(() => {
+    let cancelled = false
+    db.from('club_game_status')
+      .select('game_id, play_state, is_terminal, nyt_date')
+      .eq('club_id', clubId)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error || !data) return
+        setStatuses(data as ClubGameStatusRow[])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [clubId])
+
   // Auto-pick the default puzzle once the list arrives. We pick
   // today's puzzle if it exists in the imported set, otherwise
   // the most recent. The effect only runs while puzzleId is
-  // empty so a user-selected value isn't overwritten on re-render.
+  // empty so a user-selected value (or a saved default) isn't
+  // overwritten on re-render.
   useEffect(() => {
     if (!puzzles || puzzles.length === 0) return
     if (s.puzzleId !== '') return
@@ -72,6 +122,21 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
     const pick = todays ?? puzzles[0]
     onChange({ ...s, puzzleId: pick.id })
   }, [puzzles, s, onChange])
+
+  // Build the two lookup structures the calendar needs:
+  //   - puzzleDates: which dates have an importable puzzle (any
+  //     month). Drives which squares are clickable.
+  //   - clubGameStatuses: per-date outcome bucket for THIS club's
+  //     wordknit games. Drives which squares are colored.
+  const puzzleDates = useMemo(
+    () => new Set((puzzles ?? []).map((p) => p.nyt_date)),
+    [puzzles],
+  )
+  const clubGameStatuses = useMemo(() => {
+    const m = new Map<string, OutcomeBucket>()
+    for (const row of statuses) m.set(row.nyt_date, bucketForRow(row))
+    return m
+  }, [statuses])
 
   // While the list is loading, render nothing (the dialog itself
   // has the "Loading…" / spinner state if needed). On loaded-but-
@@ -114,8 +179,9 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       <fieldset className={styles.fieldset}>
         <legend>Puzzle</legend>
         <p className="muted">
-          Pick a NYT Connections puzzle by date. Defaults to today's
-          puzzle if available.
+          Pick a NYT Connections puzzle by date. Green squares are
+          puzzles your club has solved; red are lost; yellow are in
+          progress. Defaults to today's puzzle if available.
         </p>
         <input
           type="date"
@@ -123,6 +189,12 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           min={minDate}
           max={maxDate}
           onChange={(e) => handleDateChange(e.target.value)}
+        />
+        <Calendar
+          selectedDate={selectedDate}
+          onSelectDate={handleDateChange}
+          puzzleDates={puzzleDates}
+          clubGameStatuses={clubGameStatuses}
         />
       </fieldset>
 
@@ -132,4 +204,23 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       />
     </div>
   )
+}
+
+/**
+ * Map a wordknit game's (play_state, is_terminal) to the
+ * common outcome bucket the Calendar colors squares from.
+ *
+ * Wordknit's play_state vocabulary:
+ *   - `playing`           — non-terminal (yellow / active)
+ *   - `solved`            — terminal win (green / won)
+ *   - `lost`              — terminal loss (red / lost)
+ *
+ * If a future play_state lands that isn't `solved` but IS
+ * terminal, we treat it as a loss — same posture as the
+ * manifest's `labelFor` fallthrough.
+ */
+function bucketForRow(row: ClubGameStatusRow): OutcomeBucket {
+  if (!row.is_terminal) return 'active'
+  if (row.play_state === 'solved') return 'won'
+  return 'lost'
 }

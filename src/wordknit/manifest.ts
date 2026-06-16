@@ -51,15 +51,44 @@ export const wordknitGame: GameManifest = {
   },
 
   // SetupGameDialog calls this on submit. The RPC validates the
-  // payload shape and writes the new game; the board is hardcoded
-  // server-side for the POC.
+  // payload shape and writes the new game.
   //
-  // playerUserIds defaults to "everyone in the club" today via the
-  // dialog wrapper — the picker-UI for selecting a subset hasn't
-  // landed yet (deferred). Behavior matches today: every game has
-  // every club member in its game_players.
+  // **Find-or-create**: wordknit's one-game-per-(club, puzzle)
+  // model means that if this club has already started a game on
+  // the picked puzzle, we open the existing game rather than
+  // create a duplicate. The setup form's calendar widget shows
+  // this status visually (colored squares for played dates); the
+  // dialog's Start button maps to "open it" or "create it"
+  // depending on which it is, with no FE branching above this
+  // function — `SetupGameDialog` always navigates to the
+  // returned id regardless.
+  //
+  // RLS makes the lookup safe: `wordknit.games.select where
+  // club_id = X and puzzle_id = Y` only returns rows this user
+  // can see (i.e. games in clubs they're a member of), so the
+  // .eq('club_id', clubId) is belt-and-braces. maybeSingle()
+  // tolerates the no-existing-game case as `data === null`.
+  //
+  // playerUserIds defaults to "everyone in the club" today via
+  // the dialog wrapper — the picker-UI for selecting a subset
+  // hasn't landed yet (deferred). Behavior matches today: every
+  // newly-created game has every club member in its game_players.
   startGameInClub: async (clubId, setup, playerUserIds) => {
     const s = setup as WordknitSetup
+
+    // Existing-game check first. A real id in `data` means the
+    // friends played this puzzle before in this club; we open
+    // that game rather than create a new one. `maybeSingle()`
+    // returns `data: null` cleanly when nothing matches.
+    const existing = await db
+      .from('games')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('puzzle_id', s.puzzleId)
+      .maybeSingle()
+    if (existing.data) return { id: existing.data.id }
+
+    // No prior game — create one. The RPC is the same as before.
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubId,

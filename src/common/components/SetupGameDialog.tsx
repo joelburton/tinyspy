@@ -132,7 +132,12 @@ export function SetupGameDialog({
       <div className={styles.content}>
         <h2>Start {manifest.name}</h2>
         <Suspense fallback={<p className="muted">Loading options…</p>}>
-          <SetupBody members={members} value={setup} onChange={setSetup} />
+          <SetupBody
+            members={members}
+            clubId={clubId}
+            value={setup}
+            onChange={setSetup}
+          />
         </Suspense>
         {error && <p className="error">{error}</p>}
         <div className={styles.actions}>

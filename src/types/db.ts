@@ -689,6 +689,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_game_status"
+            referencedColumns: ["game_id"]
+          },
+          {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
             isOneToOne: false
@@ -740,28 +747,37 @@ export type Database = {
           categories: Json
           id: string
           imported_at: string
-          nyt_date: string
+          nyt_date: string | null
           source_id: string
         }
         Insert: {
           categories: Json
           id?: string
           imported_at?: string
-          nyt_date: string
+          nyt_date?: string | null
           source_id: string
         }
         Update: {
           categories?: Json
           id?: string
           imported_at?: string
-          nyt_date?: string
+          nyt_date?: string | null
           source_id?: string
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      club_game_status: {
+        Row: {
+          club_id: string | null
+          game_id: string | null
+          is_terminal: boolean | null
+          nyt_date: string | null
+          play_state: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       create_game: {
