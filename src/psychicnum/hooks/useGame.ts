@@ -81,7 +81,11 @@ export function useGame(gameId: string) {
         return
       }
 
-      // Run guesses + members in parallel — independent of each other.
+      // Run guesses + in-game players in parallel — independent of
+      // each other. Roster comes from common.game_players (the
+      // people who actually played THIS game), not from clubs_members
+      // (the whole club). A club member who didn't sit down at this
+      // game shouldn't appear in the in-game UI.
       const [{ data: guessesData }, { data: memberRows }] = await Promise.all([
         db
           .from('guesses')
@@ -89,9 +93,9 @@ export function useGame(gameId: string) {
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
         commonDb
-          .from('clubs_members')
+          .from('game_players')
           .select('user_id')
-          .eq('club_id', gameData.club_id),
+          .eq('game_id', gameId),
       ])
       if (!mounted) return
 

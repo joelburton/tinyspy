@@ -381,7 +381,7 @@ export type Database = {
           club_id: string
           created_at?: string
           guesses_remaining?: number
-          id?: string
+          id: string
           setup: Json
           status?: string
           target: number
@@ -440,7 +440,7 @@ export type Database = {
     }
     Functions: {
       create_game: {
-        Args: { setup: Json; target_club: string }
+        Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: {
           id: string
         }[]

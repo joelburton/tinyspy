@@ -31,7 +31,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- A wrong guess from ada gives us a guesses row for the RLS
 -- read tests below.
@@ -78,8 +78,8 @@ select is(
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 7) $$, (select id from g)),
   '42501',
-  'not a member of this club',
-  'dee cannot call submit_guess on a game she is outside'
+  'not playing this game',
+  'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
 );
 
 select throws_ok(

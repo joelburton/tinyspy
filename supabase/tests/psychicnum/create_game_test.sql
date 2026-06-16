@@ -46,7 +46,8 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select psychicnum.create_game(
        '00000000-0000-0000-0000-000000000000'::uuid,
-       '{"guesses": 7}'::jsonb
+       '{"guesses": 7}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
   '42501',
   'must be authenticated',
@@ -68,7 +69,7 @@ select * from common.create_club('test club', array['ada','bea']);
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee, outsider
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7}'::jsonb) $$,
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   '42501',
@@ -84,7 +85,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 4}'::jsonb) $$,
+    $$ select psychicnum.create_game(%L::uuid, '{"guesses": 4}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -94,7 +95,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L::uuid, '{}'::jsonb) $$,
+    $$ select psychicnum.create_game(%L::uuid, '{}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -109,7 +110,8 @@ select throws_ok(
 create temp table g on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 7}'::jsonb
+  '{"guesses": 7}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
 select is(
@@ -162,7 +164,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 7}'::jsonb
+  '{"guesses": 7}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
 select is(
@@ -190,7 +193,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select * from psychicnum.create_game(
   (select id from club),
-  '{"guesses": 5}'::jsonb
+  '{"guesses": 5}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
 reset role;

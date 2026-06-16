@@ -36,7 +36,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('test club', array['ada','bea']);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- Pin the target to 7 for the scenarios. RPCs roll randomly;
 -- we override directly as postgres so the test's guess sequence
@@ -70,8 +70,8 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');  -- dee
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 5) $$, (select id from g)),
   '42501',
-  'not a member of this club',
-  'non-member submit_guess is rejected'
+  'not playing this game',
+  'non-player submit_guess is rejected (via require_game_player)'
 );
 
 -- ============================================================
@@ -158,7 +158,7 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb);
+select * from psychicnum.create_game((select id from club), '{"guesses": 7}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 reset role;
 update psychicnum.games set target = 8 where id = (select id from g2);

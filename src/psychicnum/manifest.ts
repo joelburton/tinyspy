@@ -67,10 +67,14 @@ export const psychicnumGame: GameManifest = {
   // The `unknown` → PsychicnumSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
-  startGameInClub: async (clubId, setup) => {
+  startGameInClub: async (clubId, setup, playerUserIds) => {
     const s = setup as PsychicnumSetup
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId, setup: s })
+      .rpc('create_game', {
+        target_club: clubId,
+        setup: s,
+        player_user_ids: playerUserIds,
+      })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start psychic num game' }
