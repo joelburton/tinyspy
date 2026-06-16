@@ -1,0 +1,84 @@
+/* HomePage clubs list.
+ *
+ * The list is a column of row-styled items rather than a plain
+ * <ul> so we can give the solo club a subtle visual lift (tinted
+ * background + star icon + Solo badge) and keep regular clubs
+ * looking like normal rows.
+ *
+ * Solo always sorts to the top regardless of created_at — see
+ * HomePage's partition pass.
+ */
+
+.clubsList {
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.clubItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: background 100ms ease, border-color 100ms ease;
+}
+.clubItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.clubLink {
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 500;
+}
+.clubLink:hover {
+  text-decoration: underline;
+}
+
+.handle {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Solo treatment: a subtle accent-tinted background + star icon
+ * + Solo badge. Distinct enough to read at a glance, soft
+ * enough that it doesn't shout from a page that's mostly
+ * regular clubs.
+ *
+ * The star is intentionally a Unicode glyph rather than an SVG
+ * — keeps the bundle clean and the icon is small enough that a
+ * font glyph reads well at the surrounding text size. */
+
+.soloItem {
+  background: var(--color-surface-hover);
+  border-color: var(--color-surface-border);
+}
+.soloItem:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-control-border-2);
+}
+
+.soloIcon {
+  color: var(--color-accent);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.soloBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: var(--color-accent);
+  color: white;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}

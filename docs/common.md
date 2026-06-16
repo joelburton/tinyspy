@@ -100,9 +100,9 @@ The transitions that move a row between buckets:
 
 Every user gets a solo club on first sign-in, materialized by the `handle_new_user` trigger. The solo club's `handle` is `=<username>` — the `=` prefix lives in a slug-space user-typed names can't reach, because `slugify_club_name` strips `=` along with other non-alphanumerics.
 
-Solo clubs are intended as the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The FE hides them from the regular clubs list — they're visible to their owner but not surfaced as a navigation target. Most game logic doesn't distinguish solo clubs from regular ones; the `club_id` is just non-null in both cases.
+Solo clubs are the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The HomePage lists each user's solo club alongside their regular clubs, visually distinguished (star icon, accent background tint, "Solo" badge) and always sorted to the top — once the user knows where their solo space is, "Start wordknit alone" is a normal flow inside that club rather than a separate UI shape. Most game logic doesn't distinguish solo clubs from regular ones; the `club_id` is just non-null in both cases.
 
-Wordknit and psychic-num both have `numberOfPlayers: [1, null]`, so both appear as Play-solo buttons on the HomePage's solo-games section (keyed on the user's solo club). Tinyspy stays multi-member-only by virtue of its `[2, 2]` range. The HomePage's filtering logic is the same as ClubPage's: intersect the manifest range with the solo club's `clubs_gametypes` rows and show what fits.
+Wordknit and psychic-num both have `numberOfPlayers: [1, null]`, so their Start buttons render normally inside a solo club's ClubPage (same gating logic as multi-member clubs). Tinyspy stays multi-member-only by virtue of its `[2, 2]` range — its Start button is hidden in a 1-member solo club. There's no separate "Play solo" UI on the HomePage; the user navigates to their solo club like any other and starts a game from there.
 
 ## RPCs
 
