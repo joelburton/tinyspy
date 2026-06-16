@@ -34,15 +34,17 @@ type Props = {
  *   - **Started-at** date, smaller / muted.
  *
  * What varies by state, all in CSS:
- *   - `active` — wraps in a Link to the game; larger font,
- *     accent treatment.
- *   - `suspended` — wraps in a Link to the game; regular treatment.
- *   - `completed` — no link (no game-review page yet); muted
- *     treatment.
+ *   - `active` — larger font, accent treatment.
+ *   - `suspended` — regular treatment.
+ *   - `completed` — muted treatment.
  *
- * The "is this clickable" check uses `state`, not URL presence —
- * we always *have* the URL, we just choose not to expose it for
- * terminal games.
+ * All three are clickable. Each game's PlayArea already handles
+ * terminal status as a "view the final state" mode: the game's
+ * own load logic reads its row, sees the terminal status, and
+ * renders the post-game shape (wordknit: matched + revealed-
+ * unmatched bands, no tile grid; tinyspy: full 5×5 board with
+ * post-game peer-key stripes; psychic-num: ResultBanner +
+ * GuessHistory). No special review-page is needed.
  */
 export function ClubGameCard({ entry, title, state }: Props) {
   const gameTypeName =
@@ -50,24 +52,16 @@ export function ClubGameCard({ entry, title, state }: Props) {
     ?? entry.gameType
   const startedAtLabel = new Date(entry.startedAt).toLocaleString()
 
-  const content = (
-    <div className={cls(styles.card, styles[state])}>
-      <div className={styles.gametype}>{gameTypeName}</div>
-      {title && <div className={styles.title}>{title}</div>}
-      <div className={styles.statusRow}>
-        <span className={styles.status}>{entry.statusLabel}</span>
-        <span className={styles.startedAt}>{startedAtLabel}</span>
-      </div>
-    </div>
-  )
-
-  // Active + suspended → clickable; completed → static. Wrapping
-  // in a Link is purely a navigation affordance — the card markup
-  // is identical either way.
-  if (state === 'completed') return content
   return (
     <Link to={`/g/${entry.gameType}/${entry.gameId}`} className={styles.link}>
-      {content}
+      <div className={cls(styles.card, styles[state])}>
+        <div className={styles.gametype}>{gameTypeName}</div>
+        {title && <div className={styles.title}>{title}</div>}
+        <div className={styles.statusRow}>
+          <span className={styles.status}>{entry.statusLabel}</span>
+          <span className={styles.startedAt}>{startedAtLabel}</span>
+        </div>
+      </div>
     </Link>
   )
 }
