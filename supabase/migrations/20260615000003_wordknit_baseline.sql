@@ -372,8 +372,16 @@ begin
   -- player_user_ids membership, inserts common.games (with title +
   -- setup) + game_players, returns the canonical id we'll use
   -- below.
+  --
+  -- Saved-default arg: wordknit's whole setup ({puzzleId, timer})
+  -- is a per-club preference. Saving puzzleId is the anchor for
+  -- the future "play the next puzzle in chronological order" UX —
+  -- the dialog can read it and offer the next-day puzzle. Today's
+  -- dialog seeds verbatim, which means re-opening the dialog
+  -- shows the same puzzle until the user picks a different date.
   new_id := common.create_game(
-    target_club, 'wordknit', player_user_ids, game_title, setup
+    target_club, 'wordknit', player_user_ids, game_title, setup,
+    setup
   );
 
   -- Insert with the canonical id. Note: id NOT default-generated;

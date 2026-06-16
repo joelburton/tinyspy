@@ -87,6 +87,18 @@ export function ClubPage({ session, handle }: Props) {
   // gametype-not-auto-added-to-this-club state works correctly,
   // and so the shape is in place for the eventual club-settings UI.
   const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(new Set())
+  // Saved setup defaults per gametype, also from clubs_gametypes.
+  // NULL when the friends haven't started a game of that gametype
+  // yet — the dialog falls through to the manifest's static
+  // defaults in that case. Sourced from the same query that
+  // populates allowedGametypes; passed to SetupGameDialog as
+  // `savedDefault` so the form pre-fills with what the friends
+  // played last time. See common.create_game's saved_default arg
+  // for the write side and docs/code-conventions.md (TBD) for
+  // the evolution-strategy story.
+  const [savedDefaults, setSavedDefaults] = useState<
+    Map<string, unknown>
+  >(new Map())
   // The manifest currently being set up in the dialog, or null if
   // the dialog isn't open. Setting this opens the dialog (the
   // dialog component is mounted iff this is non-null); the dialog
@@ -172,15 +184,25 @@ export function ClubPage({ session, handle }: Props) {
       }
 
       // Fetch the m2m rows for this club — drives which Start
-      // buttons render. The intersection with the FE registry
-      // (computed at render time) naturally hides gametypes the
-      // DB knows about but this FE bundle doesn't.
+      // buttons render AND seeds the SetupGameDialog with the
+      // friends' last-played setup per gametype. The intersection
+      // with the FE registry (computed at render time) naturally
+      // hides gametypes the DB knows about but this FE bundle
+      // doesn't.
       const { data: kindsData } = await commonDb
         .from('clubs_gametypes')
-        .select('gametype')
+        .select('gametype, default_setup')
         .eq('club_id', clubData.id)
       if (!mounted) return
-      setAllowedGametypes(new Set((kindsData ?? []).map((k) => k.gametype)))
+      const rows = kindsData ?? []
+      setAllowedGametypes(new Set(rows.map((k) => k.gametype)))
+      setSavedDefaults(
+        new Map(
+          rows
+            .filter((k) => k.default_setup !== null)
+            .map((k) => [k.gametype, k.default_setup as unknown]),
+        ),
+      )
 
       setLoading(false)
     }
@@ -434,6 +456,7 @@ export function ClubPage({ session, handle }: Props) {
           manifest={pendingSetup}
           members={members}
           clubId={club.id}
+          savedDefault={savedDefaults.get(pendingSetup.gametype)}
           onStarted={(id) => {
             // Capture gametype before clearing pendingSetup —
             // the state setter is asynchronous but our reference

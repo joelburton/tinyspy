@@ -30,7 +30,7 @@ begin;
 
 set search_path = wordknit, common, public, extensions;
 
-select plan(24);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -275,6 +275,29 @@ select is(
      from wordknit.games where id = (select id from created)),
   16,
   'create_game: board.tileOrder has 16 entries'
+);
+
+-- ============================================================
+-- Saved-defaults auto-save in clubs_gametypes
+-- ============================================================
+-- wordknit saves the whole setup ({puzzleId, timer}) — every
+-- field is a per-club preference. Saving puzzleId is the anchor
+-- for the planned "play the next puzzle in chronological order"
+-- date-picker UX: the dialog reads the saved id and offers the
+-- next-day puzzle. Today the dialog seeds verbatim.
+
+select is(
+  (select default_setup->>'puzzleId' from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'wordknit'),
+  (select id::text from puzzle),
+  'saved defaults: wordknit saves puzzleId verbatim'
+);
+
+select is(
+  (select default_setup->'timer'->>'kind' from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'wordknit'),
+  'countdown',
+  'saved defaults: wordknit saves the full timer shape (10-min countdown from the happy-path call)'
 );
 
 -- Sanity check: tileOrder is a permutation of the category

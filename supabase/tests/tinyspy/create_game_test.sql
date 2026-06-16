@@ -36,7 +36,7 @@ begin;
 
 set search_path = tinyspy, common, public, extensions;
 
-select plan(31);
+select plan(34);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -493,6 +493,44 @@ select is(
     'NA:1','NG:5','NN:7'
   ],
   'create_game: joint key-card distribution matches the Duet rulebook'
+);
+
+-- ============================================================
+-- Saved-defaults auto-save in clubs_gametypes
+-- ============================================================
+-- tinyspy saves a SUBSET of setup: {turns, timer} — strips
+-- firstClueGiverUserId, which is a per-game decision (who opens
+-- this round), not a per-club preference. Verify both: the
+-- savable fields round-trip, and firstClueGiverUserId is absent
+-- from the saved blob (so the dialog's auto-pick logic fills
+-- the gap on next open instead of inheriting a stale uid).
+--
+-- The most-recent successful create on club2 was `created2`,
+-- which used turns=9 + bea as first clue-giver (and the
+-- default timer.kind=none from tinyspy_setup).
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select (default_setup->>'turns')::int from common.clubs_gametypes
+    where club_id = (select id from club2) and gametype = 'tinyspy'),
+  9,
+  'saved defaults: tinyspy saves turns'
+);
+
+select is(
+  (select default_setup->'timer'->>'kind' from common.clubs_gametypes
+    where club_id = (select id from club2) and gametype = 'tinyspy'),
+  'none',
+  'saved defaults: tinyspy saves timer'
+);
+
+select is(
+  (select default_setup ? 'firstClueGiverUserId' from common.clubs_gametypes
+    where club_id = (select id from club2) and gametype = 'tinyspy'),
+  false,
+  'saved defaults: tinyspy STRIPS firstClueGiverUserId (per-game decision, not a per-club preference)'
 );
 
 select * from finish();

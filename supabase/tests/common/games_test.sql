@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(40);
+select plan(43);
 
 \ir ../_shared/setup.psql
 
@@ -67,6 +67,10 @@ select set_config('request.jwt.claims', '', true);
 
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 
+-- Pass saved_default=NULL on this happy-path call — the
+-- clubs_gametypes.default_setup auto-save is exercised in a
+-- dedicated block further down (it doesn't matter for the
+-- assertions in *this* section).
 select set_config(
   'test.created_game_id',
   (common.create_game(
@@ -77,7 +81,8 @@ select set_config(
       'bea22222-2222-2222-2222-222222222222'::uuid
     ],
     'test-title',
-    '{}'::jsonb
+    '{}'::jsonb,
+    null
   ))::text,
   true
 );
@@ -118,7 +123,7 @@ select throws_ok(
     $$ select common.create_game(%L::uuid, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
-       'test-title', '{}'::jsonb) $$,
+       'test-title', '{}'::jsonb, null) $$,
     (select id from club)
   ),
   '42501',
@@ -133,7 +138,7 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L::uuid, 'wordknit', array[]::uuid[], 'test-title', '{}'::jsonb) $$,
+    $$ select common.create_game(%L::uuid, 'wordknit', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
     (select id from club)
   ),
   'P0001',
@@ -151,7 +156,7 @@ select throws_ok(
     $$ select common.create_game(%L::uuid, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'dee44444-4444-4444-4444-444444444444'::uuid],
-       'test-title', '{}'::jsonb) $$,
+       'test-title', '{}'::jsonb, null) $$,
     (select id from club)
   ),
   'P0001',
@@ -342,7 +347,8 @@ select set_config(
     'wordknit',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'second',
-    '{}'::jsonb
+    '{}'::jsonb,
+    null
   ))::text,
   true
 );
@@ -583,6 +589,78 @@ select throws_ok(
   '23505',
   null,
   'partial unique index: a second is_current_view=true for the same club is rejected (23505)'
+);
+
+-- ============================================================
+-- Saved-defaults auto-save: clubs_gametypes.default_setup
+-- ============================================================
+-- common.create_game's `saved_default` parameter overwrites the
+-- (club, gametype) row in clubs_gametypes on every successful
+-- call. The contract: non-NULL writes; NULL skips (the gametype
+-- opted out for this call). The intent is "next time the setup
+-- dialog opens, it pre-fills from this row."
+--
+-- Up to this point the test has been passing saved_default=NULL
+-- everywhere, so the m2m row's default_setup is still NULL
+-- (its post-create_club state). Verify that first, then make a
+-- non-null call and verify the write.
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select default_setup from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'wordknit'),
+  null,
+  'saved defaults: starts NULL (handle_new_user / create_club leave it unset)'
+);
+
+-- Issue a third create_game with a non-null saved_default. This
+-- exercises the auto-save path. The shape is intentionally
+-- different from a real wordknit setup to make the test self-
+-- evident: we're checking the plumbing, not the semantic.
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.create_game(
+  (select id from club),
+  'wordknit',
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'third',
+  '{"timer": {"kind": "none"}, "puzzleId": "marker-1"}'::jsonb,
+  '{"timer": {"kind": "none"}, "puzzleId": "marker-1"}'::jsonb
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select default_setup->>'puzzleId' from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'wordknit'),
+  'marker-1',
+  'saved defaults: a non-null saved_default writes to clubs_gametypes.default_setup'
+);
+
+-- Overwrite-on-each-call: a second call with a different
+-- saved_default replaces the row. There's no "first write wins"
+-- or "must equal previous" semantics — the FE owns the policy
+-- of when to call create_game; the DB just records the latest.
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select common.create_game(
+  (select id from club),
+  'wordknit',
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'fourth',
+  '{"timer": {"kind": "none"}, "puzzleId": "marker-2"}'::jsonb,
+  '{"timer": {"kind": "none"}, "puzzleId": "marker-2"}'::jsonb
+);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select default_setup->>'puzzleId' from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'wordknit'),
+  'marker-2',
+  'saved defaults: a subsequent non-null saved_default overwrites the row'
 );
 
 -- ============================================================

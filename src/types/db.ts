@@ -45,16 +45,19 @@ export type Database = {
         Row: {
           added_at: string
           club_id: string
+          default_setup: Json | null
           gametype: string
         }
         Insert: {
           added_at?: string
           club_id: string
+          default_setup?: Json | null
           gametype: string
         }
         Update: {
           added_at?: string
           club_id?: string
+          default_setup?: Json | null
           gametype?: string
         }
         Relationships: [
@@ -294,6 +297,7 @@ export type Database = {
         Args: {
           gametype: string
           player_user_ids: string[]
+          saved_default: Json
           setup: Json
           target_club: string
           title: string

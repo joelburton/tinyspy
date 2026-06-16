@@ -15,6 +15,18 @@ type Props = {
   members: SetupMember[]
   /** Club the game would start in. */
   clubId: string
+  /**
+   * The club's last-saved setup for this gametype, from
+   * `common.clubs_gametypes.default_setup`. Sourced by the parent
+   * (ClubPage) alongside the allowed-gametypes query so the dialog
+   * opens instantly without an extra round-trip. Undefined when
+   * the friends haven't played this gametype yet — in that case
+   * the form seeds from the manifest's static defaults alone.
+   * Field-level merged UNDER the manifest defaults: saved fields
+   * win, but a manifest growing a new field stays backward-
+   * compatible (the new field fills from manifest defaults).
+   */
+  savedDefault?: unknown
   /** RPC succeeded — caller navigates into the new game's URL. */
   onStarted: (gameId: string) => void
   /** User dismissed the dialog (Cancel, Esc, or backdrop click). */
@@ -53,14 +65,23 @@ type Props = {
  * accidental-creation possibility.
  */
 export function SetupGameDialog({
-  manifest, members, clubId, onStarted, onCancel,
+  manifest, members, clubId, savedDefault, onStarted, onCancel,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  // Seed setup from the manifest's defaults on mount. We don't
-  // re-seed on prop changes — the parent unmounts and remounts
-  // us per game-start attempt, so each open starts fresh by
-  // construction.
-  const [setup, setSetup] = useState<unknown>(manifest.setupForm?.defaults)
+  // Seed setup from the manifest's defaults merged UNDER the
+  // club's saved default (if any). Saved fields override the
+  // static defaults; missing fields fall through. A NULL or
+  // undefined savedDefault spreads as a no-op, so a fresh club
+  // (or a gametype that opts out of save) just gets the manifest
+  // defaults verbatim.
+  //
+  // We don't re-seed on prop changes — the parent unmounts and
+  // remounts us per game-start attempt, so each open starts
+  // fresh by construction.
+  const [setup, setSetup] = useState<unknown>(() => ({
+    ...(manifest.setupForm?.defaults as Record<string, unknown> | undefined),
+    ...((savedDefault ?? {}) as Record<string, unknown>),
+  }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

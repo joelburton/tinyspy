@@ -26,7 +26,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 \ir ../_shared/setup.psql
 
@@ -295,6 +295,40 @@ select throws_ok(
   '42501',
   null,  -- the exact message includes the column name; just match the code
   'authenticated SELECT of target column is denied (column-level grant)'
+);
+
+-- ============================================================
+-- (9) Saved-defaults auto-save in clubs_gametypes
+-- ============================================================
+-- psychicnum saves the whole setup ({guesses, timer}) — every
+-- field is a per-club preference. Verify both fields round-trip
+-- through clubs_gametypes.default_setup.
+--
+-- Looked up by the FE's setup dialog on open and merged under
+-- the manifest's static defaults — so the next dialog seeds
+-- with the same guesses-budget and timer the friends picked.
+--
+-- The third happy-path call (`g`, with guesses=5) is the most
+-- recent successful create for this club + gametype, so its
+-- setup is what's saved. (RLS-wise we read as postgres to
+-- bypass the test-club lookup; the contract is at the m2m
+-- level, not on the read side.)
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select (default_setup->>'guesses')::int from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'psychicnum'),
+  5,
+  'saved defaults: psychicnum saves guesses verbatim'
+);
+
+select is(
+  (select default_setup->'timer'->>'kind' from common.clubs_gametypes
+    where club_id = (select id from club) and gametype = 'psychicnum'),
+  'none',
+  'saved defaults: psychicnum saves timer.kind verbatim'
 );
 
 -- ============================================================

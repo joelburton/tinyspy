@@ -393,8 +393,17 @@ begin
   -- membership + both player uids are club members, inserts
   -- common.games (with title + setup) + game_players rows,
   -- returns canonical id.
+  --
+  -- Saved-default arg: tinyspy strips firstClueGiverUserId before
+  -- saving — that's a per-game decision (who opens this round),
+  -- not a per-club preference. The two fields that ARE per-club
+  -- preferences (turns count, timer mode) round-trip cleanly. The
+  -- dialog's auto-pick logic for firstClueGiverUserId fills the
+  -- gap on next open. See docs/deferred.md → "Setup-shape
+  -- evolution" for the policy on saved-shape changes.
   new_id := common.create_game(
-    target_club, 'tinyspy', player_user_ids, game_title, setup
+    target_club, 'tinyspy', player_user_ids, game_title, setup,
+    setup - 'firstClueGiverUserId'
   );
 
   -- ─── Duet key-card distribution ───────────────────────

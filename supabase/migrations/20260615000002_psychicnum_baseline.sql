@@ -326,9 +326,15 @@ begin
   -- setup) + game_players, returns the canonical id. Setup lives on
   -- common.games.setup — we pass it through verbatim now that it's
   -- shape-validated.
+  --
+  -- Saved-default arg: psychicnum's whole setup ({guesses, timer})
+  -- is a per-club preference, so we save it verbatim. Next dialog
+  -- open seeds with the same guesses-budget and timer the friends
+  -- picked last time.
   new_id := common.create_game(
     target_club, 'psychicnum', player_user_ids,
     s_target::text,
+    setup,
     setup
   );
 

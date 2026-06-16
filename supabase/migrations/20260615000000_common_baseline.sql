@@ -333,9 +333,23 @@ create index common_game_players_user_id_idx
 -- INSERT/UPDATE/DELETE policies on the table itself.
 
 create table common.clubs_gametypes (
-  club_id  uuid not null references common.clubs(id) on delete cascade,
-  gametype text not null references common.gametypes(gametype) on delete cascade,
-  added_at timestamptz not null default now(),
+  club_id        uuid not null references common.clubs(id) on delete cascade,
+  gametype       text not null references common.gametypes(gametype) on delete cascade,
+  added_at       timestamptz not null default now(),
+  -- Saved setup form-defaults for the (club, gametype) pair.
+  -- Auto-write-back: every successful create_game for this club +
+  -- gametype overwrites this with the setup it just used (minus
+  -- per-gametype private fields — see each gametype's
+  -- create_game for what's excluded). The setup dialog reads this
+  -- on open and merges it under the manifest's static defaults so
+  -- the form remembers what the friends played last time. NULL
+  -- on a fresh row; the FE merge with manifest defaults handles
+  -- that case cleanly. Shape is gametype-specific; no constraint.
+  -- See docs/code-conventions.md → "Setup defaults" for the
+  -- evolution-strategy story; until that's formalized, don't
+  -- reshape setup fields without thinking about saved blobs in
+  -- flight in production.
+  default_setup  jsonb,
   primary key (club_id, gametype)
 );
 
@@ -715,7 +729,14 @@ create function common.create_game(
   gametype text,
   player_user_ids uuid[],
   title text,
-  setup jsonb
+  setup jsonb,
+  -- The savable subset of `setup` for the saved-defaults feature
+  -- (see common.clubs_gametypes.default_setup). Each gametype's
+  -- create_game decides what to pass: most pass `setup` verbatim;
+  -- tinyspy strips its `firstClueGiverUserId` (per-game decision,
+  -- not a per-club preference). Pass NULL to opt out of auto-save
+  -- entirely for this call.
+  saved_default jsonb
 )
 returns uuid
 language plpgsql
@@ -768,7 +789,10 @@ begin
   -- Setup is passed in as-validated (each gametype's create_game
   -- does field-level checks + common.validate_timer before calling
   -- here). We just persist what we're handed. play_state defaults
-  -- to 'playing'; is_terminal defaults to false.
+  -- to 'playing'; is_terminal defaults to false. (The `gametype`
+  -- on the right of VALUES resolves to the function parameter,
+  -- not the column on the left — PostgreSQL knows column-list
+  -- positions from value-list positions.)
   insert into common.games (club_id, gametype, title, setup, is_current_view)
   values (target_club, gametype, title, setup, true)
   returning id into new_id;
@@ -776,12 +800,31 @@ begin
   insert into common.game_players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) as uid;
 
+  -- Auto-save the saved subset to the (club, gametype) row in
+  -- clubs_gametypes so the next setup dialog can pre-fill it.
+  -- NULL opts this call out of saving (a gametype that doesn't
+  -- want a saved-defaults UX passes NULL). On every successful
+  -- create_game, the row's default_setup overwrites — there's
+  -- no "save as default" gesture; the click on Start is the save.
+  --
+  -- The `create_game.gametype` qualifier (function-name, NOT
+  -- schema.function-name) disambiguates the parameter from the
+  -- column on the left of `=` in the WHERE clause — both are
+  -- valid identifiers in scope here. Without it, PL/pgSQL would
+  -- match the column.
+  if saved_default is not null then
+    update common.clubs_gametypes
+       set default_setup = saved_default
+     where club_id = target_club
+       and clubs_gametypes.gametype = create_game.gametype;
+  end if;
+
   return new_id;
 end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.create_game(uuid, text, uuid[], text, jsonb) from public;
+revoke execute on function common.create_game(uuid, text, uuid[], text, jsonb, jsonb) from public;
 
 -- ─── common.require_game_player ───────────────────────
 -- "Caller must be authenticated AND have a game_players row for
