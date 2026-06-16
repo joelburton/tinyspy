@@ -37,7 +37,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- ============================================================
 -- (1) Wrong tile count is rejected
@@ -88,7 +88,7 @@ select throws_ok(
 );
 
 -- ============================================================
--- (4) Non-member is rejected
+-- (4) Non-player is rejected (uses require_game_player now)
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -100,8 +100,8 @@ select throws_ok(
     (select id from g)
   ),
   '42501',
-  'not a member of this club',
-  'submit_guess: non-member is rejected'
+  'not playing this game',
+  'submit_guess: non-player is rejected (via require_game_player)'
 );
 
 -- ============================================================
@@ -222,7 +222,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- Four wrong guesses with distinct tile sets so they pass the
 -- "exactly 4 tiles" payload check. (Tile membership / dup check
@@ -282,7 +282,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- Happy path: in_progress → submit_timeout → lost.
 select lives_ok(

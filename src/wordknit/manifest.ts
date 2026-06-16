@@ -63,10 +63,19 @@ export const wordknitGame: GameManifest = {
   // SetupGameDialog calls this on submit. The RPC validates the
   // payload shape and writes the new game; the board is hardcoded
   // server-side for the POC.
-  startGameInClub: async (clubId, setup) => {
+  //
+  // playerUserIds defaults to "everyone in the club" today via the
+  // dialog wrapper — the picker-UI for selecting a subset hasn't
+  // landed yet (deferred). Behavior matches today: every game has
+  // every club member in its game_players.
+  startGameInClub: async (clubId, setup, playerUserIds) => {
     const s = setup as WordknitSetup
     const { data, error } = await db
-      .rpc('create_game', { target_club: clubId, setup: s })
+      .rpc('create_game', {
+        target_club: clubId,
+        setup: s,
+        player_user_ids: playerUserIds,
+      })
       .single()
     if (error || !data) {
       return { error: error?.message ?? 'failed to start wordknit game' }

@@ -81,7 +81,13 @@ export function SetupGameDialog({
   async function handleStart() {
     setBusy(true)
     setError(null)
-    const result = await manifest.startGameInClub(clubId, setup)
+    // For now: default playerUserIds to every club member. A
+    // future player-picker UI will let users select a subset
+    // (defaulting to all-selected) and live above this call;
+    // until then, all club members play every game — matching
+    // pre-game_players behavior.
+    const playerUserIds = members.map((m) => m.user_id)
+    const result = await manifest.startGameInClub(clubId, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
       setError(result.error)

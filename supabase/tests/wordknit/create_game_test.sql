@@ -45,7 +45,7 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   '42501',
@@ -61,7 +61,7 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   '42501',
@@ -83,7 +83,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- timer field missing entirely
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -94,7 +94,7 @@ select throws_ok(
 -- timer.kind is bogus
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"fast"}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"fast"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -105,7 +105,7 @@ select throws_ok(
 -- countdown without seconds
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown"}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -116,7 +116,7 @@ select throws_ok(
 -- countdown with 0 seconds (below min)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":0}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":0}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -127,7 +127,7 @@ select throws_ok(
 -- countdown with 3601 seconds (above max — Joel's 60-min cap)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":3601}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":3601}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'P0001',
@@ -138,7 +138,7 @@ select throws_ok(
 -- 'none' is accepted (no seconds needed)
 select lives_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"none"}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'create_game: timer.kind=none is accepted'
@@ -147,7 +147,7 @@ select lives_ok(
 -- 'countup' is accepted (no seconds needed)
 select lives_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countup"}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countup"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   'create_game: timer.kind=countup is accepted'
@@ -159,7 +159,7 @@ select lives_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table created on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 select is(
   (select count(*) from created),

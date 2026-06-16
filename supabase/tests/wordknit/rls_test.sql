@@ -29,7 +29,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select * from common.create_club('Ada and Bea', array['ada','bea']);
 create temp table g on commit drop as
-select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb);
+select * from wordknit.create_game((select id from club), '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]);
 
 -- A wrong guess so there's a row in wordknit.guesses for dee
 -- not to see.
@@ -85,13 +85,13 @@ select throws_ok(
     (select id from g)
   ),
   '42501',
-  'not a member of this club',
-  'dee cannot call submit_guess on a club she is outside'
+  'not playing this game',
+  'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
 );
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb) $$,
+    $$ select wordknit.create_game(%L::uuid, '{"timer":{"kind":"countdown","seconds":600}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select id from club)
   ),
   '42501',

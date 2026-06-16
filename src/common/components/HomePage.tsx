@@ -147,7 +147,10 @@ export function HomePage({ session }: Props) {
       return
     }
     setStarting(gametype)
-    const result = await game.startGameInClub(soloClubId, null)
+    // Bypass-mode (setupForm null): solo, so playerUserIds is just
+    // the caller. No game uses setupForm:null today; kept for the
+    // future zero-setup case.
+    const result = await game.startGameInClub(soloClubId, null, [session.user.id])
     setStarting(null)
     if ('error' in result) {
       setStartError(result.error)

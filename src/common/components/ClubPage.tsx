@@ -90,7 +90,14 @@ export function ClubPage({ session, handle }: Props) {
       return
     }
     setStarting(gametype)
-    const result = await game.startGameInClub(club.id, null)
+    // Bypass-mode (setupForm null): all current club members play.
+    // No game uses setupForm:null today; kept for the future
+    // zero-setup case.
+    const result = await game.startGameInClub(
+      club.id,
+      null,
+      members.map((m) => m.user_id),
+    )
     setStarting(null)
     if ('error' in result) {
       setStartError(result.error)

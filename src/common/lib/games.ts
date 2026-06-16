@@ -183,12 +183,19 @@ export type GameManifest = {
 
   /**
    * Start a new game of this gametype inside the given club.
-   * Receives the typed setup value the dialog wrapper collected
-   * from the setup form, or `null` when the manifest declared
-   * `setupForm: null`. The game's own implementation casts the
-   * setup to its narrow shape and forwards it to its
-   * `create_game` RPC (which validates the shape server-side —
-   * the FE setup is not trusted).
+   * Receives:
+   *   - clubId: the club to start the game in
+   *   - setup: the typed setup value the dialog wrapper collected
+   *     from the setup form, or `null` for `setupForm: null`
+   *   - playerUserIds: explicit list of who's actually playing this
+   *     game. The FE's setup dialog defaults this to all current
+   *     club members; a future player-picker UI lets the player
+   *     pick a subset. The caller does NOT have to be in the list
+   *     (a club member can facilitate a game between others).
+   *
+   * The game's own implementation casts setup to its narrow shape
+   * and forwards everything to its `create_game` RPC (which
+   * validates server-side — the FE setup is not trusted).
    *
    * Returns the new game's id on success, or `{error}` whose
    * message the UI surfaces verbatim.
@@ -203,6 +210,7 @@ export type GameManifest = {
   startGameInClub: (
     clubId: string,
     setup: unknown,
+    playerUserIds: string[],
   ) => Promise<{ id: string } | { error: string }>
 
   /**

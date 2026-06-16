@@ -259,14 +259,22 @@ export function useGame(
         })),
       )
 
-      // Roster: same cross-schema PostgREST workaround the other
-      // games use — two queries, merge in JS.
-      const { data: memberRows } = await commonDb
-        .from('clubs_members')
+      // Roster: who's actually IN this game (not who's in the
+      // club). The two questions are now distinct — common.
+      // game_players is the per-game player list, frozen at
+      // game-create time. A club member who didn't sit down at
+      // this specific game won't appear in the in-game UI
+      // (peer-color, pause overlay copy, presence), though they
+      // can still watch via the club-wide RLS on common.games.
+      //
+      // Two-query merge same as elsewhere in the codebase —
+      // PostgREST won't cross-schema-join automatically.
+      const { data: playerRows } = await commonDb
+        .from('game_players')
         .select('user_id')
-        .eq('club_id', row.club_id)
+        .eq('game_id', gameId)
       if (!mounted) return
-      const ids = (memberRows ?? []).map((r) => r.user_id)
+      const ids = (playerRows ?? []).map((r) => r.user_id)
       if (ids.length > 0) {
         const { data: profiles } = await commonDb
           .from('profiles')
