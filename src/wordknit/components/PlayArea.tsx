@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
-import { GamePage } from '../../common/components/GamePage'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { colorForUserId } from '../lib/peerColor'
 import type { CategoryRank } from '../lib/board'
 import styles from './PlayArea.module.css'
-
-type Props = {
-  session: Session
-  gameId: string
-}
+import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 
 const RANK_TOKEN: Record<CategoryRank, string> = {
   0: 'var(--wordknit-rank-0)',
@@ -22,9 +17,10 @@ const RANK_TOKEN: Record<CategoryRank, string> = {
 }
 
 /**
- * Wordknit's play surface — the bands, the tile grid, the
- * action row, transient feedback. Cross-cutting chrome (title,
- * timer, pause, chat) lives on the common `<GamePage>`.
+ * Wordknit's play surface — bands, tile grid, action row,
+ * transient feedback. Cross-cutting chrome (title, timer, pause,
+ * chat) lives on `<GamePage>` above this component in the route
+ * tree.
  *
  * Submission flow:
  *   1. FE evaluates the guess locally against board.categories
@@ -32,19 +28,19 @@ const RANK_TOKEN: Record<CategoryRank, string> = {
  *   2. Dup detection (sameTileSet on the existing guess log) —
  *      if duplicate, show banner, skip RPC.
  *   3. Fire submit_guess RPC with (tiles, result, rank).
- *   4. Realtime postgres-changes propagate the new state to
- *      every player; this hook refetches automatically.
+ *   4. Realtime postgres-changes propagate the new state to every
+ *      player; this hook refetches automatically.
  *   5. Broadcast a `clear` to drop everyone's selection.
  *
- * Pause handling is concentrated in GamePage's PauseBoundary —
- * this component doesn't thread `disabled={paused}` props through
- * click handlers because the boundary hides children with
- * `visibility: hidden` during a pause (non-interactive by virtue
- * of being invisible to layout-clicks). `onPauseTransition` on
- * GamePage fires `sendClear` on the pause-transition so
- * reconnecting peers land in an empty selection state.
+ * **Pause behavior**: PauseBoundary in GamePage unmounts this
+ * component on pause and remounts on resume. The shared selection
+ * state lives in `useGame` (component-local + broadcast); the
+ * unmount drops it automatically, so reconnecting peers land in
+ * an empty-selection state without an explicit `sendClear`-on-
+ * pause wiring. The realtime channel teardown + re-subscribe
+ * gap is covered by the on-SUBSCRIBED refetch.
  */
-export function PlayArea({ session, gameId }: Props) {
+export function PlayArea({ session, gameId, timer }: GamePageCtx) {
   const {
     game,
     guesses,
@@ -101,147 +97,135 @@ export function PlayArea({ session, gameId }: Props) {
     sendClear()
   }
 
+  if (loading) return <p>Loading board…</p>
+  if (!game) return <p>Game not found.</p>
+
+  const matchedTiles = new Set<string>()
+  for (const mc of matchedCategories) {
+    for (const t of mc.tiles) matchedTiles.add(t)
+  }
+  const remainingTiles = game.board.tileOrder.filter(
+    (t) => !matchedTiles.has(t),
+  )
+
+  // Per-tile contributor for visual attribution: at most one
+  // owner under the union semantics, but `selections` is the map
+  // of `userId → tiles[]` so we look up by tile.
+  const ownerByTile = new Map<string, string>()
+  for (const [userId, list] of selections) {
+    for (const t of list) ownerByTile.set(t, userId)
+  }
+
+  const canSubmit =
+    unionTiles.length === 4
+    && !submitting
+    && game.status === 'in_progress'
+  const gameOver = game.status !== 'in_progress'
+  const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
+  const unmatched = gameOver
+    ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
+    : []
+
   return (
-    <GamePage
-      gameId={gameId}
-      session={session}
-      gametype="wordknit"
-      onPauseTransition={sendClear}
-    >
-      {({ timer }) => {
-        if (loading) return <p>Loading board…</p>
-        if (!game) return <p>Game not found.</p>
+    <div className={styles.boardArea}>
+      <div className="muted">
+        {gameOver ? (
+          game.status === 'solved'
+            ? 'Solved!'
+            : timer.expired
+              ? 'Out of time.'
+              : 'Out of guesses.'
+        ) : (
+          <>Mistakes left: {4 - game.mistake_count}</>
+        )}
+      </div>
 
-        const matchedTiles = new Set<string>()
-        for (const mc of matchedCategories) {
-          for (const t of mc.tiles) matchedTiles.add(t)
-        }
-        const remainingTiles = game.board.tileOrder.filter(
-          (t) => !matchedTiles.has(t),
-        )
-
-        // Per-tile contributor for visual attribution: at most
-        // one owner under the union semantics, but `selections`
-        // is the map of `userId → tiles[]` so we look up by tile.
-        const ownerByTile = new Map<string, string>()
-        for (const [userId, list] of selections) {
-          for (const t of list) ownerByTile.set(t, userId)
-        }
-
-        const canSubmit =
-          unionTiles.length === 4
-          && !submitting
-          && game.status === 'in_progress'
-        const gameOver = game.status !== 'in_progress'
-        const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
-        const unmatched = gameOver
-          ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
-          : []
-
-        return (
-          <div className={styles.boardArea}>
-            <div className="muted">
-              {gameOver ? (
-                game.status === 'solved'
-                  ? 'Solved!'
-                  : timer.expired
-                    ? 'Out of time.'
-                    : 'Out of guesses.'
-              ) : (
-                <>Mistakes left: {4 - game.mistake_count}</>
-              )}
+      {matchedCategories
+        .slice()
+        .sort((a, b) => a.rank - b.rank)
+        .map((mc) => (
+          <div
+            key={mc.rank}
+            className={styles.band}
+            style={{ background: RANK_TOKEN[mc.rank] }}
+          >
+            <strong>{mc.name}</strong>
+            <div className={styles.bandMembers}>
+              {mc.tiles.join(' · ')}
             </div>
-
-            {matchedCategories
-              .slice()
-              .sort((a, b) => a.rank - b.rank)
-              .map((mc) => (
-                <div
-                  key={mc.rank}
-                  className={styles.band}
-                  style={{ background: RANK_TOKEN[mc.rank] }}
-                >
-                  <strong>{mc.name}</strong>
-                  <div className={styles.bandMembers}>
-                    {mc.tiles.join(' · ')}
-                  </div>
-                </div>
-              ))}
-
-            {unmatched.map((c) => (
-              <div
-                key={c.rank}
-                className={cls(styles.band, styles.bandRevealed)}
-                style={{ background: RANK_TOKEN[c.rank] }}
-              >
-                <strong>{c.name}</strong>
-                <div className={styles.bandMembers}>{c.tiles.join(' · ')}</div>
-              </div>
-            ))}
-
-            {!gameOver && (
-              <div className={styles.grid}>
-                {remainingTiles.map((tile) => {
-                  // Distinct treatments for self vs peer:
-                  //   - Mine: strong dark-fill (the NYT "selected"
-                  //     look). No border — the fill alone reads as
-                  //     "this is yours."
-                  //   - Peer's: regular tile background + a thick
-                  //     inset frame in the peer's color.
-                  //   - Unowned: plain tile.
-                  const ownerId = ownerByTile.get(tile)
-                  const isMine = ownerId === session.user.id
-                  const isPeer = ownerId !== undefined && !isMine
-                  return (
-                    <button
-                      key={tile}
-                      type="button"
-                      className={cls(
-                        styles.tile,
-                        isMine && styles.tileSelected,
-                      )}
-                      style={
-                        isPeer && ownerId
-                          ? {
-                              boxShadow: `inset 0 0 0 4px ${colorForUserId(ownerId)}`,
-                            }
-                          : undefined
-                      }
-                      onClick={() => toggleTile(tile)}
-                    >
-                      {tile}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {!gameOver && (
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={handleClear}
-                  disabled={unionTiles.length === 0}
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                >
-                  {submitting ? 'Submitting…' : 'Submit'}
-                </button>
-              </div>
-            )}
-
-            {transient && (
-              <div className={styles.transient}>{transient}</div>
-            )}
           </div>
-        )
-      }}
-    </GamePage>
+        ))}
+
+      {unmatched.map((c) => (
+        <div
+          key={c.rank}
+          className={cls(styles.band, styles.bandRevealed)}
+          style={{ background: RANK_TOKEN[c.rank] }}
+        >
+          <strong>{c.name}</strong>
+          <div className={styles.bandMembers}>{c.tiles.join(' · ')}</div>
+        </div>
+      ))}
+
+      {!gameOver && (
+        <div className={styles.grid}>
+          {remainingTiles.map((tile) => {
+            // Distinct treatments for self vs peer:
+            //   - Mine: strong dark-fill (the NYT "selected" look).
+            //     No border — the fill alone reads as "this is yours."
+            //   - Peer's: regular tile background + a thick inset
+            //     frame in the peer's color.
+            //   - Unowned: plain tile.
+            const ownerId = ownerByTile.get(tile)
+            const isMine = ownerId === session.user.id
+            const isPeer = ownerId !== undefined && !isMine
+            return (
+              <button
+                key={tile}
+                type="button"
+                className={cls(
+                  styles.tile,
+                  isMine && styles.tileSelected,
+                )}
+                style={
+                  isPeer && ownerId
+                    ? {
+                        boxShadow: `inset 0 0 0 4px ${colorForUserId(ownerId)}`,
+                      }
+                    : undefined
+                }
+                onClick={() => toggleTile(tile)}
+              >
+                {tile}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {!gameOver && (
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={handleClear}
+            disabled={unionTiles.length === 0}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {submitting ? 'Submitting…' : 'Submit'}
+          </button>
+        </div>
+      )}
+
+      {transient && (
+        <div className={styles.transient}>{transient}</div>
+      )}
+    </div>
   )
 }

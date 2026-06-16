@@ -41,8 +41,8 @@ export const psychicnumGame: GameManifest = {
   // cross-reference convention.
   numberOfPlayers: [1, null],
 
-  Root: lazy(() =>
-    import('./Root').then((m) => ({ default: m.PsychicnumRoot })),
+  PlayArea: lazy(() =>
+    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
   ),
 
   // Per-game setup form: a single-fieldset guess-budget radio.

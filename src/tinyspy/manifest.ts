@@ -37,7 +37,9 @@ export const tinyspyGame: GameManifest = {
   // cross-reference convention.
   numberOfPlayers: [2, 2],
 
-  Root: lazy(() => import('./Root').then((m) => ({ default: m.TinyspyRoot }))),
+  PlayArea: lazy(() =>
+    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  ),
 
   // Per-game setup form: turn-count radio + first-clue-giver
   // radio. The Component is lazy-loaded so the form ships in

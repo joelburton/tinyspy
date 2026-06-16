@@ -5,30 +5,29 @@ import { db as commonDb } from '../db'
 import { navigate } from './router'
 
 /**
- * Props the shell hands to a game's Root component. A Root takes
- * over once the user is authenticated and the shell has resolved the
- * URL to a specific game. The shell stays game-agnostic; it parses
- * `/g/<gametype>/<gameId>`, looks up the manifest by `<gametype>`,
- * and mounts that manifest's Root with the extracted `gameId`.
+ * What `<GamePage>` exposes to each game's PlayArea via its
+ * render-prop children. The shell wraps PlayArea in a `<GamePage>`
+ * at the route level (`<GamePage>{(ctx) => <PlayArea {...ctx} />}</GamePage>`);
+ * GamePage runs `useCommonGame` and hands these values down.
  *
- * Per-game Roots no longer parse URLs themselves — they receive
- * `gameId` as a prop. App.tsx also keys each Root by `gameId`, so
- * navigating from one game to another remounts the Root and gets
- * a clean state slate (no stale subscriptions or cached fetches).
+ * Anything cross-cutting that PlayArea needs to render game-
+ * specific content (members for attribution; timer for
+ * "Out of time" copy) lives here. Anything chrome-related
+ * (paused, missing, manuallyPausedBy, sendManualPause, the
+ * commonGame.title) stays inside GamePage and never enters
+ * the game's render.
  *
- * As cross-cutting needs emerge (theme switching, presence, club
- * selection), they get added here in one place and every game's
- * Root gets them automatically.
+ * `session` and `gameId` are re-exposed so the shell can write
+ * `<PlayArea {...ctx} />` without separately threading them.
  */
-export type GameRootProps = {
+export type GamePageCtx = {
   session: Session
-  /**
-   * The id of the specific game to load. Extracted from the URL by
-   * App.tsx (the second path segment of `/g/<gametype>/<gameId>`).
-   * Roots can trust this is non-empty — App.tsx wouldn't have
-   * mounted them otherwise.
-   */
   gameId: string
+  members: SetupMember[]
+  timer: {
+    displaySeconds: number
+    expired: boolean
+  }
 }
 
 /**
@@ -166,12 +165,22 @@ export type GameManifest = {
   numberOfPlayers: [number, number | null]
 
   /**
-   * The game's root component. Renders whatever the game needs once
-   * the shell has resolved a `/g/<gametype>/<gameId>` URL and found
-   * this manifest by `gametype`. Lazy-loaded so each game's bundle
-   * ships as a separate Vite chunk.
+   * The game's PlayArea — the gametype-specific play surface
+   * the shell mounts inside `<GamePage>` once the URL resolves
+   * to a specific game. Lazy-loaded so each game's bundle ships
+   * as a separate Vite chunk.
+   *
+   * The shell renders this as the render-prop child of GamePage:
+   *
+   *     <GamePage gameId={...} session={...} gametype={...}>
+   *       {(ctx) => <manifest.PlayArea {...ctx} />}
+   *     </GamePage>
+   *
+   * So PlayArea receives `GamePageCtx` (session, gameId, members,
+   * timer) at the JSX site and never needs to thread any of it
+   * itself.
    */
-  Root: ComponentType<GameRootProps>
+  PlayArea: ComponentType<GamePageCtx>
 
   /**
    * Per-game setup-form declaration shown in a modal before

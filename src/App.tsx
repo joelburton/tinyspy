@@ -3,6 +3,7 @@ import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
 import { ClubPage } from './common/components/ClubPage'
 import { CreateClubPage } from './common/components/CreateClubPage'
+import { GamePage } from './common/components/GamePage'
 import { HomePage } from './common/components/HomePage'
 import { usePath } from './common/lib/router'
 import { games } from './games'
@@ -14,9 +15,8 @@ import { games } from './games'
  *   /                          →  HomePage (your clubs + create-club link)
  *   /c/new                     →  CreateClubPage
  *   /c/<handle>                →  ClubPage
- *   /g/<gametype>/<gameId>     →  the manifest matching <gametype>,
- *                                  mounted as <manifest.Root> with
- *                                  the gameId as a prop. Lazy-loaded.
+ *   /g/<gametype>/<gameId>     →  <GamePage> wrapping the manifest's
+ *                                  PlayArea via render-prop. Lazy-loaded.
  *   <anything else>            →  HomePage  (treated as "go home"
  *                                  rather than a 404 screen)
  *
@@ -25,19 +25,29 @@ import { games } from './games'
  * id up in. Embedding the gametype keeps the route purely
  * structural — no cross-schema id resolution, no soft-FK lookup.
  *
- * Each Root receives `gameId` as a prop and is keyed by it. The
- * key forces a remount when navigating between games, so each
- * Root starts with a clean state slate (no stale realtime
- * subscriptions or cached fetches leaking across games).
+ * **Game route shape**: `<GamePage>` is the shell mounted at the
+ * route level. PlayArea is the gametype-specific play surface
+ * mounted as GamePage's render-prop child:
+ *
+ *     <GamePage gameId session gametype>
+ *       {(ctx) => <manifest.PlayArea {...ctx} />}
+ *     </GamePage>
+ *
+ * GamePage owns the cross-cutting render (header, PauseBoundary,
+ * chat); PlayArea owns the game-specific render. The render-prop
+ * passes GamePageCtx (session, gameId, members, timer) into PlayArea.
+ *
+ * The whole GamePage is keyed by gameId so navigation between
+ * games forces a remount — clean state slate, no stale subscriptions.
  *
  * Removing a game is still three actions (delete folder, delete
  * its line in games.ts, drop its DB schema). The shell is
  * untouched. See docs/common.md for the removability invariant.
  *
- * The Suspense fallback handles the brief moment between
- * "navigated to /g/<gametype>/<id>" and "the game's JS chunk
- * arrived." Subsequent in-session navigations to that game are
- * cached.
+ * The Suspense fallback inside the GamePage render-prop handles
+ * the brief moment between "navigated to /g/<gametype>/<id>" and
+ * "the game's JS chunk arrived." Subsequent in-session navigations
+ * to that game are cached.
  */
 export default function App() {
   const { session, loading } = useSession()
@@ -55,10 +65,11 @@ export default function App() {
     return <ClubPage session={session} handle={clubMatch[1]} />
   }
 
-  // Game routes — delegated to the registered manifest's Root.
-  // Path shape: /g/<gametype>/<gameId>. Anything else under /g/
-  // falls through to HomePage (rather than rendering a broken
-  // game screen), matching the "be forgiving with URLs" stance.
+  // Game routes — GamePage shell + the manifest's PlayArea as a
+  // render-prop child. Path shape: /g/<gametype>/<gameId>. Anything
+  // else under /g/ falls through to HomePage (rather than rendering
+  // a broken game screen), matching the "be forgiving with URLs"
+  // stance.
   const gameMatch = path.match(/^\/g\/([a-z0-9]+)\/([0-9a-f-]+)\/?$/i)
   if (gameMatch) {
     const [, gametype, gameId] = gameMatch
@@ -73,10 +84,20 @@ export default function App() {
         </div>
       )
     }
+    const PlayArea = game.PlayArea
     return (
-      <Suspense fallback={<div className="card">Loading game…</div>}>
-        <game.Root key={gameId} session={session} gameId={gameId} />
-      </Suspense>
+      <GamePage
+        key={gameId}
+        gameId={gameId}
+        session={session}
+        gametype={gametype}
+      >
+        {(ctx) => (
+          <Suspense fallback={<p>Loading game…</p>}>
+            <PlayArea {...ctx} />
+          </Suspense>
+        )}
+      </GamePage>
     )
   }
 

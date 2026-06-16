@@ -1,30 +1,25 @@
-/* Pause-state overlay. Renders as a sticky-positioned layer
- * over whatever the host wraps it around. The dim/blur effect
- * is similar to the dialog backdrop but lighter — we're
- * indicating "this game is paused" rather than "this is modal."
+/* Pause-state banner. Rendered standalone in the slot where
+ * PlayArea would otherwise sit (PauseBoundary conditional-renders
+ * either PlayArea or this overlay, never both at the same time).
+ * Header and chat above/below stay visible.
  *
- * pointer-events: all on the overlay → clicks on it are
- * captured (don't reach the disabled-but-still-rendered tiles
- * underneath). The banner itself stops propagation explicitly
- * so a click on the message doesn't fall through.
+ * No absolute positioning, no backdrop dim — there's nothing
+ * behind it to dim. Just a centered banner with a softly-tinted
+ * surround to make the "paused" framing visually distinct from
+ * "active play surface."
  */
 
 .overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-}
-
-.banner {
+  padding: 2rem 1rem;
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
-  padding: 1.25rem 1.5rem;
+}
+
+.banner {
   max-width: 32rem;
   text-align: center;
 }

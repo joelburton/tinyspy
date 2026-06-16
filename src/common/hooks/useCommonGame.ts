@@ -281,6 +281,14 @@ export function useCommonGame(
   // Presence-pause + manual-pause unify into a single `paused`
   // flag. The two sources can coexist; the union truthy-ness is
   // what consumers care about.
+  //
+  // Short-circuit on game-end: once `ended_at` is populated,
+  // pause is moot — the game is over. Forcing paused=false in
+  // this case lets PauseBoundary remount PlayArea so it renders
+  // the terminal result (ResultBanner, GameOverBanner, etc.).
+  // Without this, a terminal-during-pause edge case (stale-tab
+  // peer fires submit_timeout, etc.) would leave the overlay
+  // stuck up over a game that's already done.
   const { paused: presencePaused, missing } = computePause(
     presentUserIds,
     members,
@@ -288,7 +296,9 @@ export function useCommonGame(
   const manuallyPausedBy = manuallyPausedById
     ? members.find((m) => m.user_id === manuallyPausedById) ?? null
     : null
-  const paused = presencePaused || manuallyPausedBy !== null
+  const paused =
+    (presencePaused || manuallyPausedBy !== null)
+    && commonGame?.ended_at == null
 
   // Timer. Anchored to common.games.started_at; mode from setup.
   // Pre-load (commonGame null) feeds placeholder values so the

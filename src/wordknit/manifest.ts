@@ -45,8 +45,8 @@ export const wordknitGame: GameManifest = {
   // future games that want a fixed per-gametype timer (e.g. a
   // hypothetical Boggle with a fixed-3-minute round).
 
-  Root: lazy(() =>
-    import('./Root').then((m) => ({ default: m.WordknitRoot })),
+  PlayArea: lazy(() =>
+    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
   ),
 
   // Setup form: timer-mode picker (None / Up / Down with MM:SS).

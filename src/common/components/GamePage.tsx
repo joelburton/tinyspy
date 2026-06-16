@@ -1,81 +1,60 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { games } from '../../games'
-import { navigateToGameClub } from '../lib/games'
-import { useCommonGame, type Member } from '../hooks/useCommonGame'
+import { navigateToGameClub, type GamePageCtx } from '../lib/games'
+import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
 import { ClubChatPanel } from './ClubChatPanel'
 import { PauseBoundary } from './PauseBoundary'
 import styles from './GamePage.module.css'
 
-/**
- * The slice of common-side state that PlayArea may want to render
- * against — usernames (for guess attribution), the timer's
- * expired flag (for "Out of time" loss copy). Exposed via the
- * render-prop form of `children` so each game accesses only what
- * it needs without re-querying.
- */
-export type GamePageContext = {
-  members: Member[]
-  timer: { displaySeconds: number; expired: boolean }
-}
-
 type Props = {
-  /** The game's id. Drives every common-side data read (common.games,
-   *  common.game_players) and the channel name. */
+  /** The game's id. Drives every common-side data read
+   *  (common.games, common.game_players) and the channel name. */
   gameId: string
-  /** Authenticated session, threaded through to useCommonGame for
-   *  presence tracking. */
+  /** Authenticated session, threaded into useCommonGame for
+   *  presence tracking and re-exposed via ctx to PlayArea. */
   session: Session
   /** The gametype string. Used here to look up the manifest's
    *  submitTimeout dispatcher when the timer expires. */
   gametype: string
-  /**
-   * Optional edge-trigger fired ONCE on the not-paused → paused
-   * transition. Wordknit uses this to broadcast a `selection clear`
-   * so reconnecting peers land in an empty-selection state. Most
-   * gametypes leave it undefined.
-   */
-  onPauseTransition?: () => void
-  /** The gametype-specific play surface. Rendered inside the
-   *  PauseBoundary (hidden behind PauseOverlay when paused).
-   *  Render-prop form receives the common context (members,
-   *  timer); plain-ReactNode form is for play surfaces that need
-   *  neither. */
-  children: ReactNode | ((ctx: GamePageContext) => ReactNode)
+  /** Render-prop child. Receives `GamePageCtx` and returns the
+   *  per-gametype play surface JSX. Called only when the game is
+   *  loaded AND not paused — PauseBoundary conditional-renders
+   *  the overlay otherwise (children unmount cleanly). */
+  children: (ctx: GamePageCtx) => ReactNode
 }
 
 /**
  * The common game shell — owns the cross-cutting render of every
- * game page in the app.
+ * game page. Mounted at the route level by `App.tsx` for any
+ * `/g/<gametype>/<gameId>` URL; the per-gametype PlayArea sits
+ * inside as a render-prop child.
  *
- * Responsibilities (one place for all of them, so every gametype's
- * page looks and behaves the same way):
- *   - **Header**: the game's algorithmically-generated `title`
- *     from `common.games.title` (e.g. wordknit's "ALPHA, ANGEL,
- *     APPLE, ARROW", tinyspy's "ada-v-bea: …"), plus timer display
- *     when applicable, Pause / Resume button, and Back-to-club.
- *   - **Pause boundary**: `<PauseBoundary>` wraps `children`, so
- *     the play surface gets `visibility: hidden` + the overlay
- *     while paused; the header stays visible and interactive.
- *   - **Chat**: `<ClubChatPanel>` mounted below. (Eventually this
- *     becomes a portal/popup; GamePage owning the trigger button
- *     means each game page stays unaware of chat.)
- *   - **Timer-expiry dispatch**: when `useCommonGame.timer.expired`
- *     flips true, GamePage fires the gametype's manifest
- *     `submitTimeout` — once, edge-triggered.
+ * Tree shape:
  *
- * What gametype-specific code looks like with this in place:
- * each game's `<PlayArea>` wraps its content in `<GamePage gameId
- * session gametype>` and renders only its play surface as
- * children. No header boilerplate, no pause-state plumbing, no
- * chat panel mount.
+ *     GamePage
+ *     ├── Header  (title, timer, Pause, Back-to-club)
+ *     ├── PauseBoundary
+ *     │     ├── if !paused → children({members, timer, ...})
+ *     │     └── if  paused → <PauseOverlay/>
+ *     └── ClubChatPanel
+ *
+ * Header + chat stay visible during pause. PlayArea unmounts on
+ * pause and remounts on resume — selections, form state, and any
+ * per-gametype channels start fresh. State that should *survive*
+ * a pause must live above the boundary (useCommonGame) or in the
+ * DB.
+ *
+ * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
+ * to false once `common.games.ended_at` is populated, so a game
+ * that ends mid-pause (stale-tab edge case) cleanly transitions
+ * to "PlayArea mounted, ResultBanner shown."
  */
 export function GamePage({
   gameId,
   session,
   gametype,
-  onPauseTransition,
   children,
 }: Props) {
   const {
@@ -152,12 +131,9 @@ export function GamePage({
         paused={paused}
         missing={missing}
         manuallyPausedBy={manuallyPausedBy}
-        onPause={onPauseTransition}
         onResume={sendManualUnpause}
       >
-        {typeof children === 'function'
-          ? children({ members, timer })
-          : children}
+        {children({ session, gameId, members, timer })}
       </PauseBoundary>
 
       <ClubChatPanel clubId={commonGame.club_id} members={members} />
