@@ -516,6 +516,24 @@ alter publication supabase_realtime add table common.messages;
 alter publication supabase_realtime add table common.games;
 alter publication supabase_realtime add table common.game_players;
 
+-- Replica identity FULL on common.games so DELETE events carry
+-- the full pre-deletion row. ClubPage's postgres_changes
+-- subscription filters on `club_id=eq.<X>`; under the default
+-- replica identity (PK only) the OLD payload on a DELETE event
+-- has just the id, the filter fails to match, and the subscriber
+-- never sees the event. INSERT/UPDATE are unaffected — their NEW
+-- payload always carries every column. The extra realtime
+-- bandwidth on UPDATE/DELETE is small at our scale; this is the
+-- cheaper fix vs. dropping the club_id filter and accepting
+-- noise from every game change in the database.
+--
+-- Other tables here keep the default replica identity because
+-- their FE subscriptions filter on PK (per-game `useGame` hooks
+-- subscribe with `id=eq.<gameId>`, which the default identity
+-- carries) or because rows in those tables are never deleted
+-- by the FE today (messages, game_players via cascade only).
+alter table common.games replica identity full;
+
 -- ============================================================
 -- common.slugify_club_name — user-typed name → URL handle
 -- ============================================================
