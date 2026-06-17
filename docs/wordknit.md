@@ -198,7 +198,7 @@ src/wordknit/
     CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
                           unmatched-revealed bands rendered on game-over loss). Owns the
                           RANK_TOKEN rank → CSS-variable map.
-    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isOther selection
+    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isPeer selection
                           attribution. Pure render against the (tiles, ownerByTile,
                           selfUserId, onToggle) props — the shared-selection machinery
                           lives in useGame.
@@ -342,7 +342,7 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run puzzles:import` |
 | What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/other attribution) |
+| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
 | What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
 | How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |

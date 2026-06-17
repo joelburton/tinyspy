@@ -100,8 +100,9 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *
  * Returns:
  *   - game / guesses / matchedCategories — postgres-derived state.
- *   - selections / unionTiles — shared selection state driven
- *     by Broadcast events.
+ *   - selections / unionTiles — shared peer-selection state
+ *     driven by Broadcast events. "Peer" = another player in
+ *     this game from my POV; see naming.md → peer.
  *   - toggleTile / sendClear — emit selection events.
  *   - loading — false once initial fetch completes.
  *

@@ -90,6 +90,28 @@ Every game declares the alias even when it's a pure re-export, because cross-gam
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
 
+### peer
+
+**Another player in this game, from my perspective.** Same shape as a `Player`, minus the viewer. Where `member` and `player` are absolute (you're either in the club / in the game or you aren't), `peer` is perspective-relative — every viewer has a different peer set, because none of us is our own peer.
+
+Wherever code needs to discriminate "is this me or someone else in this game?" — pick the `peer` half of the binary instead of generic words like `other`. Concretely:
+
+- `isMine` / `isPeer` for per-tile attribution in `wordknit/components/TileGrid.tsx`.
+- "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that name the relationship rather than describing it as "the other player."
+- Tinyspy's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
+- The pause-on-disconnect pattern phrases the trigger as "a peer is missing" because the predicate is viewer-relative: if Ada disconnects, Bea sees a missing peer; Ada sees Bea still there.
+
+**Why peer and not "otherPlayer":**
+
+- It's one short word for a concept that comes up constantly in shared-state game code (`isPeer`, `peers`, `peerCount`, `peer-colored`).
+- "Other" is too generic on its own — `isOther` reads as "other what?" inside a tile component. `isPeer` carries the game-participant sense without further context.
+- "Peer" already had natural usage throughout the codebase (`peers` in pause overlays, `peerKey` in tinyspy, "broadcast reaches all peers" in channel comments) before it was promoted to a defined term — formalizing it ratifies an existing convention rather than introducing a new word.
+
+**Where peer does NOT belong:**
+
+- Identity-color helpers (`src/common/lib/memberColor.ts`, `--color-member-*` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. coloring your own chat-message label). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
+- Cross-game lobby / roster contexts — `members` and `players` are still the right words there. "Peer" only makes sense from a viewer's POV inside an active play surface.
+
 ### start (startSetup vs startGame)
 
 "Start a game" is a two-phase flow in this codebase: the user picks options first, *then* the game is created. The same word would describe both phases in casual speech, so identifier naming splits them:

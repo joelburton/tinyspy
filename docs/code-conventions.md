@@ -295,6 +295,20 @@ The one variable to be aware of: **`useCommonGame` returns `players: Member[]`**
 
 See [`naming.md → player`](naming.md#player) for the conceptual side.
 
+#### Peer — the perspective-relative third tier
+
+`member` and `player` are absolute (you're in the club / in the game or you aren't). **`peer`** is the perspective-relative counterpart: another player in this game, from the viewer's POV. Use it for binaries like `isMine` / `isPeer` and phrasings like "a peer disconnected," "peer-colored frame," "broadcast reaches all peers."
+
+When the code wants to discriminate "is this me or someone else in this game?", reach for `peer` rather than generic `other` — `isPeer` reads as "another participant" without further context; `isOther` reads as "other what?" The vocabulary tier:
+
+| word | scope | perspective | type-level? |
+|---|---|---|---|
+| `member` | a person in a club | absolute | yes — `Member` |
+| `player` | a person in a game | absolute | yes — per-game `Player` |
+| `peer` | another player in this game, from my POV | viewer-relative | no — a usage convention, not a type |
+
+`peer` doesn't get its own TypeScript symbol. It's how you *talk about* a Player[] when the viewer is the implicit subject. The relationship lives in variable names (`isPeer`, `peers`, `peerCount`) and prose (docstrings, CSS comments), not in a `type Peer = …`. See [`naming.md → peer`](naming.md#peer) for what does and doesn't qualify as a peer concept.
+
 #### Other casing rules
 
 | kind | convention | examples |
