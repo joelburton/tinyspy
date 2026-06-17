@@ -3,7 +3,22 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
 import type { Database } from '../../types/db'
+import type { Member } from '../../common/lib/games'
 import type { Board, CategoryRank } from '../lib/board'
+
+/**
+ * One player in a wordknit game. Today wordknit doesn't add any
+ * per-player game state beyond what's on a Member (no seats, no
+ * personal scores), so the Player type is a straight re-export.
+ *
+ * Why we expose it anyway: cross-game vocabulary consistency.
+ * Every game's hook file exposes a Player type — tinyspy's adds
+ * `seat: 'A' | 'B'`; psychic-num's is a re-export like this.
+ * A reader scanning per-game folders sees the same parallel
+ * everywhere, and a future "per-player tile-rate" stat (or
+ * similar) has a named home to land in without a cascade rename.
+ */
+export type Player = Member
 
 // Narrower than Database[...]['Row']. The board jsonb column is
 // read once on load and stays put — only mutable fields

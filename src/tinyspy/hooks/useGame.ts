@@ -3,6 +3,7 @@ import { supabase } from '../../common/lib/supabase'
 import { channelDedupSuffix } from '../../common/lib/channelDedup'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
+import type { Member } from '../../common/lib/games'
 import type { Database } from '../../types/db'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -21,13 +22,15 @@ type GameRow = Pick<
   | 'key_card_b'
 >
 
-export type Player = {
-  user_id: string
+/**
+ * One player in a tinyspy game. Extends the shared `Member`
+ * shape with a `seat` field — tinyspy is intrinsically 2-seat
+ * (A is the next clue-giver, B is the next guesser; they swap
+ * each turn). Other games re-export Member as Player without
+ * extending; tinyspy's seat is the legitimate per-game
+ * enrichment that justifies the type-level distinction. */
+export type Player = Member & {
   seat: 'A' | 'B'
-  username: string
-  /** Identity color name from common.profiles.color. See
-   *  src/common/lib/peerColor.ts for the FE-side palette. */
-  color: string
 }
 
 /**

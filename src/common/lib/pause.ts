@@ -1,4 +1,4 @@
-import type { SetupMember } from './games'
+import type { Member } from './games'
 
 /**
  * Pure derivation: given the set of currently-connected user_ids
@@ -29,9 +29,13 @@ import type { SetupMember } from './games'
  */
 export function computePause(
   presentUserIds: Set<string>,
-  members: SetupMember[],
-): { paused: boolean; missing: SetupMember[] } {
-  const missing = members.filter((m) => !presentUserIds.has(m.user_id))
-  const paused = members.length > 0 && missing.length > 0
+  // Variable name is `players` because every call site is in a
+  // game context (useCommonGame for wordknit today; the same
+  // shape will roll out to tinyspy + psychic-num). See Member's
+  // doc in `./games.ts` for the type-vs-variable naming rule.
+  players: Member[],
+): { paused: boolean; missing: Member[] } {
+  const missing = players.filter((m) => !presentUserIds.has(m.user_id))
+  const paused = players.length > 0 && missing.length > 0
   return { paused, missing }
 }

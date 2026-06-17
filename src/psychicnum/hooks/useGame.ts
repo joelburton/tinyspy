@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
 import { channelDedupSuffix } from '../../common/lib/channelDedup'
 import { db } from '../db'
+import type { Member } from '../../common/lib/games'
+
+/**
+ * One player in a psychic-num game. Today psychic-num doesn't
+ * add per-player state beyond what's on a Member, so the Player
+ * type is a straight re-export — but every per-game folder
+ * exposes a Player type so the cross-game vocabulary is
+ * consistent (a reader scanning psychicnum code finds the same
+ * Player parallel that exists in tinyspy + wordknit). Future
+ * per-player state (a "you guessed it!" highlight, a personal
+ * guess-budget if we ever split the shared pool, etc.) has a
+ * named home to land in.
+ */
+export type Player = Member
 
 /**
  * The FE-ready game state. Sourced from the

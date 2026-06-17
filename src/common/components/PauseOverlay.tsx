@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react'
-import type { SetupMember } from '../lib/games'
+import type { Member } from '../lib/games'
 import { colorVarFor } from '../lib/peerColor'
 import styles from './PauseOverlay.module.css'
 
 type Props = {
   /** Members expected at the game who aren't currently on the
    *  realtime channel. Populated for presence-driven pauses. */
-  missing: SetupMember[]
+  missing: Member[]
   /** Set when a player clicked the Pause button. Drives the
    *  "X paused the game" copy line. null when the pause has no
    *  manual source (e.g. presence-only). */
-  manuallyPausedBy?: SetupMember | null
+  manuallyPausedBy?: Member | null
   /** Resume handler — rendered as a Resume button when
    *  `manuallyPausedBy` is set. Any connected player can call
    *  it; there's no privileged "original pauser" check. */
@@ -81,7 +81,7 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
 }
 
 /** Render one member's name with their profile color applied. */
-function memberToColoredName(m: SetupMember): ReactNode {
+function memberToColoredName(m: Member): ReactNode {
   return (
     <span key={m.user_id} style={{ color: colorVarFor(m.color) }}>
       {m.username}

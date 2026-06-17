@@ -1,10 +1,9 @@
 import { colorVarFor } from '../../common/lib/peerColor'
-import type { SetupMember } from '../../common/lib/games'
-import type { PsychicnumGuess } from '../hooks/useGame'
+import type { Player, PsychicnumGuess } from '../hooks/useGame'
 
 type Props = {
   guesses: PsychicnumGuess[]
-  members: SetupMember[]
+  players: Player[]
 }
 
 /**
@@ -20,9 +19,9 @@ type Props = {
  * shape — pure render from a list + the member roster needed to
  * resolve attribution.
  */
-export function GuessHistory({ guesses, members }: Props) {
-  const memberFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)
+export function GuessHistory({ guesses, players }: Props) {
+  const playerFor = (userId: string) =>
+    players.find((m) => m.user_id === userId)
 
   return (
     <section>
@@ -32,7 +31,7 @@ export function GuessHistory({ guesses, members }: Props) {
       ) : (
         <ul>
           {guesses.map((g) => {
-            const guesser = memberFor(g.user_id)
+            const guesser = playerFor(g.user_id)
             return (
               <li key={g.id}>
                 <strong style={{ color: colorVarFor(guesser?.color) }}>

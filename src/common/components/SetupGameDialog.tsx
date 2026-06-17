@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react'
-import type { GameManifest, SetupMember } from '../lib/games'
+import type { GameManifest, Member } from '../lib/games'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './SetupGameDialog.module.css'
 
@@ -13,7 +13,7 @@ type Props = {
    */
   manifest: GameManifest
   /** Club members — forwarded to per-game forms for member-aware UI. */
-  members: SetupMember[]
+  members: Member[]
   /** Club the game would start in. */
   clubId: string
   /**

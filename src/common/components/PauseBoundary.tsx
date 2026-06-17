@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { SetupMember } from '../lib/games'
+import type { Member } from '../lib/games'
 import { PauseOverlay } from './PauseOverlay'
 
 type Props = {
@@ -10,10 +10,10 @@ type Props = {
   /** Members currently expected but absent — populated when the
    *  pause is caused by someone being disconnected. Passed to
    *  PauseOverlay for the "Waiting for Bea…" copy. */
-  missing: SetupMember[]
+  missing: Member[]
   /** The member who clicked the manual Pause button, if the pause
    *  has a manual source. PauseOverlay branches its copy on this. */
-  manuallyPausedBy?: SetupMember | null
+  manuallyPausedBy?: Member | null
   /** Resume handler for the manual-pause case. Any connected
    *  player can call it — no privileged "original pauser" check. */
   onResume?: () => void

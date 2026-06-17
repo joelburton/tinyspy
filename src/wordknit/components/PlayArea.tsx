@@ -41,7 +41,7 @@ import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 export function PlayArea({
   session,
   gameId,
-  members,
+  players,
   playState,
   isTerminal,
   timer,
@@ -170,11 +170,11 @@ export function PlayArea({
     for (const t of list) ownerByTile.set(t, userId)
   }
 
-  // Pre-resolve each member's profile color to a CSS var string,
-  // built once per members-array reference change so TileGrid can
+  // Pre-resolve each player's profile color to a CSS var string,
+  // built once per players-array reference change so TileGrid can
   // look up by user_id at render time without re-walking the
   // roster per tile. See common/lib/peerColor.ts for the helper.
-  const colorByUserId = colorByUserIdMap(members)
+  const colorByUserId = colorByUserIdMap(players)
 
   const canSubmit =
     unionTiles.length === 4
@@ -276,7 +276,7 @@ export function PlayArea({
         <GuessHistory
           guesses={guesses}
           matchedCategories={matchedCategories}
-          members={members}
+          players={players}
         />
       </div>
     </div>

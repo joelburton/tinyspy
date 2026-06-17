@@ -30,7 +30,7 @@ import { ResultBanner } from './ResultBanner'
 export function PlayArea({
   session,
   gameId,
-  members,
+  players,
   playState,
   isTerminal,
   timer,
@@ -63,11 +63,11 @@ export function PlayArea({
           winnerId={game.winner_id}
           target={game.target}
           timerExpired={timer.expired}
-          members={members}
+          players={players}
         />
       )}
 
-      <GuessHistory guesses={guesses} members={members} />
+      <GuessHistory guesses={guesses} players={players} />
     </>
   )
 }

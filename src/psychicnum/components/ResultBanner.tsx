@@ -1,5 +1,5 @@
 import { colorVarFor } from '../../common/lib/peerColor'
-import type { SetupMember } from '../../common/lib/games'
+import type { Player } from '../hooks/useGame'
 
 type Props = {
   /** Tightened to only terminal values — the parent renders this
@@ -18,9 +18,9 @@ type Props = {
    *  reason between "Out of time." and "Out of guesses." */
   timerExpired: boolean
   /** Roster, for resolving `winnerId` → username on the won case.
-   *  Only read inside `usernameFor`, so the helper lives with the
+   *  Only read inside `playerFor`, so the helper lives with the
    *  banner rather than in PlayArea. */
-  members: SetupMember[]
+  players: Player[]
 }
 
 /**
@@ -50,13 +50,13 @@ export function ResultBanner({
   winnerId,
   target,
   timerExpired,
-  members,
+  players,
 }: Props) {
-  const memberFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)
+  const playerFor = (userId: string) =>
+    players.find((m) => m.user_id === userId)
 
   if (status === 'won') {
-    const winner = winnerId ? memberFor(winnerId) : null
+    const winner = winnerId ? playerFor(winnerId) : null
     return (
       <section>
         <h2>We won!</h2>

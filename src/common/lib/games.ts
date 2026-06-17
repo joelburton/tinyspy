@@ -20,7 +20,11 @@ import type { ComponentType } from 'react'
 export type GamePageCtx = {
   session: Session
   gameId: string
-  members: SetupMember[]
+  /** The people playing this game (everyone in
+   *  common.game_players for this game id). Variable name is
+   *  `players` because we're in a game context — see Member's
+   *  docstring for the rationale on type vs variable naming. */
+  players: Member[]
   /**
    * Cross-cutting play state for the game, read directly from
    * `common.games.play_state`. Gametype-specific string —
@@ -42,13 +46,27 @@ export type GamePageCtx = {
 }
 
 /**
- * One club member's identity, surfaced into per-game setup forms
- * so they can render member-aware choices (e.g. Tinyspy's "who
- * gives the first clue?" picker). Shape matches what ClubPage
- * already builds for its roster + chat panel — passed straight
- * through, no transformation.
+ * One person's identity, with everything every render site needs
+ * to display them: id (for routing / lookup), username (for
+ * labels), and color (for the small circle in member lists, the
+ * bold name in chat, the wordknit per-peer tile-selection
+ * borders, etc).
+ *
+ * **Why "Member" not "Player":** the same shape covers both
+ * roles — a chat message in a club is from a club member; a
+ * guess in a game is from a player. Treating them as one type
+ * keeps the identity layer simple. The naming distinction lives
+ * at the **variable** level, not the type level: code in a club
+ * context uses `members: Member[]`, code in a game context uses
+ * `players: Player[]`, where each game declares
+ * `type Player = Member` (or `Member & { seat: ... }` for
+ * tinyspy). Same shape, different vocabulary at the call site.
+ *
+ * Shape matches what ClubPage's roster fetch produces — passed
+ * straight through, no transformation needed at the per-game
+ * boundary.
  */
-export type SetupMember = {
+export type Member = {
   user_id: string
   username: string
   /** Identity color name from common.profiles.color. One of
@@ -76,7 +94,7 @@ export type SetupMember = {
  * typed inside.
  */
 export type SetupBodyProps = {
-  members: SetupMember[]
+  members: Member[]
   /** Club the game would start in. Per-game setup forms that
    *  need to fetch club-scoped data (wordknit's per-date game
    *  history for the calendar widget; future stats / replay

@@ -1,12 +1,11 @@
 import { colorVarFor } from '../../common/lib/peerColor'
-import type { SetupMember } from '../../common/lib/games'
-import type { GuessRow, MatchedCategory } from '../hooks/useGame'
+import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
 type Props = {
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
-  members: SetupMember[]
+  players: Player[]
 }
 
 /**
@@ -39,9 +38,9 @@ type Props = {
  * and what came of it" before the older history. The board
  * shows the current state; the history shows the path to it.
  */
-export function GuessHistory({ guesses, matchedCategories, members }: Props) {
-  const memberFor = (userId: string) =>
-    members.find((m) => m.user_id === userId)
+export function GuessHistory({ guesses, matchedCategories, players }: Props) {
+  const playerFor = (userId: string) =>
+    players.find((m) => m.user_id === userId)
 
   // Build a rank → name lookup once for the matched-category
   // attribution. Each rank appears at most once in
@@ -60,7 +59,7 @@ export function GuessHistory({ guesses, matchedCategories, members }: Props) {
       ) : (
         <ol className={styles.list}>
           {[...guesses].reverse().map((g) => {
-            const guesser = memberFor(g.user_id)
+            const guesser = playerFor(g.user_id)
             return (
               <li
                 key={g.id}

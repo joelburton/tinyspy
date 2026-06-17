@@ -1,12 +1,8 @@
 import { useState } from 'react'
 import type { Seat } from '../lib/phase'
+import type { Player } from '../hooks/useGame'
 import { HowToPlayModal } from './HowToPlayModal'
 import styles from './PlayArea.module.css'
-
-type Player = {
-  user_id: string
-  username: string
-}
 
 type Props = {
   /** Caller's seat or undefined if they're not seated. */

@@ -4,7 +4,7 @@ import { db as commonDb } from '../db'
 import { navigate } from '../lib/router'
 import { supabase } from '../lib/supabase'
 import { computePause } from '../lib/pause'
-import type { SetupMember, TimerMode } from '../lib/games'
+import type { Member, TimerMode } from '../lib/games'
 import { useGameTimer } from './useGameTimer'
 
 /**
@@ -59,7 +59,6 @@ export type CommonGame = {
   ended_at: string | null
 }
 
-export type Member = SetupMember
 
 /**
  * Broadcast event shape for the manual-pause feature. Pauser's
@@ -127,7 +126,7 @@ type SuspendEvent = { type: 'suspend' }
  *
  * Returns:
  *   - `commonGame` — the common.games row, or null while loading
- *   - `members` — common.game_players ⨯ profiles
+ *   - `players` — common.game_players ⨯ profiles
  *   - `paused` — union of presence-pause + manual-pause
  *   - `missing` — players whose presence isn't tracked
  *   - `manuallyPausedBy` — the member who clicked Pause (null
@@ -147,7 +146,7 @@ export function useCommonGame(
   session: Session,
 ): {
   commonGame: CommonGame | null
-  members: Member[]
+  players: Member[]
   paused: boolean
   missing: Member[]
   manuallyPausedBy: Member | null
@@ -158,7 +157,7 @@ export function useCommonGame(
   loading: boolean
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
-  const [members, setMembers] = useState<Member[]>([])
+  const [players, setPlayers] = useState<Member[]>([])
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
   )
@@ -232,12 +231,12 @@ export function useCommonGame(
 
       if (!gameData) {
         setCommonGame(null)
-        setMembers([])
+        setPlayers([])
         setLoading(false)
         return
       }
 
-      let memberList: Member[] = []
+      let playerList: Member[] = []
       const userIds = (playerRows ?? []).map((r) => r.user_id)
       if (userIds.length > 0) {
         const { data: profileData } = await commonDb
@@ -245,7 +244,7 @@ export function useCommonGame(
           .select('user_id, username, color')
           .in('user_id', userIds)
         if (!mounted) return
-        memberList = (profileData ?? []) as Member[]
+        playerList = (profileData ?? []) as Member[]
       }
 
       const clubHandle =
@@ -258,7 +257,7 @@ export function useCommonGame(
         setup: gameData.setup as CommonGame['setup'],
         status: gameData.status as CommonGame['status'],
       })
-      setMembers(memberList)
+      setPlayers(playerList)
       setLoading(false)
     }
 
@@ -467,10 +466,10 @@ export function useCommonGame(
   // stuck up over a game that's already done.
   const { paused: presencePaused, missing } = computePause(
     presentUserIds,
-    members,
+    players,
   )
   const manuallyPausedBy = manuallyPausedById
-    ? members.find((m) => m.user_id === manuallyPausedById) ?? null
+    ? players.find((m) => m.user_id === manuallyPausedById) ?? null
     : null
   const paused =
     (presencePaused || manuallyPausedBy !== null)
@@ -490,7 +489,7 @@ export function useCommonGame(
 
   return {
     commonGame,
-    members,
+    players,
     paused,
     missing,
     manuallyPausedBy,

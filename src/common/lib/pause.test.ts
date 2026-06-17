@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { computePause } from './pause'
-import type { SetupMember } from './games'
+import type { Member } from './games'
 
 // Stand-ins for the personas the pgTAP suite uses. The values
 // don't have to match those uuids — `computePause` is a pure
 // set/array derivation — but keeping the names parallel makes the
 // test legible alongside the rest of the suite.
 // Color isn't relevant to computePause's logic, but the
-// SetupMember shape now requires it — pick distinct values so
+// Member shape now requires it — pick distinct values so
 // any future test that does care can tell the personas apart.
-const ada: SetupMember = { user_id: 'ada', username: 'ada', color: 'red' }
-const bea: SetupMember = { user_id: 'bea', username: 'bea', color: 'blue' }
-const cade: SetupMember = { user_id: 'cade', username: 'cade', color: 'green' }
+const ada: Member = { user_id: 'ada', username: 'ada', color: 'red' }
+const bea: Member = { user_id: 'bea', username: 'bea', color: 'blue' }
+const cade: Member = { user_id: 'cade', username: 'cade', color: 'green' }
 
 /**
  * `computePause` is the FE-side derivation of pause-on-disconnect:

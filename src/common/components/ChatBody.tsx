@@ -4,16 +4,7 @@ import { colorVarFor } from '../lib/peerColor'
 import type { ClubMessage } from '../hooks/useClubChat'
 import styles from './ChatBody.module.css'
 
-/** Minimal member shape the chat body needs to render names. The
- *  caller passes the roster it's already loaded for the parent
- *  page (ClubPage / GamePage). `color` is the identity palette
- *  name from `common.profiles.color`, used to color the bold
- *  username label per message. */
-type Member = {
-  user_id: string
-  username: string
-  color: string
-}
+import type { Member } from '../lib/games'
 
 type Props = {
   clubId: string

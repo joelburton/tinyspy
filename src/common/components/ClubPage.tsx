@@ -29,7 +29,7 @@ type GameRow = Pick<
   Database['common']['Tables']['games']['Row'],
   'id' | 'club_id' | 'gametype' | 'is_current_view'
 >
-type Member = { user_id: string; username: string; color: string }
+import type { Member } from '../lib/games'
 
 /**
  * Display shape for one game in the club's games list. Built from

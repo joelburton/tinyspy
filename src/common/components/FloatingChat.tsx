@@ -4,12 +4,7 @@ import { FloatingPanel } from './FloatingPanel'
 import { ChatBody } from './ChatBody'
 import styles from './FloatingChat.module.css'
 
-/** Match ChatBody's Member shape. */
-type Member = {
-  user_id: string
-  username: string
-  color: string
-}
+import type { Member } from '../lib/games'
 
 type Props = {
   clubId: string

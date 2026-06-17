@@ -75,7 +75,7 @@ export function GamePage({
 }: Props) {
   const {
     commonGame,
-    members,
+    players,
     paused,
     missing,
     manuallyPausedBy,
@@ -185,14 +185,20 @@ export function GamePage({
         {children({
           session,
           gameId,
-          members,
+          players,
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,
           timer,
         })}
       </PauseBoundary>
 
-      <FloatingChat clubId={commonGame.club_id} members={members} />
+      {/* Chat is club-context vocabulary ("anyone in the club may
+          send a message"), so the prop is `members`. The data we
+          have here is the game-players list — a strict subset of
+          club members. Messages from a club member who isn't in
+          this game render with a '?' for the sender (latent gap,
+          pre-dates this rename; out of scope here). */}
+      <FloatingChat clubId={commonGame.club_id} members={players} />
 
       {confirmingSuspend && (
         <SuspendConfirmDialog
