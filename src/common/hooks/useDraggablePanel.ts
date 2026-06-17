@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-// Re-exported below via `export type`. The runtime values live
-// in this file too, so importing components can grab both.
-
 /** A floating panel's persisted geometry. */
 export type PanelRect = {
   x: number
