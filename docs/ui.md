@@ -47,11 +47,44 @@ The distinction in one line: **if it's a side effect of state changing, fix the 
 
 The other exempt case is **loading state**: "Loading game…" doesn't have to occupy the same shape as the loaded play surface. It's a brief moment, the loaded shape often depends on game state that's not yet fetched, and the principle is about reflow *during play*, not at mount.
 
-### Feedback pill — a deferred shared component
+### Feedback pill
 
-The patterns above need a small shared piece: a uniformly-styled "feedback pill" that every game's transient feedback flows through ("Invalid move," "Good guess!," "Already tried that"). Props would carry a tone (success / error / neutral) and the text; the host page reserves the slot at a fixed height.
+A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a Wordknit "wrong guess" should look like a Tinyspy "clue invalid" should look like a future Boggle "not a word."
 
-Not extracted yet — wordknit's `setTransient` is the only concrete consumer today. The shape will emerge as tinyspy gains turn-feedback ("Pass used," "Clue invalid") and a second consumer arrives. Extract when both exist; the shared appearance is the point.
+The pill lives inside `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below). When feedback is active, the pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
+
+**API on `GamePageCtx`:**
+
+```ts
+type FeedbackTone = 'success' | 'error' | 'neutral' | 'info'
+
+type FeedbackMsg = {
+  tone: FeedbackTone
+  text: string
+  dismiss:
+    | { kind: 'timed'; ms?: number }   // self-dismiss after delay (default ~2200ms)
+    | { kind: 'sticky' }                // persists until caller's next show()/clear()
+    | { kind: 'closeable' }             // persists; user-dismissed via × on the pill
+}
+
+feedback: {
+  show: (msg: FeedbackMsg) => void
+  clear: () => void
+}
+```
+
+**Dismiss modes — when to use each:**
+
+- **`timed`** for transient acknowledgment that auto-fades. Wordknit's "Already tried that," "Wrong guess." The default workhorse.
+- **`sticky`** for state-driven info the game itself will clear. Tinyspy's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
+- **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
+
+**Semantics:**
+
+- Latest `show()` replaces whatever was there — no queue, no stack. Race-condition simple.
+- `clear()` empties the slot regardless of dismiss mode.
+- The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
+- **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
 
 ### Modals for terminal results
 
@@ -146,9 +179,32 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 - **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
 - **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; psychic-num and tinyspy default to none), but the *option* is universal.
-- **Back-to-club + suspend-confirm.** Non-terminal navigation-away opens the suspend modal; terminal is a single-click back. Owned by `<GamePage>`.
+- **Back-to-club + suspend-confirm.** Click the game logo (or use browser back) to leave the game. Non-terminal games open the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`. See [GamePage header](#gamepage-header) below.
 
 A new gametype that wants to omit one of these isn't building "a new gametype" — it's stepping outside the frame, and that's a CLAUDE.md-priors conversation, not a manifest field to toggle.
+
+### GamePage header
+
+A layout-static row that every game shares. Same shape, same affordances, same positions — only the contents inside `<StatusSlot>` and the timer's presence/value differ per game.
+
+```
+[logo] [chat] [status-slot]                    [pause] [timer-if-set]
+```
+
+**Left, left-justified:**
+
+- **`<GameLogo gametype={…} />`** — square SVG (`src/<game>/logo.svg`). Click navigates back to the club, going through the suspend-confirm modal for non-terminal games. Future: dropdown menu with other-games-in-this-club + an explicit return-to-club row; not built yet.
+- **`<ChatBubble />`** — toggle for the floating chat panel. Same icon regardless of open / closed state (we'll refine later). Stays in place when chat is open per [Layout stability](#layout-stability).
+- **`<StatusSlot />`** — default content is `<PlayersStrip>` (colored usernames, one per `player`). When `ctx.feedback.show()` has been called and isn't cleared yet, the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when feedback clears.
+
+**Right, right-justified:**
+
+- **`<PauseButton />`** — pause icon (two-bar style). Click fires `sendManualPause` from `useCommonGame`. Greyed-out (disabled) when the game is already paused; the resume affordance lives on `<PauseOverlay>`, not in the header. **Always present** — manual pause is universal, not timer-gated; even an untimed game wants the "moth is making tea" affordance.
+- **Timer** — `{ displaySeconds, expired }` from `useCommonGame`. Rendered only when `commonGame.setup.timer.kind !== 'none'`. `font-variant-numeric: tabular-nums` so digits don't shift the right edge as values change.
+
+**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. wordknit's puzzle date) still lives in the club-page listing where it has room to breathe.
+
+**Why this lives in the common shell:** the consistency goal — a player switching from Tinyspy to Wordknit shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
 
 ### Components
 
