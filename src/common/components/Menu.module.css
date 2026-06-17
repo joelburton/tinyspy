@@ -1,0 +1,106 @@
+/* Generic dropdown menu: a trigger button anchored to a popover.
+ *
+ * Used by GamePage today (logo → game menu); designed to be
+ * reusable for ClubPage (club icon → club menu) and any other
+ * "icon opens a list of actions" affordance. See docs/ui.md →
+ * "GamePage menu" for the contract.
+ */
+
+.menu {
+  /* Anchor for the absolutely-positioned popover. inline-block
+   * so the trigger doesn't grab a full row in flex layouts. */
+  position: relative;
+  display: inline-block;
+}
+
+/* Wrapper button around the caller-supplied trigger element.
+ * Reset the global button defaults so the trigger looks like
+ * whatever the caller provided, plus a subtle hover/focus
+ * background hint that it's interactive. */
+.trigger {
+  background: transparent;
+  border: none;
+  padding: 0.25rem;
+  margin: 0;
+  cursor: pointer;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background 100ms ease;
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  background: var(--color-surface-border);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The popover. Position: absolute below the trigger; high z-index
+ * so it floats above page chrome (modals at ~500, but the chat
+ * panel is at 10000 — see GamePage menu docs for why we land in
+ * between).
+ *
+ * `top: calc(100% + 0.35rem)` lifts the popover slightly off the
+ * trigger so the rounded corners read as distinct surfaces.
+ * Anchored left (default for left-side triggers like the logo);
+ * if a future caller wants right-anchoring we'll add a prop. */
+.popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 1500;
+  min-width: 12rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 0.3rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Per-item button. Reset defaults; left-align text; full-width
+ * row so the click target is the whole row width. Hover and
+ * focus give the same background hint — keyboard and mouse users
+ * see the same "this is current" cue. */
+.item {
+  background: transparent;
+  border: none;
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  display: block;
+  width: 100%;
+  border-radius: 0;
+  transition: background 80ms ease;
+}
+
+.item:hover:not(:disabled),
+.item:focus {
+  background: var(--color-surface-hover);
+  outline: none;
+}
+
+.itemDisabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Section divider — thin horizontal rule that separates the
+ * common items from the per-game items. Margins inside the
+ * padding so it doesn't touch the popover edges. */
+.divider {
+  height: 0;
+  margin: 0.3rem 0;
+  border-top: 1px solid var(--color-surface-border);
+}

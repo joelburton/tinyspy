@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import type { Seat } from '../lib/phase'
 import type { Player } from '../hooks/useGame'
-import { HowToPlayModal } from './HowToPlayModal'
 import styles from './PlayArea.module.css'
 
 type Props = {
@@ -31,13 +29,12 @@ type Props = {
 /**
  * The in-game header strip above the board — seat label, opponent
  * name, current clue-giver (when applicable), greens-found count,
- * tokens-remaining indicator, How-to-play link. Pure rendering
- * over a snapshot of game state.
+ * tokens-remaining indicator. Pure rendering over a snapshot of
+ * game state.
  *
- * Owns one piece of state: whether the How-to-play modal is open.
- * That state is meaningful only to this strip (and the modal
- * itself), so it lives here rather than in PlayArea. The modal
- * mount also moves with the launcher.
+ * "How to play" used to live here as a link-button; it moved to
+ * the GamePage menu (the common "Help" item, backed by tinyspy's
+ * `Help.tsx`). See docs/ui.md → "GamePage menu."
  *
  * Why this extraction lands cleanly even though it has no async
  * work and no RPC dispatch: read-locality. When you're scanning
@@ -56,47 +53,29 @@ export function GameHeader({
   inSuddenDeath,
   gameOver,
 }: Props) {
-  const [howToPlayOpen, setHowToPlayOpen] = useState(false)
-
   return (
-    <>
-      <header className={styles.boardHeader}>
+    <header className={styles.boardHeader}>
+      <div>
         <div>
-          <div>
-            <strong>{mySeat}</strong> · with{' '}
-            <strong>{opponent?.username ?? '…'}</strong>
-          </div>
-          {!gameOver && !inSuddenDeath && (
-            <div className="muted">
-              clue-giver: <strong>{currentClueGiver}</strong>
-            </div>
-          )}
+          <strong>{mySeat}</strong> · with{' '}
+          <strong>{opponent?.username ?? '…'}</strong>
         </div>
-        <div className={styles.status}>
-          <div>
-            <strong>{greenFound}</strong> / 15 agents
-          </div>
+        {!gameOver && !inSuddenDeath && (
           <div className="muted">
-            {inSuddenDeath
-              ? 'sudden death'
-              : `${turnsRemaining} tokens left`}
+            clue-giver: <strong>{currentClueGiver}</strong>
           </div>
-          <div className={styles.statusLinks}>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setHowToPlayOpen(true)}
-            >
-              How to play
-            </button>
-          </div>
+        )}
+      </div>
+      <div className={styles.status}>
+        <div>
+          <strong>{greenFound}</strong> / 15 agents
         </div>
-      </header>
-
-      <HowToPlayModal
-        open={howToPlayOpen}
-        onClose={() => setHowToPlayOpen(false)}
-      />
-    </>
+        <div className="muted">
+          {inSuddenDeath
+            ? 'sudden death'
+            : `${turnsRemaining} tokens left`}
+        </div>
+      </div>
+    </header>
   )
 }

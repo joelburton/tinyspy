@@ -24,6 +24,13 @@ export const wordknitGame: GameManifest = {
   blurb: 'Match the four hidden categories of four words.',
   logoUrl,
 
+  // Help / rules modal opened from the GamePage menu's "Help"
+  // item. Lazy-loaded so the help content ships in wordknit's
+  // chunk, not the main bundle.
+  help: lazy(() =>
+    import('./components/Help').then((m) => ({ default: m.Help })),
+  ),
+
   // Plays solo (1 player at their solo club) or coop (any number
   // of club members poke at the same board). Must agree with the
   // (absence of a) member-count check in wordknit.create_game.

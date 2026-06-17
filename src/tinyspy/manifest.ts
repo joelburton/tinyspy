@@ -32,6 +32,13 @@ export const tinyspyGame: GameManifest = {
   blurb: 'Cooperative Codenames Duet for two.',
   logoUrl,
 
+  // Help / rules modal opened from the GamePage menu's "Help"
+  // item. Lazy-loaded so the help content ships in tinyspy's
+  // chunk, not the main bundle.
+  help: lazy(() =>
+    import('./components/Help').then((m) => ({ default: m.Help })),
+  ),
+
   // Codenames Duet is intrinsically 2-player. Must agree with
   // the `member_count <> 2` check in tinyspy.create_game (in
   // supabase/migrations/*_tinyspy_setup_config.sql). See

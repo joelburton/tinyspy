@@ -24,6 +24,13 @@ export const psychicnumGame: GameManifest = {
   blurb: 'Guess the secret number 1–10. Anyone can guess, 7 tries total.',
   logoUrl,
 
+  // Help / rules modal opened from the GamePage menu's "Help"
+  // item. Lazy-loaded so the help content ships in psychic-num's
+  // chunk, not the main bundle.
+  help: lazy(() =>
+    import('./components/Help').then((m) => ({ default: m.Help })),
+  ),
+
   // Psychic Num plays with any club size — the game logic doesn't
   // care how many people are guessing. Must agree with the
   // (absence of a) member-count check in psychicnum.create_game

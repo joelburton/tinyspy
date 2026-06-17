@@ -1,25 +1,25 @@
 import { FloatingPanel } from '../../common/components/FloatingPanel'
-import styles from './HowToPlayModal.module.css'
+import styles from './Help.module.css'
 
 type Props = {
-  open: boolean
   onClose: () => void
 }
 
 /**
- * Short rules summary, opened from the in-game header's "How to
- * play" button. Floating panel via the shared `<FloatingPanel>`
- * shell: draggable + resizable so a user can shrink it into a
- * corner while reading the chat or watching the board, no
- * backdrop so other UI stays interactable.
+ * Tinyspy's help / rules modal — opened from the "Help" item in
+ * the GamePage menu. Implements the common
+ * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * Each open lands centered. Position isn't persisted — the
- * modal's job is "appear, get read, close," and remembering a
- * dragged location across opens would surprise the user on
- * their next click of the How-to-play button.
+ * Floating panel via the shared `<FloatingPanel>` shell:
+ * draggable + resizable so a user can shrink it into a corner
+ * while reading the chat or watching the board, no backdrop so
+ * other UI stays interactable.
+ *
+ * The parent (`GamePage`) mounts this component only when the
+ * help modal is open, so there's no `open` prop — `onClose`
+ * unmounts it. Each open lands centered; position isn't persisted.
  */
-export function HowToPlayModal({ open, onClose }: Props) {
-  if (!open) return null
+export function Help({ onClose }: Props) {
   return (
     <FloatingPanel
       title="How to play Codenames Duet"

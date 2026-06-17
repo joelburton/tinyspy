@@ -48,6 +48,7 @@ export function PlayArea({
   isTerminal,
   timer,
   feedback,
+  menu,
 }: GamePageCtx) {
   const {
     game,
@@ -84,6 +85,25 @@ export function PlayArea({
     const t = setTimeout(() => setShakingTiles(new Set()), 500)
     return () => clearTimeout(t)
   }, [shakingTiles])
+
+  // Register the per-game menu items. Today there's one: "Hints,"
+  // which opens the HintModal. The cleanup return resets to []
+  // so PlayArea-unmount (pause, route change) clears the per-game
+  // section of the menu — common items (Help, Back to club) stay.
+  //
+  // Disabled when the game is over: the hints no longer help with
+  // a guess; the categories are already on the board by then.
+  useEffect(function syncMenuItems() {
+    menu.setGameItems([
+      {
+        id: 'hints',
+        label: 'Hints',
+        onClick: () => setHintsOpen(true),
+        disabled: isTerminal,
+      },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, isTerminal])
 
   // Local helper: every wordknit feedback today is `closeable` —
   // a guess outcome should stay on screen until the player either
@@ -211,14 +231,6 @@ export function PlayArea({
               <>
                 Mistakes remaining
                 <MistakeDots used={game.mistake_count} />
-                {' · '}
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => setHintsOpen(true)}
-                >
-                  Hints
-                </button>
               </>
             )}
           </div>

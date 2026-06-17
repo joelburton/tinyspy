@@ -41,6 +41,13 @@ export type GamePageCtx = {
    *  API + dismiss-mode semantics. The functions' identities are
    *  stable across renders, so they're safe to put in dep arrays. */
   feedback: FeedbackApi
+  /** Imperative API for the per-game section of the GamePage menu
+   *  (the dropdown opened from the game logo). The PlayArea calls
+   *  `menu.setGameItems([...])` to populate its items; the array
+   *  replaces wholesale on each call. See docs/ui.md → GamePage
+   *  menu for the placement + activation contract. Identity is
+   *  stable across renders. */
+  menu: MenuApi
 }
 
 /** Tone variants the feedback pill renders. See docs/ui.md →
@@ -62,6 +69,36 @@ export type FeedbackMsg = {
 export type FeedbackApi = {
   show: (msg: FeedbackMsg) => void
   clear: () => void
+}
+
+/** One row in the GamePage menu's per-game section (and any
+ *  future reuse of `<Menu>`). See docs/ui.md → "GamePage menu"
+ *  for the placement + activation contract. */
+export type MenuItem = {
+  /** Stable id for React keying. PlayArea-owned values that
+   *  reflect game-state changes are fine — the array is replaced
+   *  wholesale on each `setGameItems` call. */
+  id: string
+  label: string
+  onClick: () => void
+  /** When true, the item renders greyed-out and skips keyboard
+   *  navigation. Use for state-dependent actions ("Reveal cell"
+   *  enabled only when a cell is selected). */
+  disabled?: boolean
+}
+
+/** A group of items rendered together in the menu popover.
+ *  Sections are separated by a thin divider. Empty sections drop
+ *  out — no leading or trailing dividers around them. */
+export type MenuSection = {
+  items: MenuItem[]
+}
+
+export type MenuApi = {
+  /** Replace the per-game section's items wholesale. Pass `[]`
+   *  to clear (the section disappears and the divider above it
+   *  drops). Identity is stable across GamePage renders. */
+  setGameItems: (items: MenuItem[]) => void
 }
 
 /**
@@ -151,6 +188,14 @@ export type GameManifest = {
    *  `import logoUrl from './logo.svg?url'` in each game's
    *  manifest. See docs/ui.md → "GamePage header". */
   logoUrl: string
+
+  /** This gametype's "how to play" / rules modal. Opened from
+   *  the "Help" item in the GamePage menu (the dropdown anchored
+   *  to the logo). Every game declares one — the question "how
+   *  do I play this?" is universal. Lazy-loaded so each game's
+   *  help content ships in that game's chunk, not the main
+   *  bundle. See docs/ui.md → "Help" + "GamePage menu". */
+  help: ComponentType<{ onClose: () => void }>
 
   /**
    * Per-gametype baseline timer. Optional; default is no timer.

@@ -1,4 +1,5 @@
 import {
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -8,13 +9,21 @@ import {
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { games } from '../../games'
-import type { FeedbackApi, FeedbackMsg, GamePageCtx } from '../lib/games'
-import { Link } from '../lib/Link'
+import type {
+  FeedbackApi,
+  FeedbackMsg,
+  GamePageCtx,
+  MenuApi,
+  MenuItem,
+  MenuSection,
+} from '../lib/games'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
+import { navigate } from '../lib/router'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { GameLogo } from './GameLogo'
+import { Menu } from './Menu'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from './PauseButton'
 import { StatusSlot } from './StatusSlot'
@@ -29,8 +38,9 @@ type Props = {
    *  presence tracking and re-exposed via ctx to PlayArea. */
   session: Session
   /** The gametype string. Used here to look up the manifest's
-   *  submitTimeout dispatcher when the timer expires AND to pick
-   *  the right SVG for `<GameLogo>`. */
+   *  submitTimeout dispatcher when the timer expires, to pick
+   *  the right SVG for `<GameLogo>`, and to fetch the per-game
+   *  `help` component for the menu's Help item. */
   gametype: string
   /** Render-prop child. Receives `GamePageCtx` and returns the
    *  per-gametype play surface JSX. Called only when the game is
@@ -48,11 +58,12 @@ type Props = {
  * Tree shape:
  *
  *     GamePage
- *     ├── Header  (logo + chat-bubble + status-slot | pause + timer)
+ *     ├── Header  (Menu(logo) + chat-bubble + status-slot | pause + timer)
  *     ├── PauseBoundary
- *     │     ├── if !paused → children({players, timer, feedback, ...})
+ *     │     ├── if !paused → children({players, timer, feedback, menu, ...})
  *     │     └── if  paused → <PauseOverlay/>
- *     └── FloatingChat   (z-index 10000, above the pause overlay)
+ *     ├── Help modal  (when menu's Help item is active)
+ *     └── FloatingChat  (z-index 10000, above everything else)
  *
  * Header layout is layout-static per docs/ui.md → Layout
  * stability — the four chrome elements + the timer slot don't
@@ -61,22 +72,32 @@ type Props = {
  * the per-gametype PlayArea has called `ctx.feedback.show()`)
  * at fixed slot height so neighbors don't move.
  *
+ * The logo is a menu trigger (see docs/ui.md → "GamePage menu"):
+ * click opens a dropdown with two sections. The common section
+ * is built here (Help + Back to club); the per-game section is
+ * pushed by PlayArea via `ctx.menu.setGameItems([...])`. Items
+ * disappear during pause because PlayArea unmounts and its
+ * `setGameItems` cleanup clears them — common items keep working.
+ *
+ * Help is a per-game contract on the manifest. Every game declares
+ * `help: ComponentType<{ onClose: () => void }>`; the menu's Help
+ * item flips local state that mounts the component; `onClose`
+ * unmounts it. Lazy-loaded with the game's chunk, wrapped in a
+ * Suspense boundary here so a slow chunk fetch doesn't crash.
+ *
  * Header stays visible during pause; the overlay only covers
  * the play surface. Feedback that's active when pause fires
  * stays readable in the header — callers who want a specific
- * feedback to drop on pause must `clear()` explicitly.
+ * feedback to drop on pause must `clear()` explicitly. The menu
+ * stays openable during pause for the same reason.
  *
  * PlayArea unmounts on pause and remounts on resume — selections,
  * form state, and any per-gametype channels start fresh. State
  * that should *survive* a pause must live above the boundary
- * (useCommonGame, the feedback state here) or in the DB.
+ * (useCommonGame, the feedback + menu state here) or in the DB.
  *
  * FloatingChat is rendered OUTSIDE PauseBoundary so it stays
  * available mid-pause ("waiting for Bea, anyone want to chat?").
- * It also stays above any modal that opens (SuspendConfirmDialog,
- * HowToPlayModal, HintModal) thanks to its z-index. The future
- * scratchpad is the opposite case — it'd render INSIDE
- * PauseBoundary so it vanishes on pause-unmount.
  *
  * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
  * to false once `common.games.ended_at` is populated, so a game
@@ -84,11 +105,11 @@ type Props = {
  * to "PlayArea mounted, ResultBanner shown."
  *
  * Back-to-club asymmetry (per docs/states.md → "Leaving the
- * game page"): terminal games leave with a single click on the
- * `<GameLogo>` — no progress to lose. Non-terminal clicks
- * intercept and open the suspend-confirm modal; on accept,
- * `sendSuspend` broadcasts → every peer navigates back to the
- * club page; last-leaver clears is_current_view.
+ * game page"): the "Back to club" menu item navigates directly
+ * for terminal games and opens the suspend-confirm modal for
+ * non-terminal games; on confirm, `sendSuspend` broadcasts → every
+ * peer navigates back to the club page; last-leaver clears
+ * is_current_view.
  */
 export function GamePage({
   gameId,
@@ -108,17 +129,22 @@ export function GamePage({
     timer,
     loading,
   } = useCommonGame(gameId, session)
-  // Open/closed state for the suspend-confirm modal. Set true
-  // when the non-terminal logo click is intercepted; cleared on
-  // Cancel or after Suspend (sendSuspend navigates away, which
-  // unmounts this component anyway).
+
+  // Open/closed state for the suspend-confirm modal (fired from
+  // the menu's "Back to club" item for non-terminal games).
   const [confirmingSuspend, setConfirmingSuspend] = useState(false)
+  // Whether the per-game Help modal is mounted. Toggled by the
+  // menu's "Help" item.
+  const [helpOpen, setHelpOpen] = useState(false)
   // The currently-active feedback message, or null when the
-  // StatusSlot should show its default (`<PlayersStrip>`). State
-  // lives here (not in per-game PlayArea) so the header can
-  // render it without coupling to the play surface, and so it
-  // survives PlayArea unmount on pause transitions.
+  // StatusSlot should show its default (`<PlayersStrip>`).
   const [feedback, setFeedback] = useState<FeedbackMsg | null>(null)
+  // The per-game menu items the current PlayArea has pushed via
+  // `ctx.menu.setGameItems`. Reset to [] on PlayArea unmount
+  // (cleanup return on PlayArea's effect) — so during a pause the
+  // game-specific section disappears and only the common section
+  // shows. The common section is built fresh on each render below.
+  const [gameMenuItems, setGameMenuItems] = useState<MenuItem[]>([])
 
   // Edge-trigger timeout-loss when countdown hits 0. The
   // submittedTimeoutRef gate prevents double-firing within this
@@ -143,15 +169,8 @@ export function GamePage({
   }, [timer.expired, commonGame, gameId, gametype])
 
   // Auto-clear `timed`-dismiss feedback after the configured
-  // duration (default 2200ms — matches wordknit's previous
-  // setTransient timing). Sticky and closeable modes are
-  // explicit no-ops at this layer — they wait on the caller's
-  // next `show()`/`clear()` or the user's × click respectively.
-  //
-  // Runs across pause transitions: header stays visible during
-  // pause (overlay doesn't cover it), so the timer continues
-  // counting from when the message was shown regardless of
-  // pause state. That matches the docs/ui.md spec.
+  // duration (default 2200ms). Sticky and closeable modes are
+  // explicit no-ops at this layer.
   useEffect(function autoClearTimedFeedback() {
     if (!feedback) return
     if (feedback.dismiss.kind !== 'timed') return
@@ -160,11 +179,7 @@ export function GamePage({
     return () => clearTimeout(t)
   }, [feedback])
 
-  // Stable identities for the feedback API exposed to PlayArea
-  // via ctx.feedback. setFeedback is React-stable; the wrapping
-  // useCallbacks + useMemo lock the object reference too, so a
-  // PlayArea that depends on `feedback.show` in an effect dep
-  // array doesn't restage on every render.
+  // Stable identities for the feedback API exposed to PlayArea.
   const feedbackShow = useCallback((msg: FeedbackMsg) => {
     setFeedback(msg)
   }, [])
@@ -176,51 +191,72 @@ export function GamePage({
     [feedbackShow, feedbackClear],
   )
 
+  // Stable identity for the menu API exposed to PlayArea. The
+  // PlayArea calls setGameItems in an effect; the cleanup return
+  // calls setGameItems([]) so unmount clears the per-game section.
+  const setGameItems = useCallback((items: MenuItem[]) => {
+    setGameMenuItems(items)
+  }, [])
+  const menuApi = useMemo<MenuApi>(
+    () => ({ setGameItems }),
+    [setGameItems],
+  )
+
+  // Resolve the gametype's manifest once for downstream uses
+  // (logo, help component). Find returns undefined for unknown
+  // gametypes; we guard render below.
+  const manifest = games.find((g) => g.gametype === gametype)
+
   if (loading) return <div className="card">Loading game…</div>
   if (!commonGame) return <div className="card">Game not found.</div>
+  if (!manifest) return <div className="card">Unknown game type.</div>
 
   const showTimer = commonGame.setup.timer?.kind === 'countup'
     || commonGame.setup.timer?.kind === 'countdown'
   const gameOver = commonGame.ended_at !== null
+  const HelpComponent = manifest.help
 
-  // Logo wrapper: terminal = real <Link> (single-click back);
-  // non-terminal = <a> with the matching href but an onClick
-  // that intercepts plain clicks to open the suspend-confirm
-  // modal. Middle/cmd/ctrl/shift/alt clicks fall through to
-  // normal anchor behaviour (open in new tab, etc).
-  //
-  // The href is the same in both cases so hover-preview /
-  // middle-click / right-click → "Copy link address" all behave
-  // like a normal link.
-  const clubHref = `/c/${commonGame.club_handle}`
-  const logoWrapped = gameOver ? (
-    <Link to={clubHref} className={styles.logoLink}>
-      <GameLogo gametype={gametype} />
-    </Link>
-  ) : (
-    <a
-      href={clubHref}
-      className={styles.logoLink}
-      onClick={(e) => {
-        if (
-          e.button !== 0 || e.metaKey || e.ctrlKey
-          || e.shiftKey || e.altKey
-        ) {
-          return
-        }
-        e.preventDefault()
-        setConfirmingSuspend(true)
-      }}
-    >
-      <GameLogo gametype={gametype} />
-    </a>
-  )
+  // Build the menu's common section. Help opens the help modal;
+  // Back to club fires the same terminal vs non-terminal logic the
+  // old logo-click did — direct navigation for terminal games,
+  // suspend-confirm modal for non-terminal.
+  const commonSection: MenuSection = {
+    items: [
+      {
+        id: 'help',
+        label: 'Help',
+        onClick: () => setHelpOpen(true),
+      },
+      {
+        id: 'back',
+        label: 'Back to club',
+        onClick: () => {
+          if (gameOver) {
+            // Terminal: navigate directly. The last-viewer cleanup
+            // will fire unset_current_view via useCommonGame's
+            // unmount on the route change.
+            navigate(`/c/${commonGame.club_handle}`)
+          } else {
+            setConfirmingSuspend(true)
+          }
+        },
+      },
+    ],
+  }
+  const sections: MenuSection[] = [
+    commonSection,
+    { items: gameMenuItems },
+  ]
 
   return (
     <div className={styles.frame}>
       <header className={styles.header}>
         <div className={styles.left}>
-          {logoWrapped}
+          <Menu
+            trigger={<GameLogo gametype={gametype} />}
+            sections={sections}
+            triggerLabel="Game menu"
+          />
           <ChatBubble />
           <StatusSlot
             players={players}
@@ -252,6 +288,7 @@ export function GamePage({
           isTerminal: commonGame.is_terminal,
           timer,
           feedback: feedbackApi,
+          menu: menuApi,
         })}
       </PauseBoundary>
 
@@ -270,6 +307,16 @@ export function GamePage({
         members={players}
         hideClosedButton
       />
+
+      {/* Help modal — lazy-loaded from the manifest. Suspense
+          fallback is null because a brief blank moment during chunk
+          fetch is acceptable for a help modal (the user just
+          clicked Help; they expect it to appear within a beat). */}
+      {helpOpen && (
+        <Suspense fallback={null}>
+          <HelpComponent onClose={() => setHelpOpen(false)} />
+        </Suspense>
+      )}
 
       {confirmingSuspend && (
         <SuspendConfirmDialog
