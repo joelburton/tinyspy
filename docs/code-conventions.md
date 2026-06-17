@@ -160,7 +160,7 @@ The reason both rules matter: this codebase is shaped to host ~7 games, most of 
 When porting a new game, the per-game `useGame` hook's shape depends on whether the game has fixed seats:
 
 - **Fixed-seat games** (tinyspy is the example: two players, identified by columns `user_a_id` / `user_b_id`): the hook **fetches its own roster**. The seat ⇄ user_id mapping is intrinsic to the per-game row, so the roster has to be loaded alongside the game data — no upstream component can pre-compute it. The hook also fetches profiles (cross-schema) to embed usernames; the canonical example is `src/tinyspy/hooks/useGame.ts`.
-- **N-player open games** (psychicnum, wordknit are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `members` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
+- **N-player open games** (psychicnum, wordknit are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `players` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
@@ -250,10 +250,50 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
 | `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, members, playState, isTerminal, timer }`). |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
 If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
+
+#### Member vs Player — one type, context-driven variable names
+
+The codebase has a single canonical identity shape — `Member` in [`src/common/lib/games.ts`](../src/common/lib/games.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (tinyspy adds `seat`); the naming carries the *context*, not the type-level distinction.
+
+> **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
+
+Why both names exist for what's often the same shape:
+
+- A reader scanning `ClubPage.tsx` sees `members: Member[]` and reads "people in this club" — the chat sender lookup, the member-list rendering, the setup-form's "who picks first?" picker. Club-wide.
+- A reader scanning `wordknit/components/GuessHistory.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
+
+The per-game `Player` alias earns its keep even when it's a pure re-export:
+
+```ts
+// wordknit/hooks/useGame.ts (and psychicnum/hooks/useGame.ts)
+import type { Member } from '../../common/lib/games'
+export type Player = Member
+
+// tinyspy/hooks/useGame.ts
+import type { Member } from '../../common/lib/games'
+export type Player = Member & { seat: 'A' | 'B' }
+```
+
+Why every game declares one — even the pure-alias case:
+
+1. **Cross-game pattern parallel.** A reader scanning per-game folders sees the same `Player` symbol everywhere. They don't have to remember "tinyspy uses Player but wordknit uses Member" — every game's vocabulary is the same.
+2. **Future-proofing.** When wordknit grows per-player game state (a "tile-rate-of-correct" stat, a "you're it" turn marker), the type is already named. No cascade rename from `Member` → `Player` across call sites.
+3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a wordknit subcomponent says "this is wordknit's notion of a player" — even if the body is just `= Member`.
+
+Where to use which:
+
+| Context | Type | Variable name | Examples |
+|---|---|---|---|
+| Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `FloatingChat.members` |
+| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GuessHistory players={...} />`, `computePause(presentUserIds, players)` |
+
+The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (tinyspy's seat); otherwise the rename happens at the variable-name level only.
+
+See [`naming.md → player`](naming.md#player) for the conceptual side.
 
 #### Other casing rules
 

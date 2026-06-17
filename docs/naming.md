@@ -70,6 +70,26 @@ The practical effect: most game-side code shouldn't reach for `user` at all, bec
 
 For the database row specifically (regardless of context), `profile` is the name — that's the `common.profiles` row.
 
+**`member` vs `player` inside a game.** Once code is in a game context (inside a `<PlayArea>`, inside `useCommonGame`, inside a per-game hook), the person is more precisely a **player** — someone in `common.game_players` for this game, which is a strict subset of the club's members. See [`player`](#player) below.
+
+### player
+
+A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because a future player-picker UI will let a subset of the club start a game.
+
+**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/games.ts` plus a per-game `Player` alias in each game's hook file:
+
+- Wordknit and psychic-num: `type Player = Member` (pure re-export — no per-game enrichment today).
+- Tinyspy: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — tinyspy is intrinsically 2-seat).
+
+Every game declares the alias even when it's a pure re-export, because cross-game vocabulary consistency makes per-game folders pattern-match cleanly (a reader switching from tinyspy to wordknit sees the same `Player` parallel and doesn't trip on a name change).
+
+**Variable naming follows context, not type:**
+
+- Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameDialog's pickers): variable name is `members`, type is `Member[]`.
+- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GuessHistory props): variable name is `players`, type is `Player[]`.
+
+So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
+
 ### persona
 
 A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, `cade`, `dee`, `eda`. Each has a documented role (in-club player, in-club non-player, outsider) and a UUID that embeds the name (`ada11111-1111-…`) for self-evident error messages. Defined in [`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql). See [`testing.md`](testing.md) for the conventions.
