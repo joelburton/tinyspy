@@ -491,7 +491,6 @@ export function ClubPage({ session, handle }: Props) {
           sections={menuSections}
           triggerLabel="Club menu"
         />
-        <span className={styles.clubName}>{club.name}</span>
         <ChatBubble />
         {/* StatusSlot's `players` prop is a Member[] under the
             hood; here we feed it the club's member roster (the
@@ -507,9 +506,16 @@ export function ClubPage({ session, handle }: Props) {
       </header>
 
       <main className={styles.main}>
-        <p className="muted">
-          <code>/c/{club.handle}</code>
-        </p>
+        {/* Club name lives in the main well, not the header —
+            matches GamePage's "no title in chrome" convention.
+            The logo carries identity at the header level; the
+            page body is where the canonical name + handle land. */}
+        <header>
+          <h1>{club.name}</h1>
+          <p className="muted">
+            <code>/c/{club.handle}</code>
+          </p>
+        </header>
 
         <section>
           <h3>Members ({members.length})</h3>

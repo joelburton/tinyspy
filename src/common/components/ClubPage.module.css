@@ -38,23 +38,6 @@
   padding: 0.75rem 1rem;
 }
 
-/* The club name slot. Plain text in the body weight; truncates
- * with ellipsis if a long-named club would otherwise crowd out
- * the StatusSlot. Friends typically use short handles for clubs
- * so the truncation is a safety net, not a routine cost. */
-.clubName {
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* Don't claim more horizontal space than necessary — the
-   * StatusSlot beside us should grow first. */
-  flex-shrink: 1;
-  min-width: 0;
-}
-
 /* Main content well. Same surface chrome as .card but explicit
  * styling here so we control the centering without inheriting
  * .card's automatic margin behaviour (which would conflict with
