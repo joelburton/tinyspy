@@ -1,0 +1,101 @@
+/* Shared visuals for every floating panel — the modals, the
+ * always-on FloatingChat, the future scratchpad. The header
+ * pattern (title + X), the body padding, the shadow, the
+ * rounded corners all live here so panels look consistent.
+ *
+ * Layout is supplied by react-rnd via inline styles (position,
+ * size); this stylesheet owns the visual chrome only. */
+
+/* The Rnd wrapper. react-rnd inlines width/height/transform on
+ * this element; we add the surface treatment. */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  /* The shadow gives floating panels a clear "above the page"
+     read against the off-white --color-bg. Subtle enough to not
+     dominate, strong enough that the panel isn't ambiguous
+     against the surface beneath. */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* react-rnd renders its own wrapper at the absolute position;
+     we lay out children top-to-bottom (header → body). */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--color-surface-border);
+  background: var(--color-surface-hover);
+  user-select: none;
+  /* Anchor the header height so the body's max-height arithmetic
+     stays predictable; the rest is body. */
+  flex-shrink: 0;
+}
+
+/* Class applied when the panel is draggable. react-rnd uses it
+ * as its dragHandleClassName, AND we use it locally to flip the
+ * cursor so the user discovers the affordance on hover. */
+.dragHandle {
+  cursor: move;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  /* Truncate long titles rather than blowing out the header
+     width — the close button must stay reachable. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The close X. Reset the global filled-accent button look to a
+ * quiet square-icon; the hover treatment matches the
+ * ClubGameCard delete button's idle state. */
+.closeButton {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-muted);
+  padding: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Cursor stays default (pointer) even though parent's
+     dragHandle class sets move; the button's own cursor wins. */
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.closeButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  border-color: var(--color-control-border);
+}
+
+.body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 1rem 1.25rem;
+}
+
+/* Backdrop layer — fixed-position dim that catches pointer
+ * events on the page underneath but doesn't catch anything
+ * happening above its z-index (chat at 10000 is unaffected).
+ * Only Setup uses this today. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  /* No transition — appears instantly with the panel so there's
+     no "fading in over content" moment. */
+}
