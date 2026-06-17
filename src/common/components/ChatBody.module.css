@@ -45,6 +45,15 @@
   font-weight: 600;
 }
 
+/* "Important" message content — set when the original message
+ * started with `!`. The marker char is stripped for display
+ * (see ChatBody.tsx) and the content text gets a heavier weight
+ * so it stands out in the log. FloatingChat handles the
+ * matching "auto-open for everyone" behavior. */
+.importantContent {
+  font-weight: 700;
+}
+
 .inputRow {
   flex-shrink: 0;
   /* Override the global form rules (display: flex column,

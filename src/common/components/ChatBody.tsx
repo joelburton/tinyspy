@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../db'
-import { useClubChat } from '../hooks/useClubChat'
 import { colorVarFor } from '../lib/peerColor'
+import type { ClubMessage } from '../hooks/useClubChat'
 import styles from './ChatBody.module.css'
 
 /** Minimal member shape the chat body needs to render names. The
@@ -18,13 +18,17 @@ type Member = {
 type Props = {
   clubId: string
   members: Member[]
+  /** Messages + loading lifted from FloatingChat (which subscribes
+   *  via useClubChat at its level so the force-open detector for
+   *  important messages can run even while the panel is closed). */
+  messages: ClubMessage[]
+  loading: boolean
 }
 
 /**
- * The chat conversation itself — message list + input form —
- * extracted from the old `ClubChatPanel` so the floating-window
- * shell (`<FloatingChat>` → `<FloatingPanel>`) can wrap it
- * without inheriting the old static section's chrome.
+ * The chat conversation itself — message list + input form.
+ * Pure rendering plus the send-message form; doesn't subscribe
+ * to the message stream itself (its parent FloatingChat does).
  *
  * Looks up each message's sender in the `members` prop (loaded
  * once by the parent), keeping render cheap and avoiding the
@@ -34,9 +38,14 @@ type Props = {
  * Auto-scrolls to the latest message on each update — `block: 'end'`
  * (not `'smooth'`) so the scroll is instant on first mount and on
  * every incoming message, no partial-scroll-then-jump UX.
+ *
+ * **Important-message convention.** A message whose content
+ * starts with `!` is rendered with its leading `!` stripped and
+ * the content bolded (font-weight: 700). FloatingChat handles
+ * the matching "force open" behavior; here we just deal with
+ * display.
  */
-export function ChatBody({ clubId, members }: Props) {
-  const { messages, loading } = useClubChat(clubId)
+export function ChatBody({ clubId, members, messages, loading }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -91,6 +100,12 @@ export function ChatBody({ clubId, members }: Props) {
           // from the cached members roster (see Member type
           // above), no per-message fetch.
           const sender = memberFor(m.user_id)
+          const important = m.content.startsWith('!')
+          // Strip the leading `!` for display; the marker
+          // character itself isn't part of the message. Trim
+          // any whitespace immediately after so "!hi" and
+          // "! hi" both render as "hi".
+          const display = important ? m.content.slice(1).trimStart() : m.content
           return (
             <div key={m.id} className={styles.message}>
               <span
@@ -99,7 +114,11 @@ export function ChatBody({ clubId, members }: Props) {
               >
                 {sender?.username ?? '?'}:
               </span>{' '}
-              <span>{m.content}</span>
+              <span
+                className={important ? styles.importantContent : undefined}
+              >
+                {display}
+              </span>
             </div>
           )
         })}

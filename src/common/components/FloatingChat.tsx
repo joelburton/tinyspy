@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useClubChat } from '../hooks/useClubChat'
 import { FloatingPanel } from './FloatingPanel'
 import { ChatBody } from './ChatBody'
 import styles from './FloatingChat.module.css'
@@ -29,28 +30,86 @@ type Props = {
  * `pupgames:chat:open`) so the panel feels continuous as the
  * user moves between pages.
  *
+ * **Force-open for important messages.** A message that starts
+ * with `!` is treated as "everyone needs to see this" — chat
+ * auto-opens for every recipient when one arrives. Use cases
+ * include "shall we stop this game?", "I have to go in 5
+ * minutes." The leading `!` is the trigger character; it's
+ * NOT shown in the message list (ChatBody strips it for
+ * display and bolds the content).
+ *
+ * Force-open semantics:
+ *   - Subscribes to chat messages here (lifted from ChatBody)
+ *     so the detector is alive even while the panel is closed.
+ *   - First-load snapshots the current latest-message id
+ *     WITHOUT opening — important messages already in the log
+ *     when the user joins a session shouldn't auto-pop the
+ *     panel on every navigation.
+ *   - Any subsequent latest-id change that starts with `!`
+ *     calls `setOpen(true)`. Users can close again immediately
+ *     if they want; the next new `!` will reopen.
+ *
  * Closing is intentionally explicit: only the header X button
  * closes the panel. ESC does NOT close it (`closeOnEsc=false`),
  * and there's no backdrop click semantics because there's no
- * backdrop. The chat is always reachable; dismissing it should
- * be a conscious gesture.
+ * backdrop.
  *
- * Why z-index 10000: the four modals refactored onto
- * <FloatingPanel> render at the default 500 tier. Chat needs to
- * sit above them so the "ask the partner what timer to pick"
- * use case works while SetupGameDialog is open. The Setup
- * backdrop sits at zIndex-1 (499); chat at 10000 is well above
- * that.
+ * Why z-index 10000: chat needs to sit above the four modals
+ * (Setup / HowToPlay / Hint / SuspendConfirm at z-index 500) so
+ * the "ask the partner what timer to pick" use case works while
+ * SetupGameDialog is open. The Setup backdrop sits at zIndex-1
+ * (499); chat at 10000 is well above that.
  *
  * Lifecycle: mounted once per page (ClubPage and GamePage each
  * render an instance). localStorage glue makes the open/closed
- * state and the rect continuous across remounts — there's a
- * brief moment during navigation where the chat unmounts and
- * remounts, but the persisted state restores immediately and
- * the user perceives a single continuous window.
+ * state and the rect continuous across remounts.
  */
 export function FloatingChat({ clubId, members }: Props) {
   const [open, setOpen] = useState<boolean>(() => readOpen())
+  // useClubChat lifted from ChatBody so the force-open detector
+  // runs even when the panel is closed. ChatBody now takes
+  // messages + loading as props.
+  const { messages, loading } = useClubChat(clubId)
+
+  // Force-open detector. Track the latest-seen message id across
+  // renders; on first-load (right after the initial fetch
+  // resolves) snapshot the current latest WITHOUT acting, so
+  // older `!` messages already in the log don't pop the panel
+  // every time a user navigates in.
+  const lastSeenIdRef = useRef<string | null>(null)
+  const initializedRef = useRef(false)
+  useEffect(() => {
+    // Wait for the initial fetch to resolve so we have a stable
+    // starting snapshot. While loading, neither initialize nor
+    // act.
+    if (loading) return
+    if (messages.length === 0) {
+      initializedRef.current = true
+      return
+    }
+    const latest = messages[messages.length - 1]
+    if (!initializedRef.current) {
+      // First successful load — record the current latest id
+      // as "already seen" so we don't auto-open for it. Any
+      // message that arrives AFTER this point is fair game.
+      lastSeenIdRef.current = latest.id
+      initializedRef.current = true
+      return
+    }
+    if (latest.id === lastSeenIdRef.current) return
+    lastSeenIdRef.current = latest.id
+    if (latest.content.startsWith('!')) {
+      // React 19's stricter "set-state-in-effect" rule flags
+      // this — but the setState IS in direct response to an
+      // external event (a new message arrived via Realtime
+      // through useClubChat). The cascading render warning the
+      // rule guards against doesn't apply here: open is the
+      // only state we touch, and only when the latest-message
+      // id genuinely changed.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(true)
+    }
+  }, [messages, loading])
 
   // Mirror open state to localStorage so the next mount (after
   // navigation or reload) restores it.
@@ -73,11 +132,7 @@ export function FloatingChat({ clubId, members }: Props) {
     )
   }
 
-  // Open shape — the floating panel. defaultPosition is
-  // 'center' as a fallback for first-ever mount with no stored
-  // rect; in practice the persisted rect lands the panel where
-  // the user last left it. defaultSize matches the
-  // ../connections initial size (~340x460).
+  // Open shape — the floating panel.
   return (
     <FloatingPanel
       title="Chat"
@@ -90,7 +145,12 @@ export function FloatingChat({ clubId, members }: Props) {
       minWidth={260}
       minHeight={240}
     >
-      <ChatBody clubId={clubId} members={members} />
+      <ChatBody
+        clubId={clubId}
+        members={members}
+        messages={messages}
+        loading={loading}
+      />
     </FloatingPanel>
   )
 }
