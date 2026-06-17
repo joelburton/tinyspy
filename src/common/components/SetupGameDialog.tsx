@@ -89,20 +89,30 @@ export function SetupGameDialog({
   // remounts us per game-start attempt, so each open starts
   // fresh by construction.
   const [setup, setSetup] = useState<unknown>(() => ({
-    ...(manifest.setupForm?.defaults as Record<string, unknown> | undefined),
+    ...(manifest.setupForm.defaults as Record<string, unknown>),
     ...((savedDefault ?? {}) as Record<string, unknown>),
   }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Safety net: a parent that opens us for a setupForm-less
-  // manifest is a bug, not a UX state we should render around.
-  // Bail loudly in dev by rendering nothing; production
-  // behavior is the same.
-  if (!manifest.setupForm) return null
   const SetupBody = manifest.setupForm.Component
 
-  async function handleStart() {
+  /**
+   * The dialog's commit handler. Calls
+   * `manifest.startGameInClub`, which fires the RPC that
+   * actually writes the new `common.games` row.
+   *
+   * Named `handleStartGame` (not `handleStart`) to disambiguate
+   * the two phases that both used to be called "start":
+   *
+   *   - **startSetup**: ClubPage's `handleStartSetup` opens
+   *     this dialog. Game doesn't exist yet.
+   *   - **startGame** (this handler): user clicks Start in the
+   *     dialog; the RPC actually creates the game.
+   *
+   * See docs/naming.md → "start".
+   */
+  async function handleStartGame() {
     setBusy(true)
     setError(null)
     // For now: default playerUserIds to every club member. A
@@ -149,7 +159,12 @@ export function SetupGameDialog({
         >
           Cancel
         </button>
-        <button type="button" onClick={handleStart} disabled={busy} autoFocus>
+        <button
+          type="button"
+          onClick={handleStartGame}
+          disabled={busy}
+          autoFocus
+        >
           {busy ? 'Starting…' : `Start ${manifest.name}`}
         </button>
       </div>

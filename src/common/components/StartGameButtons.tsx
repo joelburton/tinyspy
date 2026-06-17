@@ -3,54 +3,50 @@ import { playerCountFits, playerCountLabel } from '../lib/games'
 
 type Props = {
   /** The gametypes to render buttons for. The caller pre-filters
-   *  (e.g. ClubPage by the club's allowed-gametype m2m, HomePage by
-   *  the user's solo-club allowed set). This component doesn't
-   *  apply its own filtering on top. */
+   *  (ClubPage by the club's allowed-gametype m2m). This
+   *  component doesn't apply its own filtering on top. */
   games: GameManifest[]
   /** Member count used to derive each button's disabled state via
    *  the manifest's numberOfPlayers range. ClubPage passes the
-   *  current club's `members.length`; HomePage passes 1 (solo). */
+   *  current club's `members.length`. */
   memberCount: number
   /** Build the button label per game. ClubPage uses
-   *  `(g) => \`Start ${g.name}\``; HomePage uses
-   *  `(g) => \`Play ${g.name} solo\``. */
+   *  `(g) => \`Start ${g.name}\``. */
   getLabel: (game: GameManifest) => string
-  /** The gametype currently being started (RPC in flight), or null.
-   *  All buttons disable while one is in flight; the in-flight one
-   *  shows "Starting…". */
-  starting: string | null
-  /** Click handler. Receives the gametype string. */
-  onStart: (gametype: string) => void
+  /**
+   * Click handler. Receives the gametype string. Named
+   * `onStartSetup` (not `onStart`) to disambiguate the two
+   * phases that both used to be called "start":
+   *
+   *   - **startSetup** (this callback): user clicks a button
+   *     here, ClubPage opens the setup dialog. The game does
+   *     NOT exist yet.
+   *   - **startGame**: user clicks Start inside the dialog,
+   *     SetupGameDialog calls `manifest.startGameInClub`, the
+   *     game is actually created.
+   *
+   * See docs/naming.md → "start" for the convention.
+   */
+  onStartSetup: (gametype: string) => void
 }
 
 /**
- * The "Start a new game" button row — one button per gametype in
- * `games`. Shared between ClubPage ("Start Wordknit", "Start Tinyspy")
- * and HomePage ("Play Wordknit solo").
+ * Per-gametype "Start X" buttons rendered on ClubPage. One
+ * button per gametype in `games`, each labeled by `getLabel`
+ * and disabled if the club's member count is outside the
+ * gametype's `numberOfPlayers` range.
  *
- * What's shared and what isn't:
- *
- *   - **Shared**: iterating the games list, per-button disabled
- *     state, per-button tooltip ("Tinyspy needs exactly 2 members"
- *     vs blurb), in-flight ("Starting…") label override, layout
- *     using the existing `.actions` flex stack.
- *
- *   - **Caller-supplied**: the games list (pre-filtered by the
- *     caller's allowed-gametype set), the label callback (so a
- *     button reads "Start X" or "Play X solo"), the member count
- *     (drives disabled-because-doesn't-fit state).
- *
- * Today's buttons are intentionally simple. The component exists so
- * the call sites stay short and so the visual treatment can mature
- * here (thumbnails, blurbs, hover affordances) without touching
- * three callers.
+ * Each click opens SetupGameDialog (via the parent's
+ * `onStartSetup`); the actual game-create RPC fires when the
+ * user confirms inside the dialog. The button label says
+ * "Start" because that's what users expect; the code-side
+ * naming reflects the two-phase reality.
  */
 export function StartGameButtons({
   games,
   memberCount,
   getLabel,
-  starting,
-  onStart,
+  onStartSetup,
 }: Props) {
   return (
     <div className="actions">
@@ -61,11 +57,11 @@ export function StartGameButtons({
           <button
             key={g.gametype}
             type="button"
-            onClick={() => onStart(g.gametype)}
-            disabled={starting !== null || !fits}
+            onClick={() => onStartSetup(g.gametype)}
+            disabled={!fits}
             title={title}
           >
-            {starting === g.gametype ? 'Starting…' : getLabel(g)}
+            {getLabel(g)}
           </button>
         )
       })}

@@ -108,12 +108,7 @@ export type GameManifest = {
    */
   gametype: string
 
-  /**
-   * Postgres schema where the game's tables and RPCs live. Same
-   * as `gametype` by convention. Kept separate so "DB-side
-   * address" stays distinct from "FE-side address" — if they
-   * ever diverge, one string doesn't have to do both jobs.
-   */
+  /** Postgres schema where the game's tables and RPCs live. */
   schema: string
 
   /** Human-readable name shown in pickers and titles. */
@@ -155,18 +150,17 @@ export type GameManifest = {
 
   /**
    * Per-game setup-form declaration shown in a modal before
-   * `create_game` fires. `null` skips the dialog and calls
-   * `startGameInClub` directly — preserved for a future
-   * zero-setup game.
+   * `create_game` fires. Every gametype carries one — at the
+   * very least the timer mode is a setup choice — so the
+   * field is non-nullable.
    */
-  setupForm: GameSetupForm | null
+  setupForm: GameSetupForm
 
   /**
    * Start a new game of this gametype inside the given club.
    * Receives:
    *   - clubId
    *   - setup: the typed value the dialog wrapper collected
-   *     (or `null` when `setupForm: null`)
    *   - playerUserIds: who's actually playing. The dialog
    *     defaults this to every current club member; the caller
    *     does NOT have to be in the list.

@@ -29,10 +29,6 @@ import type { Member } from './games'
  */
 export function computePause(
   presentUserIds: Set<string>,
-  // Variable name is `players` because every call site is in a
-  // game context (useCommonGame for wordknit today; the same
-  // shape will roll out to tinyspy + psychic-num). See Member's
-  // doc in `./games.ts` for the type-vs-variable naming rule.
   players: Member[],
 ): { paused: boolean; missing: Member[] } {
   const missing = players.filter((m) => !presentUserIds.has(m.user_id))

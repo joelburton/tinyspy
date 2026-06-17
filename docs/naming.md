@@ -90,6 +90,25 @@ Every game declares the alias even when it's a pure re-export, because cross-gam
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
 
+### start (startSetup vs startGame)
+
+"Start a game" is a two-phase flow in this codebase: the user picks options first, *then* the game is created. The same word would describe both phases in casual speech, so identifier naming splits them:
+
+- **`startSetup`** — click the "Start Wordknit" button on ClubPage. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
+- **`startGame`** — click "Start Wordknit" inside the dialog after picking options. Fires `manifest.startGameInClub`, which calls `create_game` and writes the new `common.games` row.
+
+Concretely:
+
+| identifier | phase | what it does |
+|---|---|---|
+| `<StartGameButtons onStartSetup={...} />` | startSetup | The row of buttons on ClubPage. Click → open dialog. |
+| `ClubPage.handleStartSetup` | startSetup | Sets `pendingSetup` so the dialog mounts. |
+| `SetupGameDialog.handleStartGame` | startGame | Click-handler for the dialog's commit button. |
+| `manifest.startGameInClub` | startGame | The RPC-firing function. Always actually creates a game. |
+| `SetupGameDialog.onStarted(gameId)` | startGame done | Past tense; fires after `startGameInClub` returns success. |
+
+UI labels stay "Start X" everywhere — users intuitively understand the two-click pattern as "open the form, confirm the form." The distinction lives in the code, where ambiguity costs reader cycles.
+
 ### persona
 
 A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, `cade`, `dee`, `eda`. Each has a documented role (in-club player, in-club non-player, outsider) and a UUID that embeds the name (`ada11111-1111-…`) for self-evident error messages. Defined in [`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql). See [`testing.md`](testing.md) for the conventions.

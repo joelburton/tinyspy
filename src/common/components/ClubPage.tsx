@@ -81,8 +81,12 @@ export function ClubPage({ session, handle }: Props) {
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Shared error channel for club-page actions (delete-game today;
+  // future surfaces land here too rather than competing for
+  // screen space). Named for legacy reasons — once dominated by
+  // the no-setup-form direct-start path that's now excised; today
+  // it's a generic action error.
   const [startError, setStartError] = useState<string | null>(null)
-  const [starting, setStarting] = useState<string | null>(null)
   // The set of gametypes this club is allowed to play, read from
   // common.clubs_gametypes. v1 populates this with every registered
   // gametype at club-creation time; per-club opt-out is deferred.
@@ -170,35 +174,20 @@ export function ClubPage({ session, handle }: Props) {
     // loadGames() re-runs.
   }
 
-  async function handleStart(gametype: string) {
+  /**
+   * Click handler for the per-gametype "Start X" buttons. Opens
+   * the setup dialog — does NOT actually create the game; that
+   * happens when the user clicks Start inside the dialog and
+   * SetupGameDialog calls `manifest.startGameInClub`.
+   *
+   * Two distinct phases that both got called "start" before the
+   * rename: this is `startSetup` (the first one); the dialog's
+   * is `startGame`.
+   */
+  function handleStartSetup(gametype: string) {
     const game = games.find((g) => g.gametype === gametype)
     if (!club || !game) return
-    setStartError(null)
-    // Games that declare a setup form route through the modal —
-    // it collects the setup, calls startGameInClub itself, and
-    // either fires onStarted (we navigate) or onCancel (we close).
-    // Games with `setupForm: null` skip the modal and call
-    // create_game immediately, the same shape ClubPage has always
-    // had.
-    if (game.setupForm) {
-      setPendingSetup(game)
-      return
-    }
-    setStarting(gametype)
-    // Bypass-mode (setupForm null): all current club members play.
-    // No game uses setupForm:null today; kept for the future
-    // zero-setup case.
-    const result = await game.startGameInClub(
-      club.id,
-      null,
-      members.map((m) => m.user_id),
-    )
-    setStarting(null)
-    if ('error' in result) {
-      setStartError(result.error)
-      return
-    }
-    navigate(`/g/${game.gametype}/${result.id}`)
+    setPendingSetup(game)
   }
 
   // Step 1: look up the club + roster. These don't change during
@@ -352,10 +341,10 @@ export function ClubPage({ session, handle }: Props) {
     // game-over screen; players on the club page just see the
     // game move out of the Current section in the list.
     //
-    // The "already there" guard prevents the player who clicked
-    // Start (and was already navigated by `handleStart`) from
-    // getting a duplicate history entry when the realtime echo of
-    // their own INSERT arrives.
+    // The "already there" guard prevents the player who started
+    // the game (and was already navigated by SetupGameDialog's
+    // onStarted) from getting a duplicate history entry when the
+    // realtime echo of their own INSERT arrives.
     const channel = supabase
       .channel(`club-games:${clubId}:${channelDedupSuffix()}`)
       .on(
@@ -470,8 +459,7 @@ export function ClubPage({ session, handle }: Props) {
           games={games.filter((g) => allowedGametypes.has(g.gametype))}
           memberCount={members.length}
           getLabel={(g) => `Start ${g.name}`}
-          starting={starting}
-          onStart={handleStart}
+          onStartSetup={handleStartSetup}
         />
         {activeGame && (
           <p className="muted">
