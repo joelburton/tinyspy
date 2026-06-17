@@ -178,7 +178,9 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 - **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
 - **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; psychic-num and tinyspy default to none), but the *option* is universal.
-- **Back-to-club + suspend-confirm.** Click the game logo (or use browser back) to leave the game. Non-terminal games open the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`. See [GamePage header](#gamepage-header) below.
+- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. Tinyspy's `HowToPlayModal` is the model; wordknit and psychic-num carry placeholder content until they earn real copy.
+- **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
+- **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Non-terminal games show the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`.
 
 A new gametype that wants to omit one of these isn't building "a new gametype" — it's stepping outside the frame, and that's a CLAUDE.md-priors conversation, not a manifest field to toggle.
 
@@ -192,7 +194,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 **Left, left-justified:**
 
-- **`<GameLogo gametype={…} />`** — square SVG (`src/<game>/logo.svg`). Click navigates back to the club, going through the suspend-confirm modal for non-terminal games. Future: dropdown menu with other-games-in-this-club + an explicit return-to-club row; not built yet.
+- **`<GameLogo gametype={…} />`** — square SVG (`src/<game>/logo.svg`). The logo is a menu trigger: click opens the GamePage menu (Help, Back to club, per-game items). See [GamePage menu](#gamepage-menu) below.
 - **`<ChatBubble />`** — toggle for the floating chat panel. Same icon regardless of open / closed state (we'll refine later). Stays in place when chat is open per [Layout stability](#layout-stability).
 - **`<StatusSlot />`** — default content is `<PlayersStrip>` (colored usernames, one per `player`). When `ctx.feedback.show()` has been called and isn't cleared yet, the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when feedback clears.
 
@@ -204,6 +206,55 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 **What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. wordknit's puzzle date) still lives in the club-page listing where it has room to breathe.
 
 **Why this lives in the common shell:** the consistency goal — a player switching from Tinyspy to Wordknit shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
+
+### GamePage menu
+
+The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
+
+```
+[logo ▼]   ← click
+    │
+    └─→  ┌──────────────────────┐
+         │ Help                 │  ← common section
+         │ Back to club         │
+         ├──────────────────────┤  ← divider
+         │ Hints                │  ← per-game items (wordknit)
+         └──────────────────────┘
+```
+
+**Common section (top, always present):**
+
+- **Help** — opens the per-game `manifest.help` modal.
+- **Back to club** — fires the same suspend-confirm logic the old direct logo-click did. Single-click for terminal games; modal-then-suspend for non-terminal.
+
+**Per-game section (below divider, dynamic):**
+
+Items pushed by the per-gametype `<PlayArea>` via `ctx.menu.setGameItems([...])` — same pattern as `ctx.feedback`. Items can carry a state-dependent `disabled` flag ("Reveal cell" enabled only when a cell is selected); the array is replaced wholesale on each call. State lives in `<GamePage>`; PlayArea-unmount on pause clears the array, so during a pause the menu shows only the common section.
+
+API on `GamePageCtx`:
+
+```ts
+type MenuItem = {
+  id: string        // for React keying
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}
+
+menu: {
+  setGameItems: (items: MenuItem[]) => void
+}
+```
+
+**Pause behavior.** The menu is openable while paused (common items work normally — leaving to the club, reading the rules). Game-specific items vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameItems` effect clears them.
+
+**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes and returns focus to the logo. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
+
+**Z-index.** Menu sits at ~1500 — above the 500-tier modals (suspend-confirm, hint, setup; so a menu click can open one of these) and below chat at 10000 (chat stays available for "what does this option do?" Q&A during play).
+
+**Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
+
+**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage will adopt the same shape later (click a club icon → menu with "Exit club," "Rename club," etc.); only the trigger element and items array differ.
 
 ### Components
 
