@@ -1,22 +1,19 @@
 /* Chat conversation styles — messages list + input row.
  *
- * Uses `position: absolute; inset: 0` to fill the FloatingPanel
- * body completely. This sidesteps the flex-column-through-
- * react-rnd-wrapper unreliability — `inset: 0` gives .chat a
- * definite size (the body's full padding box), which is what
- * the messages region needs to compute its own height for
- * scrolling.
+ * Lives inside FloatingPanel's .body, which is a flex child of
+ * the inner shell with `flex: 1 1 auto; min-height: 0`. With
+ * the shell wrapper guaranteeing a definite body height, the
+ * straightforward flex column here works: .chat is `flex: 1 1
+ * auto; min-height: 0; display: flex; flex-direction: column`,
+ * .messages grows + scrolls internally, .inputRow pins to the
+ * bottom regardless of message-list length.
  *
- * Inside .chat, flex column: messages grows + scrolls, input
- * row pins to the bottom regardless of message-list length. */
+ * Pattern mirrors ../connections' ChatPanel.module.css `.log` /
+ * `.form` shapes. */
 
 .chat {
-  position: absolute;
-  inset: 0;
-  /* Chat owns its own padding rather than inheriting body's
-     small default — keeps the conversation breathing room
-     consistent regardless of FloatingPanel-level padding tweaks. */
-  padding: 0.5rem 0.6rem;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;

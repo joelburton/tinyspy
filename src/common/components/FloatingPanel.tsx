@@ -352,7 +352,7 @@ function PanelRnd({
 }) {
   return (
     <Rnd
-      className={styles.panel}
+      className={styles.rnd}
       style={{ zIndex }}
       size={{ width: rect.width, height: rect.height }}
       position={{ x: rect.x, y: rect.y }}
@@ -381,20 +381,29 @@ function PanelRnd({
         })
       }
     >
-      <header
-        className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
-      >
-        <span className={styles.title}>{title}</span>
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="Close"
+      {/* Inner shell with explicit width: 100%; height: 100% +
+          display: flex; flex-direction: column. The Rnd outer
+          element doesn't reliably propagate a definite height to
+          flex children — this 100%/100% wrapper does, which is
+          what lets the body's flex: 1 1 auto + min-height: 0
+          chain work for chat's scrollable region. Pattern
+          mirrors ../connections' ChatPanel.module.css. */}
+      <div className={styles.shell}>
+        <header
+          className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
         >
-          ×
-        </button>
-      </header>
-      <div className={styles.body}>{children}</div>
+          <span className={styles.title}>{title}</span>
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </header>
+        <div className={styles.body}>{children}</div>
+      </div>
     </Rnd>
   )
 }

@@ -3,22 +3,40 @@
  * pattern (title + X), the body padding, the shadow, the
  * rounded corners all live here so panels look consistent.
  *
- * Layout is supplied by react-rnd via inline styles (position,
- * size); this stylesheet owns the visual chrome only. */
+ * Layout structure (per ../connections' pattern):
+ *
+ *   <Rnd className=".rnd">                  // positioning only
+ *     <div className=".shell">              // 100%/100% flex column wrapper
+ *       <header className=".header">...     // flex-shrink: 0
+ *       <div className=".body">...          // flex: 1 1 auto, scrolls if needed
+ *     </div>
+ *   </Rnd>
+ *
+ * The inner .shell is the key — Rnd's outer element doesn't
+ * reliably propagate a definite height to flex children, but a
+ * width:100%/height:100% wrapper does. With that, body has a
+ * definite flex-computed height, and anything inside body
+ * (chat's flex-grown messages region, modal scrolling) works
+ * predictably. */
 
-/* The Rnd wrapper. react-rnd inlines width/height/transform on
- * this element; we add the surface treatment. */
-.panel {
+/* The Rnd outer — positioning only, no visual treatment. */
+.rnd {
+  /* react-rnd inlines transform/width/height. We only need the
+     stacking-context's z-index, passed via inline style by the
+     component. */
+}
+
+/* The 100%/100% wrapper that actually carries the surface
+ * treatment AND the flex column layout. */
+.shell {
+  width: 100%;
+  height: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
-  /* The shadow gives floating panels a clear "above the page"
-     read against the off-white --color-bg. Subtle enough to not
-     dominate, strong enough that the panel isn't ambiguous
-     against the surface beneath. */
+  /* Elevation shadow so the panel reads as "above the page"
+     against the off-white --color-bg. */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  /* react-rnd renders its own wrapper at the absolute position;
-     we lay out children top-to-bottom (header → body). */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -30,15 +48,11 @@
   justify-content: space-between;
   gap: 0.5rem;
   /* Compact padding so the header doesn't claim much of the
-     panel's vertical budget — especially noticeable on small
-     panels like SuspendConfirm and the chat in its smaller
-     resize positions. */
+     panel's vertical budget. */
   padding: 0.3rem 0.7rem;
   border-bottom: 1px solid var(--color-surface-border);
   background: var(--color-surface-hover);
   user-select: none;
-  /* Anchor the header height so the body's max-height arithmetic
-     stays predictable; the rest is body. */
   flex-shrink: 0;
 }
 
@@ -75,8 +89,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Cursor stays default (pointer) even though parent's
-     dragHandle class sets move; the button's own cursor wins. */
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -87,21 +99,18 @@
 }
 
 .body {
+  /* Flex child of .shell. flex: 1 takes the remaining height
+     after the header; min-height: 0 is the flex-column quirk
+     that lets a scrollable child inside actually scroll instead
+     of pushing the body taller. */
   flex: 1 1 auto;
-  /* `position: relative` is the anchor for absolute-fill
-     children — ChatBody uses `position: absolute; inset: 0` to
-     own its full body area (the flex-column chain through
-     react-rnd's wrapper was unreliable for percolating a
-     definite height, so we use absolute positioning instead).
-     Modals continue to stack in normal block flow.
-     Padding is intentionally small — consumers add the rest in
-     their own content (per the "let users put margins around
-     their content" rule). Each modal's *.module.css has its
-     own .actions / wrapper spacing where it matters; this
-     leaves less wasted horizontal real estate at the edges. */
-  position: relative;
   min-height: 0;
+  /* Auto so modals with long content (HowToPlay) scroll
+     naturally. Chat's internal layout occupies the full body and
+     doesn't trigger this scroll. */
   overflow: auto;
+  /* Small body padding — modals add their own as needed via
+     their own *.module.css. */
   padding: 0.4rem 0.5rem;
 }
 
@@ -113,6 +122,4 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
-  /* No transition — appears instantly with the panel so there's
-     no "fading in over content" moment. */
 }
