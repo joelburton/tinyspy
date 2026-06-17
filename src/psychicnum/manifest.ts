@@ -21,7 +21,7 @@ export const psychicnumGame: GameManifest = {
   gametype: 'psychicnum',
   schema: 'psychicnum',
   name: 'Psychic Num',
-  blurb: 'Guess the secret number 1–10. Anyone can guess, 7 tries total.',
+  shortDescription: 'Guess the secret number',
   logoUrl,
 
   // Help / rules modal opened from the GamePage menu's "Help"

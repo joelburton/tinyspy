@@ -21,7 +21,7 @@ export const wordknitGame: GameManifest = {
   gametype: 'wordknit',
   schema: 'wordknit',
   name: 'Wordknit',
-  blurb: 'Match the four hidden categories of four words.',
+  shortDescription: 'Find categories, like Connections',
   logoUrl,
 
   // Help / rules modal opened from the GamePage menu's "Help"

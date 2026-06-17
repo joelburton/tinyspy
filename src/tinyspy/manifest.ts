@@ -29,7 +29,7 @@ export const tinyspyGame: GameManifest = {
   gametype: 'tinyspy',
   schema: 'tinyspy',
   name: 'Tinyspy',
-  blurb: 'Cooperative Codenames Duet for two.',
+  shortDescription: 'Find agents using word clues',
   logoUrl,
 
   // Help / rules modal opened from the GamePage menu's "Help"

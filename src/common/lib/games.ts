@@ -180,8 +180,12 @@ export type GameManifest = {
   /** Human-readable name shown in pickers and titles. */
   name: string
 
-  /** One-line description for use in pickers and previews. */
-  blurb: string
+  /** Short, action-flavored summary shown as the subtle second
+   *  line on each per-gametype "Start" button on ClubPage. Aim
+   *  for ~30 characters — long enough to convey the verb + the
+   *  shape ("Guess the secret number"), short enough to fit
+   *  beside the player-count badge without wrapping. */
+  shortDescription: string
 
   /** URL to this gametype's square SVG logo, used in the
    *  GamePage header. Resolved by Vite via
@@ -359,4 +363,22 @@ export function playerCountLabel(
     return `Needs exactly ${min} ${min === 1 ? 'member' : 'members'}`
   }
   return `Needs ${min}–${max} members`
+}
+
+/**
+ * Compact player-count rendering for the Start-game button's
+ * subtle meta line. Pair with the gametype's shortDescription.
+ *
+ *   [2, 2]    → "2 players"
+ *   [1, 4]    → "1–4 players"
+ *   [3, null] → "3+ players"
+ *   [1, null] → "1+ players"
+ */
+export function playerCountShort(
+  range: GameManifest['numberOfPlayers'],
+): string {
+  const [min, max] = range
+  if (max === null) return `${min}+ players`
+  if (min === max) return `${min} ${min === 1 ? 'player' : 'players'}`
+  return `${min}–${max} players`
 }

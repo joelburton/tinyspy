@@ -563,7 +563,6 @@ export function ClubPage({ session, handle }: Props) {
           <StartGameButtons
             games={games.filter((g) => allowedGametypes.has(g.gametype))}
             memberCount={members.length}
-            getLabel={(g) => `Start ${g.name}`}
             onStartSetup={handleStartSetup}
           />
           {activeGame && (

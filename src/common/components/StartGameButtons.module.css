@@ -1,0 +1,81 @@
+/* Per-gametype Start buttons on ClubPage. Outline-style cards
+ * stacked vertically — see StartGameButtons.tsx for the
+ * "options to consider, not actions to take" framing.
+ *
+ * The .list wrapper replaces the previous `className="actions"`
+ * usage. Using a local class lets us tune the gap to suit these
+ * outline cards specifically (slightly tighter than .actions's
+ * generous 1rem, which is meant for primary buttons).
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+/* The outline card itself. Resets the global filled-blue button
+ * styling — we want a flat transparent surface with a border
+ * that pops on hover. Specificity wins over `button { ... }` in
+ * theme.css thanks to the class selector. */
+.button {
+  background: transparent;
+  border: 1.5px solid var(--color-surface-border);
+  color: var(--color-text);
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--radius-md);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 100ms ease;
+}
+
+/* Hover: border lights up to the accent. NO background fill —
+ * the global button:hover rule would otherwise paint this blue;
+ * we explicitly hold background transparent so the outline-style
+ * stays consistent through interaction. */
+.button:hover:not(:disabled) {
+  background: transparent;
+  border-color: var(--color-accent);
+}
+
+/* Focus-visible: same border color as hover, plus an outline
+ * ring so keyboard navigation reads as clearly as mouse hover.
+ * Outline rather than border-width change so layout doesn't
+ * shift between focused and unfocused states. */
+.button:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Disabled state. Hold the transparent background through the
+ * global button:disabled override; opacity carries the "you
+ * can't click this" cue without changing the layout shape. The
+ * tooltip on the parent <button> explains why. */
+.button:disabled {
+  background: transparent;
+  border-color: var(--color-surface-border);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+/* Subtle second line: short description · player-count badge.
+ * Muted color so the prominent first line stays the visual
+ * anchor of each card. */
+.meta {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}

@@ -1,5 +1,10 @@
 import type { GameManifest } from '../lib/games'
-import { playerCountFits, playerCountLabel } from '../lib/games'
+import {
+  playerCountFits,
+  playerCountLabel,
+  playerCountShort,
+} from '../lib/games'
+import styles from './StartGameButtons.module.css'
 
 type Props = {
   /** The gametypes to render buttons for. The caller pre-filters
@@ -10,9 +15,6 @@ type Props = {
    *  the manifest's numberOfPlayers range. ClubPage passes the
    *  current club's `members.length`. */
   memberCount: number
-  /** Build the button label per game. ClubPage uses
-   *  `(g) => \`Start ${g.name}\``. */
-  getLabel: (game: GameManifest) => string
   /**
    * Click handler. Receives the gametype string. Named
    * `onStartSetup` (not `onStart`) to disambiguate the two
@@ -31,37 +33,52 @@ type Props = {
 }
 
 /**
- * Per-gametype "Start X" buttons rendered on ClubPage. One
- * button per gametype in `games`, each labeled by `getLabel`
- * and disabled if the club's member count is outside the
- * gametype's `numberOfPlayers` range.
+ * Per-gametype "Start" buttons rendered on ClubPage. One outline
+ * card per gametype in `games`, each showing:
  *
- * Each click opens SetupGameDialog (via the parent's
- * `onStartSetup`); the actual game-create RPC fires when the
- * user confirms inside the dialog. The button label says
- * "Start" because that's what users expect; the code-side
- * naming reflects the two-phase reality.
+ *   <gametype name>
+ *   <short description> · <player-count badge>
+ *
+ * The name is the prominent first line; the description + player
+ * count is the subtle second line. The button is an outline-style
+ * card (no background fill) so a column of three buttons reads as
+ * "options to consider" rather than "primary actions to take" —
+ * the actual primary action (Start) lives inside the SetupGameDialog
+ * one click later.
+ *
+ * Hover changes the border color to the accent so the affordance
+ * still reads as clickable. Disabled state (when the club's member
+ * count doesn't fit the gametype's range) greys the whole card and
+ * the tooltip explains *why* via `playerCountLabel`.
  */
 export function StartGameButtons({
   games,
   memberCount,
-  getLabel,
   onStartSetup,
 }: Props) {
   return (
-    <div className="actions">
+    <div className={styles.list}>
       {games.map((g) => {
         const fits = playerCountFits(g.numberOfPlayers, memberCount)
-        const title = fits ? g.blurb : playerCountLabel(g.numberOfPlayers)
         return (
           <button
             key={g.gametype}
             type="button"
+            className={styles.button}
             onClick={() => onStartSetup(g.gametype)}
             disabled={!fits}
-            title={title}
+            // Tooltip only when the button is disabled — explains
+            // WHY clicking would have done nothing. When enabled,
+            // the meta line already tells the user the player
+            // count, so no extra tooltip.
+            title={fits ? undefined : playerCountLabel(g.numberOfPlayers)}
           >
-            {getLabel(g)}
+            <span className={styles.title}>{g.name}</span>
+            <span className={styles.meta}>
+              {g.shortDescription}
+              {' · '}
+              {playerCountShort(g.numberOfPlayers)}
+            </span>
           </button>
         )
       })}
