@@ -13,7 +13,7 @@ The explanation bar in this codebase is higher than the average TypeScript proje
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
 - **Extract a small helper over a deeply-nested ternary.** A single `a ? b : c` is fine; two-or-more-deep nests almost always read better as a small function with `if` branches — each case lands on its own line, picks up a name (or at least a local variable), and survives a future tweak without re-balancing the whole expression. See [`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts) for the model: a 3-deep ternary refactored into a 6-line helper. The only reason to keep the ternary inline is a measured hot path where allocating the helper actually shows up in a profile — and there are no such hot paths in this codebase today.
-- **`useEffect` gets a header comment.** Inline arrow effects have no name — see [the useEffect comments rule](#useeffect-comments) below.
+- **`useEffect`, `useCallback`, and `useMemo` get header comments. `useEffect` callbacks also get a named function expression when non-trivial; `useCallback` / `useMemo` results assigned to a `const` skip the inner name (the const already carries it).** See [the hook-callback rule](#naming-and-commenting-hook-callbacks) below.
 
 ### What doesn't belong
 
@@ -358,11 +358,13 @@ A `select('*')` is OK if (a) the consumer truly uses every column AND (b) the ta
 
 If we'd let `select('*')` ride on `common.messages` and later added an `ip_address` column for moderation, every `useClubChat` consumer would have started shipping IPs to every signed-in member of the club. The explicit `select('id, user_id, content')` pattern means that doesn't happen until someone adds `ip_address` to the list intentionally.
 
-### `useEffect` comments
+### Naming and commenting hook callbacks
 
-Inline arrow effects have no name; without a header comment a reader has to puzzle through the body + dep array to understand what each effect does and what triggers it to re-run.
+Two related rules, both motivated by the same problem: inline arrow callbacks in `useEffect` / `useCallback` / `useMemo` have no name, so a reader has to puzzle through the body + dep array to understand what each one does and what triggers it.
 
-Every effect gets a brief header comment **above** the `useEffect(…)` call (not inside the arrow body), so the comment is in scope of the deps array. The comment leads with intent and explains the dep choice when it's non-obvious. Examples:
+#### Header comments
+
+Every non-trivial effect gets a brief header comment **above** the `useEffect(…)` call (not inside the callback body), so the comment is in scope of the deps array. The comment leads with intent and explains the dep choice when it's non-obvious. Examples:
 
 ```ts
 // Subscribe to auth state for the component's lifetime. Empty deps
@@ -377,6 +379,53 @@ useEffect(() => { ... }, [session.user.id])
 ```
 
 The deps array is often the subtlest part of an effect — `[id]` vs `[session]` vs `[]` are very different rules — so when the choice isn't obvious, the comment should say *why* this dep, not just *what* the effect does.
+
+The same applies to `useCallback` and `useMemo` when their bodies are non-trivial.
+
+#### Named function expressions for non-trivial callbacks
+
+The core question this rule is answering: **is there already a name on the callback?** A `const sendSuspend = useCallback(() => {…})` already carries the name `sendSuspend` — readers see it on the scan, docstrings can reference it, future-you's "I remember this one, skip" anchor lands on it. A `useEffect(() => {…})` has no such anchor; it's just "the third effect in the file."
+
+So the rule splits by where the name already lives:
+
+**`useEffect` — name it, when non-trivial.**
+
+```ts
+// Join this game's shared Realtime room: load the row + roster,
+// attach the postgres-changes / broadcast / presence handlers,
+// subscribe, and assert current-view on connect.
+useEffect(function joinGameRoom() {
+  // ... 40 lines of channel setup ...
+}, [gameId, session.user.id])
+```
+
+The named function expression is the only place a useEffect callback gets a name. Without it, stack traces, React DevTools' Hooks panel, prose cross-references, and the file-scan all see `<anonymous>` / "the third effect." With it, all four pick up the name.
+
+**`useCallback` / `useMemo` assigned to a `const` — skip the inner name.**
+
+```ts
+// Yes
+const sendManualPause = useCallback(() => { … }, [deps])
+
+// No — redundant
+const sendManualPause = useCallback(function sendManualPause() { … }, [deps])
+```
+
+The const name labels it for the scan, for prose ("the `sendManualPause` callback"), and — in practice — for stack traces (V8 doesn't propagate the const name through the `useCallback(…)` call expression onto the inner arrow's `.name`, but source-position info in modern stack traces and React DevTools' own labelling close most of the gap). Writing the name twice adds noise without a matching read-time win.
+
+The one exception: if the *callback's* most natural name genuinely differs from the *const's* most natural name — e.g. `const doFooOnInitialLoad = useCallback(function doFoo(){…}, [initialLoad])` where the outer name carries the *when* and the inner carries the *what* — name the inner. Rare in practice; don't reach for it without a real difference.
+
+**`useCallback` / `useMemo` NOT assigned to a const** — passed inline as a JSX prop, returned directly, etc. — goes back to the useEffect rule: name it when non-trivial. Same reasoning: no surrounding const to carry the name.
+
+**Why naming helps even when a header comment exists.** A good name is *scannable* — you remember it from last time and can decide "engage or skip" in a single glance. A header comment requires re-reading to pick up the same signal. Comments explain; names label. The two pull different weight in the read.
+
+**Why naming helps even when no header comment exists.** Picking a 2–3 word name is a tiny version of the "if you can't name it, you don't understand it" rule — it catches the "this effect is doing three things, I should split it" case before the body is written.
+
+**When NOT to bother:** short, drop-dead-obvious bodies. One-liners, document-title setters, trivial derived values. If the body fits in a glance and the deps tell you everything, naming adds noise. Rule of thumb: *"if it deserves a header comment, it deserves a name."* Short obvious bodies need neither.
+
+This sits next to a pattern already in the codebase: the inner helper `async function load() { … }` inside the subscription effects in `useCommonGame` and the per-game `useGame` hooks. We already pick named function expressions over `const load = async () => {…}` for inner helpers because the name reads as a label. The convention now extends to the top-level useEffect callback by the same logic.
+
+**Scope of this rule:** `useEffect`, `useCallback`, `useMemo` (and their custom-hook analogues, if any appear). Not `.then(…)` chains, `setTimeout`, event-handler JSX props (`onClick={() => …}`), or `.map`/`.filter`/`.reduce` callbacks — those tend to be short and the call site already labels them by context. The rule is deliberately narrow; if it earns its keep here, we can revisit widening it later.
 
 ## Edge Functions
 

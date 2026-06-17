@@ -66,7 +66,7 @@ export function useDraggablePanel({
   // Effect-driven assign rather than render-time (React 19's
   // stricter refs rule flags render-time `ref.current = …`).
   const rectRef = useRef(rect)
-  useEffect(() => {
+  useEffect(function syncRectRef() {
     rectRef.current = rect
   }, [rect])
 
@@ -91,7 +91,7 @@ export function useDraggablePanel({
 
   // Window-resize re-clamp: if the user shrinks the browser to a
   // size where the panel no longer fits, slide it inward.
-  useEffect(() => {
+  useEffect(function reclampOnWindowResize() {
     function onResize() {
       const reclamped = clampToViewport(
         rectRef.current,

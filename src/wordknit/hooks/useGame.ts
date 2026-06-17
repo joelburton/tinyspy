@@ -163,7 +163,12 @@ export function useGame(
     })
   }, [])
 
-  useEffect(() => {
+  // Join this game's wordknit-specific Realtime room: load the
+  // game row + guesses, attach postgres-changes on
+  // wordknit.{games,guesses}, attach the shared-selection
+  // Broadcast handler. Stable channel name (no UUID suffix)
+  // because selection broadcasts need a shared room across peers.
+  useEffect(function joinWordknitRoom() {
     let mounted = true
 
     async function load() {

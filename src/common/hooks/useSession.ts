@@ -25,7 +25,7 @@ export function useSession() {
   // = the subscription lives across every re-render and is torn down
   // only on unmount. INITIAL_SESSION fires here on mount with the
   // localStorage-restored session, so no separate getSession() needed.
-  useEffect(() => {
+  useEffect(function subscribeToAuthState() {
     let mounted = true
 
     // The JWT in localStorage is signature-valid even after the user's row in

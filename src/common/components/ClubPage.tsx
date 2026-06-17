@@ -192,7 +192,7 @@ export function ClubPage({ session, handle }: Props) {
 
   // Step 1: look up the club + roster. These don't change during
   // v1 (membership is fixed at creation), so we only fetch once.
-  useEffect(() => {
+  useEffect(function loadClubAndRoster() {
     let mounted = true
 
     async function load() {
@@ -272,7 +272,7 @@ export function ClubPage({ session, handle }: Props) {
   // changed (new game inserted, end_game wrote a terminal
   // play_state, set_current_view / unset_current_view flipped the
   // is_current_view pointer, etc.). Also fires on initial mount.
-  useEffect(() => {
+  useEffect(function subscribeToClubGames() {
     if (!club) return
     const clubId = club.id
     let mounted = true

@@ -73,7 +73,7 @@ export function FloatingChat({ clubId, members }: Props) {
   // every time a user navigates in.
   const lastSeenIdRef = useRef<string | null>(null)
   const initializedRef = useRef(false)
-  useEffect(() => {
+  useEffect(function autoOpenOnImportantMessage() {
     // Wait for the initial fetch to resolve so we have a stable
     // starting snapshot. While loading, neither initialize nor
     // act.
@@ -108,7 +108,7 @@ export function FloatingChat({ clubId, members }: Props) {
 
   // Mirror open state to localStorage so the next mount (after
   // navigation or reload) restores it.
-  useEffect(() => {
+  useEffect(function persistOpenState() {
     writeOpen(open)
   }, [open])
 

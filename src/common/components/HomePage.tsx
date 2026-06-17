@@ -48,7 +48,7 @@ export function HomePage({ session }: Props) {
   // (not the full session object), so background token refreshes —
   // which return a new Session reference with the same user — don't
   // trigger a refetch.
-  useEffect(() => {
+  useEffect(function loadUsername() {
     let mounted = true
     commonDb
       .from('profiles')
@@ -72,7 +72,7 @@ export function HomePage({ session }: Props) {
   // solo club. Sort newest-first; the render layer partitions
   // solo vs regular and renders solo on top of regulars
   // regardless of timestamp.
-  useEffect(() => {
+  useEffect(function loadClubs() {
     let mounted = true
     commonDb
       .from('clubs')

@@ -96,7 +96,7 @@ export function GamePage({
   // tab; the RPC itself is server-side idempotent for the
   // multi-peer race case.
   const submittedTimeoutRef = useRef(false)
-  useEffect(() => {
+  useEffect(function fireTimeoutOnExpiry() {
     if (!timer.expired) return
     if (submittedTimeoutRef.current) return
     if (!commonGame || commonGame.ended_at !== null) return

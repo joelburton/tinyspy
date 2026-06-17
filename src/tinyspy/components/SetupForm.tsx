@@ -45,7 +45,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   // first sees a populated member list with an empty selection.
   // Once firstClueGiverUserId is set, the inner condition is
   // false and this is a no-op — including on s-change reruns.
-  useEffect(() => {
+  useEffect(function seedFirstClueGiver() {
     if (s.firstClueGiverUserId === '' && members.length > 0) {
       onChange({ ...s, firstClueGiverUserId: members[0].user_id })
     }

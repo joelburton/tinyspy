@@ -96,7 +96,12 @@ export function useGame(gameId: string): {
   const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  // Load the games_state + guesses rows for this game and subscribe
+  // to postgres-changes on both tables. UUID-suffixed channel name —
+  // this hook needs its own subscriber per tab; no broadcast room
+  // semantics here. SUBSCRIBED-driven refetch closes any
+  // missed-events-during-reconnect gap.
+  useEffect(function subscribeToPsychicnumGame() {
     let mounted = true
 
     async function load() {

@@ -50,14 +50,14 @@ export function ChatBody({ clubId, members, messages, loading }: Props) {
   // Focus the input on mount so a user opening the panel can
   // start typing immediately without an extra click. Matches the
   // ../connections pattern.
-  useEffect(() => {
+  useEffect(function focusInputOnMount() {
     inputRef.current?.focus()
   }, [])
 
   // Auto-scroll to the bottom whenever new messages arrive, so a
   // reader sees them without having to scroll manually. See the
   // file-level docstring for the `block: 'end'` choice.
-  useEffect(() => {
+  useEffect(function autoScrollToBottom() {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 

@@ -53,7 +53,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
 
   // Words + own key. Re-runs only on game/user change (not when revealPeer
   // flips), so the realtime channel stays attached across game-over transitions.
-  useEffect(() => {
+  useEffect(function subscribeToBoardWords() {
     let mounted = true
 
     async function load() {
@@ -115,7 +115,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   // "show both keys" rendering. The hook-returned `peerKey` is null
   // when revealPeer is false (derivation above), so we don't need an
   // explicit clear path here; we just skip the fetch.
-  useEffect(() => {
+  useEffect(function loadPeerKey() {
     if (!revealPeer) return
     let mounted = true
     db

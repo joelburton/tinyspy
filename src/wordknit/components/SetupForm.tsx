@@ -68,7 +68,7 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
   // when today's date has no puzzle imported yet. Filter out
   // NULL-dated rows: those are non-NYT puzzles that don't belong
   // on a date-anchored picker.
-  useEffect(() => {
+  useEffect(function loadPuzzleList() {
     let cancelled = false
     db.from('puzzles')
       .select('id, nyt_date')
@@ -94,7 +94,7 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
   // resolve). RLS on the underlying tables gates visibility, so
   // a non-member's query returns zero rows even without the
   // .eq('club_id') filter — the filter is belt-and-braces.
-  useEffect(() => {
+  useEffect(function loadClubGameStatuses() {
     let cancelled = false
     db.from('club_game_status')
       .select('game_id, play_state, is_terminal, nyt_date')
@@ -114,7 +114,7 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
   // the most recent. The effect only runs while puzzleId is
   // empty so a user-selected value (or a saved default) isn't
   // overwritten on re-render.
-  useEffect(() => {
+  useEffect(function autoPickDefaultPuzzle() {
     if (!puzzles || puzzles.length === 0) return
     if (s.puzzleId !== '') return
     const today = new Date().toISOString().slice(0, 10)

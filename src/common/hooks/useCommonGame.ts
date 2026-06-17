@@ -200,7 +200,13 @@ export function useCommonGame(
     }
   }, [])
 
-  useEffect(() => {
+  // Join this game's shared Realtime room: load the row + roster,
+  // attach the postgres-changes / broadcast / presence handlers,
+  // subscribe, and assert current-view on connect. The matching
+  // cleanup leaves the room (unset_current_view if last viewer,
+  // untrack, removeChannel). See the hook docstring above for the
+  // "shared room" framing this name echoes.
+  useEffect(function joinGameRoom() {
     let mounted = true
 
     async function load() {
@@ -409,7 +415,7 @@ export function useCommonGame(
   // peers changes, so a peer joining mid-pause (or reconnecting
   // after the original pauser closed their tab) lands in the same
   // paused state instead of seeing a phantom-resumed board.
-  useEffect(() => {
+  useEffect(function rebroadcastManualPause() {
     if (!channel || manuallyPausedById === null) return
     channel.send({
       type: 'broadcast',

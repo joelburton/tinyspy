@@ -103,7 +103,7 @@ export function FloatingPanel({
   // ESC handler. Window-level so it works regardless of where
   // focus lives inside the panel body. Skipped when closeOnEsc
   // is false (chat / scratchpad).
-  useEffect(() => {
+  useEffect(function installEscapeHandler() {
     if (!closeOnEsc) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {

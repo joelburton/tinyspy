@@ -32,7 +32,7 @@ export function useClues(gameId: string) {
   // Fetch + realtime-subscribe to this game's clue history. Re-runs
   // only on gameId change; within a game the channel stays live and
   // realtime events drive load() directly.
-  useEffect(() => {
+  useEffect(function subscribeToClues() {
     let mounted = true
 
     async function load() {

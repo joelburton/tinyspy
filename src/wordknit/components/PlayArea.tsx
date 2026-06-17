@@ -75,7 +75,7 @@ export function PlayArea({
   )
 
   // Auto-clear the transient banner after a beat.
-  useEffect(() => {
+  useEffect(function autoClearTransient() {
     if (!transient) return
     const t = setTimeout(() => setTransient(null), 2200)
     return () => clearTimeout(t)
@@ -84,7 +84,7 @@ export function PlayArea({
   // Auto-clear the shake set ~500ms after we set it (just past
   // the animation's 400ms duration). Effect-based so the timeout
   // is cleaned up on unmount / re-shake correctly.
-  useEffect(() => {
+  useEffect(function autoClearShakeAfterAnimation() {
     if (shakingTiles.size === 0) return
     const t = setTimeout(() => setShakingTiles(new Set()), 500)
     return () => clearTimeout(t)

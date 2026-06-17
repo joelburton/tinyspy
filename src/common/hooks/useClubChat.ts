@@ -35,7 +35,7 @@ export function useClubChat(clubId: string) {
   // Fetch + realtime-subscribe to this club's messages. INSERT
   // events append directly via setMessages; the SUBSCRIBED refetch
   // closes any reconnect gap. Re-runs only on clubId change.
-  useEffect(() => {
+  useEffect(function subscribeToClubMessages() {
     let mounted = true
 
     async function load() {

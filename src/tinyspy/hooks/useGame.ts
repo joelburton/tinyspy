@@ -79,7 +79,7 @@ export function useGame(gameId: string) {
   // Fetch + realtime-subscribe to the games row. The player roster
   // (user_a_id, user_b_id) is on the games row itself now; no
   // separate game_players query.
-  useEffect(() => {
+  useEffect(function subscribeToGameRow() {
     let mounted = true
 
     async function load() {

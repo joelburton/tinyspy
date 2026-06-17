@@ -108,7 +108,7 @@ export function useGameTimer({
   // Track pause transitions. The effect handles state-management;
   // the snapshot below reads the resulting refs to compute the
   // displayed value.
-  useEffect(() => {
+  useEffect(function trackPauseTransitions() {
     if (paused && pauseStartedAtRef.current === null) {
       pauseStartedAtRef.current = Date.now()
     } else if (!paused && pauseStartedAtRef.current !== null) {

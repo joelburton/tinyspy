@@ -58,7 +58,7 @@ export function usePath(): string {
   // Bridge the browser's popstate event into React state. Empty
   // deps = attach once for the component's lifetime; both real
   // back/forward nav and our own navigate() trigger this listener.
-  useEffect(() => {
+  useEffect(function subscribeToPopState() {
     function onPop() {
       setPath(window.location.pathname)
     }

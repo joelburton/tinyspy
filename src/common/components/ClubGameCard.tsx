@@ -97,7 +97,7 @@ export function ClubGameCard({
   // misclicked × doesn't require an explicit cancel. Cleared on
   // unmount or transition to deleting (the parent's RPC call
   // takes over the affordance at that point).
-  useEffect(() => {
+  useEffect(function autoRevertConfirmingState() {
     if (deleteState !== 'confirming') return
     const t = setTimeout(() => setDeleteState('idle'), 4000)
     return () => clearTimeout(t)
