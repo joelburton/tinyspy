@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
-import { randomId } from '../../common/lib/randomId'
+import { channelDedupSuffix } from '../../common/lib/channelDedup'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 
@@ -49,7 +49,7 @@ export function useClues(gameId: string) {
     load()
 
     const channel = supabase
-      .channel(`clues:${gameId}:${randomId()}`)
+      .channel(`clues:${gameId}:${channelDedupSuffix()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'tinyspy', table: 'clues', filter: `game_id=eq.${gameId}` },

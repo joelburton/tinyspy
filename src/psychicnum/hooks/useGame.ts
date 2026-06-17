@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
-import { randomId } from '../../common/lib/randomId'
+import { channelDedupSuffix } from '../../common/lib/channelDedup'
 import { db } from '../db'
 
 /**
@@ -122,7 +122,7 @@ export function useGame(gameId: string): {
     }
 
     const channel = supabase
-      .channel(`psychicnum:${gameId}:${randomId()}`)
+      .channel(`psychicnum:${gameId}:${channelDedupSuffix()}`)
       .on(
         'postgres_changes',
         {
