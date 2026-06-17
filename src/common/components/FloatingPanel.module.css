@@ -88,22 +88,21 @@
 
 .body {
   flex: 1 1 auto;
-  /* `display: flex; flex-direction: column` is what lets
-     children opt-in to filling the body's height — the chat body
-     uses `flex: 1 1 auto` on its messages region so the input
-     row pins to the bottom regardless of message-list length.
-     Modals (Setup / HowToPlay / Hint / SuspendConfirm) stack
-     their children normally, which is what a default flex column
-     does when no child claims grow.
-     `min-height: 0` is the flex-column quirk that lets the
-     messages region actually scroll; without it the implicit
-     min-height: auto would force the body to grow with content
-     instead of allowing internal overflow. */
-  display: flex;
-  flex-direction: column;
+  /* `position: relative` is the anchor for absolute-fill
+     children — ChatBody uses `position: absolute; inset: 0` to
+     own its full body area (the flex-column chain through
+     react-rnd's wrapper was unreliable for percolating a
+     definite height, so we use absolute positioning instead).
+     Modals continue to stack in normal block flow.
+     Padding is intentionally small — consumers add the rest in
+     their own content (per the "let users put margins around
+     their content" rule). Each modal's *.module.css has its
+     own .actions / wrapper spacing where it matters; this
+     leaves less wasted horizontal real estate at the edges. */
+  position: relative;
   min-height: 0;
   overflow: auto;
-  padding: 0.85rem 1.1rem;
+  padding: 0.4rem 0.5rem;
 }
 
 /* Backdrop layer — fixed-position dim that catches pointer
