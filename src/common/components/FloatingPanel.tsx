@@ -6,6 +6,8 @@ import {
   type PanelRect,
 } from '../hooks/useDraggablePanel'
 import styles from './FloatingPanel.module.css'
+// (Below: a 'hard'/'soft' literal is passed to clampToViewport
+// per-call. See the ClampMode type in useDraggablePanel.)
 
 type Props = {
   /** Header bar label. The header is the drag handle when
@@ -289,18 +291,21 @@ function EphemeralPanel({
 }) {
   // Lazy initializer computes the seed rect once on mount —
   // resolves the centered/explicit default against the current
-  // viewport, then clamps. Subsequent renders don't re-clamp
-  // until a drag/resize fires through setRect.
+  // viewport, then HARD-clamps so the panel appears fully
+  // inside. Subsequent drag/resize stops use the SOFT clamp
+  // (let the user park the panel partly off-screen for
+  // juggling).
   const [rect, setRectState] = useState<PanelRect>(() =>
     clampToViewport(
       resolveDefaultRect(defaultPosition, defaultSize),
       minWidth,
       minHeight,
       8,
+      'hard',
     ),
   )
   const setRect = (next: PanelRect) =>
-    setRectState(clampToViewport(next, minWidth, minHeight, 8))
+    setRectState(clampToViewport(next, minWidth, minHeight, 8, 'soft'))
   return (
     <PanelRnd
       title={title}
@@ -351,7 +356,13 @@ function PanelRnd({
       style={{ zIndex }}
       size={{ width: rect.width, height: rect.height }}
       position={{ x: rect.x, y: rect.y }}
-      bounds="window"
+      // Intentionally no `bounds` prop — we want users to be
+      // able to drag the panel past the viewport edges for
+      // juggling (slide chat to the corner so they can see more
+      // of a setup dialog). The soft clamp in setRect catches
+      // the drag-stop position and ensures at least ~60px stays
+      // visible on each axis, with the header always reachable
+      // (top edge can't go negative).
       minWidth={minWidth}
       minHeight={minHeight}
       disableDragging={!draggable}

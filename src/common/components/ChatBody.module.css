@@ -1,29 +1,39 @@
 /* Chat conversation styles — messages list + input row.
  *
- * Lives inside <FloatingPanel>'s .body (which already supplies
- * padding); this stylesheet handles the vertical column layout
- * that makes the messages area scrollable while the input row
- * stays anchored at the bottom. */
+ * Lives inside <FloatingPanel>'s .body. The body is now
+ * `display: flex; flex-direction: column`, so .chat claims the
+ * full height as a flex child. Inside .chat, .messages grows to
+ * fill remaining space (with its own scroll) while .inputRow
+ * pins to the bottom — so the input is always at the bottom of
+ * the panel regardless of how many messages there are. */
 
 .chat {
-  /* Fill the FloatingPanel body so the messages-scroll area can
-     claim its remaining height. */
+  /* Fill the FloatingPanel body — messages region grows, input
+     pins. `min-height: 0` is the standard flex-column quirk
+     that lets the messages region actually scroll without
+     pushing the input out. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .messages {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.9rem;
-  /* Reserve scrollbar gutter so messages don't shift when a
-     scrollbar appears. */
-  padding-right: 0.25rem;
+  /* Light border + radius so the user reads the region as
+     "this is the scrollable conversation" — useful when there
+     are 0 or 1 messages and the input would otherwise float
+     awkwardly mid-panel. */
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.6rem;
 }
 
 .message {
@@ -36,15 +46,14 @@
 }
 
 .inputRow {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.5rem;
-  flex-shrink: 0;
   /* Reset the global form-spacing rule (margin-top, gap) so the
-     input row sits naturally below the scroll area. */
+     input row sits flush against the bottom of the panel body. */
   margin-top: 0;
+  display: block;
+  flex-shrink: 0;
 }
 
 .inputRow input {
+  width: 100%;
   font-size: 0.9rem;
 }

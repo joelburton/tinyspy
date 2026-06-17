@@ -89,3 +89,99 @@ describe('clampToViewport', () => {
     expect(out.y).toBe(8)
   })
 })
+
+describe('clampToViewport (soft mode)', () => {
+  // SOFT_MIN_VISIBLE = 60 in the implementation. Soft mode lets
+  // the panel extend past the viewport edges as long as 60px
+  // stays visible, with the additional rule that y can't be
+  // negative (header stays reachable).
+
+  it('passes through a rect already fully inside', () => {
+    const out = clampToViewport(
+      { x: 200, y: 200, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out).toEqual({ x: 200, y: 200, width: 400, height: 300 })
+  })
+
+  it('allows the panel to extend past the right edge', () => {
+    // x = 900, width = 400, vw = 1024. Right edge at 1300,
+    // 276px past the viewport — soft lets this stay because
+    // 60 + (1024 - 900) = the visible chunk on the left side
+    // is well over the 60px minimum.
+    const out = clampToViewport(
+      { x: 900, y: 100, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.x).toBe(900)
+  })
+
+  it('caps x so at least 60px stays visible on the right', () => {
+    // x = 2000 — panel mostly off the right. Soft caps x at
+    // vw - 60 = 964.
+    const out = clampToViewport(
+      { x: 2000, y: 100, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.x).toBe(VW - 60)
+  })
+
+  it('allows x to go negative, as long as 60px stays on the right', () => {
+    // x = -200 — panel mostly off the left. minX = 60 - width =
+    // 60 - 400 = -340. So -200 is allowed.
+    const out = clampToViewport(
+      { x: -200, y: 100, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.x).toBe(-200)
+  })
+
+  it('caps negative x so 60px stays visible on the left', () => {
+    // x = -1000 — panel WAY off the left. minX = -340.
+    const out = clampToViewport(
+      { x: -1000, y: 100, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.x).toBe(60 - 400)
+  })
+
+  it("keeps y >= 0 so the header stays grabbable", () => {
+    // y can't go negative regardless — header would slip out
+    // of reach above the viewport.
+    const out = clampToViewport(
+      { x: 100, y: -50, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.y).toBe(0)
+  })
+
+  it('caps y so at least 60px stays visible at the bottom', () => {
+    // y = 800, vh = 768. Soft caps y at vh - 60 = 708.
+    const out = clampToViewport(
+      { x: 100, y: 800, width: 400, height: 300 },
+      240,
+      200,
+      8,
+      'soft',
+    )
+    expect(out.y).toBe(VH - 60)
+  })
+})

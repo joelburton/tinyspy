@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// Re-exported below via `export type`. The runtime values live
+// in this file too, so importing components can grab both.
+
 /** A floating panel's persisted geometry. */
 export type PanelRect = {
   x: number
@@ -72,7 +75,17 @@ export function useDraggablePanel({
 
   const setRect = useCallback(
     (next: PanelRect) => {
-      const clamped = clampToViewport(next, minWidth, minHeight, edgePadding)
+      // Soft clamp on user-initiated changes (drag/resize stops)
+      // — let the user park the panel partly off-screen for
+      // juggling. The hard clamp on mount + window-resize
+      // guarantees we never come back to an unreachable panel.
+      const clamped = clampToViewport(
+        next,
+        minWidth,
+        minHeight,
+        edgePadding,
+        'soft',
+      )
       setRectState(clamped)
       writeRect(persistKey, clamped)
     },
@@ -111,18 +124,41 @@ export function useDraggablePanel({
 
 // ─── pure helpers (exported for the test) ────────────────────
 
+/** Two clamp modes — see `clampToViewport` doc. */
+export type ClampMode = 'hard' | 'soft'
+
+/** Soft-mode minimum visible pixels on each axis. Anything below
+ *  this would risk leaving the user with nothing to grab. */
+const SOFT_MIN_VISIBLE = 60
+
 /**
- * Clamp a rect so it sits fully inside the current viewport with
- * `edgePadding` clearance on every side. Width / height are
- * shrunk first (capped at viewport minus padding) then position
- * is clamped so the right/bottom edges don't run off. Width and
- * height never drop below the minimums.
+ * Clamp a rect against the current viewport. Two modes:
+ *
+ *   - `'hard'` (default) — panel must fit FULLY inside the
+ *     viewport, with `edgePadding` clearance on every side.
+ *     Used on mount + window-resize: when the user comes back
+ *     from a bigger monitor or shrinks the window, the panel
+ *     snaps in so it's visible.
+ *
+ *   - `'soft'` — panel may extend past the viewport edges as
+ *     long as ~60px stays visible on each axis, with the
+ *     additional rule that the top edge can't go negative
+ *     (header must remain reachable). Used on drag-stop +
+ *     resize-stop: the user can park the panel half-off-screen
+ *     for "juggling" — slide chat to the corner so they can see
+ *     more of a setup dialog — but can't lose it entirely.
+ *
+ * Width / height are capped at viewport minus padding either
+ * way (a stored panel bigger than the current viewport always
+ * gets shrunk to fit). Width and height never drop below the
+ * minimums.
  */
 export function clampToViewport(
   rect: PanelRect,
   minWidth: number,
   minHeight: number,
   edgePadding: number,
+  mode: ClampMode = 'hard',
 ): PanelRect {
   const vw = typeof window !== 'undefined' ? window.innerWidth : rect.width
   const vh = typeof window !== 'undefined' ? window.innerHeight : rect.height
@@ -130,6 +166,20 @@ export function clampToViewport(
   const maxHeight = Math.max(minHeight, vh - edgePadding * 2)
   const width = Math.max(minWidth, Math.min(rect.width, maxWidth))
   const height = Math.max(minHeight, Math.min(rect.height, maxHeight))
+
+  if (mode === 'soft') {
+    // Soft: at least SOFT_MIN_VISIBLE px stays visible on each
+    // axis. Top edge can't go negative (header stays in view);
+    // left/right/bottom can.
+    const minX = SOFT_MIN_VISIBLE - width
+    const maxX = vw - SOFT_MIN_VISIBLE
+    const maxY = Math.max(0, vh - SOFT_MIN_VISIBLE)
+    const x = Math.max(minX, Math.min(rect.x, maxX))
+    const y = Math.max(0, Math.min(rect.y, maxY))
+    return { x, y, width, height }
+  }
+
+  // Hard mode — panel fully inside the viewport.
   const maxX = Math.max(edgePadding, vw - width - edgePadding)
   const maxY = Math.max(edgePadding, vh - height - edgePadding)
   const x = Math.max(edgePadding, Math.min(rect.x, maxX))

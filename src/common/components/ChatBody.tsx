@@ -107,18 +107,19 @@ export function ChatBody({ clubId, members }: Props) {
       </div>
 
       <form onSubmit={onSend} className={styles.inputRow}>
+        {/* No Send button — Enter submits the form. A bare input
+            cuts visual clutter and matches how chats usually
+            feel. The form still has an implicit submit, which
+            is what onSubmit catches. */}
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
+          placeholder="Type a message and press Enter…"
           disabled={busy}
           maxLength={1000}
         />
-        <button type="submit" disabled={busy || !input.trim()}>
-          Send
-        </button>
       </form>
 
       {error && <p className="error">{error}</p>}

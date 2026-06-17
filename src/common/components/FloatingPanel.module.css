@@ -29,7 +29,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.6rem 0.9rem;
+  /* Compact padding so the header doesn't claim much of the
+     panel's vertical budget — especially noticeable on small
+     panels like SuspendConfirm and the chat in its smaller
+     resize positions. */
+  padding: 0.3rem 0.7rem;
   border-bottom: 1px solid var(--color-surface-border);
   background: var(--color-surface-hover);
   user-select: none;
@@ -47,7 +51,7 @@
 
 .title {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   /* Truncate long titles rather than blowing out the header
      width — the close button must stay reachable. */
   overflow: hidden;
@@ -63,10 +67,10 @@
   border: 1px solid transparent;
   color: var(--color-muted);
   padding: 0;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.4rem;
+  height: 1.4rem;
   border-radius: var(--radius-md);
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -84,8 +88,22 @@
 
 .body {
   flex: 1 1 auto;
+  /* `display: flex; flex-direction: column` is what lets
+     children opt-in to filling the body's height — the chat body
+     uses `flex: 1 1 auto` on its messages region so the input
+     row pins to the bottom regardless of message-list length.
+     Modals (Setup / HowToPlay / Hint / SuspendConfirm) stack
+     their children normally, which is what a default flex column
+     does when no child claims grow.
+     `min-height: 0` is the flex-column quirk that lets the
+     messages region actually scroll; without it the implicit
+     min-height: auto would force the body to grow with content
+     instead of allowing internal overflow. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: auto;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1.1rem;
 }
 
 /* Backdrop layer — fixed-position dim that catches pointer
