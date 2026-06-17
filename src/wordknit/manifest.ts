@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { DEFAULT_WORDKNIT_SETUP, type WordknitSetup } from './lib/setup'
+import logoUrl from './logo.svg?url'
 
 /**
  * Wordknit's registration with the shell.
@@ -21,6 +22,7 @@ export const wordknitGame: GameManifest = {
   schema: 'wordknit',
   name: 'Wordknit',
   blurb: 'Match the four hidden categories of four words.',
+  logoUrl,
 
   // Plays solo (1 player at their solo club) or coop (any number
   // of club members poke at the same board). Must agree with the

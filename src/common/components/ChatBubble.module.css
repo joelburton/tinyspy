@@ -1,0 +1,27 @@
+/* Header-inline chat toggle. Transparent by default, picks up a
+ * subtle background on hover. The bottom-right circular variant
+ * (still in FloatingChat for ClubPage) is unrelated — different
+ * affordance, different file.
+ */
+
+.bubble {
+  /* Reset the global button defaults — we want a square icon
+   * button, not a pill. */
+  background: transparent;
+  border: none;
+  padding: 0.3rem;
+  margin: 0;
+  cursor: pointer;
+  color: var(--color-text);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.bubble:hover {
+  background: var(--color-surface-border);
+}

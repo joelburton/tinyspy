@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useClubChat } from '../hooks/useClubChat'
+import { setChatOpen, useChatOpen } from '../lib/chatOpenStore'
 import { FloatingPanel } from './FloatingPanel'
 import { ChatBody } from './ChatBody'
 import styles from './FloatingChat.module.css'
@@ -9,6 +10,12 @@ import type { Member } from '../lib/games'
 type Props = {
   clubId: string
   members: Member[]
+  /** When true, render nothing in the closed state — the bubble
+   *  is being supplied elsewhere (e.g. the GamePage header's
+   *  `<ChatBubble>`). The open-state panel still renders here.
+   *  ClubPage omits this prop and gets the legacy bottom-right
+   *  toggle button for its closed state. */
+  hideClosedButton?: boolean
 }
 
 /**
@@ -59,8 +66,16 @@ type Props = {
  * render an instance). localStorage glue makes the open/closed
  * state and the rect continuous across remounts.
  */
-export function FloatingChat({ clubId, members }: Props) {
-  const [open, setOpen] = useState<boolean>(() => readOpen())
+export function FloatingChat({
+  clubId,
+  members,
+  hideClosedButton = false,
+}: Props) {
+  // Open/closed state lives in the shared chatOpenStore so the
+  // GamePage header's `<ChatBubble>` can flip the same flag from
+  // outside this component tree. localStorage persistence is
+  // owned by the store too — no per-instance mirror needed here.
+  const open = useChatOpen()
   // useClubChat lifted from ChatBody so the force-open detector
   // runs even when the panel is closed. ChatBody now takes
   // messages + loading as props.
@@ -94,31 +109,20 @@ export function FloatingChat({ clubId, members }: Props) {
     if (latest.id === lastSeenIdRef.current) return
     lastSeenIdRef.current = latest.id
     if (latest.content.startsWith('!')) {
-      // React 19's stricter "set-state-in-effect" rule flags
-      // this — but the setState IS in direct response to an
-      // external event (a new message arrived via Realtime
-      // through useClubChat). The cascading render warning the
-      // rule guards against doesn't apply here: open is the
-      // only state we touch, and only when the latest-message
-      // id genuinely changed.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpen(true)
+      setChatOpen(true)
     }
   }, [messages, loading])
 
-  // Mirror open state to localStorage so the next mount (after
-  // navigation or reload) restores it.
-  useEffect(function persistOpenState() {
-    writeOpen(open)
-  }, [open])
-
-  // Closed shape — the bottom-right toggle button.
+  // Closed shape — either render nothing (when the bubble is in
+  // the GamePage header) or the legacy bottom-right toggle (for
+  // ClubPage, which still uses that affordance).
   if (!open) {
+    if (hideClosedButton) return null
     return (
       <button
         type="button"
         className={styles.openButton}
-        onClick={() => setOpen(true)}
+        onClick={() => setChatOpen(true)}
         aria-label="Open chat"
         title="Chat"
       >
@@ -131,7 +135,7 @@ export function FloatingChat({ clubId, members }: Props) {
   return (
     <FloatingPanel
       title="Chat"
-      onClose={() => setOpen(false)}
+      onClose={() => setChatOpen(false)}
       closeOnEsc={false}
       persistKey="pupgames:chat:rect"
       zIndex={10000}
@@ -148,24 +152,6 @@ export function FloatingChat({ clubId, members }: Props) {
       />
     </FloatingPanel>
   )
-}
-
-const OPEN_KEY = 'pupgames:chat:open'
-
-function readOpen(): boolean {
-  try {
-    return window.localStorage.getItem(OPEN_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-function writeOpen(value: boolean): void {
-  try {
-    window.localStorage.setItem(OPEN_KEY, value ? 'true' : 'false')
-  } catch {
-    // ignore — see useDraggablePanel for the same posture
-  }
 }
 
 /** Inline SVG chat-bubble. A Unicode glyph (💬) varies in

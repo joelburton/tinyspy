@@ -1,0 +1,41 @@
+import type { FeedbackMsg, Member } from '../lib/games'
+import { FeedbackPill } from './FeedbackPill'
+import { PlayersStrip } from './PlayersStrip'
+import styles from './StatusSlot.module.css'
+
+type Props = {
+  players: Member[]
+  feedback: FeedbackMsg | null
+  onCloseFeedback: () => void
+}
+
+/**
+ * The middle cell of the GamePage header. Two states:
+ *
+ *  - **default**: `<PlayersStrip>` — colored usernames, the
+ *    "who's playing and what color is who" reminder.
+ *  - **feedback**: `<FeedbackPill>` — the active feedback
+ *    message, replacing the strip while it's showing. Three
+ *    dismiss modes per docs/ui.md → "Feedback pill."
+ *
+ * Same height in both states. See docs/ui.md → Layout stability
+ * — the slot doesn't reflow the header as feedback comes and
+ * goes, because the slot's own height is fixed via CSS.
+ *
+ * Pause transitions don't clear feedback by default — the slot
+ * sits in the header, which is outside `<PauseOverlay>`'s
+ * coverage, so an active pill stays readable through a pause.
+ * Callers who want feedback to drop on pause must `clear()`
+ * explicitly.
+ */
+export function StatusSlot({ players, feedback, onCloseFeedback }: Props) {
+  return (
+    <div className={styles.slot}>
+      {feedback ? (
+        <FeedbackPill msg={feedback} onClose={onCloseFeedback} />
+      ) : (
+        <PlayersStrip players={players} />
+      )}
+    </div>
+  )
+}

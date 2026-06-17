@@ -1,0 +1,32 @@
+/* Colored-username row. Inline flow with middle-dot separators
+ * between entries; truncates with ellipsis if the entire strip
+ * overflows the available width (the parent <StatusSlot> sets
+ * `min-width: 0` to allow shrinking past the intrinsic width).
+ *
+ * Same height contract as the FeedbackPill — see
+ * docs/ui.md → "Layout stability."
+ */
+
+.strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.entry {
+  white-space: nowrap;
+}
+
+.username {
+  /* Per-username inline color comes from a style={{}} prop on
+   * the parent; this rule just locks the weight + display. */
+  font-weight: 500;
+}
+
+.sep {
+  color: var(--color-muted);
+}

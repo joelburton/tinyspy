@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { DEFAULT_TINYSPY_SETUP, type TinyspySetup } from './lib/setup'
+import logoUrl from './logo.svg?url'
 
 /**
  * Tinyspy's registration with the shell. Exported as the only thing
@@ -29,6 +30,7 @@ export const tinyspyGame: GameManifest = {
   schema: 'tinyspy',
   name: 'Tinyspy',
   blurb: 'Cooperative Codenames Duet for two.',
+  logoUrl,
 
   // Codenames Duet is intrinsically 2-player. Must agree with
   // the `member_count <> 2` check in tinyspy.create_game (in

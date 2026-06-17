@@ -1,0 +1,11 @@
+<!-- Placeholder logo. Generic 4-dot grid inside a rounded
+     square — reads as "tiles / a game board / four of something"
+     without committing to per-game iconography. Replace when we
+     have real art. -->
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+  <rect x="2.5" y="2.5" width="19" height="19" rx="4" ry="4" />
+  <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="9" cy="15" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="15" cy="15" r="1.5" fill="currentColor" stroke="none" />
+</svg>

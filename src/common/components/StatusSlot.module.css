@@ -1,0 +1,19 @@
+/* The middle cell of the header. Fixed minimum height so the
+ * slot occupies the same vertical space whether it's holding a
+ * PlayersStrip (slimmer) or a FeedbackPill (taller padding).
+ * Grows horizontally to fill space between the logo+chat group
+ * and the pause+timer group.
+ *
+ * `min-width: 0` lets the slot shrink below the intrinsic width
+ * of its children — required for the inner PlayersStrip's
+ * `overflow: hidden; text-overflow: ellipsis` to actually kick
+ * in when usernames are long.
+ */
+
+.slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+}

@@ -33,6 +33,35 @@ export type GamePageCtx = {
     displaySeconds: number
     expired: boolean
   }
+  /** Imperative API for the GamePage-header feedback slot. The
+   *  PlayArea calls `feedback.show({...})` to surface transient
+   *  or persistent feedback in the `<StatusSlot>` (replacing the
+   *  default `<PlayersStrip>` while active); `feedback.clear()`
+   *  empties the slot. See docs/ui.md → Feedback pill for the
+   *  API + dismiss-mode semantics. The functions' identities are
+   *  stable across renders, so they're safe to put in dep arrays. */
+  feedback: FeedbackApi
+}
+
+/** Tone variants the feedback pill renders. See docs/ui.md →
+ *  Feedback pill. */
+export type FeedbackTone = 'success' | 'error' | 'neutral' | 'info'
+
+/** A single feedback message. The `dismiss` mode picks how it
+ *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
+ *  detailed when-to-use guidance. */
+export type FeedbackMsg = {
+  tone: FeedbackTone
+  text: string
+  dismiss:
+    | { kind: 'timed'; ms?: number }
+    | { kind: 'sticky' }
+    | { kind: 'closeable' }
+}
+
+export type FeedbackApi = {
+  show: (msg: FeedbackMsg) => void
+  clear: () => void
 }
 
 /**
@@ -116,6 +145,12 @@ export type GameManifest = {
 
   /** One-line description for use in pickers and previews. */
   blurb: string
+
+  /** URL to this gametype's square SVG logo, used in the
+   *  GamePage header. Resolved by Vite via
+   *  `import logoUrl from './logo.svg?url'` in each game's
+   *  manifest. See docs/ui.md → "GamePage header". */
+  logoUrl: string
 
   /**
    * Per-gametype baseline timer. Optional; default is no timer.

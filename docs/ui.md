@@ -97,7 +97,6 @@ The page underneath stays in *review mode*: the final board, revealed unmatched 
 Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:
 
 - **Result banners across all three games.** Tinyspy's `GameOverBanner.tsx`, psychic-num's `ResultBanner.tsx`, wordknit's inline terminal copy in `PlayArea.tsx` — all move to a shared `GameOverModal`.
-- **Wordknit's transient banner.** Likely collapses to 0 height when empty (reflows the page when it appears). Fix: always-reserved slot.
 - **Tinyspy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 

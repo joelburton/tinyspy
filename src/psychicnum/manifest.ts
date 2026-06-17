@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
+import logoUrl from './logo.svg?url'
 
 /**
  * Psychic Num's registration with the shell. Mirrors the shape
@@ -21,6 +22,7 @@ export const psychicnumGame: GameManifest = {
   schema: 'psychicnum',
   name: 'Psychic Num',
   blurb: 'Guess the secret number 1–10. Anyone can guess, 7 tries total.',
+  logoUrl,
 
   // Psychic Num plays with any club size — the game logic doesn't
   // care how many people are guessing. Must agree with the

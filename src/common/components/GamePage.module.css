@@ -1,6 +1,17 @@
 /* The common game-page shell. Owns the layout for every game's
- * /g/<gametype>/<gameId> route. Header on top, PauseBoundary +
- * children (the play surface) in the middle, chat below.
+ * /g/<gametype>/<gameId> route. Layout-static header on top,
+ * PauseBoundary + children (the play surface) in the middle,
+ * chat as a floating panel.
+ *
+ * Header layout per docs/ui.md → "GamePage header":
+ *   [logo] [chat] [status-slot]                [pause] [timer-if-set]
+ *
+ *   - left: logo + chat-bubble (fixed) + status-slot (flex: 1).
+ *   - right: pause-button (fixed) + timer (fixed, when shown).
+ *
+ * The status-slot's `flex: 1` is what gives feedback pills and
+ * the players-strip room to grow into; logo/chat/pause/timer all
+ * stay at their intrinsic sizes.
  */
 
 .frame {
@@ -17,26 +28,52 @@
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
 }
 
-.title {
-  margin: 0;
-  /* Algorithmic titles can run long — let them wrap rather than
-   * overflow. */
-  word-break: break-word;
-}
-
-.headerActions {
+/* Left group: logo + chat-bubble + status-slot. `flex: 1` so the
+ * group expands to fill all the space the right-group doesn't
+ * claim — that's the room the status-slot has to render its pill
+ * / strip. `min-width: 0` lets the inner StatusSlot's children
+ * shrink with ellipsis overflow on narrow widths. */
+.left {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
-/* The countdown display in the header. Tabular-nums so the
- * MM:SS digits don't shift width as they tick down. */
+/* Right group: pause + timer. `flex-shrink: 0` so the left group
+ * gives space before this one does — feedback pills push the
+ * pause/timer out only if there's no other choice. */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Logo's anchor / Link wrapper. Strips default link styling so
+ * the SVG looks identical whether wrapped in a <Link> (terminal)
+ * or an <a> (non-terminal with suspend-confirm intercept). */
+.logoLink {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  transition: background 100ms ease;
+}
+.logoLink:hover {
+  background: var(--color-surface-border);
+}
+
+/* The countdown / count-up display. Tabular-nums so MM:SS digits
+ * don't shift the right edge as they tick. */
 .timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--color-text);
+  padding: 0.25rem 0.5rem;
 }

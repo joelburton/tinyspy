@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -15,10 +15,12 @@ import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 
 /**
  * Wordknit's play surface — composes the in-game pieces. The
- * cross-cutting chrome (title, timer, pause, chat) lives on
- * `<GamePage>` above this component in the route tree; here we
- * just stitch together the gametype-specific pieces (status line,
- * `<CategoryBands>`, `<TileGrid>`, action row, transient banner).
+ * cross-cutting chrome (logo, chat, players-strip / feedback-pill,
+ * pause, timer) lives on `<GamePage>` above this component in
+ * the route tree; here we just stitch together the gametype-
+ * specific pieces (status line, `<CategoryBands>`, `<TileGrid>`,
+ * action row). Transient feedback flows out via `ctx.feedback`
+ * → the GamePage header's status slot.
  *
  * Submission flow:
  *   1. FE evaluates the guess locally against board.categories
@@ -45,6 +47,7 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  feedback,
 }: GamePageCtx) {
   const {
     game,
@@ -56,7 +59,6 @@ export function PlayArea({
     sendClear,
     loading,
   } = useGame(session, gameId)
-  const [transient, setTransient] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [hintsOpen, setHintsOpen] = useState(false)
   // Per-player local tile order. NULL = use upstream
@@ -74,13 +76,6 @@ export function PlayArea({
     () => new Set(),
   )
 
-  // Auto-clear the transient banner after a beat.
-  useEffect(function autoClearTransient() {
-    if (!transient) return
-    const t = setTimeout(() => setTransient(null), 2200)
-    return () => clearTimeout(t)
-  }, [transient])
-
   // Auto-clear the shake set ~500ms after we set it (just past
   // the animation's 400ms duration). Effect-based so the timeout
   // is cleaned up on unmount / re-shake correctly.
@@ -90,15 +85,22 @@ export function PlayArea({
     return () => clearTimeout(t)
   }, [shakingTiles])
 
+  // Local helper: every wordknit feedback today is `timed`-dismiss
+  // (transient toasts). Wraps the ctx call so call sites stay
+  // terse and we don't accidentally drop the dismiss config.
+  function showFeedback(tone: FeedbackTone, text: string) {
+    feedback.show({ tone, text, dismiss: { kind: 'timed' } })
+  }
+
   async function handleSubmit() {
     if (submitting) return
     if (unionTiles.length !== 4 || !game) return
 
     // Dup detection (FE-side per the FE-knows model). If this
-    // exact set has already been submitted, show the banner and
-    // skip the RPC.
+    // exact set has already been submitted, surface a transient
+    // feedback toast and skip the RPC.
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      setTransient('You already tried that')
+      showFeedback('error', 'You already tried that')
       return
     }
 
@@ -114,12 +116,12 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      setTransient(error.message)
+      showFeedback('error', error.message)
       return
     }
-    if (verdict.kind === 'oneAway') setTransient('One away!')
+    if (verdict.kind === 'oneAway') showFeedback('neutral', 'One away!')
     else if (verdict.kind === 'wrong') {
-      setTransient('Incorrect')
+      showFeedback('error', 'Incorrect')
       // Capture the just-submitted tiles into the shake set
       // BEFORE sendClear drops the selection — once cleared,
       // unionTiles will be empty on the next render. The cleanup
@@ -265,9 +267,6 @@ export function PlayArea({
             </div>
           )}
 
-          {transient && (
-            <div className={styles.transient}>{transient}</div>
-          )}
         </div>
 
         {/* History sidebar (right): per-guess outcome log. Shows

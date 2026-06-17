@@ -63,7 +63,8 @@
  * the right. Flex-row so the sidebar's max-width naturally caps
  * its column and the board claims whatever remains. The board
  * column is the existing flex-column stack (status, bands, grid,
- * actions, transient banner).
+ * actions). Transient feedback now lives in the GamePage header's
+ * status slot — see docs/ui.md → "Feedback pill" + ctx.feedback.
  *
  * Below the gap-row breakpoint the columns stack — the board
  * needs its width more than the sidebar needs to be alongside.
@@ -172,7 +173,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tileShaking {
     /* Strip the animation; the wrong-guess feedback still lands
-     * via the transient banner + the mistake-dot fill. */
+     * via the header's feedback pill + the mistake-dot fill. */
     animation: none;
   }
 }
@@ -188,15 +189,6 @@
   min-width: 7rem;
 }
 
-.transient {
-  align-self: center;
-  background: var(--color-surface-hover);
-  border: 1px solid var(--color-surface-border);
-  padding: 0.4rem 0.85rem;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  margin-top: 0.4rem;
-}
 
 .endActions {
   display: flex;
