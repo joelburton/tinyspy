@@ -19,6 +19,24 @@
 
 .entry {
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Per-player color dot. Filled with the member's profile color
+ * (set inline by PlayersStrip from colorVarFor). The thin ring
+ * around it (white inner + surface-border outer) keeps the dot
+ * legible on any palette color — same belt-and-braces pattern
+ * as ClubPage's member-list dot. */
+.dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  border: 1px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-surface-border);
+  flex-shrink: 0;
 }
 
 .username {

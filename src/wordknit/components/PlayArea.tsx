@@ -85,11 +85,14 @@ export function PlayArea({
     return () => clearTimeout(t)
   }, [shakingTiles])
 
-  // Local helper: every wordknit feedback today is `timed`-dismiss
-  // (transient toasts). Wraps the ctx call so call sites stay
-  // terse and we don't accidentally drop the dismiss config.
+  // Local helper: every wordknit feedback today is `closeable` —
+  // a guess outcome should stay on screen until the player either
+  // makes another guess (which fires a fresh `show()` and replaces
+  // the pill) or explicitly dismisses it via the × button. No
+  // self-vanishing timer; misclicked dismiss → next guess brings
+  // it back.
   function showFeedback(tone: FeedbackTone, text: string) {
-    feedback.show({ tone, text, dismiss: { kind: 'timed' } })
+    feedback.show({ tone, text, dismiss: { kind: 'closeable' } })
   }
 
   async function handleSubmit() {

@@ -35,21 +35,26 @@ type Props = {
 export function PlayersStrip({ players }: Props) {
   return (
     <div className={styles.strip}>
-      {players.map((p, i) => (
-        <span key={p.user_id} className={styles.entry}>
-          <span
-            className={styles.username}
-            style={{ color: colorVarFor(p.color) }}
-          >
-            {p.username}
-          </span>
-          {i < players.length - 1 && (
-            <span className={styles.sep} aria-hidden>
-              {' · '}
+      {players.map((p, i) => {
+        const color = colorVarFor(p.color)
+        return (
+          <span key={p.user_id} className={styles.entry}>
+            <span
+              className={styles.dot}
+              style={{ background: color }}
+              aria-hidden
+            />
+            <span className={styles.username} style={{ color }}>
+              {p.username}
             </span>
-          )}
-        </span>
-      ))}
+            {i < players.length - 1 && (
+              <span className={styles.sep} aria-hidden>
+                {' · '}
+              </span>
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }

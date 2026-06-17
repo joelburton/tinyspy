@@ -6,11 +6,19 @@
  * push the board narrower than the 4×4 grid's natural read
  * size on mid-width screens.
  *
- * Row backgrounds come from the common outcome tokens
- * (--color-outcome-{won,lost,near}-{bg,border}); see
+ * Row outcome color shows as a 10px-wide colored strip on the
+ * left of each card (a thick left-border); the rest of the card
+ * stays transparent so the colored strip is the only chrome that
+ * carries semantic color. Outcome palette comes from the common
+ * tokens (`--color-outcome-{won,lost,near}-border`); see
  * common/theme.css. The component is wordknit-specific but the
  * palette is shared so future games' equivalent history surfaces
  * can adopt the same look without copying colors.
+ *
+ * Why the strip pattern over the previous full-bg fill: at four
+ * mistakes the column of dark-red rows was visually loud and
+ * crowded out the rest of the page. The strip carries enough
+ * signal to scan ("which were correct?") without dominating.
  * ============================================================ */
 
 .history {
@@ -57,24 +65,27 @@
   overflow-y: auto;
 }
 
+/* Card body: thin surface-bound on three sides for definition,
+ * thick (10px) colored strip on the left for the outcome signal.
+ * Background stays transparent so the page surface shows through
+ * — the variants only ever set `border-left-color`. */
 .item {
   border-radius: var(--radius-md);
-  border: 1px solid;
-  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-surface-border);
+  border-left-width: 10px;
+  padding: 0.45rem 0.6rem 0.45rem 0.7rem;
   font-size: 0.85rem;
+  background: transparent;
 }
 
 .item_correct {
-  background: var(--color-outcome-won-bg);
-  border-color: var(--color-outcome-won-border);
+  border-left-color: var(--color-outcome-won-border);
 }
 .item_wrong {
-  background: var(--color-outcome-lost-bg);
-  border-color: var(--color-outcome-lost-border);
+  border-left-color: var(--color-outcome-lost-border);
 }
 .item_oneAway {
-  background: var(--color-outcome-near-bg);
-  border-color: var(--color-outcome-near-border);
+  border-left-color: var(--color-outcome-near-border);
 }
 
 .tiles {
