@@ -254,7 +254,28 @@ menu: {
 
 **Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
 
-**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage will adopt the same shape later (click a club icon → menu with "Exit club," "Rename club," etc.); only the trigger element and items array differ.
+**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic pupgames logo as the trigger and items "Back to home," "Rename club," "Delete club."
+
+### ClubPage header
+
+The club page wears the same chrome the game page does, slightly rearranged: the club's name takes the visual slot the game's title doesn't have on GamePage (where identity is carried by the per-game logo). No right-hand group — clubs have no timer, no pause.
+
+```
+[pupgames-logo] [Club Name] [chat-bubble] [status-slot]
+```
+
+- **`<PupgamesLogo />`** — a generic placeholder SVG at `src/common/pupgames.svg`, the same 4-dot-grid the per-game logos use. Wrapped by `<Menu>` exactly like the game logo: click opens the club menu.
+- **Club name** — plain text, the canonical identity for the page. Drops out of the visual register the moment the user enters a game (where the per-game logo takes over).
+- **`<ChatBubble />`** — the same shared component as GamePage. Both pages bubble open/close the same FloatingChat panel via the shared `chatOpenStore`.
+- **`<StatusSlot />`** — same shared component. Default content is the `<PlayersStrip>` of club **members** (the variable name in club context, per [naming.md](naming.md#member)). When `setFeedback(...)` fires (e.g. after a successful game delete), the strip is replaced by the `<FeedbackPill>` for the configured dismiss mode. One concrete pill today: a `timed` "`<title>` deleted" toast that fires on successful `delete_game`.
+
+**ClubPage menu items:**
+
+- **Back to home** — `navigate('/')`. Real link.
+- **Rename club** — placeholder. Click pops a "Coming soon" `timed` feedback pill.
+- **Delete club** — placeholder. Same.
+
+**Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The main content well below the header keeps its existing `.card` constraint (max-width 480px, centered). The previous "whole page is one card" wrapping gave way to a frame with a header + a main card so the header has room to breathe.
 
 ### Components
 
