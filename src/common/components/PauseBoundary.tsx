@@ -32,13 +32,12 @@ type Props = {
  *
  * **Why unmount, not visibility:hidden:** the unmount drops
  * children's local state and effects, which is exactly the
- * behavior we want. Wordknit's shared-tile selections live in
- * component state — unmount clears them automatically (no
- * sendClear ceremony). Per-game form state (psychic-num's input,
- * tinyspy's pending guess) resets on resume, which reads as a
- * clean slate. Realtime channels in PlayArea's per-gametype
- * `useGame` tear down and reconnect on resume; the brief
- * resubscribe gap is covered by the on-SUBSCRIBED refetch.
+ * behavior we want. Per-game PlayArea state — pending inputs,
+ * shared selections, transient banners — resets cleanly on
+ * resume, no per-game cleanup ceremony needed. Realtime
+ * channels in PlayArea's per-gametype `useGame` tear down and
+ * reconnect on resume; the brief resubscribe gap is covered by
+ * the on-SUBSCRIBED refetch.
  *
  * Cross-cutting state (the common.games row, members, presence,
  * the timer) lives in `useCommonGame` ABOVE this boundary — see

@@ -36,9 +36,8 @@
   border-color: var(--color-text);
 }
 
-/* Gametype label — small, uppercase, muted. The "Wordknit" /
- * "Tinyspy" tag sitting above the title so the eye sees category
- * first. */
+/* Gametype label — small, uppercase, muted. Sits above the
+ * title so the eye sees category first. */
 .gametype {
   font-size: 0.75rem;
   letter-spacing: 0.04em;
@@ -48,7 +47,8 @@
 }
 
 /* The algorithmic title — the largest text in the card. Per-state
- * sizing below scales this. word-break for long tinyspy titles. */
+ * sizing below scales this. word-break since some gametypes
+ * generate long titles. */
 .title {
   font-weight: 600;
   word-break: break-word;

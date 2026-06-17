@@ -10,7 +10,7 @@ type Props = {
   /** The id of this game (drives the routing target). */
   gameId: string
   /** The gametype — drives both the routing target and the
-   *  "Wordknit" / "Tinyspy" header label. */
+   *  gametype's header label. */
   gametype: string
   /** Algorithmic per-game title from `common.games.title`.
    *  Optional because the lookup map may not have populated by
@@ -44,14 +44,12 @@ type Props = {
  *
  * One component, three states. The fields are the same:
  *
- *   - **Gametype name** (from the manifest, e.g. "Wordknit"), as
- *     a small label above the title.
+ *   - **Gametype name** — small label above the title, from the
+ *     manifest.
  *   - **Title** — the algorithmic per-game title from
- *     `common.games.title` ("ALPHA, ANGEL, APPLE, ARROW",
- *     "ada-v-bea: SUN, MOON, …", "7"). The card's biggest text.
- *   - **Status label** — the gametype's own free-form text
- *     ("won — bea guessed it", "13/15 agents", "in progress · 1/4
- *     categories"), produced by `manifest.labelFor`.
+ *     `common.games.title`. The card's biggest text.
+ *   - **Status label** — the gametype's own free-form text,
+ *     produced by `manifest.labelFor`.
  *   - **Started-at** date, smaller / muted.
  *
  * What varies by state, all in CSS:
@@ -60,12 +58,9 @@ type Props = {
  *   - `completed` — muted treatment.
  *
  * All three are clickable. Each game's PlayArea already handles
- * the terminal play_state as a "view the final state" mode: the
- * game's own load logic reads its row, sees `is_terminal`, and
- * renders the post-game shape (wordknit: matched + revealed-
- * unmatched bands, no tile grid; tinyspy: full 5×5 board with
- * post-game peer-key stripes; psychic-num: ResultBanner +
- * GuessHistory). No special review-page is needed.
+ * the terminal play_state as a "view the final state" mode — no
+ * special review-page is needed; the same component renders both
+ * the live and the post-game shape.
  *
  * **Delete affordance.** Two-step interaction:
  *   - hover (or keyboard focus) reveals a small × button at the

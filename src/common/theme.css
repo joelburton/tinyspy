@@ -53,16 +53,12 @@
   --color-accent-hover:       #1565c0;
 
   /* Outcome palette — used wherever a game's outcome state needs
-     to be summarized visually: the wordknit setup calendar's
-     date squares first, but designed to generalize to any "did
-     this club win / lose / are they mid-game" surface (future
+     to be summarized visually (calendar date squares, future
      ClubPage outcome chips, stats badges, etc.). Soft pastel
      fills so dark text reads against them; `*-border` is a
      darker companion for focused / hovered states. The mapping
-     from per-gametype play_state to outcome bucket is the
-     game's responsibility (`solved` → won for wordknit,
-     `lost_assassin`/`lost_clock`/`lost_timeout` → lost for
-     tinyspy, etc.). */
+     from per-gametype play_state to outcome bucket is each
+     game's own responsibility. */
   --color-outcome-won-bg:     #c8e6c9;   /* green 100 */
   --color-outcome-won-border: #66bb6a;   /* green 400 */
   --color-outcome-lost-bg:    #ffcdd2;   /* red 100 */
@@ -70,12 +66,9 @@
   --color-outcome-active-bg:  #fff9c4;   /* yellow 100 */
   --color-outcome-active-border: #fdd835; /* yellow 600 */
   /* "Near miss" — a partial-credit signal distinct from active-
-     yellow. Used today by wordknit's GuessHistory for the
-     `oneAway` row state ("three of the four tiles were in the
-     same category"); future games with a "you were close" signal
-     can reuse it (a hypothetical Boggle "valid word, wrong
-     length"; a future psychic-num "within ±1"). Amber/orange
-     to read as warning-flavored rather than wait-flavored. */
+     yellow. For any "you were close" row state in a guess
+     history; amber/orange to read as warning-flavored rather
+     than wait-flavored. */
   --color-outcome-near-bg:    #ffe0b2;   /* amber 100 */
   --color-outcome-near-border: #ffb74d;  /* amber 300 */
 

@@ -22,9 +22,8 @@
 
 .title {
   margin: 0;
-  /* The algorithmic title can get long (tinyspy's
-   * "ada-v-bea: SUN, MOON, FOOD, RAIN" runs ~30 chars) — let it
-   * wrap rather than overflow. */
+  /* Algorithmic titles can run long — let them wrap rather than
+   * overflow. */
   word-break: break-word;
 }
 

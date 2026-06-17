@@ -32,21 +32,21 @@ export type CommonGame = {
    *  the end-state); a non-current game can be non-terminal (a
    *  suspended game waiting to be resumed). See docs/states.md. */
   is_current_view: boolean
-  /** Gametype-specific play state — `'playing'` (and tinyspy's
-   *  `'sudden_death'`) are non-terminal; everything else is
-   *  terminal. See `is_terminal` for the materialized boolean. */
+  /** Gametype-specific play state. `'playing'` is the standard
+   *  non-terminal value; some gametypes have additional non-
+   *  terminal states. Gate on `is_terminal` below — it's the
+   *  materialized "any terminal play_state" boolean. */
   play_state: string
   /** Materialized "is any terminal play_state" — `common.end_game`
    *  flips this to true alongside writing the terminal play_state.
    *  Lets consumers gate on a uniform boolean without needing to
    *  know each gametype's vocabulary. */
   is_terminal: boolean
-  /** Free-form per-gametype outcome details (matched/mistakes for
-   *  wordknit, greens_found/turns_used for tinyspy, etc.). Kept
-   *  current by every state-transitioning RPC via common.update_state
-   *  / common.end_game — not just a terminal-time snapshot. The
-   *  matching manifest's labelFor reads this shape to render the
-   *  club-page listing row. */
+  /** Free-form per-gametype outcome detail. Each gametype writes
+   *  its own shape; the matching manifest's `labelFor` reads
+   *  it back to render the club-page listing row. Kept current
+   *  by every state-transitioning RPC via common.update_state /
+   *  common.end_game — not just a terminal-time snapshot. */
   status: Record<string, unknown> | null
   /** Server-tracked accumulator of wall-clock time during which
    *  no one was viewing this game. Maintained by
@@ -107,12 +107,12 @@ type SuspendEvent = { type: 'suspend' }
  * would surface as either stuck pointers (nobody clears) or
  * thrash (everyone clears).
  *
- * Per-gametype hooks (`useWordknitGame`, etc.) open their own
- * UUID-suffixed channels for postgres-changes on their game-
- * specific tables — those don't need to coordinate across peers,
- * so a per-tab channel is fine and avoids supabase-js's
- * "attach-all-.on()-before-.subscribe()" rule (no other hook
- * needs to attach handlers to *this* channel after it subscribes).
+ * Per-gametype `useGame` hooks open their own UUID-suffixed
+ * channels for postgres-changes on their game-specific tables —
+ * those don't need to coordinate across peers, so a per-tab
+ * channel is fine and avoids supabase-js's "attach-all-.on()-
+ * before-.subscribe()" rule (no other hook needs to attach
+ * handlers to *this* channel after it subscribes).
  *
  * What this hook owns:
  *   - common.games row + common.game_players + their profiles
@@ -135,11 +135,10 @@ type SuspendEvent = { type: 'suspend' }
  *   - `timer` — `{ displaySeconds, expired }` from useGameTimer
  *   - `loading` — false once initial fetch completes
  *
- * Phase B replaces each per-gametype useGame's
- * presence/broadcast/timer/members machinery with this hook.
- * Wordknit and tinyspy keep their own gametype-side useGame
- * for selection broadcasts + per-gametype row data (on their own
- * separate channel).
+ * The per-gametype `useGame` hooks stay focused on selection
+ * broadcasts + per-gametype row data on their own separate
+ * channel — they don't repeat the presence / pause / timer /
+ * members machinery that lives here.
  */
 export function useCommonGame(
   gameId: string,

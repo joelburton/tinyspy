@@ -10,14 +10,9 @@
  * remap each palette entry without rewriting every consumer.
  *
  * Used wherever a user's identity needs a visual anchor — the
- * member-list circles, chat name labels, the wordknit per-peer
- * tile-selection borders, per-game guess/clue history rows.
- *
- * Replaces the older `wordknit/lib/peerColor.ts`, which hashed
- * user_id to a hard-coded 6-color palette. Now that each user
- * has a persisted color on their profile, the hash isn't needed
- * — and lives globally instead of being a wordknit-specific
- * concept.
+ * member-list circles, chat name labels, per-peer in-game
+ * affordances (tile-selection borders, etc.), per-game guess/
+ * clue history rows.
  */
 
 // The same 8 names as the DB check constraint on
@@ -54,11 +49,10 @@ export function colorVarFor(name: string | null | undefined): string {
 
 /**
  * Build a `user_id → color CSS var` lookup map from a member
- * roster. Convenient for components like wordknit's TileGrid
- * that need to color N tiles by their owner without doing the
- * lookup themselves N times. Values are pre-resolved to
- * `var(--color-peer-NAME)` strings — ready to drop into a
- * `style={{ ... }}` prop.
+ * roster. Convenient for components that need to color N items
+ * by their owner without doing the lookup themselves N times.
+ * Values are pre-resolved to `var(--color-peer-NAME)` strings —
+ * ready to drop into a `style={{ ... }}` prop.
  */
 export function colorByUserIdMap<
   M extends { user_id: string; color: string },

@@ -22,9 +22,8 @@ type Props = {
  *
  * Renders the **None / Up / Down** radio triple plus an MM:SS
  * input that's only editable when "Down" (countdown) is selected.
- * Every gametype whose `setup.timer` is server-validated by
- * `common.validate_timer` uses this — wordknit and psychic-num
- * today, more later.
+ * Used by every gametype whose `setup.timer` is server-validated
+ * by `common.validate_timer`.
  *
  * The MM:SS text is parsed on every keystroke. When the input is
  * well-formed and in [1s, 60min], the underlying setup value
