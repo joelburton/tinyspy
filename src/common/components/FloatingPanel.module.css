@@ -99,15 +99,24 @@
 }
 
 .body {
-  /* Flex child of .shell. flex: 1 takes the remaining height
-     after the header; min-height: 0 is the flex-column quirk
-     that lets a scrollable child inside actually scroll instead
-     of pushing the body taller. */
+  /* Body is both:
+     - a flex ITEM of the shell (flex: 1 1 auto + min-height: 0)
+       so it takes the height left over by the header
+     - a flex CONTAINER (display: flex; flex-direction: column)
+       so its own children participate in the same chain — the
+       chat's `flex: 1 1 auto` on its messages region only sizes
+       correctly when body is a flex container.
+
+     min-height: 0 here is the flex-column quirk that lets the
+     scrollable child inside actually scroll instead of pushing
+     the body taller. overflow: auto means modals with long
+     content (HowToPlay) scroll naturally; chat's internal
+     layout occupies the full body and doesn't trigger this
+     scroll. */
   flex: 1 1 auto;
   min-height: 0;
-  /* Auto so modals with long content (HowToPlay) scroll
-     naturally. Chat's internal layout occupies the full body and
-     doesn't trigger this scroll. */
+  display: flex;
+  flex-direction: column;
   overflow: auto;
   /* Small body padding — modals add their own as needed via
      their own *.module.css. */
