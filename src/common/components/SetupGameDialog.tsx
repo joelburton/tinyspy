@@ -1,5 +1,6 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useState } from 'react'
 import type { GameManifest, SetupMember } from '../lib/games'
+import { FloatingPanel } from './FloatingPanel'
 import styles from './SetupGameDialog.module.css'
 
 type Props = {
@@ -29,33 +30,43 @@ type Props = {
   savedDefault?: unknown
   /** RPC succeeded — caller navigates into the new game's URL. */
   onStarted: (gameId: string) => void
-  /** User dismissed the dialog (Cancel, Esc, or backdrop click). */
+  /** User dismissed the dialog (Cancel, Esc, or X). Backdrop
+   *  click is intentionally NOT bound — mid-setup state is too
+   *  easy to lose to a stray click outside the panel. */
   onCancel: () => void
 }
 
 /**
- * Modal shell for collecting per-game setup options before
- * `create_game` fires. The chrome (backdrop, focus trap, Cancel
- * / Start buttons, busy + error state) lives here once; the
- * body is per-game and lazy-loaded from `manifest.setupForm`.
+ * Floating modal for collecting per-game setup options before
+ * `create_game` fires. Wraps the shared `<FloatingPanel>` shell
+ * (header + close X + ESC handling + react-rnd drag) with
+ * Setup-specific config:
+ *
+ *   - **backdrop=true** — the dim layer signals "this is the
+ *     focused task" and the click-block prevents accidental
+ *     Start clicks on other games behind. Chat at z-index 10000
+ *     sits above the backdrop so it's still reachable mid-setup.
+ *   - **draggable=true, resizable=false** — the form has natural
+ *     dimensions (radios, calendar widget); resize would just
+ *     create empty space. Drag lets users move the panel aside
+ *     to read chat about "what timer should we pick?"
+ *   - **No persistKey** — each open lands centered. Persisting
+ *     would mean opening Setup once, dragging it to the corner,
+ *     and forever after it lands in the corner. Surprising for
+ *     a modal whose job is "appear, get the decision, close."
  *
  * Lifecycle model: the parent (ClubPage) conditionally renders
- * this component — mounting it opens the dialog, unmounting it
- * closes it. We never hold a separate "is open" state. On
- * Cancel / Esc / backdrop-click we call `onCancel`, which is
- * the parent's signal to stop rendering us. No close animation
- * — the modal disappears with the unmount.
- *
- * Built on the native `<dialog>` element, same pattern as
- * `HowToPlayModal`: ref + `showModal()` to engage the backdrop
- * + focus trap, native `cancel` event (Esc) wired to onCancel.
+ * this component — mounting opens it, unmounting closes it. We
+ * never hold a separate "is open" state. On Cancel / Esc / X
+ * we call `onCancel`, which is the parent's signal to stop
+ * rendering us.
  *
  * Setup-value flow: the wrapper owns `setup` state (seeded from
- * `manifest.setupForm.defaults` on mount). The body renders
- * against it and reports changes via `onChange`. On Start we
- * hand the collected value to `manifest.startGameInClub`.
- * Server-side validation rejects malformed payloads — see each
- * game's `create_game` RPC.
+ * `manifest.setupForm.defaults` merged under the club's saved
+ * default). The body renders against it and reports changes via
+ * `onChange`. On Start we hand the collected value to
+ * `manifest.startGameInClub`. Server-side validation rejects
+ * malformed payloads — see each game's `create_game` RPC.
  *
  * Cancel during a pending start: we don't try to abort the RPC.
  * If the user cancels after clicking Start, the RPC keeps going
@@ -67,7 +78,6 @@ type Props = {
 export function SetupGameDialog({
   manifest, members, clubId, savedDefault, onStarted, onCancel,
 }: Props) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
   // static defaults; missing fields fall through. A NULL or
@@ -84,13 +94,6 @@ export function SetupGameDialog({
   }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Open the modal on mount. The dialog stays open until our
-  // parent stops rendering us; no manual close() needed — the
-  // DOM removal handles it.
-  useEffect(() => {
-    dialogRef.current?.showModal()
-  }, [])
 
   // Safety net: a parent that opens us for a setupForm-less
   // manifest is a bug, not a UX state we should render around.
@@ -119,41 +122,37 @@ export function SetupGameDialog({
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.setupDialog}
+    <FloatingPanel
+      title={`Start ${manifest.name}`}
       onClose={onCancel}
-      onClick={(e) => {
-        // A click whose target is the <dialog> itself (not a
-        // descendant) lands on the backdrop area.
-        if (e.target === dialogRef.current) onCancel()
-      }}
+      backdrop
+      resizable={false}
+      defaultSize={{ width: 480, height: 520 }}
+      minWidth={320}
+      minHeight={300}
     >
-      <div className={styles.content}>
-        <h2>Start {manifest.name}</h2>
-        <Suspense fallback={<p className="muted">Loading options…</p>}>
-          <SetupBody
-            members={members}
-            clubId={clubId}
-            value={setup}
-            onChange={setSetup}
-          />
-        </Suspense>
-        {error && <p className="error">{error}</p>}
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className="secondary"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            Cancel
-          </button>
-          <button type="button" onClick={handleStart} disabled={busy} autoFocus>
-            {busy ? 'Starting…' : `Start ${manifest.name}`}
-          </button>
-        </div>
+      <Suspense fallback={<p className="muted">Loading options…</p>}>
+        <SetupBody
+          members={members}
+          clubId={clubId}
+          value={setup}
+          onChange={setSetup}
+        />
+      </Suspense>
+      {error && <p className="error">{error}</p>}
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className="secondary"
+          onClick={onCancel}
+          disabled={busy}
+        >
+          Cancel
+        </button>
+        <button type="button" onClick={handleStart} disabled={busy} autoFocus>
+          {busy ? 'Starting…' : `Start ${manifest.name}`}
+        </button>
       </div>
-    </dialog>
+    </FloatingPanel>
   )
 }

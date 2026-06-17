@@ -1,31 +1,7 @@
-/* The native <dialog> for the suspend-confirm modal. Same
- * surface/backdrop pattern as SetupGameDialog — kept as its
- * own stylesheet (rather than shared) so adjustments to one
- * modal's chrome don't accidentally bleed into the other.
+/* Suspend-confirm action-row styles. Panel chrome (surface,
+ * padding, header, close X) lives on <FloatingPanel>; this
+ * stylesheet owns the horizontal Keep-playing | Suspend row.
  */
-
-dialog.dialog {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-lg);
-  padding: 0;
-  max-width: 28rem;
-  width: calc(100vw - 4rem);
-}
-
-dialog.dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-}
-
-.content {
-  padding: 2rem;
-}
-
-.content h2 {
-  margin-top: 0;
-}
 
 .actions {
   display: flex;

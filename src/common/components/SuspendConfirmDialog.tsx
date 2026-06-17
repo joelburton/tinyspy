@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { FloatingPanel } from './FloatingPanel'
 import styles from './SuspendConfirmDialog.module.css'
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
    *  navigate themselves on receipt. */
   onSuspend: () => void
   /** Called when the user dismisses the modal without
-   *  suspending (Cancel, Esc, backdrop click). */
+   *  suspending (Cancel, Esc, X). */
   onCancel: () => void
 }
 
@@ -21,46 +21,37 @@ type Props = {
  * terminal nav-away, because suspending the game drags every
  * viewing peer back to the club page too.
  *
- * Built on the native `<dialog>` element, same pattern as
- * SetupGameDialog: ref + showModal() for the backdrop, Esc
- * close fires onClose, and a click on the dialog itself
- * (vs a descendant) is treated as a backdrop click.
- *
- * The component is mount-driven — render it iff the modal
- * should be open. GamePage owns the open/closed state.
+ * Uses the shared `<FloatingPanel>` shell. Different from the
+ * other modals in that it's NOT draggable — this is a one-second
+ * decision, and a draggable header would add weight without
+ * payoff. Stays centered, narrow, no resize. Header still shows
+ * the title + close X for consistency with the rest of the
+ * floating-panel family.
  */
 export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    dialogRef.current?.showModal()
-  }, [])
-
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
+    <FloatingPanel
+      title="Suspend this game?"
       onClose={onCancel}
-      onClick={(e) => {
-        if (e.target === dialogRef.current) onCancel()
-      }}
+      draggable={false}
+      resizable={false}
+      defaultSize={{ width: 420, height: 240 }}
+      minWidth={320}
+      minHeight={200}
     >
-      <div className={styles.content}>
-        <h2>Suspend this game?</h2>
-        <p>
-          <strong>{title}</strong> will be moved out of the active slot.
-          Everyone in this game will return to the club page; you can
-          resume from there later.
-        </p>
-        <div className={styles.actions}>
-          <button type="button" className="secondary" onClick={onCancel}>
-            Keep playing
-          </button>
-          <button type="button" onClick={onSuspend} autoFocus>
-            Suspend
-          </button>
-        </div>
+      <p>
+        <strong>{title}</strong> will be moved out of the active slot.
+        Everyone in this game will return to the club page; you can
+        resume from there later.
+      </p>
+      <div className={styles.actions}>
+        <button type="button" className="secondary" onClick={onCancel}>
+          Keep playing
+        </button>
+        <button type="button" onClick={onSuspend} autoFocus>
+          Suspend
+        </button>
       </div>
-    </dialog>
+    </FloatingPanel>
   )
 }
