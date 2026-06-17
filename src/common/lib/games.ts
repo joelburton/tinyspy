@@ -3,41 +3,31 @@ import type { ComponentType } from 'react'
 
 /**
  * What `<GamePage>` exposes to each game's PlayArea via its
- * render-prop children. The shell wraps PlayArea in a `<GamePage>`
- * at the route level (`<GamePage>{(ctx) => <PlayArea {...ctx} />}</GamePage>`);
+ * render-prop children:
+ *
+ *     <GamePage gameId={...} session={...} gametype={...}>
+ *       {(ctx) => <manifest.PlayArea {...ctx} />}
+ *     </GamePage>
+ *
  * GamePage runs `useCommonGame` and hands these values down.
- *
- * Anything cross-cutting that PlayArea needs to render game-
- * specific content (members for attribution; timer for
- * "Out of time" copy) lives here. Anything chrome-related
- * (paused, missing, manuallyPausedBy, sendManualPause, the
- * commonGame.title) stays inside GamePage and never enters
- * the game's render.
- *
- * `session` and `gameId` are re-exposed so the shell can write
- * `<PlayArea {...ctx} />` without separately threading them.
+ * Anything chrome-related (paused, missing, manuallyPausedBy,
+ * the suspend-confirm dialog) stays inside GamePage and never
+ * enters a per-game render.
  */
 export type GamePageCtx = {
   session: Session
   gameId: string
-  /** The people playing this game (everyone in
-   *  common.game_players for this game id). Variable name is
-   *  `players` because we're in a game context — see Member's
-   *  docstring for the rationale on type vs variable naming. */
+  /** Everyone in this game's `common.game_players`. See
+   *  [Member] for why this is `players` (game context) and
+   *  not `members` (club context). */
   players: Member[]
-  /**
-   * Cross-cutting play state for the game, read directly from
-   * `common.games.play_state`. Gametype-specific string —
-   * `'playing'` (and `'sudden_death'` for tinyspy) are the
-   * non-terminal values; everything else is terminal. The
-   * `isTerminal` boolean below is the materialized "is this any
-   * terminal value" shorthand from `common.games.is_terminal`, so
-   * consumers usually pair the two: `isTerminal` for gate, then
-   * `playState` for the specific banner copy.
-   */
+  /** Gametype-specific play_state string from
+   *  `common.games.play_state`. Pair with `isTerminal` for the
+   *  gate; use the string itself for specific banner copy. See
+   *  docs/states.md. */
   playState: string
-  /** True once `common.games.is_terminal` flips. Composable
-   *  shorthand for "any terminal play_state." */
+  /** Materialized "any terminal play_state" from
+   *  `common.games.is_terminal`. */
   isTerminal: boolean
   timer: {
     displaySeconds: number
@@ -46,87 +36,56 @@ export type GamePageCtx = {
 }
 
 /**
- * One person's identity, with everything every render site needs
- * to display them: id (for routing / lookup), username (for
- * labels), and color (for the small circle in member lists, the
- * bold name in chat, the wordknit per-peer tile-selection
- * borders, etc).
+ * One person's identity, with the three fields every render
+ * site needs: id, username, color.
  *
- * **Why "Member" not "Player":** the same shape covers both
- * roles — a chat message in a club is from a club member; a
- * guess in a game is from a player. Treating them as one type
- * keeps the identity layer simple. The naming distinction lives
- * at the **variable** level, not the type level: code in a club
- * context uses `members: Member[]`, code in a game context uses
- * `players: Player[]`, where each game declares
- * `type Player = Member` (or `Member & { seat: ... }` for
- * tinyspy). Same shape, different vocabulary at the call site.
- *
- * Shape matches what ClubPage's roster fetch produces — passed
- * straight through, no transformation needed at the per-game
- * boundary.
+ * Same shape covers chat-message sender (club context) and
+ * game player (game context). The naming distinction is at the
+ * **variable** level — `members: Member[]` in club code,
+ * `players: Player[]` in game code, where each game declares
+ * its own `Player` alias on top of `Member`. See
+ * docs/naming.md → "member" and "player" for the full
+ * rationale.
  */
 export type Member = {
   user_id: string
   username: string
-  /** Identity color name from common.profiles.color. One of
-   *  the 8 palette entries (red/orange/yellow/green/teal/blue/
-   *  purple/pink). Used by render sites that want to color the
-   *  member's name or render a colored circle next to it — pass
-   *  through `colorVarFor` (src/common/lib/peerColor.ts) to get
-   *  the matching CSS variable. */
+  /** Palette name from `common.profiles.color`. Pass through
+   *  `colorVarFor` (src/common/lib/peerColor.ts) for the
+   *  matching CSS variable. */
   color: string
 }
 
 /**
- * Props a per-game setup-form body receives from the common
- * `SetupGameDialog` wrapper. The body is **controlled**: state
- * lives in the wrapper, the body renders `value` and signals
- * edits via `onChange`. The wrapper is the one place that holds
- * the form state, persists defaults, and decides when to fire
- * `startGameInClub`.
+ * Props the per-game setup-form body receives from the common
+ * `SetupGameDialog` wrapper. **Controlled**: state lives in the
+ * wrapper, the body renders `value` and signals edits via
+ * `onChange`.
  *
- * `value` and `onChange` are typed `unknown` at this boundary so
- * `GameManifest` can stay non-generic (the registry holds
- * `GameManifest[]`, which can't carry per-game type parameters).
- * Each game's setup component starts with a single
- * `value as TinyspySetup` cast at the top and is then fully
- * typed inside.
+ * `value` and `onChange` are `unknown` here so `GameManifest`
+ * can stay non-generic (the registry holds `GameManifest[]`,
+ * which can't carry per-game type parameters). Each game's
+ * setup component starts with `value as MySetup` at the top
+ * and is fully typed inside.
  */
 export type SetupBodyProps = {
   members: Member[]
   /** Club the game would start in. Per-game setup forms that
-   *  need to fetch club-scoped data (wordknit's per-date game
-   *  history for the calendar widget; future stats / replay
-   *  surfaces) read it. Forms that don't need it ignore it. */
+   *  need club-scoped data read it; the rest ignore it. */
   clubId: string
   value: unknown
   onChange: (next: unknown) => void
 }
 
 /**
- * What a game's manifest declares about its setup form: the
- * lazy-loaded body component plus the initial values the wrapper
- * uses to seed its state when the dialog opens.
+ * Per-game setup-form declaration: the lazy-loaded body
+ * component plus the initial value the wrapper seeds state with
+ * when the dialog opens.
  *
- * Lazy-loading means the form ships in the game's chunk, not in
- * the registry bundle. A first-time click on "Start" pays a tiny
- * fetch (cached for the session afterwards); the trade is that
- * the registry stays a thin manifest of gametypes — the same
- * argument that justifies lazy-loading `Root`. See
- * docs/common.md for the "inline what the club page renders
- * idle; lazy-load what's gated behind user intent" rule.
- *
- * `defaults` lives directly in the manifest (NOT lazy-loaded)
- * because the wrapper needs an initial setup value the moment
- * the modal opens — before the chunk has arrived. It's a tiny
- * object literal so the size cost is negligible.
- *
- * Naming note: the manifest field is `setupForm` (the *form
- * definition*) to keep it cleanly distinct from `<gametype>.games.setup`
- * (the form *output*, frozen onto the game row). Same root word
- * because they're two faces of the same concept; the suffix tells
- * you which face you have. See docs/naming.md.
+ * `Component` is lazy so the form ships in the game's chunk.
+ * `defaults` is NOT lazy because the wrapper needs an initial
+ * value the moment the modal opens — before the chunk arrives.
+ * It's a tiny literal so the size cost is negligible.
  */
 export type GameSetupForm = {
   Component: ComponentType<SetupBodyProps>
@@ -134,34 +93,26 @@ export type GameSetupForm = {
 }
 
 /**
- * Manifest exported by each game's `manifest.ts`. The shell consumes
- * the registry of manifests (`src/games.ts`) and never names a
- * specific game directly. This is what makes adding or removing a
- * game a one-line change in the registry.
- *
- * See docs/common.md for the "removability in three actions" rule
- * that motivates the manifest pattern.
+ * Manifest exported by each game's `manifest.ts`. The shell
+ * consumes the registry of manifests (`src/games.ts`) and never
+ * names a specific game directly — see docs/common.md for the
+ * "removability in three actions" rule that motivates this.
  */
 export type GameManifest = {
   /**
-   * Stable identifier for the gametype — URL-safe, matches the game's
-   * Postgres schema name by convention. Used for registry lookups and
-   * (eventually) the URL slug when more than one gametype is registered.
-   *
-   * Terminology: `gametype` is the *category* (`tinyspy`, `boggle`,
-   * `crosswords`), distinct from `game` (a specific playing instance)
-   * and `board` (a static starting configuration that can be shared).
-   * Treated as one word like `username`, so the field is lowercase,
-   * not `gameType`.
+   * Stable identifier for the gametype — URL-safe, matches the
+   * Postgres schema name by convention. Used for registry
+   * lookups and as the URL segment in `/g/<gametype>/<id>`.
+   * Lowercase one-word (`gametype`, not `gameType`); see
+   * docs/naming.md.
    */
   gametype: string
 
   /**
-   * Postgres schema where the game's tables and RPCs live. Same as
-   * `gametype` by convention, but kept as a separate field so the type
-   * communicates "the schema is the address of the DB side" alongside
-   * "gametype is the address of the FE side." If they ever diverge, we
-   * don't have to overload one string.
+   * Postgres schema where the game's tables and RPCs live. Same
+   * as `gametype` by convention. Kept separate so "DB-side
+   * address" stays distinct from "FE-side address" — if they
+   * ever diverge, one string doesn't have to do both jobs.
    */
   schema: string
 
@@ -172,93 +123,61 @@ export type GameManifest = {
   blurb: string
 
   /**
-   * Optional timer declaration. Default (omitted) = no timer.
-   * Wordknit sets `{ kind: 'countdown', seconds: 600 }` today;
-   * tinyspy and psychic-num omit. See `TimerMode` above for the
-   * shape and `useGameTimer` for the consumer.
+   * Per-gametype baseline timer. Optional; default is no timer.
+   * When set, every game of this gametype runs with it. When
+   * the manifest omits it, individual games may still opt into
+   * a timer per-game via their setup form (`common.games.setup.timer`).
    */
   timerMode?: TimerMode
 
   /**
-   * Supported player-count range. The shell uses this to decide
-   * whether a "Start X" button is rendered for a given club:
+   * Supported player-count range `[min, max | null]`. `null` =
+   * no upper bound. Exact-match games use the same number for
+   * both ends (e.g. `[2, 2]`).
    *
-   *   - hidden if there's no `common.clubs_gametypes` row for
-   *     (club, gametype)
-   *   - visible-but-disabled (with a "needs N members" tooltip)
-   *     if the row exists but the club's member count is outside
-   *     `numberOfPlayers`
-   *   - enabled if both checks pass
-   *
-   * Shape: `[min, max | null]`. Use `null` for no upper bound
-   * (e.g. psychic-num plays with any number of members).
-   * Exact-match games use the same number for both ends
-   * (tinyspy is `[2, 2]`).
+   * The shell uses this to decide whether the "Start" button is
+   * hidden / disabled / enabled (in combination with the
+   * club's `common.clubs_gametypes` row).
    *
    * MUST AGREE with the member-count check in this gametype's
-   * `create_game` RPC — there's no automated sync, just a
-   * cross-reference comment in both places. See
-   * docs/code-conventions.md → "Per-game player counts" for the
-   * convention. If they drift, the failure mode is loud (FE
-   * shows Start, RPC rejects with the actual member-count
-   * constraint) rather than silent.
+   * `create_game` RPC — no automated sync, just paired
+   * cross-reference comments. Drift fails loudly (RPC rejects);
+   * see docs/code-conventions.md → "Per-game player counts."
    */
   numberOfPlayers: [number, number | null]
 
   /**
-   * The game's PlayArea — the gametype-specific play surface
-   * the shell mounts inside `<GamePage>` once the URL resolves
-   * to a specific game. Lazy-loaded so each game's bundle ships
-   * as a separate Vite chunk.
-   *
-   * The shell renders this as the render-prop child of GamePage:
-   *
-   *     <GamePage gameId={...} session={...} gametype={...}>
-   *       {(ctx) => <manifest.PlayArea {...ctx} />}
-   *     </GamePage>
-   *
-   * So PlayArea receives `GamePageCtx` (session, gameId, members,
-   * timer) at the JSX site and never needs to thread any of it
-   * itself.
+   * The gametype-specific play surface. Mounted inside
+   * `<GamePage>` and receives `GamePageCtx` (see above).
+   * Lazy-loaded so each game ships as its own Vite chunk.
    */
   PlayArea: ComponentType<GamePageCtx>
 
   /**
    * Per-game setup-form declaration shown in a modal before
-   * `create_game` fires. `null` for games whose start-button
-   * needs no choices — the dialog is bypassed and
-   * `startGameInClub` is called directly. (No game uses `null`
-   * today now that all three games have setup options, but the
-   * shape is preserved so a future zero-setup game can opt out
-   * without needing an empty form.)
+   * `create_game` fires. `null` skips the dialog and calls
+   * `startGameInClub` directly — preserved for a future
+   * zero-setup game.
    */
   setupForm: GameSetupForm | null
 
   /**
    * Start a new game of this gametype inside the given club.
    * Receives:
-   *   - clubId: the club to start the game in
-   *   - setup: the typed setup value the dialog wrapper collected
-   *     from the setup form, or `null` for `setupForm: null`
-   *   - playerUserIds: explicit list of who's actually playing this
-   *     game. The FE's setup dialog defaults this to all current
-   *     club members; a future player-picker UI lets the player
-   *     pick a subset. The caller does NOT have to be in the list
-   *     (a club member can facilitate a game between others).
+   *   - clubId
+   *   - setup: the typed value the dialog wrapper collected
+   *     (or `null` when `setupForm: null`)
+   *   - playerUserIds: who's actually playing. The dialog
+   *     defaults this to every current club member; the caller
+   *     does NOT have to be in the list.
    *
-   * The game's own implementation casts setup to its narrow shape
-   * and forwards everything to its `create_game` RPC (which
-   * validates server-side — the FE setup is not trusted).
+   * Returns `{ id }` on success or `{ error }` whose message
+   * the UI surfaces verbatim. Server-side validation is the
+   * trust boundary — the FE-collected setup is not trusted.
    *
-   * Returns the new game's id on success, or `{error}` whose
-   * message the UI surfaces verbatim.
-   *
-   * Each game implements this against its own RPCs. The function
-   * lives ON the manifest so common code (`ClubPage`,
-   * `SetupGameDialog`) can iterate `games` and offer a setup
-   * dialog + start affordance per gametype without ever importing
-   * from a game folder — preserving the import-direction rules
-   * from docs/code-conventions.md.
+   * Lives on the manifest so common code (ClubPage,
+   * SetupGameDialog) can iterate `games` without importing from
+   * a game folder, preserving the import-direction rules.
    */
   startGameInClub: (
     clubId: string,
@@ -267,63 +186,42 @@ export type GameManifest = {
   ) => Promise<{ id: string } | { error: string }>
 
   /**
-   * Render a one-line label for a single common.games row, for
-   * the club page's games list. **Pure and synchronous**: no I/O,
-   * no follow-up queries — everything labelFor needs comes off
-   * the row.
+   * Render a one-line label for a single `common.games` row,
+   * for the ClubPage games list. **Pure and synchronous** — no
+   * I/O, no follow-up queries — everything labelFor needs comes
+   * off the row.
    *
-   * That contract is what makes ClubPage simple: it queries
-   * `common.games` once for the club, then dispatches each row
-   * to the matching manifest's `labelFor`. No per-gametype
-   * fetch fan-out, no Promise.all, no merging.
-   *
-   * The state-transition RPCs write everything labelFor needs
-   * into `common.games.status` (jsonb) — the duplicate-write
-   * discipline (see docs/states.md). Examples:
-   *   - wordknit: `{ matched_count, mistake_count }` while
-   *     playing; `{ outcome, matched_count, mistake_count }`
-   *     on terminal.
-   *   - psychic-num: `{ guesses_remaining }` while playing;
-   *     `{ outcome, guesses_used }` on terminal.
-   *   - tinyspy: just play_state — the gametype's terminal
-   *     vocabulary (won, lost_assassin, lost_clock, lost_timeout)
-   *     is rich enough to label the row by itself.
-   *
-   * Returns a display string the ClubPage renders verbatim
-   * ("in progress", "won", "13/16 matched · 1 mistake", etc.).
+   * That contract is what keeps the listing one-query: ClubPage
+   * fetches `common.games` for the club, then dispatches each
+   * row to the matching manifest's labelFor. The state-transition
+   * RPCs are responsible for writing whatever the gametype's
+   * labelFor needs into `common.games.status` (jsonb) — the
+   * duplicate-write discipline; see docs/states.md.
    */
   labelFor: (row: CommonGameListRow) => string
 
   /**
-   * Fire the per-gametype timeout RPC. Called by the common
-   * `GamePage` when `useGameTimer.expired` flips true in
-   * countdown mode. Each gametype's RPC is idempotent on its
-   * terminal-state check (P0001 'game is not active' on a second
-   * concurrent call) — the FE swallows that, so peers racing to
-   * fire the timeout is fine.
+   * Fire this gametype's timeout RPC. Called by GamePage when
+   * `useGameTimer.expired` flips true in countdown mode.
    *
-   * Why per-gametype instead of one common.submit_timeout: the
-   * RPCs each flip their own `<gametype>.games.status` to the
-   * gametype-specific lost-state (wordknit's 'lost', tinyspy's
-   * 'lost_clock', psychic-num's 'lost') and call common.end_game
-   * with a `status` jsonb carrying gametype-specific counters
-   * (mistake_count, turns_used, guesses_used). A consolidated
-   * common RPC would force per-gametype dispatch on the SQL side;
-   * dispatching here is cleaner.
+   * Each gametype's RPC is idempotent on its terminal-state
+   * check — the FE swallows the "already terminal" error so
+   * peers racing to fire the timeout is fine.
+   *
+   * Per-gametype rather than one common.submit_timeout because
+   * each RPC writes its own gametype-specific terminal state +
+   * status jsonb. Dispatching at the FE keeps the SQL side from
+   * needing per-gametype branches.
    */
   submitTimeout: (gameId: string) => Promise<{ error?: string }>
 }
 
 /**
  * The slice of a `common.games` row the per-gametype `labelFor`
- * sees. ClubPage queries common.games once for the club and
- * passes each row through this shape into the matching
- * manifest's `labelFor`.
- *
- * Stays narrow on purpose: anything labelFor needs must live on
- * `common.games` (status jsonb covers the gametype-specific
- * payload). That's the contract that keeps the listing path
- * one-query and synchronous.
+ * sees. Stays narrow on purpose: anything labelFor needs must
+ * live on `common.games` (status jsonb covers the gametype-
+ * specific payload). That's the contract that keeps the
+ * listing path one-query and synchronous.
  */
 export type CommonGameListRow = {
   id: string
@@ -334,24 +232,18 @@ export type CommonGameListRow = {
 }
 
 /**
- * Per-gametype timer declaration. Read by the `useGameTimer` hook
- * inside each game's BoardScreen to decide which mode to render.
+ * Per-game timer declaration, consumed by `useGameTimer`:
  *
- *   - `none` — no timer; the header shows just whatever the game
- *     uses for at-a-glance status. Tinyspy and Psychic Num today.
- *   - `countup` — informational, ticks up from game-creation
- *     time. "It took us 8 minutes to solve." Display-only;
- *     doesn't drive any state change.
- *   - `countdown` — ticks down from `seconds` toward zero.
- *     When it hits zero, `useGameTimer` flips `expired: true`,
- *     which the game's BoardScreen uses to fire a per-game
- *     timeout RPC (e.g. `wordknit.submit_timeout`). The game's
- *     status flips to a terminal value; realtime propagates the
- *     loss to all clients.
+ *   - `none` — no timer.
+ *   - `countup` — display-only; ticks up from game-creation
+ *     time. Doesn't drive state changes.
+ *   - `countdown` — ticks down from `seconds`. At zero,
+ *     `useGameTimer.expired` flips true; the per-gametype
+ *     `submitTimeout` fires; the game flips to a terminal
+ *     play_state.
  *
- * See docs/wordknit.md → "Timer" for the broader pattern,
- * including the deliberate "browser-side, no server sync"
- * choice and the drift it implies.
+ * See docs/wordknit.md → "Timer" for the browser-side / no-
+ * server-sync choice.
  */
 export type TimerMode =
   | { kind: 'none' }
@@ -359,12 +251,10 @@ export type TimerMode =
   | { kind: 'countdown'; seconds: number }
 
 /**
- * Does a club's member count fall inside a gametype's supported
- * range? `range[1] === null` means "no upper bound."
- *
- * Pure helper — used by both ClubPage (deciding to enable/disable
- * a Start button) and HomePage (deciding which solo-game buttons
- * to surface).
+ * Does a player count fall inside a gametype's supported range?
+ * `range[1] === null` means "no upper bound." Used by ClubPage
+ * (Start button enable/disable) and HomePage (which solo-game
+ * buttons to surface).
  */
 export function playerCountFits(
   range: GameManifest['numberOfPlayers'],
@@ -380,11 +270,9 @@ export function playerCountFits(
  * Human-readable description of the player-count requirement,
  * for tooltip text on a disabled Start button.
  *
- * Examples:
  *   [2, 2]    → "Needs exactly 2 members"
  *   [1, 4]    → "Needs 1–4 members"
  *   [3, null] → "Needs at least 3 members"
- *   [1, null] → "Needs at least 1 member" (but this never disables)
  */
 export function playerCountLabel(
   range: GameManifest['numberOfPlayers'],
