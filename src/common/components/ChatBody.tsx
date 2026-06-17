@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../db'
 import { useClubChat } from '../hooks/useClubChat'
 import { colorVarFor } from '../lib/peerColor'
-import styles from './ClubChatPanel.module.css'
+import styles from './ChatBody.module.css'
 
-/** Minimal member shape the chat panel needs to render names. The
- *  caller passes the roster it's already loaded for the club page.
- *  `color` is the identity palette name from `common.profiles.color`,
- *  used to color the bold username label per message. */
+/** Minimal member shape the chat body needs to render names. The
+ *  caller passes the roster it's already loaded for the parent
+ *  page (ClubPage / GamePage). `color` is the identity palette
+ *  name from `common.profiles.color`, used to color the bold
+ *  username label per message. */
 type Member = {
   user_id: string
   username: string
@@ -20,10 +21,10 @@ type Props = {
 }
 
 /**
- * Chat panel for a club. The only chat panel — every game's
- * BoardScreen mounts this directly. Chat is keyed by club, not
- * by game, so the same thread persists across game-kind switches
- * and play-again chains within the same club.
+ * The chat conversation itself — message list + input form —
+ * extracted from the old `ClubChatPanel` so the floating-window
+ * shell (`<FloatingChat>` → `<FloatingPanel>`) can wrap it
+ * without inheriting the old static section's chrome.
  *
  * Looks up each message's sender in the `members` prop (loaded
  * once by the parent), keeping render cheap and avoiding the
@@ -34,16 +35,24 @@ type Props = {
  * (not `'smooth'`) so the scroll is instant on first mount and on
  * every incoming message, no partial-scroll-then-jump UX.
  */
-export function ClubChatPanel({ clubId, members }: Props) {
+export function ChatBody({ clubId, members }: Props) {
   const { messages, loading } = useClubChat(clubId)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function memberFor(userId: string) {
     return members.find((m) => m.user_id === userId)
   }
+
+  // Focus the input on mount so a user opening the panel can
+  // start typing immediately without an extra click. Matches the
+  // ../connections pattern.
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   // Auto-scroll to the bottom whenever new messages arrive, so a
   // reader sees them without having to scroll manually. See the
@@ -71,9 +80,8 @@ export function ClubChatPanel({ clubId, members }: Props) {
   }
 
   return (
-    <section className={styles.chatPanel}>
-      <h3>Chat</h3>
-      <div className={styles.chatMessages}>
+    <div className={styles.chat}>
+      <div className={styles.messages}>
         {loading && <p className="muted">Loading…</p>}
         {!loading && messages.length === 0 && (
           <p className="muted">No messages yet. Say hi.</p>
@@ -84,9 +92,9 @@ export function ClubChatPanel({ clubId, members }: Props) {
           // above), no per-message fetch.
           const sender = memberFor(m.user_id)
           return (
-            <div key={m.id} className={styles.chatMsg}>
+            <div key={m.id} className={styles.message}>
               <span
-                className={styles.chatName}
+                className={styles.senderName}
                 style={{ color: colorVarFor(sender?.color) }}
               >
                 {sender?.username ?? '?'}:
@@ -98,8 +106,9 @@ export function ClubChatPanel({ clubId, members }: Props) {
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={onSend} className={styles.chatInputRow}>
+      <form onSubmit={onSend} className={styles.inputRow}>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -113,6 +122,6 @@ export function ClubChatPanel({ clubId, members }: Props) {
       </form>
 
       {error && <p className="error">{error}</p>}
-    </section>
+    </div>
   )
 }

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { colorVarFor } from '../lib/peerColor'
-import { ClubChatPanel } from './ClubChatPanel'
+import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
@@ -506,7 +506,7 @@ export function ClubPage({ session, handle }: Props) {
         </section>
       )}
 
-      <ClubChatPanel clubId={club.id} members={members} />
+      <FloatingChat clubId={club.id} members={members} />
 
       <p>
         <Link to="/" className="link-button">

@@ -1,0 +1,46 @@
+/* FloatingChat's closed-state toggle button.
+ *
+ * Fixed bottom-right, circular, accent-filled. Sits just below
+ * the open chat panel's z-index (9999 vs panel's 10000) so the
+ * panel always wins. The closed-state shape — a single circular
+ * button with a chat-bubble icon — matches the conventional
+ * "open chat" affordance users recognize from other apps.
+ */
+
+.openButton {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+
+  /* Reset the global button defaults — we want a circle, not a
+   * pill. */
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  padding: 0;
+  /* Accent fill with white icon — matches primary-action
+   * affordances elsewhere on the page. */
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Elevation shadow so the button reads as "floating above the
+   * page," not embedded into it. */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+
+  cursor: pointer;
+  transition: background 100ms ease, transform 100ms ease;
+}
+.openButton:hover {
+  background: var(--color-accent-hover);
+  /* Slight lift on hover for tactile feedback. */
+  transform: translateY(-1px);
+}
+.openButton:active {
+  transform: translateY(0);
+}

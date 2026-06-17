@@ -1,0 +1,50 @@
+/* Chat conversation styles — messages list + input row.
+ *
+ * Lives inside <FloatingPanel>'s .body (which already supplies
+ * padding); this stylesheet handles the vertical column layout
+ * that makes the messages area scrollable while the input row
+ * stays anchored at the bottom. */
+
+.chat {
+  /* Fill the FloatingPanel body so the messages-scroll area can
+     claim its remaining height. */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.75rem;
+}
+
+.messages {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  /* Reserve scrollbar gutter so messages don't shift when a
+     scrollbar appears. */
+  padding-right: 0.25rem;
+}
+
+.message {
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.senderName {
+  font-weight: 600;
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  /* Reset the global form-spacing rule (margin-top, gap) so the
+     input row sits naturally below the scroll area. */
+  margin-top: 0;
+}
+
+.inputRow input {
+  font-size: 0.9rem;
+}

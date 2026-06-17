@@ -5,7 +5,7 @@ import { type GamePageCtx } from '../lib/games'
 import { Link } from '../lib/Link'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
-import { ClubChatPanel } from './ClubChatPanel'
+import { FloatingChat } from './FloatingChat'
 import { PauseBoundary } from './PauseBoundary'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import styles from './GamePage.module.css'
@@ -40,13 +40,20 @@ type Props = {
  *     ├── PauseBoundary
  *     │     ├── if !paused → children({members, timer, ...})
  *     │     └── if  paused → <PauseOverlay/>
- *     └── ClubChatPanel
+ *     └── FloatingChat   (z-index 10000, above the pause overlay)
  *
- * Header + chat stay visible during pause. PlayArea unmounts on
- * pause and remounts on resume — selections, form state, and any
- * per-gametype channels start fresh. State that should *survive*
- * a pause must live above the boundary (useCommonGame) or in the
+ * Header stays visible during pause. PlayArea unmounts on pause
+ * and remounts on resume — selections, form state, and any per-
+ * gametype channels start fresh. State that should *survive* a
+ * pause must live above the boundary (useCommonGame) or in the
  * DB.
+ *
+ * FloatingChat is rendered OUTSIDE PauseBoundary so it stays
+ * available mid-pause ("waiting for Bea, anyone want to chat?").
+ * It also stays above any modal that opens (SuspendConfirmDialog,
+ * HowToPlayModal, HintModal) thanks to its z-index. The future
+ * scratchpad is the opposite case — it'd render INSIDE
+ * PauseBoundary so it vanishes on pause-unmount.
  *
  * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
  * to false once `common.games.ended_at` is populated, so a game
@@ -185,7 +192,7 @@ export function GamePage({
         })}
       </PauseBoundary>
 
-      <ClubChatPanel clubId={commonGame.club_id} members={members} />
+      <FloatingChat clubId={commonGame.club_id} members={members} />
 
       {confirmingSuspend && (
         <SuspendConfirmDialog
