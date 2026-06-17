@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { randomId } from '../../common/lib/randomId'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
@@ -91,7 +92,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     load()
 
     const channel = supabase
-      .channel(`board:${gameId}:${crypto.randomUUID()}`)
+      .channel(`board:${gameId}:${randomId()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },

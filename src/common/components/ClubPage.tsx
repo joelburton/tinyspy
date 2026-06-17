@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { colorVarFor } from '../lib/peerColor'
+import { randomId } from '../lib/randomId'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { SetupGameDialog } from './SetupGameDialog'
@@ -356,7 +357,7 @@ export function ClubPage({ session, handle }: Props) {
     // getting a duplicate history entry when the realtime echo of
     // their own INSERT arrives.
     const channel = supabase
-      .channel(`club-games:${clubId}:${crypto.randomUUID()}`)
+      .channel(`club-games:${clubId}:${randomId()}`)
       .on(
         'postgres_changes',
         {

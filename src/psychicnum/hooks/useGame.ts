@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../common/lib/supabase'
+import { randomId } from '../../common/lib/randomId'
 import { db } from '../db'
 
 /**
@@ -121,7 +122,7 @@ export function useGame(gameId: string): {
     }
 
     const channel = supabase
-      .channel(`psychicnum:${gameId}:${crypto.randomUUID()}`)
+      .channel(`psychicnum:${gameId}:${randomId()}`)
       .on(
         'postgres_changes',
         {

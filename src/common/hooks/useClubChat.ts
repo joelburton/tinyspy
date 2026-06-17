@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { randomId } from '../lib/randomId'
 import { db as commonDb } from '../db'
 import type { Database } from '../../types/db'
 
@@ -51,7 +52,7 @@ export function useClubChat(clubId: string) {
     load()
 
     const channel = supabase
-      .channel(`club-chat:${clubId}:${crypto.randomUUID()}`)
+      .channel(`club-chat:${clubId}:${randomId()}`)
       .on(
         'postgres_changes',
         {
