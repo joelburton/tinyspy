@@ -1,0 +1,10 @@
+/* The pupgames logo image. Matches GameLogo's sizing so the two
+ * trigger shapes are interchangeable in the Menu component's
+ * wrapping button. */
+
+.logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text);
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
@@ -6,12 +6,21 @@ import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { colorVarFor } from '../lib/memberColor'
 import { channelDedupSuffix } from '../lib/channelDedup'
+import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
+import { Menu } from './Menu'
+import { PupgamesLogo } from './PupgamesLogo'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
+import { StatusSlot } from './StatusSlot'
 import { games } from '../../games'
-import type { CommonGameListRow, GameManifest } from '../lib/games'
+import type {
+  CommonGameListRow,
+  FeedbackMsg,
+  GameManifest,
+  MenuSection,
+} from '../lib/games'
 import type { Database } from '../../types/db'
 import styles from './ClubPage.module.css'
 
@@ -111,6 +120,30 @@ export function ClubPage({ session, handle }: Props) {
   // dialog component is mounted iff this is non-null); the dialog
   // calls back into us via onStarted / onCancel to close.
   const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
+  // The currently-active feedback pill shown in the header's
+  // <StatusSlot>, or null when the slot should show the default
+  // <PlayersStrip>. Local-only — ClubPage doesn't expose a
+  // ctx.feedback API the way GamePage does, because there's no
+  // render-prop child here. Concrete uses today: the
+  // "<title> deleted" toast in handleDelete, and the "coming soon"
+  // toasts on the placeholder menu items.
+  const [feedback, setFeedback] = useState<FeedbackMsg | null>(null)
+
+  // Auto-clear `timed`-dismiss feedback after the configured
+  // duration. Mirrors GamePage's autoClearTimedFeedback — same
+  // shape; the duplication is borderline (5 lines twice), worth
+  // extracting into a hook if a third consumer arrives.
+  useEffect(function autoClearTimedFeedback() {
+    if (!feedback) return
+    if (feedback.dismiss.kind !== 'timed') return
+    const ms = feedback.dismiss.ms ?? 2200
+    const t = setTimeout(() => setFeedback(null), ms)
+    return () => clearTimeout(t)
+  }, [feedback])
+
+  // Stable identity for the StatusSlot's onCloseFeedback prop
+  // so passing it into props doesn't restage downstream effects.
+  const clearFeedback = useCallback(() => setFeedback(null), [])
 
   /**
    * Delete a game from this club. Same RPC for current vs
@@ -169,6 +202,17 @@ export function ClubPage({ session, handle }: Props) {
       setStartError(`Couldn't delete game: ${error.message}`)
       throw error  // bubble to the card so it returns from 'deleting' to 'idle'
     }
+    // Surface a transient toast in the header's status slot so
+    // the user sees an explicit "yes, that worked" beat. Look up
+    // the title BEFORE the postgres-changes refetch sweeps the
+    // row out of allGames; the value is captured by the closure
+    // and survives the rerender.
+    const deleted = allGames.find((g) => g.gameId === gameId)
+    setFeedback({
+      tone: 'neutral',
+      text: `${deleted?.title ?? 'Game'} deleted`,
+      dismiss: { kind: 'timed' },
+    })
     // No explicit list refresh — the postgres-changes
     // subscription below fires DELETE on common.games and our
     // loadGames() re-runs.
@@ -403,105 +447,158 @@ export function ClubPage({ session, handle }: Props) {
     : null
   const otherGames = allGames.filter((g) => g.gameId !== activeGameId)
 
+  // Menu sections for the club logo's dropdown. Mirrors the
+  // GamePage menu shape (a single common section, no per-game
+  // dynamic section because there's no PlayArea here to push
+  // items in). Two of the three items are placeholders today —
+  // they fire a "coming soon" toast so a click still has visible
+  // feedback. See docs/ui.md → "ClubPage header" for the spec.
+  const menuSections: MenuSection[] = [
+    {
+      items: [
+        {
+          id: 'home',
+          label: 'Back to home',
+          onClick: () => navigate('/'),
+        },
+        {
+          id: 'rename',
+          label: 'Rename club',
+          onClick: () => setFeedback({
+            tone: 'info',
+            text: 'Rename club: coming soon',
+            dismiss: { kind: 'timed' },
+          }),
+        },
+        {
+          id: 'delete',
+          label: 'Delete club',
+          onClick: () => setFeedback({
+            tone: 'info',
+            text: 'Delete club: coming soon',
+            dismiss: { kind: 'timed' },
+          }),
+        },
+      ],
+    },
+  ]
+
   return (
-    <div className="card">
-      <header>
-        <h1>{club.name}</h1>
+    <div className={styles.frame}>
+      <header className={styles.header}>
+        <Menu
+          trigger={<PupgamesLogo />}
+          sections={menuSections}
+          triggerLabel="Club menu"
+        />
+        <span className={styles.clubName}>{club.name}</span>
+        <ChatBubble />
+        {/* StatusSlot's `players` prop is a Member[] under the
+            hood; here we feed it the club's member roster (the
+            naming.md rule keeps the variable named `members` in
+            club context even though the component prop reads
+            `players`). PlayersStrip renders the same colored-dot
+            + colored-name shape either way. */}
+        <StatusSlot
+          players={members}
+          feedback={feedback}
+          onCloseFeedback={clearFeedback}
+        />
+      </header>
+
+      <main className={styles.main}>
         <p className="muted">
           <code>/c/{club.handle}</code>
         </p>
-      </header>
 
-      <section>
-        <h3>Members ({members.length})</h3>
-        <ul className={styles.memberList}>
-          {members.map((m) => (
-            <li key={m.user_id} className={styles.memberItem}>
-              <span
-                className={styles.memberDot}
-                style={{ background: colorVarFor(m.color) }}
-                aria-hidden="true"
-              />
-              {m.username}
-              {m.user_id === session.user.id && (
-                <span className="muted"> (you)</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {activeGame && (
         <section>
-          <h3>Active game</h3>
-          <ClubGameCard
-            gameId={activeGame.gameId}
-            gametype={activeGame.gametype}
-            title={activeGame.title}
-            statusLabel={activeGame.statusLabel}
-            startedAt={activeGame.startedAt}
-            state="active"
-            onDelete={() => handleDelete(activeGame.gameId, true)}
-          />
-        </section>
-      )}
-
-      <section>
-        <h3>Start a new game</h3>
-        {/* Filter the registry by the club's allowed-gametype m2m
-            (one button per gametype this club may play) and let
-            StartGameButtons handle the rendering, in-flight state,
-            and disabled-for-doesn't-fit tooltip. ClubPage stays
-            game-agnostic; the RPC call lives inside the manifest.
-            Add boggle later and (assuming the m2m is populated for
-            this club) a button appears here automatically. */}
-        <StartGameButtons
-          games={games.filter((g) => allowedGametypes.has(g.gametype))}
-          memberCount={members.length}
-          getLabel={(g) => `Start ${g.name}`}
-          onStartSetup={handleStartSetup}
-        />
-        {activeGame && (
-          <p className="muted">
-            Starting a new game will suspend the currently active one (you
-            can resume it later from this page).
-          </p>
-        )}
-        {startError && <p className="error">{startError}</p>}
-      </section>
-
-      {otherGames.length > 0 && (
-        <section>
-          <h3>Other games ({otherGames.length})</h3>
-          <div className="cardList">
-            {otherGames.slice(0, 20).map((g) => (
-              <ClubGameCard
-                key={g.gameId}
-                gameId={g.gameId}
-                gametype={g.gametype}
-                title={g.title}
-                statusLabel={g.statusLabel}
-                startedAt={g.startedAt}
-                state={g.isTerminal ? 'completed' : 'suspended'}
-                onDelete={() => handleDelete(g.gameId, false)}
-              />
+          <h3>Members ({members.length})</h3>
+          <ul className={styles.memberList}>
+            {members.map((m) => (
+              <li key={m.user_id} className={styles.memberItem}>
+                <span
+                  className={styles.memberDot}
+                  style={{ background: colorVarFor(m.color) }}
+                  aria-hidden="true"
+                />
+                {m.username}
+                {m.user_id === session.user.id && (
+                  <span className="muted"> (you)</span>
+                )}
+              </li>
             ))}
-          </div>
-          {otherGames.length > 20 && (
+          </ul>
+        </section>
+
+        {activeGame && (
+          <section>
+            <h3>Active game</h3>
+            <ClubGameCard
+              gameId={activeGame.gameId}
+              gametype={activeGame.gametype}
+              title={activeGame.title}
+              statusLabel={activeGame.statusLabel}
+              startedAt={activeGame.startedAt}
+              state="active"
+              onDelete={() => handleDelete(activeGame.gameId, true)}
+            />
+          </section>
+        )}
+
+        <section>
+          <h3>Start a new game</h3>
+          {/* Filter the registry by the club's allowed-gametype m2m
+              (one button per gametype this club may play) and let
+              StartGameButtons handle the rendering, in-flight state,
+              and disabled-for-doesn't-fit tooltip. ClubPage stays
+              game-agnostic; the RPC call lives inside the manifest.
+              Add boggle later and (assuming the m2m is populated for
+              this club) a button appears here automatically. */}
+          <StartGameButtons
+            games={games.filter((g) => allowedGametypes.has(g.gametype))}
+            memberCount={members.length}
+            getLabel={(g) => `Start ${g.name}`}
+            onStartSetup={handleStartSetup}
+          />
+          {activeGame && (
             <p className="muted">
-              + {otherGames.length - 20} older games not shown.
+              Starting a new game will suspend the currently active one
+              (you can resume it later from this page).
             </p>
           )}
+          {startError && <p className="error">{startError}</p>}
         </section>
-      )}
 
-      <FloatingChat clubId={club.id} members={members} />
+        {otherGames.length > 0 && (
+          <section>
+            <h3>Other games ({otherGames.length})</h3>
+            <div className="cardList">
+              {otherGames.slice(0, 20).map((g) => (
+                <ClubGameCard
+                  key={g.gameId}
+                  gameId={g.gameId}
+                  gametype={g.gametype}
+                  title={g.title}
+                  statusLabel={g.statusLabel}
+                  startedAt={g.startedAt}
+                  state={g.isTerminal ? 'completed' : 'suspended'}
+                  onDelete={() => handleDelete(g.gameId, false)}
+                />
+              ))}
+            </div>
+            {otherGames.length > 20 && (
+              <p className="muted">
+                + {otherGames.length - 20} older games not shown.
+              </p>
+            )}
+          </section>
+        )}
+      </main>
 
-      <p>
-        <Link to="/" className="link-button">
-          ← Back home
-        </Link>
-      </p>
+      {/* hideClosedButton: the chat-bubble toggle lives in the
+          header (<ChatBubble> above); FloatingChat only renders
+          the panel itself, not a duplicate bottom-right button. */}
+      <FloatingChat clubId={club.id} members={members} hideClosedButton />
 
       {pendingSetup && (
         <SetupGameDialog

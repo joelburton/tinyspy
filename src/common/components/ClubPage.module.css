@@ -1,8 +1,75 @@
-/* ClubPage component-scoped styles. Most of the page leans on
- * global utility classes (.card, .muted, .cardList) — this
- * module exists for the member-list dot affordance, which is
- * the first piece of ClubPage UI to need real component-scoped
- * styling. */
+/* ClubPage layout + component-scoped styles.
+ *
+ * The page is two stacked regions inside the body's 2rem padding:
+ *
+ *   - .header — layout-static row that spans the full content
+ *     width. Same shape as the GamePage header so a friend
+ *     switching between club and game pages sees consistent
+ *     chrome. See docs/ui.md → "ClubPage header."
+ *
+ *   - .main — the main content well. Uses .card-style chrome but
+ *     stays capped at the existing 480px max-width so the body
+ *     stays readable; only the header gets to span the full width.
+ *
+ * Below those, the member-list dot affordance is unchanged from
+ * the pre-header layout (it's still the canonical "who's in this
+ * club" rendering; the header strip is the at-a-glance reminder).
+ */
+
+.frame {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Header row. Same surface + border + radius as the GamePage
+ * header so the two pages read as a matching set. Single flex
+ * row (no left/right groups) — the StatusSlot's `flex: 1`
+ * absorbs whatever space the four fixed-width elements don't
+ * claim, exactly like it does inside GamePage's left group. */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+}
+
+/* The club name slot. Plain text in the body weight; truncates
+ * with ellipsis if a long-named club would otherwise crowd out
+ * the StatusSlot. Friends typically use short handles for clubs
+ * so the truncation is a safety net, not a routine cost. */
+.clubName {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Don't claim more horizontal space than necessary — the
+   * StatusSlot beside us should grow first. */
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Main content well. Same surface chrome as .card but explicit
+ * styling here so we control the centering without inheriting
+ * .card's automatic margin behaviour (which would conflict with
+ * the .frame flex column). */
+.main {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------- Member-list styling (canonical body roster) ---------- */
 
 .memberList {
   list-style: none;

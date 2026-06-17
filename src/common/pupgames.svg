@@ -1,0 +1,10 @@
+<!-- Generic pupgames placeholder logo. Same 4-dot-grid shape the
+     per-game logos use until they earn real art. Used as the
+     menu trigger in the ClubPage header. -->
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
+  <rect x="2.5" y="2.5" width="19" height="19" rx="4" ry="4" />
+  <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="9" cy="15" r="1.5" fill="currentColor" stroke="none" />
+  <circle cx="15" cy="15" r="1.5" fill="currentColor" stroke="none" />
+</svg>
