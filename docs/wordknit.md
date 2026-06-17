@@ -198,7 +198,7 @@ src/wordknit/
     CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
                           unmatched-revealed bands rendered on game-over loss). Owns the
                           RANK_TOKEN rank → CSS-variable map.
-    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isPeer selection
+    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isOther selection
                           attribution. Pure render against the (tiles, ownerByTile,
                           selfUserId, onToggle) props — the shared-selection machinery
                           lives in useGame.
@@ -219,8 +219,6 @@ src/wordknit/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
-    peerColor.ts          Stable hash userId → 5-color palette.
-    peerColor.test.ts     Determinism + distinctness tests.
     setup.ts              WordknitSetup type (puzzleId + timer) + defaults.
 ```
 
@@ -324,7 +322,6 @@ Promoted out of inline test fixtures because every wordknit test needs them and 
 | file | covers |
 |---|---|
 | `src/wordknit/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
-| `src/wordknit/lib/peerColor.test.ts` | The user_id → color hash: deterministic, distinct for the two persona UUIDs we care about, output is a CSS hex string. |
 
 No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the PlayArea there.
 
@@ -345,7 +342,7 @@ Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones alre
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run puzzles:import` |
 | What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
+| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/other attribution) |
 | What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
 | How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
 | How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |

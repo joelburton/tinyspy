@@ -24,10 +24,10 @@ type Props = {
    *  set) renders the grid plain. */
   shakingTiles?: ReadonlySet<string>
   /** user_id → CSS var string for that user's profile color.
-   *  Used to draw the peer-selection frame on a tile owned by
-   *  someone else. PlayArea builds the map via
-   *  `colorByUserIdMap(members)` so the values are pre-resolved
-   *  to `var(--color-peer-NAME)` strings ready for inline style. */
+   *  Used to draw the selection frame on a tile owned by another
+   *  member. PlayArea builds the map via
+   *  `colorByUserIdMap(players)` so the values are pre-resolved
+   *  to `var(--color-member-NAME)` strings ready for inline style. */
   colorByUserId: ReadonlyMap<string, string>
 }
 
@@ -37,8 +37,9 @@ type Props = {
  *
  *   - **Mine**: strong dark-fill (the NYT "selected" look). No
  *     border — the fill alone reads as "this is yours."
- *   - **Peer's**: regular tile background + a thick inset frame
- *     in the peer's color (from `colorForUserId`).
+ *   - **Other member's**: regular tile background + a thick
+ *     inset frame in their profile color (looked up via the
+ *     `colorByUserId` map the parent passes in).
  *   - **Unowned**: plain tile.
  *
  * Pure render. No state, no async work. The shared-selection
@@ -48,8 +49,9 @@ type Props = {
  *
  * Why this is its own component: it's the busiest piece of
  * PlayArea render and the only place that knows about per-tile
- * peer attribution (`isMine` / `isPeer` / `colorForUserId`).
- * PlayArea reads as "compose the page" once this lives here.
+ * attribution (`isMine` / `isOther` and the colorByUserId
+ * lookup). PlayArea reads as "compose the page" once this
+ * lives here.
  */
 export function TileGrid({
   tiles,
@@ -64,7 +66,7 @@ export function TileGrid({
       {tiles.map((tile) => {
         const ownerId = ownerByTile.get(tile)
         const isMine = ownerId === selfUserId
-        const isPeer = ownerId !== undefined && !isMine
+        const isOther = ownerId !== undefined && !isMine
         const isShaking = shakingTiles?.has(tile) ?? false
         return (
           <button
@@ -76,7 +78,7 @@ export function TileGrid({
               isShaking && styles.tileShaking,
             )}
             style={
-              isPeer && ownerId
+              isOther && ownerId
                 ? {
                     boxShadow: `inset 0 0 0 4px ${
                       colorByUserId.get(ownerId) ?? 'transparent'

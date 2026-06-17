@@ -5,12 +5,12 @@
  * 8-entry palette (see the column's check constraint and
  * common.color_for_username in the baseline migration). The FE
  * never hard-codes the hex — it asks `colorVarFor(name)` for a
- * `var(--color-peer-NAME)` reference, and theme.css owns the
+ * `var(--color-member-NAME)` reference, and theme.css owns the
  * actual shade. That indirection means a future dark theme can
  * remap each palette entry without rewriting every consumer.
  *
- * Used wherever a user's identity needs a visual anchor — the
- * member-list circles, chat name labels, per-peer in-game
+ * Used wherever a member's identity needs a visual anchor — the
+ * member-list circles, chat name labels, per-member in-game
  * affordances (tile-selection borders, etc.), per-game guess/
  * clue history rows.
  */
@@ -20,7 +20,7 @@
 // against an unknown value (a future palette extension that
 // updated the DB but not the FE; in the meantime the unknown
 // name falls through to the body-text color, which beats a
-// broken `var(--color-peer-undefined)` reference).
+// broken `var(--color-member-undefined)` reference).
 const VALID = new Set([
   'red',
   'orange',
@@ -43,7 +43,7 @@ const VALID = new Set([
  */
 export function colorVarFor(name: string | null | undefined): string {
   return name && VALID.has(name)
-    ? `var(--color-peer-${name})`
+    ? `var(--color-member-${name})`
     : 'var(--color-text)'
 }
 
@@ -51,7 +51,7 @@ export function colorVarFor(name: string | null | undefined): string {
  * Build a `user_id → color CSS var` lookup map from a member
  * roster. Convenient for components that need to color N items
  * by their owner without doing the lookup themselves N times.
- * Values are pre-resolved to `var(--color-peer-NAME)` strings —
+ * Values are pre-resolved to `var(--color-member-NAME)` strings —
  * ready to drop into a `style={{ ... }}` prop.
  */
 export function colorByUserIdMap<

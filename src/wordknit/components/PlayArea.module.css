@@ -8,9 +8,9 @@
  *
  * NYT-style tile look: warm-gray fill, rounded corners,
  * generous padding for readable word labels; selected state
- * inverts to a dark fill with white text + a peer-colored
+ * inverts to a dark fill with white text + a member-colored
  * inset border (applied inline so the color comes from the
- * peer-color helper, not a static rule).
+ * memberColor helper, not a static rule).
  */
 
 .frame {

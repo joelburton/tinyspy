@@ -1,4 +1,4 @@
-import { colorVarFor } from '../../common/lib/peerColor'
+import { colorVarFor } from '../../common/lib/memberColor'
 import type { Player } from '../hooks/useGame'
 
 type Props = {

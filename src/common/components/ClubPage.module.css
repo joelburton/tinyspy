@@ -23,11 +23,11 @@
   padding: 0.15rem 0;
 }
 
-/* Per-user identity dot. Filled with the member's profile color
- * (set inline by ClubPage from colorVarFor(m.color)) so the
- * value comes from the common.profiles palette via the
- * `--color-peer-*` theme tokens. Size is just visible enough to
- * read at body-font scale without dominating the row.
+/* Per-member identity dot. Filled with the member's profile
+ * color (set inline by ClubPage from colorVarFor(m.color)) so
+ * the value comes from the common.profiles palette via the
+ * `--color-member-*` theme tokens. Size is just visible enough
+ * to read at body-font scale without dominating the row.
  *
  * A 1px white border keeps the dot legible on any palette color
  * — the outer edge doesn't blur into a colored background if

@@ -100,7 +100,7 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *
  * Returns:
  *   - game / guesses / matchedCategories — postgres-derived state.
- *   - selections / unionTiles — shared peer-selection state driven
+ *   - selections / unionTiles — shared selection state driven
  *     by Broadcast events.
  *   - toggleTile / sendClear — emit selection events.
  *   - loading — false once initial fetch completes.

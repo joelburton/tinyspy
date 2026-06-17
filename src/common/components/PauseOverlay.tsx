@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Member } from '../lib/games'
-import { colorVarFor } from '../lib/peerColor'
+import { colorVarFor } from '../lib/memberColor'
 import styles from './PauseOverlay.module.css'
 
 type Props = {

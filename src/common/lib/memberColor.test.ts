@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { colorByUserIdMap, colorVarFor } from './peerColor'
+import { colorByUserIdMap, colorVarFor } from './memberColor'
 
 /**
  * `colorVarFor` and `colorByUserIdMap` are the two pure
@@ -7,7 +7,7 @@ import { colorByUserIdMap, colorVarFor } from './peerColor'
  * the FE can drop into style props. The DB's CHECK constraint
  * keeps the palette closed, but these helpers defend in depth:
  * unknown names fall through to body text rather than producing
- * a broken `var(--color-peer-undefined)` reference.
+ * a broken `var(--color-member-undefined)` reference.
  */
 
 describe('colorVarFor', () => {
@@ -23,7 +23,7 @@ describe('colorVarFor', () => {
       'pink',
     ]
     for (const name of palette) {
-      expect(colorVarFor(name)).toBe(`var(--color-peer-${name})`)
+      expect(colorVarFor(name)).toBe(`var(--color-member-${name})`)
     }
   })
 
@@ -47,8 +47,8 @@ describe('colorByUserIdMap', () => {
       { user_id: 'ada', color: 'red', username: 'ada' },
       { user_id: 'bea', color: 'blue', username: 'bea' },
     ])
-    expect(m.get('ada')).toBe('var(--color-peer-red)')
-    expect(m.get('bea')).toBe('var(--color-peer-blue)')
+    expect(m.get('ada')).toBe('var(--color-member-red)')
+    expect(m.get('bea')).toBe('var(--color-member-blue)')
   })
 
   it('returns undefined for a user_id not in the roster', () => {
@@ -66,7 +66,7 @@ describe('colorByUserIdMap', () => {
       { user_id: 'ada', color: 'red' },
       { user_id: 'bea', color: 'chartreuse' },
     ])
-    expect(m.get('ada')).toBe('var(--color-peer-red)')
+    expect(m.get('ada')).toBe('var(--color-member-red)')
     expect(m.get('bea')).toBe('var(--color-text)')
   })
 

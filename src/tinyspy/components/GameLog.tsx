@@ -2,7 +2,7 @@ import type { ClueRow } from '../hooks/useClues'
 import type { WordRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import { cls } from '../../common/lib/cls'
-import { colorVarFor } from '../../common/lib/peerColor'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { labelName } from '../lib/labels'
 import styles from './GameLog.module.css'
 

@@ -51,7 +51,7 @@ export type Member = {
   user_id: string
   username: string
   /** Palette name from `common.profiles.color`. Pass through
-   *  `colorVarFor` (src/common/lib/peerColor.ts) for the
+   *  `colorVarFor` (src/common/lib/memberColor.ts) for the
    *  matching CSS variable. */
   color: string
 }

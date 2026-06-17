@@ -72,12 +72,12 @@
   --color-outcome-near-bg:    #ffe0b2;   /* amber 100 */
   --color-outcome-near-border: #ffb74d;  /* amber 300 */
 
-  /* Per-user identity palette — one token per name in
+  /* Per-member identity palette — one token per name in
      common.profiles.color. The DB stores a NAME (not a hex),
      and the FE resolves it via the colorVarFor helper to one of
      these tokens. Why a name? It lets a future dark theme map
      the same "blue" to a different shade without rewriting any
-     consumer (the FE references `var(--color-peer-${name})`,
+     consumer (the FE references `var(--color-member-${name})`,
      and the theme owns the value).
 
      Values are mid-tones — saturated enough to read as small
@@ -86,14 +86,14 @@
      the white surface. When dark theme lands, define a parallel
      `*-on-dark` variant set (or media-query swap these in place);
      consumers don't change. */
-  --color-peer-red:    #d32f2f;
-  --color-peer-orange: #f57c00;
-  --color-peer-yellow: #f9a825;
-  --color-peer-green:  #388e3c;
-  --color-peer-teal:   #00897b;
-  --color-peer-blue:   #1976d2;
-  --color-peer-purple: #7b1fa2;
-  --color-peer-pink:   #c2185b;
+  --color-member-red:    #d32f2f;
+  --color-member-orange: #f57c00;
+  --color-member-yellow: #f9a825;
+  --color-member-green:  #388e3c;
+  --color-member-teal:   #00897b;
+  --color-member-blue:   #1976d2;
+  --color-member-purple: #7b1fa2;
+  --color-member-pink:   #c2185b;
 
   /* Radii. */
   --radius-md:                6px;   /* buttons, inputs, panels */

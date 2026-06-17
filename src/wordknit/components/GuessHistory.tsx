@@ -1,4 +1,4 @@
-import { colorVarFor } from '../../common/lib/peerColor'
+import { colorVarFor } from '../../common/lib/memberColor'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 

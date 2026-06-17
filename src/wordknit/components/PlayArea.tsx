@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
-import { colorByUserIdMap } from '../../common/lib/peerColor'
+import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -173,7 +173,7 @@ export function PlayArea({
   // Pre-resolve each player's profile color to a CSS var string,
   // built once per players-array reference change so TileGrid can
   // look up by user_id at render time without re-walking the
-  // roster per tile. See common/lib/peerColor.ts for the helper.
+  // roster per tile. See common/lib/memberColor.ts for the helper.
   const colorByUserId = colorByUserIdMap(players)
 
   const canSubmit =

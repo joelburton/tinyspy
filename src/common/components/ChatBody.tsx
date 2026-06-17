@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../db'
-import { colorVarFor } from '../lib/peerColor'
+import { colorVarFor } from '../lib/memberColor'
 import type { ClubMessage } from '../hooks/useClubChat'
 import styles from './ChatBody.module.css'
 
