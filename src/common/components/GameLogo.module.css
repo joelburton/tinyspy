@@ -11,4 +11,9 @@
   width: 32px;
   height: 32px;
   color: var(--color-text);
+  /* Keep the logo at its intrinsic 32px when used inside flex
+   * rows (e.g. the StartGameButtons cards) — without this, the
+   * default flex-shrink: 1 can compress the image when the row
+   * is narrow. */
+  flex-shrink: 0;
 }

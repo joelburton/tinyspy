@@ -18,7 +18,12 @@
 /* The outline card itself. Resets the global filled-blue button
  * styling — we want a flat transparent surface with a border
  * that pops on hover. Specificity wins over `button { ... }` in
- * theme.css thanks to the class selector. */
+ * theme.css thanks to the class selector.
+ *
+ * Flex row: [logo] + [content stack]. The logo is fixed-width
+ * (32px); .content takes the rest. align-items: center so the
+ * 32px logo lines up vertically against the two-line text
+ * stack to its right. */
 .button {
   background: transparent;
   border: 1.5px solid var(--color-surface-border);
@@ -27,11 +32,23 @@
   border-radius: var(--radius-md);
   text-align: left;
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.85rem;
   width: 100%;
   cursor: pointer;
   transition: border-color 100ms ease;
+}
+
+/* Stacked title + meta to the right of the logo. flex: 1 so the
+ * stack absorbs the available width; min-width: 0 lets the
+ * inner meta truncate if a future shortDescription runs long. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Hover: border lights up to the accent. NO background fill —

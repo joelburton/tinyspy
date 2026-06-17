@@ -4,6 +4,7 @@ import {
   playerCountLabel,
   playerCountShort,
 } from '../lib/games'
+import { GameLogo } from './GameLogo'
 import styles from './StartGameButtons.module.css'
 
 type Props = {
@@ -36,12 +37,15 @@ type Props = {
  * Per-gametype "Start" buttons rendered on ClubPage. One outline
  * card per gametype in `games`, each showing:
  *
- *   <gametype name>
- *   <short description> · <player-count badge>
+ *   [logo]  <gametype name>
+ *           <short description> · <player-count badge>
  *
- * The name is the prominent first line; the description + player
- * count is the subtle second line. The button is an outline-style
- * card (no background fill) so a column of three buttons reads as
+ * Logo on the left (the same `<GameLogo>` the GamePage header
+ * uses, so the visual identity carries across surfaces), then a
+ * stacked title + meta line on the right. The name is the
+ * prominent first line; the description + player count is the
+ * subtle second line. The button is an outline-style card (no
+ * background fill) so a column of three buttons reads as
  * "options to consider" rather than "primary actions to take" —
  * the actual primary action (Start) lives inside the SetupGameDialog
  * one click later.
@@ -73,11 +77,14 @@ export function StartGameButtons({
             // count, so no extra tooltip.
             title={fits ? undefined : playerCountLabel(g.numberOfPlayers)}
           >
-            <span className={styles.title}>{g.name}</span>
-            <span className={styles.meta}>
-              {g.shortDescription}
-              {' · '}
-              {playerCountShort(g.numberOfPlayers)}
+            <GameLogo gametype={g.gametype} />
+            <span className={styles.content}>
+              <span className={styles.title}>{g.name}</span>
+              <span className={styles.meta}>
+                {g.shortDescription}
+                {' · '}
+                {playerCountShort(g.numberOfPlayers)}
+              </span>
             </span>
           </button>
         )
