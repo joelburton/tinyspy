@@ -1,5 +1,5 @@
 /* ============================================================
- * tinyspy/theme.css — color tokens specific to Tinyspy.
+ * tinyspy/theme.css — color tokens specific to tinyspy.
  *
  * The three Duet roles (agent, neutral bystander, assassin) each
  * get a small palette of opacities + a "hint" soft variant and a
@@ -15,7 +15,7 @@
  * lands as a user option, this file gets a sibling [data-theme]
  * block — the names stay the same, the values shift.
  *
- * Loaded with the Tinyspy chunk (imported from src/tinyspy/Root.tsx).
+ * Loaded with the tinyspy chunk (imported from src/tinyspy/Root.tsx).
  * When Boggle / Crosswords / etc. land, they bring their own
  * theme.css with whatever palette makes sense for their gameplay
  * surface — no cross-game token bleed.

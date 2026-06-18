@@ -15,7 +15,7 @@ type Props = {
  *
  * Stateless and presentational — owns no state, makes no RPC
  * calls, just renders what's handed in. Mirrors the
- * `<GuessHistory>` component name in psychic-num so a reader
+ * `<GuessHistory>` component name in psychicnum so a reader
  * scanning per-game folders sees the parallel.
  *
  * Each row shows: the 4 tiles guessed (in board order — kept as

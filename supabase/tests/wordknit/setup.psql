@@ -1,5 +1,5 @@
 -- ============================================================
--- Wordknit-shared test setup
+-- wordknit-shared test setup
 -- ============================================================
 --
 -- Included by every wordknit test file alongside the shared

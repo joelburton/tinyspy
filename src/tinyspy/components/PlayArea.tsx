@@ -6,7 +6,7 @@ import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
-import type { TinyspySetup } from '../lib/setup'
+import type { TinySpySetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
@@ -14,7 +14,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this chunk)
 
 /**
- * Tinyspy's play surface — two-column viewport-bound composition:
+ * tinyspy's play surface — two-column viewport-bound composition:
  *
  *   - **Board column** (left, flex) — the 5×5 BoardGrid.
  *   - **Right column** (fixed-width):
@@ -55,7 +55,7 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  *  intentionally: the agents-found counter sits in the right
  *  column status row, the board carries the revealed tiles.
  *
- *  Named to match wordknit's and psychic-num's equivalents so a
+ *  Named to match wordknit's and psychicnum's equivalents so a
  *  reader scanning the per-game PlayAreas sees the same shape
  *  across all three. */
 function buildOver(
@@ -99,7 +99,7 @@ export function PlayArea({
   // Per-game setup blob — opaque on GamePageCtx, cast to tinyspy's
   // shape here. Read-only at this layer; the only field we read
   // today is `turns` for the "X/Y turns" status counter.
-  const tinyspySetup = setup as TinyspySetup
+  const tinyspySetup = setup as TinySpySetup
   const { game, players } = useGame(gameId)
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the

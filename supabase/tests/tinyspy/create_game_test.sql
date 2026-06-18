@@ -29,7 +29,7 @@
 --
 -- Doubles as the pgTAP primer for the rest of the test suite —
 -- the as_user helper + begin/rollback structure are introduced
--- here. Tinyspy-specific helpers (find_position, tinyspy_setup)
+-- here. tinyspy-specific helpers (find_position, tinyspy_setup)
 -- live in setup.psql, included below.
 
 begin;

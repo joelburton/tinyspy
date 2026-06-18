@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * Wordknit's per-game setup — the choices collected by the
+ * wordknit's per-game setup — the choices collected by the
  * start-game dialog, persisted to `common.games.setup`, and
  * validated server-side in `wordknit.create_game`.
  *
@@ -19,7 +19,7 @@ import type { TimerMode } from '../../common/lib/games'
  * accommodates new optional fields without schema churn — only
  * the RPC's shape validator changes.
  */
-export type WordknitSetup = {
+export type WordKnitSetup = {
   puzzleId: string
   timer: TimerMode
 }
@@ -36,7 +36,7 @@ export type WordknitSetup = {
  * with a real sense of clock. Players who want no clock or
  * count-up can switch in the setup dialog.
  */
-export const DEFAULT_WORDKNIT_SETUP: WordknitSetup = {
+export const DEFAULT_WORDKNIT_SETUP: WordKnitSetup = {
   puzzleId: '',
   timer: { kind: 'countdown', seconds: 600 },
 }

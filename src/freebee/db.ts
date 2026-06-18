@@ -1,7 +1,7 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * Freebee-schema-scoped supabase client. Imported by every
+ * freebee-schema-scoped supabase client. Imported by every
  * freebee-side query (.from('games_state'), .from('found_words'))
  * and RPC call (.rpc('submit_word', ...)) so the schema is
  * applied uniformly without each call site repeating it.

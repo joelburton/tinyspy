@@ -47,7 +47,7 @@
 /* The terminal indicator that replaces the Feedback row once
  * the game has ended (and the GameOverModal has been
  * dismissed). One line of copy + a Back-to-club button — same
- * idiom psychic-num uses. The Back-to-club here skips the
+ * idiom psychicnum uses. The Back-to-club here skips the
  * suspend-confirm modal (the game is terminal, no progress to
  * lose); wired by GamePage via `ctx.goToClub`.
  */

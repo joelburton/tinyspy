@@ -7,7 +7,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../hooks/useGlobalKeyHandler'
 import { currentRankIndex, RANKS } from '../lib/ranks'
-import type { FreebeeSetup } from '../lib/setup'
+import type { FreeBeeSetup } from '../lib/setup'
 import { Actions } from './Actions'
 import type { FeedbackTone } from './Feedback'
 import { Feedback } from './Feedback'
@@ -60,7 +60,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 /**
- * FreeBee's play surface (Phase 3 — input loop only).
+ * freebee's play surface (Phase 3 — input loop only).
  *
  * Responsibilities:
  *   - Render the honeycomb (Letters), the in-progress word
@@ -89,9 +89,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const { gameId, isTerminal, menu, playState, players, timer, setup, goToClub } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
-  // Cast setup to FreebeeSetup so the timer-mode display below
+  // Cast setup to FreeBeeSetup so the timer-mode display below
   // can read `setup.timer.kind` for the "—" timer-cell case.
-  const freebeeSetup = setup as FreebeeSetup
+  const freebeeSetup = setup as FreeBeeSetup
 
   // Score + words-found derived from the FE's view of
   // freebee.found_words. The server computes the same values
@@ -273,7 +273,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── End-game action (per-game menu item) ──────────────
-  // FreeBee has no intrinsic terminal state — coop play continues
+  // freebee has no intrinsic terminal state — coop play continues
   // until either the countdown hits 0 or the friends agree they're
   // done. The "agree they're done" path is this menu item; it
   // fires freebee.end_game which flips play_state='ended' with

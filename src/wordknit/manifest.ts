@@ -1,14 +1,14 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_WORDKNIT_SETUP, type WordknitSetup } from './lib/setup'
+import { DEFAULT_WORDKNIT_SETUP, type WordKnitSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * Wordknit's registration with the shell.
+ * wordknit's registration with the shell.
  *
- * "Wordknit" is the codename for our Connections-style word-
- * grouping game (analogous to "Tinyspy" for Codenames Duet).
+ * "wordknit" is the codename for our Connections-style word-
+ * grouping game (analogous to "tinyspy" for Codenames Duet).
  * The user-facing copy reads however we like; gametype /
  * schema / folder are all `wordknit`.
  *
@@ -20,7 +20,7 @@ import logoUrl from './logo.svg?url'
 export const wordknitGame: GameManifest = {
   gametype: 'wordknit',
   schema: 'wordknit',
-  name: 'Wordknit',
+  name: 'WordKnit',
   shortDescription: 'Find categories, like Connections',
   logoUrl,
 
@@ -83,7 +83,7 @@ export const wordknitGame: GameManifest = {
   // hasn't landed yet (deferred). Behavior matches today: every
   // newly-created game has every club member in its game_players.
   startGameInClub: async (clubId, setup, playerUserIds) => {
-    const s = setup as WordknitSetup
+    const s = setup as WordKnitSetup
 
     // Existing-game check first. A real id in `data` means the
     // friends played this puzzle before in this club; we open
@@ -106,7 +106,7 @@ export const wordknitGame: GameManifest = {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start wordknit game' }
+      return { error: error?.message ?? 'failed to start WordKnit game' }
     }
     return { id: data.id }
   },

@@ -14,8 +14,8 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
 | [docs/games/tinyspy.md](docs/games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [docs/games/wordknit.md](docs/games/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | PsychicNum rules + schema, the hidden-target pattern, FE, tests |
+| [docs/games/wordknit.md](docs/games/wordknit.md) | WordKnit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/games/freebee.md](docs/games/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
 
 
@@ -75,7 +75,7 @@ Examples of where this lands:
 | Chat content length limit (1–1000 chars) | yes | constraint, not anti-abuse |
 | Chat spam / rate-limiting | no | friends won't spam each other |
 | Display-name validation | minimal | if a friend wants to call themselves "Lord Buttsworth," that's between friends |
-| AI clue suggestion (Tinyspy) | server-side, but for the API key — not for cheat prevention | the clue-giver could ask Claude themselves in another tab; we're not the gatekeeper of that |
+| AI clue suggestion (TinySpy) | server-side, but for the API key — not for cheat prevention | the clue-giver could ask Claude themselves in another tab; we're not the gatekeeper of that |
 
 ## Stack snapshot
 
@@ -83,7 +83,7 @@ React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, Postg
 
 ## Game roster — trajectory
 
-The rough target is ~7 games. Four live today (Tinyspy, Wordknit, Psychic Num, FreeBee); Psychic Num is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
+The rough target is ~7 games. Four live today (TinySpy, WordKnit, PsychicNum, FreeBee); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
 
 **Most upcoming games are ports.** Joel has implementations of these games in other stacks (the rules / problem-space are well understood). The work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
 

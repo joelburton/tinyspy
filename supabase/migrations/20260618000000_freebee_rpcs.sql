@@ -1,5 +1,5 @@
 -- ============================================================
--- FreeBee — RPCs (Phase 2)
+-- freebee — RPCs (Phase 2)
 -- ============================================================
 --
 -- Builds on the Phase-1 schema. Three security-definer RPCs:
@@ -674,7 +674,7 @@ grant execute on function freebee.submit_word(uuid, text) to authenticated;
 -- and the post-lock play_state check rejects everyone after
 -- the first with P0001 (which the FE swallows silently).
 --
--- This is identical in shape to wordknit / psychic-num's
+-- This is identical in shape to wordknit / psychicnum's
 -- submit_timeout, just with freebee's status payload.
 
 create function freebee.submit_timeout(target_game uuid)

@@ -5,7 +5,7 @@ type Props = {
 }
 
 /**
- * FreeBee's help / rules modal — opened from the "Help" item
+ * freebee's help / rules modal — opened from the "Help" item
  * in the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *

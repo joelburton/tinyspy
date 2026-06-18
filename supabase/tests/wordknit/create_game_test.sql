@@ -239,7 +239,7 @@ select is(
   'create_game: new game starts with mistake_count = 0'
 );
 
--- Wordknit.games.puzzle_id is set to the fixture puzzle.
+-- wordknit.games.puzzle_id is set to the fixture puzzle.
 select is(
   (select puzzle_id from wordknit.games where id = (select id from created)),
   (select id from puzzle),

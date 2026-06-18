@@ -13,7 +13,7 @@ import type { Board, CategoryRank } from '../lib/board'
  *
  * Why we expose it anyway: cross-game vocabulary consistency.
  * Every game's hook file exposes a Player type — tinyspy's adds
- * `seat: 'A' | 'B'`; psychic-num's is a re-export like this.
+ * `seat: 'A' | 'B'`; psychicnum's is a re-export like this.
  * A reader scanning per-game folders sees the same parallel
  * everywhere, and a future "per-player tile-rate" stat (or
  * similar) has a named home to land in without a cascade rename.
@@ -56,7 +56,7 @@ export type MatchedCategory = {
   matched_at: string
 }
 
-export type WordknitGame = {
+export type WordKnitGame = {
   id: string
   club_id: string
   mistake_count: number
@@ -78,7 +78,7 @@ type SelectionEvent =
 export type SelectionMap = ReadonlyMap<string, string[]>
 
 /**
- * Wordknit's per-gametype data hook.
+ * wordknit's per-gametype data hook.
  *
  * Follows the **broadcast-coupled** realtime pattern documented in
  * `docs/code-conventions.md` → "Realtime data hooks" — broadcast
@@ -87,7 +87,7 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  * than opening a second UUID-suffixed one via `useRealtimeRefetch`.
  * Same shape `useCommonGame` uses for its presence + manual-pause
  * + suspend broadcasts; the factory is for refetch-only hooks
- * (tinyspy + psychic-num data hooks). See the conventions doc for
+ * (tinyspy + psychicnum data hooks). See the conventions doc for
  * the decision rule when porting a new game.
  *
  * Two responsibilities split across two channels (one per hook):
@@ -122,7 +122,7 @@ export function useGame(
   session: Session,
   gameId: string,
 ): {
-  game: WordknitGame | null
+  game: WordKnitGame | null
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
   selections: SelectionMap
@@ -131,7 +131,7 @@ export function useGame(
   sendClear: () => void
   loading: boolean
 } {
-  const [game, setGame] = useState<WordknitGame | null>(null)
+  const [game, setGame] = useState<WordKnitGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [selections, setSelections] = useState<Map<string, string[]>>(
     () => new Map(),
@@ -178,7 +178,7 @@ export function useGame(
   // wordknit.{games,guesses}, attach the shared-selection
   // Broadcast handler. Stable channel name (no UUID suffix)
   // because selection broadcasts need a shared room across peers.
-  useEffect(function joinWordknitRoom() {
+  useEffect(function joinWordKnitRoom() {
     let mounted = true
 
     async function load() {
@@ -236,7 +236,7 @@ export function useGame(
     // stable one for broadcast + a UUID-suffixed one for
     // postgres_changes — to avoid the two concerns sharing
     // reconnect semantics. See docs/code-review-2026-06-16.md §4.3
-    // and docs/deferred.md → Wordknit.
+    // and docs/deferred.md → wordknit.
     const ch = supabase.channel(`wordknit:${gameId}`)
 
     ch.on(

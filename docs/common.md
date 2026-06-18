@@ -35,7 +35,7 @@ Concretely:
 
 The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_id` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
 
-Tinyspy's `club_id NOT NULL` and 2-member requirement aren't an exception to this rule — they're just where its `[2, 2]` player-count range lands. Same shape as any other gametype.
+TinySpy's `club_id NOT NULL` and 2-member requirement aren't an exception to this rule — they're just where its `[2, 2]` player-count range lands. Same shape as any other gametype.
 
 ## Schema: `common.*`
 
@@ -76,7 +76,7 @@ The known leak: tab-kill / browser-crash / network-loss don't fire the FE cleanu
 
 `common.games.title` is `not null` and `length(trim(title)) > 0`-checked. Each gametype's `create_game` builds the value at insert time and passes it as the `title` argument to `common.create_game`. Choosing a formula is a per-gametype call — there's no universal-good answer ("just list the players" fails inside a single club where every game has the same 2-3 players). The actual formulas live in each gametype's per-feature doc under `### Title formula`.
 
-The "no gametype in the title" rule: titles never embed `"Wordknit"` / `"Tinyspy"` etc. because the FE always prefixes the gametype name from the manifest. Doubled prefixes (`"Wordknit: Wordknit puzzle..."`) would look silly.
+The "no gametype in the title" rule: titles never embed `"WordKnit"` / `"TinySpy"` etc. because the FE always prefixes the gametype name from the manifest. Doubled prefixes (`"WordKnit: WordKnit puzzle..."`) would look silly.
 
 ### Club-level game lifecycle
 
@@ -358,7 +358,7 @@ Conventions live in [`code-conventions.md`](code-conventions.md); the short vers
 
 - **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`.
 - **Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) — colors, spacing, font stack, radii. All other CSS references these via `var(--token-name)`.
-- **Per-game themes are optional.** Each game may have its own `theme.css` that overrides tokens for that gametype's palette. Tinyspy has one (greens, reds, neutrals). Psychic-num doesn't (deliberately styling-free).
+- **Per-game themes are optional.** Each game may have its own `theme.css` that overrides tokens for that gametype's palette. TinySpy has one (greens, reds, neutrals). Psychic-num doesn't (deliberately styling-free).
 - **Utility classes** in `common/theme.css` for the things every screen needs: `.card`, `.muted`, `.error`, `.actions`, `.link-button`. No CSS framework.
 
 `cls()` (in [`src/common/lib/cls.ts`](../src/common/lib/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.

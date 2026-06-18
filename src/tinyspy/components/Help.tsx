@@ -6,7 +6,7 @@ type Props = {
 }
 
 /**
- * Tinyspy's help / rules modal — opened from the "Help" item in
+ * tinyspy's help / rules modal — opened from the "Help" item in
  * the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *

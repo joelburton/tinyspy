@@ -5,23 +5,23 @@ type Props = {
 }
 
 /**
- * Wordknit's help / rules modal — opened from the "Help" item in
+ * wordknit's help / rules modal — opened from the "Help" item in
  * the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * **Placeholder content.** Wordknit's gameplay is the NYT
+ * **Placeholder content.** wordknit's gameplay is the NYT
  * Connections puzzle (find the four hidden groups of four words),
  * which most players already know. Real rules copy is deferred
  * until we have a unified visual register for help across games
  * — for now, a brief reminder + a pointer is enough for the
  * friends who actually play.
  *
- * Tinyspy's `Help.tsx` is the visual model when richer copy lands.
+ * tinyspy's `Help.tsx` is the visual model when richer copy lands.
  */
 export function Help({ onClose }: Props) {
   return (
     <FloatingPanel
-      title="How to play Wordknit"
+      title="How to play WordKnit"
       onClose={onClose}
       defaultSize={{ width: 440, height: 360 }}
       minWidth={300}

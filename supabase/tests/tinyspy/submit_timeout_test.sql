@@ -2,7 +2,7 @@
 -- Test: tinyspy.submit_timeout — wall-clock countdown expired
 -- ============================================================
 --
--- Mirrors wordknit / psychic-num: the FE fires this RPC when its
+-- Mirrors wordknit / psychicnum: the FE fires this RPC when its
 -- count-down timer hits 0. The server-side gate is the
 -- non-terminal-play_state check; play_state flips to 'lost_timeout' and
 -- common.end_game records outcome='lost_timeout'. Idempotent on
@@ -125,7 +125,7 @@ select throws_ok(
 -- ============================================================
 -- (4) Happy path from sudden_death
 -- ============================================================
--- Tinyspy's other non-terminal play_state is `sudden_death`. The
+-- tinyspy's other non-terminal play_state is `sudden_death`. The
 -- timer can expire in that state too — submit_timeout should
 -- still flip to lost_timeout.
 

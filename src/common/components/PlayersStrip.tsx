@@ -13,7 +13,7 @@ type Props = {
  *
  * Why colored usernames as the default: a player who sees a
  * colored cue elsewhere in the game (e.g. an orange frame on a
- * wordknit tile, an orange dot in psychic-num's guess history)
+ * wordknit tile, an orange dot in psychicnum's guess history)
  * can read "orange is moth" off the strip without hovering or
  * digging through the roster panel.
  *

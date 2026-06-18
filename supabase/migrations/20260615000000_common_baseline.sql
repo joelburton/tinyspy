@@ -209,7 +209,7 @@ create table common.gametypes (
 --   tinyspy:     "<seatA>-v-<seatB>: WORD1, WORD2, WORD3, WORD4"
 --                (alphabetical first 4 of the picked 25)
 --   psychicnum:  "<target-number-as-text>"
---                (the target IS leaked — psychic-num is a toy
+--                (the target IS leaked — psychicnum is a toy
 --                 game; the column-grant pattern on `target` is
 --                 retained for educational value but not for
 --                 actual secrecy)
@@ -945,7 +945,7 @@ revoke execute on function common.require_game_player(uuid) from public;
 -- ─── common.update_state ───────────────────────────────
 -- The mid-game state-write helper. Per-gametype RPCs call this
 -- after any state transition that's NOT a game-end — wordknit's
--- mistake-count bump, tinyspy's sudden-death entry, psychic-num's
+-- mistake-count bump, tinyspy's sudden-death entry, psychicnum's
 -- guesses_remaining decrement, etc. Updates `play_state` (the
 -- gametype's enum value) + `status` (the listing-label jsonb) +
 -- `is_terminal` (always false here by definition; the column
@@ -994,7 +994,7 @@ revoke execute on function common.update_state(uuid, text, jsonb) from public;
 -- end-game half of the duplicate-write discipline. Called by
 -- each gametype's RPC at the moment its game-specific rule says
 -- "this game is over" — 4 mistakes in wordknit, assassin in
--- tinyspy, last guess used in psychic-num, countdown expired,
+-- tinyspy, last guess used in psychicnum, countdown expired,
 -- etc. Writes:
 --
 --   - common.games.ended_at        = now()

@@ -1,5 +1,5 @@
 -- ============================================================
--- Tinyspy-shared test setup
+-- tinyspy-shared test setup
 -- ============================================================
 --
 -- Included by every tinyspy test file alongside the shared
@@ -67,7 +67,7 @@ $$;
 --   tinyspy_setup(11)                            -- 11 turns, ada
 --   tinyspy_setup(9, 'bea22222-...'::uuid)       -- 9 turns, bea
 --
--- The shape mirrors src/tinyspy/lib/setup.ts (TinyspySetup).
+-- The shape mirrors src/tinyspy/lib/setup.ts (TinySpySetup).
 -- create_game validates the payload server-side; this helper is
 -- purely a typing-saver, not a validator.
 create function pg_temp.tinyspy_setup(

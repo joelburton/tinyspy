@@ -41,7 +41,7 @@ Why this matters here:
 
 ### The deliberate exception
 
-In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. Wordknit's category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
+In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. WordKnit's category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
 
 The distinction in one line: **if it's a side effect of state changing, fix the layout; if it's the state change you're celebrating, let it happen.**
 
@@ -49,7 +49,7 @@ The other exempt case is **loading state**: "Loading game…" doesn't have to oc
 
 ### Feedback pill
 
-A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a Wordknit "wrong guess" should look like a Tinyspy "clue invalid" should look like a future Boggle "not a word."
+A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a WordKnit "wrong guess" should look like a TinySpy "clue invalid" should look like a future Boggle "not a word."
 
 The pill lives inside `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below). When feedback is active, the pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
 
@@ -75,8 +75,8 @@ feedback: {
 
 **Dismiss modes — when to use each:**
 
-- **`timed`** for transient acknowledgment that auto-fades. Wordknit's "Already tried that," "Wrong guess." The default workhorse.
-- **`sticky`** for state-driven info the game itself will clear. Tinyspy's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
+- **`timed`** for transient acknowledgment that auto-fades. WordKnit's "Already tried that," "Wrong guess." The default workhorse.
+- **`sticky`** for state-driven info the game itself will clear. TinySpy's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
 - **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
 
 **Semantics:**
@@ -90,7 +90,7 @@ feedback: {
 
 Game-end "you won / you lost" UI lives in a shared modal (`common/components/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
 
-The page underneath stays in *review mode*: the final board, revealed unmatched categories (wordknit), both key cards (tinyspy), the winning number (psychic-num). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
+The page underneath stays in *review mode*: the final board, revealed unmatched categories (wordknit), both key cards (tinyspy), the winning number (PsychicNum). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
 
 **Auto-pop on terminal.** Each game's PlayArea opens the modal in two cases:
 
@@ -125,7 +125,7 @@ The per-game PlayArea picks the right verdict per status (play_state + timer.exp
 
 Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:
 
-- **Tinyspy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
+- **TinySpy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
 ## Page-height fits the viewport
@@ -203,7 +203,7 @@ Most of these don't exist yet — psychicnum and tinyspy each render their game-
 
 Concepts that belong to the game's rules and ontology:
 
-- Tinyspy's **agent / neutral / assassin**.
+- TinySpy's **agent / neutral / assassin**.
 - A future Boggle's **valid word / great word / not a word**.
 - Connections's **four difficulty colors** (yellow → green → blue → purple, themed by the game itself).
 
@@ -234,8 +234,8 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 
 - **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
-- **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; psychic-num and tinyspy default to none), but the *option* is universal.
-- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. Tinyspy's `Help.tsx` is the model; wordknit and psychic-num carry placeholder content until they earn real copy.
+- **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; PsychicNum and tinyspy default to none), but the *option* is universal.
+- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. TinySpy's `Help.tsx` is the model; wordknit and PsychicNum carry placeholder content until they earn real copy.
 - **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
 - **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Non-terminal games show the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`.
 
@@ -262,7 +262,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 **What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. wordknit's puzzle date) still lives in the club-page listing where it has room to breathe.
 
-**Why this lives in the common shell:** the consistency goal — a player switching from Tinyspy to Wordknit shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
+**Why this lives in the common shell:** the consistency goal — a player switching from TinySpy to WordKnit shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
 
 ### GamePage menu
 

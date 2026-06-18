@@ -33,7 +33,7 @@ export type Player = Member
  * "still hidden". See the phase-1 migration's "hidden wordlists"
  * section for the wider rationale.
  */
-export type FreebeeGame = {
+export type FreeBeeGame = {
   id: string
   club_id: string
   outer_letters: string
@@ -60,14 +60,14 @@ export type FoundWordRow = {
 }
 
 /**
- * Freebee's per-gametype data hook.
+ * freebee's per-gametype data hook.
  *
  * Follows the **refetch-only** realtime pattern (Pattern A, see
  * `docs/code-conventions.md` → "Realtime data hooks"). No
  * broadcast traffic — every submission flows through
  * `freebee.submit_word`, which writes a `found_words` row that
  * propagates to every peer via the standard postgres-changes
- * subscription. Same shape psychic-num uses.
+ * subscription. Same shape psychicnum uses.
  *
  * Two-table subscription on `freebee.{games, found_words}`:
  *   - `games`: any change refetches game_state (which carries
@@ -82,11 +82,11 @@ export type FoundWordRow = {
  * conditionally on terminal.
  */
 export function useGame(gameId: string): {
-  game: FreebeeGame | null
+  game: FreeBeeGame | null
   foundWords: FoundWordRow[]
   loading: boolean
 } {
-  const [game, setGame] = useState<FreebeeGame | null>(null)
+  const [game, setGame] = useState<FreeBeeGame | null>(null)
   const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -139,9 +139,9 @@ export function useGame(gameId: string): {
         total_words: gameRes.data.total_words as number,
         created_at: gameRes.data.created_at as string,
         scoringWords:
-          (gameRes.data.scoring_words as FreebeeGame['scoringWords']) ?? null,
+          (gameRes.data.scoring_words as FreeBeeGame['scoringWords']) ?? null,
         legalWords:
-          (gameRes.data.legal_words as FreebeeGame['legalWords']) ?? null,
+          (gameRes.data.legal_words as FreeBeeGame['legalWords']) ?? null,
       })
       setFoundWords((foundRes.data ?? []) as FoundWordRow[])
       setLoading(false)

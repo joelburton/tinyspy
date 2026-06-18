@@ -5,7 +5,7 @@
 -- The forward definition of every `tinyspy.*` table, function,
 -- index, and policy.
 --
--- Tinyspy is Codenames Duet for two: a cooperative word-guessing
+-- tinyspy is Codenames Duet for two: a cooperative word-guessing
 -- game played by exactly two club members. See docs/tinyspy.md
 -- for the rules; the RPCs in this file are the canonical
 -- implementation.
@@ -52,7 +52,7 @@ grant usage on schema tinyspy to authenticated;
 create table tinyspy.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_id uuid not null references common.clubs(id) on delete cascade,
-  -- play_state lives on common.games. Tinyspy's enum values:
+  -- play_state lives on common.games. tinyspy's enum values:
   --   playing       — turn-based clue/guess loop (default at create).
   --   sudden_death  — timer-token-clock ran out, agents remain.
   --   won           — all 15 greens revealed (terminal).
@@ -142,7 +142,7 @@ create table tinyspy.clues (
 -- model that's accepted — the FE only displays the caller's own
 -- key column. For a hardened version, restrict to a column-grant
 -- list excluding key_card_b for seat-A callers (and vice versa)
--- via a generated view. Deferred — see docs/deferred.md → Tinyspy.
+-- via a generated view. Deferred — see docs/deferred.md → tinyspy.
 
 alter table tinyspy.games     enable row level security;
 alter table tinyspy.word_pool enable row level security;
@@ -278,7 +278,7 @@ revoke execute on function tinyspy._end_turn(uuid) from public;
 -- for end-of-game review without per-feature column churn.
 --
 -- Validation is server-side: this RPC inspects the jsonb shape
--- and rejects malformed payloads. The FE's TinyspySetup type is
+-- and rejects malformed payloads. The FE's TinySpySetup type is
 -- advisory only — a curious client could fire any payload, and
 -- the server is the only thing protecting state correctness.
 
@@ -342,7 +342,7 @@ begin
   perform common.validate_timer(setup->'timer');
 
   -- ─── Validate player_user_ids size + first-clue-giver ─
-  -- Tinyspy is intrinsically 2-player.
+  -- tinyspy is intrinsically 2-player.
   if array_length(player_user_ids, 1) <> 2 then
     raise exception 'tinyspy requires exactly 2 players (got %)',
       coalesce(array_length(player_user_ids, 1), 0)

@@ -151,7 +151,7 @@ Tests assert on the code, not the wording. The exact error string is described i
 
 ## Per-gametype test setup (future)
 
-`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychic-num or tinyspy.
+`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in PsychicNum or tinyspy.
 
 The pattern in use:
 
@@ -172,7 +172,7 @@ We import both explicitly, rather than chaining the shared include from inside t
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_setup`). **psychic-num**'s only helper is inline target-pinning at one site — still below the promotion threshold.
+Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_setup`). **PsychicNum**'s only helper is inline target-pinning at one site — still below the promotion threshold.
 
 ## Frontend testing
 

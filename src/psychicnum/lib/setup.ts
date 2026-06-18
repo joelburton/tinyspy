@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * Psychic Num's per-game setup — the choices collected by the
+ * psychicnum's per-game setup — the choices collected by the
  * start-game dialog, persisted to `psychicnum.games.setup`, and
  * validated server-side in `psychicnum.create_game` (the
  * canonical authority for what shapes are accepted).
@@ -16,7 +16,7 @@ import type { TimerMode } from '../../common/lib/games'
  * the manifest in (which would defeat the lazy-load — the form
  * would not split into its own chunk).
  */
-export type PsychicnumSetup = {
+export type PsychicNumSetup = {
   /**
    * Starting guess budget — the shared pool every club member
    * draws from. 7 is the historical default; 3/5/9 are the
@@ -39,7 +39,7 @@ export type PsychicnumSetup = {
  * a sensible "casual game with stakes" baseline that players can
  * dial up or down (or turn off entirely) before starting.
  */
-export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
+export const DEFAULT_PSYCHICNUM_SETUP: PsychicNumSetup = {
   guesses: 7,
   timer: { kind: 'countdown', seconds: 600 },
 }

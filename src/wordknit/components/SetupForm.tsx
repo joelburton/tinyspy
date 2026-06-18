@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
-import type { WordknitSetup } from '../lib/setup'
+import type { WordKnitSetup } from '../lib/setup'
 import { Calendar, type OutcomeBucket } from './Calendar'
 import styles from './SetupForm.module.css'
 
@@ -24,7 +24,7 @@ type ClubGameStatusRow = {
 }
 
 /**
- * Wordknit's per-game setup form. Two choices:
+ * wordknit's per-game setup form. Two choices:
  *
  *   - **Puzzle** — chosen via either the date input or the
  *     calendar widget. The calendar shows the club's prior
@@ -53,13 +53,13 @@ type ClubGameStatusRow = {
  *
  * Component name `SetupForm` matches the file + the
  * `manifest.setupForm` field — this is the *form definition*,
- * distinct from `WordknitSetup` (the *data shape* the form
+ * distinct from `WordKnitSetup` (the *data shape* the form
  * produces, stored on `common.games.setup`). The folder path
  * (`wordknit/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
 export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
-  const s = value as WordknitSetup
+  const s = value as WordKnitSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
   const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
 
@@ -210,7 +210,7 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
  * Map a wordknit game's (play_state, is_terminal) to the
  * common outcome bucket the Calendar colors squares from.
  *
- * Wordknit's play_state vocabulary:
+ * wordknit's play_state vocabulary:
  *   - `playing`           — non-terminal (yellow / active)
  *   - `solved`            — terminal win (green / won)
  *   - `lost`              — terminal loss (red / lost)

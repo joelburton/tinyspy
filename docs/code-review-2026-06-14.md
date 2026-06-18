@@ -79,7 +79,7 @@ The cheatsheet still describes a tinyspy-only world:
   ([cheatsheet.md:177](cheatsheet.md#key-files-for-code-reading)) names
   migrations that no longer exist as separate files — `_username`,
   `_clubs`, `_tinyspy_to_clubs` were squashed into the two baselines.
-- **Migration link "The Tinyspy rulebook in code form"** points at
+- **Migration link "The TinySpy rulebook in code form"** points at
   `docs/duet-rules.md`, which doesn't exist. The rules now live in
   `docs/tinyspy.md` (the "The rules" section).
 
@@ -98,7 +98,7 @@ mislead a new reader, so it's worth the half-hour.
   `Deliberately deferred for v1 — see CODE_REVIEW.md item 13.`
   `CODE_REVIEW.md` was retired in commit `c696b68` ("two still-live items
   carried forward"). The right pointer now is
-  `docs/deferred.md → Tinyspy → "Harden \`game_players_select\`"`.
+  `docs/deferred.md → TinySpy → "Harden \`game_players_select\`"`.
 
 ### 1.3 `supabase/seed.sql` references a missing migration
 
@@ -117,7 +117,7 @@ to `20260615000001_tinyspy_baseline.sql`.
 The rebrand to "PupGames" landed for the UI (`index.html` title, the
 `LoginScreen` H1) but didn't sweep the README/package metadata:
 
-- `README.md:1` — `# Tinyspy + friends` → consider `# PupGames` (or
+- `README.md:1` — `# TinySpy + friends` → consider `# PupGames` (or
   whatever the long-form is) to match `index.html`'s `<title>`.
 - `README.md:93` — `Deployed at <https://tinyspy.netlify.app>`. If
   Netlify was renamed alongside the UI rebrand, this URL is wrong; if
@@ -167,8 +167,8 @@ not-found branch, and a render. Two options:
 
 - **Keep `InGame`, drop the historical paragraph.** Mention only that
   it's the loading/not-found gate.
-- **Inline it back into `TinyspyRoot`** (~10 lines, same shape as
-  `PsychicnumRoot`). The outer `enterGame`/`leaveGame` closure stays
+- **Inline it back into `TinySpyRoot`** (~10 lines, same shape as
+  `PsychicNumRoot`). The outer `enterGame`/`leaveGame` closure stays
   identical and the two-function split stops paying for itself.
 
 Either is fine. The "inline" option is closer to the psychicnum Root
@@ -278,7 +278,7 @@ function labelFor(g: GameRow): string {
 }
 ```
 
-This change is also one of the [deferred.md items](deferred.md#psychic-num) —
+This change is also one of the [deferred.md items](deferred.md#psychicnum) —
 when `winner_id` gets ripped out, the `won` branch collapses to
 `'won'` and the helper disappears.
 

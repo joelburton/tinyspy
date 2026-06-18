@@ -16,7 +16,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 
 /**
- * Wordknit's play surface — composes the in-game pieces. The
+ * wordknit's play surface — composes the in-game pieces. The
  * cross-cutting chrome (logo, chat, players-strip / feedback-pill,
  * pause, timer) lives on `<GamePage>` above this component in
  * the route tree; here we just stitch together the gametype-

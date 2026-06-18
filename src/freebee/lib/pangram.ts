@@ -2,7 +2,7 @@ import { letterMask, popcount26 } from './letterMask'
 
 /**
  * A word is a **pangram** if it uses all 7 distinct letters of
- * a FreeBee puzzle. Detection is letter-set based: exactly 7
+ * a freebee puzzle. Detection is letter-set based: exactly 7
  * distinct letters used, no further check needed (the puzzle's
  * letter set is always exactly 7 distinct letters by construction).
  *

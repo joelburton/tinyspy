@@ -65,7 +65,7 @@ describe('reconcileLocalOrder', () => {
   })
 
   it('appends tiles present in remaining but not local (defensive)', () => {
-    // Wordknit never adds tiles mid-game, but the helper handles
+    // wordknit never adds tiles mid-game, but the helper handles
     // the case so the contract is "no tile ever gets dropped."
     const local = ['A', 'B']
     const remaining = ['A', 'B', 'C']

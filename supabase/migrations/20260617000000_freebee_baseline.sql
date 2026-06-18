@@ -1,5 +1,5 @@
 -- ============================================================
--- FreeBee — NYT-Spelling-Bee-style word finder (Phase 1: schema)
+-- freebee — NYT-Spelling-Bee-style word finder (Phase 1: schema)
 -- ============================================================
 --
 -- A honeycomb of 7 distinct letters (1 center + 6 outer); players
@@ -8,7 +8,7 @@
 -- shared dictionary is split into a smaller scoring set and a
 -- larger legal-only set (bonus words).
 --
--- "FreeBee" is the codename. User-facing copy is "FreeBee"; SQL /
+-- "freebee" is the codename. User-facing copy is "freebee"; SQL /
 -- TypeScript / folder names are all `freebee`. Ported from the
 -- standalone codebase at ~/freebee-ws; this monorepo replaces the
 -- websocket / session / chat / presence machinery with Supabase
@@ -76,7 +76,7 @@ grant usage on schema freebee to service_role;
 -- exact "uses only puzzle letters" test that scoring needs.
 --
 -- ───────────────────────────────────────────────────────────
--- Why not store words containing 's'? FreeBee's puzzle generator
+-- Why not store words containing 's'? freebee's puzzle generator
 -- never produces a board that contains 's' (the rule from the
 -- original NYT game — 's' makes pluralization too easy and
 -- inflates word counts). So no s-containing word can ever be a
@@ -105,7 +105,7 @@ create index freebee_dictionary_mask_idx
 -- ============================================================
 -- freebee.pangrams — the board-seed pool
 -- ============================================================
--- A valid FreeBee board needs to contain at least one pangram
+-- A valid freebee board needs to contain at least one pangram
 -- (a word using all 7 distinct letters of the board). Random
 -- 7-letter sets MOSTLY don't have a pangram in the dictionary —
 -- so generating boards by "pick 7 random letters and check"

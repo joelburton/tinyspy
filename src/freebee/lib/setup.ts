@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * Freebee's per-game setup — collected by the start-game dialog,
+ * freebee's per-game setup — collected by the start-game dialog,
  * persisted to `common.games.setup`, validated server-side in
  * `freebee.create_game`.
  *
@@ -23,7 +23,7 @@ import type { TimerMode } from '../../common/lib/games'
  * The deferred fields are optional on the type so a future PR
  * can populate them without changing every existing call site.
  */
-export type FreebeeSetup = {
+export type FreeBeeSetup = {
   mode: 'coop' | 'compete'
   timer: TimerMode
   target_rank?: number
@@ -36,11 +36,11 @@ export type FreebeeSetup = {
  * as `defaults`.
  *
  * 10-minute countdown is the default per the wider pattern —
- * matches wordknit's and psychic-num's default timer choices,
+ * matches wordknit's and psychicnum's default timer choices,
  * and it's a reasonable "you have to actually play" length
  * without being punishing.
  */
-export const DEFAULT_FREEBEE_SETUP: FreebeeSetup = {
+export const DEFAULT_FREEBEE_SETUP: FreeBeeSetup = {
   mode: 'coop',
   timer: { kind: 'countdown', seconds: 600 },
 }

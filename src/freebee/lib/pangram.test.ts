@@ -13,7 +13,7 @@ describe('isPangram', () => {
     // 7 distinct: a, b, c, d, e, f, g — the synthetic test pangram.
     expect(isPangram('abcdefg')).toBe(true)
     // Real Spelling-Bee-friendly word using all 7 distinct letters
-    // {a, b, c, d, n, o, s} — except 's' is excluded from FreeBee
+    // {a, b, c, d, n, o, s} — except 's' is excluded from freebee
     // puzzles. Pick a no-s alternative: "outpace" uses {o,u,t,p,a,c,e}.
     expect(isPangram('outpace')).toBe(true)
   })
@@ -30,7 +30,7 @@ describe('isPangram', () => {
     expect(isPangram('campaign')).toBe(true)
   })
 
-  it('rejects words with 8+ distinct letters (out of bounds for a FreeBee puzzle)', () => {
+  it('rejects words with 8+ distinct letters (out of bounds for a freebee puzzle)', () => {
     // 8 distinct: a, b, c, d, e, f, g, h
     expect(isPangram('abcdefgh')).toBe(false)
   })

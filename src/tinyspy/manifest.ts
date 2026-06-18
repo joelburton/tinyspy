@@ -1,11 +1,11 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_TINYSPY_SETUP, type TinyspySetup } from './lib/setup'
+import { DEFAULT_TINYSPY_SETUP, type TinySpySetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * Tinyspy's registration with the shell. Exported as the only thing
+ * tinyspy's registration with the shell. Exported as the only thing
  * outside `src/tinyspy/` needs to know about this gametype —
  * `src/games.ts` imports this constant and adds it to the registry.
  *
@@ -13,22 +13,22 @@ import logoUrl from './logo.svg?url'
  * Nothing enforces that today; the type just keeps them as separate
  * fields so we don't conflate two roles into one string.
  *
- * `Root` is lazy-loaded so that Vite emits Tinyspy's code into its
+ * `Root` is lazy-loaded so that Vite emits tinyspy's code into its
  * own chunk. The main bundle ships only the shell + common + this
  * manifest (a tiny constant); the actual game code arrives the first
- * time a user navigates into Tinyspy in a session. App.tsx wraps the
+ * time a user navigates into tinyspy in a session. App.tsx wraps the
  * mount in `<Suspense>` so the brief between-chunk-fetch render is
  * handled cleanly.
  *
- * The `.then(m => ({ default: m.TinyspyRoot }))` shim re-exports the
+ * The `.then(m => ({ default: m.TinySpyRoot }))` shim re-exports the
  * named export as a default, since React.lazy expects a module with
- * a default export. We keep `TinyspyRoot` a named export in Root.tsx
+ * a default export. We keep `TinySpyRoot` a named export in Root.tsx
  * for symmetry with everything else.
  */
 export const tinyspyGame: GameManifest = {
   gametype: 'tinyspy',
   schema: 'tinyspy',
-  name: 'Tinyspy',
+  name: 'TinySpy',
   shortDescription: 'Find agents using word clues',
   logoUrl,
 
@@ -68,11 +68,11 @@ export const tinyspyGame: GameManifest = {
   // assigned to s.firstClueGiverUserId). See the
   // 20260614000002_tinyspy_setup migration.
   //
-  // The `unknown` → TinyspySetup cast is safe because we own
+  // The `unknown` → TinySpySetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubId, setup, playerUserIds) => {
-    const s = setup as TinyspySetup
+    const s = setup as TinySpySetup
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubId,
@@ -81,12 +81,12 @@ export const tinyspyGame: GameManifest = {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start tinyspy game' }
+      return { error: error?.message ?? 'failed to start TinySpy game' }
     }
     return { id: data.id }
   },
 
-  // Render the per-row label from a common.games row. Tinyspy's
+  // Render the per-row label from a common.games row. tinyspy's
   // play_state vocabulary is rich enough to label every row
   // without reading status jsonb (won / lost_assassin /
   // lost_clock / lost_timeout each get their own copy). Map

@@ -211,7 +211,7 @@ select is(
   'current-view common.games row has gametype = psychicnum'
 );
 
--- Title = the target number as text (psychic-num is a toy game,
+-- Title = the target number as text (psychicnum is a toy game,
 -- target IS revealed via title — by design; the column-level
 -- grant on psychicnum.games.target stays for educational value).
 select is(

@@ -28,7 +28,7 @@ A *specific playing*. "Ada and Bea's tinyspy match on June 14." Matches everyday
 
 ### board
 
-The *static starting state* of a game — the inert configuration that could be saved and replayed. For boggle, that's the dice arrangement. For crosswords, the puzzle grid. For games where the starting state is trivial (psychic-num's "a number from 1–10," tinyspy's "25 random words + a key card"), the board co-locates onto the game row instead of warranting its own table.
+The *static starting state* of a game — the inert configuration that could be saved and replayed. For boggle, that's the dice arrangement. For crosswords, the puzzle grid. For games where the starting state is trivial (PsychicNum's "a number from 1–10," tinyspy's "25 random words + a key card"), the board co-locates onto the game row instead of warranting its own table.
 
 The distinguishing test: would two different games on the same setup be a meaningful concept for this gametype? If yes, that setup is a board. If no, the concept is too thin to bother extracting.
 
@@ -40,7 +40,7 @@ The split lets the source stay pristine across multiple plays (a club can replay
 
 Two kinds of gametype shake out from this:
 
-- **Generated-board games** (freebee, tinyspy, psychic-num, future boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
+- **Generated-board games** (freebee, tinyspy, PsychicNum, future boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
 - **Puzzle-based games** (wordknit, future crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker.
 
 Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK.
@@ -78,8 +78,8 @@ A member who's in a specific game — i.e. someone in `common.game_players` for 
 
 **Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/games.ts` plus a per-game `Player` alias in each game's hook file:
 
-- Wordknit, FreeBee, psychic-num: `type Player = Member` (pure re-export — no per-game enrichment today).
-- Tinyspy: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — tinyspy is intrinsically 2-seat).
+- WordKnit, FreeBee, PsychicNum: `type Player = Member` (pure re-export — no per-game enrichment today).
+- TinySpy: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — tinyspy is intrinsically 2-seat).
 
 Every game declares the alias even when it's a pure re-export, because cross-game vocabulary consistency makes per-game folders pattern-match cleanly (a reader switching from tinyspy to wordknit sees the same `Player` parallel and doesn't trip on a name change).
 
@@ -98,7 +98,7 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 
 - `isMine` / `isPeer` for per-tile attribution in `wordknit/components/TileGrid.tsx`.
 - "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that name the relationship rather than describing it as "the other player."
-- Tinyspy's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
+- TinySpy's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
 - The pause-on-disconnect pattern phrases the trigger as "a peer is missing" because the predicate is viewer-relative: if Ada disconnects, Bea sees a missing peer; Ada sees Bea still there.
 
 **Where peer does NOT belong:**
@@ -110,8 +110,8 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 
 "Start a game" is a two-phase flow in this codebase: the user picks options first, *then* the game is created. The same word would describe both phases in casual speech, so identifier naming splits them:
 
-- **`startSetup`** — click the "Start Wordknit" button on ClubPage. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
-- **`startGame`** — click "Start Wordknit" inside the dialog after picking options. Fires `manifest.startGameInClub`, which calls `create_game` and writes the new `common.games` row.
+- **`startSetup`** — click the "Start WordKnit" button on ClubPage. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
+- **`startGame`** — click "Start WordKnit" inside the dialog after picking options. Fires `manifest.startGameInClub`, which calls `create_game` and writes the new `common.games` row.
 
 Concretely:
 
@@ -136,7 +136,7 @@ The cross-cutting terms above apply everywhere. Each game also has its own small
 - [`wordknit.md → Vocabulary`](games/wordknit.md#vocabulary)
 - [`freebee.md → Vocabulary`](games/freebee.md#vocabulary)
 
-Tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
+TinySpy and PsychicNum use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
 
 When two games use the same word for genuinely different concepts (wordknit's `rank` = per-category difficulty 0..3; freebee's `rank` = per-player progress 0..6), the per-game `## Vocabulary` entry should call that collision out so a cross-game reader doesn't get confused.
 
@@ -195,7 +195,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |
 | `club_id` | The FK to `common.clubs(id)` on every `<gametype>.games` table. |
 | `target_game` | The conventional name for the game-UUID parameter on every gametype's mutating RPCs (`submit_guess(target_game uuid, …)`). `target_<noun>` is the broader pattern for RPC params pointing at row IDs. |
-| `submit_guess` | The mid-game-action RPC on a gametype that records a player's guess. The guess *shape* differs (a clue + count for tinyspy, a number for psychic-num, a 4-tile set + verdict for wordknit), but the RPC name is the same. |
+| `submit_guess` | The mid-game-action RPC on a gametype that records a player's guess. The guess *shape* differs (a clue + count for tinyspy, a number for PsychicNum, a 4-tile set + verdict for wordknit), but the RPC name is the same. |
 | `<table>_select` | The SELECT RLS policy naming pattern — `games_select`, `guesses_select`. Other policy directions follow the same pattern (`<table>_insert` etc.) if/when we ever add them. |
 | `SetupMember` | The TS type for a club member in a setup-flow context. From `src/common/lib/games.ts`. |
 | `useGameTimer`, `PauseBoundary`, `PauseOverlay`, `computePause`, `ClubChatPanel` | Common hooks / components / helpers. Every game that uses one consumes it under this exact import — there is no per-game variant. |
@@ -224,8 +224,8 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 | [`common.md`](common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant, the FE shell |
 | [`states.md`](states.md) | The view-state / play-state vocabulary and how the suspend / current / pause concepts compose |
 | [`tinyspy.md`](games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [`psychicnum.md`](games/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [`wordknit.md`](games/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
+| [`psychicnum.md`](games/psychicnum.md) | PsychicNum rules + schema, the hidden-target pattern, FE, tests |
+| [`wordknit.md`](games/wordknit.md) | WordKnit (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
 | [`freebee.md`](games/freebee.md) | FreeBee (Spelling-Bee-style) rules + schema, hidden-wordlist reveal, edge-function board builder, rank ladder |
 | [`testing.md`](testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
 | [`code-conventions.md`](code-conventions.md) | How we write code: DB conventions, FE conventions, naming rules, known gotchas |

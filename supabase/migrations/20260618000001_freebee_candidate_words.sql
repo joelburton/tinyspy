@@ -1,5 +1,5 @@
 -- ============================================================
--- FreeBee — candidate_words helper (Phase 2 follow-up)
+-- freebee — candidate_words helper (Phase 2 follow-up)
 -- ============================================================
 --
 -- Reason this migration exists: the edge function's
@@ -45,7 +45,7 @@ as $$
      -- predicate into the index, but the index narrows the
      -- candidate row set first.
      and (letter_mask & ~puzzle_mask) = 0
-     -- Must contain the center letter — the FreeBee rule.
+     -- Must contain the center letter — the freebee rule.
      and (letter_mask & center_bit) <> 0;
 $$;
 

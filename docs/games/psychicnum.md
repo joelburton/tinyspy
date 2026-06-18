@@ -1,4 +1,4 @@
-# Psychic Num
+# PsychicNum
 
 A tiny cooperative number-guessing game. The second registered gametype, added primarily to validate the multi-game architecture with the minimum game-logic surface possible. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
@@ -10,7 +10,7 @@ The server picks a random number 1–10. Any club member guesses any number at a
 
 It's deliberately a toy. The point isn't to be fun; the point is to exercise the multi-game wiring (manifest registry, schema-per-game, per-game RLS, per-game chunk split, common ClubPage + chat reuse) with a game small enough that the architectural patterns dominate the file you're reading.
 
-Psychic Num is a stand-in until enough "real" games are live. **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the entry from `src/games.ts`, drop the migration file. If anything else breaks, the architecture leaked.
+PsychicNum is a stand-in until enough "real" games are live. **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the entry from `src/games.ts`, drop the migration file. If anything else breaks, the architecture leaked.
 
 ## The rules
 
@@ -54,17 +54,17 @@ There is no separate `boards` table. The only datum that fits the "board" concep
 
 ### Play-state enum
 
-`common.games.play_state` carries psychic-num's lifecycle enum. Accepted values:
+`common.games.play_state` carries PsychicNum's lifecycle enum. Accepted values:
 
 - **playing** — guesses being submitted. The default; no other entry state.
 - **won** — a correct guess landed. Terminal.
 - **lost** — the last wrong guess (the one that took the budget to 0) landed. Terminal. The "last" varies with the setup dialog's `guesses` choice (3, 5, 7, or 9 — see [Setup](#setup) below).
 
-Simpler than tinyspy's enum (no sudden_death, no multi-axis loss reasons). This is one of the things Psychic Num is testing — that the architecture doesn't accidentally hardcode tinyspy's specific states.
+Simpler than tinyspy's enum (no sudden_death, no multi-axis loss reasons). This is one of the things PsychicNum is testing — that the architecture doesn't accidentally hardcode tinyspy's specific states.
 
 ## The hidden-target mechanic
 
-The most architecturally interesting piece of Psychic Num is how it hides `target` from clients. Two layers, working together:
+The most architecturally interesting piece of PsychicNum is how it hides `target` from clients. Two layers, working together:
 
 ### Layer 1 — column-level grant (storage gate)
 
@@ -116,7 +116,7 @@ This is the canonical recipe for **"expose a column the invoker can't see direct
 
 Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
 
-Tinyspy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md → Row-level security`](tinyspy.md#row-level-security)).
+TinySpy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md → Row-level security`](tinyspy.md#row-level-security)).
 
 ## RPCs
 
@@ -124,7 +124,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
 
-Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the psychic-num detail row with `guesses_remaining` initialized from `setup.guesses`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('guesses_remaining', setup.guesses))` to seed the listing-label payload. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
+Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the PsychicNum detail row with `guesses_remaining` initialized from `setup.guesses`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('guesses_remaining', setup.guesses))` to seed the listing-label payload. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
 
 **Player-count gate.** `common.require_player_count_max(player_user_ids, 6)`. Matches the manifest's `numberOfPlayers: [1, 6]`. No minimum-of-2 check; solo play is fine — the game logic doesn't care how many people are guessing.
 
@@ -171,7 +171,7 @@ The start-game dialog collects two options from the players before `create_game`
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
 
-The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
+The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicNumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
 
 ## Timer (browser-side, no server sync)
 
@@ -252,7 +252,7 @@ src/psychicnum/
                           common's useCommonGame, consumed by GamePage.
 
   lib/
-    setup.ts              PsychicnumSetup type + DEFAULT_PSYCHICNUM_SETUP.
+    setup.ts              PsychicNumSetup type + DEFAULT_PSYCHICNUM_SETUP.
 ```
 
 ### `PlayArea`

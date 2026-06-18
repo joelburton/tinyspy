@@ -9,7 +9,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /**
- * Psychic Num's play surface — the gametype-specific render
+ * psychicnum's play surface — the gametype-specific render
  * inside `<GamePage>`'s render-prop slot. The route handler
  * (App.tsx) mounts GamePage at the route level; this is what
  * fills in the "active play area" when the game isn't paused.
@@ -25,7 +25,7 @@ import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
  * **Layout** is a two-column split that mimics the shape of a
  * real game — a "board" placeholder on the left (where a tile
  * grid or word grid would go in a real game) + controls or
- * results on the right. Psychic Num doesn't have a real board
+ * results on the right. psychicnum doesn't have a real board
  * (a single 1–10 number isn't worth tile UI), so the left
  * column is a styled rectangle reading "What's your guess?".
  *
@@ -55,7 +55,7 @@ export function PlayArea({
   feedback,
   goToClub,
 }: GamePageCtx) {
-  // session intentionally unused — psychic-num has no per-self
+  // session intentionally unused — psychicnum has no per-self
   // rendering today, but the prop is part of the GamePage contract
   // so future per-self UI (winner-highlight, etc.) doesn't need
   // a signature change.

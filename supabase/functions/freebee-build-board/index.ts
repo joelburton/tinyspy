@@ -1,6 +1,6 @@
 /**
  * freebee-build-board — Edge Function that produces a fresh
- * FreeBee puzzle and creates the game in one round-trip.
+ * freebee puzzle and creates the game in one round-trip.
  *
  * Why edge (not PL/pgSQL): the diverse-builder strategy needs
  * weighted random sampling over the ~3.5k pangram seeds, two

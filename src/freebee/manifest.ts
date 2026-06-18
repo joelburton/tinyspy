@@ -2,15 +2,15 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { supabase } from '../common/lib/supabase'
 import { db } from './db'
-import { DEFAULT_FREEBEE_SETUP, type FreebeeSetup } from './lib/setup'
+import { DEFAULT_FREEBEE_SETUP, type FreeBeeSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * FreeBee's registration with the shell.
+ * freebee's registration with the shell.
  *
- * "FreeBee" is the codename for our NYT-Spelling-Bee-style word
+ * "freebee" is the codename for our NYT-Spelling-Bee-style word
  * finder (ported from the standalone ~/freebee-ws codebase).
- * User-facing copy is "FreeBee"; folder / schema / RPC names are
+ * User-facing copy is "freebee"; folder / schema / RPC names are
  * all `freebee`. See docs/freebee.md for the rules, scope, and
  * the wider architectural decisions (hidden wordlists via the
  * games_state view + helpers, designed-for-compete from day
@@ -36,8 +36,8 @@ export const freebeeGame: GameManifest = {
   numberOfPlayers: [1, 6],
 
   // No manifest-level `timerMode`: freebee's timer is a per-game
-  // choice from the setup dialog. Same shape wordknit + psychic-
-  // num use.
+  // choice from the setup dialog. Same shape wordknit + psychicnum
+  // use.
 
   PlayArea: lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
@@ -68,7 +68,7 @@ export const freebeeGame: GameManifest = {
    * DB write or board-build computation happens.
    */
   startGameInClub: async (clubId, setup, playerUserIds) => {
-    const s = setup as FreebeeSetup
+    const s = setup as FreeBeeSetup
     const { data, error } = await supabase.functions.invoke(
       'freebee-build-board',
       {
@@ -102,7 +102,7 @@ export const freebeeGame: GameManifest = {
     }
     const payload = data as { id?: string; error?: string } | null
     if (!payload || payload.error || !payload.id) {
-      return { error: payload?.error ?? 'failed to start freebee game' }
+      return { error: payload?.error ?? 'failed to start FreeBee game' }
     }
     return { id: payload.id }
   },
@@ -124,7 +124,7 @@ export const freebeeGame: GameManifest = {
    *                 rank_idx, words_found, total_words, mode }
    *
    * Phase 3 keeps this simple — the score + words count is the
-   * canonical "where are we?" answer for FreeBee. Compete-mode
+   * canonical "where are we?" answer for freebee. Compete-mode
    * label (with leaderboard) is part of the deferred compete UI.
    */
   labelFor: (row) => {

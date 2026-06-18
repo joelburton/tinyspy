@@ -4,7 +4,7 @@ import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
 /**
- * One player in a psychic-num game. Today psychic-num doesn't
+ * One player in a psychicnum game. Today psychicnum doesn't
  * add per-player state beyond what's on a Member, so the Player
  * type is a straight re-export — but every per-game folder
  * exposes a Player type so the cross-game vocabulary is
@@ -36,7 +36,7 @@ export type Player = Member
  * common.games and arrives via GamePageCtx. PlayArea reads it
  * from the ctx alongside `isTerminal`.
  */
-export type PsychicnumGame = {
+export type PsychicNumGame = {
   id: string
   club_id: string
   guesses_remaining: number
@@ -47,7 +47,7 @@ export type PsychicnumGame = {
   created_at: string
 }
 
-export type PsychicnumGuess = {
+export type PsychicNumGuess = {
   id: string
   user_id: string
   number: number
@@ -86,12 +86,12 @@ export type PsychicnumGuess = {
  * the resulting state. New games should follow this shape.
  */
 export function useGame(gameId: string): {
-  game: PsychicnumGame | null
-  guesses: PsychicnumGuess[]
+  game: PsychicNumGame | null
+  guesses: PsychicNumGuess[]
   loading: boolean
 } {
-  const [game, setGame] = useState<PsychicnumGame | null>(null)
-  const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
+  const [game, setGame] = useState<PsychicNumGame | null>(null)
+  const [guesses, setGuesses] = useState<PsychicNumGuess[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
@@ -133,7 +133,7 @@ export function useGame(gameId: string): {
         target: gameData.target as number | null,
         created_at: gameData.created_at as string,
       })
-      setGuesses((guessesData ?? []) as PsychicnumGuess[])
+      setGuesses((guessesData ?? []) as PsychicNumGuess[])
       setLoading(false)
     },
   })

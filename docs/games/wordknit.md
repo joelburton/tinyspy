@@ -1,8 +1,8 @@
-# Wordknit
+# WordKnit
 
 A NYT-Connections-style word-grouping puzzle. The third registered gametype in this monorepo, and the first to introduce several new patterns: FE-evaluated rules, shared selection state via Supabase Realtime Broadcast, and the "pause the game when a peer disconnects" pattern.
 
-"Wordknit" is the codename (analogous to how "Tinyspy" is the codename for Codenames Duet). User-facing copy is "Wordknit"; folder / schema / RPC names are all `wordknit`.
+"WordKnit" is the codename (analogous to how "TinySpy" is the codename for Codenames Duet). User-facing copy is "WordKnit"; folder / schema / RPC names are all `wordknit`.
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md) and [`psychicnum.md`](psychicnum.md).
 
@@ -53,11 +53,11 @@ Deliberately deferred:
 
 ## The "FE-knows-the-answer" decision
 
-Unlike tinyspy and psychic-num — where the server holds a secret and validates moves against it — wordknit's board (categories + tile order) is **publicly readable** by every club member. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (`mistake_count`, and one-correct-per-rank idempotency via a partial unique index on `guesses`).
+Unlike tinyspy and PsychicNum — where the server holds a secret and validates moves against it — wordknit's board (categories + tile order) is **publicly readable** by every club member. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (`mistake_count`, and one-correct-per-rank idempotency via a partial unique index on `guesses`).
 
 **Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/wordknit/lib/evaluate.ts`](../../src/wordknit/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-target mechanic" section](psychicnum.md#the-hidden-target-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise.
 
-**What stays server-authoritative regardless:** atomic mutations of shared state. The `mistake_count += 1` and `status = 'lost'` flips need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychic-num. One-correct-per-rank idempotency comes from a **partial unique index** on `wordknit.guesses (game_id, matched_category_rank) where result = 'correct'` — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
+**What stays server-authoritative regardless:** atomic mutations of shared state. The `mistake_count += 1` and `status = 'lost'` flips need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as PsychicNum. One-correct-per-rank idempotency comes from a **partial unique index** on `wordknit.guesses (game_id, matched_category_rank) where result = 'correct'` — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
 **If wordknit ever ships beyond friends:** the migration to flip back is straightforward — hide the `board` column via column-level grant, add a server-side evaluator in PL/pgSQL, drop the FE's `result` / `matched_category_rank` parameters from `submit_guess`. The architectural shape is small enough that the future-proofing is conceptual, not structural.
 
@@ -95,7 +95,7 @@ The whole board is publicly readable. The FE reads `board.categories` to evaluat
 
 ### Why no `tiles` table, no separate "matched categories" table
 
-In tinyspy, the 25 words live in their own `tinyspy.words` table — one row per tile, with reveal state. Wordknit doesn't need that because:
+In tinyspy, the 25 words live in their own `tinyspy.words` table — one row per tile, with reveal state. WordKnit doesn't need that because:
 
 1. The tile order is static (shuffled once at create_game time, never mutated).
 2. The "is this tile still on the board?" check is derived: a tile is removed from play when its category appears as a `result='correct'` row in the guess log.
@@ -216,7 +216,7 @@ src/wordknit/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
-    setup.ts              WordknitSetup type (puzzleId + timer) + defaults.
+    setup.ts              WordKnitSetup type (puzzleId + timer) + defaults.
 ```
 
 ### Realtime: two channels now
@@ -237,7 +237,7 @@ The FE doesn't query a "matched categories" table — there isn't one. `useGame`
 
 ### Peer selection: Broadcast + Presence pattern
 
-Wordknit is the first place in this codebase that uses Realtime Broadcast and Presence (everything else uses only Postgres Changes). The pattern is worth documenting because it'll repeat for future games with transient shared state.
+WordKnit is the first place in this codebase that uses Realtime Broadcast and Presence (everything else uses only Postgres Changes). The pattern is worth documenting because it'll repeat for future games with transient shared state.
 
 **Selection semantics:** click acts on the **union** of all players' selections, not on each player's private list. Each tile has at most one contributor; clicking a tile already in the union removes it (regardless of who put it there); clicking an unselected tile adds it to MY contribution. Submit / "deselect all" / pause-on-disconnect all broadcast a `clear` event that empties every client's local map.
 
@@ -262,7 +262,7 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 | manual-only | "Bea paused the game" | yes — any player can click |
 | both | both messages stacked | yes — clearing manual leaves presence-pause still active |
 
-**Clean-by-unmount.** Wordknit's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](../common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the post-submit clear after a guess resolves.
+**Clean-by-unmount.** WordKnit's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](../common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the post-submit clear after a guess resolves.
 
 **Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Lives in `useCommonGame.ts` now (alongside the rest of the presence + manual-pause plumbing).
 
@@ -295,7 +295,7 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 ### Code-splitting
 
-Same pattern as tinyspy and psychic-num — the manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits wordknit's JS + CSS as separate chunks; users who only play tinyspy never download it. The lazy boundary for the SetupForm is separate (also lazy via the manifest's `setupForm.Component` field) so the form lands in wordknit's chunk too.
+Same pattern as tinyspy and PsychicNum — the manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits wordknit's JS + CSS as separate chunks; users who only play tinyspy never download it. The lazy boundary for the SetupForm is separate (also lazy via the manifest's `setupForm.Component` field) so the form lands in wordknit's chunk too.
 
 ## Tests
 

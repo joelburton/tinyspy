@@ -5,23 +5,23 @@ type Props = {
 }
 
 /**
- * Psychic Num's help / rules modal — opened from the "Help" item
+ * psychicnum's help / rules modal — opened from the "Help" item
  * in the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * **Placeholder content.** Psychic Num is a deliberately minimal
+ * **Placeholder content.** psychicnum is a deliberately minimal
  * toy whose job is to exercise the multi-game architecture (see
  * docs/psychicnum.md). The rules fit in three sentences; we
  * keep the modal small to match.
  *
- * Tinyspy's `Help.tsx` is the visual model when richer copy is
- * useful here (unlikely — Psychic Num is on the chopping block
+ * tinyspy's `Help.tsx` is the visual model when richer copy is
+ * useful here (unlikely — psychicnum is on the chopping block
  * post-beta).
  */
 export function Help({ onClose }: Props) {
   return (
     <FloatingPanel
-      title="How to play Psychic Num"
+      title="How to play PsychicNum"
       onClose={onClose}
       defaultSize={{ width: 420, height: 280 }}
       minWidth={280}

@@ -1,17 +1,17 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
+import { DEFAULT_PSYCHICNUM_SETUP, type PsychicNumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * Psychic Num's registration with the shell. Mirrors the shape
+ * psychicnum's registration with the shell. Mirrors the shape
  * of `src/tinyspy/manifest.ts` — see that file for the deeper
  * commentary on lazy-loading the Root, why gametype/schema/name
  * are separate fields, and how the registry pattern preserves
  * "remove a game in three actions."
  *
- * Psychic Num is a deliberately minimal game added second to
+ * psychicnum is a deliberately minimal game added second to
  * prove the multi-game architecture works (the same shell, the
  * same ClubPage, the same chat — all unchanged — pick up a new
  * game by virtue of this one file plus an entry in
@@ -20,18 +20,18 @@ import logoUrl from './logo.svg?url'
 export const psychicnumGame: GameManifest = {
   gametype: 'psychicnum',
   schema: 'psychicnum',
-  name: 'Psychic Num',
+  name: 'PsychicNum',
   shortDescription: 'Guess the secret number',
   logoUrl,
 
   // Help / rules modal opened from the GamePage menu's "Help"
-  // item. Lazy-loaded so the help content ships in psychic-num's
+  // item. Lazy-loaded so the help content ships in psychicnum's
   // chunk, not the main bundle.
   help: lazy(() =>
     import('./components/Help').then((m) => ({ default: m.Help })),
   ),
 
-  // Psychic Num plays solo or with up to 6 club members — the
+  // psychicnum plays solo or with up to 6 club members — the
   // game logic doesn't care how many people are guessing, the
   // cap is just the project-wide "open-N" default. Must agree
   // with the member-count check in psychicnum.create_game. See
@@ -63,11 +63,11 @@ export const psychicnumGame: GameManifest = {
   // in the club per the one-current-view-per-club invariant
   // enforced by the partial unique index on common.games.
   //
-  // The `unknown` → PsychicnumSetup cast is safe because we own
+  // The `unknown` → PsychicNumSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
   startGameInClub: async (clubId, setup, playerUserIds) => {
-    const s = setup as PsychicnumSetup
+    const s = setup as PsychicNumSetup
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubId,
@@ -76,7 +76,7 @@ export const psychicnumGame: GameManifest = {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start psychic num game' }
+      return { error: error?.message ?? 'failed to start PsychicNum game' }
     }
     return { id: data.id }
   },

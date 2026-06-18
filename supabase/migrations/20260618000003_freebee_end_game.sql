@@ -1,8 +1,8 @@
 -- ============================================================
--- FreeBee — manual end_game RPC
+-- freebee — manual end_game RPC
 -- ============================================================
 --
--- Unlike tinyspy / psychic-num / wordknit, FreeBee has no
+-- Unlike tinyspy / psychicnum / wordknit, freebee has no
 -- intrinsic "you lost" or "you won" terminal state: the only
 -- automatic terminals in v1 are 100%-of-scoring-words found
 -- (handled inside submit_word as outcome='completed') and the

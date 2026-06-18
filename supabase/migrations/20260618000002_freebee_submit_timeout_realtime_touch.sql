@@ -1,5 +1,5 @@
 -- ============================================================
--- FreeBee — submit_timeout: touch freebee.games after end_game
+-- freebee — submit_timeout: touch freebee.games after end_game
 -- ============================================================
 --
 -- Bug this fixes (caught during Phase 5 browser smoke):

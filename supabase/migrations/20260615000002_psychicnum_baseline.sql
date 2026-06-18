@@ -2,7 +2,7 @@
 -- psychicnum schema — baseline
 -- ============================================================
 --
--- Psychic Num is a tiny cooperative number-guessing game: pick a
+-- psychicnum is a tiny cooperative number-guessing game: pick a
 -- random target 1..10, hidden server-side; any club member can
 -- guess at any time; first correct guess wins; running out of
 -- guesses loses. Deliberately minimal — it exercises the
@@ -20,7 +20,7 @@
 --     sudden_death, no multi-axis loss reasons)
 --
 -- The static-starting-state vocabulary calls for a "boards" table
--- in some games (boggle's dice, crosswords' grid). Psychic Num's
+-- in some games (boggle's dice, crosswords' grid). psychicnum's
 -- only static datum is the target number — too small to warrant
 -- its own table, so it co-locates onto the game row, matching how
 -- tinyspy keeps its words alongside the game.
@@ -143,7 +143,7 @@ grant select on psychicnum.guesses to authenticated;
 -- ============================================================
 -- psychicnum.games_state — FE-ready read view
 -- ============================================================
--- The single thing the FE reads to render a psychic-num game's
+-- The single thing the FE reads to render a psychicnum game's
 -- gametype-specific fields. Combines what's directly readable
 -- from psychicnum.games with the conditional `target` reveal:
 --
@@ -268,7 +268,7 @@ alter publication supabase_realtime add table psychicnum.guesses;
 -- The `none` / `countup` modes have no server-side timeout
 -- behavior at all — they're just FE display choices.
 --
--- No member-count check — psychic-num plays with any club size.
+-- No member-count check — psychicnum plays with any club size.
 -- Must agree with the `numberOfPlayers: [1, null]` declaration in
 -- src/psychicnum/manifest.ts. See docs/code-conventions.md →
 -- "Per-game player counts".
@@ -314,7 +314,7 @@ begin
 
   -- Pick the random target now (instead of inline in the INSERT)
   -- so we can use it in the title. NOTE: this LEAKS the target
-  -- via common.games.title — psychic-num is a toy game and the
+  -- via common.games.title — psychicnum is a toy game and the
   -- title carries no anti-cheat expectation. The column-level
   -- grant on psychicnum.games.target stays as the canonical
   -- "true server-side secret" example for future games (memory-

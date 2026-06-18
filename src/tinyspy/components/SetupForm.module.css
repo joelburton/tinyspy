@@ -1,4 +1,4 @@
-/* Tinyspy's setup form. Lives inside SetupGameDialog's content
+/* tinyspy's setup form. Lives inside SetupGameDialog's content
  * area, so it inherits the dialog's padding — these styles just
  * shape the two fieldsets and the radio rows inside them.
  */

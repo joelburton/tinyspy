@@ -1,5 +1,5 @@
 /**
- * FreeBee rank ladder — TypeScript port of
+ * freebee rank ladder — TypeScript port of
  * `~/freebee-ws/shared/ranks.js`.
  *
  * 7 rank tiers from Start (0%) to Genius (70%). Other ranks

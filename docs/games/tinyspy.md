@@ -1,4 +1,4 @@
-# Tinyspy
+# TinySpy
 
 Cooperative Codenames Duet for two club members. The first registered gametype in this monorepo, and the most schema-rich. Read this file before touching anything in `tinyspy/` or `supabase/migrations/*_tinyspy_*.sql`.
 
@@ -93,7 +93,7 @@ There's no `tinyspy.game_players` table. The "who played this game" record lives
 
 ### Play-state enum
 
-`common.games.play_state` carries tinyspy's lifecycle enum. Tinyspy's accepted values are:
+`common.games.play_state` carries tinyspy's lifecycle enum. TinySpy's accepted values are:
 
 - **playing** — turn-based clue/guess loop. The most common state.
 - **sudden_death** — timer tokens are spent. No more clues; any wrong guess loses.
@@ -191,7 +191,7 @@ Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-cl
 |---|---|
 | `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
 
-Tinyspy doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
+TinySpy doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
 
 ## Row-level security
 
@@ -243,7 +243,7 @@ src/tinyspy/
   manifest.ts             GameManifest registration. Lazy-loads ./components/PlayArea
                           directly (no Root.tsx).
   db.ts                   export const db = supabase.schema('tinyspy')
-  theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
+  theme.css               TinySpy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
 
   logo.svg                Placeholder square logo used by the GamePage header's
                           <GameLogo gametype="tinyspy" />. Imported via ?url in manifest.ts.
@@ -302,8 +302,8 @@ src/tinyspy/
     phase.test.ts         Pure unit test of the above.
     labels.ts             KeyLabel type ('G' | 'N' | 'A') — single-letter agent /
                           neutral / assassin role.
-    setup.ts              TinyspySetup type + DEFAULT_TINYSPY_SETUP. PlayArea
-                          casts `ctx.setup as TinyspySetup` to read the turn cap.
+    setup.ts              TinySpySetup type + DEFAULT_TINYSPY_SETUP. PlayArea
+                          casts `ctx.setup as TinySpySetup` to read the turn cap.
 ```
 
 **Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
@@ -332,9 +332,9 @@ The implementation detail worth knowing: `peerKey` is a **derived value**, not a
 
 The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits tinyspy's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/tinyspy/<id>` fetches the chunk.
 
-## Tinyspy testing
+## TinySpy testing
 
-See [`testing.md`](../testing.md) for the theory and shared setup. Tinyspy-specific notes:
+See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-specific notes:
 
 ### pgTAP files
 
@@ -348,7 +348,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. Tinyspy-speci
 | `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 
-### Tinyspy-specific test helpers
+### TinySpy-specific test helpers
 
 Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/setup.psql`](../../supabase/tests/tinyspy/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each tinyspy test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
 

@@ -2,7 +2,7 @@
 -- Player-count upper bound — enforce a hard max in create_game
 -- ============================================================
 --
--- Up to now, the three open-N gametypes (wordknit, psychic-num,
+-- Up to now, the three open-N gametypes (wordknit, psychicnum,
 -- freebee) declared `numberOfPlayers: [1, null]` on the manifest
 -- and had NO server-side max check — any club size, however
 -- large, was allowed. That `null` upper bound was always going to
@@ -12,9 +12,9 @@
 -- everyone" club.
 --
 -- The manifests now declare `[1, 6]`. This migration brings the
--- server-side check into line — wordknit / psychic-num / freebee
+-- server-side check into line — wordknit / psychicnum / freebee
 -- create_game now reject more than 6 player_user_ids with P0001.
--- Tinyspy already enforces exactly 2 in its existing baseline; no
+-- tinyspy already enforces exactly 2 in its existing baseline; no
 -- change there.
 --
 -- ─── Shape of the change ────────────────────────────────

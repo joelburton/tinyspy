@@ -323,7 +323,7 @@ src/freebee/
                           inline note about double-update timer cancellation).
 
   lib/
-    setup.ts              FreebeeSetup type (mode / timer / target_rank / custom_letters /
+    setup.ts              FreeBeeSetup type (mode / timer / target_rank / custom_letters /
                           custom_center) + DEFAULT_FREEBEE_SETUP (coop + 10-min countdown).
     ranks.ts              Port of ~/freebee-ws/shared/ranks.js: RANKS, GENIUS_AT,
                           rankThreshold, rankPoints, currentRankIndex. Mirrored on the SQL
@@ -338,7 +338,7 @@ src/freebee/
 
 ### Routes & shell
 
-Standard pupgames route: `/g/freebee/<gameId>`. Mounted by `App.tsx` via `<GamePage>` with `freebee`'s `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as wordknit / psychic-num / tinyspy, since the verdict copy needs game-specific context.
+Standard pupgames route: `/g/freebee/<gameId>`. Mounted by `App.tsx` via `<GamePage>` with `freebee`'s `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as wordknit / PsychicNum / tinyspy, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 

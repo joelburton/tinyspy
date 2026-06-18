@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
-import type { Player, PsychicnumGuess } from '../hooks/useGame'
+import type { Player, PsychicNumGuess } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
 type Props = {
-  guesses: PsychicnumGuess[]
+  guesses: PsychicNumGuess[]
   players: Player[]
 }
 

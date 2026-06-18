@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * Tinyspy's per-game setup — the choices collected by the
+ * tinyspy's per-game setup — the choices collected by the
  * start-game dialog, persisted to `common.games.setup`, and
  * validated server-side in `tinyspy.create_game` (the canonical
  * authority for what shapes are accepted).
@@ -17,7 +17,7 @@ import type { TimerMode } from '../../common/lib/games'
  * point — the manifest's setupForm field would prevent
  * code-splitting the form's chunk).
  */
-export type TinyspySetup = {
+export type TinySpySetup = {
   /**
    * Starting timer-token count. Matches the Duet rulebook's
    * mission/campaign starting values for easier difficulties (9
@@ -60,7 +60,7 @@ export type TinyspySetup = {
  * the timer-token clock; a wall-clock countdown is opt-in for
  * players who want extra pressure.
  */
-export const DEFAULT_TINYSPY_SETUP: TinyspySetup = {
+export const DEFAULT_TINYSPY_SETUP: TinySpySetup = {
   turns: 9,
   firstClueGiverUserId: '',
   timer: { kind: 'none' },

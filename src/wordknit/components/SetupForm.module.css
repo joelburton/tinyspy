@@ -1,8 +1,8 @@
-/* Wordknit's setup form layout. Two fields: the puzzle date
+/* wordknit's setup form layout. Two fields: the puzzle date
  * picker (a wordknit-specific fieldset) and the shared
  * <TimerField> (which brings its own fieldset styling).
  *
- * .fieldset matches the shape in psychic-num/tinyspy SetupForm
+ * .fieldset matches the shape in psychicnum/tinyspy SetupForm
  * stylesheets — same look, but small enough that promoting to a
  * shared per-game-form stylesheet isn't worth the indirection.
  */

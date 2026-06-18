@@ -1,13 +1,13 @@
-/* Psychic Num play surface — two-column layout that mimics the
+/* psychicnum play surface — two-column layout that mimics the
  * shape of a real game (board on the left, controls + history on
- * the right). Psychic Num doesn't have a board, so the left
+ * the right). psychicnum doesn't have a board, so the left
  * column is a styled placeholder reading "What's your guess?";
  * the right column carries the input + submit row plus the
  * append-only guess history.
  *
  * The placeholder isn't decoration — it claims the space a real
  * game's board would occupy, so the page reads as a proper game
- * surface rather than a thin form-with-a-list. Psychic Num is
+ * surface rather than a thin form-with-a-list. psychicnum is
  * the deliberately-minimal toy game on the chopping block post-
  * beta; investing real board UI here doesn't earn its keep.
  *

@@ -26,7 +26,7 @@
  *   - lowercase
  *   - ASCII-only (no accented characters, no punctuation)
  *   - length ≥ 4
- *   - no 's' (FreeBee never uses 's' in a board, so an
+ *   - no 's' (freebee never uses 's' in a board, so an
  *     s-containing word can never be a legal submission —
  *     filtering at import saves storage + speeds lookup)
  *
@@ -136,7 +136,7 @@ async function loadScowl(path: string, label: string): Promise<Set<string>> {
   return accepted
 }
 
-/** Decides whether a 7-letter mask could be a valid FreeBee
+/** Decides whether a 7-letter mask could be a valid freebee
  *  puzzle seed. Mirrors `isValidPuzzleMask` in
  *  ~/freebee-ws/server/game.js. We've already filtered 's'
  *  out of the dictionary at normalize() time, so any mask

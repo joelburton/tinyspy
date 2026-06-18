@@ -37,7 +37,7 @@ export type GamePageCtx = {
    *  choices the SetupGameDialog collected at start. Typed as
    *  `Record<string, unknown>` here because each gametype's
    *  shape is different; per-game PlayAreas cast to their own
-   *  setup type (`as TinyspySetup`, `as WordknitSetup`, etc.)
+   *  setup type (`as TinySpySetup`, `as WordKnitSetup`, etc.)
    *  on access. Read-only at this level — setup is fixed at
    *  game-creation time. */
   setup: Record<string, unknown>
@@ -232,7 +232,7 @@ export type GameManifest = {
    * benefits from a hard cap (the FE rendering, the realtime
    * channel load, the chat surface area — all assume a bounded
    * count). For an "any club" game, pick a reasonable max — today
-   * we use 6 for all the open-N games (wordknit, psychic-num,
+   * we use 6 for all the open-N games (wordknit, psychicnum,
    * freebee) and `[2, 2]` for fixed-seat tinyspy.
    *
    * The shell uses this to decide whether the "Start" button is

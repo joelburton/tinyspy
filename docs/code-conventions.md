@@ -35,7 +35,7 @@ Multi-schema layout:
 
 **Search path:** `extra_search_path = common, public, extensions`. Game schemas are deliberately *not* in the search path — every game reference is fully qualified (`tinyspy.games`, `psychicnum.games`) in SQL, and goes through `supabase.schema('<game>')` in the FE.
 
-The payoff: each game gets a clean namespace. Tinyspy and a hypothetical Boggle can each have a `words` table named just `words`. The fact that you had to say which game it was tells you which one you're touching.
+The payoff: each game gets a clean namespace. TinySpy and a hypothetical Boggle can each have a `words` table named just `words`. The fact that you had to say which game it was tells you which one you're touching.
 
 ### Tables and columns
 
@@ -46,7 +46,7 @@ The payoff: each game gets a clean namespace. Tinyspy and a hypothetical Boggle 
 
 ### RPC functions
 
-- Live in the schema they operate on. Tinyspy RPCs are `tinyspy.create_game`, called via `db.rpc('create_game')` where `db = supabase.schema('tinyspy')`.
+- Live in the schema they operate on. TinySpy RPCs are `tinyspy.create_game`, called via `db.rpc('create_game')` where `db = supabase.schema('tinyspy')`.
 - Cross-game / shared RPCs live in `common`. A `common` RPC may not reference any game schema; if it would need to, it belongs in the game.
 - Naming describes the verb: `create_game`, `submit_guess`, `send_message`. No `tinyspy_` prefix — the schema carries that.
 - All callable RPCs are `security definer` with an explicit `set search_path = <game>, common, public, extensions`. The pinned search path neutralizes search-path hijacking; without it, a malicious unqualified table-reference inside the function could resolve against an attacker-controlled schema.
@@ -93,7 +93,7 @@ Cross-schema FKs (game → common) need `common.*` to exist first, which timesta
 Each gametype's supported player-count range is declared in **two places**:
 
 - The TypeScript manifest's `numberOfPlayers: [min, max]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club). Both ends required; `null` upper bounds aren't allowed — every game gets a hard cap so the FE rendering, realtime channel load, and chat surface stay bounded.
-- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (wordknit, psychic-num, freebee) share `common.require_player_count_max(player_user_ids, max)`; tinyspy keeps its inline exactly-2 check.
+- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (wordknit, PsychicNum, freebee) share `common.require_player_count_max(player_user_ids, max)`; tinyspy keeps its inline exactly-2 check.
 
 These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
 
@@ -211,9 +211,9 @@ Roles, not implementations:
 | Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
-A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) or just a text input (psychic-num). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
+A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) or just a text input (PsychicNum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
 
-**File name matches component name; folder context disambiguates same-named components across games.** `src/wordknit/components/PlayArea.tsx` exports `PlayArea`; `src/tinyspy/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `WordknitPlayArea` / `TinyspySetupForm` prefixes anywhere.
+**File name matches component name; folder context disambiguates same-named components across games.** `src/wordknit/components/PlayArea.tsx` exports `PlayArea`; `src/tinyspy/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `WordKnitPlayArea` / `TinySpySetupForm` prefixes anywhere.
 
 ### Shared vs game-specific
 
@@ -230,7 +230,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
    - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
    - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
 
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinyspyPlayArea`, `WordknitSetupForm`) — the folder already says which game.
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinySpyPlayArea`, `WordKnitSetupForm`) — the folder already says which game.
 
 The reason both rules matter: this codebase is shaped to host ~7 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
@@ -245,7 +245,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
-- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (wordknit + psychic-num).
+- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (wordknit + PsychicNum).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PupgamesLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 ### Import-direction rules

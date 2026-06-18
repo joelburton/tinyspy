@@ -65,7 +65,7 @@ identical to "no profile yet."
 Friends-only alpha makes this low-priority; flagging because it's the
 kind of thing that bites later when a real auth path lands.
 
-### 1.4 Wordknit's combined-channel postgres_changes pattern is wasteful but not wrong *(fragile)*
+### 1.4 WordKnit's combined-channel postgres_changes pattern is wasteful but not wrong *(fragile)*
 
 [`src/wordknit/hooks/useGame.ts:196`](../src/wordknit/hooks/useGame.ts).
 The channel name `wordknit:${gameId}` is stable (no UUID suffix)
@@ -162,8 +162,8 @@ counter" rot.
 - **[`useGameTimer.ts:74–83`](../src/common/hooks/useGameTimer.ts)**
   — the `idleSeconds = 0` default has a *why* worth naming: "solo
   games render correctly without having to thread 0 explicitly."
-- **Per-game `*/lib/setup.ts`** types (`TinyspySetup`,
-  `WordknitSetup`) lack docstrings on the contract with their RPC. A
+- **Per-game `*/lib/setup.ts`** types (`TinySpySetup`,
+  `WordKnitSetup`) lack docstrings on the contract with their RPC. A
   short comment naming what the form produces vs. what `create_game`
   consumes would help when porting.
 - **[`src/common/components/ClubChatPanel.tsx`](../src/common/components/ClubChatPanel.tsx)**
@@ -200,8 +200,8 @@ games share an architecture but have accumulated drifts in their
 | wordknit | one hook, one channel, two tables + broadcast, **`load()` called twice on mount** (lines 213 and 218 — once in SUBSCRIBED callback, once unconditionally) |
 
 The right form is **psychicnum's pattern.** One channel, one
-`load()`, SUBSCRIBED-refetch covers the reconnect case. Wordknit
-needs the redundant `load()` at line 218 removed. Tinyspy's
+`load()`, SUBSCRIBED-refetch covers the reconnect case. WordKnit
+needs the redundant `load()` at line 218 removed. TinySpy's
 three-hook split is probably deliberate (matches the decomposed
 component split) and shouldn't be forced into one hook — but a
 comment naming the split as deliberate would prevent a future

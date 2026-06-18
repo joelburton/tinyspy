@@ -1,5 +1,5 @@
 -- ============================================================
--- Wordknit — Connections-style word-grouping puzzle (POC)
+-- wordknit — Connections-style word-grouping puzzle (POC)
 -- ============================================================
 --
 -- A 4×4 board of 16 tiles split into 4 hidden categories of 4.
@@ -8,8 +8,8 @@
 -- wrong/oneAway guesses cost a mistake. 4 mistakes lose; matching
 -- all 4 categories wins.
 --
--- "Wordknit" is the codename for the gametype (analogous to how
--- "Tinyspy" is the codename for Codenames Duet). The user-facing
+-- "wordknit" is the codename for the gametype (analogous to how
+-- "tinyspy" is the codename for Codenames Duet). The user-facing
 -- copy can use whatever phrasing reads best; SQL / TypeScript /
 -- folder names are all `wordknit`.
 --
@@ -29,7 +29,7 @@
 -- └────────────────────────────────────────────────────────┘
 --
 -- ┌─ The "FE-knows-the-answer" design decision ────────────┐
--- │ Unlike tinyspy and psychic-num — where the server      │
+-- │ Unlike tinyspy and psychicnum — where the server      │
 -- │ holds a secret and validates moves against it — the    │
 -- │ wordknit board (categories + tile order) is publicly   │
 -- │ readable. The FE has the answer key and evaluates      │
@@ -82,7 +82,7 @@ grant usage on schema wordknit to authenticated;
 -- atomically.
 --
 -- (Setup lives on common.games.setup — the canonical home for the
--- frozen-at-create-time player choices. Wordknit's setup today is
+-- frozen-at-create-time player choices. wordknit's setup today is
 -- just `{ "timer": ... }`; future fields like the puzzle date will
 -- land alongside. Server-side validated in create_game.)
 
@@ -159,7 +159,7 @@ create table wordknit.games (
   -- games first, then drop the puzzle." Set at create_game time;
   -- never updated.
   puzzle_id uuid not null references wordknit.puzzles(id) on delete restrict,
-  -- play_state lives on common.games. Wordknit's enum values are
+  -- play_state lives on common.games. wordknit's enum values are
   -- 'playing' / 'solved' / 'lost' (covering both
   -- 4-mistakes-loss and wall-clock-timeout-loss; the distinction
   -- lives in common.games.status.outcome).
@@ -218,7 +218,7 @@ create unique index wordknit_guesses_one_correct_per_rank
 -- ============================================================
 -- RLS
 -- ============================================================
--- Same shape as psychic-num: SELECT gated on club membership,
+-- Same shape as psychicnum: SELECT gated on club membership,
 -- no INSERT/UPDATE/DELETE policies (writes go through the
 -- security-definer RPCs).
 

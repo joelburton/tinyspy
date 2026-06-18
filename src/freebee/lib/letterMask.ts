@@ -1,5 +1,5 @@
 /**
- * 26-bit letter mask helpers for FreeBee.
+ * 26-bit letter mask helpers for freebee.
  *
  * Same encoding the edge function uses (and freebee.dictionary
  * stores) — bit `n` of a number is set iff letter `'a' + n` is
