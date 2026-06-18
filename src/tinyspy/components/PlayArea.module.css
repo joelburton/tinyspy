@@ -103,3 +103,15 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Terminal-state indicator inside the action slot. Sits where
+ * the CluePanel sat during play — "Game over: <status>" on the
+ * left, Back-to-club button on the right. Once the GameOverModal
+ * closes, this is the lasting cue that the game has ended. */
+.gameOverIndicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.95rem;
+}

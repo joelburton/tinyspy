@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/memberColor'
+import { GameOverModal } from '../../common/components/GameOverModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -49,6 +50,7 @@ export function PlayArea({
   timer,
   feedback,
   menu,
+  goToClub,
 }: GamePageCtx) {
   const {
     game,
@@ -104,6 +106,17 @@ export function PlayArea({
     ])
     return () => menu.setGameItems([])
   }, [menu, isTerminal])
+
+  // Terminal modal state. Initialized to `isTerminal` so navigating
+  // into an already-solved/lost game pops the modal on first
+  // render. The effect below flips this true if isTerminal
+  // transitions during play (last-correct match or game-end timeout).
+  // No reopen after dismiss — the in-action-row indicator below
+  // carries the lasting cue.
+  const [showModal, setShowModal] = useState(isTerminal)
+  useEffect(function popOnTerminal() {
+    if (isTerminal) setShowModal(true)
+  }, [isTerminal])
 
   // Local helper: every wordknit feedback today is `closeable` —
   // a guess outcome should stay on screen until the player either
@@ -211,6 +224,18 @@ export function PlayArea({
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
+  // Modal + indicator copy. `playState === 'solved'` is the only
+  // win path; otherwise the game ended via out-of-mistakes or
+  // out-of-time (distinguished by timer.expired).
+  const matchedCount = matchedCategories.length
+  const over = gameOver ? buildOver({
+    playState,
+    timerExpired: timer.expired,
+    matchedCount,
+    mistakeCount: game.mistake_count,
+    unmatchedNames: unmatched.map((c) => c.name),
+  }) : null
+
   return (
     <div className={styles.boardArea}>
       <div className={styles.layout}>
@@ -220,16 +245,6 @@ export function PlayArea({
             wide screens (and stacks below on narrow ones — see
             the CSS media query). */}
         <div className={styles.boardCol}>
-          {gameOver && (
-            <div className="muted">
-              {playState === 'solved'
-                ? 'Solved!'
-                : timer.expired
-                  ? 'Out of time.'
-                  : 'Out of guesses.'}
-            </div>
-          )}
-
           <HintModal
             categories={game.board.categories}
             open={hintsOpen}
@@ -249,7 +264,20 @@ export function PlayArea({
             />
           )}
 
-          {!gameOver && (
+          {gameOver && over ? (
+            <div className={styles.gameOverIndicator}>
+              <span>
+                <span className="muted">Game over:</span> {over.status}
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                onClick={goToClub}
+              >
+                Back to club
+              </button>
+            </div>
+          ) : (
             <div className={styles.actions}>
               {/* Mistakes-remaining on the left, baseline-aligned
                   with the action buttons on the right. The mistakes
@@ -299,6 +327,63 @@ export function PlayArea({
           players={players}
         />
       </div>
+
+      {showModal && over && (
+        <GameOverModal
+          outcome={over.outcome}
+          title={over.title}
+          detail={over.detail}
+          onClose={() => setShowModal(false)}
+          onBackToClub={goToClub}
+        />
+      )}
     </div>
   )
+}
+
+/** Per-status modal + indicator copy. `playState === 'solved'` is
+ *  the only positive terminal state; otherwise the game ended
+ *  via out-of-mistakes or out-of-time (distinguished by
+ *  timer.expired). */
+function buildOver({
+  playState,
+  timerExpired,
+  matchedCount,
+  mistakeCount,
+  unmatchedNames,
+}: {
+  playState: string
+  timerExpired: boolean
+  matchedCount: number
+  mistakeCount: number
+  unmatchedNames: string[]
+}): {
+  outcome: 'won' | 'lost'
+  title: string
+  status: string
+  detail: string
+} {
+  if (playState === 'solved') {
+    return {
+      outcome: 'won',
+      title: 'Solved!',
+      status: 'solved',
+      detail: `Matched all four categories with ${mistakeCount}/4 mistakes used.`,
+    }
+  }
+  // Lost — either time ran out or all 4 mistakes spent. Both end
+  // with the same matched-count line + the names of whichever
+  // categories the friends didn't get to.
+  const lossLine = timerExpired
+    ? 'Clock ran out.'
+    : 'All four mistakes used.'
+  const remainingLine = unmatchedNames.length > 0
+    ? ` Categories left unmatched: ${unmatchedNames.join(', ')}.`
+    : ''
+  return {
+    outcome: 'lost',
+    title: timerExpired ? 'Out of time' : 'Out of guesses',
+    status: timerExpired ? 'out of time' : 'out of guesses',
+    detail: `${lossLine} Matched ${matchedCount}/4 categories.${remainingLine}`,
+  }
 }

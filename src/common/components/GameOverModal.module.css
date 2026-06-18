@@ -1,0 +1,38 @@
+/* The shared terminal-state modal — body styles only. The
+ * FloatingPanel shell provides the surface, header, X button,
+ * drag/resize chrome.
+ *
+ * A small horizontal accent bar at the top of the body carries
+ * the only tonal cue (green for won, red for lost). Title + body
+ * copy stay neutral so the modal reads as informational; the
+ * accent gives a subtle "this was a win / this was a loss"
+ * signal without a celebratory full-card flood color. We can
+ * layer richer visuals (animations, GIFs, postgame charts) on
+ * top later — for now, the bar + per-status title is enough.
+ */
+
+.accent {
+  height: 4px;
+  border-radius: 2px;
+  margin: 0 0 1rem 0;
+}
+
+.won {
+  background: var(--color-outcome-won-border);
+}
+
+.lost {
+  background: var(--color-outcome-lost-border);
+}
+
+.detail {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}

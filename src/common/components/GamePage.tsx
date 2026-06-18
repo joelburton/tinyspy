@@ -202,6 +202,19 @@ export function GamePage({
     [setGameItems],
   )
 
+  // Direct-nav back to the club page — the terminal-game branch
+  // that the GamePage menu's "Back to club" item already does.
+  // Exposed to PlayArea via ctx so the GameOverModal's button and
+  // each game's PlayArea terminal indicator can call it without
+  // re-deriving the URL. Identity tied to the club_handle so a
+  // mid-session club rename (rare/impossible today) would refresh
+  // the closure.
+  const clubHandle = commonGame?.club_handle ?? ''
+  const goToClub = useCallback(() => {
+    if (!clubHandle) return
+    navigate(`/c/${clubHandle}`)
+  }, [clubHandle])
+
   // Resolve the gametype's manifest once for downstream uses
   // (logo, help component). Find returns undefined for unknown
   // gametypes; we guard render below.
@@ -288,6 +301,7 @@ export function GamePage({
           isTerminal: commonGame.is_terminal,
           timer,
           setup: commonGame.setup,
+          goToClub,
           feedback: feedbackApi,
           menu: menuApi,
         })}

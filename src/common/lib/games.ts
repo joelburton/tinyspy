@@ -49,6 +49,15 @@ export type GamePageCtx = {
    *  API + dismiss-mode semantics. The functions' identities are
    *  stable across renders, so they're safe to put in dep arrays. */
   feedback: FeedbackApi
+  /** Navigate to this game's club page directly — no suspend-
+   *  confirm modal. Wired by `<GamePage>` to use the resolved
+   *  `club_handle` for terminal-game navigation; downstream
+   *  consumers (the GameOverModal's "Back to club" button, the
+   *  PlayArea terminal indicator) call it without re-deriving
+   *  the URL. Identity is stable across renders. Only valid to
+   *  call when the game is terminal — for non-terminal back-to-
+   *  club, use the menu (which fires the suspend-confirm flow). */
+  goToClub: () => void
   /** Imperative API for the per-game section of the GamePage menu
    *  (the dropdown opened from the game logo). The PlayArea calls
    *  `menu.setGameItems([...])` to populate its items; the array

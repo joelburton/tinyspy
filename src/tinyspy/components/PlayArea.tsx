@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
+import { GameOverModal } from '../../common/components/GameOverModal'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
@@ -8,7 +10,6 @@ import type { TinyspySetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
-import { GameOverBanner } from './GameOverBanner'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this chunk)
 
@@ -17,19 +18,27 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  *
  *   - **Board column** (left, flex) — the 5×5 BoardGrid.
  *   - **Right column** (fixed-width):
- *       - Status: "{greenFound}/15 agents · {turnsRemaining} tokens left"
- *       - Action slot: CluePanel (clue/waiting/input) or GameOverBanner.
- *         Fixed minimum height so swapping between states doesn't shift
- *         the log below.
+ *       - Status: "{greenFound}/15 agents · {turn}/{turns} turns"
+ *       - Action slot: CluePanel (clue/waiting/input) when active;
+ *         GameOverIndicator (status + Back-to-club button) when
+ *         terminal. Fixed minimum height so swapping between
+ *         states doesn't shift the log below.
  *       - GameLog: scrolls internally.
  *
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
- * lives on `<GamePage>` above this component. The previous in-PlayArea
- * GameHeader is gone — the GamePage header already tells you who's
- * playing (via the PlayersStrip), and the visible state of the action
- * slot (input form / "waiting for…" / displayed clue) already makes
- * the current clue-giver obvious. No need to repeat either at the
- * PlayArea level.
+ * lives on `<GamePage>` above this component.
+ *
+ * **Terminal handling.** Two pieces:
+ *
+ *   1. `<GameOverModal>` (shared) pops on terminal entry. State is
+ *      a local boolean initialized to `isTerminal` (true if the
+ *      user navigated into an already-won/lost game), bumped to
+ *      true by an effect when `isTerminal` flips during play. No
+ *      reopen after close — review mode takes over.
+ *   2. The action slot shows the indicator below until the user
+ *      navigates away. Same status label as the modal's title;
+ *      same Back-to-club button as the modal's primary action,
+ *      both wired to `ctx.goToClub`.
  *
  * Most of the game logic is server-side (in plpgsql RPCs); this
  * component's job is to load the row + board + clues via the three
@@ -37,12 +46,59 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  * hand each piece to the right sub-component. Realtime keeps
  * everything in sync.
  */
+
+/** Per-status modal copy for tinyspy. `playState` is the
+ *  authoritative input — only terminal states appear here; non-
+ *  terminal callers don't render the modal. Title is short and
+ *  punchy; detail is the factual reveal + the counter the player
+ *  most wants to see at game end. */
+function gameOverCopy(
+  playState: string,
+  greenFound: number,
+  turnsUsed: number,
+): { outcome: 'won' | 'lost'; title: string; status: string; detail: string } {
+  if (playState === 'won') {
+    return {
+      outcome: 'won',
+      title: 'Victory!',
+      status: 'victory',
+      detail: `All 15 agents found in ${turnsUsed} turns.`,
+    }
+  }
+  if (playState === 'lost_assassin') {
+    return {
+      outcome: 'lost',
+      title: 'Assassin revealed',
+      status: 'assassin revealed',
+      detail: `Game over. You found ${greenFound}/15 agents.`,
+    }
+  }
+  if (playState === 'lost_clock') {
+    return {
+      outcome: 'lost',
+      title: 'Out of turns',
+      status: 'out of turns',
+      detail: `Ran out of turns in sudden death. You found ${greenFound}/15 agents.`,
+    }
+  }
+  // lost_timeout (and any future terminal state that doesn't match
+  // above — falls back to a generic timer-out message rather than
+  // crashing).
+  return {
+    outcome: 'lost',
+    title: 'Out of time',
+    status: 'out of time',
+    detail: `Clock ran out. You found ${greenFound}/15 agents.`,
+  }
+}
+
 export function PlayArea({
   session,
   gameId,
   playState,
   isTerminal,
   setup,
+  goToClub,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to tinyspy's
   // shape here. Read-only at this layer; the only field we read
@@ -52,7 +108,7 @@ export function PlayArea({
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
-  // for the phase derivation and the GameOverBanner copy.
+  // for the phase derivation and the GameOverModal copy.
   const gameOver = isTerminal
   const { words, myKey, peerKey, loading } = useBoard(
     gameId,
@@ -60,6 +116,17 @@ export function PlayArea({
     gameOver,
   )
   const { clues } = useClues(gameId)
+
+  // Terminal modal state. Initialized to `isTerminal` so navigating
+  // into an already-won/lost game pops the modal on first render.
+  // The effect below flips this true if isTerminal transitions
+  // during play (winning move or game-end timeout). No reopen
+  // affordance — the user dismisses, and the review-mode indicator
+  // in the action slot is what's left.
+  const [showModal, setShowModal] = useState(isTerminal)
+  useEffect(function popOnTerminal() {
+    if (isTerminal) setShowModal(true)
+  }, [isTerminal])
 
   if (loading || !game || !myKey || words.length < 25) {
     return <p>Loading board…</p>
@@ -85,6 +152,13 @@ export function PlayArea({
       mySeat,
       hasCurrentTurnClue: currentTurnClue !== null,
     })
+
+  // Modal / indicator copy is derived once. `turnsUsed` reads
+  // turn_number directly: it increments per turn so it doubles as
+  // "how many turns we used to get here" once the game is over.
+  const over = gameOver
+    ? gameOverCopy(playState, greenFound, game.turn_number)
+    : null
 
   return (
     <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
@@ -112,8 +186,19 @@ export function PlayArea({
         </div>
 
         <div className={styles.actionSlot}>
-          {gameOver ? (
-            <GameOverBanner status={playState} />
+          {gameOver && over ? (
+            <div className={styles.gameOverIndicator}>
+              <span>
+                <span className="muted">Game over:</span> {over.status}
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                onClick={goToClub}
+              >
+                Back to club
+              </button>
+            </div>
           ) : (
             <CluePanel
               gameId={gameId}
@@ -130,6 +215,16 @@ export function PlayArea({
           <GameLog clues={clues} words={words} players={players} />
         </div>
       </div>
+
+      {showModal && over && (
+        <GameOverModal
+          outcome={over.outcome}
+          title={over.title}
+          detail={over.detail}
+          onClose={() => setShowModal(false)}
+          onBackToClub={goToClub}
+        />
+      )}
     </div>
   )
 }

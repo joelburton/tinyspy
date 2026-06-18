@@ -81,13 +81,9 @@
 
 /* The right column's "action slot" — same physical space whether
  * the game is in play (status line + input row) or terminal
- * (ResultBanner won/lost copy). Fixed min-height so swapping
- * content between the two states doesn't shift the guess history
- * below (per docs/ui.md → "Layout stability").
- *
- * justify-content: center vertically centers each shape inside
- * the slot, so the input row and the won/lost banner both anchor
- * around the same y. */
+ * (game-over indicator). Fixed min-height so swapping content
+ * between the two states doesn't shift the guess history below
+ * (per docs/ui.md → "Layout stability"). */
 .actionSlot {
   min-height: 6rem;
   display: flex;
@@ -100,17 +96,19 @@
   flex-shrink: 0;
 }
 
-/* Reset default heading/paragraph margins on the descendants
- * inside the action slot. <ResultBanner>'s default <h2> + <p>
- * carry browser-default margins (~1em each) that, summed,
- * exceed the slot's 6rem and push the history downward when
- * the game ends. Zeroing them lets the flex gap drive spacing
- * inside the slot — same vertical rhythm regardless of state. */
-.actionSlot h2,
 .actionSlot p {
   margin: 0;
 }
-.actionSlot h2 {
-  font-size: 1.4rem;
+
+/* Terminal-state indicator inside the action slot — replaces the
+ * input/status pair once the game is over. "Game over: <status>"
+ * on the left, Back-to-club button on the right. Once the
+ * GameOverModal is dismissed, this is the lasting cue. */
+.gameOverIndicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.95rem;
 }
 

@@ -212,6 +212,19 @@
   gap: 0.5rem;
 }
 
+/* Terminal-state indicator — replaces the .actions row once the
+ * game is over. "Game over: <status>" on the left, Back-to-club
+ * button on the right. Once the GameOverModal is dismissed, this
+ * is the lasting cue that the game has ended. */
+.gameOverIndicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
 
 .endActions {
   display: flex;
