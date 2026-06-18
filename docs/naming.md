@@ -131,35 +131,14 @@ A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, 
 
 ## Per-game vocabulary
 
-The cross-cutting terms above apply everywhere. Each game also has a small internal lexicon worth pinning so future contributors (and future-you) stay consistent. Today wordknit and freebee have terms that warrant glossary entries beyond the cross-cutting words; tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`).
+The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — wordknit's `category` / `tile` / `matched`, freebee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 
-### wordknit
+- [`wordknit.md → Vocabulary`](wordknit.md#vocabulary)
+- [`freebee.md → Vocabulary`](freebee.md#vocabulary)
 
-| term | meaning |
-|---|---|
-| **category** | One of the 4 hidden groupings of 4 tiles. Named `category` rather than `group` to avoid colliding with the many other "group" meanings (club groups, user groups, permission groups) — see the watch list below. |
-| **rank** | The difficulty index 0..3 of a category — yellow / green / blue / purple in NYT's palette. Named `rank` rather than `level` because `level` overloads with puzzle-difficulty levels, app-routing levels, and other meanings the codebase shouldn't pre-commit. |
-| **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle) should reuse the same word. |
-| **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `wordknit.guesses` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
-| **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule below. |
+Tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
 
-### freebee
-
-| term | meaning |
-|---|---|
-| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the scoring dictionary). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
-| **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `score / total_score`. Genius unlocks at 70% (`GENIUS_AT`). Same word `wordknit` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
-| **bonus word** | A word in the larger legal dictionary (`scowl-80`) but NOT in the scoring set (`scowl-50`). Accepted by `submit_word` as `'bonus'`; counts for 0 points and doesn't move the rank, but is recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. |
-| **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the importer): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
-| **outcome** | The `status.outcome` enum value for terminal freebee games: `'completed'` (100%-found in coop), `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), or `'won_compete'` (compete mode; deferred). The corresponding `play_state` is `'ended'` for the first three and `'won_compete'` for the last. |
-
-## Removability — the architectural rule that anchors all of this
-
-> Any game must be removable in three actions: delete its folder, delete its line from `src/games.ts`, drop its schema.
-
-If removing a game requires editing anything in `common/`, the shell, or another game, **the boundary has leaked**. Every code-side convention in [`code-conventions.md`](code-conventions.md) — the multi-schema design, the import-direction rules, the games registry, the per-game RLS helpers — exists to preserve this property.
-
-The detail lives in [`common.md → What "common" means here`](common.md#what-common-means-here).
+When two games use the same word for genuinely different concepts (wordknit's `rank` = per-category difficulty 0..3; freebee's `rank` = per-player progress 0..6), the per-game `## Vocabulary` entry should call that collision out so a cross-game reader doesn't get confused.
 
 ## Naming principles
 
@@ -210,7 +189,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit`). Column on `common.games` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
+| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit` / `freebee`). Column on `common.games` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
 | `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. Values differ per gametype (wordknit: `playing` / `solved` / `lost`; tinyspy: `playing` / `sudden_death` / `won` / `lost_assassin` / `lost_clock` / `lost_timeout`; psychic-num: `playing` / `won` / `lost`); the column NAME is always `play_state`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
 | `is_current_view` | The boolean column on `common.games` carrying the **one current-view game per club** invariant (partial unique index on `(club_id) where is_current_view = true`). See [`states.md`](states.md) for view-state vs play-state. |
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |

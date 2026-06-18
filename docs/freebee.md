@@ -38,12 +38,13 @@ In addition to the cross-cutting terms in [`naming.md`](naming.md):
 | term | meaning |
 |---|---|
 | **board** | The 7 letters of one puzzle: 6 outer + 1 center. Determines which words are legal. |
-| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one; pangrams earn the +10 bonus. |
+| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the scoring dictionary). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
 | **scoring word** | A word in the smaller, higher-quality dictionary (`scowl-50`). Earns points and contributes to rank. |
 | **legal word** | A word in the larger dictionary (`scowl-80`) but NOT in the scoring set. Accepted as **bonus** — 0 points, no rank progress, but recorded. |
-| **bonus word** | Synonym for legal-not-scoring. The FE marks these with a trailing dot in the found-words list. |
-| **rank** | The player's tier on the Start..Genius ladder. Derived from `score / total_score` via `currentRankIndex`. |
-| **letter mask** | A 26-bit integer where bit `n` is set iff letter `'a' + n` is present. Used to encode words and puzzles for fast set comparison. |
+| **bonus word** | Synonym for legal-not-scoring. Accepted by `submit_word` as `'bonus'`; counts for 0 points and doesn't move the rank, but is recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. |
+| **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `score / total_score` via `currentRankIndex`. Genius unlocks at 70% (`GENIUS_AT`). Same word `wordknit` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
+| **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the importer): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
+| **outcome** | The `status.outcome` enum value for terminal freebee games: `'completed'` (100%-found in coop), `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), or `'won_compete'` (compete mode; deferred). The corresponding `play_state` is `'ended'` for the first three and `'won_compete'` for the last. |
 
 ## Scope: v1 vs. deferred
 

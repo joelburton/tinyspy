@@ -13,7 +13,11 @@ Common is **the layer beneath the games, never beside them**. The structural rul
 - Only legal cross-feature direction: `<game>/` → `common/`.
 - `src/games.ts` is the one exception — it imports every game's manifest by definition.
 
-The payoff is the **removability invariant**: any game must be removable in three actions (delete its folder, delete its line from `src/games.ts`, drop its schema). If common ever depended on a specific game, removing that game would break common — which would mean it wasn't really common. Every rule in this doc supports this invariant.
+The payoff is the **removability invariant**:
+
+> Any game must be removable in three actions: delete its folder, delete its line from `src/games.ts`, drop its schema.
+
+If removing a game requires editing anything in `common/`, the shell, or another game, **the boundary has leaked**. If common ever depended on a specific game, removing that game would break common — which would mean it wasn't really common. Every rule in this doc supports this invariant; the supporting code-side conventions (multi-schema design, import-direction rules, the games registry, per-game RLS helpers) live in [`code-conventions.md`](code-conventions.md).
 
 This applies on the database side too: the `common` schema must not reference any game schema. Game schemas reference common (`tinyspy.games.club_id → common.clubs.id`), never the reverse.
 
@@ -321,7 +325,9 @@ import { tinyspyGame } from './tinyspy/manifest'
 import { psychicnumGame } from './psychicnum/manifest'
 import { wordknitGame } from './wordknit/manifest'
 
-export const games: GameManifest[] = [tinyspyGame, psychicnumGame, wordknitGame]
+export const games: GameManifest[] = [
+  tinyspyGame, psychicnumGame, wordknitGame, freebeeGame,
+]
 ```
 
 Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts):

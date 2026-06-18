@@ -24,11 +24,11 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 
 | term | what it means |
 |---|---|
-| **category** | one of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere) |
-| **rank** | the difficulty index 0..3 of a category (not "level" — that word overloads with puzzle-difficulty levels, app-routing levels, etc.) |
-| **tile** | one of the 16 selectable words on the board (not "member" — that already means a person in a club) |
-| **matched** | the resolution state for a category once a correct guess identifies it (unifies with the `matched_category_rank` column and reads cohesively across copy + code) |
-| **mistake_count** | the integer column counting wrong+oneAway submissions for a game (the `_count` suffix is explicit that it's a number, not the mistakes themselves) |
+| **category** | One of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere — see the watch list in [`naming.md`](naming.md)). |
+| **rank** | The difficulty index 0..3 of a category — yellow / green / blue / purple in NYT's palette. Named `rank` rather than `level` because `level` overloads with puzzle-difficulty levels, app-routing levels, and other meanings the codebase shouldn't pre-commit. Different concept from freebee's `rank` (player progress); the per-game scope disambiguates. |
+| **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle) should reuse the same word. Not "member" — that already means a person in a club. |
+| **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `wordknit.guesses` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
+| **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule in [`naming.md`](naming.md). |
 
 ## Scope (current state)
 
@@ -273,7 +273,7 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 
 The two never coexist on the same game — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
 
-**Rollout status:** all three games inherit pause for free via `<GamePage>` + `useCommonGame` — the `computePause` helper + `PauseOverlay` + `PauseBoundary` machinery runs uniformly under every gametype that mounts the common shell. No per-gametype wiring is required. See the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md` for the durable principle.
+**Rollout status:** all four games inherit pause for free via `<GamePage>` + `useCommonGame` — the `computePause` helper + `PauseOverlay` + `PauseBoundary` machinery runs uniformly under every gametype that mounts the common shell. No per-gametype wiring is required. See the memory note in `~/.claude/projects/-Users-joel-src-codenames/memory/feedback_pause_on_disconnect.md` for the durable principle.
 
 ### Timer (browser-side, no server sync)
 
