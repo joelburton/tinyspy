@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from 'react'
+import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db } from '../db'
 
 type Props = {
@@ -27,6 +27,23 @@ export function GuessForm({ gameId }: Props) {
   const [entry, setEntry] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Refocus the input whenever `submitting` flips back to false —
+  // covers both initial mount (submitting starts false; effect
+  // focuses on first render, in concert with the input's
+  // autoFocus) and the post-submit re-focus the player wants so
+  // they can type the next guess without reaching for the mouse.
+  //
+  // Why an effect rather than calling `inputRef.current?.focus()`
+  // in handleSubmit after `setSubmitting(false)`: React hasn't
+  // re-rendered yet at that point, so the input still has its
+  // disabled attribute and a synchronous .focus() silently fails.
+  // The effect runs after the disabled-prop change lands in the
+  // DOM.
+  useEffect(function refocusInputAfterSubmit() {
+    if (!submitting) inputRef.current?.focus()
+  }, [submitting])
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -53,6 +70,7 @@ export function GuessForm({ gameId }: Props) {
     <>
       <form onSubmit={handleSubmit} className="actions">
         <input
+          ref={inputRef}
           type="number"
           min={1}
           max={10}
