@@ -158,6 +158,12 @@
   border-color: var(--color-surface-border);
   padding: 0;
   display: grid;
+  /* Explicit `1fr` column so the grid column fills the tile's
+   * full inline width. Without this, `grid-template-columns`
+   * defaults to `auto`, which sizes the column to the widest
+   * item's content (the word) — leaving the empty-content stripes
+   * only painting under that word. */
+  grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
 }
 
