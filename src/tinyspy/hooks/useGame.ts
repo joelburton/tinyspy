@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../../common/lib/supabase'
-import { channelDedupSuffix } from '../../common/lib/channelDedup'
+import { useState } from 'react'
+import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import type { Member } from '../../common/lib/games'
@@ -43,9 +42,8 @@ export type Player = Member & {
  *  - `players`: the 2 seated players, with usernames embedded
  *  - `loading`: true until the first load completes
  *
- * Realtime: subscribes to `games` postgres_changes for this game. Any
- * event triggers a full re-fetch (`load()`) — chatty but simpler than
- * diffing payloads, and trivial at this data volume.
+ * Realtime: drives off `useRealtimeRefetch` — full refetch on
+ * any `tinyspy.games` event, plus on every SUBSCRIBED status.
  *
  * Roster query: the user_ids come straight off the `games` row
  * (user_a_id + user_b_id columns; seats are columns now, not a side
@@ -54,12 +52,6 @@ export type Player = Member & {
  * embedded-resource syntax because its schema cache doesn't discover
  * cross-schema FKs (the user_a_id/user_b_id → common.profiles.user_id
  * relationships exist in Postgres but aren't embeddable).
- *
- * Channel-name suffix: `supabase-js` caches channels by name, and in React
- * StrictMode the effect runs twice on mount. Without a unique suffix the
- * second `.on()` chain would target the already-subscribed cached channel
- * and throw "cannot add postgres_changes after subscribe". Appending a
- * UUID per effect invocation sidesteps the cache.
  *
  * Hook split (useGame here + useBoard + useClues, three hooks):
  * deliberate, matches the per-concern PlayArea decomposition. The
@@ -76,13 +68,11 @@ export function useGame(gameId: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Fetch + realtime-subscribe to the games row. The player roster
-  // (user_a_id, user_b_id) is on the games row itself now; no
-  // separate game_players query.
-  useEffect(function subscribeToGameRow() {
-    let mounted = true
-
-    async function load() {
+  useRealtimeRefetch({
+    tables: { schema: 'tinyspy', table: 'games', filter: `id=eq.${gameId}` },
+    channelPrefix: 'game',
+    id: gameId,
+    load: async ({ mounted }) => {
       const gameRes = await db
         .from('games')
         .select(
@@ -91,7 +81,7 @@ export function useGame(gameId: string) {
         .eq('id', gameId)
         .single()
 
-      if (!mounted) return
+      if (!mounted()) return
       if (!gameRes.data) {
         // Explicit null on not-found — without this, a server-side
         // delete (e.g. db:reset during dev) leaves the previously-
@@ -114,7 +104,7 @@ export function useGame(gameId: string) {
         .from('profiles')
         .select('user_id, username, color')
         .in('user_id', userIds)
-      if (!mounted) return
+      if (!mounted()) return
       // Single lookup map carrying both fields — the seats
       // assembly below needs username AND color per uid, and
       // building one map is cheaper to read than two.
@@ -144,29 +134,8 @@ export function useGame(gameId: string) {
       ])
 
       setLoading(false)
-    }
-
-    load()
-
-    const channel = supabase
-      .channel(`game:${gameId}:${channelDedupSuffix()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'tinyspy', table: 'games', filter: `id=eq.${gameId}` },
-        load,
-      )
-      // Refetch on every SUBSCRIBED status — fires on initial subscribe AND
-      // on every reconnect. Closes the "missed events during a network blip"
-      // gap that postgres_changes alone leaves open.
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load()
-      })
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(channel)
-    }
-  }, [gameId])
+    },
+  })
 
   return { game, players, loading }
 }

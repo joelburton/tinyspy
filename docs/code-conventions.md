@@ -113,6 +113,33 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 
 The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/tinyspy/hooks/useGame.ts) for the canonical example.
 
+### Realtime data hooks — `useRealtimeRefetch`
+
+The recurring shape every per-game data hook needs — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts). **A new game's `useGame` hook should default to using it.** Pattern:
+
+```ts
+useRealtimeRefetch({
+  tables: { schema: '<gametype>', table: 'games', filter: `id=eq.${gameId}` },
+  channelPrefix: '<gametype>',
+  id: gameId,
+  load: async ({ mounted }) => {
+    const { data } = await db.from('games').select(...).eq('id', gameId).maybeSingle()
+    if (!mounted()) return
+    setSomething(data)
+    setLoading(false)
+  },
+})
+```
+
+The `tables` field accepts one subscription or an array — psychicnum subscribes to `games` AND `guesses` with the same `load()`; tinyspy splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
+
+**When NOT to use the factory:**
+
+- **Chat-style append-on-INSERT.** [`useClubChat`](../src/common/hooks/useClubChat.ts) appends INSERTs to local state without a refetch — a meaningful optimization for chat-heavy moments. Stays hand-rolled.
+- **Broadcast-coupled channels.** [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) runs postgres-changes AND a shared-selection broadcast on the same stable-name channel; the broadcast needs the shared room across peers and the postgres-changes ride along. Splitting that out would leave two coordinating effects where today there's one — net loss. Stays hand-rolled, with a comment at the top of the hook documenting why.
+
+The factory itself is tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
+
 ## Frontend
 
 ### Folder layout

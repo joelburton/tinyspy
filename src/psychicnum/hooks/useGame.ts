@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '../../common/lib/supabase'
-import { channelDedupSuffix } from '../../common/lib/channelDedup'
+import { useState } from 'react'
+import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -80,12 +79,11 @@ export type PsychicnumGuess = {
  * game-specific surface, useCommonGame (indirectly, via GamePage)
  * for the chrome.
  *
- * Channel-name pattern (`psychicnum:${gameId}:${uuid}`): a per-tab
- * UUID suffix is intentional — this channel only carries
- * postgres-changes, which don't need a shared room across peers.
- * Per-tab channels avoid the supabase-js
- * "attach-all-.on()-before-.subscribe()" rule colliding with
- * `useCommonGame`'s channel for the same `gameId`.
+ * Realtime: drives off `useRealtimeRefetch` with a two-table
+ * subscription (`psychicnum.games` + `psychicnum.guesses`). The
+ * factory provides the SUBSCRIBED-refetch + UUID-suffixed channel
+ * + cleanup; this hook just owns the per-game `load()` body and
+ * the resulting state. New games should follow this shape.
  */
 export function useGame(gameId: string): {
   game: PsychicnumGame | null
@@ -96,15 +94,14 @@ export function useGame(gameId: string): {
   const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load the games_state + guesses rows for this game and subscribe
-  // to postgres-changes on both tables. UUID-suffixed channel name —
-  // this hook needs its own subscriber per tab; no broadcast room
-  // semantics here. SUBSCRIBED-driven refetch closes any
-  // missed-events-during-reconnect gap.
-  useEffect(function subscribeToPsychicnumGame() {
-    let mounted = true
-
-    async function load() {
+  useRealtimeRefetch({
+    tables: [
+      { schema: 'psychicnum', table: 'games', filter: `id=eq.${gameId}` },
+      { schema: 'psychicnum', table: 'guesses', filter: `game_id=eq.${gameId}` },
+    ],
+    channelPrefix: 'psychicnum',
+    id: gameId,
+    load: async ({ mounted }) => {
       const { data: gameData } = await db
         .from('games_state')
         .select(
@@ -112,7 +109,7 @@ export function useGame(gameId: string): {
         )
         .eq('id', gameId)
         .maybeSingle()
-      if (!mounted) return
+      if (!mounted()) return
 
       if (!gameData) {
         setGame(null)
@@ -126,7 +123,7 @@ export function useGame(gameId: string): {
         .select('id, user_id, number, was_correct, guessed_at')
         .eq('game_id', gameId)
         .order('guessed_at', { ascending: true })
-      if (!mounted) return
+      if (!mounted()) return
 
       setGame({
         id: gameData.id as string,
@@ -138,39 +135,8 @@ export function useGame(gameId: string): {
       })
       setGuesses((guessesData ?? []) as PsychicnumGuess[])
       setLoading(false)
-    }
-
-    const channel = supabase
-      .channel(`psychicnum:${gameId}:${channelDedupSuffix()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'psychicnum',
-          table: 'games',
-          filter: `id=eq.${gameId}`,
-        },
-        () => load(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'psychicnum',
-          table: 'guesses',
-          filter: `game_id=eq.${gameId}`,
-        },
-        () => load(),
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load()
-      })
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(channel)
-    }
-  }, [gameId])
+    },
+  })
 
   return { game, guesses, loading }
 }

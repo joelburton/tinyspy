@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../common/lib/supabase'
-import { channelDedupSuffix } from '../../common/lib/channelDedup'
+import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
@@ -29,12 +28,14 @@ export type WordRow = Pick<
  *     partner's row during play (the "Harden `game_players_select`" item
  *     in `docs/deferred.md`), we don't ask for it until the game ends.
  *
- * Realtime: subscribes to `words` UPDATE/INSERT events for this game. On
- * any event, the whole load() runs again — wasteful for a chatty table
- * but trivial at 25 rows and a few events per turn. Same trade-off as the
- * other useGame/useClues hooks.
+ * Realtime: drives off `useRealtimeRefetch` — full refetch on
+ * any postgres-changes event, plus on every SUBSCRIBED status.
+ * Wasteful for a chatty table but trivial at 25 rows and a few
+ * events per turn; same trade-off as the other tinyspy hooks.
  *
- * Channel-name suffix: see useGame for the reason we append a UUID.
+ * The lazy peer-key fetch lives in a SEPARATE effect (not in the
+ * main realtime load) so it can run independently when
+ * `revealPeer` flips without rebuilding the channel.
  */
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
@@ -51,12 +52,11 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     revealPeer && fetchedFor === `${gameId}:${userId}` ? fetchedPeerKey : null
   const [loading, setLoading] = useState(true)
 
-  // Words + own key. Re-runs only on game/user change (not when revealPeer
-  // flips), so the realtime channel stays attached across game-over transitions.
-  useEffect(function subscribeToBoardWords() {
-    let mounted = true
-
-    async function load() {
+  useRealtimeRefetch({
+    tables: { schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },
+    channelPrefix: 'board',
+    id: gameId,
+    load: async ({ mounted }) => {
       // Seats + key cards are now columns on tinyspy.games (not a
       // separate game_players table). Pull the row, pick the column
       // matching the caller's seat.
@@ -72,7 +72,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
           .eq('id', gameId)
           .single(),
       ])
-      if (!mounted) return
+      if (!mounted()) return
       if (wordsRes.data) setWords(wordsRes.data)
       const g = gameRes.data
       if (g) {
@@ -87,28 +87,8 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
         }
       }
       setLoading(false)
-    }
-
-    load()
-
-    const channel = supabase
-      .channel(`board:${gameId}:${channelDedupSuffix()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },
-        load,
-      )
-      // Refetch on every SUBSCRIBED — recovers from any missed reveals
-      // during a reconnect. See useGame for the pattern.
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load()
-      })
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(channel)
-    }
-  }, [gameId, userId])
+    },
+  })
 
   // Peer key for post-game review. Fetched lazily — only loaded once
   // the game is in a terminal state and the board switches to the
