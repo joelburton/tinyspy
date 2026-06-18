@@ -124,8 +124,13 @@
   color: var(--tinyspy-neutral-text-dark);
 }
 .tileRevealed.tileAssassin {
-  background: var(--tinyspy-assassin-bg);
-  border-color: var(--color-control-border-2);
+  /* Solid assassin red on reveal — same color the active board
+   * uses for the hinted assassin tile and the dramatic "you just
+   * lost" beat. Real Duet uses black for the assassin reveal;
+   * we use red instead because "red = wrong pick" reads more
+   * obviously on screen than "black = ominous." */
+  background: var(--tinyspy-assassin);
+  border-color: var(--tinyspy-assassin);
 }
 
 .tileClickable {
@@ -161,25 +166,23 @@
   align-self: center;
 }
 
+/* Post-game stripe — a full-width colored band at the top and
+ * bottom of each unrevealed tile, signaling how the cell was
+ * keyed for seat A (top) and seat B (bottom). Empty of text
+ * (the colored band IS the signal); display: block so it fills
+ * the grid cell's width regardless of content (a span would
+ * only paint the background under its text width — same bug we
+ * saw before adding this rule). */
 .tileStripe {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  padding: 0.15rem 0.4rem;
-  color: rgba(0, 0, 0, 0.65);
+  display: block;
+  height: 0.6rem;
 }
 .tileStripe.tileAgent {
   background: var(--tinyspy-agent);
-  color: white;
 }
 .tileStripe.tileNeutral {
   background: var(--tinyspy-neutral);
 }
 .tileStripe.tileAssassin {
-  background: var(--tinyspy-assassin-bg);
-  /* Hardcoded white because --tinyspy-assassin-bg is a dark fill
-     in both themes (the "ominous" look); --color-text inverts
-     with the theme and would go invisible-on-dark in light
-     mode. */
-  color: white;
+  background: var(--tinyspy-assassin);
 }

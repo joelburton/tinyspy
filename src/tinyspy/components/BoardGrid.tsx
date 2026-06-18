@@ -162,15 +162,22 @@ export function BoardGrid({
               onClick={() => clickable && handleGuess(w.position)}
             >
               {showPostGameReveal && (
-                <span className={cls(styles.tileStripe, styles[TILE_BG[aLabel]])}>
-                  A
-                </span>
+                // No "A" / "B" labels — we don't use seat letters
+                // anywhere else in the UI now (username + color is
+                // the identity vocabulary). The top vs. bottom
+                // position itself is the cue: top stripe = seat A,
+                // bottom stripe = seat B.
+                <div
+                  className={cls(styles.tileStripe, styles[TILE_BG[aLabel]])}
+                  aria-hidden
+                />
               )}
               <span className={styles.tileWord}>{w.word}</span>
               {showPostGameReveal && (
-                <span className={cls(styles.tileStripe, styles[TILE_BG[bLabel]])}>
-                  B
-                </span>
+                <div
+                  className={cls(styles.tileStripe, styles[TILE_BG[bLabel]])}
+                  aria-hidden
+                />
               )}
               {isPending && <span className={styles.tileKey}>…</span>}
             </button>
