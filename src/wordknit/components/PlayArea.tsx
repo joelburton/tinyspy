@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -107,16 +108,10 @@ export function PlayArea({
     return () => menu.setGameItems([])
   }, [menu, isTerminal])
 
-  // Terminal modal state. Initialized to `isTerminal` so navigating
-  // into an already-solved/lost game pops the modal on first
-  // render. The effect below flips this true if isTerminal
-  // transitions during play (last-correct match or game-end timeout).
-  // No reopen after dismiss — the in-action-row indicator below
-  // carries the lasting cue.
-  const [showModal, setShowModal] = useState(isTerminal)
-  useEffect(function popOnTerminal() {
-    if (isTerminal) setShowModal(true)
-  }, [isTerminal])
+  // Shared terminal-modal scaffold: open on mount if already-
+  // terminal, re-pop when isTerminal flips during play, no re-pop
+  // after dismiss. See common/hooks/useTerminalModal.ts.
+  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   // Local helper: every wordknit feedback today is `closeable` —
   // a guess outcome should stay on screen until the player either
@@ -328,7 +323,7 @@ export function PlayArea({
         <GameOverModal
           outcome={over.outcome}
           verdict={over.verdict}
-          onClose={() => setShowModal(false)}
+          onClose={closeModal}
           onBackToClub={goToClub}
         />
       )}

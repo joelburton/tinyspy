@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GuessHistory } from './GuessHistory'
 import styles from './PlayArea.module.css'
+import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /**
  * Psychic Num's play surface — the gametype-specific render
@@ -89,15 +91,10 @@ export function PlayArea({
     })
   }, [guesses, feedback])
 
-  // Terminal modal state. Initialized to `isTerminal` so navigating
-  // into an already-won/lost game pops the modal on first render.
-  // The effect below flips this true if isTerminal transitions
-  // during play (winning guess or game-end timeout). No reopen
-  // after dismiss — the indicator below carries the lasting cue.
-  const [showModal, setShowModal] = useState(isTerminal)
-  useEffect(function popOnTerminal() {
-    if (isTerminal) setShowModal(true)
-  }, [isTerminal])
+  // Shared terminal-modal scaffold: open on mount if already-
+  // terminal, re-pop when isTerminal flips during play, no re-pop
+  // after dismiss. See common/hooks/useTerminalModal.ts.
+  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -160,7 +157,7 @@ export function PlayArea({
         <GameOverModal
           outcome={over.outcome}
           verdict={over.verdict}
-          onClose={() => setShowModal(false)}
+          onClose={closeModal}
           onBackToClub={goToClub}
         />
       )}

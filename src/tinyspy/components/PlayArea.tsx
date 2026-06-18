@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
@@ -53,8 +53,12 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  *  centered modal line; `status` is the lowercase phrase the
  *  PlayArea indicator pairs with "Game over:". Detail-on-page
  *  intentionally: the agents-found counter sits in the right
- *  column status row, the board carries the revealed tiles. */
-function gameOverCopy(
+ *  column status row, the board carries the revealed tiles.
+ *
+ *  Named to match wordknit's and psychic-num's equivalents so a
+ *  reader scanning the per-game PlayAreas sees the same shape
+ *  across all three. */
+function buildOver(
   playState: string,
 ): { outcome: 'won' | 'lost'; verdict: string; status: string } {
   if (playState === 'won') {
@@ -109,16 +113,10 @@ export function PlayArea({
   )
   const { clues } = useClues(gameId)
 
-  // Terminal modal state. Initialized to `isTerminal` so navigating
-  // into an already-won/lost game pops the modal on first render.
-  // The effect below flips this true if isTerminal transitions
-  // during play (winning move or game-end timeout). No reopen
-  // affordance — the user dismisses, and the review-mode indicator
-  // in the action slot is what's left.
-  const [showModal, setShowModal] = useState(isTerminal)
-  useEffect(function popOnTerminal() {
-    if (isTerminal) setShowModal(true)
-  }, [isTerminal])
+  // Shared terminal-modal scaffold: open on mount if already-
+  // terminal, re-pop when isTerminal flips during play, no re-pop
+  // after dismiss. See common/hooks/useTerminalModal.ts.
+  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading || !game || !myKey || words.length < 25) {
     return <p>Loading board…</p>
@@ -146,7 +144,7 @@ export function PlayArea({
     })
 
   // Modal / indicator copy is derived once.
-  const over = gameOver ? gameOverCopy(playState) : null
+  const over = gameOver ? buildOver(playState) : null
 
   return (
     <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
@@ -208,7 +206,7 @@ export function PlayArea({
         <GameOverModal
           outcome={over.outcome}
           verdict={over.verdict}
-          onClose={() => setShowModal(false)}
+          onClose={closeModal}
           onBackToClub={goToClub}
         />
       )}
