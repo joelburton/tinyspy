@@ -3,10 +3,10 @@ import { FloatingPanel } from './FloatingPanel'
 import styles from './GameOverModal.module.css'
 
 type Props = {
-  /** Drives the subtle tonal accent inside the modal (a small
-   *  colored bar above the verdict). `won` reads as success;
-   *  `lost` reads as the more somber assassin / out-of-time
-   *  family. Doesn't affect copy — the verdict text carries that. */
+  /** Drives the verdict text color: green for `won`, red for
+   *  `lost`. The only tonal cue in the modal — no banner, no
+   *  background tint, just the colored line. Doesn't affect
+   *  copy; the per-game caller picks that. */
   outcome: 'won' | 'lost'
   /** The verdict line — centered, large in the body. Per game,
    *  picked per-status by the caller: "You win!", "You lost: out
@@ -67,8 +67,9 @@ export function GameOverModal({
       minWidth={300}
       minHeight={180}
     >
-      <div className={cls(styles.accent, styles[outcome])} aria-hidden />
-      <div className={styles.verdict}>{verdict}</div>
+      <div className={cls(styles.verdict, styles[outcome])}>
+        {verdict}
+      </div>
       <div className={styles.actions}>
         <button type="button" autoFocus onClick={onBackToClub}>
           Back to club

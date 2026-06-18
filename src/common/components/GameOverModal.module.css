@@ -2,40 +2,31 @@
  * FloatingPanel shell provides the surface, header, X button,
  * drag/resize chrome.
  *
- * A small horizontal accent bar at the top of the body carries
- * the only tonal cue (green for won, red for lost). Title + body
- * copy stay neutral so the modal reads as informational; the
- * accent gives a subtle "this was a win / this was a loss"
- * signal without a celebratory full-card flood color. We can
- * layer richer visuals (animations, GIFs, postgame charts) on
- * top later — for now, the bar + per-status title is enough.
+ * The whole tonal cue rides on the verdict text color: green
+ * for won, red for lost. No accent bar or background tint — the
+ * single colored line carries the result-mood without flooding
+ * the modal. Richer visuals (animations, postgame charts) can
+ * layer on later; for now the colored verdict is enough.
  */
 
-.accent {
-  height: 4px;
-  border-radius: 2px;
-  margin: 0 0 1rem 0;
-}
-
-.won {
-  background: var(--color-outcome-won-border);
-}
-
-.lost {
-  background: var(--color-outcome-lost-border);
-}
-
-/* The verdict line — centered, large, the focal point of the
- * modal body. The accent bar above carries the won/lost color
- * cue; the verdict text stays neutral so the line reads as the
- * primary content, not a re-tint of the bar. */
+/* The verdict line — centered, large, colored by outcome. The
+ * font weight + size + color combo gives the line enough visual
+ * weight to BE the modal's content; everything else (the X
+ * button, the Back-to-club action) is chrome around it. */
 .verdict {
   text-align: center;
   font-size: 1.75rem;
   font-weight: 600;
-  color: var(--color-text);
   line-height: 1.2;
   margin: 0.5rem 0 0 0;
+}
+
+.won {
+  color: var(--color-outcome-won-border);
+}
+
+.lost {
+  color: var(--color-outcome-lost-border);
 }
 
 .actions {
