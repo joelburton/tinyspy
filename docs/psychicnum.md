@@ -226,32 +226,51 @@ src/psychicnum/
                           directly (no Root.tsx); declares submitTimeout dispatch.
   db.ts                   export const db = supabase.schema('psychicnum')
 
+  logo.svg                Placeholder square logo used by the GamePage header's
+                          <GameLogo gametype="psychicnum" />. Imported via ?url in manifest.ts.
+
   components/
-    PlayArea.tsx          The game-specific play surface — thin composition of:
-                            GuessForm (input + submit_guess RPC)
-                            GuessHistory (pure render of the guesses log)
-                            ResultBanner (win/loss panel, rendered conditionally)
-                          Mounted by <GamePage> as its render-prop child; receives the
-                          GamePageCtx ({ session, gameId, members, timer }) as props.
-                          Chat / header / pause / timer live in <GamePage>, not here.
-    GuessForm.tsx         Owns input state + submit_guess dispatch.
-    GuessHistory.tsx      Pure render of the guesses log with username attribution.
-    ResultBanner.tsx      Win/loss panel; receives narrowed `status: 'won' | 'lost'`.
+    PlayArea.tsx          Two-column composition (board placeholder on the left;
+                          action slot + guess history on the right):
+                            GuessForm (input + submit_guess RPC) — during play
+                            "Game over: <status> [Back to club]" indicator — terminal
+                            GuessHistory (chronological guess log, auto-scroll)
+                            GameOverModal (shared) — pops on terminal entry
+                          Mounted by <GamePage> as its render-prop child; receives
+                          the GamePageCtx ({ session, gameId, players, playState,
+                          isTerminal, timer, setup, goToClub, feedback, menu }).
+                          Cross-cutting chrome (logo, chat-bubble, players strip,
+                          pause, timer, suspend-confirm) lives on <GamePage>.
+    PlayArea.module.css
+    GuessForm.tsx         Owns input state + submit_guess dispatch. Auto-refocuses
+                          the input after each submit so the player can type the
+                          next guess without reaching for the mouse.
+    GuessForm.module.css
+    GuessHistory.tsx      Card list of guesses with username attribution. Each
+                          row gets a 10px left strip (green for correct, red for
+                          wrong) — same visual register as wordknit + tinyspy.
+                          Chronological order; auto-scrolls to bottom.
+    GuessHistory.module.css
     SetupForm.tsx         The setup form (guess budget + timer) mounted in the
                           common SetupGameDialog.
+    SetupForm.module.css
+    Help.tsx              Per-game rules modal — opened from the common "Help"
+                          item in the GamePage menu. Implements the manifest's
+                          required `help: ComponentType<{ onClose }>` contract.
 
   hooks/
     useGame.ts            Loads the game row (from games_state, so target appears on
                           termination) + guesses, subscribes to realtime. No longer owns
                           presence / pause / members / timer — those live in
                           common's useCommonGame, consumed by GamePage.
-```
 
-That's it. No theme.css, no *.module.css, no per-component styling — the game leans entirely on the global utility classes from [`common/theme.css`](../src/common/theme.css). The visual minimalism is deliberate; the gametype is here to test the wiring, not to be a polished UI.
+  lib/
+    setup.ts              PsychicnumSetup type + DEFAULT_PSYCHICNUM_SETUP.
+```
 
 ### `PlayArea`
 
-A thin composition file. Reads `playState` + `isTerminal` from the `GamePageCtx` render-prop props (those come off `common.games`). Renders `<GuessForm>` while `!isTerminal`, and `<ResultBanner status={playState === 'won' ? 'won' : 'lost'}>` when terminal. `<GuessHistory>` always renders. Everything cross-cutting (header, pause, chat) is the responsibility of the wrapping `<GamePage>` (mounted at the route level by App.tsx).
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Guess the number (1–10). N guesses left." status line; on terminal, renders a "Game over: `<status>` [Back to club]" indicator in the same slot. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You win!" / "You lost: out of time" / "You lost: out of guesses." Each wrong guess fires a closeable feedback pill in the header via `ctx.feedback.show`. The board placeholder reveals the secret number once the game is over. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
@@ -301,19 +320,18 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 
 ### `winner_id` is overspec'd
 
-The schema has `psychicnum.games.winner_id` and the FE shows "alice guessed it" attribution. **This contradicts the cooperative spec** — the spec is "if any player guesses, the team wins," with no individual attribution. The `winner_id` tracking is overspec — a pattern that fits tinyspy's turn-based who-did-what model but doesn't belong in a cooperative-team game.
+The schema has `psychicnum.games.winner_id` — a per-game record of who landed the winning guess. **This contradicts the cooperative spec** — the spec is "if any player guesses, the team wins," with no individual attribution. The `winner_id` tracking is overspec — a pattern that fits tinyspy's turn-based who-did-what model but doesn't belong in a cooperative-team game.
 
-This is harmless but contrary to the cooperative-team framing. The cleanup, when someone wants to do it:
+The recent GameOverModal refactor already dropped the FE-side `<ResultBanner>` that surfaced "[winner] guessed it" copy — the modal now reads as a uniform team-verdict ("You win!"), and the per-guess attribution still on `GuessHistory` carries the cooperative framing. The remaining cleanup is the schema side:
 
 | where | what to remove |
 |---|---|
 | `psychicnum_baseline.sql` | `winner_id` column on `psychicnum.games`; the `update ... set winner_id = caller_id` line in `submit_guess` |
 | `src/psychicnum/hooks/useGame.ts` | `winner_id` field on `PsychicnumGame` and from the `games_state` SELECT list |
-| `src/psychicnum/components/ResultBanner.tsx` | the "[winner] guessed it" rendering on the win banner |
 | `src/psychicnum/manifest.ts` | the `labelFor` already doesn't read `winner_id` directly (it reads `winner_username` from `common.games.status`, frozen there by `submit_guess`); just drop the `update ... set winner_id` line from the RPC, no FE change needed |
 | `tests/psychicnum/gameplay_test.sql` | the `winner_id` assertion |
 
-~30 lines of removal across 5 files. Not done yet because there's no functional pressure.
+~20 lines of removal across 4 files. Not done yet because there's no functional pressure.
 
 ### Other gaps
 
@@ -325,6 +343,6 @@ This is harmless but contrary to the cooperative-team framing. The cleanup, when
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260612000002_psychicnum_baseline.sql`](../supabase/migrations/20260612000002_psychicnum_baseline.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` / `ResultBanner.tsx` alongside |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Is the target really hidden? | column-level grant + `psychicnum.games_state` view with `_target_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../supabase/tests/psychicnum/rls_test.sql) |

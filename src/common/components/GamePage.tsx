@@ -102,7 +102,7 @@ type Props = {
  * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
  * to false once `common.games.ended_at` is populated, so a game
  * that ends mid-pause (stale-tab edge case) cleanly transitions
- * to "PlayArea mounted, ResultBanner shown."
+ * to "PlayArea mounted, GameOverModal popped."
  *
  * Back-to-club asymmetry (per docs/states.md → "Leaving the
  * game page"): the "Back to club" menu item navigates directly

@@ -243,32 +243,48 @@ src/tinyspy/
   db.ts                   export const db = supabase.schema('tinyspy')
   theme.css               Tinyspy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
 
+  logo.svg                Placeholder square logo used by the GamePage header's
+                          <GameLogo gametype="tinyspy" />. Imported via ?url in manifest.ts.
+
   components/
-    PlayArea.tsx          Thin composition file. Loads via the three hooks, derives phase,
-                          mounts the pieces. Mounted by <GamePage> as its render-prop
-                          child; receives GamePageCtx ({ session, gameId, members, timer })
-                          as props. Header / pause / chat live in <GamePage>.
+    PlayArea.tsx          Two-column composition: BoardGrid on the left; status +
+                          action slot (CluePanel ↔ terminal indicator) + GameLog
+                          on the right. Loads via the three hooks, derives phase,
+                          mounts the pieces. Mounted by <GamePage> as its
+                          render-prop child; receives the full GamePageCtx
+                          ({ session, gameId, players, playState, isTerminal,
+                          timer, setup, goToClub, feedback, menu }). Cross-cutting
+                          chrome (logo, chat-bubble, players strip, pause,
+                          timer, suspend-confirm, the global UserMenu) lives on
+                          <GamePage> / App.
     PlayArea.module.css
-    GameHeader.tsx        Seat / opponent / agents-found / tokens-remaining / How-to-play
-                          strip above the board. Owns howToPlayOpen + the HowToPlayModal
-                          mount.
     BoardGrid.tsx         The 5×5 tile grid + per-tile tint/click/post-game-stripe logic.
-                          Owns pendingPos + guessError + the submit_guess RPC dispatch
-                          (state-locality: those three are only meaningful to the board).
+                          Fills available column height via grid-template-rows:
+                          repeat(5, 1fr); tile word centered with font-size that
+                          scales via container queries. Owns pendingPos +
+                          guessError + the submit_guess RPC dispatch.
                           The TILE_BG (KeyLabel → CSS class) map lives here.
-    CluePanel.tsx         The clue-giver's input area + "Need a clue?" button + AI suggestion display.
+    BoardGrid.module.css
+    CluePanel.tsx         The clue-giver's input area + "Need a clue?" button +
+                          AI suggestion display. Live-uppercases the clue input
+                          (codenames convention). Uses the peer's username +
+                          profile color in waiting copy ("Waiting for moth to
+                          give a clue…").
     CluePanel.module.css
-    GameLog.tsx           Reveal-history list (which player guessed what, when).
+    GameLog.tsx           Turn-by-turn replay. Per-turn divider line; clue
+                          heading (giver name colored) above each turn's guess
+                          line (guesser name colored + each guessed word colored
+                          by its reveal outcome via --tinyspy-{agent,neutral,
+                          assassin}). Chronological order, auto-scrolls to bottom.
     GameLog.module.css
     GameLog.test.tsx
-    GameOverBanner.tsx    The win/loss banner. Purely informational — no action button
-                          (GamePage's header owns Back-to-club).
-    GameOverBanner.module.css
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
     SetupForm.module.css
-    HowToPlayModal.tsx    Rules popup. Closeable, dismissed by default after first view.
-                          Mounted by GameHeader, not PlayArea.
-    HowToPlayModal.module.css
+    Help.tsx              Per-game rules modal — opened from the common "Help"
+                          item in the GamePage menu. Receives { onClose }.
+                          Implements the manifest's required
+                          `help: ComponentType<{ onClose }>` contract.
+    Help.module.css
 
   hooks/
     useGame.ts            Loads the game row + players + their key cards, subscribes to realtime
@@ -282,8 +298,13 @@ src/tinyspy/
   lib/
     phase.ts              Pure derivation: from (game state, caller seat) → 'clue' | 'guess' | 'over' | 'wait'.
     phase.test.ts         Pure unit test of the above.
-    labels.ts             KeyLabel type + labelName helper for prose-friendly labels.
+    labels.ts             KeyLabel type ('G' | 'N' | 'A') — single-letter agent /
+                          neutral / assassin role.
+    setup.ts              TinyspySetup type + DEFAULT_TINYSPY_SETUP. PlayArea
+                          casts `ctx.setup as TinyspySetup` to read the turn cap.
 ```
+
+**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
 
 ### Hooks: realtime + Suspense patterns
 
@@ -355,7 +376,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 |---|---|
 | `src/tinyspy/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/tinyspy/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
-| `src/tinyspy/components/GameLog.test.tsx` | Component renders correct labels for revealed cells. |
+| `src/tinyspy/components/GameLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
 
 ## Open items
 

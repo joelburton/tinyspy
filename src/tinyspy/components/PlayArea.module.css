@@ -65,7 +65,7 @@
 }
 
 /* Status row at the top of the right column: "0/15 agents ·
- * 9 tokens left." Compact, with a faint divider below it so it
+ * 1/10 turns." Compact, with a faint divider below it so it
  * reads as a header rather than a regular content row. */
 .status {
   flex-shrink: 0;
@@ -82,9 +82,9 @@
 
 /* Action slot — the fixed-height region that holds either the
  * CluePanel (clue form / clue display / waiting copy / sudden-
- * death notice) or the GameOverBanner. Constant height so the
- * GameLog below it never shifts as the action changes — per
- * docs/ui.md → "Layout stability." */
+ * death notice) or the terminal-state indicator. Constant
+ * height so the GameLog below it never shifts as the action
+ * changes — per docs/ui.md → "Layout stability." */
 .actionSlot {
   flex-shrink: 0;
   min-height: 8rem;

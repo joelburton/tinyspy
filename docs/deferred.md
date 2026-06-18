@@ -13,7 +13,7 @@ See [`tinyspy.md → Open items`](tinyspy.md#open-items) for the longer treatmen
 - **Harden `game_players_select`.** Partner's `key_card` is currently readable by either player via RLS — convention says "don't query the other seat" but enforcement is missing. Fix: split into own-row reads + a `game_players_roster` view that omits `key_card`.
 - **Mission / campaign mode.** Variable starting token counts per the Duet rulebook's mission maps. Schema not built; would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
 - **Per-player guess UI.** Currently a single guesser at a time (the non-clue-giver during active play). Could expand to "either player can vote on a guess" for richer cooperative play, but that's a rules change, not just code.
-- **Tile `aria-label` for screen readers.** Board tiles are `<button>`s but have no `aria-label` describing reveal state. Screen-reader users hear only the word, not whether it's been revealed and as what color. Add `aria-label={\`${word}${revealed ? `, revealed as ${labelName(revealed_as)}` : ''}\`}` to the tile button in `BoardScreen.tsx`.
+- **Tile `aria-label` for screen readers.** Board tiles are `<button>`s in `BoardGrid.tsx` but have no `aria-label` describing reveal state. Screen-reader users hear only the word, not whether it's been revealed and as what color. Add an `aria-label` that spells out the verdict — something like `${word}, revealed as green agent`. Needs a small `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper (the previous `labels.ts → labelName` was removed when the GameLog switched from text labels to colored words; the screen-reader use case warrants bringing it back in narrower form).
 
 ## Psychic Num
 

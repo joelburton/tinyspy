@@ -64,7 +64,7 @@ type Props = {
 
 /**
  * Shared shell for every floating panel — modals (SetupGameDialog,
- * HowToPlayModal, HintModal, SuspendConfirmDialog), the always-on
+ * Help, HintModal, SuspendConfirmDialog, GameOverModal), the always-on
  * FloatingChat, and a future per-game scratchpad. One header
  * pattern, one drag implementation (react-rnd), one ESC behavior,
  * one optional backdrop, one z-index axis.

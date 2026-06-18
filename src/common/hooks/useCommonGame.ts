@@ -465,7 +465,7 @@ export function useCommonGame(
   // Short-circuit on game-end: once `ended_at` is populated,
   // pause is moot — the game is over. Forcing paused=false in
   // this case lets PauseBoundary remount PlayArea so it renders
-  // the terminal result (ResultBanner, GameOverBanner, etc.).
+  // the terminal result (GameOverModal + per-game review state).
   // Without this, a terminal-during-pause edge case (stale-tab
   // peer fires submit_timeout, etc.) would leave the overlay
   // stuck up over a game that's already done.

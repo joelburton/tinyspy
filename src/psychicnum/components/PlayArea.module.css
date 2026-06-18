@@ -11,10 +11,11 @@
  * the deliberately-minimal toy game on the chopping block post-
  * beta; investing real board UI here doesn't earn its keep.
  *
- * Terminal state bypasses this layout (the ResultBanner sits
- * inline above the history). Eventually the result moves into
- * a modal per docs/ui.md → "Modals for terminal results"; until
- * then the inline-during-terminal shape stays simple. */
+ * Terminal state keeps the two-column shape — the action slot
+ * swaps from the play form to a "Game over: <status> [Back to
+ * club]" indicator, and a shared GameOverModal pops via
+ * PlayArea on terminal entry. See docs/ui.md → "Modals for
+ * terminal results." */
 
 /* Layout extends to the viewport bottom, per docs/ui.md →
  * "Page-height fits the viewport." The 9rem offset is the body's

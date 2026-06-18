@@ -1,5 +1,5 @@
 /**
- * Shared types and helpers for tile labels.
+ * Shared types for tile labels.
  *
  * A Duet "label" is the one-character role a cell occupies on a key view:
  *   - 'G' green agent (counts toward the 15 to find)
@@ -11,11 +11,3 @@
  */
 
 export type KeyLabel = 'G' | 'N' | 'A'
-
-/** Human-readable name for a label, e.g. for the game log. */
-export function labelName(l: string | null): string {
-  if (l === 'G') return 'green'
-  if (l === 'N') return 'neutral'
-  if (l === 'A') return 'assassin'
-  return '?'
-}

@@ -128,7 +128,7 @@ Roles, not implementations:
 | The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameDialog` | `SetupForm` | per-game |
-| End-of-game result banner | `GameOverBanner` (tinyspy) / `ResultBanner` (psychic-num) | per-game; same role, different content |
+| End-of-game modal | `GameOverModal` | shared (`common/components/`); per-game callers pass an `outcome` + per-status `verdict` |
 | Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
@@ -151,7 +151,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
    - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
    - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
 
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `ResultBanner`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinyspyPlayArea`, `WordknitSetupForm`) — the folder already says which game.
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinyspyPlayArea`, `WordknitSetupForm`) — the folder already says which game.
 
 The reason both rules matter: this codebase is shaped to host ~7 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
@@ -166,8 +166,8 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
-- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `useGame` (every game).
-- Different name, divergent role: tinyspy's `GameOverBanner` vs psychic-num's `ResultBanner` — flagged in [`ui.md` → Consistency across games](ui.md#consistency-across-games) as a candidate for a future common `GameResultBanner` when a third game would benefit.
+- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (wordknit + psychic-num).
+- Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PupgamesLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 ### Import-direction rules
 
@@ -250,7 +250,7 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
 | `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
-| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer }`). |
+| `Props`, `CluePanelProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>`'s render-prop child receives — `{ session, gameId, players, playState, isTerminal, timer, setup, goToClub, feedback, menu }`). |
 | `GameManifest` | A TS-native interface that game folders implement. |
 
 If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
