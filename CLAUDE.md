@@ -8,18 +8,20 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, known gotchas |
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant |
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary, suspend / current / pause concepts |
-| [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [docs/wordknit.md](docs/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
 | [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
+| [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
+| [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
+| [docs/wordknit.md](docs/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
+| [docs/freebee.md](docs/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
+
 
 ## Educational priority — clarity over brevity
 
-The primary author is an engineer learning AI-assisted development who also genuinely enjoys reading code and writing TypeScript and React. **The codebase itself is part of the artifact.** Optimize for someone reading it later (often the author, occasionally a fork-er) understanding *why* things are the way they are.
+The primary author is an engineer learning AI-assisted development who also genuinely enjoys reading code and writing TypeScript and React. **The codebase itself is part of the artifact.** Optimize for someone reading it later (often the author, occasionally a fork-er) understanding *why* things are the way they are. However, do not make purely archaeological comments or docs; "how it used to work" is not useful.
 
 This **overrides** the general agent default of "no comments unless strictly necessary." Comments that teach are part of the value of this codebase.
 
@@ -31,11 +33,11 @@ This is a venue for groups of friends to play games together. It is **not** a pu
 
 The metaphor that anchors design decisions: this app **replaces a group of friends on a Zoom call playing one game together**. Use it as a forcing function when a UX or schema question is ambiguous — "what would the Zoom-call answer be?"
 
-- **No spectators.** Everyone in the call is playing; in our model, every club member is a player on every game in the club. Presence-pause fires the moment a member isn't connected, because someone-missing means the call has stalled.
+- **No spectators.** The only people viewing a game will be players in that game. Presence-pause fires the moment a player in a game isn't connected, because someone-missing means the call has stalled.
 - **One game at a time.** The whole group is on the same thing; structurally enforced by the `is_current_view` partial unique index on `common.games`.
 - **No "find an open game" listings, no public lobby, no random pairings, no leaderboards-among-strangers.**
 
-The social primitive is the **club**: a named, persistent group of friends who play games together. The club IS the Zoom call — a venue that exists between sessions, where chat threads across every game the friends play. See [docs/common.md](docs/common.md) for the model. Clubs invite friends to join; games happen inside clubs. Chat, presence, "people you've played with," and game invitations are organized by club, not by individual game. This shapes UX decisions: e.g., a game's "share" affordance is "play with a club," not "post to a public list." The join-code path exists for ad-hoc pairings outside any club, but it's the fallback, not the primary flow.
+The social primitive is the **club**: a named, persistent group of friends who play games together. The club IS the Zoom call — a venue that exists between sessions, where chat threads across every game the friends play. See [docs/common.md](docs/common.md) for the model. Clubs invite friends to join; games happen inside clubs. Chat, presence, "people you've played with," and game invitations are organized by club, not by individual game. This shapes UX decisions: e.g., a game's "share" affordance is "play with a club," not "post to a public list." 
 
 ## Alpha software — break things freely
 
@@ -45,9 +47,9 @@ What this means in practice:
 
 - **Don't engineer for backwards compatibility.** No redirect shims for old URL shapes, no dual-running code paths during a migration, no "legacy" branches that exist to be polite to existing data. Make the change, tell Joel to tell the friends.
 - **Schema rewrites are fine.** Drop tables, rename columns, change RPC signatures. The cost is "Joel sends a Discord message" — not "engineering a multi-week dual-write transition."
-- **Data loss between rebuilds is expected and accepted.** `supabase db reset` wipes everything; in-progress games disappear; chat history goes with them. This is fine. The Supabase project itself is on the chopping block (planned rebuild as "games"). The friends understand.
+- **Data loss between rebuilds is expected and accepted.** `supabase db reset` wipes everything; in-progress games disappear; chat history goes with them. This is fine. The friends understand.
 - **Forcing re-authentication / re-account-creation is fine.** Renaming `display_name` → `username` invalidated everyone's previous handle. They picked new ones. Migrating to a fresh Supabase project means everyone signs in afresh. None of this is a blocker.
-- **Bookmarks rotting is fine.** Going from `#game=ABC` hash URLs to `/g/<gametype>/<gameId>` paths broke old links. Nobody was sad.
+- **Bookmarks rotting is fine.** 
 
 This **doesn't** mean be cavalier with destructive actions. The principle is about *avoiding compat apparatus we don't need*, not about being sloppy with the friends' goodwill. Still:
 
@@ -81,7 +83,7 @@ React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, Postg
 
 ## Game roster — trajectory
 
-The rough target is ~7 games. Three live today (Tinyspy, Wordknit, Psychic Num); Psychic Num is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Boggle is next; crosswords and others slot in after.
+The rough target is ~7 games. Four live today (Tinyspy, Wordknit, Psychic Num, FreeBee); Psychic Num is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
 
 **Most upcoming games are ports.** Joel has implementations of these games in other stacks (the rules / problem-space are well understood). The work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
 

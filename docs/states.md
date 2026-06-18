@@ -34,6 +34,7 @@ Each gametype defines its own `play_state` enum. Some examples:
 - **wordknit**: `playing`, `solved`, `lost`
 - **psychic-num**: `playing`, `won`, `lost`
 - **tinyspy**: `playing`, `sudden_death`, `won`, `lost_assassin`, `lost_clock`, `lost_timeout`
+- **freebee**: `playing`, `ended`, `won_compete` — `ended` covers all three v1 outcomes (100%-found, countdown expiry, manual End-game menu item); the specific outcome lives in `status.outcome` ∈ `{'completed', 'timeout', 'manual'}`. `won_compete` is reserved from day one for compete-mode wins, even though v1 never emits it. See [`freebee.md` → Play states](freebee.md#play-states).
 - **crosswords** (future): `playing`, `solved`, `lost_timer`, …
 
 The set of terminal play_states varies per gametype.

@@ -36,3 +36,7 @@ supabase/snippets
 
 # Edge Function secrets
 supabase/functions/.env
+
+# Hosted-Supabase one-shot import runner (carries the service-role key
+# inline). Local edit only; never committed.
+import-to-hosted.sh

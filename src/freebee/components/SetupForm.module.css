@@ -1,0 +1,11 @@
+/* Minimal Phase 3 styling — Phase 4+ will add a mode toggle
+ * (when compete-mode ships) and custom-letter fields (deferred).
+ * For now there's only the timer field, with a small intro
+ * paragraph explaining what the players are picking.
+ */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

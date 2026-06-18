@@ -1,0 +1,33 @@
+/* Freebee's color tokens. Loaded with this game's chunk
+ * (imported from PlayArea.tsx) so they only ship when freebee
+ * is being played.
+ *
+ * Ported from ~/freebee-ws/src/globals.css — same palette as
+ * the standalone codebase so the visual identity carries over:
+ *
+ *   --freebee-hex          The resting hex (outer letter) fill.
+ *                          Soft gray-tan; NYT-Bee-adjacent.
+ *   --freebee-accent       The center letter fill. Yellow, the
+ *                          single "mandatory" letter cue.
+ *   --freebee-hex-text     Black on both colors — both
+ *                          backgrounds are light enough.
+ *
+ * Two-vocabularies rule (see docs/ui.md): tokens use semantic
+ * names tied to freebee's vocabulary (`hex`, `accent`) rather
+ * than literal colors. A future palette tweak doesn't have to
+ * walk every consumer.
+ */
+:root {
+  --freebee-hex:           #e6e6e6;
+  --freebee-accent:        #f7da21;
+  --freebee-hex-text:      #1a1a1a;
+
+  /* Submission feedback pill colors. Lifted from freebee-ws's
+   * feedback styles — green for accepted scores, amber for
+   * "you found it but no points" cases (alreadyFound /
+   * tooShort) since they don't move the needle, red for hard
+   * errors (badLetters / missingCenter / notAWord). */
+  --freebee-feedback-success: #2c6e2c;
+  --freebee-feedback-warning: #a86b00;
+  --freebee-feedback-error:   #b3261e;
+}

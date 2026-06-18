@@ -66,7 +66,7 @@ export default function App() {
   } else {
     const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
     if (clubMatch) {
-      page = <ClubPage session={session} handle={clubMatch[1]} />
+      page = <ClubPage handle={clubMatch[1]} />
     } else {
       // Game routes — GamePage shell + the manifest's PlayArea
       // as a render-prop child. Path shape: /g/<gametype>/<gameId>.

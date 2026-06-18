@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
@@ -56,7 +55,6 @@ type ListedGame = {
 }
 
 type Props = {
-  session: Session
   handle: string
 }
 
@@ -82,7 +80,7 @@ type Props = {
  * only cares about the club's current-view pointer + the
  * games-list shape.
  */
-export function ClubPage({ session, handle }: Props) {
+export function ClubPage({ handle }: Props) {
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [allGames, setAllGames] = useState<ListedGame[]>([])

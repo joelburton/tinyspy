@@ -341,6 +341,204 @@ export type Database = {
       [_ in never]: never
     }
   }
+  freebee: {
+    Tables: {
+      dictionary: {
+        Row: {
+          in_legal: boolean
+          in_scoring: boolean
+          letter_mask: number
+          word: string
+        }
+        Insert: {
+          in_legal: boolean
+          in_scoring: boolean
+          letter_mask: number
+          word: string
+        }
+        Update: {
+          in_legal?: boolean
+          in_scoring?: boolean
+          letter_mask?: number
+          word?: string
+        }
+        Relationships: []
+      }
+      found_words: {
+        Row: {
+          found_at: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Insert: {
+          found_at?: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Update: {
+          found_at?: string
+          game_id?: string
+          is_bonus?: boolean
+          is_pangram?: boolean
+          points?: number
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          center_letter: string
+          club_id: string
+          created_at: string
+          id: string
+          legal_words: string[]
+          outer_letters: string
+          scoring_words: Json
+          total_score: number
+          total_words: number
+        }
+        Insert: {
+          center_letter: string
+          club_id: string
+          created_at?: string
+          id: string
+          legal_words: string[]
+          outer_letters: string
+          scoring_words: Json
+          total_score: number
+          total_words: number
+        }
+        Update: {
+          center_letter?: string
+          club_id?: string
+          created_at?: string
+          id?: string
+          legal_words?: string[]
+          outer_letters?: string
+          scoring_words?: Json
+          total_score?: number
+          total_words?: number
+        }
+        Relationships: []
+      }
+      pangrams: {
+        Row: {
+          has_rare_letters: boolean
+          mask: number
+          scoring_words: number
+        }
+        Insert: {
+          has_rare_letters: boolean
+          mask: number
+          scoring_words: number
+        }
+        Update: {
+          has_rare_letters?: boolean
+          mask?: number
+          scoring_words?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          center_letter: string | null
+          club_id: string | null
+          created_at: string | null
+          id: string | null
+          legal_words: string[] | null
+          outer_letters: string | null
+          scoring_words: Json | null
+          total_score: number | null
+          total_words: number | null
+        }
+        Insert: {
+          center_letter?: string | null
+          club_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          legal_words?: never
+          outer_letters?: string | null
+          scoring_words?: never
+          total_score?: number | null
+          total_words?: number | null
+        }
+        Update: {
+          center_letter?: string | null
+          club_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          legal_words?: never
+          outer_letters?: string | null
+          scoring_words?: never
+          total_score?: number | null
+          total_words?: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _legal_words_for: { Args: { g: string }; Returns: string[] }
+      _rank_idx: { Args: { score: number; total: number }; Returns: number }
+      _scoring_words_for: { Args: { g: string }; Returns: Json }
+      candidate_words: {
+        Args: { center_bit: number; puzzle_mask: number }
+        Returns: {
+          in_scoring: boolean
+          letter_mask: number
+          word: string
+        }[]
+      }
+      create_game: {
+        Args: {
+          board: Json
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: { target_game: string; word: string }
+        Returns: string
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -930,6 +1128,9 @@ export type CompositeTypes<
 
 export const Constants = {
   common: {
+    Enums: {},
+  },
+  freebee: {
     Enums: {},
   },
   graphql_public: {

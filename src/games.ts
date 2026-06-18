@@ -2,6 +2,7 @@ import type { GameManifest } from './common/lib/games'
 import { tinyspyGame } from './tinyspy/manifest'
 import { psychicnumGame } from './psychicnum/manifest'
 import { wordknitGame } from './wordknit/manifest'
+import { freebeeGame } from './freebee/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -19,4 +20,9 @@ import { wordknitGame } from './wordknit/manifest'
  * place allowed to import from every `<game>/` folder. Don't replicate
  * those imports elsewhere.
  */
-export const games: GameManifest[] = [tinyspyGame, psychicnumGame, wordknitGame]
+export const games: GameManifest[] = [
+  tinyspyGame,
+  psychicnumGame,
+  wordknitGame,
+  freebeeGame,
+]

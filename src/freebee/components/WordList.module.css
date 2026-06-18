@@ -1,0 +1,101 @@
+/* The found-words list. Multi-column alphabetical flow with a
+ * fixed row-height so columns balance evenly. Each word renders
+ * in the finder's color (per-finder visual attribution); the
+ * recently-found state adds a thick same-color underline that
+ * fades after 5s.
+ *
+ * Same visual idiom as freebee-ws WordList, simplified for
+ * pupgames Phase 4: no in-list definition popover (that's the
+ * common dictionary feature, deferred), no pagination nav (the
+ * panel scrolls vertically instead — simpler than measuring
+ * the rendered layout to derive page size).
+ */
+
+.wrapper {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mid-game header: "N / M words found". Updates on every accepted
+ * submission. Sits above the list, sticky-feeling so the player
+ * always knows where they are. */
+.header {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-muted, #888);
+  margin-bottom: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+  /* --wl-row-height is referenced by the row-style below;
+   * keeping it as a token means a future media query can tweak
+   * the density without re-writing the row CSS. */
+  --wl-row-height: 22px;
+  column-count: 2;
+  column-gap: 16px;
+  column-fill: balance;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.row {
+  font-size: 14px;
+  line-height: var(--wl-row-height);
+  letter-spacing: 0.02em;
+  color: var(--color-text, #1a1a1a);
+  /* Avoid breaking a row across columns. */
+  break-inside: avoid;
+}
+
+/* Pangram — emphasized by font-weight, since color is already
+ * carrying the per-finder signal. */
+.pangram {
+  font-weight: 700;
+}
+
+/* Bonus indicator — a small dot after the word, in the resting
+ * muted color. The word itself otherwise renders normally. */
+.bonus::after {
+  content: '·';
+  margin-left: 4px;
+  color: var(--color-muted, #888);
+}
+
+/* Recently-found underline. Uses currentColor so the underline
+ * picks up the per-finder color set as inline color. */
+.recent {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.empty {
+  font-style: italic;
+  color: var(--color-muted, #888);
+  text-align: center;
+  padding: 16px 8px;
+}
+
+/* Reveal-mode entries: words the team didn't find by the time
+ * the game ended. Same line height + layout as found rows so
+ * the alphabetical scan reads smoothly; just dimmed and
+ * de-emphasized. Inline `color` is NOT set on the li for these
+ * (so the gray here wins; found rows keep their inline finder
+ * color which beats this rule by specificity). */
+.unfound {
+  color: var(--color-muted, #888);
+  font-weight: 400;
+  /* If we accidentally apply .recent or .pangram to an unfound
+   * row, neutralize the extras visually — the row is purely
+   * informational. */
+  text-decoration: none;
+}

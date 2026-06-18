@@ -41,6 +41,15 @@ See [`wordknit.md → Future work`](wordknit.md#future-work) for the longer trea
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 
+## FreeBee
+
+See [`freebee.md → Open / deferred`](freebee.md#open--deferred) for context.
+
+- **Compete mode.** Schema, RLS, and RPCs (`submit_word`'s compete branch, `play_state='won_compete'`, the per-player duplicate rule, `setup.target_rank` validation) all designed-in and tested via pgTAP. The FE is coop-only in v1: no mode radio in the setup form, no target-rank slider, no leaderboard component, no compete-aware `buildOver` case. Adding compete is FE work only — no migration.
+- **Custom-letters puzzle.** A player-specified 6-outer + 1-center override that bypasses the diverse builder. The edge function's `setup.custom_letters` / `setup.custom_center` fields exist on the `FreebeeSetup` type but are never populated, and the setup form has no inputs for them. Wiring is a small SetupForm addition + a branch in the edge function before the pangram sampling.
+- **Click-to-define popover.** Deliberately deferred as a *common* feature, not freebee-specific — every word game will want it (boggle, future crosswords). When tackled, try a free dictionary API (Free Dictionary API at api.dictionaryapi.dev) before defaulting to a Postgres `common.definitions` table. See the memory note at `~/.claude/projects/-Users-joel-src-codenames/memory/project_common_dictionary_lookup.md` for the API-vs-table evaluation plan.
+- **Surface `common.games.status` through `GamePageCtx`.** `freebee/components/PlayArea.tsx`'s `buildOver` currently derives `outcome` from rank because the ctx exposes `playState` but not the `status` jsonb. Threading `status` through would let the modal copy distinguish manual end / timeout / completed crisply (and other gametypes' `labelFor`-equivalent FE renders would benefit). Refactor when a second consumer wants the same data.
+
 ## Tooling
 
 - **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Not worth the machinery until we have ≥ 3 games — the dup is one line and the lint failure on a missed update is obvious.

@@ -18,7 +18,6 @@ function ago(ms: number) {
 
 const MIN = 60 * 1000
 const HOUR = 60 * MIN
-const DAY = 24 * HOUR
 
 describe('friendlyDate', () => {
   it('Just now for sub-minute deltas', () => {

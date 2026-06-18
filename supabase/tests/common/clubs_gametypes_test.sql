@@ -37,14 +37,14 @@ select plan(10);
 
 select is(
   (select count(*) from common.gametypes),
-  3::bigint,
-  'common.gametypes contains three rows (tinyspy + psychicnum + wordknit)'
+  4::bigint,
+  'common.gametypes contains four rows (tinyspy + psychicnum + wordknit + freebee)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['psychicnum','tinyspy','wordknit'],
-  'common.gametypes contains the three registered gametypes by name'
+  array['freebee','psychicnum','tinyspy','wordknit'],
+  'common.gametypes contains the four registered gametypes by name'
 );
 
 -- ============================================================
@@ -61,8 +61,8 @@ select is(
     join common.clubs c on c.id = k.club_id
     where c.handle = '=ada'
   ),
-  3::bigint,
-  'handle_new_user populated 3 clubs_gametypes rows for ada''s solo club'
+  4::bigint,
+  'handle_new_user populated 4 clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -72,8 +72,8 @@ select is(
     join common.clubs c on c.id = k.club_id
     where c.handle = '=ada'
   ),
-  array['psychicnum','tinyspy','wordknit'],
-  'ada''s solo club has m2m rows for all three registered gametypes'
+  array['freebee','psychicnum','tinyspy','wordknit'],
+  'ada''s solo club has m2m rows for all four registered gametypes'
 );
 
 -- ============================================================
@@ -91,8 +91,8 @@ select is(
     from common.clubs_gametypes
     where club_id = (select id from club)
   ),
-  3::bigint,
-  'create_club populated 3 m2m rows for the new club'
+  4::bigint,
+  'create_club populated 4 m2m rows for the new club'
 );
 
 select is(
@@ -101,8 +101,8 @@ select is(
     from common.clubs_gametypes
     where club_id = (select id from club)
   ),
-  array['psychicnum','tinyspy','wordknit'],
-  'new club has m2m rows for all three registered gametypes'
+  array['freebee','psychicnum','tinyspy','wordknit'],
+  'new club has m2m rows for all four registered gametypes'
 );
 
 -- ============================================================
@@ -117,7 +117,7 @@ select is(
     from common.clubs_gametypes
     where club_id = (select id from club)
   ),
-  3::bigint,
+  4::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -146,7 +146,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  3::bigint,
+  4::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 

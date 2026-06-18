@@ -34,16 +34,16 @@ The distinguishing test: would two different games on the same setup be a meanin
 
 ### puzzle
 
-A *prewritten, replayable game source* — distinct from `board` (the per-game-instance copy of the puzzle's content, with any per-game state like a shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list (today: a date picker; eventually a calendar) and `create_game` copies it into a fresh `board`.
+A *prewritten, replayable game source* — distinct from `board` (the per-game-instance copy of the puzzle's content, with any per-game state like a shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list and `create_game` copies it into a fresh `board`.
 
 The split lets the source stay pristine across multiple plays (a club can replay yesterday's puzzle without contaminating it) and gives us a place to attach puzzle-source metadata (NYT puzzle number + date for wordknit; future Sunday-NYT-crossword constructor names).
 
 Two kinds of gametype shake out from this:
 
-- **Generated-board games** (tinyspy, psychic-num): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
+- **Generated-board games** (freebee, tinyspy, psychic-num, future boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
 - **Puzzle-based games** (wordknit, future crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker.
 
-Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK; a future per-club replay-tracking layer would join across those rather than centralize the storage.
+Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK.
 
 ### club
 
@@ -51,7 +51,7 @@ A fixed-membership room formed by one creator. The cross-game social primitive: 
 
 Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<schema>.games.club_id → common.clubs.id`), never the reverse.
 
-Solo clubs (handle `=<username>`) are single-member auto-created clubs that anchor solo play and per-user stats. They're structurally separate from regular (multi-member) clubs; the UI hides them from the main clubs list.
+Solo clubs (handle `=<username>`) are single-member auto-created clubs that anchor solo play and per-user stats. They're structurally separate from regular (multi-member) clubs,
 
 See [`common.md`](common.md) for the full club model — invariants, lifecycle, three-state (active/paused/completed) semantics.
 
@@ -70,7 +70,7 @@ The practical effect: most game-side code shouldn't reach for `user` at all, bec
 
 For the database row specifically (regardless of context), `profile` is the name — that's the `common.profiles` row.
 
-**`member` vs `player` inside a game.** Once code is in a game context (inside a `<PlayArea>`, inside `useCommonGame`, inside a per-game hook), the person is more precisely a **player** — someone in `common.game_players` for this game, which is a strict subset of the club's members. See [`player`](#player) below.
+**`member` vs `player` inside a game.** Once code is in a game context (inside a `<PlayArea>`, inside `useCommonGame`, inside a per-game hook), the person is more precisely a **player** — someone in `common.game_players` for this game, which is a strict subset of the club's members. See [`player`](#player) below. Right now, we don't support spectators; if we did in the future, anyone in the club could view the currently-active game, but they'd just be members (of the club), not players (in the game).
 
 ### player
 
@@ -78,7 +78,7 @@ A member who's in a specific game — i.e. someone in `common.game_players` for 
 
 **Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/games.ts` plus a per-game `Player` alias in each game's hook file:
 
-- Wordknit and psychic-num: `type Player = Member` (pure re-export — no per-game enrichment today).
+- Wordknit, FreeBee, psychic-num: `type Player = Member` (pure re-export — no per-game enrichment today).
 - Tinyspy: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — tinyspy is intrinsically 2-seat).
 
 Every game declares the alias even when it's a pure re-export, because cross-game vocabulary consistency makes per-game folders pattern-match cleanly (a reader switching from tinyspy to wordknit sees the same `Player` parallel and doesn't trip on a name change).
@@ -100,12 +100,6 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 - "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that name the relationship rather than describing it as "the other player."
 - Tinyspy's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
 - The pause-on-disconnect pattern phrases the trigger as "a peer is missing" because the predicate is viewer-relative: if Ada disconnects, Bea sees a missing peer; Ada sees Bea still there.
-
-**Why peer and not "otherPlayer":**
-
-- It's one short word for a concept that comes up constantly in shared-state game code (`isPeer`, `peers`, `peerCount`, `peer-colored`).
-- "Other" is too generic on its own — `isOther` reads as "other what?" inside a tile component. `isPeer` carries the game-participant sense without further context.
-- "Peer" already had natural usage throughout the codebase (`peers` in pause overlays, `peerKey` in tinyspy, "broadcast reaches all peers" in channel comments) before it was promoted to a defined term — formalizing it ratifies an existing convention rather than introducing a new word.
 
 **Where peer does NOT belong:**
 
@@ -137,7 +131,7 @@ A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, 
 
 ## Per-game vocabulary
 
-The cross-cutting terms above apply everywhere. Each game also has a small internal lexicon worth pinning so future contributors (and future-you) stay consistent. Today only wordknit has terms that warrant a glossary entry beyond the cross-cutting words; tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`).
+The cross-cutting terms above apply everywhere. Each game also has a small internal lexicon worth pinning so future contributors (and future-you) stay consistent. Today wordknit and freebee have terms that warrant glossary entries beyond the cross-cutting words; tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`).
 
 ### wordknit
 
@@ -145,9 +139,19 @@ The cross-cutting terms above apply everywhere. Each game also has a small inter
 |---|---|
 | **category** | One of the 4 hidden groupings of 4 tiles. Named `category` rather than `group` to avoid colliding with the many other "group" meanings (club groups, user groups, permission groups) — see the watch list below. |
 | **rank** | The difficulty index 0..3 of a category — yellow / green / blue / purple in NYT's palette. Named `rank` rather than `level` because `level` overloads with puzzle-difficulty levels, app-routing levels, and other meanings the codebase shouldn't pre-commit. |
-| **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle, crosswords) should reuse the same word. |
+| **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle) should reuse the same word. |
 | **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `wordknit.guesses` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
 | **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule below. |
+
+### freebee
+
+| term | meaning |
+|---|---|
+| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the scoring dictionary). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
+| **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `score / total_score`. Genius unlocks at 70% (`GENIUS_AT`). Same word `wordknit` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
+| **bonus word** | A word in the larger legal dictionary (`scowl-80`) but NOT in the scoring set (`scowl-50`). Accepted by `submit_word` as `'bonus'`; counts for 0 points and doesn't move the rank, but is recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. |
+| **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the importer): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
+| **outcome** | The `status.outcome` enum value for terminal freebee games: `'completed'` (100%-found in coop), `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), or `'won_compete'` (compete mode; deferred). The corresponding `play_state` is `'ended'` for the first three and `'won_compete'` for the last. |
 
 ## Removability — the architectural rule that anchors all of this
 
