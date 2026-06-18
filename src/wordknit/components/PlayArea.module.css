@@ -1,10 +1,12 @@
 /* Wordknit board layout.
  *
- * The .boardArea is `position: relative` so the PauseOverlay
- * can absolute-position over the play surface (the chat panel
- * below stays unaffected). The grid auto-flows; with 16-N tiles
- * remaining (N = 4 × matchedCategories count) it naturally re-
- * flows as bands eat into the tile space.
+ * Viewport-bound, per docs/ui.md → "Page-height fits the
+ * viewport." Same shape tinyspy and psychicnum use: the bordered
+ * surface (.boardArea) takes 100vh minus the shared chrome
+ * offset (--game-chrome-height in common/theme.css — body
+ * padding + GamePage header + frame gap). `box-sizing: border-
+ * box` is set globally, so padding + border eat from that height
+ * rather than adding to it.
  *
  * NYT-style tile look: warm-gray fill, rounded corners,
  * generous padding for readable word labels; selected state
@@ -15,7 +17,7 @@
  */
 
 .boardArea {
-  position: relative;
+  height: calc(100vh - var(--game-chrome-height));
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
@@ -23,36 +25,35 @@
 }
 
 /* Two-column layout: board on the left, GuessHistory sidebar on
- * the right. Flex-row so the sidebar's max-width naturally caps
- * its column and the board claims whatever remains. The board
- * column is the existing flex-column stack (status, bands, grid,
- * actions). Transient feedback now lives in the GamePage header's
- * status slot — see docs/ui.md → "Feedback pill" + ctx.feedback.
- *
- * Below the gap-row breakpoint the columns stack — the board
- * needs its width more than the sidebar needs to be alongside.
- * 720px matches the .frame max-width above; below that the board
- * is already at its natural minimum, so the history slides under
- * it rather than competing for horizontal space. */
+ * the right. Flex-row + align-items: stretch so both columns
+ * fill the boardArea's height; the GuessHistory's internal
+ * scroll then kicks in when the log gets long instead of pushing
+ * the page past the viewport. Transient feedback now lives in
+ * the GamePage header's status slot — see docs/ui.md →
+ * "Feedback pill" + ctx.feedback. */
 .layout {
+  height: 100%;
   display: flex;
   flex-direction: row;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: stretch;
+  min-height: 0;
 }
 
+/* Board column: takes the bulk of the width, stacks the play
+ * surface vertically. `min-height: 0` lets the column bound
+ * itself to .layout's height (the standard flex min-content
+ * unlock); without it, tall inner content would push past the
+ * viewport. min-width: 0 is the matching unlock on the inline
+ * axis so the column doesn't overflow horizontally when a
+ * particularly long word lands in a tile. */
 .boardCol {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-@media (max-width: 720px) {
-  .layout {
-    flex-direction: column;
-  }
 }
 
 .band {

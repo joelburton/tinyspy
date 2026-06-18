@@ -31,17 +31,14 @@
      the first guess row arrived. 18rem fits a typical 4-tile
      guess like ALPHA · BANANA · CASTLE · DAGGER on one line at
      the default font size; longer tile sets soft-wrap inside the
-     row (see `.tiles` word-break below). On narrow screens the
-     parent flips to column-direction (see PlayArea.module.css's
-     720px media query), at which point this basis is a max-width
-     hint rather than a column width. */
+     row (see `.tiles` word-break below). */
   flex: 0 0 18rem;
-  /* Belt-and-braces: on the column-stack layout below 720px,
-     `flex: 0 0 18rem` becomes effectively a width hint but the
-     element can still grow to fill the cross-axis (parent's
-     width). Cap with max-width so the panel stays the same
-     size in both layouts. */
-  max-width: 18rem;
+  /* `min-height: 0` lets this column shrink to its parent's
+     stretched height instead of growing to fit its own content
+     — required so the inner `.list` overflow-y: auto can kick
+     in once the log gets long, rather than pushing the page
+     past the viewport. */
+  min-height: 0;
 }
 
 .heading {
@@ -59,9 +56,14 @@
   flex-direction: column;
   gap: 0.4rem;
   /* Scroll the list, not the whole panel, when guesses pile up.
-     Caps the visual real estate the history claims when the
-     friends really start running into mistake-territory. */
-  max-height: 28rem;
+     `flex: 1` + `min-height: 0` claim whatever vertical space the
+     `.history` column has left after the heading; overflow-y on
+     this element (rather than on .history) means only the rows
+     scroll while the "Guesses" heading stays pinned at the top.
+     Replaces the earlier `max-height: 28rem` cap — the viewport-
+     bound .boardArea now provides the natural ceiling. */
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
