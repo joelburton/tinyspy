@@ -101,6 +101,39 @@
   font-weight: 500;
 }
 
+/* Top-right corner flag indicating "still open for play." Only
+ * rendered for state='suspended' (in the per-state JSX branch);
+ * absent for completed and active.
+ *
+ * Color comes from `--color-outcome-active-border` — the
+ * semantic palette token for "in flight, not done." Yellow rather
+ * than green/red so it doesn't read as a won/lost outcome
+ * (suspended is neither — it's "we'll come back to this").
+ *
+ * The white inner + surface-border outer ring is the same belt-
+ * and-braces pattern as ClubPage's memberDot: keeps the dot
+ * legible on any background and reads as a deliberate symbol
+ * rather than a stray pixel.
+ *
+ * Position-wise this sits inside the delete button's bounds
+ * (the delete is 1.6rem × 1.6rem at top:0.4rem right:0.4rem;
+ * this flag is ~0.6rem at top:0.55rem right:0.55rem). On hover,
+ * the delete button's opaque var(--color-surface) background
+ * covers the flag — no z-index gymnastics needed; the natural
+ * DOM order (flag inside card, delete later in wrapper) puts
+ * delete on top. */
+.openFlag {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--color-outcome-active-border);
+  border: 1px solid var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-surface-border);
+}
+
 /* ─── Delete affordance ──────────────────────────────────────
  *
  * Lives in the top-right corner of the card. Two visual states

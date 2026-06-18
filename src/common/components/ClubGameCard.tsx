@@ -129,6 +129,16 @@ export function ClubGameCard({
     <div className={styles.wrapper}>
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
         <div className={cls(styles.card, styles[state])}>
+          {state === 'suspended' && (
+            // Yellow corner flag: "still open for play." Sits in
+            // the same top-right spot as the delete button, but
+            // smaller — delete's opaque background covers this
+            // when revealed on hover, so there's no visual
+            // collision. See the CSS for the spatial coexistence
+            // story. aria-hidden because the gametype row +
+            // status label already convey state to screen readers.
+            <span className={styles.openFlag} aria-hidden="true" />
+          )}
           <div className={styles.gametype}>{gameTypeName}</div>
           {title && <div className={styles.title}>{title}</div>}
           <div className={styles.statusRow}>
