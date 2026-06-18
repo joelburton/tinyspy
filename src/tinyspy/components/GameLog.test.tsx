@@ -93,17 +93,15 @@ describe('GameLog', () => {
     expect(turns).toHaveLength(2)
 
     // Oldest turn (1) appears first in chronological order.
-    expect(turns[0]).toHaveTextContent('Turn 1')
+    expect(turns[0]).toHaveTextContent('Turn #1')
     expect(turns[0]).toHaveTextContent('TOOLS')
     expect(within(turns[0]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
-    expect(within(turns[0]).getByText('green')).toBeInTheDocument()
 
     // Latest turn (2) below — auto-scroll keeps it in view in the
     // real app, but the DOM order is oldest-first.
-    expect(turns[1]).toHaveTextContent('Turn 2')
+    expect(turns[1]).toHaveTextContent('Turn #2')
     expect(turns[1]).toHaveTextContent('DRINK')
     expect(within(turns[1]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
-    expect(within(turns[1]).getByText('neutral')).toBeInTheDocument()
   })
 
   it('sorts guesses within a turn by revealed_at', () => {
@@ -134,24 +132,21 @@ describe('GameLog', () => {
     expect(text.indexOf('FIRST')).toBeGreaterThanOrEqual(0)
   })
 
-  it('renders the readable label name for each revealed_as value', () => {
-    // The label-name → readable-string mapping is what shows up in
-    // the chip; we assert each outcome renders the right word.
-    // (Visual color is a CSS contract — see the file docstring.)
-    const clues = [clue({ turn_number: 1 })]
-    const words = [
-      word({ position: 0, word: 'G_WORD', revealed_as: 'G', revealed_by: 'B',
-             revealed_at: '2026-06-12T18:01:00Z', revealed_in_turn: 1 }),
-      word({ position: 1, word: 'N_WORD', revealed_as: 'N', revealed_by: 'B',
-             revealed_at: '2026-06-12T18:02:00Z', revealed_in_turn: 1 }),
-      word({ position: 2, word: 'A_WORD', revealed_as: 'A', revealed_by: 'B',
-             revealed_at: '2026-06-12T18:03:00Z', revealed_in_turn: 1 }),
+  it('renders the "no guesses made" placeholder when the turn has a clue but no guesses', () => {
+    // The guesser passed without revealing anything. The log
+    // should still show their name and the placeholder copy so
+    // the reader sees who was up.
+    const clues = [
+      clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'PASS', count: 1 }),
     ]
 
-    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
+    render(<GameLog clues={clues} words={[]} players={PLAYERS} />)
 
-    expect(screen.getByText('green')).toBeInTheDocument()
-    expect(screen.getByText('neutral')).toBeInTheDocument()
-    expect(screen.getByText('assassin')).toBeInTheDocument()
+    expect(screen.getByText(/no guesses made/)).toBeInTheDocument()
+    // The guesser (bea — the seat opposite the clue-giver) is
+    // named, not the clue-giver.
+    const turn = screen.getByRole('listitem')
+    const text = turn.textContent ?? ''
+    expect(text.indexOf('bea')).toBeGreaterThanOrEqual(0)
   })
 })

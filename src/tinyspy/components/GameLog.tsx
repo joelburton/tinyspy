@@ -4,7 +4,6 @@ import type { WordRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { labelName } from '../lib/labels'
 import styles from './GameLog.module.css'
 
 type Props = {
@@ -19,36 +18,37 @@ type Props = {
 /**
  * Turn-by-turn replay in the right column, beneath the action slot.
  * Chronological order: oldest turn at the top, latest at the bottom.
- * Within a turn, the clue is listed first and then each guess in
- * chronological order — each turn reads as a small top-down
- * narrative, and the log overall reads top-down too.
+ * Auto-scrolls to the bottom on every new clue or guess (effect
+ * below) — same pattern as wordknit / psychic-num GuessHistory and
+ * ChatBody.
  *
- * The list auto-scrolls to the bottom on every new clue or guess
- * (see the effect below) — same pattern as wordknit / psychic-num
- * GuessHistory and ChatBody.
+ * Each turn renders as two lines + a divider above (except the first):
  *
- * **Visual register** matches wordknit + psychic-num's
- * `<GuessHistory>`: each guess is a small card with a 10px-wide
- * colored left strip — green for an agent hit, amber for neutral,
- * red for the assassin. The clue heading for a turn sits above
- * its guesses as a narrower line with no strip, so the eye reads
- * "the clue" then "what we revealed against it."
+ *   Turn #N: <clue-giver>: <count> <WORD>
+ *     <guesser> → <WORD₁> <WORD₂> <WORD₃>
  *
- * **Seat letters → usernames.** The DB stores `by_seat` and
- * `revealed_by` as `'A'` / `'B'`. The log shows the corresponding
- * player's username + profile color so the log reads as "ada gave
- * a clue" rather than "A gave a clue" — same identity vocabulary
- * the rest of the chrome (PlayersStrip, ClubGameCard usernames)
- * uses.
+ * The clue-giver and guesser are colored by their profile color.
+ * Each guessed word is colored by its reveal outcome (agent green
+ * / neutral tan / assassin red) — same vocabulary the board uses
+ * for revealed tiles. When the guesser passed without making a
+ * guess, the line reads `<guesser> → (no guesses made)`.
+ *
+ * **Why the layout changed.** The previous "one card per guess
+ * with a colored left strip" pattern was using the strip for
+ * player identity, which clashed with how the same affordance is
+ * used elsewhere (wordknit / psychic-num use the strip for the
+ * outcome verdict). Now identity rides on text color (matching the
+ * PlayersStrip + ClubGameCard pattern) and the outcome rides on
+ * the colored word — no double-meaning for the same visual.
+ *
+ * **Turn separation.** A thin horizontal rule between turns gives
+ * the eye a clear unit boundary; previously the per-guess card
+ * borders were the strongest line on screen, which made each
+ * guess look more important than the turn it belonged to.
  *
  * Data source: the same `clues` and `words` arrays the board
  * already has from useClues + useBoard. All grouping happens
- * client-side — no extra queries — because the data set is tiny
- * (≤ a handful of clues and ≤ 25 guesses).
- *
- * The list scrolls inside its own frame (see the `.list` styles +
- * the parent column's bounded height in PlayArea.module.css) so a
- * long history doesn't push the page past the viewport.
+ * client-side — no extra queries — because the data set is tiny.
  */
 export function GameLog({ clues, words, players }: Props) {
   const listRef = useRef<HTMLOListElement>(null)
@@ -99,55 +99,51 @@ export function GameLog({ clues, words, players }: Props) {
       <ol ref={listRef} className={styles.list}>
         {turnNumbers.map((t) => {
           const clue = clues.find((c) => c.turn_number === t)
-          const clueGiver = clue ? playerBySeat.get(clue.by_seat) : undefined
+          if (!clue) return null
+          const clueGiver = playerBySeat.get(clue.by_seat)
+          // The guesser is whoever isn't the clue-giver. Tinyspy is
+          // always 2-player, so this is the other seat. Use a
+          // string-typed find rather than hardcoding A↔B so any
+          // future seat-vocabulary change lands cleanly.
+          const guesser = players.find((p) => p.seat !== clue.by_seat)
           const turnGuesses = guesses.filter((g) => g.revealed_in_turn === t)
           return (
             <li key={t} className={styles.turn}>
-              {clue && (
-                <div className={styles.clueLine}>
-                  <span className="muted">Turn {t}</span>
-                  {' · '}
-                  <strong style={{ color: colorVarFor(clueGiver?.color) }}>
-                    {clueGiver?.username ?? clue.by_seat}
-                  </strong>
-                  : <span className={styles.clueWord}>
-                    {clue.word.toUpperCase()}
-                  </span>
-                  {' · '}
-                  {clue.count}
-                </div>
-              )}
-              {turnGuesses.map((g) => {
-                const guesser = g.revealed_by
-                  ? playerBySeat.get(g.revealed_by)
-                  : undefined
-                return (
-                  <div
-                    key={g.position}
-                    className={cls(
-                      styles.guess,
-                      g.revealed_as === 'G' && styles.guess_G,
-                      g.revealed_as === 'N' && styles.guess_N,
-                      g.revealed_as === 'A' && styles.guess_A,
-                    )}
-                  >
-                    <strong style={{ color: colorVarFor(guesser?.color) }}>
-                      {guesser?.username ?? g.revealed_by ?? '?'}
-                    </strong>
-                    {' → '}
-                    {g.word}
-                    <span className={styles.spacer} />
-                    <span
-                      className={cls(
-                        styles.label,
-                        styles[`label${g.revealed_as}`],
-                      )}
-                    >
-                      {labelName(g.revealed_as)}
+              <div className={styles.clueLine}>
+                <span className="muted">Turn #{t}:</span>{' '}
+                <strong style={{ color: colorVarFor(clueGiver?.color) }}>
+                  {clueGiver?.username ?? clue.by_seat}
+                </strong>
+                : {clue.count}{' '}
+                <span className={styles.clueWord}>
+                  {clue.word.toUpperCase()}
+                </span>
+              </div>
+              <div className={styles.guessLine}>
+                <strong style={{ color: colorVarFor(guesser?.color) }}>
+                  {guesser?.username ?? '?'}
+                </strong>
+                {' → '}
+                {turnGuesses.length === 0 ? (
+                  <span className="muted">(no guesses made)</span>
+                ) : (
+                  turnGuesses.map((g, idx) => (
+                    <span key={g.position}>
+                      {idx > 0 && ' '}
+                      <span
+                        className={cls(
+                          styles.guessWord,
+                          g.revealed_as === 'G' && styles.guessWord_G,
+                          g.revealed_as === 'N' && styles.guessWord_N,
+                          g.revealed_as === 'A' && styles.guessWord_A,
+                        )}
+                      >
+                        {g.word.toUpperCase()}
+                      </span>
                     </span>
-                  </div>
-                )
-              })}
+                  ))
+                )}
+              </div>
             </li>
           )
         })}
