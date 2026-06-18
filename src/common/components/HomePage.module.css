@@ -1,3 +1,47 @@
+/* "Your clubs" section header — title on the left, "+ New club"
+ * button on the right. Flex row with space-between aligns the
+ * button to the right edge of the section. h3 default margins
+ * zeroed so the button vertical-aligns to the title baseline
+ * cleanly. */
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionHeader h3 {
+  margin: 0;
+}
+
+/* "+ New club" button — outlined, small, muted. Reads as a button
+ * shape (clearly clickable) but quiet enough that it doesn't
+ * compete with the page's primary accent-filled buttons. Joel's
+ * framing: "uncommon choice, don't want people to visually see it
+ * as the obvious one." */
+.newClubButton {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--color-control-border-2);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-control-text-2);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 100ms ease, color 100ms ease,
+              border-color 100ms ease;
+}
+.newClubButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  border-color: var(--color-text);
+  text-decoration: none;
+}
+
 /* HomePage clubs list.
  *
  * Each row is the Link itself — the whole tinted surface is the

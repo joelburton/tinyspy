@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { db as commonDb } from '../db'
 import { useProfile } from '../hooks/useProfile'
@@ -81,7 +80,18 @@ export function HomePage({ session }: Props) {
       <p className="muted">{session.user.email}</p>
 
       <section>
-        <h3>Your clubs</h3>
+        {/* Section header is a flex row: title on the left, the
+            quiet "+ New club" button on the right. Creating a new
+            club is the uncommon path (most users land here, click
+            into an existing club, go play), so the button is
+            outline-styled + small rather than competing with the
+            primary accent-filled buttons elsewhere on the page. */}
+        <header className={styles.sectionHeader}>
+          <h3>Your clubs</h3>
+          <Link to="/c/new" className={styles.newClubButton}>
+            + New club
+          </Link>
+        </header>
         {clubs.length === 0 ? (
           // Defensive: `handle_new_user` always materializes a
           // solo club, so this branch is essentially unreachable
@@ -109,22 +119,7 @@ export function HomePage({ session }: Props) {
             ))}
           </ul>
         )}
-        <p>
-          <Link to="/c/new" className="link-button">
-            Create a new club
-          </Link>
-        </p>
       </section>
-
-      <p className="muted home-footer">
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => supabase.auth.signOut()}
-        >
-          Log out
-        </button>
-      </p>
     </div>
   )
 }
