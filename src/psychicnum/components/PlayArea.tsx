@@ -17,21 +17,24 @@ import styles from './PlayArea.module.css'
  *     won/lost copy.
  *   - `<GuessHistory>` renders the append-only log.
  *
- * **Non-terminal layout** is a two-column split that mimics the
- * shape of a real game — a "board" placeholder on the left
- * (where a tile grid or word grid would go in a real game) +
- * controls + history on the right. Psychic Num doesn't have a
- * real board (a single 1–10 number isn't worth tile UI), so the
- * left column is a styled rectangle reading "What's your guess?"
+ * **Layout** is a two-column split that mimics the shape of a
+ * real game — a "board" placeholder on the left (where a tile
+ * grid or word grid would go in a real game) + controls or
+ * results on the right. Psychic Num doesn't have a real board
+ * (a single 1–10 number isn't worth tile UI), so the left
+ * column is a styled rectangle reading "What's your guess?".
  * Standing in for a board makes the page read as a proper game
  * surface, not just a thin form with a list. See
  * PlayArea.module.css for the placeholder rationale.
  *
- * **Terminal layout** bypasses the two-column treatment —
- * ResultBanner + history stack inline. Eventually the result
- * moves into a modal per docs/ui.md → "Modals for terminal
- * results"; until then the inline-during-terminal shape stays
- * simple.
+ * The right column's "action slot" at the top has a fixed
+ * minimum height that fits both the play form (status line +
+ * input row) and the terminal `<ResultBanner>` (won/lost h2 +
+ * detail line). Switching from playing → terminal swaps the
+ * slot's content without shifting the guess history below —
+ * per docs/ui.md → "Layout stability." Eventually the terminal
+ * result moves into a modal per "Modals for terminal results";
+ * until then the in-slot swap keeps the page coherent.
  *
  * Cross-cutting state (members, timer, play_state, paused, chat)
  * lives in `<GamePage>` above this component. PlayArea unmounts
@@ -63,21 +66,6 @@ export function PlayArea({
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
-  if (isTerminal) {
-    return (
-      <>
-        <ResultBanner
-          status={playState === 'won' ? 'won' : 'lost'}
-          winnerId={game.winner_id}
-          target={game.target}
-          timerExpired={timer.expired}
-          players={players}
-        />
-        <GuessHistory guesses={guesses} players={players} />
-      </>
-    )
-  }
-
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
@@ -86,12 +74,26 @@ export function PlayArea({
         </div>
       </div>
       <div className={styles.rightCol}>
-        <p className="muted">
-          Guess the number (1–10).{' '}
-          <strong>{game.guesses_remaining}</strong>{' '}
-          {game.guesses_remaining === 1 ? 'guess' : 'guesses'} left.
-        </p>
-        <GuessForm gameId={gameId} />
+        <div className={styles.actionSlot}>
+          {isTerminal ? (
+            <ResultBanner
+              status={playState === 'won' ? 'won' : 'lost'}
+              winnerId={game.winner_id}
+              target={game.target}
+              timerExpired={timer.expired}
+              players={players}
+            />
+          ) : (
+            <>
+              <p className="muted">
+                Guess the number (1–10).{' '}
+                <strong>{game.guesses_remaining}</strong>{' '}
+                {game.guesses_remaining === 1 ? 'guess' : 'guesses'} left.
+              </p>
+              <GuessForm gameId={gameId} />
+            </>
+          )}
+        </div>
         <GuessHistory guesses={guesses} players={players} />
       </div>
     </div>

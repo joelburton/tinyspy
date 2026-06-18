@@ -54,8 +54,8 @@
   border-radius: var(--radius-md);
 }
 
-/* Right column: input row at the top, status line, history below.
- * Stacked content with normal flow gaps. */
+/* Right column: action slot at the top, history below. Stacked
+ * content with normal flow gaps. */
 .rightCol {
   flex: 1;
   display: flex;
@@ -63,3 +63,35 @@
   gap: 0.75rem;
   min-width: 0;
 }
+
+/* The right column's "action slot" — same physical space whether
+ * the game is in play (status line + input row) or terminal
+ * (ResultBanner won/lost copy). Fixed min-height so swapping
+ * content between the two states doesn't shift the guess history
+ * below (per docs/ui.md → "Layout stability").
+ *
+ * justify-content: center vertically centers each shape inside
+ * the slot, so the input row and the won/lost banner both anchor
+ * around the same y. */
+.actionSlot {
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Reset default heading/paragraph margins on the descendants
+ * inside the action slot. <ResultBanner>'s default <h2> + <p>
+ * carry browser-default margins (~1em each) that, summed,
+ * exceed the slot's 6rem and push the history downward when
+ * the game ends. Zeroing them lets the flex gap drive spacing
+ * inside the slot — same vertical rhythm regardless of state. */
+.actionSlot h2,
+.actionSlot p {
+  margin: 0;
+}
+.actionSlot h2 {
+  font-size: 1.4rem;
+}
+
