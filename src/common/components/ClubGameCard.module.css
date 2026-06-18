@@ -108,9 +108,10 @@
   font-weight: 500;
 }
 
-/* Top-right corner flag indicating "still open for play." Only
- * rendered for state='suspended' (in the per-state JSX branch);
- * absent for completed and active.
+/* Top-right corner flag indicating "this game is open."
+ * Rendered for state='suspended' (yellow) and state='active'
+ * (orange) — absent for completed. Geometry is shared; only the
+ * fill color differs by state via the modifier classes below.
  *
  * Literal corner-triangle shape — distinct from a colored circle,
  * which would compete with the player/member colored-dot
@@ -118,11 +119,6 @@
  * "Flag in the corner of a card" is its own visual register; no
  * room for someone to read this as "the yellow player is in
  * this game."
- *
- * Color comes from `--color-outcome-active-border` — the
- * semantic palette token for "in flight, not done." Yellow rather
- * than green/red so it doesn't read as a won/lost outcome
- * (suspended is neither — it's "we'll come back to this").
  *
  * Geometry: 24px × 24px box at top:0 right:0, clip-path filling
  * the upper-right triangle. The card has `overflow: hidden`, so
@@ -138,9 +134,23 @@
   right: 0;
   width: 24px;
   height: 24px;
-  background: var(--color-outcome-active-border);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   pointer-events: none;
+}
+
+/* Suspended flag: yellow. "Still open for play, we'll come back
+ * to this." Color from --color-outcome-active-border — the
+ * semantic "in flight, not done" token. */
+.openFlagSuspended {
+  background: var(--color-outcome-active-border);
+}
+
+/* Active flag: saturated orange. "This is THE one to join right
+ * now" — deliberately more forceful than the suspended yellow
+ * so a glance at a list reads "current game" before "the other
+ * still-open ones." Color from --color-outcome-current-border. */
+.openFlagActive {
+  background: var(--color-outcome-current-border);
 }
 
 /* ─── Delete affordance ──────────────────────────────────────

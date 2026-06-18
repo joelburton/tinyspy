@@ -71,6 +71,13 @@
      than wait-flavored. */
   --color-outcome-near-bg:    #ffe0b2;   /* amber 100 */
   --color-outcome-near-border: #ffb74d;  /* amber 300 */
+  /* "Current" — the now-playing / join-this-one signal. Used by
+     ClubGameCard's active-game corner flag (a saturated orange,
+     deliberately more forceful than the suspended-yellow flag
+     so a glance reads "the current game" before "still open
+     ones"). */
+  --color-outcome-current-bg:    #ffe0b2;   /* orange 100 */
+  --color-outcome-current-border: #fb8c00;  /* orange 600 */
 
   /* Per-member identity palette — one token per name in
      common.profiles.color. The DB stores a NAME (not a hex),

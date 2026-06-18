@@ -517,7 +517,7 @@ export function ClubPage({ session, handle }: Props) {
 
           {activeGame && (
             <div>
-              <h3>Active game</h3>
+              <h3>Join the active game</h3>
               <ClubGameCard
                 gameId={activeGame.gameId}
                 gametype={activeGame.gametype}

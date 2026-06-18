@@ -135,14 +135,25 @@ export function ClubGameCard({
         <div className={cls(styles.card, styles[state])}>
           {state === 'suspended' && (
             // Yellow corner-flag triangle: "still open for play."
-            // Lives inside the card (which has overflow:hidden +
-            // position:relative for the clip-path corner-shape);
-            // the delete affordance is a sibling of the Link in
-            // wrapper, so on hover it sits above the card and
-            // covers this corner without any z-index handling.
-            // aria-hidden because the gametype row + status label
-            // already convey state to screen readers.
-            <span className={styles.openFlag} aria-hidden="true" />
+            // See the openFlag base class in CSS for the geometry
+            // story (clip-path + card overflow:hidden = clean
+            // rounded-corner clipping). aria-hidden because the
+            // gametype row + status label already convey state
+            // to screen readers.
+            <span
+              className={cls(styles.openFlag, styles.openFlagSuspended)}
+              aria-hidden="true"
+            />
+          )}
+          {state === 'active' && (
+            // Orange corner-flag triangle: "this is THE current
+            // game — join now." Same shape as the suspended flag
+            // but a more forceful color so the eye lands on this
+            // card first when scanning the page.
+            <span
+              className={cls(styles.openFlag, styles.openFlagActive)}
+              aria-hidden="true"
+            />
           )}
           <div className={styles.gametype}>{gameTypeName}</div>
           {title && <div className={styles.title}>{title}</div>}
