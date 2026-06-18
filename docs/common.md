@@ -390,7 +390,5 @@ There are no FE tests covering routing as a whole (no E2E in this project), but 
 
 See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 
-- **`common.club_games` denormalized index.** Trigger-maintained roll-up across game schemas, for the cross-game aggregate queries (sort + paginate across all games, "most recent activity"). Not built; ClubPage's one-query-on-common.games + per-row `labelFor` dispatch is fine at current scale.
-- **Friends / presence.** The "you already know your friends" framing currently makes them unnecessary; revisit if and when the audience grows.
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
 - **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.clubs_gametypes` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.

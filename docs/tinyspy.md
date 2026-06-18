@@ -115,7 +115,7 @@ select (key_card ->> 7) from tinyspy.game_players
  where game_id = ? and seat = 'A';
 ```
 
-The fact that both views are stored on `game_players` rows that RLS lets either player read is a deliberate v1 trade-off — see the policy comment in the baseline migration. The convention is that client code only ever asks for `user_id = self`; nothing forbids the partner's key from being read but it's never queried in practice. Hardening this is on the deferred list (see [Open items](#open-items) below).
+The fact that both views are stored on columns that RLS lets either player read (`key_card_a` and `key_card_b` are both grant-readable to any club member) is a deliberate friends-only trade-off — see the policy comment in the baseline migration. The convention is that client code only ever asks for `user_id = self`; nothing forbids the partner's key from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
 
 ## RPCs
 
@@ -192,7 +192,7 @@ Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_
 
 `word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 
-The one liberal policy is `game_players_select` — it returns *all columns* of `game_players` for any player in the game, including the partner's `key_card`. Client code by convention filters to `user_id = self`. A harder version would split this into own-row reads + a `game_players_roster` view that omits `key_card`. See the policy comment in the baseline migration for the trade-off.
+`grant select on tinyspy.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
 
 ## Timer (browser-side, no server sync)
 
@@ -306,15 +306,11 @@ src/tinyspy/
 
 **Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
 
-### Hooks: realtime + Suspense patterns
+### Hooks: realtime patterns
 
-[`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts) is the canonical example of the patterns we use everywhere in this project:
+All three tinyspy data hooks ([`useGame`](../src/tinyspy/hooks/useGame.ts), [`useBoard`](../src/tinyspy/hooks/useBoard.ts), [`useClues`](../src/tinyspy/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
 
-- **Per-effect-run unique channel names.** `tinyspy:${gameId}:${crypto.randomUUID()}` so React StrictMode's double-mount doesn't collide on channel names. The channel is torn down in the effect's cleanup; the next mount gets a fresh suffix.
-- **Refetch on `SUBSCRIBED`.** When the realtime channel reaches the `SUBSCRIBED` state, we refetch the underlying data. This recovers from events missed between the initial fetch and the subscription going live.
-- **Separate fetches for cross-schema embeds.** PostgREST's schema cache doesn't resolve cross-schema FKs (the `tinyspy.game_players.user_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the profiles separately and merge in JS. See the comment inline.
-
-These patterns repeat in [`useBoard`](../src/tinyspy/hooks/useBoard.ts) and [`useClues`](../src/tinyspy/hooks/useClues.ts), and in the psychic-num and common hooks too. New hooks should follow this shape.
+One tinyspy-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `tinyspy.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
 
 ### Phase derivation
 
@@ -324,7 +320,7 @@ Components consume the phase as a single value and render accordingly. Centraliz
 
 ### Post-game peer-key reveal
 
-During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Open items → Harden `game_players_select`](#open-items)), the convention is "don't ask, don't see."
+During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
@@ -382,9 +378,8 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 Deferred or sketched but not built:
 
-- **Hardening `game_players_select`.** Currently any player can read the partner's `key_card`. The fix is to split into own-row reads + a `game_players_roster` view that omits the key. See the policy comment in the baseline migration.
 - **Mission / campaign mode.** Variable starting token counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
-- **Per-player guess UI.** Currently a single guesser at a time (the non-clue-giver during active play). Could expand to "either player can vote on a guess" for richer cooperative play, but that's a rules change, not just code.
+- **Tile `aria-label` for screen readers.** Board tiles in `BoardGrid.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the GameLog rewrite (colored words don't need text labels); a narrower helper would come back for this.
 
 ## File locations
 

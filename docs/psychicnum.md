@@ -118,7 +118,7 @@ This is the canonical recipe for **"expose a column the invoker can't see direct
 
 Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
 
-Tinyspy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md`'s note on game_players_select](tinyspy.md#row-level-security)).
+Tinyspy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md → Row-level security`](tinyspy.md#row-level-security)).
 
 ## RPCs
 
@@ -276,7 +276,7 @@ A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `go
 
 Reads from `psychicnum.games_state` (the view that exposes `target` conditionally on terminal status — see [The hidden-target mechanic](#the-hidden-target-mechanic)). `game.target: number | null` comes back directly: `null` while active, the actual number once terminal. No separate reveal effect.
 
-Subscribes to realtime on `psychicnum.{games, guesses}` over its own per-tab UUID-suffixed channel (`psychicnum:${gameId}:${uuid}`) for postgres-changes only. On any change, refetches the bundle. Follows the same patterns as tinyspy's hooks (per-effect unique channel name, refetch on `SUBSCRIBED`, separate fetches for cross-schema profile data).
+Drives off the shared [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts) factory with a two-table subscription on `psychicnum.{games, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
 The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 
@@ -316,26 +316,8 @@ select psychicnum.submit_guess((select id from g), 7);  -- correct!
 
 The `reset role` step is the noteworthy bit — clients can't write to `psychicnum.games` (no INSERT/UPDATE/DELETE grant on `authenticated`), so the test needs to drop back to `postgres` to do the override. This is only legal in tests; in production the RPC has the only path to write.
 
-## Open items / known scope-creep
+## Open items
 
-### `winner_id` is overspec'd
-
-The schema has `psychicnum.games.winner_id` — a per-game record of who landed the winning guess. **This contradicts the cooperative spec** — the spec is "if any player guesses, the team wins," with no individual attribution. The `winner_id` tracking is overspec — a pattern that fits tinyspy's turn-based who-did-what model but doesn't belong in a cooperative-team game.
-
-The recent GameOverModal refactor already dropped the FE-side `<ResultBanner>` that surfaced "[winner] guessed it" copy — the modal now reads as a uniform team-verdict ("You win!"), and the per-guess attribution still on `GuessHistory` carries the cooperative framing. The remaining cleanup is the schema side:
-
-| where | what to remove |
-|---|---|
-| `psychicnum_baseline.sql` | `winner_id` column on `psychicnum.games`; the `update ... set winner_id = caller_id` line in `submit_guess` |
-| `src/psychicnum/hooks/useGame.ts` | `winner_id` field on `PsychicnumGame` and from the `games_state` SELECT list |
-| `src/psychicnum/manifest.ts` | the `labelFor` already doesn't read `winner_id` directly (it reads `winner_username` from `common.games.status`, frozen there by `submit_guess`); just drop the `update ... set winner_id` line from the RPC, no FE change needed |
-| `tests/psychicnum/gameplay_test.sql` | the `winner_id` assertion |
-
-~20 lines of removal across 4 files. Not done yet because there's no functional pressure.
-
-### Other gaps
-
-- **No solo-mode UI** even though the RPCs allow any club size. Tied to the broader question of how solo-clubs surface in the UI; see [`common.md`'s solo-clubs section](common.md#solo-clubs).
 - **No anti-spam.** Friends-only audience; not a concern. The 7-guess cap caps damage anyway.
 
 ## File locations

@@ -36,22 +36,19 @@ Ported from an existing personal project ([`../connections`](https://github.com/
 
 In scope today:
 - Real puzzle archive (~1000+ puzzles, daily-updated upstream)
-- Date-picker setup form, defaulting to today's puzzle
+- Calendar picker in the setup dialog, defaulting to today's puzzle
+- Same-date opens the existing club game (no replay path — picking a date the club already has reopens that game rather than creating a new one)
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below)
-- Shared selection across all connected players via Broadcast
+- Shared selection across all connected players via Broadcast, with the per-player local-shuffle button
+- Hint dialog (modal listing each category's first word; opened from the GamePage menu)
 - Pause-on-disconnect overlay via Presence
-- Common chat (the existing `ClubChatPanel`)
+- Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
 
-Deliberately deferred (per the architecture-shake-out priority):
-- Hint feature ("show me the first word of each category")
-- Scratchpad (the connections repo's collaborative-editor takeover-lock thing)
-- Per-tile rise-and-fade animations
-- Per-player local shuffle
+Deliberately deferred:
+- Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — tracked under common/architecture, not wordknit-specific
+- Per-tile rise-and-fade animations on category match
 - Scheduled / automated puzzle import (today: manual `npm run puzzles:import`; eventually a GitHub Action or a Supabase scheduled Edge Function)
-- Calendar / "puzzle of the day" UX (today: bare `<input type="date">`; eventually a calendar with already-played indicators per club)
-- Per-club replay tracking (preventing or labelling already-played puzzles for a club)
-- Share dialog (the club is our share vehicle)
 - "Play next puzzle" affordances
 
 ## The "FE-knows-the-answer" decision
@@ -288,7 +285,7 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 **Drift across clients.** Two effects compound: wall-clock differences between machines (typically 30-50ms between NTP-synced consumer laptops), and per-pause broadcast latency (~30-100ms each time someone pauses or resumes). For a typical game with 1-2 pauses, total drift between two clients at end-of-game is well under 500ms. Invisible at friends-coop scale.
 
-**Known bug — leaving the page doesn't pause the timer.** The pause infrastructure (presence + manual) only tracks pauses observed by clients currently on the channel. If everyone navigates away, the wall clock keeps moving and the timer loses that gap. Documented as a deferred item in [deferred.md → Wordknit](deferred.md) — the fix is part of a broader UX reframe (replace "Leave game" with an explicit "Suspend game" affordance that pauses the game on the way out). Until then: use the manual Pause button if you need to step away during a count-down; navigating home while the clock is running will cost you the time.
+**Known bug — leaving the page doesn't pause the timer.** The pause infrastructure (presence + manual) only tracks pauses observed by clients currently on the channel. If everyone navigates away, the wall clock keeps moving and the timer loses that gap. Same root cause as the idle-tracking accumulator leak in [deferred.md → Common](deferred.md) — `useCommonGame`'s `unset_current_view` writes only fire when React's effect cleanup runs; navigate-while-running, browser crash, tab kill all skip it. Until that's mitigated (`navigator.sendBeacon` on `beforeunload`, or a mount-time staleness heuristic): use the manual Pause button if you need to step away during a count-down; navigating home while the clock is running will cost you the time.
 
 **The `useGameTimer` hook** (`src/common/hooks/useGameTimer.ts`) implements this. Built on React's `useSyncExternalStore` — the canonical pattern for "this hook observes an external time source" — so it satisfies the React-19 hook lint rules around impure calls during render. The hook is mode-aware (`countup` / `countdown(seconds)` / `none`), pause-aware (freezes the display while `paused`, accumulates pause windows so resume continues from where it left off), and recomputes-from-`Date.now()` rather than incrementing a counter (so backgrounded tabs and slept laptops catch up correctly when they return).
 
@@ -327,12 +324,11 @@ No FE test for the broadcast / presence plumbing — per [testing.md → What we
 
 ## Future work
 
-Tracked in [`deferred.md`](deferred.md) as it gets enumerated. The big ones already visible:
+Tracked in [`deferred.md`](deferred.md). The wordknit-specific ones today:
 
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
-- **Calendar picker.** Today's `<input type="date">` is the minimum-viable picker. A real calendar with per-club already-played indicators ("won" / "lost" / "in progress" coloring) is a natural follow-up.
-- **Per-club replay tracking.** A unique constraint on `(club_id, puzzle_id)` would prevent a club from replaying the same puzzle; informational tracking without enforcement is another option. Either way, the data is already there — `wordknit.games.puzzle_id` is the join.
-- **Real Connections / Wordknit-flavored UI polish** (rise-and-fade, scratchpad, hint, contributor ring, etc.) — deliberately deferred from the port. We're using this to shake out architectural decisions before re-introducing the polish surface area.
+- **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
+- **Split wordknit's realtime** into `useRealtimeRefetch`-driven postgres-changes + a separate hand-rolled effect for the stable-name selection broadcast. Queued as a focused refactor.
 
 ## File locations
 
