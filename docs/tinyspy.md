@@ -69,9 +69,9 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 |---|---|
 | 9 starting tokens, decrements only on neutral / voluntary stop | `games.turns_remaining` (default 9), decremented by `_end_turn` |
 | Turn alternates clue-giver | `games.current_clue_giver` flips in `_end_turn` |
-| Reveal label comes from the clue-giver's view | `submit_guess` looks up `game_players.key_card` for `current_clue_giver`, indexes by position |
+| Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
 | Sudden death on token = 0 | `_end_turn` flips `status = 'sudden_death'` when `turns_remaining` hits 0 |
-| Sudden-death reveal uses partner's view | `submit_guess` looks up `game_players.key_card` for the seat *opposite* to the caller |
+| Sudden-death reveal uses partner's view | `submit_guess` picks the `key_card_*` column for the seat *opposite* to the caller |
 | Win: 15 greens revealed | `submit_guess` counts `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
@@ -84,11 +84,12 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 
 | table | purpose |
 |---|---|
-| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. Play-state (`play_state` + `is_terminal`) lives on `common.games` — the per-gametype row carries only gametype-specific mechanics. |
-| `game_players` | Two seated players per game. Holds each player's `key_card` jsonb — a 25-element array of `'G' \| 'N' \| 'A'` matching `words.position`. FK to `common.profiles`. |
+| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
+
+There's no `tinyspy.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `tinyspy.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `tinyspy.games`'s seat columns answer "in which seat, with what key view."
 
 ### Play-state enum
 
@@ -107,15 +108,16 @@ There is **no `lobby` state** — under the club model, both members are seated 
 
 ### Key-card representation
 
-Each `game_players.key_card` is a 25-element jsonb array of `'G' | 'N' | 'A'`. Position `i` in the array maps to `tinyspy.words.position = i`. Each seat has its own row, so each player has their own view; the partner's row holds the partner's view, which is *different* (per the Duet distribution table above).
+The two seats' key views live as a pair of jsonb columns on `tinyspy.games`: `key_card_a` for seat A, `key_card_b` for seat B. Each is a 25-element array of `'G' | 'N' | 'A'`, indexed 0..24 matching `tinyspy.words.position`. The two columns hold *different* views (per the Duet distribution table above) — that asymmetry is the whole point of Duet, since each player sees greens the other doesn't.
 
 ```sql
--- seat A's view of position 7
-select (key_card ->> 7) from tinyspy.game_players
- where game_id = ? and seat = 'A';
+-- seat A's view of position 7 on a game
+select (key_card_a ->> 7) from tinyspy.games where id = ?;
 ```
 
-The fact that both views are stored on columns that RLS lets either player read (`key_card_a` and `key_card_b` are both grant-readable to any club member) is a deliberate friends-only trade-off — see the policy comment in the baseline migration. The convention is that client code only ever asks for `user_id = self`; nothing forbids the partner's key from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
+Why columns on the games row rather than a separate two-row child table: a single SELECT on `tinyspy.games` returns the full game state (seats, key views, turn state) in one round-trip — no join, no second query needed to render the board. The per-seat granularity that a child table would give (one row per seat, naturally row-scoped to a single player) was never load-bearing — RPCs always read both seats together (to pick the clue-giver's view vs the guesser's view during reveal resolution).
+
+The fact that both views are RLS-readable by either player (`grant select on tinyspy.games to authenticated` covers both columns; the `games_select` policy gates on club membership, not on seat) is a deliberate friends-only trade-off. The convention is that client code only ever asks for its own column; nothing forbids the partner's column from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
 
 ## RPCs
 
@@ -183,8 +185,9 @@ Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-cl
 
 | function | role |
 |---|---|
-| `tinyspy.is_player_in_game(target_game uuid) → boolean` | Security-definer RLS helper. Bypasses RLS in its body to prevent recursion when `game_players` policies need to ask "is the caller a player?". Marked `stable` so Postgres can cache it within a SELECT. |
 | `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
+
+Tinyspy doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
 
 ## Row-level security
 

@@ -53,7 +53,9 @@ The payoff: each game gets a clean namespace. Tinyspy and a hypothetical Boggle 
 
 ### RLS helpers
 
-Each game owns its own membership helper (`tinyspy.is_player_in_game`, `psychicnum` uses `common.is_club_member` directly because it has no seat structure). The reason a *common* `is_player_in_game` doesn't exist: the predicate would have to query that game's membership table, which only lives in that game's schema — exactly the cross-coupling the removability rule forbids.
+The membership check that all per-game RPCs use is `common.require_game_player(target_game)` — it reads `common.game_players` (the cross-game roster the common layer maintains) and either returns the caller's `user_id` or raises. The game-specific RPCs then derive seat / role from per-game state once authorization has passed; e.g., `tinyspy.submit_guess` reads the games row and pattern-matches `caller_id` against `user_a_id` / `user_b_id` to set `caller_seat`.
+
+For SELECT-policy gating, games use `common.is_club_member(club_id)` — the per-game game-id check would require querying the per-gametype games table from inside common, which is exactly the cross-coupling the removability rule forbids. Club-membership is a coarser predicate (any club member can read any of the club's games) but adequate under the friends-only trust model.
 
 Helpers are marked `STABLE` so Postgres can cache the result within a single SELECT. RLS policies invoke the helper once per row; without `STABLE` that becomes the dominant cost on any non-trivial query.
 
@@ -469,13 +471,13 @@ This matches the directory: `supabase/functions/tinyspy-suggest-clue/index.ts`.
 
 ### Cross-schema embeds (PostgREST)
 
-PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `tinyspy.game_players.user_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
+PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `tinyspy.games.user_a_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
 
 ```ts
 // This DOES NOT work cross-schema, even though the FK exists:
-supabase.schema('tinyspy').from('game_players')
-  .select('user_id, seat, profiles(username)')
-// → PGRST200 "Could not find a relationship between 'game_players'
+supabase.schema('tinyspy').from('games')
+  .select('id, user_a_id, profiles(username)')
+// → PGRST200 "Could not find a relationship between 'games'
 //             and 'profiles' in the schema cache"
 
 // The !fkname hint syntax doesn't rescue it either — same error.
