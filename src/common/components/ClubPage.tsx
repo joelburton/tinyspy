@@ -4,7 +4,6 @@ import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
-import { colorVarFor } from '../lib/memberColor'
 import { channelDedupSuffix } from '../lib/channelDedup'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
@@ -505,80 +504,69 @@ export function ClubPage({ session, handle }: Props) {
         />
       </header>
 
-      <main className={styles.main}>
-        {/* Club name lives in the main well, not the header —
-            matches GamePage's "no title in chrome" convention.
-            The logo carries identity at the header level; the
-            page body is where the canonical name + handle land. */}
-        <header>
-          <h1>{club.name}</h1>
-          <p className="muted">
-            <code>/c/{club.handle}</code>
-          </p>
-        </header>
+      {/* Two-column body that takes the rest of the viewport height
+          (per docs/ui.md → "Page-height fits the viewport"). Left
+          column holds the active game card + start-game buttons;
+          right column is the "Other games" list as a fixed-size
+          frame with internal overflow-y: auto. */}
+      <main className={styles.body}>
+        <section className={styles.left}>
+          <header className={styles.titleBlock}>
+            <h1 className={styles.title}>{club.name}</h1>
+          </header>
 
-        <section>
-          <h3>Members ({members.length})</h3>
-          <ul className={styles.memberList}>
-            {members.map((m) => (
-              <li key={m.user_id} className={styles.memberItem}>
-                <span
-                  className={styles.memberDot}
-                  style={{ background: colorVarFor(m.color) }}
-                  aria-hidden="true"
-                />
-                {m.username}
-                {m.user_id === session.user.id && (
-                  <span className="muted"> (you)</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {activeGame && (
-          <section>
-            <h3>Active game</h3>
-            <ClubGameCard
-              gameId={activeGame.gameId}
-              gametype={activeGame.gametype}
-              title={activeGame.title}
-              statusLabel={activeGame.statusLabel}
-              startedAt={activeGame.startedAt}
-              state="active"
-              onDelete={() => handleDelete(activeGame.gameId, true)}
-            />
-          </section>
-        )}
-
-        <section>
-          <h3>Start a new game</h3>
-          {/* Filter the registry by the club's allowed-gametype m2m
-              (one button per gametype this club may play) and let
-              StartGameButtons handle the rendering, in-flight state,
-              and disabled-for-doesn't-fit tooltip. ClubPage stays
-              game-agnostic; the RPC call lives inside the manifest.
-              Add boggle later and (assuming the m2m is populated for
-              this club) a button appears here automatically. */}
-          <StartGameButtons
-            games={games.filter((g) => allowedGametypes.has(g.gametype))}
-            memberCount={members.length}
-            onStartSetup={handleStartSetup}
-          />
           {activeGame && (
-            <p className="muted">
-              Starting a new game will suspend the currently active one
-              (you can resume it later from this page).
-            </p>
+            <div>
+              <h3>Active game</h3>
+              <ClubGameCard
+                gameId={activeGame.gameId}
+                gametype={activeGame.gametype}
+                title={activeGame.title}
+                statusLabel={activeGame.statusLabel}
+                startedAt={activeGame.startedAt}
+                state="active"
+                onDelete={() => handleDelete(activeGame.gameId, true)}
+              />
+            </div>
           )}
-          {startError && <p className="error">{startError}</p>}
+
+          <div>
+            <h3>Start a new game</h3>
+            {/* Filter the registry by the club's allowed-gametype m2m
+                (one button per gametype this club may play) and let
+                StartGameButtons handle the rendering, in-flight state,
+                and disabled-for-doesn't-fit tooltip. ClubPage stays
+                game-agnostic; the RPC call lives inside the manifest.
+                Add boggle later and (assuming the m2m is populated for
+                this club) a button appears here automatically. */}
+            <StartGameButtons
+              games={games.filter((g) => allowedGametypes.has(g.gametype))}
+              memberCount={members.length}
+              onStartSetup={handleStartSetup}
+            />
+            {activeGame && (
+              <p className="muted">
+                Starting a new game will suspend the currently active
+                one (you can resume it later from this page).
+              </p>
+            )}
+            {startError && <p className="error">{startError}</p>}
+          </div>
         </section>
 
-        {otherGames.length > 0 && (
-          <section>
-            <h3>Other games ({otherGames.length})</h3>
-            <div className="cardList">
-              {otherGames.slice(0, 20).map((g) => (
+        <section className={styles.right}>
+          <h3>Other games ({otherGames.length})</h3>
+          {/* Fixed-size frame with internal scroll. The frame has
+              flex: 1 inside the column, which has its own flex: 1
+              inside the body, which is bounded by the .frame's
+              calc(100vh - body padding) height. Each step of the
+              flex chain needs min-height: 0 so overflow-y: auto
+              actually kicks in. */}
+          <div className={styles.gamesList}>
+            {otherGames.length === 0 ? (
+              <p className="muted">No other games yet.</p>
+            ) : (
+              otherGames.map((g) => (
                 <ClubGameCard
                   key={g.gameId}
                   gameId={g.gameId}
@@ -589,15 +577,10 @@ export function ClubPage({ session, handle }: Props) {
                   state={g.isTerminal ? 'completed' : 'suspended'}
                   onDelete={() => handleDelete(g.gameId, false)}
                 />
-              ))}
-            </div>
-            {otherGames.length > 20 && (
-              <p className="muted">
-                + {otherGames.length - 20} older games not shown.
-              </p>
+              ))
             )}
-          </section>
-        )}
+          </div>
+        </section>
       </main>
 
       {/* hideClosedButton: the chat-bubble toggle lives in the
