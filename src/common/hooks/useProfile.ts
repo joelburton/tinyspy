@@ -2,12 +2,21 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 
+/** The slice of `common.profiles` the FE consumes today — the
+ *  identity fields used by greetings, the user menu badge, etc.
+ *  Add more columns as a real consumer arrives; the hook returns
+ *  the whole row so subscribers don't have to refetch. */
+export type Profile = {
+  username: string
+  color: string
+}
+
 /**
- * Look up the caller's username from `common.profiles`.
+ * Look up the caller's profile row from `common.profiles`.
  *
- * Returns `null` while the fetch is in flight (or if the row
- * is missing); switches to the resolved string once it lands.
- * Consumers typically render a placeholder (`…` / `Loading…`)
+ * Returns `null` while the fetch is in flight (or if the row is
+ * missing); switches to the resolved profile once it lands.
+ * Consumers typically render a placeholder (`…` / fallback color)
  * for the null tier.
  *
  * Dep is the user id (not the full session object), so background
@@ -20,28 +29,28 @@ import { db as commonDb } from '../db'
  * consumer arrives or this gets called from a deep tree, lift
  * the state into a shared store (cf. chatOpenStore).
  */
-export function useUsername(session: Session): string | null {
-  const [username, setUsername] = useState<string | null>(null)
+export function useProfile(session: Session): Profile | null {
+  const [profile, setProfile] = useState<Profile | null>(null)
 
-  useEffect(function loadUsername() {
+  useEffect(function loadProfile() {
     let mounted = true
     commonDb
       .from('profiles')
-      .select('username')
+      .select('username, color')
       .eq('user_id', session.user.id)
       .single()
       .then(({ data, error }) => {
         if (!mounted) return
         if (error) {
-          console.error('failed to load username', error)
+          console.error('failed to load profile', error)
           return
         }
-        setUsername(data.username)
+        setProfile({ username: data.username, color: data.color })
       })
     return () => {
       mounted = false
     }
   }, [session.user.id])
 
-  return username
+  return profile
 }

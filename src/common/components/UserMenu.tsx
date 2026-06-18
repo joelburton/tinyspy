@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
-import { useUsername } from '../hooks/useUsername'
+import { useProfile } from '../hooks/useProfile'
+import { colorVarFor } from '../lib/memberColor'
 import { supabase } from '../lib/supabase'
 import type { MenuSection } from '../lib/games'
 import { Menu } from './Menu'
@@ -36,7 +37,7 @@ type Props = {
  * off-screen.
  */
 export function UserMenu({ session }: Props) {
-  const username = useUsername(session)
+  const profile = useProfile(session)
 
   const sections: MenuSection[] = [
     {
@@ -71,7 +72,15 @@ export function UserMenu({ session }: Props) {
       <Menu
         trigger={
           <span className={styles.triggerContent}>
-            <span className={styles.name}>{username ?? '…'}</span>
+            {/* Profile-color dot, same visual vocabulary as the
+                PlayersStrip / ClubPage member-list dots. Reassures
+                the user "this is my color across the app." */}
+            <span
+              className={styles.dot}
+              style={{ background: colorVarFor(profile?.color) }}
+              aria-hidden
+            />
+            <span className={styles.name}>{profile?.username ?? '…'}</span>
             <ChevronDown />
           </span>
         }

@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { db as commonDb } from '../db'
-import { useUsername } from '../hooks/useUsername'
+import { useProfile } from '../hooks/useProfile'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -42,7 +42,7 @@ type Props = {
  * solo space without an `eq('created_by', …)` filter.
  */
 export function HomePage({ session }: Props) {
-  const username = useUsername(session)
+  const username = useProfile(session)?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
 
   // Load every club the caller is a member of, including their
