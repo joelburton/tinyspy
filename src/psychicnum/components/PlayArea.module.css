@@ -1,0 +1,65 @@
+/* Psychic Num play surface — two-column layout that mimics the
+ * shape of a real game (board on the left, controls + history on
+ * the right). Psychic Num doesn't have a board, so the left
+ * column is a styled placeholder reading "What's your guess?";
+ * the right column carries the input + submit row plus the
+ * append-only guess history.
+ *
+ * The placeholder isn't decoration — it claims the space a real
+ * game's board would occupy, so the page reads as a proper game
+ * surface rather than a thin form-with-a-list. Psychic Num is
+ * the deliberately-minimal toy game on the chopping block post-
+ * beta; investing real board UI here doesn't earn its keep.
+ *
+ * Terminal state bypasses this layout (the ResultBanner sits
+ * inline above the history). Eventually the result moves into
+ * a modal per docs/ui.md → "Modals for terminal results"; until
+ * then the inline-during-terminal shape stays simple. */
+
+.layout {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+/* Left column wrapper. flex: 1 to share width 50/50 with the
+ * right column. align-items: stretch on the parent makes this
+ * fill the row's full height, which makes the inner placeholder
+ * grow vertically to match the right column's content. */
+.boardArea {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+
+/* The "board" placeholder. Big rectangle reading "What's your
+ * guess?" — visual stand-in for where a real game's board
+ * (tiles, grid, etc.) would render. Centered, muted, generous
+ * height so it reads as a deliberate visual element rather than
+ * an oversized label. */
+.boardPlaceholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 16rem;
+  padding: 2rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+/* Right column: input row at the top, status line, history below.
+ * Stacked content with normal flow gaps. */
+.rightCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}

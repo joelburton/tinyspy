@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db } from '../db'
+import styles from './GuessForm.module.css'
 
 type Props = {
   gameId: string
@@ -68,9 +69,10 @@ export function GuessForm({ gameId }: Props) {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="actions">
+      <form onSubmit={handleSubmit} className={styles.form}>
         <input
           ref={inputRef}
+          className={styles.input}
           type="number"
           min={1}
           max={10}
