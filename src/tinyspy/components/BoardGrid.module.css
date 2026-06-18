@@ -1,0 +1,156 @@
+/* The 5×5 tinyspy board.
+ *
+ * Styles were previously co-located in PlayArea.module.css; moved
+ * here when PlayArea was restructured into the two-column layout
+ * so the board's chrome stays with the BoardGrid component itself.
+ *
+ * On reveal each tile commits to a solid label color (agent /
+ * neutral / assassin). Pre-reveal, the clue-giver's tiles show a
+ * tinted hint background that previews the seat's key label
+ * without committing. The grid uses `aspect-ratio: 5/3` per tile
+ * so a 5×5 board fits a typical laptop screen without
+ * shouting-wide tiles.
+ */
+
+.errorBanner {
+  background: var(--tinyspy-assassin-soft);
+  border: 1px solid var(--tinyspy-assassin);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  color: var(--color-error-soft-text);
+  font-size: 0.95rem;
+}
+
+/* --------- the 5×5 grid + tiles --------- */
+
+.boardGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.tile {
+  /* Roughly matches real Codenames cards' landscape shape and
+     keeps the whole 5×5 board on a laptop screen without
+     scrolling. */
+  aspect-ratio: 5 / 3;
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid transparent;
+  position: relative;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  /* Reset the global filled-blue button default — tiles have
+     their own per-state palette below (hint tints, revealed
+     solids, post-game stripes) and inherit from those. */
+  background: transparent;
+}
+
+.tileWord {
+  font-size: 0.95rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.tileKey {
+  font-size: 0.7rem;
+  align-self: flex-end;
+  opacity: 0.55;
+  font-family: ui-monospace, Menlo, monospace;
+  letter-spacing: 0.1em;
+}
+
+/* Hint variant: tinted background that previews the seat's key
+ * label without committing to a reveal. */
+.tileHint.tileAgent {
+  background: var(--tinyspy-agent-soft);
+  border-color: rgba(56, 161, 105, 0.4);
+}
+.tileHint.tileNeutral {
+  background: var(--tinyspy-neutral-soft);
+  border-color: rgba(180, 152, 110, 0.3);
+}
+.tileHint.tileAssassin {
+  background: var(--tinyspy-assassin-soft);
+  border-color: rgba(190, 60, 60, 0.45);
+}
+
+/* Revealed variant: solid color, applied after the reveal RPC
+ * resolves and Realtime propagates the row update. */
+.tileRevealed {
+  color: white;
+}
+.tileRevealed.tileAgent {
+  background: var(--tinyspy-agent);
+  border-color: var(--tinyspy-agent);
+}
+.tileRevealed.tileNeutral {
+  background: var(--tinyspy-neutral);
+  border-color: var(--tinyspy-neutral);
+  color: var(--tinyspy-neutral-text-dark);
+}
+.tileRevealed.tileAssassin {
+  background: var(--tinyspy-assassin-bg);
+  border-color: var(--color-control-border-2);
+}
+
+.tileClickable {
+  cursor: pointer;
+}
+.tileClickable:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.tile:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.tilePending {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* Post-game reveal: two stripes for the two key views, word in
+ * the middle. Used to show what each cell "actually was" on
+ * both seats once a game has ended. */
+.tilePostgame {
+  background: var(--color-surface);
+  border-color: var(--color-surface-border);
+  padding: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.tilePostgame .tileWord {
+  padding: 0.4rem 0.5rem;
+  align-self: center;
+}
+
+.tileStripe {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 0.15rem 0.4rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+.tileStripe.tileAgent {
+  background: var(--tinyspy-agent);
+  color: white;
+}
+.tileStripe.tileNeutral {
+  background: var(--tinyspy-neutral);
+}
+.tileStripe.tileAssassin {
+  background: var(--tinyspy-assassin-bg);
+  /* Hardcoded white because --tinyspy-assassin-bg is a dark fill
+     in both themes (the "ominous" look); --color-text inverts
+     with the theme and would go invisible-on-dark in light
+     mode. */
+  color: white;
+}

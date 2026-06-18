@@ -4,7 +4,7 @@ import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
-import styles from './PlayArea.module.css'
+import styles from './BoardGrid.module.css'
 
 /**
  * Per-label module-class lookup. Local to BoardGrid since it's the
