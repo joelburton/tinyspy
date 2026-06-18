@@ -128,11 +128,13 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the psychic-num detail row with `guesses_remaining` initialized from `setup.guesses`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('guesses_remaining', setup.guesses))` to seed the listing-label payload. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
 
-A note on the title: putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
-
 **Player-count gate.** `common.require_player_count_max(player_user_ids, 6)`. Matches the manifest's `numberOfPlayers: [1, 6]`. No minimum-of-2 check; solo play is fine — the game logic doesn't care how many people are guessing.
 
 Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
+
+### Title formula
+
+The target number as text (`"7"`). Putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
 
 ### `psychicnum.submit_guess(target_game uuid, guess int) → text`
 

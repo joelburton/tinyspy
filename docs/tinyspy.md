@@ -131,6 +131,10 @@ Reject reasons: not authenticated; non-member; club doesn't have exactly 2 membe
 
 The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. Inlined directly in `create_game` rather than extracted into a helper — `create_game` is the only place that generates a board, so there's no duplication to factor out.
 
+### Title formula
+
+`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`. The two-player invariant means seats are stable across a game's life, so the formula reads as a duel ("ada-v-bea"); the 4 picked words anchor recognizing one game vs. another in a club's history.
+
 ### `tinyspy.submit_clue(target_game uuid, word text, clue_count int)`
 
 Inserts a clue for the current turn. Reject reasons:
