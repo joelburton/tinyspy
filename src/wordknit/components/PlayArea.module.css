@@ -178,15 +178,38 @@
   }
 }
 
+/* Bottom action row beneath the tile grid. Layout:
+ *
+ *   Mistakes remaining ●●●○                 Shuffle  Clear  Submit
+ *   ↑ left, muted text + dots                ↑ right, action buttons
+ *
+ * Baseline-aligned across the row so the "Mistakes remaining"
+ * text shares a baseline with the button labels (looks tidier than
+ * top-aligned when the dots stand at a different vertical mid-line
+ * than button labels). */
 .actions {
   display: flex;
   justify-content: flex-end;
+  align-items: baseline;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
 .actions button {
   min-width: 7rem;
+}
+
+/* The mistakes-remaining group on the left. margin-right: auto
+ * pushes everything after it to the right edge, giving the
+ * intended "left vs. right" split without needing a wrapping
+ * div around the buttons. */
+.actionsLeft {
+  margin-right: auto;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 

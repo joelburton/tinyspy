@@ -220,20 +220,15 @@ export function PlayArea({
             wide screens (and stacks below on narrow ones — see
             the CSS media query). */}
         <div className={styles.boardCol}>
-          <div className="muted">
-            {gameOver ? (
-              playState === 'solved'
+          {gameOver && (
+            <div className="muted">
+              {playState === 'solved'
                 ? 'Solved!'
                 : timer.expired
                   ? 'Out of time.'
-                  : 'Out of guesses.'
-            ) : (
-              <>
-                Mistakes remaining
-                <MistakeDots used={game.mistake_count} />
-              </>
-            )}
-          </div>
+                  : 'Out of guesses.'}
+            </div>
+          )}
 
           <HintModal
             categories={game.board.categories}
@@ -256,6 +251,17 @@ export function PlayArea({
 
           {!gameOver && (
             <div className={styles.actions}>
+              {/* Mistakes-remaining on the left, baseline-aligned
+                  with the action buttons on the right. The mistakes
+                  dots are the at-a-glance "how many wrong guesses
+                  can we still afford" indicator; sitting next to
+                  the Submit button makes the cost of a bad guess
+                  visible the instant the player thinks about
+                  hitting Submit. */}
+              <div className={styles.actionsLeft}>
+                Mistakes remaining{' '}
+                <MistakeDots used={game.mistake_count} />
+              </div>
               <button
                 type="button"
                 className="secondary"
