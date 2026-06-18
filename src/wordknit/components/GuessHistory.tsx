@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { colorVarFor } from '../../common/lib/memberColor'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
@@ -34,13 +35,15 @@ type Props = {
  *   - **Wrong** — red. "Not a match" — short enough to not
  *     dominate the row.
  *
- * Latest first: most players want to scan "what did we just try
- * and what came of it" before the older history. The board
- * shows the current state; the history shows the path to it.
+ * Chronological order (oldest at top, latest at bottom) — the
+ * list scrolls and auto-snaps to the bottom on every new guess
+ * (see the effect below). Same UX as a chat panel: read top-down
+ * to retrace the game, the latest action is always in view.
  */
 export function GuessHistory({ guesses, matchedCategories, players }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
+  const listRef = useRef<HTMLOListElement>(null)
 
   // Build a rank → name lookup once for the matched-category
   // attribution. Each rank appears at most once in
@@ -51,14 +54,29 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
     matchedCategories.map((m) => [m.rank, m.name]),
   )
 
+  // Auto-scroll the list to the bottom whenever a new guess
+  // lands — same "always snap to latest" pattern ChatBody uses
+  // for chat messages. With chronological order (oldest at top),
+  // this keeps the most recent guess in view.
+  //
+  // Simple, not polished: doesn't check whether the user has
+  // scrolled up to review older guesses. In practice the player
+  // is usually acting then watching their action land, so the
+  // yank is rarely felt; revisit if it bites.
+  useEffect(function scrollToLatest() {
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [guesses])
+
   return (
     <section className={styles.history}>
       <h3 className={styles.heading}>Guesses</h3>
       {guesses.length === 0 ? (
         <p className="muted">No guesses yet.</p>
       ) : (
-        <ol className={styles.list}>
-          {[...guesses].reverse().map((g) => {
+        <ol ref={listRef} className={styles.list}>
+          {guesses.map((g) => {
             const guesser = playerFor(g.user_id)
             return (
               <li

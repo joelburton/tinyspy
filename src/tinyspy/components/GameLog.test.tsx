@@ -69,7 +69,7 @@ describe('GameLog', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('groups guesses under the turn whose clue they belong to, latest turn first', () => {
+  it('groups guesses under the turn whose clue they belong to, oldest turn first', () => {
     const clues = [
       clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'TOOLS', count: 2 }),
       clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'DRINK', count: 1 }),
@@ -92,17 +92,18 @@ describe('GameLog', () => {
     const turns = screen.getAllByRole('listitem')
     expect(turns).toHaveLength(2)
 
-    // Latest turn (2) appears first.
-    expect(turns[0]).toHaveTextContent('Turn 2')
-    expect(turns[0]).toHaveTextContent('DRINK')
-    expect(within(turns[0]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
-    expect(within(turns[0]).getByText('neutral')).toBeInTheDocument()
+    // Oldest turn (1) appears first in chronological order.
+    expect(turns[0]).toHaveTextContent('Turn 1')
+    expect(turns[0]).toHaveTextContent('TOOLS')
+    expect(within(turns[0]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
+    expect(within(turns[0]).getByText('green')).toBeInTheDocument()
 
-    // Older turn (1) below.
-    expect(turns[1]).toHaveTextContent('Turn 1')
-    expect(turns[1]).toHaveTextContent('TOOLS')
-    expect(within(turns[1]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
-    expect(within(turns[1]).getByText('green')).toBeInTheDocument()
+    // Latest turn (2) below — auto-scroll keeps it in view in the
+    // real app, but the DOM order is oldest-first.
+    expect(turns[1]).toHaveTextContent('Turn 2')
+    expect(turns[1]).toHaveTextContent('DRINK')
+    expect(within(turns[1]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
+    expect(within(turns[1]).getByText('neutral')).toBeInTheDocument()
   })
 
   it('sorts guesses within a turn by revealed_at', () => {

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
@@ -20,11 +21,11 @@ type Props = {
  * Same semantic palette across games — "wrong guess" reads the
  * same in wordknit as it does here.
  *
- * **Latest first.** Most players want to see what they JUST
- * guessed and what happened, not scan from the start. The list
- * scrolls inside its own frame (see the `.list` styles + the
- * parent column's bounded height in PlayArea.module.css) so a
- * long history doesn't push the page past the viewport.
+ * **Chronological order** (oldest at top, latest at bottom).
+ * The list scrolls inside its own frame (see the `.list` styles
+ * + the parent column's bounded height in PlayArea.module.css)
+ * and auto-snaps to the bottom on every new guess via the
+ * effect below — same UX as a chat panel.
  *
  * The pattern carries forward to harder games: tinyspy's clue +
  * guess log, future game move lists. When those land, each
@@ -34,6 +35,16 @@ type Props = {
 export function GuessHistory({ guesses, players }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
+  const listRef = useRef<HTMLOListElement>(null)
+
+  // Auto-scroll to the latest on every guess — see the
+  // wordknit GuessHistory for the rationale; same simple
+  // pattern as ChatBody's autoScrollToBottom.
+  useEffect(function scrollToLatest() {
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [guesses])
 
   return (
     <section className={styles.history}>
@@ -41,8 +52,8 @@ export function GuessHistory({ guesses, players }: Props) {
       {guesses.length === 0 ? (
         <p className="muted">No guesses yet.</p>
       ) : (
-        <ol className={styles.list}>
-          {[...guesses].reverse().map((g) => {
+        <ol ref={listRef} className={styles.list}>
+          {guesses.map((g) => {
             const guesser = playerFor(g.user_id)
             return (
               <li

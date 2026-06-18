@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ClueRow } from '../hooks/useClues'
 import type { WordRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
@@ -17,9 +18,14 @@ type Props = {
 
 /**
  * Turn-by-turn replay in the right column, beneath the action slot.
- * Latest turn at the top; within a turn, the clue is listed first
- * and then each guess in chronological order so each turn reads
- * as a small top-down narrative.
+ * Chronological order: oldest turn at the top, latest at the bottom.
+ * Within a turn, the clue is listed first and then each guess in
+ * chronological order — each turn reads as a small top-down
+ * narrative, and the log overall reads top-down too.
+ *
+ * The list auto-scrolls to the bottom on every new clue or guess
+ * (see the effect below) — same pattern as wordknit / psychic-num
+ * GuessHistory and ChatBody.
  *
  * **Visual register** matches wordknit + psychic-num's
  * `<GuessHistory>`: each guess is a small card with a 10px-wide
@@ -45,6 +51,18 @@ type Props = {
  * long history doesn't push the page past the viewport.
  */
 export function GameLog({ clues, words, players }: Props) {
+  const listRef = useRef<HTMLOListElement>(null)
+
+  // Auto-scroll to the bottom on every new clue or guess —
+  // ChatBody-style "always snap to latest." Effect runs even
+  // when listRef is null (empty state); the early null-check on
+  // the ref makes that a no-op.
+  useEffect(function scrollToLatest() {
+    const el = listRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [clues, words])
+
   if (clues.length === 0) return null
 
   // seat letter → Player so each clue / guess row can resolve back
@@ -66,19 +84,19 @@ export function GameLog({ clues, words, players }: Props) {
 
   // Turns may exist in the clue list, in the guess list, or both.
   // Union the turn numbers so the log shows every turn that did
-  // anything. Sorted descending so the latest turn appears at the
-  // top of the log.
+  // anything. Sorted ascending so the oldest turn is at the top
+  // of the log; the auto-scroll effect keeps the latest in view.
   const turnNumbers = Array.from(
     new Set([
       ...clues.map((c) => c.turn_number),
       ...guesses.map((g) => g.revealed_in_turn ?? 0),
     ]),
-  ).sort((a, b) => b - a)
+  ).sort((a, b) => a - b)
 
   return (
     <section className={styles.gameLog}>
       <h3 className={styles.heading}>Game log</h3>
-      <ol className={styles.list}>
+      <ol ref={listRef} className={styles.list}>
         {turnNumbers.map((t) => {
           const clue = clues.find((c) => c.turn_number === t)
           const clueGiver = clue ? playerBySeat.get(clue.by_seat) : undefined
