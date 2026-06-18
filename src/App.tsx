@@ -5,6 +5,7 @@ import { ClubPage } from './common/components/ClubPage'
 import { CreateClubPage } from './common/components/CreateClubPage'
 import { GamePage } from './common/components/GamePage'
 import { HomePage } from './common/components/HomePage'
+import { UserMenu } from './common/components/UserMenu'
 import { usePath } from './common/lib/router'
 import { games } from './games'
 
@@ -56,53 +57,65 @@ export default function App() {
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
 
-  // Club routes — common UI, no game involvement.
+  // Resolve the current route to a page component. UserMenu is
+  // mounted as a sibling below — appears on every authenticated
+  // screen with no per-page wiring (see docs/ui.md → "UserMenu").
+  let page
   if (path === '/c/new') {
-    return <CreateClubPage session={session} />
-  }
-  const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
-  if (clubMatch) {
-    return <ClubPage session={session} handle={clubMatch[1]} />
-  }
-
-  // Game routes — GamePage shell + the manifest's PlayArea as a
-  // render-prop child. Path shape: /g/<gametype>/<gameId>. Anything
-  // else under /g/ falls through to HomePage (rather than rendering
-  // a broken game screen), matching the "be forgiving with URLs"
-  // stance.
-  const gameMatch = path.match(/^\/g\/([a-z0-9]+)\/([0-9a-f-]+)\/?$/i)
-  if (gameMatch) {
-    const [, gametype, gameId] = gameMatch
-    const game = games.find((g) => g.gametype === gametype)
-    if (!game) {
-      return (
-        <div className="card">
-          <h1>Unknown game type</h1>
-          <p className="error">
-            No registered game called <code>{gametype}</code>.
-          </p>
-        </div>
-      )
+    page = <CreateClubPage session={session} />
+  } else {
+    const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
+    if (clubMatch) {
+      page = <ClubPage session={session} handle={clubMatch[1]} />
+    } else {
+      // Game routes — GamePage shell + the manifest's PlayArea
+      // as a render-prop child. Path shape: /g/<gametype>/<gameId>.
+      // Anything else under /g/ falls through to HomePage (rather
+      // than rendering a broken game screen), matching the
+      // "be forgiving with URLs" stance.
+      const gameMatch = path.match(/^\/g\/([a-z0-9]+)\/([0-9a-f-]+)\/?$/i)
+      if (gameMatch) {
+        const [, gametype, gameId] = gameMatch
+        const game = games.find((g) => g.gametype === gametype)
+        if (!game) {
+          page = (
+            <div className="card">
+              <h1>Unknown game type</h1>
+              <p className="error">
+                No registered game called <code>{gametype}</code>.
+              </p>
+            </div>
+          )
+        } else {
+          const PlayArea = game.PlayArea
+          page = (
+            <GamePage
+              key={gameId}
+              gameId={gameId}
+              session={session}
+              gametype={gametype}
+            >
+              {(ctx) => (
+                <Suspense fallback={<p>Loading game…</p>}>
+                  <PlayArea {...ctx} />
+                </Suspense>
+              )}
+            </GamePage>
+          )
+        }
+      } else {
+        // Fallback (including the bare `/`): land on home. Better
+        // UX than a 404 for a typo'd URL; if it matters we add a
+        // real not-found screen later.
+        page = <HomePage session={session} />
+      }
     }
-    const PlayArea = game.PlayArea
-    return (
-      <GamePage
-        key={gameId}
-        gameId={gameId}
-        session={session}
-        gametype={gametype}
-      >
-        {(ctx) => (
-          <Suspense fallback={<p>Loading game…</p>}>
-            <PlayArea {...ctx} />
-          </Suspense>
-        )}
-      </GamePage>
-    )
   }
 
-  // Fallback (including the bare `/`): land on home. Better UX
-  // than a 404 for a typo'd URL; if it matters we add a real
-  // not-found screen later.
-  return <HomePage session={session} />
+  return (
+    <>
+      {page}
+      <UserMenu session={session} />
+    </>
+  )
 }

@@ -1,0 +1,48 @@
+/* The UserMenu's fixed-position anchor at the top-right of the
+ * viewport. Sits in the body's empty 2rem padding zone above
+ * any page header.
+ *
+ * z-index 100 puts the trigger above ordinary page content but
+ * below the 500-tier modals (SuspendConfirmDialog, HintModal,
+ * SetupGameDialog) — when one of those is open, the modal
+ * takes priority. The menu's popover, when open, uses
+ * Menu.module.css's 1500 z-index, so the dropdown wins against
+ * modals if you somehow manage to open it over one.
+ */
+
+.anchor {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 100;
+}
+
+/* Override <Menu>'s default trigger padding for a tighter look —
+ * Joel called for "small and have very little padding (we'll be
+ * tight on space)." Keeps the trigger from claiming much of the
+ * empty top-right zone. */
+.trigger {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  /* Slightly muted base text color so the trigger reads as
+   * chrome rather than primary content; hover/focus restore
+   * full color via Menu's own rules. */
+  color: var(--color-muted);
+}
+
+.triggerContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.name {
+  /* Cap an unusually long username so the trigger never grows
+   * past a sensible width. Ellipsis on overflow. Unlikely to
+   * fire today (most usernames are short), but cheap insurance. */
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

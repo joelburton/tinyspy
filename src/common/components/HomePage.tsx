@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { db as commonDb } from '../db'
+import { useUsername } from '../hooks/useUsername'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -41,32 +42,8 @@ type Props = {
  * solo space without an `eq('created_by', …)` filter.
  */
 export function HomePage({ session }: Props) {
-  const [username, setUsername] = useState<string | null>(null)
+  const username = useUsername(session)
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
-
-  // Load the caller's username for the greeting. Dep is the user id
-  // (not the full session object), so background token refreshes —
-  // which return a new Session reference with the same user — don't
-  // trigger a refetch.
-  useEffect(function loadUsername() {
-    let mounted = true
-    commonDb
-      .from('profiles')
-      .select('username')
-      .eq('user_id', session.user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (!mounted) return
-        if (error) {
-          console.error('failed to load profile', error)
-          return
-        }
-        setUsername(data.username)
-      })
-    return () => {
-      mounted = false
-    }
-  }, [session.user.id])
 
   // Load every club the caller is a member of, including their
   // solo club. Sort newest-first; the render layer partitions

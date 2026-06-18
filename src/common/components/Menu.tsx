@@ -29,6 +29,13 @@ type Props = {
    *  add per-context styling (sizing, padding). The base
    *  `styles.trigger` already handles button reset + hover. */
   triggerClassName?: string
+  /** Which edge of the trigger the popover aligns to. Default
+   *  `left` (popover's left edge sits at the trigger's left
+   *  edge — the right thing for a left-side trigger like the
+   *  GamePage logo). Set to `right` for triggers at the right
+   *  side of the screen (the UserMenu in the top-right corner),
+   *  so the popover doesn't overflow off-screen to the right. */
+  popoverAlign?: 'left' | 'right'
 }
 
 /**
@@ -66,6 +73,7 @@ export function Menu({
   sections,
   triggerLabel = 'Menu',
   triggerClassName,
+  popoverAlign = 'left',
 }: Props) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
@@ -226,7 +234,10 @@ export function Menu({
       {open && (
         <div
           ref={popoverRef}
-          className={styles.popover}
+          className={cls(
+            styles.popover,
+            popoverAlign === 'right' && styles.popoverRight,
+          )}
           role="menu"
           aria-label={triggerLabel}
           onKeyDown={onPopoverKeyDown}
