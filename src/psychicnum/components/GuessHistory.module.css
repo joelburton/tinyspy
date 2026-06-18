@@ -1,0 +1,101 @@
+/* Guess history for psychicnum's right column.
+ *
+ * Mirrors wordknit's `GuessHistory` card pattern: a 10px-wide
+ * colored strip on the left of each row signals the verdict
+ * (green for correct, red for wrong), card body transparent
+ * with a thin surface-border on the other three sides for
+ * definition. One semantic palette across games — a wordknit
+ * "wrong guess" row should look like a psychicnum "wrong
+ * guess" row.
+ *
+ * The list is the scrolling region inside the right column —
+ * the column has a bounded height (the PlayArea's height: 100vh
+ * calculation), so when guesses pile up they scroll within the
+ * list instead of pushing the page past the viewport. Per
+ * docs/ui.md → "Page-height fits the viewport."
+ */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* The list IS the scrolling sub-frame. flex: 1 + min-height: 0
+   * = "take whatever vertical space remains in the column and
+   * scroll internally when content exceeds it." */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Card body: thin surface-bound on three sides for definition,
+ * thick (10px) colored strip on the left for the verdict signal.
+ * Background stays transparent so the page surface shows through
+ * — the variants only ever set `border-left-color`. */
+.item {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-border);
+  border-left-width: 10px;
+  padding: 0.45rem 0.6rem 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.item_correct {
+  border-left-color: var(--color-outcome-won-border);
+}
+.item_wrong {
+  border-left-color: var(--color-outcome-lost-border);
+}
+
+/* The guessed number — bigger and bolder so the row reads "this
+ * is what they guessed" at a glance. */
+.number {
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  /* Fixed-ish width via tabular-nums so a list of single- and
+   * two-digit guesses doesn't have a jagged left-of-meta edge. */
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+.user {
+  font-weight: 600;
+}
+
+.separator {
+  color: var(--color-muted);
+  margin: 0 0.35rem;
+}
