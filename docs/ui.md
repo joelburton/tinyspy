@@ -100,6 +100,35 @@ Not a big-bang refactor — these get fixed game-by-game as we work through the 
 - **Tinyspy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
+## Page-height fits the viewport
+
+**A page's height equals the viewport's height — content scrolls within fixed sub-frames, not by scrolling the page itself.** Same intent as native apps and the games we replace (NYT Connections in the browser, Wordle, Boggle on a phone): the chrome stays put; growth-prone surfaces (chat, guess history, club's games list) absorb height inside their own frames via `overflow-y: auto`.
+
+Why this matters:
+
+- **Chrome stays predictable.** Headers, status slots, action rows live where the user expects them at all times — accidentally scrolling the page can't hide them.
+- **Game surfaces don't get clipped.** A crossword grid pushed half-off-screen because the user nudged a trackpad is broken UX. The page can't scroll; only the parts that *should* scroll do.
+- **Pairs with [Layout stability](#layout-stability).** Together: shape doesn't change during play (Layout stability), AND shape never grows past the viewport (this rule). State updates rotate content within slots; long lists scroll within sub-frames; the document itself never moves.
+
+### Rolling out
+
+Game-by-game and page-by-page, not a global `body { overflow: hidden }` bomb. Pages that already fit naturally don't need work; pages that overflow get a refactor when we sweep them.
+
+Today this principle binds on:
+
+- **ClubPage** — fits the viewport via `height: calc(100vh - body padding)`; the "Other games" list is a fixed-size frame with internal scroll. See [ClubPage header](#clubpage-header) below.
+
+Future targets:
+
+- GamePage (already mostly fits; needs a sweep for long terminal-state result lists).
+- Each per-game PlayArea — crosswords + future word-grid games are the most demanding.
+
+### Patterns that follow from it
+
+- **Internal scroll on growth-prone lists.** Chat history, guess log, clue list, game roster. The container has a fixed height (often via `flex: 1; min-height: 0` inside a column-flex parent that's bounded); `overflow-y: auto` makes it scroll.
+- **Two-column layouts above a certain content threshold.** When vertical space runs out, split sideways instead of letting one column grow. ClubPage's "active + start" vs "other games" is the canonical example.
+- **Modals for rare-and-rich.** When a page genuinely needs more space than the viewport offers and columns don't help, reach for a modal before letting the page grow. Same intuition as [Modals for terminal results](#modals-for-terminal-results) above.
+
 ## Theme: one global theme today
 
 The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Per-game theme files (currently just [`tinyspy/theme.css`](../src/tinyspy/theme.css)) declare additional tokens scoped to that game's gameplay surface.
@@ -274,7 +303,12 @@ The club page wears the same chrome the game page does. Same "no title in the he
 - **Rename club** — placeholder. Click pops a "Coming soon" `timed` feedback pill.
 - **Delete club** — placeholder. Same.
 
-**Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The main content well below the header keeps its existing `.card` constraint (max-width 480px, centered). The previous "whole page is one card" wrapping gave way to a frame with a header + a main card so the header has room to breathe.
+**Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The body below the header is a two-column flex row that takes the rest of the viewport height (per [Page-height fits the viewport](#page-height-fits-the-viewport)):
+
+- **Left column** — the club name + handle, the active game card (when there is one), and the per-gametype Start buttons. Stacked content, no internal scroll.
+- **Right column** — the "Other games" list as a fixed-size frame with internal `overflow-y: auto`. Suspended games carry their yellow corner flag; completed games sit alongside, muted. The friends can scroll back through history without the rest of the page moving.
+
+The body Members list and the `/c/<handle>` URL line are gone — the header's `<PlayersStrip>` carries identity, and the URL is in the browser address bar already.
 
 ### Components
 
