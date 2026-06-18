@@ -26,7 +26,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(23);
+select plan(24);
 
 \ir ../_shared/setup.psql
 
@@ -329,6 +329,34 @@ select is(
     where club_id = (select id from club) and gametype = 'psychicnum'),
   'none',
   'saved defaults: psychicnum saves timer.kind verbatim'
+);
+
+-- ============================================================
+-- Player-count upper bound: 7+ entries rejected with P0001
+-- ============================================================
+-- Mirrors the [1, 6] cap declared on src/psychicnum/manifest.ts.
+-- The count check fires before any membership check, so 5 random
+-- UUIDs alongside ada+bea is enough to trip it without needing a
+-- 7-member club.
+
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L::uuid,
+                                     '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+                                     array[
+                                       'ada11111-1111-1111-1111-111111111111'::uuid,
+                                       'bea22222-2222-2222-2222-222222222222'::uuid,
+                                       gen_random_uuid(),
+                                       gen_random_uuid(),
+                                       gen_random_uuid(),
+                                       gen_random_uuid(),
+                                       gen_random_uuid()
+                                     ]) $$,
+    (select id from club)
+  ),
+  'P0001',
+  null,
+  'create_game: rejects player_user_ids with > 6 entries (max 6)'
 );
 
 -- ============================================================

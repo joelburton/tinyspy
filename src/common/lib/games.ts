@@ -227,9 +227,13 @@ export type GameManifest = {
   timerMode?: TimerMode
 
   /**
-   * Supported player-count range `[min, max | null]`. `null` =
-   * no upper bound. Exact-match games use the same number for
-   * both ends (e.g. `[2, 2]`).
+   * Supported player-count range `[min, max]`. Both ends required;
+   * unbounded `null` upper ends aren't allowed because every game
+   * benefits from a hard cap (the FE rendering, the realtime
+   * channel load, the chat surface area — all assume a bounded
+   * count). For an "any club" game, pick a reasonable max — today
+   * we use 6 for all the open-N games (wordknit, psychic-num,
+   * freebee) and `[2, 2]` for fixed-seat tinyspy.
    *
    * The shell uses this to decide whether the "Start" button is
    * hidden / disabled / enabled (in combination with the
@@ -240,7 +244,7 @@ export type GameManifest = {
    * cross-reference comments. Drift fails loudly (RPC rejects);
    * see docs/code-conventions.md → "Per-game player counts."
    */
-  numberOfPlayers: [number, number | null]
+  numberOfPlayers: [number, number]
 
   /**
    * The gametype-specific play surface. Mounted inside
@@ -347,35 +351,28 @@ export type TimerMode =
 
 /**
  * Does a player count fall inside a gametype's supported range?
- * `range[1] === null` means "no upper bound." Used by ClubPage
- * (Start button enable/disable) and HomePage (which solo-game
- * buttons to surface).
+ * Used by ClubPage (Start button enable/disable) and HomePage
+ * (which solo-game buttons to surface).
  */
 export function playerCountFits(
   range: GameManifest['numberOfPlayers'],
   count: number,
 ): boolean {
   const [min, max] = range
-  if (count < min) return false
-  if (max !== null && count > max) return false
-  return true
+  return count >= min && count <= max
 }
 
 /**
  * Human-readable description of the player-count requirement,
  * for tooltip text on a disabled Start button.
  *
- *   [2, 2]    → "Needs exactly 2 members"
- *   [1, 4]    → "Needs 1–4 members"
- *   [3, null] → "Needs at least 3 members"
+ *   [2, 2] → "Needs exactly 2 members"
+ *   [1, 6] → "Needs 1–6 members"
  */
 export function playerCountLabel(
   range: GameManifest['numberOfPlayers'],
 ): string {
   const [min, max] = range
-  if (max === null) {
-    return `Needs at least ${min} ${min === 1 ? 'member' : 'members'}`
-  }
   if (min === max) {
     return `Needs exactly ${min} ${min === 1 ? 'member' : 'members'}`
   }
@@ -386,16 +383,13 @@ export function playerCountLabel(
  * Compact player-count rendering for the Start-game button's
  * subtle meta line. Pair with the gametype's shortDescription.
  *
- *   [2, 2]    → "2 players"
- *   [1, 4]    → "1–4 players"
- *   [3, null] → "3+ players"
- *   [1, null] → "1+ players"
+ *   [2, 2] → "2 players"
+ *   [1, 6] → "1–6 players"
  */
 export function playerCountShort(
   range: GameManifest['numberOfPlayers'],
 ): string {
   const [min, max] = range
-  if (max === null) return `${min}+ players`
   if (min === max) return `${min} ${min === 1 ? 'player' : 'players'}`
   return `${min}–${max} players`
 }

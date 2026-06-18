@@ -114,7 +114,7 @@ The one entry point. Verifies caller is a club member, validates `setup.puzzleId
 
 Reject reasons: not authenticated; not a member; missing/malformed `setup.puzzleId`; `setup.puzzleId` doesn't reference a known puzzle (P0002 `'puzzle not found'`); bad `setup.timer` shape.
 
-**No minimum-club-size check** — wordknit plays with any club size (matches the manifest's `numberOfPlayers: [1, null]`).
+**Player-count gate** — `common.require_player_count_max(player_user_ids, 6)`. Matches the manifest's `numberOfPlayers: [1, 6]`. No minimum-of-2 check; solo play is fine.
 
 ### `wordknit.submit_guess(target_game uuid, tiles text[], result text, matched_category_rank int default null)`
 

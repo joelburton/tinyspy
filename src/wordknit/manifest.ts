@@ -31,11 +31,11 @@ export const wordknitGame: GameManifest = {
     import('./components/Help').then((m) => ({ default: m.Help })),
   ),
 
-  // Plays solo (1 player at their solo club) or coop (any number
-  // of club members poke at the same board). Must agree with the
-  // (absence of a) member-count check in wordknit.create_game.
-  // See docs/code-conventions.md → "Per-game player counts".
-  numberOfPlayers: [1, null],
+  // Plays solo (1 player at their solo club) or coop (up to 6 club
+  // members poke at the same board). Must agree with the
+  // member-count check in wordknit.create_game. See
+  // docs/code-conventions.md → "Per-game player counts".
+  numberOfPlayers: [1, 6],
 
   // No manifest-level `timerMode`: wordknit's timer is a
   // per-game choice (the setup dialog has the None / Up / Down

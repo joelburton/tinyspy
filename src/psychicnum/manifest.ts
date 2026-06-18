@@ -31,14 +31,13 @@ export const psychicnumGame: GameManifest = {
     import('./components/Help').then((m) => ({ default: m.Help })),
   ),
 
-  // Psychic Num plays with any club size — the game logic doesn't
-  // care how many people are guessing. Must agree with the
-  // (absence of a) member-count check in psychicnum.create_game
-  // (in supabase/migrations/*_psychicnum_setup_config.sql, which
-  // is also the RPC that enforces club membership). See
+  // Psychic Num plays solo or with up to 6 club members — the
+  // game logic doesn't care how many people are guessing, the
+  // cap is just the project-wide "open-N" default. Must agree
+  // with the member-count check in psychicnum.create_game. See
   // docs/code-conventions.md → "Per-game player counts" for the
   // cross-reference convention.
-  numberOfPlayers: [1, null],
+  numberOfPlayers: [1, 6],
 
   PlayArea: lazy(() =>
     import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),

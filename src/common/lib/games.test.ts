@@ -22,23 +22,11 @@ describe('playerCountFits', () => {
   })
 
   it('returns true for counts inside a bounded range, false outside', () => {
-    expect(playerCountFits([2, 4], 2)).toBe(true)
-    expect(playerCountFits([2, 4], 3)).toBe(true)
-    expect(playerCountFits([2, 4], 4)).toBe(true)
-    expect(playerCountFits([2, 4], 1)).toBe(false)
-    expect(playerCountFits([2, 4], 5)).toBe(false)
-  })
-
-  it('treats null upper bound as no maximum', () => {
-    // [1, null] is psychic-num's range — any number of members.
-    expect(playerCountFits([1, null], 1)).toBe(true)
-    expect(playerCountFits([1, null], 5)).toBe(true)
-    expect(playerCountFits([1, null], 999)).toBe(true)
-  })
-
-  it('still enforces the minimum when the upper bound is null', () => {
-    expect(playerCountFits([3, null], 2)).toBe(false)
-    expect(playerCountFits([3, null], 3)).toBe(true)
+    // [1, 6] is the shape wordknit / psychic-num / freebee all use.
+    expect(playerCountFits([1, 6], 1)).toBe(true)
+    expect(playerCountFits([1, 6], 3)).toBe(true)
+    expect(playerCountFits([1, 6], 6)).toBe(true)
+    expect(playerCountFits([1, 6], 7)).toBe(false)
   })
 })
 
@@ -55,14 +43,7 @@ describe('playerCountLabel', () => {
   })
 
   it('formats a bounded range as "N–M members"', () => {
+    expect(playerCountLabel([1, 6])).toBe('Needs 1–6 members')
     expect(playerCountLabel([2, 4])).toBe('Needs 2–4 members')
-  })
-
-  it('formats a null upper bound as "at least N members"', () => {
-    expect(playerCountLabel([3, null])).toBe('Needs at least 3 members')
-  })
-
-  it('singularizes "member" when the minimum is 1 and there\'s no max', () => {
-    expect(playerCountLabel([1, null])).toBe('Needs at least 1 member')
   })
 })

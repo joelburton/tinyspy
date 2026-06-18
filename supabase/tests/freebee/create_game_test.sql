@@ -21,7 +21,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(22);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -279,6 +279,33 @@ select throws_ok(
   'P0001',
   null,
   'rejects board.total_words < 30 (puzzle-quality gate; mirrors the edge function''s pre-check)'
+);
+
+-- ============================================================
+-- Player-count upper bound: 7+ entries rejected with P0001
+-- ============================================================
+-- Mirrors the [1, 6] cap declared on src/freebee/manifest.ts. The
+-- check fires after require_club_member but before any setup or
+-- board validation; 5 random UUIDs alongside ada+bea is enough.
+
+select throws_ok(
+  format(
+    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+                                   array[
+                                     'ada11111-1111-1111-1111-111111111111'::uuid,
+                                     'bea22222-2222-2222-2222-222222222222'::uuid,
+                                     gen_random_uuid(),
+                                     gen_random_uuid(),
+                                     gen_random_uuid(),
+                                     gen_random_uuid(),
+                                     gen_random_uuid()
+                                   ],
+                                   pg_temp.freebee_board()) $$,
+    (select id from club)
+  ),
+  'P0001',
+  null,
+  'rejects player_user_ids with > 6 entries (max 6)'
 );
 
 -- ============================================================

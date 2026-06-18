@@ -92,8 +92,8 @@ Cross-schema FKs (game → common) need `common.*` to exist first, which timesta
 
 Each gametype's supported player-count range is declared in **two places**:
 
-- The TypeScript manifest's `numberOfPlayers: [min, max | null]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club).
-- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls).
+- The TypeScript manifest's `numberOfPlayers: [min, max]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club). Both ends required; `null` upper bounds aren't allowed — every game gets a hard cap so the FE rendering, realtime channel load, and chat surface stay bounded.
+- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (wordknit, psychic-num, freebee) share `common.require_player_count_max(player_user_ids, max)`; tinyspy keeps its inline exactly-2 check.
 
 These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
 

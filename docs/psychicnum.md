@@ -130,7 +130,7 @@ Caller must be a club member. Validates the setup shape (the `guesses` value AND
 
 A note on the title: putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
 
-**No minimum-club-size check.** The game logic plays fine with any membership count — 1 (solo club, deferred), 2, 5, whatever. The current FE doesn't surface solo-club play, but the RPC doesn't reject it.
+**Player-count gate.** `common.require_player_count_max(player_user_ids, 6)`. Matches the manifest's `numberOfPlayers: [1, 6]`. No minimum-of-2 check; solo play is fine — the game logic doesn't care how many people are guessing.
 
 Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
 

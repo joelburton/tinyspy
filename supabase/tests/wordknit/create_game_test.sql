@@ -30,7 +30,7 @@ begin;
 
 set search_path = wordknit, common, public, extensions;
 
-select plan(26);
+select plan(27);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -359,6 +359,33 @@ select is(
   (select title from common.games where id = (select id from created)),
   '#TEST-FIXTURE 1900-01-01 (ALPHA/ANGEL)',
   'create_game: title is "#<source_id> <date> (<TILE1>/<TILE2>)"'
+);
+
+-- ============================================================
+-- Player-count upper bound: 7+ entries rejected with P0001
+-- ============================================================
+-- Mirrors the [1, 6] cap declared on src/wordknit/manifest.ts.
+-- We don't need real members to test the boundary — the count
+-- check fires before the membership check, so 5 random UUIDs
+-- alongside 2 real ones (total = 7) is enough to trip it.
+
+select throws_ok(
+  format(
+    $$ select wordknit.create_game(%L::uuid, pg_temp.wordknit_setup(%L::uuid),
+                                    array[
+                                      'ada11111-1111-1111-1111-111111111111'::uuid,
+                                      'bea22222-2222-2222-2222-222222222222'::uuid,
+                                      gen_random_uuid(),
+                                      gen_random_uuid(),
+                                      gen_random_uuid(),
+                                      gen_random_uuid(),
+                                      gen_random_uuid()
+                                    ]) $$,
+    (select id from club), (select id from puzzle)
+  ),
+  'P0001',
+  null,
+  'create_game: rejects player_user_ids with > 6 entries (max 6)'
 );
 
 -- ============================================================

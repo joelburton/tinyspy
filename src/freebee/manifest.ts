@@ -29,11 +29,11 @@ export const freebeeGame: GameManifest = {
     import('./components/Help').then((m) => ({ default: m.Help })),
   ),
 
-  // Plays solo (one player in their solo club) or coop (any
-  // number of club members). Must agree with the (absence of a)
-  // member-count check in freebee.create_game. See
-  // docs/code-conventions.md → "Per-game player counts."
-  numberOfPlayers: [1, null],
+  // Plays solo (one player in their solo club) or coop (up to 6
+  // club members). Must agree with the member-count check in
+  // freebee.create_game. See docs/code-conventions.md →
+  // "Per-game player counts."
+  numberOfPlayers: [1, 6],
 
   // No manifest-level `timerMode`: freebee's timer is a per-game
   // choice from the setup dialog. Same shape wordknit + psychic-
