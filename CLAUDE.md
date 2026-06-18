@@ -13,10 +13,10 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
-| [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [docs/wordknit.md](docs/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
-| [docs/freebee.md](docs/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
+| [docs/games/tinyspy.md](docs/games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
+| [docs/games/wordknit.md](docs/games/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
+| [docs/games/freebee.md](docs/games/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
 
 
 ## Educational priority — clarity over brevity

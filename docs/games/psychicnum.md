@@ -2,7 +2,7 @@
 
 A tiny cooperative number-guessing game. The second registered gametype, added primarily to validate the multi-game architecture with the minimum game-logic surface possible. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
-For the shared layer see [`common.md`](common.md). For testing theory + persona conventions see [`testing.md`](testing.md). For comparison with the richer-shape gametype see [`tinyspy.md`](tinyspy.md).
+For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`tinyspy.md`](tinyspy.md).
 
 ## What the game is
 
@@ -76,7 +76,7 @@ grant select
   on psychicnum.games to authenticated;
 ```
 
-A direct `SELECT target FROM psychicnum.games WHERE id = ?` as `authenticated` raises SQLSTATE 42501 ("permission denied for column target"). The RPCs (which run as `postgres` via `security definer`) can still read it. This is tested in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql).
+A direct `SELECT target FROM psychicnum.games WHERE id = ?` as `authenticated` raises SQLSTATE 42501 ("permission denied for column target"). The RPCs (which run as `postgres` via `security definer`) can still read it. This is tested in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql).
 
 ### Layer 2 — `psychicnum.games_state` view + `_target_for` helper (conditional exposure)
 
@@ -105,8 +105,6 @@ Two settings carry the design:
 
 The net effect: one FE query (`db.from('games_state').select(...)`) returns the row with `target` populated once terminal, `null` while playing. Row visibility is gated by RLS (invoker); column exposure is gated by the helper's CASE.
 
-The old `reveal_target` RPC is **gone** — the view subsumes its role.
-
 ### Why this matters as a pattern
 
 This is the canonical recipe for **"expose a column the invoker can't see directly, gated on row state."** The recipe:
@@ -116,7 +114,7 @@ This is the canonical recipe for **"expose a column the invoker can't see direct
 3. Define a view with `security_invoker = true` so RLS still gates row visibility, and call the helper for the secret column.
 4. Point the FE at the view, not the base table.
 
-Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
+Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
 
 Tinyspy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md → Row-level security`](tinyspy.md#row-level-security)).
 
@@ -168,7 +166,7 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 
 The start-game dialog collects two options from the players before `create_game` fires:
 
-- **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default (parity with the previous hardcoded value); 3 is the hard mode; 5 medium; 9 the easy warm-up.
+- **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default; 3 is hard mode; 5 medium; 9 the easy warm-up.
 - **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field wordknit uses, validated server-side by `common.validate_timer`. See [Timer](#timer-browser-side-no-server-sync) below.
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
@@ -177,24 +175,11 @@ The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src
 
 ## Timer (browser-side, no server sync)
 
-Same model as wordknit: the timer is **browser-side only**, anchored to `common.games.started_at` (a server-stamped ISO timestamp) and ticked locally via the shared `useGameTimer` hook in `src/common/hooks/`. No periodic server sync, no `paused_at` / `time_elapsed_ms` columns — pauses freeze the displayed value via accumulated-pause-duration tracking in the hook.
-
-Behaviors per mode:
-
-- **`none`**: no timer rendered. `useGameTimer` returns `displaySeconds: 0` and never expires.
-- **`countup`**: informational. Header shows elapsed MM:SS. Never expires (no server action on any time).
-- **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `psychicnum.submit_timeout`, which flips status to `lost`. Idempotent on the server side — multiple peers racing to fire is fine.
-
-Drift bounds: the FE clock is anchored to the server timestamp, so a few hundred ms of skew is the worst case (Date.now vs server time at game start). For a multi-minute game this is invisible. If a player closes their tab and rejoins, the timer correctly reflects "you've been gone for 30 seconds" because the anchor is the server's `started_at`, not "when this React component mounted."
+Standard `<TimerField>` + `useGameTimer` setup — same as wordknit; see [`wordknit.md → Timer`](wordknit.md#timer-browser-side-no-server-sync) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
 
 ## Pause-on-disconnect
 
-Two pause sources, OR'd into a single `paused` flag:
-
-1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused. The boundary is enforced by the shared `PauseBoundary` component — children **unmount** while paused (conditional render), so any per-game form state resets and click handlers are gone wholesale.
-2. **Manual pause**: any connected player can click Pause in the header, which fires a Broadcast event. Any connected player can Resume. There's no privileged "original pauser" check.
-
-The pause state propagates via the same realtime channel used for postgres-changes. Mirrors wordknit's pattern exactly — see [`docs/common.md`](common.md) and wordknit.md for the wider picture. Same hook shape (`useGame` returns `paused`, `missing`, `manuallyPausedBy`, `sendManualPause`, `sendManualUnpause`).
+Inherited unchanged from the common shell — presence-pause + manual-pause both compose into a single `paused` flag, `PauseBoundary` unmounts children while paused. Psychic-num has no gametype-specific wiring beyond mounting the shared `<GamePage>`. See [`wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual) for the canonical write-up.
 
 ## Row-level security
 
@@ -272,13 +257,13 @@ src/psychicnum/
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Guess the number (1–10). N guesses left." status line; on terminal, renders a "Game over: `<status>` [Back to club]" indicator in the same slot. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You win!" / "You lost: out of time" / "You lost: out of guesses." Each wrong guess fires a closeable feedback pill in the header via `ctx.feedback.show`. The board placeholder reveals the secret number once the game is over. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Guess the number (1–10). N guesses left." status line; on terminal, renders a "Game over: `<status>` [Back to club]" indicator in the same slot. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You win!" / "You lost: out of time" / "You lost: out of guesses." Each wrong guess fires a closeable feedback pill in the header via `ctx.feedback.show`. The board placeholder reveals the secret number once the game is over. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
 Reads from `psychicnum.games_state` (the view that exposes `target` conditionally on terminal status — see [The hidden-target mechanic](#the-hidden-target-mechanic)). `game.target: number | null` comes back directly: `null` while active, the actual number once terminal. No separate reveal effect.
 
-Drives off the shared [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts) factory with a two-table subscription on `psychicnum.{games, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
+Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory with a two-table subscription on `psychicnum.{games, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
 The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 
@@ -288,7 +273,7 @@ Same pattern as tinyspy — the manifest's `PlayArea` is lazy-loaded. The build 
 
 ## Psychic-num testing
 
-See [`testing.md`](testing.md) for theory and shared setup. Psychic-num-specific notes:
+See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-specific notes:
 
 ### pgTAP files
 
@@ -326,7 +311,7 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 
 | asking… | look at… |
 |---|---|
-| What does an RPC do | [`supabase/migrations/20260612000002_psychicnum_baseline.sql`](../supabase/migrations/20260612000002_psychicnum_baseline.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
-| How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
-| Is the target really hidden? | column-level grant + `psychicnum.games_state` view with `_target_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../supabase/tests/psychicnum/rls_test.sql) |
+| What does an RPC do | [`supabase/migrations/20260615000002_psychicnum_baseline.sql`](../../supabase/migrations/20260615000002_psychicnum_baseline.sql) |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
+| How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
+| Is the target really hidden? | column-level grant + `psychicnum.games_state` view with `_target_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

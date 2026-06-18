@@ -2,7 +2,7 @@
 
 Cooperative Codenames Duet for two club members. The first registered gametype in this monorepo, and the most schema-rich. Read this file before touching anything in `tinyspy/` or `supabase/migrations/*_tinyspy_*.sql`.
 
-For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](common.md). For testing theory + persona conventions see [`testing.md`](testing.md).
+For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md).
 
 ## What the game is
 
@@ -76,7 +76,7 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 | Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
 
-The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../supabase/tests/tinyspy/win_test.sql).
+The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../../supabase/migrations/20260615000001_tinyspy_baseline.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/tinyspy/win_test.sql).
 
 ## Schema: `tinyspy.*`
 
@@ -117,7 +117,7 @@ select (key_card_a ->> 7) from tinyspy.games where id = ?;
 
 Why columns on the games row rather than a separate two-row child table: a single SELECT on `tinyspy.games` returns the full game state (seats, key views, turn state) in one round-trip — no join, no second query needed to render the board. The per-seat granularity that a child table would give (one row per seat, naturally row-scoped to a single player) was never load-bearing — RPCs always read both seats together (to pick the clue-giver's view vs the guesser's view during reveal resolution).
 
-The fact that both views are RLS-readable by either player (`grant select on tinyspy.games to authenticated` covers both columns; the `games_select` policy gates on club membership, not on seat) is a deliberate friends-only trade-off. The convention is that client code only ever asks for its own column; nothing forbids the partner's column from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
+The fact that both views are RLS-readable by either player (`grant select on tinyspy.games to authenticated` covers both columns; the `games_select` policy gates on club membership, not on seat) is a deliberate friends-only trade-off. The convention is that client code only ever asks for its own column; nothing forbids the partner's column from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
 
 ## RPCs
 
@@ -199,13 +199,13 @@ Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_
 
 `word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 
-`grant select on tinyspy.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
+`grant select on tinyspy.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
 
 ## Timer (browser-side, no server sync)
 
-Same model as wordknit and psychic-num: the wall-clock timer is **browser-side only**, anchored to `common.games.started_at` and ticked locally via the shared `useGameTimer` hook in `src/common/hooks/`. No periodic server sync, no `paused_at` / `time_elapsed_ms` columns — pauses freeze the displayed value via accumulated-pause-duration tracking in the hook.
+Standard `<TimerField>` + `useGameTimer` setup — see [`wordknit.md → Timer`](wordknit.md#timer-browser-side-no-server-sync) for the design rationale and drift bounds.
 
-**This is distinct from the rulebook's timer tokens.** Duet has its own clock (the 9 starting tokens, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
+**Distinct from the rulebook's timer tokens.** Duet has its own clock (the 9 starting tokens, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
 
 - `lost_clock` — Duet's rulebook ending (sudden death + non-green reveal).
 - `lost_timeout` — wall-clock countdown hit 0.
@@ -218,12 +218,7 @@ Behaviors per `setup.timer.kind`:
 
 ## Pause-on-disconnect
 
-Tinyspy inherits the shared pause behavior by adopting the common `<GamePage>` shell. Two pause sources, OR'd into a single `paused` flag:
-
-1. **Presence-pause**: any player listed in `common.game_players` whose presence isn't currently tracked on the realtime channel causes everyone to see the game as paused.
-2. **Manual pause**: any connected player can click Pause in the GamePage header; Resume is exposed in the overlay.
-
-PauseBoundary conditional-renders PlayArea — on pause, the play surface unmounts and remounts on resume. Tinyspy's per-tab postgres-changes channel tears down and reconnects, covered by the on-SUBSCRIBED refetch. See `docs/common.md` for the wider pattern.
+Inherited unchanged from the common shell. The only tinyspy-relevant note: PauseBoundary's child-unmount means tinyspy's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual) for the canonical write-up.
 
 ## Edge Function: `tinyspy-suggest-clue`
 
@@ -235,7 +230,7 @@ The "Need a clue?" button in the FE calls this. The function:
 
 Requires `ANTHROPIC_API_KEY` in the function's runtime env (set via `supabase secrets set`). Local dev uses `supabase/functions/.env` (gitignored).
 
-The function lives in [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts). Naming follows the `<game>-<feature>` convention since Edge Functions are a flat namespace.
+The function lives in [`supabase/functions/tinyspy-suggest-clue/index.ts`](../../supabase/functions/tinyspy-suggest-clue/index.ts). Naming follows the `<game>-<feature>` convention since Edge Functions are a flat namespace.
 
 The trust model here is "we're not the gatekeeper of cheating" — a clue-giver could ask Claude themselves in another browser tab, so we're not adding friction. The function exists for convenience and for the better prompting we can do server-side (the prompt has the actual board state, not what the user typed).
 
@@ -311,23 +306,23 @@ src/tinyspy/
                           casts `ctx.setup as TinyspySetup` to read the turn cap.
 ```
 
-**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
+**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
 
 ### Hooks: realtime patterns
 
-All three tinyspy data hooks ([`useGame`](../src/tinyspy/hooks/useGame.ts), [`useBoard`](../src/tinyspy/hooks/useBoard.ts), [`useClues`](../src/tinyspy/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
+All three tinyspy data hooks ([`useGame`](../../src/tinyspy/hooks/useGame.ts), [`useBoard`](../../src/tinyspy/hooks/useBoard.ts), [`useClues`](../../src/tinyspy/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
 
 One tinyspy-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `tinyspy.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
 
 ### Phase derivation
 
-[`src/tinyspy/lib/phase.ts`](../src/tinyspy/lib/phase.ts) takes `(game, callerSeat)` and returns a discriminated union of `'clue' | 'guess' | 'over' | 'wait'`. The decision tree is explicit and exhaustive; the test file walks through every branch.
+[`src/tinyspy/lib/phase.ts`](../../src/tinyspy/lib/phase.ts) takes `(game, callerSeat)` and returns a discriminated union of `'clue' | 'guess' | 'over' | 'wait'`. The decision tree is explicit and exhaustive; the test file walks through every branch.
 
 Components consume the phase as a single value and render accordingly. Centralizing the derivation here means no component has to know that "active + I'm the clue-giver + no clue this turn" maps to the same UI state as "active + I'm the clue-giver + already submitted but waiting for guesses" (which it doesn't — they're different phases).
 
 ### Post-game peer-key reveal
 
-During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
+During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
@@ -339,7 +334,7 @@ The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components
 
 ## Tinyspy testing
 
-See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific notes:
+See [`testing.md`](../testing.md) for the theory and shared setup. Tinyspy-specific notes:
 
 ### pgTAP files
 
@@ -355,7 +350,7 @@ See [`testing.md`](testing.md) for the theory and shared setup. Tinyspy-specific
 
 ### Tinyspy-specific test helpers
 
-Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/setup.psql`](../supabase/tests/tinyspy/setup.psql) per the promotion threshold in [`testing.md`](testing.md). Each tinyspy test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
+Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/setup.psql`](../../supabase/tests/tinyspy/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each tinyspy test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
@@ -392,10 +387,10 @@ Deferred or sketched but not built:
 
 | asking… | look at… |
 |---|---|
-| What does an RPC do | [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) |
-| What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../supabase/tests/tinyspy/) |
-| What does the board look like | [`src/tinyspy/components/BoardGrid.tsx`](../src/tinyspy/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
-| What does the page composition look like | [`src/tinyspy/components/PlayArea.tsx`](../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
-| What's the phase logic | [`src/tinyspy/lib/phase.ts`](../src/tinyspy/lib/phase.ts) |
-| How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../supabase/functions/tinyspy-suggest-clue/index.ts) |
+| What does an RPC do | [`supabase/migrations/20260615000001_tinyspy_baseline.sql`](../../supabase/migrations/20260615000001_tinyspy_baseline.sql) |
+| What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../../supabase/tests/tinyspy/) |
+| What does the board look like | [`src/tinyspy/components/BoardGrid.tsx`](../../src/tinyspy/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
+| What does the page composition look like | [`src/tinyspy/components/PlayArea.tsx`](../../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
+| What's the phase logic | [`src/tinyspy/lib/phase.ts`](../../src/tinyspy/lib/phase.ts) |
+| How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../../supabase/functions/tinyspy-suggest-clue/index.ts) |

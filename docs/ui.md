@@ -14,7 +14,7 @@ Read this before:
 
 The play surface is a laptop or desktop browser. Some games are awkward on mobile by their nature (crosswords, Boggle on a phone); even the ones that *would* play fine on mobile are most fun with a keyboard and a wider canvas. So:
 
-- **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`BoardScreen.module.css`](../src/tinyspy/components/BoardScreen.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
+- **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`PlayArea.module.css`](../src/tinyspy/components/PlayArea.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
 - **Mobile gets graceful degradation, not engineering.** Phone users should be able to read the page and use the app; we don't chase pixel-perfect mobile layouts.
 - **A real mobile pass is a future project.** When the games stabilize visually, we'll do one. Locking it in now forces complexity on every component while we're still noodling shared chrome.
 
@@ -282,7 +282,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 **Common section (top, always present):**
 
 - **Help** — opens the per-game `manifest.help` modal.
-- **Back to club** — fires the same suspend-confirm logic the old direct logo-click did. Single-click for terminal games; modal-then-suspend for non-terminal.
+- **Back to club** — single-click for terminal games; modal-then-suspend for non-terminal (the [`<SuspendConfirmDialog>`](../src/common/components/SuspendConfirmDialog.tsx) flow).
 
 **Per-game section (below divider, dynamic):**
 

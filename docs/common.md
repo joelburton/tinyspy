@@ -2,7 +2,7 @@
 
 Everything in the codebase that isn't a specific game. The cross-cutting layer that every game sits on: profiles, clubs, chat, routing, the game registry, theme tokens, the shell. Read this before touching anything that's used by more than one gametype.
 
-For per-gametype reference docs, see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), [`wordknit.md`](wordknit.md), [`freebee.md`](freebee.md). Testing conventions live in [`testing.md`](testing.md).
+For per-gametype reference docs, see [`tinyspy.md`](games/tinyspy.md), [`psychicnum.md`](games/psychicnum.md), [`wordknit.md`](games/wordknit.md), [`freebee.md`](games/freebee.md). Testing conventions live in [`testing.md`](testing.md).
 
 ## What "common" means here
 
@@ -85,7 +85,7 @@ Game instances within a club fall into one of two display buckets on the club pa
 | club-level state | derivation |
 |---|---|
 | **current** | `is_current_view = true` |
-| **other** | everything else (split by CSS treatment into terminal vs non-terminal — the old "Suspended" / "Completed" sections collapsed into one list per [`states.md`](states.md)) |
+| **other** | everything else, split by CSS treatment into terminal vs non-terminal (per [`states.md`](states.md)) |
 
 The transitions that move a row between buckets:
 - `common.create_game` — vacates the prior current-view row (set false), inserts new row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`. The vacated row also gets `idle_since = now()`.
@@ -193,7 +193,7 @@ using (true)
 
 Profile visibility has to be permissive for club-creation lookup — when you type "leah" into the new-club form, the FE has to resolve `leah → user_id` *before* you share a club with her. The right hardening axis, if it ever matters, is column-restriction via a view (`common.profiles_public`) that exposes only the safe columns. Tightening to "rows for users I share a club with" would break the lookup.
 
-See the comment block above the policy in [`supabase/migrations/20260612000000_common_baseline.sql`](../supabase/migrations/20260612000000_common_baseline.sql) for the longer reasoning.
+See the comment block above the policy in [`supabase/migrations/20260615000000_common_baseline.sql`](../supabase/migrations/20260615000000_common_baseline.sql) for the longer reasoning.
 
 There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes go through the security-definer RPCs above.
 
@@ -333,7 +333,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `schema` | Postgres schema where the game's tables and RPCs live. Same as `gametype` today, but kept as a separate field in case they ever diverge. |
 | `name`, `blurb` | Human-readable. Used in pickers and titles. |
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
-| `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. (Replaces the old `Root` field; per-game `Root.tsx` files are gone — per-game `theme.css` imports moved into `PlayArea.tsx`.) |
+| `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. Per-game `theme.css` is imported from the game's `PlayArea.tsx` so it ships in that game's chunk. |
 | `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |
 | `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). No game uses this field today; the gametypes that have a timer put it on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/`). The field is preserved for the per-gametype-constant case. |
 | `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC. Gametypes without a setup-side timer (tinyspy today) can no-op this. Returns `{ error? }`. |

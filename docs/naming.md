@@ -133,8 +133,8 @@ A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, 
 
 The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — wordknit's `category` / `tile` / `matched`, freebee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 
-- [`wordknit.md → Vocabulary`](wordknit.md#vocabulary)
-- [`freebee.md → Vocabulary`](freebee.md#vocabulary)
+- [`wordknit.md → Vocabulary`](games/wordknit.md#vocabulary)
+- [`freebee.md → Vocabulary`](games/freebee.md#vocabulary)
 
 Tinyspy and psychic-num use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
 
@@ -190,7 +190,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 | name | what it is |
 |---|---|
 | `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit` / `freebee`). Column on `common.games` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
-| `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. Values differ per gametype (wordknit: `playing` / `solved` / `lost`; tinyspy: `playing` / `sudden_death` / `won` / `lost_assassin` / `lost_clock` / `lost_timeout`; psychic-num: `playing` / `won` / `lost`); the column NAME is always `play_state`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
+| `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype (each gametype's `### Play-state enum` section in its per-game doc has the full list). **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
 | `is_current_view` | The boolean column on `common.games` carrying the **one current-view game per club** invariant (partial unique index on `(club_id) where is_current_view = true`). See [`states.md`](states.md) for view-state vs play-state. |
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |
 | `club_id` | The FK to `common.clubs(id)` on every `<gametype>.games` table. |
@@ -223,9 +223,10 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 |---|---|
 | [`common.md`](common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant, the FE shell |
 | [`states.md`](states.md) | The view-state / play-state vocabulary and how the suspend / current / pause concepts compose |
-| [`tinyspy.md`](tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [`psychicnum.md`](psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
-| [`wordknit.md`](wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
+| [`tinyspy.md`](games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
+| [`psychicnum.md`](games/psychicnum.md) | Psychic Num rules + schema, the hidden-target pattern, FE, tests |
+| [`wordknit.md`](games/wordknit.md) | Wordknit (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
+| [`freebee.md`](games/freebee.md) | FreeBee (Spelling-Bee-style) rules + schema, hidden-wordlist reveal, edge-function board builder, rank ladder |
 | [`testing.md`](testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
 | [`code-conventions.md`](code-conventions.md) | How we write code: DB conventions, FE conventions, naming rules, known gotchas |
 | [`deferred.md`](deferred.md) | Things explicitly deferred from code reviews and conversations |

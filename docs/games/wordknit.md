@@ -4,7 +4,7 @@ A NYT-Connections-style word-grouping puzzle. The third registered gametype in t
 
 "Wordknit" is the codename (analogous to how "Tinyspy" is the codename for Codenames Duet). User-facing copy is "Wordknit"; folder / schema / RPC names are all `wordknit`.
 
-For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](common.md). For testing conventions + persona shapes see [`testing.md`](testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md) and [`psychicnum.md`](psychicnum.md).
+For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md) and [`psychicnum.md`](psychicnum.md).
 
 ## What the game is
 
@@ -16,19 +16,19 @@ A 4×4 board of 16 tiles split into 4 hidden **categories** of 4 by theme. Playe
 
 You lose at 4 mistakes; you win by matching all 4 categories. On a loss, the unmatched categories are revealed to the player.
 
-Each category has a **rank** 0..3, mapped to NYT's yellow / green / blue / purple band colors — increasing difficulty in the original puzzle. Tokens in [`theme.css`](../src/wordknit/theme.css) (`--wordknit-rank-N`).
+Each category has a **rank** 0..3, mapped to NYT's yellow / green / blue / purple band colors — increasing difficulty in the original puzzle. Tokens in [`theme.css`](../../src/wordknit/theme.css) (`--wordknit-rank-N`).
 
 ## Vocabulary
 
-The schema and FE use a small, deliberate set of terms; the in-codebase glossary lives in [`naming.md`](naming.md) but the wordknit-specific calls are:
+The schema and FE use a small, deliberate set of terms; the in-codebase glossary lives in [`naming.md`](../naming.md) but the wordknit-specific calls are:
 
 | term | what it means |
 |---|---|
-| **category** | One of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere — see the watch list in [`naming.md`](naming.md)). |
+| **category** | One of the 4 hidden groupings of 4 tiles (what NYT calls a "group"; we use "category" because "group" overloads with club groups / user groups elsewhere — see the watch list in [`naming.md`](../naming.md)). |
 | **rank** | The difficulty index 0..3 of a category — yellow / green / blue / purple in NYT's palette. Named `rank` rather than `level` because `level` overloads with puzzle-difficulty levels, app-routing levels, and other meanings the codebase shouldn't pre-commit. Different concept from freebee's `rank` (player progress); the per-game scope disambiguates. |
 | **tile** | One of the 16 selectable words on the board. `tile` generalizes the scrabble-tile / boggle-die vocabulary to "any selectable thing on a board." Future word-grid games (boggle) should reuse the same word. Not "member" — that already means a person in a club. |
 | **matched** | The verb (and resolution state) for a category once a correct guess identifies it. Unifies with the `matched_category_rank` column on `wordknit.guesses` so the FE-state name (`matchedCategories`) and the column root (`matched_…`) read as one vocabulary. |
-| **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule in [`naming.md`](naming.md). |
+| **mistake_count** | The integer counter of wrong + oneAway submissions for a game. Explicit `_count` suffix because a list of the actual mistakes (the `guesses` rows with `result <> 'correct'`) is the FE's natural projection — see the count-vs-list rule in [`naming.md`](../naming.md). |
 
 ## Scope (current state)
 
@@ -55,7 +55,7 @@ Deliberately deferred:
 
 Unlike tinyspy and psychic-num — where the server holds a secret and validates moves against it — wordknit's board (categories + tile order) is **publicly readable** by every club member. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (`mistake_count`, and one-correct-per-rank idempotency via a partial unique index on `guesses`).
 
-**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-target mechanic" section](psychicnum.md#the-hidden-target-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise.
+**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/wordknit/lib/evaluate.ts`](../../src/wordknit/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-target mechanic" section](psychicnum.md#the-hidden-target-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise.
 
 **What stays server-authoritative regardless:** atomic mutations of shared state. The `mistake_count += 1` and `status = 'lost'` flips need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychic-num. One-correct-per-rank idempotency comes from a **partial unique index** on `wordknit.guesses (game_id, matched_category_rank) where result = 'correct'` — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
@@ -122,7 +122,7 @@ The only mid-game action. Validates the payload shape (4 tiles, valid result enu
 
 `SELECT FOR UPDATE` on the gametype row serializes concurrent submissions; play_state is read from `common.games` in a separate query after the lock.
 
-The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../supabase/migrations/20260615000003_wordknit_baseline.sql).)
+The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade. (See the file-header note in [`supabase/migrations/*_wordknit_baseline.sql`](../../supabase/migrations/20260615000003_wordknit_baseline.sql).)
 
 Reject reasons: not authenticated; not a club member; play_state ≠ playing; tile count ≠ 4; bad result enum; missing or out-of-range `matched_category_rank` when result is correct.
 
@@ -144,7 +144,7 @@ No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPC
 
 ## Puzzles
 
-A *puzzle* is a prewritten board shape — one date's NYT Connections puzzle, imported from the [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) JSON archive. Puzzles stay pristine in `wordknit.puzzles`; games copy from them at create-time into `games.board` (along with this game's shuffled `tileOrder`). The split is the same vocabulary you'd use for crosswords: the puzzle is the source, the board is the played instance. See [naming.md → puzzle vs. board](naming.md).
+A *puzzle* is a prewritten board shape — one date's NYT Connections puzzle, imported from the [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) JSON archive. Puzzles stay pristine in `wordknit.puzzles`; games copy from them at create-time into `games.board` (along with this game's shuffled `tileOrder`). The split is the same vocabulary you'd use for crosswords: the puzzle is the source, the board is the played instance. See [naming.md → puzzle vs. board](../naming.md).
 
 ### Schema shape
 
@@ -161,7 +161,7 @@ wordknit.puzzles {
 
 ### Import script
 
-[`supabase/scripts/import-wordknit-puzzles.ts`](../supabase/scripts/import-wordknit-puzzles.ts), run via `npm run puzzles:import`. Fetches the connections.json from Eyefyre's repo (or `--file <path>` for offline), maps the upstream `{id, date, answers:[{group, members}]}` shape to our `{source_id, nyt_date, categories:[{rank, name, tiles}]}` shape, upserts on `source_id` with `ignoreDuplicates: true`. Re-runs are no-ops on already-imported rows.
+[`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts), run via `npm run puzzles:import`. Fetches the connections.json from Eyefyre's repo (or `--file <path>` for offline), maps the upstream `{id, date, answers:[{group, members}]}` shape to our `{source_id, nyt_date, categories:[{rank, name, tiles}]}` shape, upserts on `source_id` with `ignoreDuplicates: true`. Re-runs are no-ops on already-imported rows.
 
 Two upstream-shape notes worth keeping in mind:
 - The `level` field is dropped in later upstream records, so the importer uses the array index as `rank` (the array is always in rank order).
@@ -262,7 +262,7 @@ When `paused` is true (from either source), the `PauseBoundary` (`common/compone
 | manual-only | "Bea paused the game" | yes — any player can click |
 | both | both messages stacked | yes — clearing manual leaves presence-pause still active |
 
-**Clean-by-unmount.** Wordknit's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the post-submit clear after a guess resolves.
+**Clean-by-unmount.** Wordknit's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](../common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the post-submit clear after a guess resolves.
 
 **Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Lives in `useCommonGame.ts` now (alongside the rest of the presence + manual-pause plumbing).
 
@@ -285,7 +285,7 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 **Drift across clients.** Two effects compound: wall-clock differences between machines (typically 30-50ms between NTP-synced consumer laptops), and per-pause broadcast latency (~30-100ms each time someone pauses or resumes). For a typical game with 1-2 pauses, total drift between two clients at end-of-game is well under 500ms. Invisible at friends-coop scale.
 
-**Known bug — leaving the page doesn't pause the timer.** The pause infrastructure (presence + manual) only tracks pauses observed by clients currently on the channel. If everyone navigates away, the wall clock keeps moving and the timer loses that gap. Same root cause as the idle-tracking accumulator leak in [deferred.md → Common](deferred.md) — `useCommonGame`'s `unset_current_view` writes only fire when React's effect cleanup runs; navigate-while-running, browser crash, tab kill all skip it. Until that's mitigated (`navigator.sendBeacon` on `beforeunload`, or a mount-time staleness heuristic): use the manual Pause button if you need to step away during a count-down; navigating home while the clock is running will cost you the time.
+**Known bug — leaving the page doesn't pause the timer.** The pause infrastructure (presence + manual) only tracks pauses observed by clients currently on the channel. If everyone navigates away, the wall clock keeps moving and the timer loses that gap. Same root cause as the idle-tracking accumulator leak in [deferred.md → Common](../deferred.md) — `useCommonGame`'s `unset_current_view` writes only fire when React's effect cleanup runs; navigate-while-running, browser crash, tab kill all skip it. Until that's mitigated (`navigator.sendBeacon` on `beforeunload`, or a mount-time staleness heuristic): use the manual Pause button if you need to step away during a count-down; navigating home while the clock is running will cost you the time.
 
 **The `useGameTimer` hook** (`src/common/hooks/useGameTimer.ts`) implements this. Built on React's `useSyncExternalStore` — the canonical pattern for "this hook observes an external time source" — so it satisfies the React-19 hook lint rules around impure calls during render. The hook is mode-aware (`countup` / `countdown(seconds)` / `none`), pause-aware (freezes the display while `paused`, accumulates pause windows so resume continues from where it left off), and recomputes-from-`Date.now()` rather than incrementing a counter (so backgrounded tabs and slept laptops catch up correctly when they return).
 
@@ -320,11 +320,11 @@ Promoted out of inline test fixtures because every wordknit test needs them and 
 |---|---|
 | `src/wordknit/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
 
-No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the PlayArea there.
+No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](../testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the PlayArea there.
 
 ## Future work
 
-Tracked in [`deferred.md`](deferred.md). The wordknit-specific ones today:
+Tracked in [`deferred.md`](../deferred.md). The wordknit-specific ones today:
 
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
@@ -333,14 +333,14 @@ Tracked in [`deferred.md`](deferred.md). The wordknit-specific ones today:
 
 | asking… | look at… |
 |---|---|
-| What does the create_game / submit_guess RPC do | [`supabase/migrations/20260615000003_wordknit_baseline.sql`](../supabase/migrations/20260615000003_wordknit_baseline.sql) |
+| What does the create_game / submit_guess RPC do | [`supabase/migrations/20260615000003_wordknit_baseline.sql`](../../supabase/migrations/20260615000003_wordknit_baseline.sql) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
-| How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run puzzles:import` |
-| What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
-| What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
-| How shared selection works | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
-| How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
-| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../src/common/components/PauseBoundary.tsx) |
-| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../src/common/hooks/useGameTimer.ts) + the wordknit setup dialog's timer field |
-| The evaluator | [`src/wordknit/lib/evaluate.ts`](../src/wordknit/lib/evaluate.ts) |
+| How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run puzzles:import` |
+| What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
+| What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
+| How shared selection works | [`src/wordknit/hooks/useGame.ts`](../../src/wordknit/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast) |
+| How `matchedCategories` is projected | [`src/wordknit/hooks/useGame.ts`](../../src/wordknit/hooks/useGame.ts) (the projection at the bottom of the hook) |
+| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../../src/common/components/PauseBoundary.tsx) |
+| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../../src/common/hooks/useGameTimer.ts) + the wordknit setup dialog's timer field |
+| The evaluator | [`src/wordknit/lib/evaluate.ts`](../../src/wordknit/lib/evaluate.ts) |

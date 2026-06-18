@@ -2,13 +2,13 @@
 
 How we write code in this repo. The cross-cutting rules that aren't tied to any one gametype. Read this before writing or reviewing code in `src/` or `supabase/`.
 
-For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
+For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`tinyspy.md`](games/tinyspy.md), [`psychicnum.md`](games/psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
 
 ## Code clarity & docstrings
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260612000001_tinyspy_baseline.sql`](../supabase/migrations/20260612000001_tinyspy_baseline.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260615000001_tinyspy_baseline.sql`](../supabase/migrations/20260615000001_tinyspy_baseline.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
@@ -68,7 +68,7 @@ When you need to expose a column the calling role can't see directly, gated on r
 3. Define a view `with (security_invoker = true)` that calls the helper for the gated column. The `security_invoker` flag means RLS on the base table still gates row visibility *as the caller* — so unauthorized rows stay hidden.
 4. Point the FE at the view, not the base table.
 
-Canonical example: `psychicnum.games_state` + `psychicnum._target_for(uuid)` — see [`psychicnum.md` → The hidden-target mechanic](psychicnum.md#the-hidden-target-mechanic).
+Canonical example: `psychicnum.games_state` + `psychicnum._target_for(uuid)` — see [`psychicnum.md` → The hidden-target mechanic](games/psychicnum.md#the-hidden-target-mechanic).
 
 ### Migration filenames
 
@@ -78,7 +78,7 @@ Examples:
 
 ```
 20260612000000_common_baseline.sql
-20260612000001_tinyspy_baseline.sql
+20260615000001_tinyspy_baseline.sql
 20260612000002_psychicnum_baseline.sql
 
 # future:
@@ -177,7 +177,7 @@ useEffect(function joinRoom() {
 }, [id])
 ```
 
-Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
+Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/wordknit.md → Pause`](games/wordknit.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
 
 #### Choosing between A and B
 

@@ -137,8 +137,8 @@ The detail behind everything above lives in `docs/`. Read these by need, not in 
 | [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) — short. |
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, naming rules, "Avoid SELECT *", `useEffect` commenting, known gotchas. |
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, the games registry, removability invariant, routing, the FE shell. |
-| [docs/tinyspy.md](docs/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, RLS, FE components, Edge Function, tests. |
-| [docs/psychicnum.md](docs/psychicnum.md) | Psychic Num rules + schema, the hidden-target column-grant pattern, FE, tests. |
+| [docs/games/tinyspy.md](docs/games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, RLS, FE components, Edge Function, tests. |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | Psychic Num rules + schema, the hidden-target column-grant pattern, FE, tests. |
 | [docs/testing.md](docs/testing.md) | Test theory (pgTAP vs Vitest), persona conventions, common helpers, FE testing patterns. |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations. |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen lookup for commands, table inventory, RPC summaries, key files. |

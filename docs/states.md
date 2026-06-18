@@ -30,14 +30,7 @@ The two sources stay as today:
 
 Play states describe the game's rules-side situation — totally independent of view state.
 
-Each gametype defines its own `play_state` enum. Some examples:
-- **wordknit**: `playing`, `solved`, `lost`
-- **psychic-num**: `playing`, `won`, `lost`
-- **tinyspy**: `playing`, `sudden_death`, `won`, `lost_assassin`, `lost_clock`, `lost_timeout`
-- **freebee**: `playing`, `ended`, `won_compete` — `ended` covers all three v1 outcomes (100%-found, countdown expiry, manual End-game menu item); the specific outcome lives in `status.outcome` ∈ `{'completed', 'timeout', 'manual'}`. `won_compete` is reserved from day one for compete-mode wins, even though v1 never emits it. See [`freebee.md` → Play states](freebee.md#play-states).
-- **crosswords** (future): `playing`, `solved`, `lost_timer`, …
-
-The set of terminal play_states varies per gametype.
+Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is psychic-num (`playing` / `won` / `lost`); the broadest today is tinyspy (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
 
 **Convention: don't use `'active'` as a play_state value.** "Active" overloads view-state and play-state — using it for play_state invites the confusion this whole vocabulary exists to prevent. Every gametype uses `'playing'` as its standard mid-game play_state. Gametypes with additional non-terminal phases (tinyspy's `'sudden_death'`) get their own names for those.
 
@@ -82,7 +75,7 @@ A "suspended" game is just a description for **a non-current, non-terminal game*
 
 Terminal games are non-current and `is_terminal = true`. Clubs can still view these (to look at the solved grid, reminisce, etc.).
 
-There's no special "suspended" category in the schema or the listing. The club page shows a single list of non-current games, marked with a color/CSS indicator for terminal vs non-terminal. The old separate "Suspended games" / "Completed games" sections collapse into one.
+There's no special "suspended" category in the schema or the listing. The club page shows a single list of non-current games, marked with a color/CSS indicator for terminal vs non-terminal.
 
 ## Lifecycle: when `is_current_view` flips
 

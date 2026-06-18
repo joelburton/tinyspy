@@ -4,7 +4,7 @@ A NYT-Spelling-Bee-style word-finding game. The fourth registered gametype in th
 
 "FreeBee" is the codename. User-facing copy is "FreeBee"; folder / schema / RPC names are all `freebee`.
 
-For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](common.md). For testing conventions + persona shapes see [`testing.md`](testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), and [`wordknit.md`](wordknit.md).
+For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), and [`wordknit.md`](wordknit.md).
 
 ## What the game is
 
@@ -22,7 +22,7 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
   - 5+-letter word: **points = word length**.
   - Pangram: **+10 bonus** on top of the length score (a 7-letter pangram is 7 + 10 = 17).
 - **Bonus words:** the dictionary has two tiers — a smaller *scoring set* (SCOWL-50) and a larger *legal set* (SCOWL-80). A word in the legal set but NOT in the scoring set is accepted as **bonus** — recorded for the player but worth 0 points and doesn't move the rank. (Bonus words feel like "you got a real word that's a little obscure" — friendly without inflating the rank.)
-- **Rank ladder:** as score climbs vs. the puzzle's maximum-possible score, the player passes through **Start → Good → Solid → Nice → Great → Amazing → Genius**. Genius unlocks at **70%** of the maximum. The ladder is mirrored on the FE in [`src/freebee/lib/ranks.ts`](../src/freebee/lib/ranks.ts) and on the SQL side in `freebee._rank_idx` — both compute from the same constants, and a Vitest assertion checks they agree numerically across every score-vs-total combination.
+- **Rank ladder:** as score climbs vs. the puzzle's maximum-possible score, the player passes through **Start → Good → Solid → Nice → Great → Amazing → Genius**. Genius unlocks at **70%** of the maximum. The ladder is mirrored on the FE in [`src/freebee/lib/ranks.ts`](../../src/freebee/lib/ranks.ts) and on the SQL side in `freebee._rank_idx` — both compute from the same constants, and a Vitest assertion checks they agree numerically across every score-vs-total combination.
 - **Lifecycle (v1):** the game ends when (a) the countdown timer expires (`timer.kind = 'countdown'` only), (b) every scoring word is found (100%), or (c) any player chooses the **End game** menu item. Untimed and count-up games end only via (b) or (c).
 
 ### What the game isn't
@@ -33,7 +33,7 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
 
 ## Vocabulary
 
-In addition to the cross-cutting terms in [`naming.md`](naming.md):
+In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 
 | term | meaning |
 |---|---|
@@ -130,7 +130,7 @@ To build a board, the edge function:
 
 ### Why a SQL helper for `candidate_words`?
 
-[`freebee.candidate_words(puzzle_mask, center_bit)`](../supabase/migrations/20260618000001_freebee_candidate_words.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every dictionary row whose mask is a subset of `puzzle_mask` and contains `center_bit`.
+[`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260618000001_freebee_candidate_words.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every dictionary row whose mask is a subset of `puzzle_mask` and contains `center_bit`.
 
 It exists because the obvious-looking pattern — "fetch all in_legal words, filter the bitmask in JS" — silently truncates against PostgREST's `max_rows = 1000` cap. The dictionary has 46k rows; the alphabetical first 1000 mostly start with `a` and don't represent the puzzle's candidate space at all, so `total_words` ends up below the ≥30 gate and the function returns 500. Pushing the filter into Postgres returns only the ~hundreds of actual candidates in one round-trip, well under any cap.
 
@@ -189,7 +189,7 @@ On accept: inserts `found_words` row, recomputes team/player score, calls `commo
 
 Countdown-expiry handler. Calls `common.end_game(target_game, 'ended', {outcome:'timeout', ...}, player_results)`. Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.
 
-**Realtime touch at the tail**: `update freebee.games set club_id = club_id where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See [`migration 20260618000002`](../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) for the bug history.
+**Realtime touch at the tail**: `update freebee.games set club_id = club_id where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See [`migration 20260618000002`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) for the bug history.
 
 ### `freebee.end_game(target_game uuid) → void`
 
@@ -199,13 +199,13 @@ The Realtime-touch pattern repeats — see `submit_timeout` above. Tested via th
 
 ### Helper functions
 
-- **`freebee._rank_idx(score int, total int) → int`** — integer-math implementation of the rank ladder. Mirrors `currentRankIndex` in [`ranks.ts`](../src/freebee/lib/ranks.ts); a Vitest assertion pins the two implementations together.
+- **`freebee._rank_idx(score int, total int) → int`** — integer-math implementation of the rank ladder. Mirrors `currentRankIndex` in [`ranks.ts`](../../src/freebee/lib/ranks.ts); a Vitest assertion pins the two implementations together.
 - **`freebee._scoring_words_for(g uuid) → jsonb`** + **`freebee._legal_words_for(g uuid) → text[]`** — the conditional-reveal helpers that the `games_state` view calls. `SECURITY DEFINER` so they bypass the column grant; the CASE on `common.games.is_terminal` enforces the reveal gate.
 - **`freebee.candidate_words(puzzle_mask bigint, center_bit bigint) → table(word text, letter_mask bigint, in_scoring boolean)`** — the bitmask-intersection lookup the edge function uses (see [Why a SQL helper](#why-a-sql-helper-for-candidate_words) above).
 
 ## Edge function: `freebee-build-board`
 
-[`supabase/functions/freebee-build-board/index.ts`](../supabase/functions/freebee-build-board/index.ts) — the FE's `manifest.startGameInClub` invokes this. It runs as the caller (via the JWT in the Authorization header) for all PostgREST calls.
+[`supabase/functions/freebee-build-board/index.ts`](../../supabase/functions/freebee-build-board/index.ts) — the FE's `manifest.startGameInClub` invokes this. It runs as the caller (via the JWT in the Authorization header) for all PostgREST calls.
 
 1. Reads `freebee.pangrams` in pages of 1000 (paginated to defeat `max_rows`); reads the club's most recent `freebee.games` row for the previous-board overlap cap.
 2. Filters the pangram pool by overlap cap (≤4/7 letters shared with previous board).
@@ -221,7 +221,7 @@ The function logs one line per step in dev (`console.log` lands in `supabase fun
 
 ## Dictionary import: `npm run freebee:import`
 
-[`supabase/scripts/import-freebee-dictionary.ts`](../supabase/scripts/import-freebee-dictionary.ts), mirroring [`import-wordknit-puzzles.ts`](../supabase/scripts/import-wordknit-puzzles.ts).
+[`supabase/scripts/import-freebee-dictionary.ts`](../../supabase/scripts/import-freebee-dictionary.ts), mirroring [`import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts).
 
 **Inputs (vendored, committed to repo):**
 - `supabase/data/scowl-50.txt` — the scoring word list (~40k entries pre-filter).
@@ -352,7 +352,7 @@ Standard pupgames route: `/g/freebee/<gameId>`. Mounted by `App.tsx` via `<GameP
 
 ### "End game" menu wiring
 
-[`useEffect(syncMenuItems)`](../src/freebee/components/PlayArea.tsx) registers a single per-game menu item via `ctx.menu.setGameItems([{id, label, onClick, disabled}])`. Click → `window.confirm()` → `db.rpc('end_game', ...)`. The menu item is disabled when `isTerminal=true`. Cleanup on PlayArea unmount restores the empty per-game section.
+[`useEffect(syncMenuItems)`](../../src/freebee/components/PlayArea.tsx) registers a single per-game menu item via `ctx.menu.setGameItems([{id, label, onClick, disabled}])`. Click → `window.confirm()` → `db.rpc('end_game', ...)`. The menu item is disabled when `isTerminal=true`. Cleanup on PlayArea unmount restores the empty per-game section.
 
 ### Terminal experience
 
@@ -375,7 +375,7 @@ The verdict copy is computed by `buildOver(playState, score, totalScore)`:
 | `game:${gameId}` (stable) | `useCommonGame` | Presence + manual-pause Broadcast + suspend Broadcast + postgres-changes on `common.games`. |
 | `freebee:${gameId}:${uuid}` | `useRealtimeRefetch` inside `useGame` | postgres-changes on `freebee.{games, found_words}`. UUID-suffixed because there's no peer-coordination state here — each tab gets its own room. |
 
-See [`code-conventions.md` → Realtime data hooks](code-conventions.md#realtime-data-hooks--two-patterns) for the pattern catalogue.
+See [`code-conventions.md` → Realtime data hooks](../code-conventions.md#realtime-data-hooks--two-patterns) for the pattern catalogue.
 
 ### Code-splitting
 
@@ -411,22 +411,22 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 
 | asking… | look at… |
 |---|---|
-| The Phase-1 schema, column grants, RLS, view, hidden-wordlist helpers | [`supabase/migrations/20260617000000_freebee_baseline.sql`](../supabase/migrations/20260617000000_freebee_baseline.sql) |
-| The Phase-2 RPCs (`create_game`, `submit_word`, `submit_timeout`) + `_rank_idx` | [`supabase/migrations/20260618000000_freebee_rpcs.sql`](../supabase/migrations/20260618000000_freebee_rpcs.sql) |
-| `candidate_words` helper | [`supabase/migrations/20260618000001_freebee_candidate_words.sql`](../supabase/migrations/20260618000001_freebee_candidate_words.sql) |
-| `submit_timeout`'s Realtime-touch fix | [`supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql`](../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) |
-| `freebee.end_game` (manual terminal) | [`supabase/migrations/20260618000003_freebee_end_game.sql`](../supabase/migrations/20260618000003_freebee_end_game.sql) |
-| How the dictionary is populated | [`supabase/scripts/import-freebee-dictionary.ts`](../supabase/scripts/import-freebee-dictionary.ts); SCOWL data in `supabase/data/` |
-| The board-builder edge function | [`supabase/functions/freebee-build-board/index.ts`](../supabase/functions/freebee-build-board/index.ts) |
-| The play surface | [`src/freebee/components/PlayArea.tsx`](../src/freebee/components/PlayArea.tsx) |
-| The honeycomb layout (CSS lifted from freebee-ws) | [`src/freebee/components/Letters.module.css`](../src/freebee/components/Letters.module.css) |
-| The rank ladder math | [`src/freebee/lib/ranks.ts`](../src/freebee/lib/ranks.ts) |
-| The found-words list | [`src/freebee/components/WordList.tsx`](../src/freebee/components/WordList.tsx) |
-| The per-gametype data hook | [`src/freebee/hooks/useGame.ts`](../src/freebee/hooks/useGame.ts) |
+| The Phase-1 schema, column grants, RLS, view, hidden-wordlist helpers | [`supabase/migrations/20260617000000_freebee_baseline.sql`](../../supabase/migrations/20260617000000_freebee_baseline.sql) |
+| The Phase-2 RPCs (`create_game`, `submit_word`, `submit_timeout`) + `_rank_idx` | [`supabase/migrations/20260618000000_freebee_rpcs.sql`](../../supabase/migrations/20260618000000_freebee_rpcs.sql) |
+| `candidate_words` helper | [`supabase/migrations/20260618000001_freebee_candidate_words.sql`](../../supabase/migrations/20260618000001_freebee_candidate_words.sql) |
+| `submit_timeout`'s Realtime-touch fix | [`supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) |
+| `freebee.end_game` (manual terminal) | [`supabase/migrations/20260618000003_freebee_end_game.sql`](../../supabase/migrations/20260618000003_freebee_end_game.sql) |
+| How the dictionary is populated | [`supabase/scripts/import-freebee-dictionary.ts`](../../supabase/scripts/import-freebee-dictionary.ts); SCOWL data in `supabase/data/` |
+| The board-builder edge function | [`supabase/functions/freebee-build-board/index.ts`](../../supabase/functions/freebee-build-board/index.ts) |
+| The play surface | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
+| The honeycomb layout (CSS lifted from freebee-ws) | [`src/freebee/components/Letters.module.css`](../../src/freebee/components/Letters.module.css) |
+| The rank ladder math | [`src/freebee/lib/ranks.ts`](../../src/freebee/lib/ranks.ts) |
+| The found-words list | [`src/freebee/components/WordList.tsx`](../../src/freebee/components/WordList.tsx) |
+| The per-gametype data hook | [`src/freebee/hooks/useGame.ts`](../../src/freebee/hooks/useGame.ts) |
 
 ## Open / deferred
 
-Tracked in [`deferred.md`](deferred.md) → FreeBee. Today's open items:
+Tracked in [`deferred.md`](../deferred.md) → FreeBee. Today's open items:
 
 - **Compete mode** — designed-in across schema / RLS / RPCs; FE renders coop-only in v1. Adding it is FE work only (no migration).
 - **Custom-letters puzzle** — edge-function parameter unused; setup-form field absent.

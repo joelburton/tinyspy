@@ -8,14 +8,14 @@ For per-feature deep context on each item, follow the link into the relevant fea
 
 ## Tinyspy
 
-See [`tinyspy.md → Open items`](tinyspy.md#open-items) for the longer treatment of each.
+See [`tinyspy.md → Open items`](games/tinyspy.md#open-items) for the longer treatment of each.
 
 - **Mission / campaign mode.** Variable starting token counts per the Duet rulebook's mission maps. Schema not built; would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
 - **Tile `aria-label` for screen readers.** Board tiles are `<button>`s in `BoardGrid.tsx` but have no `aria-label` describing reveal state. Screen-reader users hear only the word, not whether it's been revealed and as what color. Add an `aria-label` that spells out the verdict — something like `${word}, revealed as green agent`. Needs a small `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper (the previous `labels.ts → labelName` was removed when the GameLog switched from text labels to colored words; the screen-reader use case warrants bringing it back in narrower form).
 
 ## Psychic Num
 
-No outstanding deferred items today. Open scope-creep notes live in [`psychicnum.md → Open items`](psychicnum.md#open-items).
+No outstanding deferred items today. Open scope-creep notes live in [`psychicnum.md → Open items`](games/psychicnum.md#open-items).
 
 ## Common / architecture
 
@@ -36,14 +36,14 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 
 ## Wordknit
 
-See [`wordknit.md → Future work`](wordknit.md#future-work) for the longer treatment.
+See [`wordknit.md → Future work`](games/wordknit.md#future-work) for the longer treatment.
 
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 
 ## FreeBee
 
-See [`freebee.md → Open / deferred`](freebee.md#open--deferred) for context.
+See [`freebee.md → Open / deferred`](games/freebee.md#open--deferred) for context.
 
 - **Compete mode.** Schema, RLS, and RPCs (`submit_word`'s compete branch, `play_state='won_compete'`, the per-player duplicate rule, `setup.target_rank` validation) all designed-in and tested via pgTAP. The FE is coop-only in v1: no mode radio in the setup form, no target-rank slider, no leaderboard component, no compete-aware `buildOver` case. Adding compete is FE work only — no migration.
 - **Custom-letters puzzle.** A player-specified 6-outer + 1-center override that bypasses the diverse builder. The edge function's `setup.custom_letters` / `setup.custom_center` fields exist on the `FreebeeSetup` type but are never populated, and the setup form has no inputs for them. Wiring is a small SetupForm addition + a branch in the edge function before the pangram sampling.

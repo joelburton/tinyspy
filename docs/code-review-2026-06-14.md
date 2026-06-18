@@ -90,7 +90,7 @@ mislead a new reader, so it's worth the half-hour.
 
 ### 1.2 Migration baselines reference docs that don't exist
 
-`supabase/migrations/20260612000001_tinyspy_baseline.sql`:
+`supabase/migrations/20260615000001_tinyspy_baseline.sql`:
 
 - **line 14** — `See docs/duet-rules.md for the rules` → should be
   `docs/tinyspy.md`. Same swap as cheatsheet 1.1.
@@ -108,9 +108,9 @@ mislead a new reader, so it's worth the half-hour.
 ```
 
 There is no `_seed_word_pool` migration today — the word list got merged
-into `20260612000001_tinyspy_baseline.sql` (lines 892–1282, the `INSERT
+into `20260615000001_tinyspy_baseline.sql` (lines 892–1282, the `INSERT
 INTO tinyspy.word_pool VALUES …` block). Fix: rename the referenced file
-to `20260612000001_tinyspy_baseline.sql`.
+to `20260615000001_tinyspy_baseline.sql`.
 
 ### 1.4 README + package.json have rename leftovers
 
@@ -147,7 +147,7 @@ export type GameStatus =
 The schema's check constraint (`tinyspy.games.status in ('active',
 'sudden_death', 'won', 'lost_assassin', 'lost_clock')` in
 `tinyspy_baseline.sql:46`) doesn't permit `'lobby'`, and
-[`tinyspy.md`](tinyspy.md#status-enum) explicitly calls this out:
+[`tinyspy.md`](games/tinyspy.md#status-enum) explicitly calls this out:
 *"There is no `lobby` status — under the club model, both members are
 seated at game-creation time…"*. The type should drop it. `derivePhase`'s
 matrix doesn't have a `lobby` branch either, so removing the literal is
@@ -313,7 +313,7 @@ links`:
 
 `useBoard` + `BoardScreen` do something nontrivial: hide the partner's
 key during play, fetch it lazily on game-over, render both views as
-stripes. [`tinyspy.md`](tinyspy.md) mentions the
+stripes. [`tinyspy.md`](games/tinyspy.md) mentions the
 hardened-vs-by-convention split for `game_players_select` but doesn't
 describe the post-game reveal UX. One paragraph under "Frontend" with a
 pointer to the `peerKey` derivation in `useBoard.ts` would land it.

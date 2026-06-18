@@ -1,6 +1,6 @@
 # Testing
 
-How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live in [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), etc.; this file is the cross-cutting layer.
+How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live in [`tinyspy.md`](games/tinyspy.md), [`psychicnum.md`](games/psychicnum.md), etc.; this file is the cross-cutting layer.
 
 Audience: human contributors and AI assistants. Per the [CLAUDE.md](../CLAUDE.md) prior on alpha software, we're not aiming for production-grade test coverage — we're aiming for tests that catch real regressions and that document behavior clearly enough that a reader can predict it.
 
