@@ -227,13 +227,9 @@ export function PlayArea({
   // Modal + indicator copy. `playState === 'solved'` is the only
   // win path; otherwise the game ended via out-of-mistakes or
   // out-of-time (distinguished by timer.expired).
-  const matchedCount = matchedCategories.length
   const over = gameOver ? buildOver({
     playState,
     timerExpired: timer.expired,
-    matchedCount,
-    mistakeCount: game.mistake_count,
-    unmatchedNames: unmatched.map((c) => c.name),
   }) : null
 
   return (
@@ -331,8 +327,7 @@ export function PlayArea({
       {showModal && over && (
         <GameOverModal
           outcome={over.outcome}
-          title={over.title}
-          detail={over.detail}
+          verdict={over.verdict}
           onClose={() => setShowModal(false)}
           onBackToClub={goToClub}
         />
@@ -344,46 +339,30 @@ export function PlayArea({
 /** Per-status modal + indicator copy. `playState === 'solved'` is
  *  the only positive terminal state; otherwise the game ended
  *  via out-of-mistakes or out-of-time (distinguished by
- *  timer.expired). */
+ *  timer.expired). Detail-on-page intentionally: the matched
+ *  vs. unmatched categories are visible on the CategoryBands
+ *  in the play area, the mistake count was visible in the
+ *  bottom action row until the game ended. The modal stays
+ *  focused on the verdict. */
 function buildOver({
   playState,
   timerExpired,
-  matchedCount,
-  mistakeCount,
-  unmatchedNames,
 }: {
   playState: string
   timerExpired: boolean
-  matchedCount: number
-  mistakeCount: number
-  unmatchedNames: string[]
 }): {
   outcome: 'won' | 'lost'
-  title: string
+  verdict: string
   status: string
-  detail: string
 } {
   if (playState === 'solved') {
-    return {
-      outcome: 'won',
-      title: 'Solved!',
-      status: 'solved',
-      detail: `Matched all four categories with ${mistakeCount}/4 mistakes used.`,
-    }
+    return { outcome: 'won', verdict: 'You win!', status: 'won' }
   }
-  // Lost — either time ran out or all 4 mistakes spent. Both end
-  // with the same matched-count line + the names of whichever
-  // categories the friends didn't get to.
-  const lossLine = timerExpired
-    ? 'Clock ran out.'
-    : 'All four mistakes used.'
-  const remainingLine = unmatchedNames.length > 0
-    ? ` Categories left unmatched: ${unmatchedNames.join(', ')}.`
-    : ''
   return {
     outcome: 'lost',
-    title: timerExpired ? 'Out of time' : 'Out of guesses',
+    verdict: timerExpired
+      ? 'You lost: out of time'
+      : 'You lost: out of guesses',
     status: timerExpired ? 'out of time' : 'out of guesses',
-    detail: `${lossLine} Matched ${matchedCount}/4 categories.${remainingLine}`,
   }
 }

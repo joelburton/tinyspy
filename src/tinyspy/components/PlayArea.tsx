@@ -49,36 +49,29 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
 
 /** Per-status modal copy for tinyspy. `playState` is the
  *  authoritative input — only terminal states appear here; non-
- *  terminal callers don't render the modal. Title is short and
- *  punchy; detail is the factual reveal + the counter the player
- *  most wants to see at game end. */
+ *  terminal callers don't render the modal. `verdict` is the
+ *  centered modal line; `status` is the lowercase phrase the
+ *  PlayArea indicator pairs with "Game over:". Detail-on-page
+ *  intentionally: the agents-found counter sits in the right
+ *  column status row, the board carries the revealed tiles. */
 function gameOverCopy(
   playState: string,
-  greenFound: number,
-  turnsUsed: number,
-): { outcome: 'won' | 'lost'; title: string; status: string; detail: string } {
+): { outcome: 'won' | 'lost'; verdict: string; status: string } {
   if (playState === 'won') {
-    return {
-      outcome: 'won',
-      title: 'Victory!',
-      status: 'victory',
-      detail: `All 15 agents found in ${turnsUsed} turns.`,
-    }
+    return { outcome: 'won', verdict: 'You win!', status: 'won' }
   }
   if (playState === 'lost_assassin') {
     return {
       outcome: 'lost',
-      title: 'Assassin revealed',
+      verdict: 'You lost: assassin revealed',
       status: 'assassin revealed',
-      detail: `Game over. You found ${greenFound}/15 agents.`,
     }
   }
   if (playState === 'lost_clock') {
     return {
       outcome: 'lost',
-      title: 'Out of turns',
+      verdict: 'You lost: out of turns',
       status: 'out of turns',
-      detail: `Ran out of turns in sudden death. You found ${greenFound}/15 agents.`,
     }
   }
   // lost_timeout (and any future terminal state that doesn't match
@@ -86,9 +79,8 @@ function gameOverCopy(
   // crashing).
   return {
     outcome: 'lost',
-    title: 'Out of time',
+    verdict: 'You lost: out of time',
     status: 'out of time',
-    detail: `Clock ran out. You found ${greenFound}/15 agents.`,
   }
 }
 
@@ -153,12 +145,8 @@ export function PlayArea({
       hasCurrentTurnClue: currentTurnClue !== null,
     })
 
-  // Modal / indicator copy is derived once. `turnsUsed` reads
-  // turn_number directly: it increments per turn so it doubles as
-  // "how many turns we used to get here" once the game is over.
-  const over = gameOver
-    ? gameOverCopy(playState, greenFound, game.turn_number)
-    : null
+  // Modal / indicator copy is derived once.
+  const over = gameOver ? gameOverCopy(playState) : null
 
   return (
     <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
@@ -219,8 +207,7 @@ export function PlayArea({
       {showModal && over && (
         <GameOverModal
           outcome={over.outcome}
-          title={over.title}
-          detail={over.detail}
+          verdict={over.verdict}
           onClose={() => setShowModal(false)}
           onBackToClub={goToClub}
         />

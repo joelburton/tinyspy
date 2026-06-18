@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
-import { colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
@@ -106,21 +105,26 @@ export function PlayArea({
   // Per-status modal + indicator copy. `playState === 'won'` is the
   // only positive terminal state; otherwise the game ended via
   // out-of-guesses or out-of-time (distinguished by timer.expired).
-  const winner = game.winner_id
-    ? players.find((p) => p.user_id === game.winner_id)
-    : null
   const over = isTerminal ? buildOver({
     playState,
     timerExpired: timer.expired,
-    target: game.target,
-    winner,
   }) : null
+
+  // Board placeholder content. During play, the prompt. On
+  // terminal, the secret number — the one piece of factual
+  // reveal that doesn't live anywhere else on the page (winner
+  // username is in the guess history; outcome is in the
+  // indicator + modal). Falls back to the prompt if the
+  // games_state view's lazy target reveal hasn't landed yet.
+  const boardPlaceholderText = isTerminal && game.target !== null
+    ? `The number was ${game.target}`
+    : "What's your guess?"
 
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
         <div className={styles.boardPlaceholder}>
-          What's your guess?
+          {boardPlaceholderText}
         </div>
       </div>
       <div className={styles.rightCol}>
@@ -155,8 +159,7 @@ export function PlayArea({
       {showModal && over && (
         <GameOverModal
           outcome={over.outcome}
-          title={over.title}
-          detail={over.detail}
+          verdict={over.verdict}
           onClose={() => setShowModal(false)}
           onBackToClub={goToClub}
         />
@@ -165,72 +168,29 @@ export function PlayArea({
   )
 }
 
-type Winner = { username: string; color: string } | null | undefined
-
-/** Per-status modal + indicator copy. `detail` is a ReactNode so
- *  the winning case can color the username via inline style;
- *  losing cases stay pure strings.
- *
- *  `target` may be null briefly while the games_state view's
- *  lazy reveal is in flight; we fall back to a generic line so
- *  the modal still reads cleanly during that beat. */
+/** Per-status modal + indicator copy. Detail-on-page intentionally:
+ *  the winner is in the guess history (correct guess at the end),
+ *  the target is on the board placeholder once terminal. The
+ *  modal stays focused on the verdict line. */
 function buildOver({
   playState,
   timerExpired,
-  target,
-  winner,
 }: {
   playState: string
   timerExpired: boolean
-  target: number | null
-  winner: Winner
 }): {
   outcome: 'won' | 'lost'
-  title: string
+  verdict: string
   status: string
-  detail: import('react').ReactNode
 } {
-  const targetLine = target !== null
-    ? `The number was ${target}.`
-    : 'The number is hidden.'
-
   if (playState === 'won') {
-    return {
-      outcome: 'won',
-      title: 'Got it!',
-      status: 'got it',
-      detail: (
-        <p>
-          {winner ? (
-            <>
-              <strong style={{ color: colorVarFor(winner.color) }}>
-                {winner.username}
-              </strong>{' '}
-              guessed it.
-            </>
-          ) : (
-            'Somebody guessed it.'
-          )}
-          {' '}
-          {targetLine}
-        </p>
-      ),
-    }
+    return { outcome: 'won', verdict: 'You win!', status: 'won' }
   }
-
-  if (timerExpired) {
-    return {
-      outcome: 'lost',
-      title: 'Out of time',
-      status: 'out of time',
-      detail: <p>Clock ran out. {targetLine}</p>,
-    }
-  }
-
   return {
     outcome: 'lost',
-    title: 'Out of guesses',
-    status: 'out of guesses',
-    detail: <p>You used all seven guesses. {targetLine}</p>,
+    verdict: timerExpired
+      ? 'You lost: out of time'
+      : 'You lost: out of guesses',
+    status: timerExpired ? 'out of time' : 'out of guesses',
   }
 }

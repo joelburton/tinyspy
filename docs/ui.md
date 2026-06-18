@@ -105,19 +105,21 @@ The page underneath stays in *review mode*: the final board, revealed unmatched 
 
 **PlayArea terminal indicator.** After the modal closes (or for users who never opened it because they were already in review), the slot where input/action UI lived shows a small "Game over: `<status>` [Back to club]" indicator. The status word matches the modal's title in lowercase. Per-game (the indicator's slot location differs across games), but always carries the same two pieces of information.
 
-**Component shape** (kept minimal so per-game payloads slot in cleanly):
+**Component shape** (deliberately bare — the modal stays focused on the moment-of-result; everything else lives on the PlayArea):
 
 ```ts
 type Props = {
-  outcome: 'won' | 'lost'   // drives tone (subtle accent only)
-  title: string             // per-status verdict — "Victory!", "Out of time"
-  detail?: ReactNode        // per-game factual reveal: target, mistake count, etc.
+  outcome: 'won' | 'lost'   // drives the subtle tonal accent bar
+  verdict: string           // centered large body text — "You win!",
+                            // "You lost: out of guesses", etc.
   onClose: () => void
   onBackToClub: () => void
 }
 ```
 
-The per-game PlayArea picks the right title + detail from the play_state + timer.expired + game data and passes them down.
+The FloatingPanel title bar is always `"Game over"`. The `verdict` is the centered large-font line in the body — the important per-status copy that the user actually reads. **No detail prop.** Anything a player might review (revealed tiles, matched categories, the secret number, mistake count) is already visible on the PlayArea; the modal doesn't repeat it.
+
+The per-game PlayArea picks the right verdict per status (play_state + timer.expired + game data) and passes it down.
 
 ### Existing offenders to retrofit
 

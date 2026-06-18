@@ -1,26 +1,19 @@
-import type { ReactNode } from 'react'
 import { cls } from '../lib/cls'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './GameOverModal.module.css'
 
 type Props = {
   /** Drives the subtle tonal accent inside the modal (a small
-   *  colored bar above the title). `won` reads as success;
+   *  colored bar above the verdict). `won` reads as success;
    *  `lost` reads as the more somber assassin / out-of-time
-   *  family. Doesn't affect copy — the per-status title carries
-   *  that. */
+   *  family. Doesn't affect copy — the verdict text carries that. */
   outcome: 'won' | 'lost'
-  /** Per-status verdict — short and punchy. Examples:
-   *  "Victory!", "Out of time", "Assassin revealed",
-   *  "Solved!", "Got it!". Becomes the FloatingPanel's title
-   *  bar copy. */
-  title: string
-  /** Per-game factual reveal — the secret number for psychic-num,
-   *  mistake count for wordknit, turns used + agents found for
-   *  tinyspy. Renders below the title; ReactNode so a caller can
-   *  do mild composition (multiple lines, a `<strong>` for a
-   *  username, etc.) without a string-only constraint. */
-  detail?: ReactNode
+  /** The verdict line — centered, large in the body. Per game,
+   *  picked per-status by the caller: "You win!", "You lost: out
+   *  of guesses", "You lost: assassin revealed", etc. The
+   *  FloatingPanel's title bar is always "Game over"; this is the
+   *  important per-status line that the user actually reads. */
+  verdict: string
   /** Dismiss the modal. The user lands back in the PlayArea in
    *  review mode (board still visible, terminal indicator + Back-
    *  to-club affordance live in the slot where input used to be). */
@@ -42,6 +35,13 @@ type Props = {
  * ESC, X) — same shell the chat / Help / Hint modals use, so the
  * visual register stays consistent.
  *
+ * The FloatingPanel's title bar is always "Game over". The
+ * important per-status line — the verdict — lives in the body as
+ * a centered large-font label. No further detail in the body:
+ * everything the player might want to review (revealed tiles,
+ * matched categories, the secret number) is on the PlayArea
+ * already, so the modal stays focused on the moment-of-result.
+ *
  * **No backdrop.** Matches the other in-game modals — the user
  * can click straight through to the board to start reviewing
  * without first dismissing this modal.
@@ -55,21 +55,20 @@ type Props = {
  */
 export function GameOverModal({
   outcome,
-  title,
-  detail,
+  verdict,
   onClose,
   onBackToClub,
 }: Props) {
   return (
     <FloatingPanel
-      title={title}
+      title="Game over"
       onClose={onClose}
-      defaultSize={{ width: 420, height: 280 }}
+      defaultSize={{ width: 420, height: 240 }}
       minWidth={300}
-      minHeight={200}
+      minHeight={180}
     >
       <div className={cls(styles.accent, styles[outcome])} aria-hidden />
-      {detail && <div className={styles.detail}>{detail}</div>}
+      <div className={styles.verdict}>{verdict}</div>
       <div className={styles.actions}>
         <button type="button" autoFocus onClick={onBackToClub}>
           Back to club

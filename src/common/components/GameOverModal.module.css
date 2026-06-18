@@ -25,10 +25,17 @@
   background: var(--color-outcome-lost-border);
 }
 
-.detail {
-  font-size: 1rem;
-  line-height: 1.45;
+/* The verdict line — centered, large, the focal point of the
+ * modal body. The accent bar above carries the won/lost color
+ * cue; the verdict text stays neutral so the line reads as the
+ * primary content, not a re-tint of the bar. */
+.verdict {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 600;
   color: var(--color-text);
+  line-height: 1.2;
+  margin: 0.5rem 0 0 0;
 }
 
 .actions {
