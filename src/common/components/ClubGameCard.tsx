@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { games } from '../../games'
 import { Link } from '../lib/Link'
 import { cls } from '../lib/cls'
+import { friendlyDate } from '../lib/friendlyDate'
 import styles from './ClubGameCard.module.css'
 
 type State = 'active' | 'suspended' | 'completed'
@@ -88,7 +89,10 @@ export function ClubGameCard({
 }: Props) {
   const gameTypeName =
     games.find((g) => g.gametype === gametype)?.name ?? gametype
-  const startedAtLabel = new Date(startedAt).toLocaleString()
+  // Friendly relative date — see friendlyDate.ts. Doesn't tick;
+  // re-renders when ClubPage refetches via realtime, which is
+  // frequent enough for a glance-at game list.
+  const startedAtLabel = friendlyDate(startedAt)
   const [deleteState, setDeleteState] = useState<
     'idle' | 'confirming' | 'deleting'
   >('idle')
