@@ -287,6 +287,7 @@ export function GamePage({
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,
           timer,
+          setup: commonGame.setup,
           feedback: feedbackApi,
           menu: menuApi,
         })}

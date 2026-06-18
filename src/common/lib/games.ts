@@ -33,6 +33,14 @@ export type GamePageCtx = {
     displaySeconds: number
     expired: boolean
   }
+  /** The game's setup blob from `common.games.setup` — the
+   *  choices the SetupGameDialog collected at start. Typed as
+   *  `Record<string, unknown>` here because each gametype's
+   *  shape is different; per-game PlayAreas cast to their own
+   *  setup type (`as TinyspySetup`, `as WordknitSetup`, etc.)
+   *  on access. Read-only at this level — setup is fixed at
+   *  game-creation time. */
+  setup: Record<string, unknown>
   /** Imperative API for the GamePage-header feedback slot. The
    *  PlayArea calls `feedback.show({...})` to surface transient
    *  or persistent feedback in the `<StatusSlot>` (replacing the

@@ -4,6 +4,7 @@ import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
+import type { TinyspySetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
@@ -41,7 +42,12 @@ export function PlayArea({
   gameId,
   playState,
   isTerminal,
+  setup,
 }: GamePageCtx) {
+  // Per-game setup blob — opaque on GamePageCtx, cast to tinyspy's
+  // shape here. Read-only at this layer; the only field we read
+  // today is `turns` for the "X/Y turns" status counter.
+  const tinyspySetup = setup as TinyspySetup
   const { game, players } = useGame(gameId)
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
@@ -101,7 +107,7 @@ export function PlayArea({
             {' · '}
             {inSuddenDeath
               ? 'sudden death'
-              : `${game.turns_remaining} tokens left`}
+              : `${game.turn_number}/${tinyspySetup.turns} turns`}
           </span>
         </div>
 

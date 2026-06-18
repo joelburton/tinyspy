@@ -22,44 +22,73 @@
   font-size: 0.95rem;
 }
 
-/* --------- the 5×5 grid + tiles --------- */
+/* --------- the 5×5 grid + tiles ---------
+ *
+ * The grid fills the available column height + width — both axes
+ * use `repeat(5, 1fr)` so each tile takes an equal slice of both
+ * dimensions. Tiles no longer carry their own aspect-ratio
+ * constraint; they're as wide or as tall as the column allows.
+ * This keeps the board "on screen" for the page-height-fits-the-
+ * viewport rule (docs/ui.md → "Page-height fits the viewport") —
+ * at a tall viewport the tiles get taller, at a wide one wider.
+ *
+ * The grid is a flex child of `.boardCol` (PlayArea); `flex: 1 +
+ * min-height: 0` is what bounds it within the column so the
+ * 1fr-row math has something to divide.
+ */
 
 .boardGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
   gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .tile {
-  /* Roughly matches real Codenames cards' landscape shape and
-     keeps the whole 5×5 board on a laptop screen without
-     scrolling. */
-  aspect-ratio: 5 / 3;
   padding: 0.5rem;
   border-radius: var(--radius-md);
+  /* Center the word horizontally + vertically in the tile.
+   * Pending state's "…" indicator absolute-positions to the
+   * bottom-right so it doesn't compete with the centered word. */
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   border: 1px solid transparent;
   position: relative;
   font: inherit;
-  text-align: left;
   color: inherit;
   /* Reset the global filled-blue button default — tiles have
      their own per-state palette below (hint tints, revealed
      solids, post-game stripes) and inherit from those. */
   background: transparent;
+  /* Container-queries on the tile so the word's font-size can
+   * scale with the tile's width — wider tiles, bigger letters,
+   * clamped at both ends so it stays readable at small sizes and
+   * doesn't go silly-large on huge screens. */
+  container-type: inline-size;
 }
 
 .tileWord {
-  font-size: 0.95rem;
-  font-weight: 500;
+  text-align: center;
+  font-weight: 700;
+  /* clamp(min, 10% of tile width, max). 10cqi at a 150px tile is
+   * 15px; at a 250px tile, 25px. Caps prevent the font from
+   * vanishing on shrunken viewports or shouting at large ones. */
+  font-size: clamp(0.85rem, 10cqi, 1.5rem);
   word-break: break-word;
+  line-height: 1.15;
 }
 
 .tileKey {
+  /* Pending indicator — bottom-right corner, out of the way of
+   * the centered word. */
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.5rem;
   font-size: 0.7rem;
-  align-self: flex-end;
   opacity: 0.55;
   font-family: ui-monospace, Menlo, monospace;
   letter-spacing: 0.1em;

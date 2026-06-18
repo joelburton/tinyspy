@@ -39,16 +39,17 @@
 }
 
 /* Board column — takes the bulk of the width; the BoardGrid
- * inside lays out its own 5×5 grid. min-width: 0 so the column
- * can shrink past the intrinsic grid width on narrow viewports
- * (defensive — tinyspy is desktop-first and the grid fits comfortably
- * on a laptop, but the bound keeps the right column from getting
- * crushed). */
+ * inside lays out its own 5×5 grid. The column is flex-column so
+ * BoardGrid (rendered as a fragment of an optional error banner
+ * + the grid div) can use `flex: 1` on its grid to fill the
+ * column's height. min-height: 0 lets the grid bound itself
+ * within the column. */
 .boardCol {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 /* Right column — fixed-width side panel for status + clue action +
