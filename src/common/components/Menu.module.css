@@ -97,7 +97,19 @@
 .item:hover:not(:disabled),
 .item:focus {
   background: var(--color-surface-hover);
-  outline: none;
+}
+
+/* Keyboard focus also paints a clear ring on top of the
+ * background highlight. Without it, the row-background change
+ * is the only signal — fine in normal mode, but invisible in
+ * forced-colors / Windows-high-contrast mode where custom
+ * background colors are stripped. The ring keeps the focused
+ * row identifiable in those contexts. :focus-visible (not
+ * :focus) so a mouse click on an item doesn't double-paint a
+ * ring on top of the activation flash. */
+.item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .itemDisabled {

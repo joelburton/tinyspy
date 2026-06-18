@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type KeyboardEvent,
@@ -79,6 +80,13 @@ export function Menu({
   const [focusedIndex, setFocusedIndex] = useState(0)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  // Stable id tying the trigger's aria-controls to the popover's
+  // id. Screen readers use this association to announce "expanded,
+  // controls menu" + jump to the popover on demand. The popover
+  // exists only when `open`, but the id reference stays valid —
+  // AT implementations tolerate a missing target while the
+  // popover is collapsed.
+  const popoverId = useId()
   // Map of flat-index → rendered item element. Used so the
   // keyboard handler can call .focus() on whichever item should
   // receive focus next. The Map (rather than an array) is so a
@@ -225,6 +233,7 @@ export function Menu({
         className={cls(styles.trigger, triggerClassName)}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={popoverId}
         aria-label={triggerLabel}
         onClick={() => (open ? closeMenu() : openMenu())}
         onKeyDown={onTriggerKeyDown}
@@ -234,6 +243,7 @@ export function Menu({
       {open && (
         <div
           ref={popoverRef}
+          id={popoverId}
           className={cls(
             styles.popover,
             popoverAlign === 'right' && styles.popoverRight,
