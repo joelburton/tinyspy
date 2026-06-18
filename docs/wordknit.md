@@ -328,7 +328,6 @@ Tracked in [`deferred.md`](deferred.md). The wordknit-specific ones today:
 
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
-- **Split wordknit's realtime** into `useRealtimeRefetch`-driven postgres-changes + a separate hand-rolled effect for the stable-name selection broadcast. Queued as a focused refactor.
 
 ## File locations
 

@@ -80,14 +80,15 @@ export type SelectionMap = ReadonlyMap<string, string[]>
 /**
  * Wordknit's per-gametype data hook.
  *
- * Hand-rolled rather than driving off `useRealtimeRefetch` (the
- * factory the tinyspy + psychicnum data hooks use): this hook's
- * postgres-changes and shared-selection Broadcast both live on
- * one stable-name channel (the broadcast needs the shared room
- * across peers), and pulling postgres-changes out into the
- * factory would leave two coordinating effects where today
- * there's one. See `docs/code-conventions.md` → "Realtime data
- * hooks" for the factory-or-hand-roll decision rule.
+ * Follows the **broadcast-coupled** realtime pattern documented in
+ * `docs/code-conventions.md` → "Realtime data hooks" — broadcast
+ * needs a stable-name channel so peers merge into the same room,
+ * and postgres-changes ride along on that same channel rather
+ * than opening a second UUID-suffixed one via `useRealtimeRefetch`.
+ * Same shape `useCommonGame` uses for its presence + manual-pause
+ * + suspend broadcasts; the factory is for refetch-only hooks
+ * (tinyspy + psychic-num data hooks). See the conventions doc for
+ * the decision rule when porting a new game.
  *
  * Two responsibilities split across two channels (one per hook):
  *   1. **This hook** owns the gametype-specific channel. It

@@ -115,9 +115,13 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 
 The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/tinyspy/hooks/useGame.ts) for the canonical example.
 
-### Realtime data hooks — `useRealtimeRefetch`
+### Realtime data hooks — two patterns
 
-The recurring shape every per-game data hook needs — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts). **A new game's `useGame` hook should default to using it.** Pattern:
+Two shapes recur across the per-game data hooks, and the choice between them is driven by **whether the hook needs Realtime Broadcast**, not by hook-size or game complexity. Pick by mechanism; don't mix them.
+
+#### Pattern A — refetch-only via `useRealtimeRefetch`
+
+For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts). Canonical calls:
 
 ```ts
 useRealtimeRefetch({
@@ -133,14 +137,60 @@ useRealtimeRefetch({
 })
 ```
 
-The `tables` field accepts one subscription or an array — psychicnum subscribes to `games` AND `guesses` with the same `load()`; tinyspy splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
+The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games` AND `guesses` with the same `load()`; tinyspy splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
 
-**When NOT to use the factory:**
+The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
-- **Chat-style append-on-INSERT.** [`useClubChat`](../src/common/hooks/useClubChat.ts) appends INSERTs to local state without a refetch — a meaningful optimization for chat-heavy moments. Stays hand-rolled.
-- **Broadcast-coupled channels.** [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) runs postgres-changes AND a shared-selection broadcast on the same stable-name channel; the broadcast needs the shared room across peers and the postgres-changes ride along. Splitting that out would leave two coordinating effects where today there's one — net loss. Stays hand-rolled, with a comment at the top of the hook documenting why.
+Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
 
-The factory itself is tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
+#### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
+
+For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, future scratchpad-takeover-lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
+
+Canonical examples:
+- [`common/useCommonGame`](../src/common/hooks/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
+- [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) — stable `wordknit:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `wordknit.{games, guesses}`.
+
+The shape is:
+
+```ts
+useEffect(function joinRoom() {
+  let mounted = true
+  async function load() { /* fetch + setState; guard on mounted */ }
+  load()
+
+  const ch = supabase.channel(`<prefix>:${id}`)  // stable name, no UUID
+  ch.on('postgres_changes', { event: '*', schema, table, filter }, load)
+  ch.on('broadcast', { event: 'select' }, ({ payload }) => applySelect(payload))
+  ch.on('broadcast', { event: 'clear' }, () => applyClear())
+  ch.subscribe((status) => {
+    if (status === 'SUBSCRIBED') {
+      load()
+      // (presence track / mount-time RPC, if any)
+    }
+  })
+
+  return () => {
+    mounted = false
+    supabase.removeChannel(ch)
+  }
+}, [id])
+```
+
+Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
+
+#### Choosing between A and B
+
+Decision rule when porting a new game:
+
+1. **Does this hook send or receive Broadcast events?** If yes → Pattern B. If no → Pattern A.
+2. **Does this hook track Presence?** If yes → Pattern B (presence rosters are per-channel-name, same constraint as broadcast).
+
+Mixing — Pattern B for broadcast + a separate Pattern A call for postgres-changes — adds a second channel per peer with no functional gain and breaks the "one hook, one channel" mental model. Don't.
+
+#### Append-on-event exception
+
+[`useClubChat`](../src/common/hooks/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
 
 ## Frontend
 

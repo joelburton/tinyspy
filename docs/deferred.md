@@ -40,7 +40,6 @@ See [`wordknit.md → Future work`](wordknit.md#future-work) for the longer trea
 
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 - **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
-- **Split wordknit's realtime into broadcast + factory-driven postgres_changes.** Today `useGame` hand-rolls one stable-name channel `wordknit:${gameId}` carrying postgres-changes on `wordknit.{games,guesses}` AND the shared-selection Broadcast. The postgres-changes side could move to `useRealtimeRefetch` (the factory the other game hooks now use); broadcast stays on its own stable-name channel because peer-merge requires it. The two effects wouldn't share state — selections live independently from game/guesses data — so the split is clean. Queued as a focused refactor; see the in-code comment at the top of `wordknit/hooks/useGame.ts`.
 
 ## Tooling
 
