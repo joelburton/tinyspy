@@ -35,7 +35,7 @@ export type Player = Member
  */
 export type FreeBeeGame = {
   id: string
-  club_id: string
+  club_handle: string
   outer_letters: string
   center_letter: string
   total_score: number
@@ -109,7 +109,7 @@ export function useGame(gameId: string): {
         db
           .from('games_state')
           .select(
-            'id, club_id, outer_letters, center_letter, total_score, total_words, created_at, scoring_words, legal_words',
+            'id, club_handle, outer_letters, center_letter, total_score, total_words, created_at, scoring_words, legal_words',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -132,7 +132,7 @@ export function useGame(gameId: string): {
 
       setGame({
         id: gameRes.data.id as string,
-        club_id: gameRes.data.club_id as string,
+        club_handle: gameRes.data.club_handle as string,
         outer_letters: gameRes.data.outer_letters as string,
         center_letter: gameRes.data.center_letter as string,
         total_score: gameRes.data.total_score as number,

@@ -134,7 +134,7 @@ begin
   -- refetches games_state. The self-set is a no-op semantically
   -- but produces a WAL entry Realtime picks up.
   update freebee.games
-     set club_id = club_id
+     set club_handle = club_handle
    where id = target_game;
 end;
 $$;

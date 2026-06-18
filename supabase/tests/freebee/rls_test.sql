@@ -38,7 +38,7 @@ select plan(11);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada Bea Cade', array['ada','bea','cade']);
+select common.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 reset role;
 -- A non-terminal coop game. CTE wrapping the INSERT…RETURNING
@@ -49,10 +49,10 @@ reset role;
 create temp table coop_game (id uuid) on commit drop;
 grant select on coop_game to authenticated;
 with ins as (
-  insert into common.games (id, club_id, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
   values (
     gen_random_uuid(),
-    (select id from club),
+    (select handle from club),
     'freebee',
     'E·CABDNO',
     '{"mode": "coop", "timer": {"kind": "none"}}'::jsonb,
@@ -64,11 +64,11 @@ with ins as (
 insert into coop_game (id) select id from ins;
 
 insert into freebee.games
-  (id, club_id, outer_letters, center_letter,
+  (id, club_handle, outer_letters, center_letter,
    total_score, total_words, scoring_words, legal_words)
 values (
   (select id from coop_game),
-  (select id from club),
+  (select handle from club),
   'cabdno', 'e', 17, 2,
   '[]'::jsonb, '{}'::text[]
 );
@@ -155,11 +155,11 @@ select throws_ok(
 select throws_ok(
   format(
     $$ insert into freebee.games
-         (id, club_id, outer_letters, center_letter,
+         (id, club_handle, outer_letters, center_letter,
           total_score, total_words, scoring_words, legal_words)
-       values (gen_random_uuid(), %L::uuid,
+       values (gen_random_uuid(), %L,
                'aaaaaa', 'b', 1, 1, '[]'::jsonb, '{}'::text[]) $$,
-    (select id from club)
+    (select handle from club)
   ),
   '42501',
   'permission denied for table games',
@@ -176,10 +176,10 @@ reset role;
 create temp table compete_game (id uuid) on commit drop;
 grant select on compete_game to authenticated;
 with ins as (
-  insert into common.games (id, club_id, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
   values (
     gen_random_uuid(),
-    (select id from club),
+    (select handle from club),
     'freebee',
     'E·CABDNO compete',
     '{"mode": "compete", "target_rank": 5, "timer": {"kind": "none"}}'::jsonb,
@@ -191,11 +191,11 @@ with ins as (
 insert into compete_game (id) select id from ins;
 
 insert into freebee.games
-  (id, club_id, outer_letters, center_letter,
+  (id, club_handle, outer_letters, center_letter,
    total_score, total_words, scoring_words, legal_words)
 values (
   (select id from compete_game),
-  (select id from club),
+  (select handle from club),
   'cabdno', 'e', 17, 2,
   '[]'::jsonb, '{}'::text[]
 );

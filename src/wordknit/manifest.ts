@@ -20,6 +20,8 @@ import logoUrl from './logo.svg?url'
 export const wordknitGame: GameManifest = {
   gametype: 'wordknit',
   schema: 'wordknit',
+  baseGametype: 'wordknit',
+  mode: 'coop',
   name: 'WordKnit',
   shortDescription: 'Find categories, like Connections',
   logoUrl,
@@ -73,16 +75,16 @@ export const wordknitGame: GameManifest = {
   // returned id regardless.
   //
   // RLS makes the lookup safe: `wordknit.games.select where
-  // club_id = X and puzzle_id = Y` only returns rows this user
+  // club_handle = X and puzzle_id = Y` only returns rows this user
   // can see (i.e. games in clubs they're a member of), so the
-  // .eq('club_id', clubId) is belt-and-braces. maybeSingle()
+  // .eq('club_handle', clubHandle) is belt-and-braces. maybeSingle()
   // tolerates the no-existing-game case as `data === null`.
   //
   // playerUserIds defaults to "everyone in the club" today via
   // the dialog wrapper — the picker-UI for selecting a subset
   // hasn't landed yet (deferred). Behavior matches today: every
   // newly-created game has every club member in its game_players.
-  startGameInClub: async (clubId, setup, playerUserIds) => {
+  startGameInClub: async (clubHandle, setup, playerUserIds) => {
     const s = setup as WordKnitSetup
 
     // Existing-game check first. A real id in `data` means the
@@ -92,7 +94,7 @@ export const wordknitGame: GameManifest = {
     const existing = await db
       .from('games')
       .select('id')
-      .eq('club_id', clubId)
+      .eq('club_handle', clubHandle)
       .eq('puzzle_id', s.puzzleId)
       .maybeSingle()
     if (existing.data) return { id: existing.data.id }
@@ -100,7 +102,7 @@ export const wordknitGame: GameManifest = {
     // No prior game — create one. The RPC is the same as before.
     const { data, error } = await db
       .rpc('create_game', {
-        target_club: clubId,
+        target_club: clubHandle,
         setup: s,
         player_user_ids: playerUserIds,
       })

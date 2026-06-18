@@ -83,7 +83,7 @@ select is(
 -- conditional-exposure case.
 
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- Switch to postgres to insert into freebee tables directly
 -- (no INSERT grant exists on authenticated; this is the test-
@@ -104,10 +104,10 @@ reset role;
 create temp table common_g (id uuid) on commit drop;
 grant select on common_g to authenticated;
 with ins as (
-  insert into common.games (id, club_id, gametype, title, setup, play_state, is_terminal)
+  insert into common.games (id, club_handle, gametype, title, setup, play_state, is_terminal)
   values (
     gen_random_uuid(),
-    (select id from club),
+    (select handle from club),
     'freebee',
     'E·CABDNO',
     '{"mode": "coop", "timer": {"kind": "none"}}'::jsonb,
@@ -121,11 +121,11 @@ insert into common_g (id) select id from ins;
 -- The hidden wordlists. Small synthetic lists; they only need
 -- to be present + retrievable.
 insert into freebee.games
-  (id, club_id, outer_letters, center_letter,
+  (id, club_handle, outer_letters, center_letter,
    total_score, total_words, scoring_words, legal_words)
 values (
   (select id from common_g),
-  (select id from club),
+  (select handle from club),
   'cabdno',
   'e',
   17,

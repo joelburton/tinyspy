@@ -12,7 +12,7 @@ These describe where a game sits in the club's "what are we looking at right now
 
 A game is **current** iff at least one club member is viewing its GamePage right now. ("In" a game means viewing — there's no other sense. A member who was `common.game_players`-seated in a non-current game is no longer "in" it; they're a previous player.)
 
-**Invariant: at most one current game per club.** Enforced by a partial unique index on `(club_id) where is_current_view = true`.
+**Invariant: at most one current game per club.** Enforced by a partial unique index on `(club_handle) where is_current_view = true`.
 
 **Why we mark this:** the club page can show a "Currently being viewed: <game>" affordance so a member typing the club URL can jump straight back to where the group is. And it enforces the one-game-at-a-time invariant structurally.
 
@@ -30,9 +30,22 @@ The two sources stay as today:
 
 Play states describe the game's rules-side situation — totally independent of view state.
 
-Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is PsychicNum (`playing` / `won` / `lost`); the broadest today is tinyspy (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
+Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is PsychicNum coop (`playing` / `won` / `lost`); the broadest today is tinyspy (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
 
 **Convention: don't use `'active'` as a play_state value.** "Active" overloads view-state and play-state — using it for play_state invites the confusion this whole vocabulary exists to prevent. Every gametype uses `'playing'` as its standard mid-game play_state. Gametypes with additional non-terminal phases (tinyspy's `'sudden_death'`) get their own names for those.
+
+### Compete-variant convention: `_compete` suffix
+
+Sibling-manifest pairs that include a compete variant (see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this convention: the terminal play_state in compete mode is the coop name plus a `_compete` suffix. PsychicNum is the canonical example:
+
+| mode    | won-terminal   | lost-terminal    |
+|---------|----------------|------------------|
+| coop    | `won`          | `lost`           |
+| compete | `won_compete`  | `lost_compete`   |
+
+The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
+
+Freebee's eventual compete variant will follow the same suffix convention (the schema already declares `'won_compete'` as a planned play_state). Wordknit's compete will use `'solved_compete'` (matching wordknit's coop terminal naming `'solved'`).
 
 ### `is_terminal` is materialized
 
@@ -52,7 +65,7 @@ The schema split: `common.games` is the cross-cutting metadata; `<gametype>.game
 - `is_terminal` (boolean — materialized, in sync with play_state)
 - `status` (jsonb — gametype-specific data needed for the club-page listing label; each gametype consumes its own shape via `manifest.labelFor`)
 - `idle_since` (timestamptz, nullable) + `total_idle_seconds` (int) — the timer-preservation accumulator. Invariant: `is_current_view = true ⟺ idle_since IS NULL`. Every vacate (create_game's "vacate prior," set_current_view's "vacate others," unset_current_view) stamps `idle_since = now()`; every set_current_view that flips a row to current folds `(now - idle_since)` into `total_idle_seconds` and clears the timestamp. The FE timer hook subtracts `total_idle_seconds * 1000` from elapsed-ms so countdowns don't tick when nobody's watching.
-- plus the cross-cutting fields already there: `id`, `club_id`, `gametype`, `title`, `setup`, `started_at`, `ended_at`, etc.
+- plus the cross-cutting fields already there: `id`, `club_handle`, `gametype`, `title`, `setup`, `started_at`, `ended_at`, etc.
 
 `status`'s semantic: *state for label rendering*, kept in sync on every state-transitioning RPC. Not just a terminal-time snapshot — every mid-game state-affecting move writes whatever the manifest's `labelFor` needs to render the current row.
 

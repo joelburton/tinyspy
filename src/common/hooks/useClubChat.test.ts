@@ -22,7 +22,7 @@
  *   - SUBSCRIBED status triggers a refetch
  *   - An INSERT event appends a new message to the list
  *   - Cleanup removes the channel on unmount
- *   - Switching clubId tears down the old channel and creates a new one
+ *   - Switching clubHandle tears down the old channel and creates a new one
  *
  * Out of scope: the precise Realtime channel name (it includes a
  * crypto-random suffix from channelDedupSuffix — tested separately).
@@ -239,7 +239,7 @@ describe('useClubChat', () => {
     expect(mockRemoveChannel).toHaveBeenCalledTimes(1)
   })
 
-  it('rebuilds the channel when clubId changes', async () => {
+  it('rebuilds the channel when clubHandle changes', async () => {
     mockOrder.mockResolvedValue({ data: [], error: null })
     const { rerender } = renderHook(({ id }) => useClubChat(id), {
       initialProps: { id: 'club-1' },

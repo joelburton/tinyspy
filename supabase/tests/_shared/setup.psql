@@ -100,11 +100,50 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
   ('eda55555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'eda@test.local',  now(), now(), now());
 
--- The on_auth_user_created trigger on auth.users fires for each
--- of those inserts, materializing common.profiles (username =
--- email's local-part: 'ada', 'bea', etc.) and a solo club for
--- each user. So after this file runs, every test has five
--- profiles and five solo clubs available with no further work.
+-- Manually materialize what common.claim_username would have
+-- produced for each persona: a common.profiles row, a solo club
+-- ('=<username>' handle), a clubs_members row joining the user
+-- to their solo club, and a clubs_gametypes row per registered
+-- gametype.
+--
+-- Why direct INSERTs instead of calling the RPC five times: the
+-- RPC reads auth.uid() and runs SECURITY DEFINER, so we'd have
+-- to as_user each persona, call claim_username, switch back.
+-- Direct inserts as postgres-superuser are cleaner for fixtures
+-- where we KNOW exactly what should land. The claim_username
+-- RPC itself is exercised by tests/common/claim_username_test.sql
+-- — that's where the end-to-end contract gets pinned.
+--
+-- Keep this in sync with the body of common.claim_username in
+-- 20260615000000_common_baseline.sql. If the claim RPC starts
+-- materializing more (say, a "welcome" chat message), this fixture
+-- needs the same addition to keep tests representative.
+
+insert into common.profiles (user_id, username, color) values
+  ('ada11111-1111-1111-1111-111111111111', 'ada',  common.color_for_username('ada')),
+  ('bea22222-2222-2222-2222-222222222222', 'bea',  common.color_for_username('bea')),
+  ('cade3333-3333-3333-3333-333333333333', 'cade', common.color_for_username('cade')),
+  ('dee44444-4444-4444-4444-444444444444', 'dee',  common.color_for_username('dee')),
+  ('eda55555-5555-5555-5555-555555555555', 'eda',  common.color_for_username('eda'));
+
+insert into common.clubs (handle, name, created_by) values
+  ('=ada',  'ada',  'ada11111-1111-1111-1111-111111111111'),
+  ('=bea',  'bea',  'bea22222-2222-2222-2222-222222222222'),
+  ('=cade', 'cade', 'cade3333-3333-3333-3333-333333333333'),
+  ('=dee',  'dee',  'dee44444-4444-4444-4444-444444444444'),
+  ('=eda',  'eda',  'eda55555-5555-5555-5555-555555555555');
+
+insert into common.clubs_members (club_handle, user_id) values
+  ('=ada',  'ada11111-1111-1111-1111-111111111111'),
+  ('=bea',  'bea22222-2222-2222-2222-222222222222'),
+  ('=cade', 'cade3333-3333-3333-3333-333333333333'),
+  ('=dee',  'dee44444-4444-4444-4444-444444444444'),
+  ('=eda',  'eda55555-5555-5555-5555-555555555555');
+
+insert into common.clubs_gametypes (club_handle, gametype)
+  select c.handle, g.gametype
+    from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda')) as c(handle)
+   cross join common.gametypes g;
 
 -- ============================================================
 -- pg_temp.as_user — switch the session to "I am this user"

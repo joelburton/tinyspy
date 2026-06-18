@@ -28,6 +28,8 @@ import logoUrl from './logo.svg?url'
 export const tinyspyGame: GameManifest = {
   gametype: 'tinyspy',
   schema: 'tinyspy',
+  baseGametype: 'tinyspy',
+  mode: 'coop',
   name: 'TinySpy',
   shortDescription: 'Find agents using word clues',
   logoUrl,
@@ -71,11 +73,11 @@ export const tinyspyGame: GameManifest = {
   // The `unknown` → TinySpySetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
   // Component is the only thing populating the wrapper's value).
-  startGameInClub: async (clubId, setup, playerUserIds) => {
+  startGameInClub: async (clubHandle, setup, playerUserIds) => {
     const s = setup as TinySpySetup
     const { data, error } = await db
       .rpc('create_game', {
-        target_club: clubId,
+        target_club: clubHandle,
         setup: s,
         player_user_ids: playerUserIds,
       })

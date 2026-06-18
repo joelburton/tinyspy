@@ -27,7 +27,7 @@ export type Player = Member
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
   | 'id'
-  | 'club_id'
+  | 'club_handle'
   | 'mistake_count'
   | 'board'
   | 'created_at'
@@ -58,7 +58,7 @@ export type MatchedCategory = {
 
 export type WordKnitGame = {
   id: string
-  club_id: string
+  club_handle: string
   mistake_count: number
   board: Board
   /** Server-stamped game-start timestamp, ISO. Mirrored from the
@@ -185,7 +185,7 @@ export function useGame(
       const [gameRes, guessesRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_id, mistake_count, board, created_at')
+          .select('id, club_handle, mistake_count, board, created_at')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -205,7 +205,7 @@ export function useGame(
       const row = gameRes.data as GameRow
       setGame({
         id: row.id,
-        club_id: row.club_id,
+        club_handle: row.club_handle,
         mistake_count: row.mistake_count,
         board: row.board as Board,
         created_at: row.created_at,

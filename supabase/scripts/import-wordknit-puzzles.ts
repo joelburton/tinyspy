@@ -38,8 +38,8 @@
  * doesn't historically rewrite, so this is fine for now.)
  *
  * Usage:
- *   npm run puzzles:import                       # fetches from GitHub
- *   npm run puzzles:import -- --file ./local.json   # offline
+ *   npm run wordknit:import                       # fetches from GitHub
+ *   npm run wordknit:import -- --file ./local.json   # offline
  *
  * Auth: uses the local Supabase service_role key by default
  * (matches `supabase status -o env`'s SERVICE_ROLE_KEY). Override

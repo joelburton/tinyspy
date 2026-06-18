@@ -7,7 +7,7 @@ import styles from './ChatBody.module.css'
 import type { Member } from '../lib/games'
 
 type Props = {
-  clubId: string
+  clubHandle: string
   members: Member[]
   /** Messages + loading lifted from FloatingChat (which subscribes
    *  via useClubChat at its level so the force-open detector for
@@ -36,7 +36,7 @@ type Props = {
  * the matching "force open" behavior; here we just deal with
  * display.
  */
-export function ChatBody({ clubId, members, messages, loading }: Props) {
+export function ChatBody({ clubHandle, members, messages, loading }: Props) {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +68,7 @@ export function ChatBody({ clubId, members, messages, loading }: Props) {
     setError(null)
     setBusy(true)
     const { error } = await commonDb.rpc('send_message', {
-      target_club: clubId,
+      target_club: clubHandle,
       content: trimmed,
     })
     setBusy(false)

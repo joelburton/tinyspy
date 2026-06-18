@@ -54,7 +54,7 @@ $$;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- Reset to postgres for the helper-call tests below.
 reset role;
@@ -68,8 +68,8 @@ select set_config('request.jwt.claims', '', true);
 select set_config('request.jwt.claims', '', true);
 select throws_ok(
   format(
-    $$ select common.require_club_member(%L::uuid) $$,
-    (select id from club)
+    $$ select common.require_club_member(%L) $$,
+    (select handle from club)
   ),
   '42501',
   'must be authenticated',
@@ -80,8 +80,8 @@ select throws_ok(
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.require_club_member(%L::uuid) $$,
-    (select id from club)
+    $$ select common.require_club_member(%L) $$,
+    (select handle from club)
   ),
   '42501',
   'not a member of this club',
@@ -91,7 +91,7 @@ select throws_ok(
 -- (3) Authenticated member → returns caller_id
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select common.require_club_member((select id from club))),
+  (select common.require_club_member((select handle from club))),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'require_club_member: member call returns caller_id'
 );

@@ -37,10 +37,16 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   return (
     <div className={styles.setup}>
       <fieldset className={styles.fieldset}>
-        <legend>Total guesses</legend>
+        <legend>Guesses per player</legend>
+        {/* Copy is mode-neutral on purpose — the same SetupForm
+            backs both psychicnum_coop and psychicnum_compete
+            manifests. In coop this is the shared pool (per-player
+            value equals shared value because everyone decrements
+            in lock-step); in compete each player gets this many
+            independently. The number-on-the-radio carries the
+            same meaning either way. */}
         <p className="muted">
-          The shared pool. Every wrong guess decrements it; if it
-          hits zero before someone guesses the number, you lose.
+          How many guesses each player starts with.
         </p>
         <div className={styles.radioRow}>
           {GUESS_OPTIONS.map((n) => (

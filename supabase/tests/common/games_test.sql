@@ -53,7 +53,7 @@ $$;
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -74,7 +74,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.created_game_id',
   (common.create_game(
-    (select id from club),
+    (select handle from club),
     'wordknit',
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -100,9 +100,9 @@ select is(
 );
 
 select is(
-  (select club_id from common.games where id = current_setting('test.created_game_id')::uuid),
-  (select id from club),
-  'create_game: common.games row has the right club_id'
+  (select club_handle from common.games where id = current_setting('test.created_game_id')::uuid),
+  (select handle from club),
+  'create_game: common.games row has the right club_handle'
 );
 
 select is(
@@ -120,11 +120,11 @@ select is(
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.create_game(%L::uuid, 'wordknit',
+    $$ select common.create_game(%L, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'test-title', '{}'::jsonb, null) $$,
-    (select id from club)
+    (select handle from club)
   ),
   '42501',
   'not a member of this club',
@@ -138,8 +138,8 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L::uuid, 'wordknit', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
-    (select id from club)
+    $$ select common.create_game(%L, 'wordknit', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
+    (select handle from club)
   ),
   'P0001',
   'player_user_ids must not be empty',
@@ -153,11 +153,11 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select common.create_game(%L::uuid, 'wordknit',
+    $$ select common.create_game(%L, 'wordknit',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'dee44444-4444-4444-4444-444444444444'::uuid],
        'test-title', '{}'::jsonb, null) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   'player_user_ids contains non-members: dee44444-4444-4444-4444-444444444444',
@@ -343,7 +343,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
   'test.second_game_id',
   (common.create_game(
-    (select id from club),
+    (select handle from club),
     'wordknit',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'second',
@@ -560,7 +560,7 @@ select cmp_ok(
 -- makes the FE's "auto-nav into the current game" semantics
 -- coherent: if two backends raced and both tried to set a
 -- different game current for the same club, the partial unique
--- index (`unique (club_id) where is_current_view`) would reject
+-- index (`unique (club_handle) where is_current_view`) would reject
 -- the second write with a unique_violation.
 --
 -- Test the index directly by bypassing the RPC: as postgres,
@@ -610,7 +610,7 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup from common.clubs_gametypes
-    where club_id = (select id from club) and gametype = 'wordknit'),
+    where club_handle = (select handle from club) and gametype = 'wordknit'),
   null,
   'saved defaults: starts NULL (handle_new_user / create_club leave it unset)'
 );
@@ -621,7 +621,7 @@ select is(
 -- evident: we're checking the plumbing, not the semantic.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
-  (select id from club),
+  (select handle from club),
   'wordknit',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'third',
@@ -634,7 +634,7 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
-    where club_id = (select id from club) and gametype = 'wordknit'),
+    where club_handle = (select handle from club) and gametype = 'wordknit'),
   'marker-1',
   'saved defaults: a non-null saved_default writes to clubs_gametypes.default_setup'
 );
@@ -645,7 +645,7 @@ select is(
 -- of when to call create_game; the DB just records the latest.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
-  (select id from club),
+  (select handle from club),
   'wordknit',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'fourth',
@@ -658,7 +658,7 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
-    where club_id = (select id from club) and gametype = 'wordknit'),
+    where club_handle = (select handle from club) and gametype = 'wordknit'),
   'marker-2',
   'saved defaults: a subsequent non-null saved_default overwrites the row'
 );

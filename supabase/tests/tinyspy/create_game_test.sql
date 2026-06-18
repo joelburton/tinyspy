@@ -16,7 +16,7 @@
 --   - rejection: setup.turns out of {9, 10, 11}
 --   - rejection: setup.firstClueGiverUserId not a uuid
 --   - rejection: setup.firstClueGiverUserId not in club
---   - happy path: returns one row, play_state='playing', club_id
+--   - happy path: returns one row, play_state='playing', club_handle
 --     correct, both seats filled, 25 words inserted,
 --     common.games row created with is_current_view=true
 --   - setup is persisted on the row (game review can see the
@@ -51,10 +51,10 @@ select plan(34);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table club2 on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 create temp table club3 on commit drop as
-select * from common.create_club('Trio', array['ada','bea','cade']);
+select common.create_club('Trio', array['ada','bea','cade']) as handle;
 
 -- ============================================================
 -- Rejection paths — auth + membership (setup valid in all)
@@ -69,8 +69,8 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
-    (select id from club2)
+    $q$ select tinyspy.create_game(%L, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
+    (select handle from club2)
   ),
   '42501',
   'must be authenticated',
@@ -82,8 +82,8 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
-    (select id from club2)
+    $q$ select tinyspy.create_game(%L, pg_temp.tinyspy_setup(), pg_temp.tinyspy_players()) $q$,
+    (select handle from club2)
   ),
   '42501',
   'not a member of this club',
@@ -96,11 +96,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $q$ select tinyspy.create_game(%L::uuid, pg_temp.tinyspy_setup(),
+    $q$ select tinyspy.create_game(%L, pg_temp.tinyspy_setup(),
         array['ada11111-1111-1111-1111-111111111111'::uuid,
               'bea22222-2222-2222-2222-222222222222'::uuid,
               'cade3333-3333-3333-3333-333333333333'::uuid]) $q$,
-    (select id from club3)
+    (select handle from club3)
   ),
   'P0001',
   'tinyspy requires exactly 2 players (got 3)',
@@ -117,14 +117,14 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 7,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.turns must be 9, 10, or 11 (got 7)',
@@ -135,13 +135,13 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.turns is required',
@@ -152,11 +152,11 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object('turns', 9),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.firstClueGiverUserId is required',
@@ -167,14 +167,14 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'not-a-uuid'
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.firstClueGiverUserId must be a uuid',
@@ -188,11 +188,11 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       pg_temp.tinyspy_setup(9, 'dee44444-4444-4444-4444-444444444444'::uuid),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.firstClueGiverUserId must be one of player_user_ids',
@@ -213,14 +213,14 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.timer is required',
@@ -231,7 +231,7 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
@@ -239,7 +239,7 @@ select throws_ok(
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.timer.kind must be none, countup, or countdown (got fast)',
@@ -250,7 +250,7 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
@@ -258,7 +258,7 @@ select throws_ok(
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.timer.seconds is required for countdown',
@@ -269,7 +269,7 @@ select throws_ok(
 select throws_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
@@ -277,7 +277,7 @@ select throws_ok(
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'P0001',
   'setup.timer.seconds must be 1..3600 (got 0)',
@@ -288,7 +288,7 @@ select throws_ok(
 select lives_ok(
   format(
     $q$ select tinyspy.create_game(
-      %L::uuid,
+      %L,
       jsonb_build_object(
         'turns', 9,
         'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
@@ -296,7 +296,7 @@ select lives_ok(
       ),
       pg_temp.tinyspy_players()
     ) $q$,
-    (select id from club2)
+    (select handle from club2)
   ),
   'create_game: timer.kind=countup is accepted (no seconds needed)'
 );
@@ -307,7 +307,7 @@ select lives_ok(
 
 create temp table created on commit drop as
 select * from tinyspy.create_game(
-  (select id from club2),
+  (select handle from club2),
   pg_temp.tinyspy_setup(11),  -- turns=11, first_user=ada (default)
   pg_temp.tinyspy_players()
 );
@@ -325,8 +325,8 @@ select is(
 );
 
 select is(
-  (select club_id from tinyspy.games where id = (select id from created)),
-  (select id from club2),
+  (select club_handle from tinyspy.games where id = (select id from created)),
+  (select handle from club2),
   'create_game: game is linked to the target club'
 );
 
@@ -403,14 +403,14 @@ select is(
 
 select is(
   (select id from common.games
-    where club_id = (select id from club2) and is_current_view = true),
+    where club_handle = (select handle from club2) and is_current_view = true),
   (select id from created),
   'create_game: this game is the club''s current-view common.games row'
 );
 
 select is(
   (select gametype from common.games
-    where club_id = (select id from club2) and is_current_view = true),
+    where club_handle = (select handle from club2) and is_current_view = true),
   'tinyspy',
   'create_game: current-view common.games row has gametype = tinyspy'
 );
@@ -441,7 +441,7 @@ select is(
 
 create temp table created2 on commit drop as
 select * from tinyspy.create_game(
-  (select id from club2),
+  (select handle from club2),
   pg_temp.tinyspy_setup(9, 'bea22222-2222-2222-2222-222222222222'::uuid),
   pg_temp.tinyspy_players()
 );
@@ -514,21 +514,21 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select (default_setup->>'turns')::int from common.clubs_gametypes
-    where club_id = (select id from club2) and gametype = 'tinyspy'),
+    where club_handle = (select handle from club2) and gametype = 'tinyspy'),
   9,
   'saved defaults: tinyspy saves turns'
 );
 
 select is(
   (select default_setup->'timer'->>'kind' from common.clubs_gametypes
-    where club_id = (select id from club2) and gametype = 'tinyspy'),
+    where club_handle = (select handle from club2) and gametype = 'tinyspy'),
   'none',
   'saved defaults: tinyspy saves timer'
 );
 
 select is(
   (select default_setup ? 'firstClueGiverUserId' from common.clubs_gametypes
-    where club_id = (select id from club2) and gametype = 'tinyspy'),
+    where club_handle = (select handle from club2) and gametype = 'tinyspy'),
   false,
   'saved defaults: tinyspy STRIPS firstClueGiverUserId (per-game decision, not a per-club preference)'
 );

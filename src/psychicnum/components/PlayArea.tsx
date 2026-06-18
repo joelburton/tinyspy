@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GuessHistory } from './GuessHistory'
@@ -9,41 +10,24 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /**
- * psychicnum's play surface — the gametype-specific render
- * inside `<GamePage>`'s render-prop slot. The route handler
- * (App.tsx) mounts GamePage at the route level; this is what
- * fills in the "active play area" when the game isn't paused.
+ * psychicnum's play surface, shared between coop and compete
+ * manifests. The mode is read from `game.mode` (set at create-
+ * game time and never changes); rendering branches on it for:
  *
- * Composes the gametype-specific pieces:
- *   - `<GuessForm>` owns input state + submit_guess RPC.
- *   - `<GameOverModal>` (shared with the other games) pops on
- *     terminal entry; the action slot also shows a small
- *     "Game over: <status> [Back to club]" indicator once the
- *     modal is dismissed.
- *   - `<GuessHistory>` renders the append-only log.
- *
- * **Layout** is a two-column split that mimics the shape of a
- * real game — a "board" placeholder on the left (where a tile
- * grid or word grid would go in a real game) + controls or
- * results on the right. psychicnum doesn't have a real board
- * (a single 1–10 number isn't worth tile UI), so the left
- * column is a styled rectangle reading "What's your guess?".
- *
- * The right column's "action slot" at the top has a fixed
- * minimum height that fits both the play form (status line +
- * input row) and the terminal indicator. Switching from
- * playing → terminal swaps the slot's content without shifting
- * the guess history below — per docs/ui.md → "Layout stability."
+ *   - Header copy: "X guesses left" (coop, shared) vs
+ *     "You: X · Bea: Y" (compete, per-player budgets).
+ *   - GuessHistory: in coop, shows everyone's guesses; in
+ *     compete, RLS already filters to caller's own + the
+ *     hook still passes everything through, but `players`-
+ *     prop variant lets the row component highlight self.
+ *     (RLS does the privacy enforcement; the FE doesn't need
+ *     to re-filter.)
+ *   - Terminal copy: coop says "you win/lose" (team verdict);
+ *     compete distinguishes "you won the race" vs "Bea won".
  *
  * Cross-cutting state (members, timer, play_state, paused, chat)
  * lives in `<GamePage>` above this component. PlayArea unmounts
- * on pause — its local state (modal-open flag + last-pilled guess
- * id ref) goes with it.
- *
- * `useGame` reads from the `psychicnum.games_state` view, which
- * surfaces `target` conditionally on the game being terminal.
- * PlayArea reads `game.target` directly without knowing about
- * the view-vs-table split.
+ * on pause — its local state goes with it.
  */
 export function PlayArea({
   session,
@@ -55,25 +39,11 @@ export function PlayArea({
   feedback,
   goToClub,
 }: GamePageCtx) {
-  // session intentionally unused — psychicnum has no per-self
-  // rendering today, but the prop is part of the GamePage contract
-  // so future per-self UI (winner-highlight, etc.) doesn't need
-  // a signature change.
-  void session
+  const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
 
-  const { game, guesses, loading } = useGame(gameId)
-
-  // Track the id of the last guess we've already-pilled-for, so a
-  // re-render doesn't fire feedback for the same guess twice and a
-  // navigate-into-an-existing-game doesn't fire for the whole
-  // history at once. Pattern lifted from FloatingChat's
-  // autoOpenOnImportantMessage detector.
+  // Track the id of the last guess we've already-pilled-for.
   const lastSeenGuessIdRef = useRef<string | null>(null)
 
-  // Surface each new wrong guess as a closeable feedback pill in
-  // the GamePage header. Correct guesses don't fire a pill: the
-  // game terminalizes and the GameOverModal pops, which IS the
-  // feedback.
   useEffect(function pillEachNewWrongGuess() {
     if (guesses.length === 0) return
     const latest = guesses[guesses.length - 1]
@@ -91,28 +61,25 @@ export function PlayArea({
     })
   }, [guesses, feedback])
 
-  // Shared terminal-modal scaffold: open on mount if already-
-  // terminal, re-pop when isTerminal flips during play, no re-pop
-  // after dismiss. See common/hooks/useTerminalModal.ts.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
-  // Per-status modal + indicator copy. `playState === 'won'` is the
-  // only positive terminal state; otherwise the game ended via
-  // out-of-guesses or out-of-time (distinguished by timer.expired).
+  const selfBudget =
+    playerBudgets.find((p) => p.user_id === session.user.id)
+      ?.guesses_remaining ?? 0
+
+  // Per-status modal + indicator copy. Mode-aware so compete-mode
+  // winners get the "you won the race" vs "Bea won the race"
+  // distinction, while coop stays the simple team verdict.
   const over = isTerminal ? buildOver({
+    mode: game.mode,
     playState,
     timerExpired: timer.expired,
+    selfWon: didSelfWin(guesses, session.user.id, game.mode),
   }) : null
 
-  // Board placeholder content. During play, the prompt. On
-  // terminal, the secret number — the one piece of factual
-  // reveal that doesn't live anywhere else on the page (winner
-  // username is in the guess history; outcome is in the
-  // indicator + modal). Falls back to the prompt if the
-  // games_state view's lazy target reveal hasn't landed yet.
   const boardPlaceholderText = isTerminal && game.target !== null
     ? `The number was ${game.target}`
     : "What's your guess?"
@@ -141,12 +108,24 @@ export function PlayArea({
             </div>
           ) : (
             <>
-              <p className="muted">
-                Guess the number (1–10).{' '}
-                <strong>{game.guesses_remaining}</strong>{' '}
-                {game.guesses_remaining === 1 ? 'guess' : 'guesses'} left.
-              </p>
-              <GuessForm gameId={gameId} />
+              {game.mode === 'coop' ? (
+                <p className="muted">
+                  Guess the number (1–10).{' '}
+                  <strong>{selfBudget}</strong>{' '}
+                  {selfBudget === 1 ? 'guess' : 'guesses'} left.
+                </p>
+              ) : (
+                <BudgetStrip
+                  players={players}
+                  budgets={playerBudgets}
+                  selfId={session.user.id}
+                />
+              )}
+              {selfBudget > 0 ? (
+                <GuessForm gameId={gameId} />
+              ) : (
+                <p className="muted">No guesses left — waiting on the rest.</p>
+              )}
             </>
           )}
         </div>
@@ -165,29 +144,111 @@ export function PlayArea({
   )
 }
 
-/** Per-status modal + indicator copy. Detail-on-page intentionally:
- *  the winner is in the guess history (correct guess at the end),
- *  the target is on the board placeholder once terminal. The
- *  modal stays focused on the verdict line. */
+/**
+ * Per-player budget strip for compete mode. Renders "You: 3 ·
+ * Bea: 2 · Cade: 0", with each name in their profile color so
+ * the strip matches the rest of the multiplayer chrome.
+ *
+ * The strip is the entire "opponent visibility" surface in
+ * compete mode — you see budgets but never their guesses or
+ * results. Server-side RLS on `psychicnum.guesses` enforces the
+ * latter; this just renders what we're allowed to know.
+ */
+function BudgetStrip({
+  players,
+  budgets,
+  selfId,
+}: {
+  players: { user_id: string; username: string; color: string }[]
+  budgets: { user_id: string; guesses_remaining: number }[]
+  selfId: string
+}) {
+  // Sort: self first, then by username for stable peer order.
+  const ordered = [...players].sort((a, b) => {
+    if (a.user_id === selfId) return -1
+    if (b.user_id === selfId) return 1
+    return a.username.localeCompare(b.username)
+  })
+  return (
+    <p className="muted">
+      Guess the number (1–10) — first one wins.{' '}
+      {ordered.map((p, i) => {
+        const remaining =
+          budgets.find((b) => b.user_id === p.user_id)?.guesses_remaining ?? 0
+        const label = p.user_id === selfId ? 'You' : p.username
+        return (
+          <span key={p.user_id}>
+            {i > 0 && ' · '}
+            <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>:{' '}
+            {remaining}
+          </span>
+        )
+      })}
+    </p>
+  )
+}
+
+/**
+ * In compete mode, "you won" depends on whether the caller is
+ * the one who made the correct guess. In coop mode the verdict
+ * is team-wide, so this returns true on any win (the verdict is
+ * the same for everyone).
+ */
+function didSelfWin(
+  guesses: { user_id: string; was_correct: boolean }[],
+  selfId: string,
+  mode: 'coop' | 'compete',
+): boolean {
+  const winner = guesses.find((g) => g.was_correct)
+  if (!winner) return false
+  if (mode === 'coop') return true
+  return winner.user_id === selfId
+}
+
+/** Per-status modal + indicator copy. */
 function buildOver({
+  mode,
   playState,
   timerExpired,
+  selfWon,
 }: {
+  mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
+  selfWon: boolean
 }): {
   outcome: 'won' | 'lost'
   verdict: string
   status: string
 } {
-  if (playState === 'won') {
-    return { outcome: 'won', verdict: 'You win!', status: 'won' }
+  if (mode === 'coop') {
+    if (playState === 'won') {
+      return { outcome: 'won', verdict: 'You win!', status: 'won' }
+    }
+    return {
+      outcome: 'lost',
+      verdict: timerExpired
+        ? 'You lost: out of time'
+        : 'You lost: out of guesses',
+      status: timerExpired ? 'out of time' : 'out of guesses',
+    }
   }
+  // compete
+  if (playState === 'won_compete') {
+    return selfWon
+      ? { outcome: 'won', verdict: 'You won the race!', status: 'you won' }
+      : {
+          outcome: 'lost',
+          verdict: 'Beaten to the punch.',
+          status: 'opponent won',
+        }
+  }
+  // lost_compete (all exhausted OR timeout in compete)
   return {
     outcome: 'lost',
     verdict: timerExpired
-      ? 'You lost: out of time'
-      : 'You lost: out of guesses',
+      ? 'Out of time — nobody won.'
+      : 'Out of guesses — nobody won.',
     status: timerExpired ? 'out of time' : 'out of guesses',
   }
 }

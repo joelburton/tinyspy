@@ -6,7 +6,6 @@ import { useProfile } from '../hooks/useProfile'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
-  id: string
   handle: string
   name: string
 }
@@ -52,7 +51,7 @@ export function HomePage({ session }: Props) {
     let mounted = true
     commonDb
       .from('clubs')
-      .select('id, handle, name')
+      .select('handle, name')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         if (!mounted) return
@@ -93,15 +92,16 @@ export function HomePage({ session }: Props) {
           </Link>
         </header>
         {clubs.length === 0 ? (
-          // Defensive: `handle_new_user` always materializes a
-          // solo club, so this branch is essentially unreachable
-          // — but a fetch failure or a future trigger regression
-          // shouldn't render a blank list.
+          // Defensive: claim_username materializes a solo club
+          // atomically with the profile, so a signed-in claimed
+          // user always has at least their solo club here. A fetch
+          // failure or RLS regression shouldn't render a blank
+          // list silently.
           <p className="muted">You haven't joined a club yet.</p>
         ) : (
           <ul className={styles.clubsList}>
             {soloClubs.map((c) => (
-              <li key={c.id}>
+              <li key={c.handle}>
                 <Link to={`/c/${c.handle}`} className={styles.clubItem}>
                   <span className={styles.clubName}>{c.name}</span>
                   <span className={styles.soloBadge}>Solo</span>
@@ -110,7 +110,7 @@ export function HomePage({ session }: Props) {
               </li>
             ))}
             {regularClubs.map((c) => (
-              <li key={c.id}>
+              <li key={c.handle}>
                 <Link to={`/c/${c.handle}`} className={styles.clubItem}>
                   <span className={styles.clubName}>{c.name}</span>
                   <span className={styles.handle}>/c/{c.handle}</span>

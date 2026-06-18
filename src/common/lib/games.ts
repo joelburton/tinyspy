@@ -155,7 +155,7 @@ export type SetupBodyProps = {
   members: Member[]
   /** Club the game would start in. Per-game setup forms that
    *  need club-scoped data read it; the rest ignore it. */
-  clubId: string
+  clubHandle: string
   value: unknown
   onChange: (next: unknown) => void
 }
@@ -184,15 +184,58 @@ export type GameSetupForm = {
 export type GameManifest = {
   /**
    * Stable identifier for the gametype — URL-safe, matches the
-   * Postgres schema name by convention. Used for registry
-   * lookups and as the URL segment in `/g/<gametype>/<id>`.
-   * Lowercase one-word (`gametype`, not `gameType`); see
-   * docs/naming.md.
+   * Postgres schema name by convention OR composes it with a
+   * suffix when one base supports multiple variants
+   * (`psychicnum_coop` and `psychicnum_compete` share the
+   * `psychicnum` schema). Used for registry lookups and as the
+   * URL segment in `/g/<gametype>/<id>`. Lowercase, underscores
+   * for compound forms; see docs/naming.md.
    */
   gametype: string
 
-  /** Postgres schema where the game's tables and RPCs live. */
+  /** Postgres schema where the game's tables and RPCs live.
+   *  Variants of the same base share a schema — both
+   *  `psychicnum_coop` and `psychicnum_compete` set
+   *  `schema: 'psychicnum'`. */
   schema: string
+
+  /**
+   * Family key that ties variant gametypes together.
+   * `baseGametype` is the stable identifier of the "thing this
+   * game is a variant of." For single-mode games it equals
+   * `gametype` (e.g., tinyspy's baseGametype is 'tinyspy').
+   * For variants — coop vs compete pairs today, "super-tough
+   * boggle" or other player-count variants in the future — it's
+   * the shared root (`psychicnum_coop` and `psychicnum_compete`
+   * both set `baseGametype: 'psychicnum'`).
+   *
+   * Used wherever code wants to group siblings programmatically:
+   * docs lookups (one docs/games/<baseGametype>.md per family),
+   * shared logos, and a future ClubPage treatment that renders
+   * siblings side-by-side. Read as "what family does this
+   * gametype belong to?" — not as a parent FK; the shape's a
+   * flat string for cheap filtering.
+   */
+  baseGametype: string
+
+  /**
+   * Interaction axis — `'coop'` for cooperative (players on the
+   * same team, shared outcome) or `'compete'` for competitive
+   * (each player races for an individual outcome).
+   *
+   * Locked at the gametype level, not in setup. A coop/compete
+   * pair shows up as two `common.gametypes` rows and two
+   * manifest entries pointing at the same `baseGametype`. This
+   * keeps the start-game UX a one-click decision ("start coop
+   * psychicnum") rather than a buried setup-form radio.
+   *
+   * A timer that runs out and ends a game is NOT what makes
+   * something compete — compete needs an opposing PLAYER. Solo
+   * clubs only get `mode: 'coop'` Start buttons (which may still
+   * carry a countdown timer); compete buttons are hidden by the
+   * `numberOfPlayers` lower bound.
+   */
+  mode: 'coop' | 'compete'
 
   /** Human-readable name shown in pickers and titles. */
   name: string
@@ -264,7 +307,7 @@ export type GameManifest = {
   /**
    * Start a new game of this gametype inside the given club.
    * Receives:
-   *   - clubId
+   *   - clubHandle
    *   - setup: the typed value the dialog wrapper collected
    *   - playerUserIds: who's actually playing. The dialog
    *     defaults this to every current club member; the caller
@@ -279,7 +322,7 @@ export type GameManifest = {
    * a game folder, preserving the import-direction rules.
    */
   startGameInClub: (
-    clubId: string,
+    clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
   ) => Promise<{ id: string } | { error: string }>

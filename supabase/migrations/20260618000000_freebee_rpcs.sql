@@ -134,7 +134,7 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 --   - board.scoring_words / board.legal_words must be arrays
 
 create function freebee.create_game(
-  target_club uuid,
+  target_club text,
   setup jsonb,
   player_user_ids uuid[],
   board jsonb
@@ -275,7 +275,7 @@ begin
 
   -- ─── Insert the per-gametype row ─────────────────────
   insert into freebee.games (
-    id, club_id, outer_letters, center_letter,
+    id, club_handle, outer_letters, center_letter,
     total_score, total_words, scoring_words, legal_words
   )
   values (
@@ -314,8 +314,8 @@ begin
 end;
 $$;
 
-revoke execute on function freebee.create_game(uuid, jsonb, uuid[], jsonb) from public;
-grant execute on function freebee.create_game(uuid, jsonb, uuid[], jsonb) to authenticated;
+revoke execute on function freebee.create_game(text, jsonb, uuid[], jsonb) from public;
+grant execute on function freebee.create_game(text, jsonb, uuid[], jsonb) to authenticated;
 
 -- ============================================================
 -- freebee.submit_word

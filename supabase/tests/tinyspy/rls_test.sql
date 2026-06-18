@@ -40,9 +40,9 @@ select plan(7);
 -- neither a player nor a member of the club.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('test club', array['ada','bea']);
+select common.create_club('test club', array['ada','bea']) as handle;
 create temp table g on commit drop as
-select * from tinyspy.create_game((select id from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
+select * from tinyspy.create_game((select handle from club), pg_temp.tinyspy_setup(), pg_temp.tinyspy_players());
 select submit_clue((select id from g), 'TOOLS', 2);
 
 -- ============================================================
@@ -69,7 +69,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 -- RLS shape changed: visibility is now club-wide (not
 -- player-restricted). Dee is a non-club-member, so she sees nothing
 -- from tinyspy.games / tinyspy.words / tinyspy.clues — gated by
--- is_club_member(club_id), which fails for her.
+-- is_club_member(club_handle), which fails for her.
 select is(
   (select count(*) from games where id = (select id from g)),
   0::bigint,

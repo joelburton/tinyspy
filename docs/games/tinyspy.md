@@ -4,6 +4,8 @@ Cooperative Codenames Duet for two club members. The first registered gametype i
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md).
 
+**Manifest declarations.** Single-mode family — `gametype: 'tinyspy'`, `baseGametype: 'tinyspy'`, `mode: 'coop'`. No compete variant; Codenames Duet is intrinsically cooperative and there's no natural compete reading of the rules.
+
 ## What the game is
 
 Two players cooperate to find all 15 "green agents" on a 5×5 grid of 25 word cards within 9 turns. Each turn one player gives a one-word clue + a number; the other guesses. The catch: each player sees a different subset of greens, neutrals, and assassins. You can only know the greens *your partner needs to find* by deducing them from their clue.
@@ -84,7 +86,7 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 
 | table | purpose |
 |---|---|
-| `games` | One row per match. `club_id` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
+| `games` | One row per match. `club_handle` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
@@ -123,7 +125,7 @@ The fact that both views are RLS-readable by either player (`grant select on tin
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `tinyspy, common, public, extensions`.
 
-### `tinyspy.create_game(target_club uuid) → table(id uuid)`
+### `tinyspy.create_game(target_club text) → table(id uuid)`
 
 The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the tinyspy detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 

@@ -8,7 +8,7 @@ import styles from './FloatingChat.module.css'
 import type { Member } from '../lib/games'
 
 type Props = {
-  clubId: string
+  clubHandle: string
   members: Member[]
   /** When true, render nothing in the closed state — the bubble
    *  is being supplied elsewhere (e.g. the GamePage header's
@@ -67,7 +67,7 @@ type Props = {
  * state and the rect continuous across remounts.
  */
 export function FloatingChat({
-  clubId,
+  clubHandle,
   members,
   hideClosedButton = false,
 }: Props) {
@@ -79,7 +79,7 @@ export function FloatingChat({
   // useClubChat lifted from ChatBody so the force-open detector
   // runs even when the panel is closed. ChatBody now takes
   // messages + loading as props.
-  const { messages, loading } = useClubChat(clubId)
+  const { messages, loading } = useClubChat(clubHandle)
 
   // Force-open detector. Track the latest-seen message id across
   // renders; on first-load (right after the initial fetch
@@ -145,7 +145,7 @@ export function FloatingChat({
       minHeight={240}
     >
       <ChatBody
-        clubId={clubId}
+        clubHandle={clubHandle}
         members={members}
         messages={messages}
         loading={loading}

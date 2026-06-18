@@ -91,9 +91,9 @@ grant usage on schema wordknit to authenticated;
 -- CASCADE means a row here goes away if its common.games parent
 -- is deleted (e.g., the gametype is unregistered).
 --
--- club_id stays on this row (denormalized from common.games.club_id)
--- so the RLS policy can ask is_club_member(club_id) without a join.
--- The denormalization is safe — club_id is set at create-game time
+-- club_handle stays on this row (denormalized from common.games.club_handle)
+-- so the RLS policy can ask is_club_member(club_handle) without a join.
+-- The denormalization is safe — club_handle is set at create-game time
 -- and never changes.
 
 -- ============================================================
@@ -101,7 +101,7 @@ grant usage on schema wordknit to authenticated;
 -- ============================================================
 -- A *puzzle* is a prewritten, replayable board shape: one date's
 -- NYT Connections puzzle, imported from the Eyefyre/
--- NYT-Connections-Answers repo via the npm `puzzles:import`
+-- NYT-Connections-Answers repo via the npm `wordknit:import`
 -- script. Distinct from a *game's* `board` jsonb (below), which
 -- is the per-game-instance copy plus that game's shuffled
 -- `tileOrder`. Puzzles stay pristine; games copy from them.
@@ -152,7 +152,7 @@ grant insert, select on wordknit.puzzles to service_role;
 
 create table wordknit.games (
   id uuid primary key references common.games(id) on delete cascade,
-  club_id uuid not null references common.clubs(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
   -- The puzzle this game was created from. ON DELETE RESTRICT
   -- because deleting a puzzle that has games against it would
   -- leave dangling references — alpha-stage policy is "clean up
@@ -174,7 +174,7 @@ create table wordknit.games (
   created_at timestamptz not null default now()
 );
 
-create index wordknit_games_club_id_idx on wordknit.games (club_id);
+create index wordknit_games_club_handle_idx on wordknit.games (club_handle);
 create index wordknit_games_puzzle_id_idx on wordknit.games (puzzle_id);
 
 -- ============================================================
@@ -227,7 +227,7 @@ alter table wordknit.guesses enable row level security;
 
 create policy games_select on wordknit.games
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 create policy guesses_select on wordknit.guesses
   for select to authenticated
@@ -235,7 +235,7 @@ create policy guesses_select on wordknit.guesses
     exists (
       select 1 from wordknit.games g
        where g.id = guesses.game_id
-         and common.is_club_member(g.club_id)
+         and common.is_club_member(g.club_handle)
     )
   );
 
@@ -267,7 +267,7 @@ alter publication supabase_realtime add table wordknit.guesses;
 -- security_invoker=true so the view runs with the caller's
 -- privileges — both wordknit.games's RLS policy and
 -- common.games's RLS policy gate visibility. A non-member of
--- the club sees zero rows; the FE's `.eq('club_id', X)` filter
+-- the club sees zero rows; the FE's `.eq('club_handle', X)` filter
 -- is belt-and-braces on top.
 --
 -- Why a view rather than two FE queries + JS merge: the
@@ -286,7 +286,7 @@ alter publication supabase_realtime add table wordknit.guesses;
 create view wordknit.club_game_status with (security_invoker = true) as
 select
   cg.id          as game_id,
-  cg.club_id     as club_id,
+  cg.club_handle     as club_handle,
   cg.play_state  as play_state,
   cg.is_terminal as is_terminal,
   p.nyt_date     as nyt_date
@@ -339,7 +339,7 @@ grant select on wordknit.club_game_status to authenticated;
 -- in something memorable ("oh, that one with BUCKS and HAIL").
 
 create function wordknit.create_game(
-  target_club uuid,
+  target_club text,
   setup jsonb,
   player_user_ids uuid[]
 )
@@ -443,7 +443,7 @@ begin
   -- it comes from common.create_game above and FKs to
   -- common.games(id). Setup lives on common.games.setup, not
   -- duplicated here.
-  insert into wordknit.games (id, club_id, puzzle_id, board)
+  insert into wordknit.games (id, club_handle, puzzle_id, board)
   values (
     new_id,
     target_club,
@@ -456,8 +456,8 @@ begin
 end;
 $$;
 
-revoke execute on function wordknit.create_game(uuid, jsonb, uuid[]) from public;
-grant execute on function wordknit.create_game(uuid, jsonb, uuid[]) to authenticated;
+revoke execute on function wordknit.create_game(text, jsonb, uuid[]) from public;
+grant execute on function wordknit.create_game(text, jsonb, uuid[]) to authenticated;
 
 -- ============================================================
 -- wordknit.submit_guess — record a submission

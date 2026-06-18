@@ -19,6 +19,8 @@ import logoUrl from './logo.svg?url'
 export const freebeeGame: GameManifest = {
   gametype: 'freebee',
   schema: 'freebee',
+  baseGametype: 'freebee',
+  mode: 'coop',
   name: 'FreeBee',
   shortDescription: 'Find words on a 7-letter honeycomb',
   logoUrl,
@@ -63,17 +65,17 @@ export const freebeeGame: GameManifest = {
    * boundary — the FE-collected setup is not trusted.
    *
    * Same shape as the other manifests' `startGameInClub`: takes
-   * `clubId`, `setup`, `playerUserIds`. The function call is the
+   * `clubHandle`, `setup`, `playerUserIds`. The function call is the
    * "go" point — until the user clicks Start in the dialog, no
    * DB write or board-build computation happens.
    */
-  startGameInClub: async (clubId, setup, playerUserIds) => {
+  startGameInClub: async (clubHandle, setup, playerUserIds) => {
     const s = setup as FreeBeeSetup
     const { data, error } = await supabase.functions.invoke(
       'freebee-build-board',
       {
         body: {
-          target_club: clubId,
+          target_club: clubHandle,
           setup: s,
           player_user_ids: playerUserIds,
         },

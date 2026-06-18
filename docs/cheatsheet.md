@@ -14,7 +14,7 @@
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
-| `npm run puzzles:import` | populate `wordknit.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
+| `npm run wordknit:import` | populate `wordknit.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
 | `npm run freebee:import` | populate `freebee.dictionary` + `freebee.pangrams` from the vendored SCOWL files in `supabase/data/` (one-shot per environment; idempotent) |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 

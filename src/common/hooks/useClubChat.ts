@@ -28,13 +28,13 @@ export type ClubMessage = Pick<
  * Realtime hooks in this repo (see useGame for the rationale on
  * the unique channel-name suffix that makes StrictMode safe).
  */
-export function useClubChat(clubId: string) {
+export function useClubChat(clubHandle: string) {
   const [messages, setMessages] = useState<ClubMessage[]>([])
   const [loading, setLoading] = useState(true)
 
   // Fetch + realtime-subscribe to this club's messages. INSERT
   // events append directly via setMessages; the SUBSCRIBED refetch
-  // closes any reconnect gap. Re-runs only on clubId change.
+  // closes any reconnect gap. Re-runs only on clubHandle change.
   useEffect(function subscribeToClubMessages() {
     let mounted = true
 
@@ -42,7 +42,7 @@ export function useClubChat(clubId: string) {
       const { data } = await commonDb
         .from('messages')
         .select('id, user_id, content')
-        .eq('club_id', clubId)
+        .eq('club_handle', clubHandle)
         .order('sent_at', { ascending: true })
       if (!mounted) return
       if (data) setMessages(data)
@@ -52,14 +52,14 @@ export function useClubChat(clubId: string) {
     load()
 
     const channel = supabase
-      .channel(`club-chat:${clubId}:${channelDedupSuffix()}`)
+      .channel(`club-chat:${clubHandle}:${channelDedupSuffix()}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'common',
           table: 'messages',
-          filter: `club_id=eq.${clubId}`,
+          filter: `club_handle=eq.${clubHandle}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as ClubMessage])
@@ -73,7 +73,7 @@ export function useClubChat(clubId: string) {
       mounted = false
       supabase.removeChannel(channel)
     }
-  }, [clubId])
+  }, [clubHandle])
 
   return { messages, loading }
 }

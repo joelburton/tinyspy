@@ -34,7 +34,7 @@
 -- Fix: have submit_timeout do a no-op UPDATE on freebee.games
 -- after the terminal flip so a WAL entry is written and the
 -- Realtime subscriber sees something to react to. `set
--- club_id = club_id` is the simplest self-set — no real column
+-- club_handle = club_handle` is the simplest self-set — no real column
 -- change, but Postgres MVCC still produces a new row version
 -- (Realtime watches WAL, not changed-column diffs).
 --
@@ -143,7 +143,7 @@ begin
   -- games_state and sees the now-revealed scoring_words /
   -- legal_words.
   update freebee.games
-     set club_id = club_id
+     set club_handle = club_handle
    where id = target_game;
 end;
 $$;

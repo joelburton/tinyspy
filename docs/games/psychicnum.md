@@ -1,45 +1,65 @@
 # PsychicNum
 
-A tiny cooperative number-guessing game. The second registered gametype, added primarily to validate the multi-game architecture with the minimum game-logic surface possible. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
+A tiny number-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The second gametype family registered, kept as the minimal surface for exercising the multi-game architecture — now also the minimal surface for exercising the **coop/compete sibling-manifest pattern** that wordknit and freebee will follow. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
 For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`tinyspy.md`](tinyspy.md).
 
-## What the game is
+## The sibling-manifest pattern
 
-The server picks a random number 1–10. Any club member guesses any number at any time — no turns, no seat assignment. First correct guess wins. After 7 wrong guesses (shared across all members), the game is lost.
+PsychicNum exports two manifest entries from one folder:
 
-It's deliberately a toy. The point isn't to be fun; the point is to exercise the multi-game wiring (manifest registry, schema-per-game, per-game RLS, per-game chunk split, common ClubPage + chat reuse) with a game small enough that the architectural patterns dominate the file you're reading.
+| field                | `psychicnumCoopGame`     | `psychicnumCompeteGame`     |
+|----------------------|--------------------------|------------------------------|
+| `gametype`           | `psychicnum_coop`         | `psychicnum_compete`          |
+| `schema`             | `psychicnum`              | `psychicnum`                  |
+| `baseGametype`       | `psychicnum`              | `psychicnum`                  |
+| `mode`               | `'coop'`                  | `'compete'`                   |
+| `name`               | `PsychicNum (coop)`       | `PsychicNum (compete)`        |
+| `numberOfPlayers`    | `[1, 6]`                  | `[2, 6]`                      |
 
-PsychicNum is a stand-in until enough "real" games are live. **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the entry from `src/games.ts`, drop the migration file. If anything else breaks, the architecture leaked.
+Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`). The DB inserts **two rows in `common.gametypes`** but a **single set of psychicnum tables** — the `psychicnum.games.mode` column is denormalized for RLS branching, and one `psychicnum.create_game(target_club, setup, players, mode)` RPC routes both manifests' Start clicks.
+
+`baseGametype: 'psychicnum'` is the family key — anywhere code wants "treat these as siblings" (docs lookup, future ClubPage side-by-side rendering), it filters on this field. See [`src/common/lib/games.ts`](../../src/common/lib/games.ts) → `GameManifest.baseGametype` + `mode`.
+
+A timer that runs out is NOT what makes a game "compete" — compete needs an opposing PLAYER. Solo clubs (1 player) get only the coop button, but coop can still carry a countdown timer (where running out loses the game). The compete manifest's lower bound (2 players) hides it server-side too.
 
 ## The rules
 
 > Spec the RPCs implement against. When the rules disagree with the code, fix this section first.
 
-### Setup
+### Setup (both modes)
 
-- A single secret number in the range **1–10**, chosen by the server uniformly at random at game-creation time.
+- A single secret number in the range **1–10**, chosen by the server uniformly at random at game-creation time. Same target for everyone.
 - The number is **hidden server-side**. Clients cannot see it during active play even with devtools open — see [The hidden-target mechanic](#the-hidden-target-mechanic) below.
-- Players: any club members. No seat assignment, no roles.
-- Guess budget: **7 guesses**, shared across all players.
+- Setup form collects: **guess budget** (one of 3/5/7/9), **timer** (none/countup/countdown, MM:SS for countdown).
+- The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 
-### Gameplay
+### Coop gameplay
 
-1. Any club member submits a guess (an integer 1–10) at any time.
-2. The server checks: if the guess equals the target, the team wins.
-3. If wrong, the shared guess counter decrements by one. The game continues.
-4. The same number can be guessed more than once — it's a dumb move, but legal. (Dumb moves in a dumb game.)
-5. The game ends when either:
-   - **Win:** any guess matches the target. The game's `status` flips to `won`.
-   - **Lose:** the 7th wrong guess is submitted. The game's `status` flips to `lost`.
+- All players share a single guess pool (initial value = `setup.guesses`).
+- Every guess decrements **everyone's** budget — coop budgets always equal each other (the per-player rows just happen to track the same number, decremented in lock-step).
+- Every guess is visible to every club member (the history pane shows all of them).
+- **Win:** any player's guess matches the target. Whole team wins.
+- **Lose:** the last wrong guess (the one that takes the shared budget to zero) submits. Whole team loses.
+- **Timeout (if countdown set):** countdown hits zero → whole team loses.
 
-After the game ends, the target becomes readable to club members via the `psychicnum.games_state` view — useful primarily on a loss ("the number was 7"), available on a win for symmetry. See [The hidden-target mechanic](#the-hidden-target-mechanic) below.
+### Compete gameplay
+
+- Each player gets their own guess budget (initial value = `setup.guesses` per player).
+- Each guess decrements only the submitter's budget.
+- A player sees:
+  - **Their own** guesses + results (the history pane filters server-side via RLS).
+  - **Opponents' remaining budget** (a strip rendered in the action slot — "You: 3 · Bea: 2 · Cade: 0").
+  - **NOT** opponents' guesses or correctness.
+- **Win:** the first correct guess ends the game for everyone. That player wins; everyone else loses immediately, even if they had budget remaining.
+- **Lose (collective):** all player budgets reach zero with nobody having guessed correctly. Everyone loses.
+- **Timeout (if countdown set):** countdown hits zero → everyone loses.
 
 ### What the game is not
 
-- **Not a turn-based game.** Any club member can guess at any time. The server serializes simultaneous guesses via `SELECT ... FOR UPDATE` on the game row.
-- **Not solo-only.** v1 plays with 2+ club members. Solo-club play (a single-member club playing alone) would work mechanically but no UI surface drives it; that's deferred.
+- **Not a turn-based game.** Any player can guess at any time. The server serializes simultaneous guesses via `SELECT ... FOR UPDATE` on the game row.
 - **Not strategic.** There's no skill in the spec — it's "guess a random number." The "fun" parameter is left at zero.
+- **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the two entries from `src/games.ts` AND drop the two `common.gametypes` rows from the schema, drop the migration file. If anything else breaks, the architecture leaked.
 
 ## Schema: `psychicnum.*`
 
@@ -47,20 +67,62 @@ After the game ends, the target becomes readable to club members via the `psychi
 
 | table | purpose |
 |---|---|
-| `games` | One row per playing. `club_id` (not null) ties to `common.clubs`. Holds `target` (the secret), `guesses_remaining`, `winner_id`. Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games` — the per-gametype row carries only gametype-specific mechanics. |
-| `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. Used both for rendering the history in the UI and as the audit trail for "what happened." |
+| `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `target` (the secret) and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
+| `players` | Per-player budget tracking. One row per (game, player), with `guesses_remaining`. Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
+| `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. RLS in compete mode scopes visibility to caller only. |
 
-There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table. It co-locates onto the game row.
+There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table.
+
+### Mode column
+
+`psychicnum.games.mode` is denormalized from the gametype string ('psychicnum_coop' → 'coop', 'psychicnum_compete' → 'compete'). It exists so the RLS policy on `psychicnum.guesses` can branch on mode without joining to `common.games` for every visibility check. CHECK constraint pins it to `{coop, compete}`. Never changes after insert.
+
+### Data differences between coop and compete — at a glance
+
+A consolidated comparison. Anything not listed here is identical across modes.
+
+| dimension                              | coop                                                        | compete                                                              |
+|----------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------|
+| **gametype string** (`common.games.gametype`) | `'psychicnum_coop'`                                  | `'psychicnum_compete'`                                               |
+| **`psychicnum.games.mode` column**     | `'coop'`                                                    | `'compete'`                                                          |
+| **manifest `numberOfPlayers`**         | `[1, 6]` (solo OK)                                          | `[2, 6]` (needs ≥1 opponent)                                         |
+| **`psychicnum.players.guesses_remaining` per row** | Always equal across rows (decremented in lock-step) | Independent per row (decremented only on the submitter's row)        |
+| **`psychicnum.guesses` RLS**           | Club-wide visible — every member sees every guess           | Caller-only — `using (... and guesses.user_id = auth.uid())`         |
+| **`psychicnum.players` RLS**           | Club-wide visible                                           | Club-wide visible (same — that's the "opponents see budget" property) |
+| **`submit_guess` budget decrement**    | UPDATE every player row                                     | UPDATE only the caller's row                                         |
+| **`submit_guess` correct-guess terminal** | `play_state='won'`, every player `result={won: true}`    | `play_state='won_compete'`, caller `result={won: true}`, others `{won: false}` |
+| **`submit_guess` all-exhausted terminal** | `play_state='lost'`, every player `result={won: false}`  | `play_state='lost_compete'`, every player `result={won: false}`      |
+| **`submit_timeout` terminal**          | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
+| **listing-label `status.guesses_remaining`** | Shared value (all rows have it; any row works)        | Sum of all rows (the listing label reflects "total remaining budget across the game") |
+| **FE PlayArea header**                 | "X guesses left" (single shared number)                     | Budget strip: "You: X · Bea: Y · Cade: Z"                            |
+| **FE GuessHistory**                    | Every guess shown with username                             | Only caller's guesses shown (RLS filters server-side; FE doesn't need to filter) |
+| **GameOverModal verdict copy**         | "You win!" / "You lost: out of guesses" (team)              | "You won the race!" / "Beaten to the punch." (per-self)              |
+
+The shape that's the same in both modes:
+- The `psychicnum.games` table (modulo the `mode` value).
+- The `psychicnum.players` table (one row per player; structurally identical).
+- The `psychicnum.guesses` table (rows look the same; RLS hides them differently).
+- The setup blob (`{ guesses, timer }`) — same fields, same defaults.
+- The hidden-target mechanic — both modes reveal the target post-terminal via `games_state`.
+- `common.games.title` formula (target as text).
+- `common.game_players.result` shape (`{ won: bool }`).
+- `common.update_state` mid-game listing-label payload structure.
 
 ### Play-state enum
 
-`common.games.play_state` carries PsychicNum's lifecycle enum. Accepted values:
+`common.games.play_state` carries PsychicNum's lifecycle enum. Different vocabularies per mode:
 
-- **playing** — guesses being submitted. The default; no other entry state.
+**Coop:**
+- **playing** — guesses being submitted. Default.
 - **won** — a correct guess landed. Terminal.
-- **lost** — the last wrong guess (the one that took the budget to 0) landed. Terminal. The "last" varies with the setup dialog's `guesses` choice (3, 5, 7, or 9 — see [Setup](#setup) below).
+- **lost** — collective budget exhausted OR timer expired. Terminal.
 
-Simpler than tinyspy's enum (no sudden_death, no multi-axis loss reasons). This is one of the things PsychicNum is testing — that the architecture doesn't accidentally hardcode tinyspy's specific states.
+**Compete:**
+- **playing** — guesses being submitted. Default.
+- **won_compete** — a player guessed correctly. Terminal. That player's `common.game_players.result = {won: true}`; everyone else's `= {won: false}`.
+- **lost_compete** — all players exhausted their budgets OR timer expired with nobody having won. Terminal. Everyone's `result = {won: false}`.
+
+The mode-specific suffixes mirror what freebee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
 
 ## The hidden-target mechanic
 
@@ -72,7 +134,7 @@ The base table grants SELECT to `authenticated` on every column *except* `target
 
 ```sql
 grant select
-  (id, club_id, guesses_remaining, winner_id, created_at)
+  (id, club_handle, mode, created_at)
   on psychicnum.games to authenticated;
 ```
 
@@ -85,7 +147,7 @@ The FE never reads from `psychicnum.games` directly anymore — it reads from a 
 ```sql
 create or replace view psychicnum.games_state
   with (security_invoker = true) as
-select g.id, g.club_id, g.guesses_remaining, g.winner_id, g.created_at,
+select g.id, g.club_handle, g.mode, g.created_at,
        psychicnum._target_for(g.id) as target
   from psychicnum.games g;
 ```
@@ -122,13 +184,23 @@ TinySpy doesn't use this pattern (yet) because both players' key cards are equal
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `psychicnum, common, public, extensions`.
 
-### `psychicnum.create_game(target_club uuid, setup jsonb) → table(id uuid)`
+### `psychicnum.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text) → table(id uuid)`
 
-Caller must be a club member. Validates the setup shape (the `guesses` value AND the shared `setup.timer` via `common.validate_timer`), picks a random target 1–10, calls `common.create_game(target_club, 'psychicnum', player_user_ids, title := target::text, setup := setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the PsychicNum detail row with `guesses_remaining` initialized from `setup.guesses`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('guesses_remaining', setup.guesses))` to seed the listing-label payload. (Mid-game RPCs that need to read setup — `submit_guess` and `submit_timeout` reading `guesses_used` for the result payload — query `common.games.setup` via a subquery.)
+Caller must be a club member. **One RPC for both modes** — the `mode` parameter:
 
-**Player-count gate.** `common.require_player_count_max(player_user_ids, 6)`. Matches the manifest's `numberOfPlayers: [1, 6]`. No minimum-of-2 check; solo play is fine — the game logic doesn't care how many people are guessing.
+- Routes the gametype string to `'psychicnum_coop'` or `'psychicnum_compete'` on `common.games.gametype`.
+- Lands on `psychicnum.games.mode` for RLS branching.
+- Triggers the player-count check (`compete` requires ≥2 players).
 
-Reject reasons: not authenticated; not a member; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
+Each FE manifest's `startGameInClub` passes its own per-manifest mode constant — the caller doesn't pick mode interactively.
+
+After validation, picks a random target 1–10, calls `common.create_game(target_club, '<gametype>', player_user_ids, target::text, setup, setup)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the psychicnum.games row, then inserts one `psychicnum.players` row per player_user_ids entry with `guesses_remaining` seeded from `setup.guesses`.
+
+**Player-count gates:**
+- Coop: `common.require_player_count_max(player_user_ids, 6)`. Matches `numberOfPlayers: [1, 6]`.
+- Compete: same max-6 plus an explicit `array_length >= 2` check. Matches `numberOfPlayers: [2, 6]`.
+
+Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
 
 ### Title formula
 
@@ -138,11 +210,23 @@ The target number as text (`"7"`). Putting the secret target directly in the tit
 
 The only mid-game action. Returns one of:
 
-- `'correct'` — caller won the game; status flipped to `won`.
-- `'wrong'` — game continues with `guesses_remaining - 1`.
-- `'lost'` — caller's wrong guess took the budget to zero; status flipped to `lost`.
+- `'correct'` — caller won the game; play_state flipped to `won` (coop) or `won_compete` (compete).
+- `'wrong'` — game continues.
+- `'lost'` — collective budget exhaustion; play_state flipped to `lost` / `lost_compete`.
 
-Locks the gametype row with `SELECT ... FOR UPDATE` to serialize concurrent guesses, then reads `play_state` from `common.games` in a separate query (the foo-lock guarantees that by the time we read play_state, any concurrent submit that ended the game has already committed). With "first correct guess wins" semantics, if two players guess the target at the same instant, whichever transaction commits first is the winner; the second sees `play_state != 'playing'` and raises `'game is not active'`.
+**Mode-aware budget decrement:**
+- Coop: decrements every `psychicnum.players` row.
+- Compete: decrements only the caller's row.
+
+**Mode-aware terminal-on-correct:**
+- Coop: `play_state='won'`, every player's `result = {won: true}` (team win).
+- Compete: `play_state='won_compete'`, caller's `result = {won: true}`, everyone else's `result = {won: false}`. Game ends for everyone — opponents with remaining budget no longer get to try.
+
+**Mode-aware terminal-on-all-exhausted:**
+- Coop: any wrong guess that takes the shared count to 0 → `play_state='lost'`.
+- Compete: `play_state='lost_compete'` only when the sum of all players' budgets reaches 0 (everyone's exhausted, nobody won).
+
+Locks the gametype row with `SELECT ... FOR UPDATE` to serialize concurrent guesses. With "first correct guess wins" semantics, if two compete-mode players guess the target at the same instant, whichever transaction commits first is the winner; the second sees `play_state != 'playing'` and raises `'game is not active'`.
 
 Records every guess in `psychicnum.guesses` with `was_correct` set. Duplicate guesses (someone guessed 7 already, you guess 7 too) are allowed and decrement the counter normally.
 
@@ -151,16 +235,21 @@ Reject reasons:
 - not authenticated
 - guess out of range (must be 1–10)
 - game not found
-- not a club member
-- game status ≠ active
+- not a game player
+- game status ≠ playing
+- caller has 0 guesses remaining (compete only — in coop a 0-budget would already have ended the game)
 
 ### `psychicnum.submit_timeout(target_game uuid)`
 
-Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost'` and `status->>'outcome' = 'lost_timeout'` — distinct from the regular `lost` (exhausted guesses) so end-of-game review can show the right reason.
+Fires when the FE's count-down timer expires. Calls `common.end_game` with:
+- Coop: `play_state = 'lost'`, `status->>'outcome' = 'lost_timeout'`.
+- Compete: `play_state = 'lost_compete'`, `status->>'outcome' = 'lost_compete_timeout'`.
+
+Either way, **everyone loses** — `common.game_players.result = {won: false}` for every player. Compete-mode players were racing; the clock running out before anyone won is a collective loss.
 
 Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
 
-Reject reasons: not authenticated; not a game player; game not found; game status ≠ active.
+Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 
 ## Setup
 
@@ -183,25 +272,28 @@ Inherited unchanged from the common shell — presence-pause + manual-pause both
 
 ## Row-level security
 
-Both tables (`games`, `guesses`) have RLS enabled, with SELECT policies gated by `common.is_club_member(club_id)`. Note that this game uses `common.is_club_member` directly rather than defining its own `psychicnum.is_player_in_game` — there's no seat structure to query, just club membership.
+All three tables (`games`, `players`, `guesses`) have RLS enabled, with SELECT policies. INSERT / UPDATE / DELETE are not granted to `authenticated` at all — all writes go through the RPCs.
 
-`guesses_select` inherits visibility from the parent game via an EXISTS subquery to `psychicnum.games`:
+- **`games` + `players`** are club-wide visible: `using (common.is_club_member(club_handle))` (games) / `using (exists ... is_club_member(g.club_handle))` (players join via game). Every club member sees every player's budget in both modes — that's the "opponents see remaining budget but not guesses" property.
 
-```sql
-create policy guesses_select on psychicnum.guesses
-  for select to authenticated
-  using (
-    exists (
-      select 1 from psychicnum.games g
-       where g.id = guesses.game_id
-         and common.is_club_member(g.club_id)
-    )
-  );
-```
+- **`guesses`** is mode-aware:
 
-No INSERT / UPDATE / DELETE policies. All writes go through the RPCs.
+  ```sql
+  create policy guesses_select on psychicnum.guesses
+    for select to authenticated
+    using (
+      exists (
+        select 1 from psychicnum.games g
+         where g.id = guesses.game_id
+           and common.is_club_member(g.club_handle)
+           and (g.mode = 'coop' or guesses.user_id = auth.uid())
+      )
+    );
+  ```
 
-Realtime publication includes both `psychicnum.games` and `psychicnum.guesses` so the FE can subscribe to status flips and new-guess appends.
+  Coop: any club member sees any guess. Compete: club members only see their own guesses. The `g.mode` read is denormalized expressly to avoid joining `common.games` on every visibility check.
+
+Realtime publication includes all three tables so the FE can subscribe to terminal-state flips (games), budget decrement (players), and new-guess appends (guesses). In compete mode the realtime payload for an opponent's guess still arrives, but the RLS-filtered refetch hides it from rendering.
 
 ## Frontend
 
@@ -290,7 +382,12 @@ The target is randomized at game creation, but tests need deterministic outcomes
 ```sql
 select pg_temp.as_user(...);
 create temp table g on commit drop as
-select * from psychicnum.create_game((select id from club));
+select * from psychicnum.create_game(
+  (select handle from club),
+  pg_temp.psychicnum_setup(),
+  array[ada_id, bea_id]::uuid[],
+  'coop'  -- or 'compete'
+);
 
 -- Pin the target as postgres (RPC runs randomly; we override directly)
 reset role;

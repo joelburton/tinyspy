@@ -299,16 +299,16 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
 /** Looks up the most recent freebee.games row in the club.
  *  Returns null if the club has never played freebee. RLS makes
  *  this safe — a non-member would get no rows even without the
- *  caller-specified club_id filter. */
+ *  caller-specified club_handle filter. */
 async function fetchPreviousMask(
   supabase: SupabaseClient,
-  clubId: string,
+  clubHandle: string,
 ): Promise<bigint | null> {
   const { data, error } = await supabase
     .schema('freebee')
     .from('games')
     .select('outer_letters, center_letter')
-    .eq('club_id', clubId)
+    .eq('club_handle', clubHandle)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()

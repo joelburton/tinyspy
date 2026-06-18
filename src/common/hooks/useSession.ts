@@ -1,45 +1,52 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { db } from '../db'
 
 /**
- * Source of truth for "is there a logged-in user, and who are they".
+ * Source of truth for "is there a logged-in user, and have they
+ * claimed a username yet."
  *
- * Returns the current Supabase session (or null), plus a `loading` flag
- * that's true until the initial restore + profile-verify finishes.
+ * Three resolved states (driven by the absence/presence of a
+ * common.profiles row for the signed-in user):
  *
- * On mount, subscribes to `onAuthStateChange`. Supabase fires an
- * INITIAL_SESSION event on subscribe with the localStorage-restored
- * session, so we don't need a separate getSession() call. Subsequent
- * SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED events update state too.
+ *   { session: null,      needsClaim: false }  → signed out
+ *   { session: <Session>, needsClaim: true  }  → signed in but
+ *                                                no profile row yet
+ *   { session: <Session>, needsClaim: false }  → signed in + claimed
  *
- * Each non-null session is run through `verifyAndSet`, which checks
- * that a matching profile row still exists — see the comment there.
+ * The "needs claim" state replaces the old auto-derived-username
+ * trigger flow: the auth.users row is created by Supabase Auth at
+ * magic-link verification time, but the profiles row only appears
+ * when the user explicitly claims a handle (via the
+ * `common.claim_username` RPC). The FE gates everything except
+ * <ClaimHandleScreen> on `!needsClaim`.
+ *
+ * `refresh()` re-runs the profile probe — used by
+ * ClaimHandleScreen to advance the app state after a successful
+ * claim_username RPC without forcing a re-auth.
+ *
+ * Stale-session edge case (db:reset wiped auth.users while a JWT
+ * is still in localStorage): the next claim attempt fails with
+ * 23503; ClaimHandleScreen catches that and calls
+ * supabase.auth.signOut() to reset the user back to LoginScreen.
  */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
+  const [hasProfile, setHasProfile] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  // Subscribe to auth state for the component's lifetime. Empty deps
-  // = the subscription lives across every re-render and is torn down
-  // only on unmount. INITIAL_SESSION fires here on mount with the
-  // localStorage-restored session, so no separate getSession() needed.
-  useEffect(function subscribeToAuthState() {
-    let mounted = true
-
-    // The JWT in localStorage is signature-valid even after the user's row in
-    // auth.users is gone (e.g. after a local `supabase db reset` during dev,
-    // or an admin-deleted user in prod). PostgREST happily lets requests
-    // through with that JWT, but writes to game_players then trip the
-    // user_id FK because the cascade dropped profiles too. Catch this on
-    // restore by checking that a profile still exists; if not, clear the
-    // stale session so the user re-authenticates cleanly.
-    async function verifyAndSet(next: Session | null) {
-      if (!mounted) return
+  // Probe whether the signed-in user has claimed a username (i.e.
+  // a profiles row exists). RLS on profiles is public-read, so this
+  // is a single point-lookup with no FK indirection.
+  const probeProfile = useCallback(
+    async (next: Session | null, mountedRef: { value: boolean }) => {
       if (!next) {
-        setSession(null)
-        setLoading(false)
+        if (mountedRef.value) {
+          setSession(null)
+          setHasProfile(false)
+          setLoading(false)
+        }
         return
       }
       const { data, error } = await db
@@ -47,52 +54,60 @@ export function useSession() {
         .select('user_id')
         .eq('user_id', next.user.id)
         .maybeSingle()
-      if (!mounted) return
+      if (!mountedRef.value) return
       if (error) {
-        // Network/RLS hiccup — don't punish the user, assume the session is valid.
+        // Network/RLS hiccup — assume the session is valid AND
+        // unclaimed. The user lands on ClaimHandleScreen; if they
+        // already have a profile, the eventual claim_username call
+        // will fail with the explicit "profile already claimed"
+        // error and the FE can recover by re-probing.
         //
-        // Fragile: this branch is right for transient mid-session
-        // failures (one bad fetch shouldn't sign someone out) but
-        // over-permissive on initial restore — a startup-time
-        // PostgREST outage or RLS bug looks identical to "no
-        // profile yet" and gates pass anyway. Acceptable under
-        // friends-alpha; revisit when there's a real auth path
-        // (passwords, third-party providers) and a startup-vs-
-        // mid-session distinction would let us be stricter only
-        // where it matters.
-        // See docs/code-review-2026-06-16.md §1.3 +
-        // docs/deferred.md → Common.
-        console.warn('profile verify failed', error)
+        // Fragile: same over-permissive read as the previous
+        // implementation. See docs/code-review-2026-06-16.md §1.3.
+        console.warn('profile probe failed', error)
         setSession(next)
+        setHasProfile(false)
         setLoading(false)
-        return
-      }
-      if (!data) {
-        // No profile → stale session. signOut emits SIGNED_OUT below.
-        await supabase.auth.signOut()
         return
       }
       setSession(next)
+      setHasProfile(data !== null)
       setLoading(false)
-    }
+    },
+    [],
+  )
 
-    // onAuthStateChange fires an INITIAL_SESSION event on subscribe with the
-    // currently-stored session, so we don't need a separate getSession() call —
-    // doing both would double the verify query on every page load.
+  useEffect(function subscribeToAuthState() {
+    const mountedRef = { value: true }
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'SIGNED_OUT' || !next) {
+        if (!mountedRef.value) return
         setSession(null)
+        setHasProfile(false)
         setLoading(false)
         return
       }
-      verifyAndSet(next)
+      probeProfile(next, mountedRef)
     })
 
     return () => {
-      mounted = false
+      mountedRef.value = false
       sub.subscription.unsubscribe()
     }
-  }, [])
+  }, [probeProfile])
 
-  return { session, loading }
+  // Public refresh — call after a successful claim_username to
+  // flip needsClaim → false without re-authenticating.
+  const refresh = useCallback(async () => {
+    const mountedRef = { value: true }
+    await probeProfile(session, mountedRef)
+  }, [probeProfile, session])
+
+  return {
+    session,
+    needsClaim: session !== null && !hasProfile,
+    loading,
+    refresh,
+  }
 }

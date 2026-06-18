@@ -11,7 +11,7 @@ import type { Database } from '../../types/db'
 type GameRow = Pick<
   Database['tinyspy']['Tables']['games']['Row'],
   | 'id'
-  | 'club_id'
+  | 'club_handle'
   | 'turns_remaining'
   | 'turn_number'
   | 'current_clue_giver'
@@ -76,7 +76,7 @@ export function useGame(gameId: string) {
       const gameRes = await db
         .from('games')
         .select(
-          'id, club_id, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
+          'id, club_handle, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
         )
         .eq('id', gameId)
         .single()

@@ -18,9 +18,30 @@ The load-bearing words and what they each mean. Internalize these; mixing them u
 
 ### gametype
 
-The *category* of game: `tinyspy`, `psychicnum`, `boggle`. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
+The *registered entry* representing a game (or game variant) in the registry. One row in `common.gametypes`, one TS manifest in `src/games.ts`, one URL prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
 
-A `gametype` is also the directory name under `src/`, the Postgres schema name, and the second segment of `/g/<gametype>/<gameId>` URLs. The same string runs all the way through.
+Examples: `tinyspy`, `psychicnum_coop`, `psychicnum_compete`, `wordknit`, `freebee`.
+
+The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It is NOT always identical to the folder/schema name — sibling gametypes share a single folder and a single schema. See [`baseGametype`](#basegametype) below.
+
+### baseGametype
+
+The *family root* shared by one or more sibling gametypes. Same string as the folder name under `src/`, same as the Postgres schema name. For a single-variant game, `baseGametype === gametype` (e.g., tinyspy's baseGametype is `tinyspy`). For a family with coop/compete variants, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both declare `baseGametype: 'psychicnum'`).
+
+This is the field downstream code reads to ask "what family does this gametype belong to?" — for:
+
+- **Docs** — `docs/games/<baseGametype>.md`. One per family, regardless of variant count.
+- **Logo / theme** — siblings share `logo.svg` and `theme.css`.
+- **Future ClubPage rendering** — siblings could render as a single grouped block ("PsychicNum: coop / compete") rather than two unconnected buttons.
+- **Schema** — one set of tables under `<baseGametype>.*` serves all siblings.
+
+See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the wider write-up.
+
+### mode
+
+The *interaction axis* a gametype declares — `'coop'` (cooperative; players share an outcome) or `'compete'` (competitive; players race for individual outcomes). Locked at the gametype level, NOT a per-game setup choice. Read off `manifest.mode` and (where the SQL needs it) off `<baseGametype>.games.mode` denormalized from the gametype string.
+
+A timer that runs out and ends a game is NOT what makes something compete — compete needs an opposing PLAYER. Solo clubs see only coop variants because compete manifests declare `numberOfPlayers: [2, max]`. Coop can still carry a countdown timer (where the clock running out is the team's loss).
 
 ### game
 
@@ -49,7 +70,7 @@ Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. 
 
 A fixed-membership room formed by one creator. The cross-game social primitive: a club might play tinyspy on Monday and a hypothetical boggle on Friday, and the same friendship/conversation persists across both.
 
-Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<schema>.games.club_id → common.clubs.id`), never the reverse.
+Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<schema>.games.club_handle → common.clubs.id`), never the reverse.
 
 Solo clubs (handle `=<username>`) are single-member auto-created clubs that anchor solo play and per-user stats. They're structurally separate from regular (multi-member) clubs,
 
@@ -189,11 +210,13 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The category-of-game string (`tinyspy` / `psychicnum` / `wordknit` / `freebee`). Column on `common.games` + `common.gametypes`; folder under `src/`; Postgres schema name; second URL segment. The same string runs all the way through. |
-| `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype (each gametype's `### Play-state enum` section in its per-game doc has the full list). **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
-| `is_current_view` | The boolean column on `common.games` carrying the **one current-view game per club** invariant (partial unique index on `(club_id) where is_current_view = true`). See [`states.md`](states.md) for view-state vs play-state. |
+| `gametype` | The registered-entry string (`tinyspy` / `psychicnum_coop` / `psychicnum_compete` / `wordknit` / `freebee`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
+| `baseGametype` | The shared family root for sibling gametypes. Folder under `src/`; Postgres schema name. For single-mode games, equals `gametype`. For coop/compete pairs, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both → `psychicnum`). See [naming → baseGametype](#basegametype). |
+| `mode` | The interaction-axis declaration on a manifest (`'coop'` \| `'compete'`). Also denormalized as a column on per-game `games` tables (e.g. `psychicnum.games.mode`) so RLS can branch without joining to `common.games`. |
+| `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype. Common coop terminal values: `'won'` / `'lost'`. Common compete terminal values: `'won_compete'` / `'lost_compete'`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
+| `is_current_view` | The boolean column on `common.games` carrying the **one current-view game per club** invariant (partial unique index on `(club_handle) where is_current_view = true`). See [`states.md`](states.md) for view-state vs play-state. |
 | `created_at` | The `timestamptz` column on every game-row table (and most child tables — guesses, words, etc.). |
-| `club_id` | The FK to `common.clubs(id)` on every `<gametype>.games` table. |
+| `club_handle` | The FK to `common.clubs(handle)` on every `<gametype>.games` table. |
 | `target_game` | The conventional name for the game-UUID parameter on every gametype's mutating RPCs (`submit_guess(target_game uuid, …)`). `target_<noun>` is the broader pattern for RPC params pointing at row IDs. |
 | `submit_guess` | The mid-game-action RPC on a gametype that records a player's guess. The guess *shape* differs (a clue + count for tinyspy, a number for PsychicNum, a 4-tile set + verdict for wordknit), but the RPC name is the same. |
 | `<table>_select` | The SELECT RLS policy naming pattern — `games_select`, `guesses_select`. Other policy directions follow the same pattern (`<table>_insert` etc.) if/when we ever add them. |

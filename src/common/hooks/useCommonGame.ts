@@ -15,12 +15,11 @@ import { useGameTimer } from './useGameTimer'
  */
 export type CommonGame = {
   id: string
-  club_id: string
-  /** The owning club's URL handle, eagerly resolved here so the
-   *  GamePage header can render Back-to-club as a real `<Link>`
-   *  (with browser-visible href on hover, middle-click-to-open-
-   *  in-new-tab, etc.) rather than a click-handler button doing
-   *  a deferred fetch. */
+  /** The owning club's handle. Lets the GamePage header render
+   *  Back-to-club as a real `<Link>` (with browser-visible href
+   *  on hover, middle-click-to-open-in-new-tab, etc.) without a
+   *  deferred fetch. Since clubs are now keyed by handle (no
+   *  separate uuid), this IS the column on common.games. */
   club_handle: string
   gametype: string
   title: string
@@ -211,19 +210,19 @@ export function useCommonGame(
 
     async function load() {
       // Common-side row + player roster + profile usernames.
-      // PostgREST's schema cache doesn't resolve cross-schema FKs
-      // (this all sits in common, so it's same-schema joins).
-      // Two queries instead of an embed because game_players →
-      // profiles is on user_id, which PostgREST resolves cleanly
-      // but we want explicit control over the columns selected.
-      // Eager-join to common.clubs for the URL handle, so GamePage
-      // can render Back-to-club as a real <Link>. PostgREST resolves
-      // the games.club_id → clubs.id FK automatically.
+      // Two queries instead of an embed: game_players → profiles
+      // is on user_id, easy enough to read directly with explicit
+      // column control.
+      //
+      // No need to embed clubs(handle) anymore — common.games.
+      // club_handle IS the club's handle (post-uuid-PK-drop), so
+      // GamePage can build the Back-to-club href from the row
+      // directly.
       const [{ data: gameData }, { data: playerRows }] = await Promise.all([
         commonDb
           .from('games')
           .select(
-            'id, club_id, gametype, title, setup, is_current_view, play_state, is_terminal, status, total_idle_seconds, started_at, ended_at, clubs(handle)',
+            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, total_idle_seconds, started_at, ended_at',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -252,13 +251,9 @@ export function useCommonGame(
         playerList = (profileData ?? []) as Member[]
       }
 
-      const clubHandle =
-        (gameData.clubs as { handle: string } | null)?.handle ?? ''
-
-      clubHandleRef.current = clubHandle
+      clubHandleRef.current = gameData.club_handle
       setCommonGame({
         ...gameData,
-        club_handle: clubHandle,
         setup: gameData.setup as CommonGame['setup'],
         status: gameData.status as CommonGame['status'],
       })

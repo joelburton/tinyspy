@@ -6,6 +6,8 @@ A NYT-Spelling-Bee-style word-finding game. The fourth registered gametype in th
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md), [`psychicnum.md`](psychicnum.md), and [`wordknit.md`](wordknit.md).
 
+**Manifest declarations.** Single-mode family in v1 — `gametype: 'freebee'`, `baseGametype: 'freebee'`, `mode: 'coop'`. The schema, RLS, and RPCs are already designed for a compete sibling (see [Designing for compete](#designing-for-compete-future) below), but the FE only exposes the coop variant today. When compete lands it follows the canonical sibling-manifest pattern from [`psychicnum.md`](psychicnum.md).
+
 ## What the game is
 
 A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer letters**. Players form words from those 7 letters; every word must include the center letter. Find as many words as you can. A word that uses **all 7** distinct letters is a **pangram** — every board has at least one.
@@ -71,18 +73,19 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 
 ## Designing for compete (future)
 
-v1 ships coop only on the FE, but the schema, RLS, and RPCs handle compete mode end-to-end. Adding compete is FE-only work; no migration needed.
+v1 ships coop only on the FE; the schema, RLS, and RPCs already handle a compete branch end-to-end. **The canonical compete-pattern landed in psychicnum** (see [`docs/games/psychicnum.md`](psychicnum.md) → "The sibling-manifest pattern"), so freebee's compete v2 follows that template rather than the earlier `setup.mode`-radio design sketched here.
+
+The schema scaffolding already in place:
 
 1. **`freebee.found_words` carries `user_id` from day one.** Coop displays everyone's finds in the team list; compete narrows by viewer.
-2. **`setup.mode` ∈ `{'coop', 'compete'}` exists on the setup blob from day one.** `submit_word` reads it and branches on the duplicate-check rule (`(game_id, word)` for coop vs `(game_id, user_id, word)` for compete) and the rank-target end condition.
-3. **`setup.target_rank` lives on the blob**; absent in coop, required in compete.
-4. **RLS policy on `freebee.found_words` is written for both modes**:
+2. **`setup.target_rank` lives on the blob**; absent in coop, required in compete.
+3. **RLS policy on `freebee.found_words` is written for both modes**:
    ```sql
    using (
      exists (
        select 1 from common.games cg
         where cg.id = found_words.game_id
-          and common.is_club_member(cg.club_id)
+          and common.is_club_member(cg.club_handle)
           and (
                 cg.setup->>'mode' = 'coop'
              or found_words.user_id = auth.uid()
@@ -91,10 +94,18 @@ v1 ships coop only on the FE, but the schema, RLS, and RPCs handle compete mode 
      )
    )
    ```
-   Coop v1 only ever hits the first OR branch; compete switches to the second/third without a policy rewrite.
-5. **`play_state = 'won_compete'`** is a valid value from day one even though v1 never emits it. `submit_word`'s compete branch already fires the terminal transition when a player hits `target_rank`.
+   Coop v1 hits the first OR branch.
+4. **`play_state = 'won_compete'`** is already a valid value. `submit_word`'s compete branch fires the terminal transition when a player hits `target_rank`.
 
-What's left for compete v2 (FE only): a mode radio in the setup form, a target-rank slider, the compete-aware label in `manifest.labelFor`, a leaderboard component, and a buildOver case that names the winner.
+The migration from the old `setup.mode` scheme to the sibling-manifest scheme on freebee:
+
+- Drop `setup.mode` from the setup blob; replace with two manifest entries (`freebeeCoopGame`, `freebeeCompeteGame`) sharing the same folder + schema. Both set `baseGametype: 'freebee'`.
+- Add a `mode text` column to `freebee.games` denormalized from the gametype string. The RLS policy's `cg.setup->>'mode' = 'coop'` branch flips to read `freebee.games.mode` instead, avoiding the join to `common.games`.
+- Compete manifest: `numberOfPlayers: [2, 6]`, `mode: 'compete'`. Coop manifest: `numberOfPlayers: [1, 6]`, `mode: 'coop'`.
+- The `freebee.create_game` RPC takes an additional `mode text` parameter, validates the compete-mode 2-player floor, and inserts the mode-denormalized column. `setup.target_rank` becomes a compete-only validation in the same RPC.
+- Per-player score breakdown + leaderboard component + "what I missed" reveal — these are the FE-rendering pieces still to write.
+
+Until then, freebee's only manifest is `freebeeGame` with `mode: 'coop'`, `baseGametype: 'freebee'`.
 
 ## Schema: `freebee.*`
 
@@ -159,7 +170,7 @@ Drives `manifest.labelFor` for the club page's game-list label.
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `freebee, common, public, extensions`.
 
-### `freebee.create_game(target_club uuid, setup jsonb, player_user_ids uuid[], board jsonb) → table(id uuid)`
+### `freebee.create_game(target_club text, setup jsonb, player_user_ids uuid[], board jsonb) → table(id uuid)`
 
 Called only by the `freebee-build-board` edge function in practice (it builds the board and passes it in). Validates everything end-to-end:
 
@@ -189,7 +200,7 @@ On accept: inserts `found_words` row, recomputes team/player score, calls `commo
 
 Countdown-expiry handler. Calls `common.end_game(target_game, 'ended', {outcome:'timeout', ...}, player_results)`. Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.
 
-**Realtime touch at the tail**: `update freebee.games set club_id = club_id where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See [`migration 20260618000002`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) for the bug history.
+**Realtime touch at the tail**: `update freebee.games set club_handle = club_handle where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See [`migration 20260618000002`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) for the bug history.
 
 ### `freebee.end_game(target_game uuid) → void`
 
@@ -247,7 +258,7 @@ Both are [SCOWL](http://wordlist.aspell.net/) (Spell Checker Oriented Word Lists
 |---|---|---|
 | `dictionary` | RLS off (public reference data) | INSERT only via `service_role` (the import script) |
 | `pangrams` | RLS off | Same |
-| `games` | `common.is_club_member(club_id)` | None — writes go through `freebee.create_game` |
+| `games` | `common.is_club_member(club_handle)` | None — writes go through `freebee.create_game` |
 | `found_words` | Designed for both modes from day one: club-membership AND (`mode='coop'` OR `user_id=auth.uid()` OR `is_terminal`). Coop v1 only ever hits the first OR branch. | None — writes go through `freebee.submit_word` |
 
 **Realtime publication**: `freebee.games` and `freebee.found_words` are in `supabase_realtime` so the FE's `useGame` can subscribe to in-game state.

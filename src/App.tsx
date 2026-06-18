@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
+import { ClaimHandleScreen } from './common/components/ClaimHandleScreen'
 import { ClubPage } from './common/components/ClubPage'
 import { CreateClubPage } from './common/components/CreateClubPage'
 import { GamePage } from './common/components/GamePage'
@@ -51,11 +52,15 @@ import { games } from './games'
  * to that game are cached.
  */
 export default function App() {
-  const { session, loading } = useSession()
+  const { session, needsClaim, loading, refresh } = useSession()
   const path = usePath()
 
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
+  // Signed in but no profile row yet — block all app routes until
+  // they pick a username. ClaimHandleScreen calls refresh() on
+  // success so this gate flips off without a page reload.
+  if (needsClaim) return <ClaimHandleScreen onClaimed={refresh} />
 
   // Resolve the current route to a page component. UserMenu is
   // mounted as a sibling below — appears on every authenticated

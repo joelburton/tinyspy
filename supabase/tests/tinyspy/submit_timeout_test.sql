@@ -31,7 +31,7 @@ select plan(8);
 -- outside the club / not playing the game.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- (1) Happy path: playing → lost_timeout via submit_timeout
@@ -39,7 +39,7 @@ select * from common.create_club('Ada and Bea', array['ada','bea']);
 
 create temp table g on commit drop as
 select * from tinyspy.create_game(
-  (select id from club),
+  (select handle from club),
   -- Setup includes a 10-minute countdown timer so the
   -- gametype-specific row reflects "timer was configured";
   -- the RPC itself doesn't actually wait for time to pass.
@@ -106,7 +106,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from tinyspy.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.tinyspy_setup(9),
   pg_temp.tinyspy_players()
 );

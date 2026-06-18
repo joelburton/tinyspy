@@ -14,21 +14,18 @@ export type Database = {
           created_at: string
           created_by: string
           handle: string
-          id: string
           name: string
         }
         Insert: {
           created_at?: string
           created_by: string
           handle: string
-          id?: string
           name: string
         }
         Update: {
           created_at?: string
           created_by?: string
           handle?: string
-          id?: string
           name?: string
         }
         Relationships: [
@@ -44,29 +41,29 @@ export type Database = {
       clubs_gametypes: {
         Row: {
           added_at: string
-          club_id: string
+          club_handle: string
           default_setup: Json | null
           gametype: string
         }
         Insert: {
           added_at?: string
-          club_id: string
+          club_handle: string
           default_setup?: Json | null
           gametype: string
         }
         Update: {
           added_at?: string
-          club_id?: string
+          club_handle?: string
           default_setup?: Json | null
           gametype?: string
         }
         Relationships: [
           {
-            foreignKeyName: "clubs_gametypes_club_id_fkey"
-            columns: ["club_id"]
+            foreignKeyName: "clubs_gametypes_club_handle_fkey"
+            columns: ["club_handle"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
+            referencedColumns: ["handle"]
           },
           {
             foreignKeyName: "clubs_gametypes_gametype_fkey"
@@ -79,27 +76,27 @@ export type Database = {
       }
       clubs_members: {
         Row: {
-          club_id: string
+          club_handle: string
           joined_at: string
           user_id: string
         }
         Insert: {
-          club_id: string
+          club_handle: string
           joined_at?: string
           user_id: string
         }
         Update: {
-          club_id?: string
+          club_handle?: string
           joined_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "clubs_members_club_id_fkey"
-            columns: ["club_id"]
+            foreignKeyName: "clubs_members_club_handle_fkey"
+            columns: ["club_handle"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
+            referencedColumns: ["handle"]
           },
           {
             foreignKeyName: "clubs_members_user_id_fkey"
@@ -148,7 +145,7 @@ export type Database = {
       }
       games: {
         Row: {
-          club_id: string
+          club_handle: string
           ended_at: string | null
           gametype: string
           id: string
@@ -164,7 +161,7 @@ export type Database = {
           total_idle_seconds: number
         }
         Insert: {
-          club_id: string
+          club_handle: string
           ended_at?: string | null
           gametype: string
           id?: string
@@ -180,7 +177,7 @@ export type Database = {
           total_idle_seconds?: number
         }
         Update: {
-          club_id?: string
+          club_handle?: string
           ended_at?: string | null
           gametype?: string
           id?: string
@@ -197,11 +194,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "games_club_id_fkey"
-            columns: ["club_id"]
+            foreignKeyName: "games_club_handle_fkey"
+            columns: ["club_handle"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
+            referencedColumns: ["handle"]
           },
           {
             foreignKeyName: "games_gametype_fkey"
@@ -226,21 +223,21 @@ export type Database = {
       }
       messages: {
         Row: {
-          club_id: string
+          club_handle: string
           content: string
           id: string
           sent_at: string
           user_id: string
         }
         Insert: {
-          club_id: string
+          club_handle: string
           content: string
           id?: string
           sent_at?: string
           user_id: string
         }
         Update: {
-          club_id?: string
+          club_handle?: string
           content?: string
           id?: string
           sent_at?: string
@@ -248,11 +245,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "messages_club_id_fkey"
-            columns: ["club_id"]
+            foreignKeyName: "messages_club_handle_fkey"
+            columns: ["club_handle"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
+            referencedColumns: ["handle"]
           },
           {
             foreignKeyName: "messages_user_id_fkey"
@@ -289,13 +286,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_username: { Args: { desired: string }; Returns: string }
       color_for_username: { Args: { username: string }; Returns: string }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }
-        Returns: {
-          handle: string
-          id: string
-        }[]
+        Returns: string
       }
       create_game: {
         Args: {
@@ -321,6 +316,10 @@ export type Database = {
       is_club_member: { Args: { target_club: string }; Returns: boolean }
       require_club_member: { Args: { target_club: string }; Returns: string }
       require_game_player: { Args: { target_game: string }; Returns: string }
+      require_player_count_max: {
+        Args: { max_count: number; player_user_ids: string[] }
+        Returns: undefined
+      }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined
@@ -412,7 +411,7 @@ export type Database = {
       games: {
         Row: {
           center_letter: string
-          club_id: string
+          club_handle: string
           created_at: string
           id: string
           legal_words: string[]
@@ -423,7 +422,7 @@ export type Database = {
         }
         Insert: {
           center_letter: string
-          club_id: string
+          club_handle: string
           created_at?: string
           id: string
           legal_words: string[]
@@ -434,7 +433,7 @@ export type Database = {
         }
         Update: {
           center_letter?: string
-          club_id?: string
+          club_handle?: string
           created_at?: string
           id?: string
           legal_words?: string[]
@@ -468,7 +467,7 @@ export type Database = {
       games_state: {
         Row: {
           center_letter: string | null
-          club_id: string | null
+          club_handle: string | null
           created_at: string | null
           id: string | null
           legal_words: string[] | null
@@ -479,7 +478,7 @@ export type Database = {
         }
         Insert: {
           center_letter?: string | null
-          club_id?: string | null
+          club_handle?: string | null
           created_at?: string | null
           id?: string | null
           legal_words?: never
@@ -490,7 +489,7 @@ export type Database = {
         }
         Update: {
           center_letter?: string | null
-          club_id?: string | null
+          club_handle?: string | null
           created_at?: string | null
           id?: string | null
           legal_words?: never
@@ -568,28 +567,25 @@ export type Database = {
     Tables: {
       games: {
         Row: {
-          club_id: string
+          club_handle: string
           created_at: string
-          guesses_remaining: number
           id: string
+          mode: string
           target: number
-          winner_id: string | null
         }
         Insert: {
-          club_id: string
+          club_handle: string
           created_at?: string
-          guesses_remaining?: number
           id: string
+          mode: string
           target: number
-          winner_id?: string | null
         }
         Update: {
-          club_id?: string
+          club_handle?: string
           created_at?: string
-          guesses_remaining?: number
           id?: string
+          mode?: string
           target?: number
-          winner_id?: string | null
         }
         Relationships: []
       }
@@ -635,32 +631,62 @@ export type Database = {
           },
         ]
       }
+      players: {
+        Row: {
+          game_id: string
+          guesses_remaining: number
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          guesses_remaining: number
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          guesses_remaining?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       games_state: {
         Row: {
-          club_id: string | null
+          club_handle: string | null
           created_at: string | null
-          guesses_remaining: number | null
           id: string | null
+          mode: string | null
           target: number | null
-          winner_id: string | null
         }
         Insert: {
-          club_id?: string | null
+          club_handle?: string | null
           created_at?: string | null
-          guesses_remaining?: number | null
           id?: string | null
+          mode?: string | null
           target?: never
-          winner_id?: string | null
         }
         Update: {
-          club_id?: string | null
+          club_handle?: string | null
           created_at?: string | null
-          guesses_remaining?: number | null
           id?: string | null
+          mode?: string | null
           target?: never
-          winner_id?: string | null
         }
         Relationships: []
       }
@@ -668,7 +694,12 @@ export type Database = {
     Functions: {
       _target_for: { Args: { g_id: string }; Returns: number }
       create_game: {
-        Args: { player_user_ids: string[]; setup: Json; target_club: string }
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
         Returns: {
           id: string
         }[]
@@ -745,7 +776,7 @@ export type Database = {
       }
       games: {
         Row: {
-          club_id: string
+          club_handle: string
           created_at: string
           current_clue_giver: string | null
           id: string
@@ -757,7 +788,7 @@ export type Database = {
           user_b_id: string
         }
         Insert: {
-          club_id: string
+          club_handle: string
           created_at?: string
           current_clue_giver?: string | null
           id: string
@@ -769,7 +800,7 @@ export type Database = {
           user_b_id: string
         }
         Update: {
-          club_id?: string
+          club_handle?: string
           created_at?: string
           current_clue_giver?: string | null
           id?: string
@@ -868,7 +899,7 @@ export type Database = {
       games: {
         Row: {
           board: Json
-          club_id: string
+          club_handle: string
           created_at: string
           id: string
           mistake_count: number
@@ -876,7 +907,7 @@ export type Database = {
         }
         Insert: {
           board: Json
-          club_id: string
+          club_handle: string
           created_at?: string
           id: string
           mistake_count?: number
@@ -884,7 +915,7 @@ export type Database = {
         }
         Update: {
           board?: Json
-          club_id?: string
+          club_handle?: string
           created_at?: string
           id?: string
           mistake_count?: number
@@ -973,7 +1004,7 @@ export type Database = {
     Views: {
       club_game_status: {
         Row: {
-          club_id: string | null
+          club_handle: string | null
           game_id: string | null
           is_terminal: boolean | null
           nyt_date: string | null

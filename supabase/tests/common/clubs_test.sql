@@ -114,7 +114,7 @@ select throws_ok(
 -- ============================================================
 
 create temp table created_club on commit drop as
-select * from common.create_club('Joel and Leah', array['ada','bea','cade']);
+select common.create_club('Joel and Leah', array['ada','bea','cade']) as handle;
 
 select is(
   (select count(*) from created_club),
@@ -131,7 +131,7 @@ select is(
 -- All three listed users are members.
 select is(
   (select count(*) from common.clubs_members
-    where club_id = (select id from created_club)),
+    where club_handle = (select handle from created_club)),
   3::bigint,
   'create_club: all three listed members were added'
 );
@@ -145,11 +145,11 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 create temp table bobs_club on commit drop as
-select * from common.create_club('Friday Night', array['ada','cade']);
+select common.create_club('Friday Night', array['ada','cade']) as handle;
 
 select is(
   (select count(*) from common.clubs_members
-    where club_id = (select id from bobs_club)),
+    where club_handle = (select handle from bobs_club)),
   3::bigint,
   'create_club: caller is auto-added when omitted from member_usernames'
 );
@@ -157,7 +157,7 @@ select is(
 select ok(
   (select exists (
     select 1 from common.clubs_members
-    where club_id = (select id from bobs_club)
+    where club_handle = (select handle from bobs_club)
       and user_id = 'bea22222-2222-2222-2222-222222222222'
   )),
   'create_club: auto-added caller appears in clubs_members'
@@ -220,7 +220,7 @@ select is(
 
 select is(
   (select count(*) from common.clubs_members
-    where club_id = (select id from common.clubs where handle = '=ada')),
+    where club_handle = (select handle from common.clubs where handle = '=ada')),
   1::bigint,
   'solo clubs: a solo club has exactly one member'
 );
@@ -228,7 +228,7 @@ select is(
 select ok(
   (select exists (
     select 1 from common.clubs_members cm
-    where cm.club_id = (select id from common.clubs where handle = '=ada')
+    where cm.club_handle = (select handle from common.clubs where handle = '=ada')
       and cm.user_id = 'ada11111-1111-1111-1111-111111111111'
   )),
   'solo clubs: the sole member is the user themselves'

@@ -58,7 +58,7 @@ type ClubGameStatusRow = {
  * (`wordknit/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
+export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
   const s = value as WordKnitSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
   const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
@@ -93,12 +93,12 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
   // common.games (the cross-schema join PostgREST embeds can't
   // resolve). RLS on the underlying tables gates visibility, so
   // a non-member's query returns zero rows even without the
-  // .eq('club_id') filter — the filter is belt-and-braces.
+  // .eq('club_handle') filter — the filter is belt-and-braces.
   useEffect(function loadClubGameStatuses() {
     let cancelled = false
     db.from('club_game_status')
       .select('game_id, play_state, is_terminal, nyt_date')
-      .eq('club_id', clubId)
+      .eq('club_handle', clubHandle)
       .then(({ data, error }) => {
         if (cancelled) return
         if (error || !data) return
@@ -107,7 +107,7 @@ export function SetupForm({ clubId, value, onChange }: SetupBodyProps) {
     return () => {
       cancelled = true
     }
-  }, [clubId])
+  }, [clubHandle])
 
   // Auto-pick the default puzzle once the list arrives. We pick
   // today's puzzle if it exists in the imported set, otherwise

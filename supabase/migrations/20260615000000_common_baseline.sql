@@ -19,7 +19,7 @@
 --                            an INSERT ... ON CONFLICT DO NOTHING.
 --   - games               — universal game-record header (the
 --                            "index"). One row per game-playing
---                            across all gametypes. Holds club_id,
+--                            across all gametypes. Holds club_handle,
 --                            gametype, timestamps, view state
 --                            (is_current_view, paused), play state
 --                            (play_state, is_terminal), and `status`
@@ -38,7 +38,7 @@
 --                            is the durable membership of the room.
 --   - clubs_gametypes     — m2m saying "this club may play this
 --                            gametype." Populated for every new
---                            club by handle_new_user / create_club.
+--                            club by claim_username / create_club.
 --   - messages            — per-club chat. Single thread per club,
 --                            persists across gametype switches.
 --
@@ -50,7 +50,7 @@
 -- removability invariant (delete a game in three actions — folder,
 -- registry line, schema) depends on common staying gametype-blind.
 -- The link goes the other way: each game schema references
--- common.clubs(id) for `club_id` and self-registers via
+-- common.clubs(handle) for `club_handle` and self-registers via
 -- common.gametypes.
 
 -- ============================================================
@@ -66,21 +66,31 @@ grant usage on schema common to authenticated;
 -- ============================================================
 -- common.profiles — one row per auth user
 -- ============================================================
--- Created automatically by the on_auth_user_created trigger on
--- first sign-in. `username` is the public identity (URLs, rosters,
--- chat); `email` stays on auth.users as the magic-link credential
--- and is not surfaced in-app.
+-- Created by the user themselves on first sign-in, via the
+-- common.claim_username RPC. The auth.users row arrives first
+-- (magic-link verifies); the FE then routes the signed-in but
+-- not-yet-claimed user to a "pick a handle" screen. Until they
+-- claim, no profile row exists for them and no other app
+-- surface is reachable.
 --
--- The unique constraint on username means a second user signing
--- in with a colliding email local-part (e.g. bob@foo.com after
--- bob@bar.com already exists) will fail the magic-link sign-in
--- entirely. That's accepted for alpha (~3 users, picker UI is
--- deferred — see project memory). When a picker lands, collision
--- handling moves into the auth flow.
+-- `username` is the public identity (URLs, rosters, chat) AND
+-- the user's chosen handle. IMMUTABLE by policy — no UPDATE on
+-- common.profiles in v1, matching the immutable-club-handle
+-- decision (rationale in plan docs). If a user really wants a
+-- new handle, the friends-only escape hatch is "delete the
+-- account and resignup."
+--
+-- The CHECK on username enforces the canonical regex:
+--   ^[a-z][a-z0-9-]{2,29}$
+-- (3–30 chars, leading alpha, lowercase + digits + hyphens).
+-- The unique constraint enforces collision rejection — the
+-- claim RPC surfaces 23505 to the FE as "that username is
+-- taken; pick another."
 
 create table common.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  username text unique not null,
+  username text unique not null
+    check (username ~ '^[a-z][a-z0-9-]{2,29}$'),
   -- Visual identity color, drawn from a fixed 8-name palette.
   -- Stored as a NAME (not a hex) so the FE theme can translate it
   -- per context — the hex for "blue" on a white page-background
@@ -93,9 +103,10 @@ create table common.profiles (
   -- bold name in chat messages, the wordknit per-peer tile-
   -- selection borders, per-game guess/clue history attribution.
   --
-  -- Auto-seeded at signup by handle_new_user from a deterministic
-  -- hash of the username (see common.color_for_username below);
-  -- a future profile page will let users change it.
+  -- Deterministically derived from the username at claim time
+  -- (see common.color_for_username below). Immutable like
+  -- username itself in v1; a future "change my color" RPC would
+  -- need a narrow UPDATE policy.
   color text not null check (color in (
     'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'
   )),
@@ -106,18 +117,31 @@ create table common.profiles (
 -- common.clubs — fixed-membership rooms
 -- ============================================================
 --
--- handle is the URL-safe slug used in `/c/<handle>` routes. Unique
--- across all clubs, including solo clubs. User-typed names go
--- through common.slugify_club_name (defined below) which strips
--- the '=' character (among other non-alphanumerics), so user clubs
--- can never collide with solo clubs whose handles start with '='.
+-- handle IS the primary key — the URL-safe slug used in
+-- `/c/<handle>` routes AND the FK target from every per-game
+-- club_handle column. There's no separate uuid id; handle is
+-- the only identifier for a club. IMMUTABLE by policy (no
+-- UPDATE clause anywhere); if a friend wants a different
+-- handle they delete-and-recreate.
 --
--- name is the human-readable form (as typed by the creator). The
--- handle is derived from it at insert time by create_club().
+-- Two-form handle space:
+--   - User clubs use slugify(name): no '=' prefix possible
+--     (slugify strips it).
+--   - Solo clubs use literal '=<username>' (claim_username
+--     writes this; users cannot create '=…' handles via the UI).
+-- Both are valid under the CHECK regex, which allows an optional
+-- leading '='. Solo clubs live in a slug-space user input
+-- cannot reach.
+--
+-- name is the human-readable form (as typed by the creator).
+-- A second club whose slugified name would collide raises
+-- 23505 from the unique constraint inside the handle PK —
+-- create_club lets that propagate; the FE renders an inline
+-- "that name is taken" error.
 
 create table common.clubs (
-  id uuid primary key default gen_random_uuid(),
-  handle text unique not null,
+  handle text primary key
+    check (handle ~ '^=?[a-z][a-z0-9-]{2,29}$'),
   name text not null,
   created_by uuid not null references common.profiles(user_id) on delete cascade,
   created_at timestamptz not null default now()
@@ -127,17 +151,17 @@ create table common.clubs (
 -- common.clubs_members — m2m
 -- ============================================================
 --
--- Pk on (club_id, user_id) so a user can't be listed twice in
--- the same club. Membership is fixed at creation in v1 (no
+-- PK on (club_handle, user_id) so a user can't be listed twice
+-- in the same club. Membership is fixed at creation in v1 (no
 -- add/remove RPCs); the table exists in this normalized form
 -- because (a) it's the right shape and (b) future member-listing
 -- UI wants the relational structure.
 
 create table common.clubs_members (
-  club_id uuid not null references common.clubs(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   joined_at timestamptz not null default now(),
-  primary key (club_id, user_id)
+  primary key (club_handle, user_id)
 );
 
 -- ============================================================
@@ -145,7 +169,7 @@ create table common.clubs_members (
 -- ============================================================
 -- Authoritative SQL-side list of gametypes. Used by the
 -- m2m-population RPCs below so each only needs one query
--- ("INSERT INTO clubs_gametypes SELECT new_club_id, gametype
+-- ("INSERT INTO clubs_gametypes SELECT new_club_handle, gametype
 -- FROM gametypes") rather than hardcoding the list of
 -- gametype strings.
 --
@@ -270,7 +294,7 @@ create table common.gametypes (
 --                      common.games status in one transaction.
 create table common.games (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references common.clubs(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
   gametype text not null references common.gametypes(gametype) on delete cascade,
   title text not null check (length(trim(title)) > 0),
   setup jsonb not null,
@@ -295,15 +319,15 @@ create table common.games (
   ended_at timestamptz
 );
 
-create index common_games_club_id_started_at_idx
-  on common.games (club_id, started_at desc);
+create index common_games_club_handle_started_at_idx
+  on common.games (club_handle, started_at desc);
 
 -- "At most one current-view game per club, across all gametypes"
 -- — the same invariant the old `is_active` partial index
 -- enforced. The "clear prior current" step in common.create_game
 -- handles the transition.
 create unique index common_games_one_current_view_per_club
-  on common.games (club_id)
+  on common.games (club_handle)
   where is_current_view = true;
 
 -- ============================================================
@@ -341,17 +365,18 @@ create index common_game_players_user_id_idx
 -- ============================================================
 -- common.clubs_gametypes — m2m
 -- ============================================================
--- PK is (club_id, gametype) so each pair is recorded at most
+-- PK is (club_handle, gametype) so each pair is recorded at most
 -- once. `gametype` FKs to common.gametypes for referential
 -- integrity (an unregistered gametype can't be inserted).
 --
 -- v1 only writes from the security-definer RPCs below
--- (handle_new_user, create_club). A future "club admin UI"
--- would add an RPC for member-driven enable/disable. No
--- INSERT/UPDATE/DELETE policies on the table itself.
+-- (claim_username for solo clubs, create_club for friend clubs).
+-- A future "club admin UI" would add an RPC for member-driven
+-- enable/disable. No INSERT/UPDATE/DELETE policies on the table
+-- itself.
 
 create table common.clubs_gametypes (
-  club_id        uuid not null references common.clubs(id) on delete cascade,
+  club_handle    text not null references common.clubs(handle) on delete cascade,
   gametype       text not null references common.gametypes(gametype) on delete cascade,
   added_at       timestamptz not null default now(),
   -- Saved setup form-defaults for the (club, gametype) pair.
@@ -368,7 +393,7 @@ create table common.clubs_gametypes (
   -- reshape setup fields without thinking about saved blobs in
   -- flight in production.
   default_setup  jsonb,
-  primary key (club_id, gametype)
+  primary key (club_handle, gametype)
 );
 
 -- ============================================================
@@ -382,14 +407,14 @@ create table common.clubs_gametypes (
 
 create table common.messages (
   id uuid primary key default gen_random_uuid(),
-  club_id uuid not null references common.clubs(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   content text not null check (length(trim(content)) > 0 and length(content) <= 1000),
   sent_at timestamptz not null default now()
 );
 
-create index messages_club_id_sent_at_idx
-  on common.messages (club_id, sent_at);
+create index messages_club_handle_sent_at_idx
+  on common.messages (club_handle, sent_at);
 
 -- ============================================================
 -- RLS — only members can read club data
@@ -409,7 +434,7 @@ alter table common.game_players     enable row level security;
 alter table common.clubs_gametypes  enable row level security;
 alter table common.messages         enable row level security;
 
-create function common.is_club_member(target_club uuid)
+create function common.is_club_member(target_club text)
 returns boolean
 language sql
 security definer
@@ -418,7 +443,7 @@ stable
 as $$
   select exists (
     select 1 from common.clubs_members
-    where club_id = target_club and user_id = auth.uid()
+    where club_handle = target_club and user_id = auth.uid()
   );
 $$;
 
@@ -440,22 +465,22 @@ $$;
 create policy profiles_select_authenticated on common.profiles
   for select to authenticated using (true);
 
-create policy profiles_update_own on common.profiles
-  for update to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- No UPDATE policy on profiles. username and color are both
+-- immutable in v1 — the only way to alter either is to
+-- delete-and-recreate. A future "change my color" surface would
+-- add a narrow column-scoped policy here.
 
 create policy clubs_select on common.clubs
   for select to authenticated
-  using (common.is_club_member(id));
+  using (common.is_club_member(handle));
 
 create policy clubs_members_select on common.clubs_members
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 create policy messages_select on common.messages
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 -- Permissive read on gametypes — gametype identifiers are not
 -- sensitive, and the FE needs to discover them anyway (the
@@ -466,7 +491,7 @@ create policy gametypes_select on common.gametypes
 
 create policy clubs_gametypes_select on common.clubs_gametypes
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 -- Game records are club-wide: any club member can see every game
 -- ever played in the club, regardless of whether they were one of
@@ -475,7 +500,7 @@ create policy clubs_gametypes_select on common.clubs_gametypes
 -- per-game-private.
 create policy games_select on common.games
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 -- Game-player records inherit visibility from their parent game.
 -- The EXISTS subquery mirrors the per-gametype `*_select` policy
@@ -486,7 +511,7 @@ create policy game_players_select on common.game_players
     exists (
       select 1 from common.games g
        where g.id = game_players.game_id
-         and common.is_club_member(g.club_id)
+         and common.is_club_member(g.club_handle)
     )
   );
 
@@ -495,7 +520,7 @@ create policy game_players_select on common.game_players
 -- send_message, the create_game/end_game game-lifecycle helpers
 -- called from each gametype's RPCs).
 
-grant select, update on common.profiles        to authenticated;
+grant select on common.profiles                to authenticated;
 grant select on common.clubs                   to authenticated;
 grant select on common.clubs_members           to authenticated;
 grant select on common.gametypes               to authenticated;
@@ -536,13 +561,13 @@ alter publication supabase_realtime add table common.game_players;
 
 -- Replica identity FULL on common.games so DELETE events carry
 -- the full pre-deletion row. ClubPage's postgres_changes
--- subscription filters on `club_id=eq.<X>`; under the default
+-- subscription filters on `club_handle=eq.<X>`; under the default
 -- replica identity (PK only) the OLD payload on a DELETE event
 -- has just the id, the filter fails to match, and the subscriber
 -- never sees the event. INSERT/UPDATE are unaffected — their NEW
 -- payload always carries every column. The extra realtime
 -- bandwidth on UPDATE/DELETE is small at our scale; this is the
--- cheaper fix vs. dropping the club_id filter and accepting
+-- cheaper fix vs. dropping the club_handle filter and accepting
 -- noise from every game change in the database.
 --
 -- Other tables here keep the default replica identity because
@@ -609,7 +634,7 @@ $$;
 -- indexing.
 --
 -- Marked `immutable` so it composes cleanly into INSERT
--- expressions (used by handle_new_user below).
+-- expressions (used by claim_username below).
 
 create function common.color_for_username(username text)
 returns text
@@ -653,7 +678,7 @@ $$;
 -- security definer so the membership lookup bypasses RLS, the
 -- same way is_club_member does.
 
-create function common.require_club_member(target_club uuid)
+create function common.require_club_member(target_club text)
 returns uuid
 language plpgsql
 security definer
@@ -669,7 +694,7 @@ begin
 
   if not exists (
     select 1 from common.clubs_members
-    where club_id = target_club and user_id = caller_id
+    where club_handle = target_club and user_id = caller_id
   ) then
     raise exception 'not a member of this club' using errcode = '42501';
   end if;
@@ -682,7 +707,7 @@ $$;
 -- this helper) run with the helper-owner's privileges and can
 -- call it; direct authenticated calls are blocked, keeping the
 -- function out of PostgREST's exposed surface.
-revoke execute on function common.require_club_member(uuid) from public;
+revoke execute on function common.require_club_member(text) from public;
 
 -- ─── common.validate_timer ─────────────────────────────
 -- Validates a jsonb timer object against the canonical shape
@@ -779,7 +804,7 @@ revoke execute on function common.validate_timer(jsonb) from public;
 --     the prior game stays in common.games but loses its
 --     current-view flag.
 --   - Insert the new common.games row with is_current_view = true.
---     The partial unique index on (club_id) where is_current_view
+--     The partial unique index on (club_handle) where is_current_view
 --     = true guarantees the just-cleared step worked.
 --   - Insert one common.game_players row per uid.
 --   - Return the new game id.
@@ -796,7 +821,7 @@ revoke execute on function common.validate_timer(jsonb) from public;
 --   - P0001  'player_user_ids contains non-members: X, Y'
 
 create function common.create_game(
-  target_club uuid,
+  target_club text,
   gametype text,
   player_user_ids uuid[],
   title text,
@@ -835,7 +860,7 @@ begin
   from unnest(player_user_ids) as uid
   where not exists (
     select 1 from common.clubs_members
-     where club_id = target_club and user_id = uid
+     where club_handle = target_club and user_id = uid
   );
 
   if array_length(non_members, 1) > 0 then
@@ -855,7 +880,7 @@ begin
   update common.games
      set is_current_view = false,
          idle_since = now()
-   where club_id = target_club and is_current_view = true;
+   where club_handle = target_club and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
   -- does field-level checks + common.validate_timer before calling
@@ -864,7 +889,7 @@ begin
   -- on the right of VALUES resolves to the function parameter,
   -- not the column on the left — PostgreSQL knows column-list
   -- positions from value-list positions.)
-  insert into common.games (club_id, gametype, title, setup, is_current_view)
+  insert into common.games (club_handle, gametype, title, setup, is_current_view)
   values (target_club, gametype, title, setup, true)
   returning id into new_id;
 
@@ -886,7 +911,7 @@ begin
   if saved_default is not null then
     update common.clubs_gametypes
        set default_setup = saved_default
-     where club_id = target_club
+     where club_handle = target_club
        and clubs_gametypes.gametype = create_game.gametype;
   end if;
 
@@ -895,7 +920,7 @@ end;
 $$;
 
 -- No grant to authenticated; internal helper.
-revoke execute on function common.create_game(uuid, text, uuid[], text, jsonb, jsonb) from public;
+revoke execute on function common.create_game(text, text, uuid[], text, jsonb, jsonb) from public;
 
 -- ─── common.require_game_player ───────────────────────
 -- "Caller must be authenticated AND have a game_players row for
@@ -1072,7 +1097,7 @@ revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public
 -- Fired from the FE when the first viewer mounts a game's
 -- GamePage. Sets common.games.is_current_view=true on this game
 -- and clears it on any other game in the same club (the partial
--- unique index `(club_id) where is_current_view=true` would
+-- unique index `(club_handle) where is_current_view=true` would
 -- otherwise reject the new true).
 --
 -- Idempotent: re-mounting the already-current game writes the
@@ -1099,9 +1124,9 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  target_club uuid;
+  target_club text;
 begin
-  select club_id into target_club from common.games where id = target_game;
+  select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -1117,7 +1142,7 @@ begin
   update common.games
      set is_current_view = false,
          idle_since = now()
-   where club_id = target_club
+   where club_handle = target_club
      and is_current_view = true
      and id <> target_game;
 
@@ -1160,9 +1185,9 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  target_club uuid;
+  target_club text;
 begin
-  select club_id into target_club from common.games where id = target_game;
+  select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -1223,9 +1248,9 @@ security definer
 set search_path = common, public, extensions
 as $$
 declare
-  target_club uuid;
+  target_club text;
 begin
-  select club_id into target_club from common.games where id = target_game;
+  select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -1244,14 +1269,17 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- ============================================================
 --
 -- Creates a new club + its full membership + its clubs_gametypes
--- entries in a single transaction. Reject reasons (all P0001
--- unless noted):
+-- entries in a single transaction. Returns the new club's handle
+-- (the URL slug AND the PK).
+--
+-- Reject reasons (all P0001 unless noted):
 --
 --   - not authenticated (42501)
 --   - club name slugifies to an empty handle ("!!!" etc.)
---   - club name slugifies to a handle starting with '=' (defensive
---     check — the slugify rules already prevent this, but the
---     belt-and-suspenders check is cheap)
+--   - club name slugifies to a handle that doesn't start with
+--     a letter ("123 club" → "123-club", which the handle CHECK
+--     would reject anyway; we surface a friendlier P0001 instead
+--     of a constraint violation)
 --   - one or more member_usernames don't exist (P0002)
 --   - resulting membership has fewer than 2 members
 --   - handle collision with an existing club (unique_violation, 23505)
@@ -1268,7 +1296,7 @@ create function common.create_club(
   club_name text,
   member_usernames text[]
 )
-returns table(id uuid, handle text)
+returns text
 language plpgsql
 security definer
 set search_path = common, public, extensions
@@ -1278,7 +1306,6 @@ declare
   new_handle text;
   resolved_ids uuid[];
   unknown_names text[];
-  new_id uuid;
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -1290,9 +1317,12 @@ begin
     raise exception 'club name must contain alphanumeric characters'
       using errcode = 'P0001';
   end if;
-  -- Defensive: slugify strips '=', so this should be unreachable.
-  if new_handle like '=%' then
-    raise exception 'club handle cannot start with reserved character'
+  -- The handle CHECK regex requires a leading letter. Surface a
+  -- clean P0001 instead of letting the constraint raise 23514,
+  -- so the FE's inline error reads as a name problem ("add a
+  -- letter") rather than a database error.
+  if new_handle !~ '^[a-z]' then
+    raise exception 'club name must start with a letter'
       using errcode = 'P0001';
   end if;
 
@@ -1326,15 +1356,14 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- The unique constraint on clubs.handle does collision
-  -- enforcement; we let the exception propagate so the caller
-  -- gets SQLSTATE 23505 (unique_violation).
+  -- The PK on clubs.handle does collision enforcement; we let
+  -- the exception propagate so the caller gets SQLSTATE 23505
+  -- (unique_violation), surfaced by the FE as "that name is taken."
   insert into common.clubs (handle, name, created_by)
-  values (new_handle, club_name, caller_id)
-  returning clubs.id into new_id;
+  values (new_handle, club_name, caller_id);
 
-  insert into common.clubs_members (club_id, user_id)
-  select new_id, member_id from unnest(resolved_ids) as member_id;
+  insert into common.clubs_members (club_handle, user_id)
+  select new_handle, member_id from unnest(resolved_ids) as member_id;
 
   -- Populate clubs_gametypes with every registered gametype.
   -- v1 lets every new club play every registered game; per-club
@@ -1342,10 +1371,10 @@ begin
   -- per-club Start-button rendering still applies the player-
   -- count range from each gametype's manifest, so e.g. tinyspy
   -- appears disabled in a 3-member club's button list.
-  insert into common.clubs_gametypes (club_id, gametype)
-  select new_id, gametype from common.gametypes;
+  insert into common.clubs_gametypes (club_handle, gametype)
+  select new_handle, gametype from common.gametypes;
 
-  return query select new_id, new_handle;
+  return new_handle;
 end;
 $$;
 
@@ -1360,7 +1389,7 @@ grant execute on function common.create_club(text, text[]) to authenticated;
 -- the club. Trimmed content must be 1–1000 chars (matches the
 -- check constraint on common.messages).
 
-create function common.send_message(target_club uuid, content text)
+create function common.send_message(target_club text, content text)
 returns void
 language plpgsql
 security definer
@@ -1382,72 +1411,101 @@ begin
     raise exception 'message too long (max 1000 chars)' using errcode = 'P0001';
   end if;
 
-  insert into common.messages (club_id, user_id, content)
+  insert into common.messages (club_handle, user_id, content)
   values (target_club, caller_id, trimmed);
 end;
 $$;
 
-revoke execute on function common.send_message(uuid, text) from public;
-grant execute on function common.send_message(uuid, text) to authenticated;
+revoke execute on function common.send_message(text, text) from public;
+grant execute on function common.send_message(text, text) to authenticated;
 
 -- ============================================================
--- common.handle_new_user — auth.users trigger function
+-- common.claim_username RPC
 -- ============================================================
 --
--- Materializes per-user state whenever a new auth.users row
--- appears (i.e. after a first successful magic-link sign-in):
+-- Materializes per-user state on demand: the user signs in via
+-- magic-link, the FE detects they have no profile row, and
+-- routes them to a "pick a handle" screen. That screen calls
+-- this RPC with their chosen username. The RPC atomically:
 --
---   1. A profile row with username = email's local-part.
---   2. A solo club with handle '=<username>', single-membered
---      (just this user). The '=' prefix puts solo clubs in a
+--   1. Inserts the profile row (user_id := auth.uid(), the
+--      chosen username, color derived deterministically).
+--   2. Creates a solo club with handle '=<username>',
+--      single-membered. The '=' prefix puts solo clubs in a
 --      slug-space user-typed names cannot reach (slugify_club_name
---      strips '='), so there's no risk of collision.
+--      strips '='), so there's no risk of collision with
+--      friend-club handles.
 --   3. clubs_gametypes rows for the solo club covering every
 --      registered gametype. (The FE still hides Start buttons
 --      whose `numberOfPlayers` range excludes solo, but the m2m
 --      row is there for the future "your solo club doesn't play
 --      tinyspy because solo" tooltip.)
 --
--- All inserts happen in the same transaction as the original
--- auth.users insert. If username collides (unique constraint on
--- common.profiles.username), the entire magic-link sign-in fails
--- — per the alpha-software prior, that's accepted; a username
--- picker with collision UX moves into the auth flow when that's
--- redesigned.
+-- Returns the claimed username on success.
+--
+-- Reject reasons:
+--   - 42501  not authenticated (no auth.uid())
+--   - P0001  username format invalid (doesn't match the regex)
+--   - 23505  username taken (profile insert collision) OR
+--            solo-club handle taken (impossible if profile
+--            insert succeeded — same uniqueness scope)
+--   - 23503  auth.users row gone (the FK from profiles.user_id;
+--            edge case from a stale JWT after a db:reset)
+--   - P0001  profile already claimed (the user_id PK rejects a
+--            second claim; surfaced as a clean message instead
+--            of letting 23505 propagate)
+--
+-- The CHECK on profiles.username would catch a bad regex too,
+-- but the explicit P0001 reads cleaner in error display. Belt-
+-- and-braces.
 
-create function common.handle_new_user()
-returns trigger
+create function common.claim_username(desired text)
+returns text
 language plpgsql
 security definer
 set search_path = common, public, extensions
 as $$
 declare
-  derived_username text;
-  solo_club_id uuid;
+  caller_id uuid;
 begin
-  derived_username := coalesce(nullif(split_part(new.email, '@', 1), ''), 'player');
+  caller_id := auth.uid();
+  if caller_id is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
 
-  -- color is derived from the username, not random — that way a
-  -- user's color is deterministic across db:reset, and tests
-  -- can predict it without setup overhead.
+  -- Clean P0001 if the requested handle doesn't match the regex.
+  -- (The profiles CHECK would raise 23514 from the same input;
+  -- this just gives the FE a friendlier error string.)
+  if desired !~ '^[a-z][a-z0-9-]{2,29}$' then
+    raise exception 'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter'
+      using errcode = 'P0001';
+  end if;
+
+  -- Block double-claim explicitly — without this, the same user
+  -- re-calling would raise 23505 from the user_id PK and the FE
+  -- couldn't distinguish "this user already claimed" from "this
+  -- username is taken by someone else."
+  if exists (select 1 from common.profiles where user_id = caller_id) then
+    raise exception 'profile already claimed' using errcode = 'P0001';
+  end if;
+
+  -- Color is derived from the username deterministically so the
+  -- choice is stable across db:reset and predictable in tests.
   insert into common.profiles (user_id, username, color)
-  values (new.id, derived_username,
-          common.color_for_username(derived_username));
+  values (caller_id, desired, common.color_for_username(desired));
 
   insert into common.clubs (handle, name, created_by)
-  values ('=' || derived_username, derived_username, new.id)
-  returning clubs.id into solo_club_id;
+  values ('=' || desired, desired, caller_id);
 
-  insert into common.clubs_members (club_id, user_id)
-  values (solo_club_id, new.id);
+  insert into common.clubs_members (club_handle, user_id)
+  values ('=' || desired, caller_id);
 
-  insert into common.clubs_gametypes (club_id, gametype)
-  select solo_club_id, gametype from common.gametypes;
+  insert into common.clubs_gametypes (club_handle, gametype)
+  select '=' || desired, gametype from common.gametypes;
 
-  return new;
+  return desired;
 end;
 $$;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function common.handle_new_user();
+revoke execute on function common.claim_username(text) from public;
+grant execute on function common.claim_username(text) to authenticated;

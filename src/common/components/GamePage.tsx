@@ -318,7 +318,7 @@ export function GamePage({
           header (<ChatBubble> above) on GamePage; FloatingChat
           only renders the panel itself, not a duplicate bubble. */}
       <FloatingChat
-        clubId={commonGame.club_id}
+        clubHandle={commonGame.club_handle}
         members={players}
         hideClosedButton
       />

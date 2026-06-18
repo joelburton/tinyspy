@@ -9,8 +9,36 @@ type Props = {
 }
 
 /**
+ * Slugify a user-typed name into the club's URL handle.
+ *
+ * Mirrors `common.slugify_club_name` in the SQL baseline — same
+ * shape (lowercase → strip non-alphanumeric → collapse to single
+ * hyphens → trim ends → cap at 40 chars). Used for the live
+ * preview as the user types; the server runs the canonical
+ * version before insert, so this is purely for UX feedback.
+ *
+ * Keep in sync with `common.slugify_club_name` in
+ * 20260615000000_common_baseline.sql.
+ */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+}
+
+/**
  * Create-club form. POSTs to common.create_club; on success,
  * navigates to the new club's page.
+ *
+ * The "Club name" field doubles as the handle source — we slugify
+ * it live and show the preview ("/c/joels-crossword-club") as the
+ * user types. There's no separate handle input; if they want a
+ * different URL they edit the name. Same pattern keeps the
+ * handle/name relationship one-way: handle is derived FROM name,
+ * never typed independently.
  *
  * v1 club semantics (see CLAUDE.md / docs/common.md / project
  * memory): the membership list is fixed at creation. There's no
@@ -38,6 +66,8 @@ export function CreateClubPage({ session: _session }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const previewSlug = slugify(name)
+
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -52,6 +82,8 @@ export function CreateClubPage({ session: _session }: Props) {
       .filter((s) => s.length > 0)
 
     setBusy(true)
+    // create_club returns `text` (just the handle) now — the .single()
+    // gives us a string in `data` after the schema regen.
     const { data, error } = await commonDb
       .rpc('create_club', {
         club_name: name.trim(),
@@ -61,10 +93,20 @@ export function CreateClubPage({ session: _session }: Props) {
     setBusy(false)
 
     if (error || !data) {
-      setError(error?.message ?? 'Could not create the club.')
+      // 23505 = unique_violation on the clubs.handle PK. Surface
+      // it as a friendly "name is taken" instead of the raw
+      // "duplicate key value violates unique constraint" text.
+      const code = (error as { code?: string } | null)?.code
+      if (code === '23505') {
+        setError(
+          `That name is taken (handle "${previewSlug}" exists in this database). Pick a different name.`,
+        )
+      } else {
+        setError(error?.message ?? 'Could not create the club.')
+      }
       return
     }
-    navigate(`/c/${data.handle}`)
+    navigate(`/c/${data}`)
   }
 
   return (
@@ -89,6 +131,19 @@ export function CreateClubPage({ session: _session }: Props) {
             autoFocus
             required
           />
+          {/* Live preview of the URL handle. The handle is also
+              the PK — immutable — so this is the URL forever. The
+              friends can edit the name above to fine-tune it
+              before submitting. */}
+          {previewSlug ? (
+            <span className="muted">
+              URL: <code>/c/{previewSlug}</code>
+            </span>
+          ) : (
+            <span className="muted">
+              The URL will be derived from this name.
+            </span>
+          )}
         </label>
 
         <label>

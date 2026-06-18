@@ -39,12 +39,12 @@ select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 create temp table puzzle on commit drop as
 select pg_temp.wordknit_puzzle() as id;
 create temp table g on commit drop as
 select * from wordknit.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -233,7 +233,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from wordknit.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -298,7 +298,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select * from wordknit.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
 );

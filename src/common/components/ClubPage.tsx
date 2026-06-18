@@ -27,14 +27,14 @@ import styles from './ClubPage.module.css'
 // explicitly listing it here AND in the select() below.
 type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
-  'id' | 'handle' | 'name'
+  'handle' | 'name'
 >
 // The realtime payload's `.new` field for common.games. We only
 // read the fields needed to drive auto-nav + current-view tracking;
 // the Pick anchors the field set to the schema.
 type GameRow = Pick<
   Database['common']['Tables']['games']['Row'],
-  'id' | 'club_id' | 'gametype' | 'is_current_view'
+  'id' | 'club_handle' | 'gametype' | 'is_current_view'
 >
 import type { Member } from '../lib/games'
 
@@ -67,7 +67,7 @@ type Props = {
  * RLS gates everything: a non-member's `clubs.select` returns zero
  * rows, so visiting `/c/some-other-club` shows a "not found" rather
  * than a forbidden-style error. Same protection covers
- * `clubs_members`, `common.games` (gates on is_club_member(club_id)),
+ * `clubs_members`, `common.games` (gates on is_club_member(club_handle)),
  * each game's tables (via the gametype's own RLS), and `messages`
  * (covered transitively by useClubChat).
  *
@@ -239,7 +239,7 @@ export function ClubPage({ handle }: Props) {
     async function load() {
       const { data: clubData, error: clubError } = await commonDb
         .from('clubs')
-        .select('id, handle, name')
+        .select('handle, name')
         .eq('handle', handle)
         .maybeSingle()
       if (!mounted) return
@@ -258,7 +258,7 @@ export function ClubPage({ handle }: Props) {
       const { data: membersData, error: membersError } = await commonDb
         .from('clubs_members')
         .select('user_id')
-        .eq('club_id', clubData.id)
+        .eq('club_handle', clubData.handle)
       if (!mounted) return
       if (membersError) {
         setError(membersError.message)
@@ -287,7 +287,7 @@ export function ClubPage({ handle }: Props) {
       const { data: kindsData } = await commonDb
         .from('clubs_gametypes')
         .select('gametype, default_setup')
-        .eq('club_id', clubData.id)
+        .eq('club_handle', clubData.handle)
       if (!mounted) return
       const rows = kindsData ?? []
       setAllowedGametypes(new Set(rows.map((k) => k.gametype)))
@@ -315,7 +315,7 @@ export function ClubPage({ handle }: Props) {
   // is_current_view pointer, etc.). Also fires on initial mount.
   useEffect(function subscribeToClubGames() {
     if (!club) return
-    const clubId = club.id
+    const clubHandle = club.handle
     let mounted = true
 
     async function loadGames() {
@@ -330,7 +330,7 @@ export function ClubPage({ handle }: Props) {
         .select(
           'id, gametype, title, play_state, is_terminal, status, started_at, is_current_view',
         )
-        .eq('club_id', clubId)
+        .eq('club_handle', clubHandle)
         .order('started_at', { ascending: false })
       if (!mounted) return
 
@@ -387,14 +387,14 @@ export function ClubPage({ handle }: Props) {
     // onStarted) from getting a duplicate history entry when the
     // realtime echo of their own INSERT arrives.
     const channel = supabase
-      .channel(`club-games:${clubId}:${channelDedupSuffix()}`)
+      .channel(`club-games:${clubHandle}:${channelDedupSuffix()}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'common',
           table: 'games',
-          filter: `club_id=eq.${clubId}`,
+          filter: `club_handle=eq.${clubHandle}`,
         },
         (payload) => {
           loadGames()
@@ -584,13 +584,13 @@ export function ClubPage({ handle }: Props) {
       {/* hideClosedButton: the chat-bubble toggle lives in the
           header (<ChatBubble> above); FloatingChat only renders
           the panel itself, not a duplicate bottom-right button. */}
-      <FloatingChat clubId={club.id} members={members} hideClosedButton />
+      <FloatingChat clubHandle={club.handle} members={members} hideClosedButton />
 
       {pendingSetup && (
         <SetupGameDialog
           manifest={pendingSetup}
           members={members}
-          clubId={club.id}
+          clubHandle={club.handle}
           savedDefault={savedDefaults.get(pendingSetup.gametype)}
           onStarted={(id) => {
             // Capture gametype before clearing pendingSetup —

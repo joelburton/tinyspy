@@ -9,10 +9,7 @@ import type { Member } from '../../common/lib/games'
  * type is a straight re-export — but every per-game folder
  * exposes a Player type so the cross-game vocabulary is
  * consistent (a reader scanning psychicnum code finds the same
- * Player parallel that exists in tinyspy + wordknit). Future
- * per-player state (a "you guessed it!" highlight, a personal
- * guess-budget if we ever split the shared pool, etc.) has a
- * named home to land in.
+ * Player parallel that exists in tinyspy + wordknit).
  */
 export type Player = Member
 
@@ -27,26 +24,48 @@ export type Player = Member
  *   - Once `common.games.is_terminal` flips true, the view
  *     returns the real value.
  *
- * The reveal gate lives in SQL (a SECURITY DEFINER helper inside
- * the view's column expression — see the psychicnum baseline
- * migration). The FE doesn't issue a separate "reveal" call:
- * one SELECT from games_state gives the complete picture.
+ * `mode` is the gametype-level coop/compete declaration,
+ * stored as a column on psychicnum.games so the FE can branch
+ * without parsing the gametype string. Always present from
+ * insert; never changes mid-game.
  *
- * Note that `play_state` itself isn't on this row — it lives on
- * common.games and arrives via GamePageCtx. PlayArea reads it
- * from the ctx alongside `isTerminal`.
+ * `play_state` itself isn't on this row — it lives on
+ * common.games and arrives via GamePageCtx.
  */
 export type PsychicNumGame = {
   id: string
-  club_id: string
-  guesses_remaining: number
-  winner_id: string | null
+  club_handle: string
+  mode: 'coop' | 'compete'
   /** The 1..10 secret. Null while non-terminal (gated by the
    *  view's helper function); the real value once terminal. */
   target: number | null
   created_at: string
 }
 
+/**
+ * One row from `psychicnum.players` — per-player guess budget.
+ *
+ * In coop: every player row carries the same value (decremented
+ * in lock-step). In compete: each row decrements independently
+ * when its owner submits.
+ *
+ * Always visible to the whole club regardless of mode — the
+ * "opponents see my remaining budget but not my guesses" rule
+ * is enforced by giving this table club-wide RLS while
+ * `psychicnum.guesses` gets user-scoped RLS in compete mode.
+ */
+export type PsychicNumPlayer = {
+  user_id: string
+  guesses_remaining: number
+}
+
+/**
+ * One row from `psychicnum.guesses`. In coop the FE receives
+ * every player's guess; in compete the RLS policy filters
+ * server-side so the FE only ever receives its own user_id's
+ * rows. PlayArea renders them the same way either way; the
+ * filtering is invisible to the FE.
+ */
 export type PsychicNumGuess = {
   id: string
   user_id: string
@@ -56,47 +75,37 @@ export type PsychicNumGuess = {
 }
 
 /**
- * Psychic-num's per-gametype data hook — narrower than it used
- * to be. Owns the gametype-specific row + guesses log + its own
- * postgres-changes subscription on `psychicnum.{games,guesses}`.
+ * Per-gametype data hook for psychicnum (both modes share it).
  *
- * **One read per game-state refetch.** The hook reads from the
- * `psychicnum.games_state` view, which surfaces target
- * conditionally on status. No follow-up RPC for the reveal;
- * PlayArea reads `game.target` like any other field, and the
- * "secret-until-terminal" rule is enforced entirely server-side
- * inside the view.
+ * Reads three tables:
+ *   - `games_state` view (game row + conditional `target` reveal)
+ *   - `players` (per-player budgets, club-wide visible)
+ *   - `guesses` (history log; RLS scopes to caller in compete)
  *
- * Why subscribe to the table, not the view: Supabase Realtime
- * watches tables. The asymmetry is intentional and contained
- * here: we subscribe to `psychicnum.games` for change events,
- * and re-read from `games_state` in response.
+ * Subscribes to all three for realtime refetch via
+ * `useRealtimeRefetch`. The factory provides SUBSCRIBED-refetch
+ * + UUID-suffixed channel + cleanup; this hook owns the per-game
+ * `load()` body.
  *
- * The cross-cutting machinery (members, presence, manual-pause
- * broadcasts, timer, paused/missing/manuallyPausedBy) lives on
- * `useCommonGame` inside `GamePage` — see `src/common/hooks/
- * useCommonGame.ts`. PlayArea consumes both: this hook for the
- * game-specific surface, useCommonGame (indirectly, via GamePage)
- * for the chrome.
- *
- * Realtime: drives off `useRealtimeRefetch` with a two-table
- * subscription (`psychicnum.games` + `psychicnum.guesses`). The
- * factory provides the SUBSCRIBED-refetch + UUID-suffixed channel
- * + cleanup; this hook just owns the per-game `load()` body and
- * the resulting state. New games should follow this shape.
+ * The cross-cutting machinery (members, presence, manual-pause,
+ * timer) lives on `useCommonGame` inside `GamePage` — see
+ * `src/common/hooks/useCommonGame.ts`.
  */
 export function useGame(gameId: string): {
   game: PsychicNumGame | null
+  players: PsychicNumPlayer[]
   guesses: PsychicNumGuess[]
   loading: boolean
 } {
   const [game, setGame] = useState<PsychicNumGame | null>(null)
+  const [players, setPlayers] = useState<PsychicNumPlayer[]>([])
   const [guesses, setGuesses] = useState<PsychicNumGuess[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
     tables: [
       { schema: 'psychicnum', table: 'games', filter: `id=eq.${gameId}` },
+      { schema: 'psychicnum', table: 'players', filter: `game_id=eq.${gameId}` },
       { schema: 'psychicnum', table: 'guesses', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'psychicnum',
@@ -104,39 +113,44 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data: gameData } = await db
         .from('games_state')
-        .select(
-          'id, club_id, guesses_remaining, winner_id, target, created_at',
-        )
+        .select('id, club_handle, mode, target, created_at')
         .eq('id', gameId)
         .maybeSingle()
       if (!mounted()) return
 
       if (!gameData) {
         setGame(null)
+        setPlayers([])
         setGuesses([])
         setLoading(false)
         return
       }
 
-      const { data: guessesData } = await db
-        .from('guesses')
-        .select('id, user_id, number, was_correct, guessed_at')
-        .eq('game_id', gameId)
-        .order('guessed_at', { ascending: true })
+      const [{ data: playerRows }, { data: guessRows }] = await Promise.all([
+        db
+          .from('players')
+          .select('user_id, guesses_remaining')
+          .eq('game_id', gameId),
+        db
+          .from('guesses')
+          .select('id, user_id, number, was_correct, guessed_at')
+          .eq('game_id', gameId)
+          .order('guessed_at', { ascending: true }),
+      ])
       if (!mounted()) return
 
       setGame({
         id: gameData.id as string,
-        club_id: gameData.club_id as string,
-        guesses_remaining: gameData.guesses_remaining as number,
-        winner_id: gameData.winner_id as string | null,
+        club_handle: gameData.club_handle as string,
+        mode: gameData.mode as 'coop' | 'compete',
         target: gameData.target as number | null,
         created_at: gameData.created_at as string,
       })
-      setGuesses((guessesData ?? []) as PsychicNumGuess[])
+      setPlayers((playerRows ?? []) as PsychicNumPlayer[])
+      setGuesses((guessRows ?? []) as PsychicNumGuess[])
       setLoading(false)
     },
   })
 
-  return { game, guesses, loading }
+  return { game, players, guesses, loading }
 }

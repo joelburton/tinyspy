@@ -42,7 +42,7 @@ The payoff: each game gets a clean namespace. TinySpy and a hypothetical Boggle 
 - Tables describe their role within their schema. **No game prefix.** `tinyspy.words`, not `tinyspy.tinyspy_words`.
 - `snake_case` for tables and columns.
 - Plural for tables (`games`, `words`, `messages`).
-- FKs use `<thing>_id`: `game_id`, `user_id`, `club_id`. Self-referential or ambiguous ones get a role prefix: `next_game_id`.
+- FKs use `<thing>_id`: `game_id`, `user_id`, `club_handle`. Self-referential or ambiguous ones get a role prefix: `next_game_id`.
 
 ### RPC functions
 
@@ -55,7 +55,7 @@ The payoff: each game gets a clean namespace. TinySpy and a hypothetical Boggle 
 
 The membership check that all per-game RPCs use is `common.require_game_player(target_game)` — it reads `common.game_players` (the cross-game roster the common layer maintains) and either returns the caller's `user_id` or raises. The game-specific RPCs then derive seat / role from per-game state once authorization has passed; e.g., `tinyspy.submit_guess` reads the games row and pattern-matches `caller_id` against `user_a_id` / `user_b_id` to set `caller_seat`.
 
-For SELECT-policy gating, games use `common.is_club_member(club_id)` — the per-game game-id check would require querying the per-gametype games table from inside common, which is exactly the cross-coupling the removability rule forbids. Club-membership is a coarser predicate (any club member can read any of the club's games) but adequate under the friends-only trust model.
+For SELECT-policy gating, games use `common.is_club_member(club_handle)` — the per-game game-id check would require querying the per-gametype games table from inside common, which is exactly the cross-coupling the removability rule forbids. Club-membership is a coarser predicate (any club member can read any of the club's games) but adequate under the friends-only trust model.
 
 Helpers are marked `STABLE` so Postgres can cache the result within a single SELECT. RLS policies invoke the helper once per row; without `STABLE` that becomes the dominant cost on any non-trivial query.
 
@@ -103,6 +103,48 @@ These two declarations **must agree** by convention. There's no automated sync �
 
 The model: the two declarations are equally authoritative for their respective layers (TS narrows types; SQL enforces state). The convention is "edit both together; the comments help you remember the partner."
 
+### Sibling gametypes (coop/compete variants)
+
+A family of gametypes that share a schema, folder, and docs, but differ in interaction axis or rules — today this means coop vs compete, but the pattern accommodates other axes (a "super-tough boggle" variant with a different player range). See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the full design. Coding conventions when implementing one:
+
+**Manifest exports.** Each sibling is its own `GameManifest` export from the same `src/<baseGametype>/manifest.ts`. Use factory helpers when the start/labelFor/etc. fields are near-identical:
+
+```ts
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return async (clubHandle, setup, playerUserIds) => {
+    return await db.rpc('create_game', { target_club: clubHandle, setup, player_user_ids: playerUserIds, mode })
+  }
+}
+
+export const psychicnumCoopGame: GameManifest = {
+  gametype: 'psychicnum_coop',
+  schema: 'psychicnum',
+  baseGametype: 'psychicnum',
+  mode: 'coop',
+  ...
+  startGameInClub: startGameInClubFactory('coop'),
+}
+
+export const psychicnumCompeteGame: GameManifest = {
+  gametype: 'psychicnum_compete',
+  schema: 'psychicnum',
+  baseGametype: 'psychicnum',
+  mode: 'compete',
+  ...
+  startGameInClub: startGameInClubFactory('compete'),
+}
+```
+
+**Schema-side.** One `<baseGametype>.games.mode` column (CHECK `in ('coop', 'compete')`) denormalized from the gametype string at create-time. The RLS-policy branch reads this column rather than joining to `common.games.gametype` — it's a hot path called on every visibility check.
+
+**RPC shape.** One `<baseGametype>.create_game(target_club, setup, players, mode)` RPC routes both variants. The RPC composes the effective gametype string (`'<baseGametype>_' || mode`) and writes it to `common.games.gametype`. Per-mode validation (e.g., compete's "≥2 players" floor) lives inside this RPC after the mode-value check.
+
+**Mid-game RPCs (submit_*).** Branch on the mode column read off the game row. Keep both code paths visible in one function rather than splitting per-mode wrappers — it's easier to read "in coop, decrement everyone; in compete, decrement only the caller" in one place than to chase two functions.
+
+**Tests.** Cover both modes in the same test files. The setup is cheap; the assertions are mode-specific. Coverage is incomplete without both paths exercised. See `supabase/tests/psychicnum/gameplay_test.sql` for the canonical shape.
+
+**Don't introduce a setup.mode field.** Mode is locked at the gametype level. Adding `setup.mode` would create a second source of truth and reopen the "which Start button am I clicking?" question.
+
 ### Realtime channel names
 
 Pattern: `<topic>:<id>:<unique>`, e.g.:
@@ -110,8 +152,8 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 - `game:<game_id>` — the shared cross-cutting channel opened by `useCommonGame`. Stable name (no UUID suffix) because presence + manual-pause broadcasts must merge across every connected client. StrictMode handled by the hook's own `removeChannel` cleanup. Every gametype's `useCommonGame` opens this.
 - `<gametype>:<game_id>:<uuid>` — the per-tab postgres-changes channel each per-game `useGame` opens. UUID suffix sidesteps supabase-js's StrictMode-cache bite; postgres-changes don't need to merge across clients so per-tab rooms are fine.
 - `wordknit:<game_id>` — wordknit's stable channel for shared-selection Broadcast events (select / deselect / clear). Stable for the same reason as `game:<game_id>` — broadcast events need to merge across clients.
-- `club-active:<club_id>:<uuid>` — club active-game pointer
-- `club-chat:<club_id>:<uuid>` — club chat messages
+- `club-active:<club_handle>:<uuid>` — club active-game pointer
+- `club-chat:<club_handle>:<uuid>` — club chat messages
 
 The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/tinyspy/hooks/useGame.ts) for the canonical example.
 

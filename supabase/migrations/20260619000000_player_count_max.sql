@@ -69,7 +69,7 @@ revoke execute on function common.require_player_count_max(uuid[], int) from pub
 -- games.
 
 create or replace function wordknit.create_game(
-  target_club uuid,
+  target_club text,
   setup jsonb,
   player_user_ids uuid[]
 )
@@ -143,7 +143,7 @@ begin
     setup
   );
 
-  insert into wordknit.games (id, club_id, puzzle_id, board)
+  insert into wordknit.games (id, club_handle, puzzle_id, board)
   values (
     new_id,
     target_club,
@@ -157,67 +157,21 @@ end;
 $$;
 
 -- ============================================================
--- psychicnum.create_game — CREATE OR REPLACE with new max check
+-- psychicnum.create_game: NOT replaced here.
 -- ============================================================
-
-create or replace function psychicnum.create_game(
-  target_club uuid,
-  setup jsonb,
-  player_user_ids uuid[]
-)
-returns table(id uuid)
-language plpgsql
-security definer
-set search_path = psychicnum, common, public, extensions
-as $$
-declare
-  new_id uuid;
-  s_guesses int;
-  s_target int;
-begin
-  -- Player-count upper bound. Must agree with the
-  -- `numberOfPlayers: [1, 6]` declaration in src/psychicnum/manifest.ts.
-  perform common.require_player_count_max(player_user_ids, 6);
-
-  -- ─── Validate setup shape ────────────────────────────
-  if (setup->>'guesses') is null then
-    raise exception 'setup.guesses is required' using errcode = 'P0001';
-  end if;
-  s_guesses := (setup->>'guesses')::int;
-  if s_guesses not in (3, 5, 7, 9) then
-    raise exception 'setup.guesses must be 3, 5, 7, or 9 (got %)', s_guesses
-      using errcode = 'P0001';
-  end if;
-
-  perform common.validate_timer(setup->'timer');
-
-  s_target := 1 + floor(random() * 10)::int;
-
-  new_id := common.create_game(
-    target_club, 'psychicnum', player_user_ids,
-    s_target::text,
-    setup,
-    setup
-  );
-
-  insert into psychicnum.games (id, club_id, target, guesses_remaining)
-  values (
-    new_id,
-    target_club,
-    s_target,
-    s_guesses
-  );
-
-  return query select new_id;
-end;
-$$;
+-- The psychicnum baseline was reshaped for the coop/compete split
+-- (now takes a `mode text` 4th param) and folds the player-count
+-- check into the baseline directly. Re-creating it here with the
+-- old 3-arg signature would leave us with a stale overload. So
+-- the helper exists, but psychicnum's create_game is defined
+-- only by the baseline migration.
 
 -- ============================================================
 -- freebee.create_game — CREATE OR REPLACE with new max check
 -- ============================================================
 
 create or replace function freebee.create_game(
-  target_club uuid,
+  target_club text,
   setup jsonb,
   player_user_ids uuid[],
   board jsonb
@@ -339,7 +293,7 @@ begin
   );
 
   insert into freebee.games (
-    id, club_id, outer_letters, center_letter,
+    id, club_handle, outer_letters, center_letter,
     total_score, total_words, scoring_words, legal_words
   )
   values (

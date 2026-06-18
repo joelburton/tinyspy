@@ -3,7 +3,7 @@
 -- ============================================================
 --
 -- The view powers the calendar widget in the setup form. For each
--- club's wordknit games, it returns `(game_id, club_id, play_state,
+-- club's wordknit games, it returns `(game_id, club_handle, play_state,
 -- is_terminal, nyt_date)` so the FE can color a calendar square
 -- by status: won (green), lost (red), or in-progress (yellow).
 --
@@ -36,14 +36,14 @@ select plan(8);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 create temp table puzzle on commit drop as
 select pg_temp.wordknit_puzzle() as id;
 
 create temp table g on commit drop as
 select * from wordknit.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
@@ -55,10 +55,10 @@ select * from wordknit.create_game(
 -- A real test reads from it and checks each column's value.
 
 select is(
-  (select club_id from wordknit.club_game_status
+  (select club_handle from wordknit.club_game_status
     where game_id = (select id from g)),
-  (select id from club),
-  'club_game_status: club_id propagates from common.games'
+  (select handle from club),
+  'club_game_status: club_handle propagates from common.games'
 );
 
 select is(
@@ -130,7 +130,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
   (select count(*)::int from wordknit.club_game_status
-    where club_id = (select id from club)),
+    where club_handle = (select handle from club)),
   0,
   'club_game_status: non-member sees zero rows (RLS via underlying tables)'
 );
@@ -166,7 +166,7 @@ insert into wordknit.puzzles (source_id, nyt_date, categories) values (
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from wordknit.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.wordknit_setup(
     (select id from wordknit.puzzles where source_id = 'TEST-NULL-DATE')
   ),

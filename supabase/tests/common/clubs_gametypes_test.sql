@@ -3,10 +3,12 @@
 -- ============================================================
 --
 -- Coverage:
---   1. common.gametypes is populated for both today's gametypes
---      ('tinyspy', 'psychicnum')
---   2. handle_new_user populates clubs_gametypes for each solo
---      club it auto-creates — one row per registered gametype
+--   1. common.gametypes is populated for every registered gametype
+--      family — both psychicnum siblings ('psychicnum_coop' AND
+--      'psychicnum_compete'), plus tinyspy, wordknit, freebee.
+--      Each manifest entry is its own row.
+--   2. claim_username populates clubs_gametypes for each solo
+--      club it creates — one row per registered gametype
 --   3. create_club populates clubs_gametypes for each new club —
 --      same shape
 --   4. RLS: a non-member cannot see clubs_gametypes rows for a
@@ -24,31 +26,31 @@ set search_path = common, public, extensions;
 select plan(10);
 
 -- Cast: ada + bea form the test club; dee is the outsider used
--- for the RLS-negative assertions. The personas trigger
--- handle_new_user on insert, so each one has a solo club + a
--- populated clubs_gametypes before the test body runs — relevant
--- for the "solo club auto-creation populates m2m" check.
+-- for the RLS-negative assertions. The personas come from
+-- _shared/setup.psql, which manually materializes the
+-- profile + solo-club + clubs_gametypes for each one (mirroring
+-- what claim_username does at first sign-in).
 
 \ir ../_shared/setup.psql
 
 -- ============================================================
--- (1)–(2) common.gametypes registry: both today's are present
+-- (1)–(2) common.gametypes registry: today.s gametypes are present
 -- ============================================================
 
 select is(
   (select count(*) from common.gametypes),
-  4::bigint,
-  'common.gametypes contains four rows (tinyspy + psychicnum + wordknit + freebee)'
+  5::bigint,
+  'common.gametypes contains five rows (tinyspy + psychicnum_coop + psychicnum_compete + wordknit + freebee)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['freebee','psychicnum','tinyspy','wordknit'],
-  'common.gametypes contains the four registered gametypes by name'
+  array['freebee','psychicnum_compete','psychicnum_coop','tinyspy','wordknit'],
+  'common.gametypes contains the five registered gametypes by name'
 );
 
 -- ============================================================
--- (3)–(4) handle_new_user populates m2m for solo clubs
+-- (3)–(4) claim_username populates m2m for solo clubs
 -- ============================================================
 -- The personas were inserted by _shared/setup.psql. Each one's
 -- solo club exists with handle '=' + username. We check ada's
@@ -58,22 +60,22 @@ select is(
   (
     select count(*)
     from common.clubs_gametypes k
-    join common.clubs c on c.id = k.club_id
+    join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  4::bigint,
-  'handle_new_user populated 4 clubs_gametypes rows for ada''s solo club'
+  5::bigint,
+  'claim_username populated 5 clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
   (
     select array_agg(k.gametype order by k.gametype)
     from common.clubs_gametypes k
-    join common.clubs c on c.id = k.club_id
+    join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['freebee','psychicnum','tinyspy','wordknit'],
-  'ada''s solo club has m2m rows for all four registered gametypes'
+  array['freebee','psychicnum_compete','psychicnum_coop','tinyspy','wordknit'],
+  'ada''s solo club has m2m rows for all five registered gametypes'
 );
 
 -- ============================================================
@@ -82,27 +84,27 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 reset role;
 select is(
   (
     select count(*)
     from common.clubs_gametypes
-    where club_id = (select id from club)
+    where club_handle = (select handle from club)
   ),
-  4::bigint,
-  'create_club populated 4 m2m rows for the new club'
+  5::bigint,
+  'create_club populated 5 m2m rows for the new club'
 );
 
 select is(
   (
     select array_agg(gametype order by gametype)
     from common.clubs_gametypes
-    where club_id = (select id from club)
+    where club_handle = (select handle from club)
   ),
-  array['freebee','psychicnum','tinyspy','wordknit'],
-  'new club has m2m rows for all four registered gametypes'
+  array['freebee','psychicnum_compete','psychicnum_coop','tinyspy','wordknit'],
+  'new club has m2m rows for all five registered gametypes'
 );
 
 -- ============================================================
@@ -115,9 +117,9 @@ select is(
   (
     select count(*)
     from common.clubs_gametypes
-    where club_id = (select id from club)
+    where club_handle = (select handle from club)
   ),
-  4::bigint,
+  5::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -131,7 +133,7 @@ select is(
   (
     select count(*)
     from common.clubs_gametypes
-    where club_id = (select id from club)
+    where club_handle = (select handle from club)
   ),
   0::bigint,
   'dee (non-member) sees zero m2m rows for ada+bea''s club (RLS hides)'
@@ -146,7 +148,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  4::bigint,
+  5::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 
@@ -158,8 +160,8 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  $$ insert into common.clubs_gametypes (club_id, gametype)
-     values ((select id from common.clubs where handle = '=ada'),
+  $$ insert into common.clubs_gametypes (club_handle, gametype)
+     values ((select handle from common.clubs where handle = '=ada'),
              'tinyspy') $$,
   '42501',
   'permission denied for table clubs_gametypes',

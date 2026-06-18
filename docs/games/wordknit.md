@@ -6,6 +6,8 @@ A NYT-Connections-style word-grouping puzzle. The third registered gametype in t
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`tinyspy.md`](tinyspy.md) and [`psychicnum.md`](psychicnum.md).
 
+**Manifest declarations.** Single-mode family in v1 — `gametype: 'wordknit'`, `baseGametype: 'wordknit'`, `mode: 'coop'`. A compete sibling (per-player races, leader-by-correct-count) is on the deferred list — see [`deferred.md`](../deferred.md). When it lands it follows psychicnum's pattern: two manifests sharing this folder/schema, `wordknit.games.mode` denormalized for RLS, `solved_compete` play_state suffix.
+
 ## What the game is
 
 A 4×4 board of 16 tiles split into 4 hidden **categories** of 4 by theme. Players select 4 tiles and submit a guess. The server evaluates against the answer key:
@@ -32,7 +34,7 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 
 ## Scope (current state)
 
-Ported from an existing personal project ([`../connections`](https://github.com/joelburton/...)). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via the `npm run puzzles:import` script. The setup dialog has a date picker; create_game copies the chosen puzzle into a fresh `wordknit.games` row.
+Ported from an existing personal project ([`../connections`](https://github.com/joelburton/...)). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via the `npm run wordknit:import` script. The setup dialog has a date picker; create_game copies the chosen puzzle into a fresh `wordknit.games` row.
 
 In scope today:
 - Real puzzle archive (~1000+ puzzles, daily-updated upstream)
@@ -48,7 +50,7 @@ In scope today:
 Deliberately deferred:
 - Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — tracked under common/architecture, not wordknit-specific
 - Per-tile rise-and-fade animations on category match
-- Scheduled / automated puzzle import (today: manual `npm run puzzles:import`; eventually a GitHub Action or a Supabase scheduled Edge Function)
+- Scheduled / automated puzzle import (today: manual `npm run wordknit:import`; eventually a GitHub Action or a Supabase scheduled Edge Function)
 - "Play next puzzle" affordances
 
 ## The "FE-knows-the-answer" decision
@@ -67,8 +69,8 @@ Unlike tinyspy and PsychicNum — where the server holds a secret and validates 
 
 | table | purpose |
 |---|---|
-| `puzzles` | The source-of-truth puzzle archive. One row per NYT Connections puzzle, with `source_id` (the NYT puzzle number, as text), `nyt_date`, and `categories` jsonb (matching the games.board.categories shape). Imported via `npm run puzzles:import`. Publicly readable. Distinct from `games.board` — puzzles stay pristine; games copy from them. See [Puzzles](#puzzles) below. |
-| `games` | One row per playthrough. `club_id` (not null) ties to `common.clubs`. `puzzle_id` (not null) references the puzzle this game was created from. Holds `mistake_count` and `board` (jsonb — the puzzle's categories + this game's shuffled tileOrder — publicly readable). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
+| `puzzles` | The source-of-truth puzzle archive. One row per NYT Connections puzzle, with `source_id` (the NYT puzzle number, as text), `nyt_date`, and `categories` jsonb (matching the games.board.categories shape). Imported via `npm run wordknit:import`. Publicly readable. Distinct from `games.board` — puzzles stay pristine; games copy from them. See [Puzzles](#puzzles) below. |
+| `games` | One row per playthrough. `club_handle` (not null) ties to `common.clubs`. `puzzle_id` (not null) references the puzzle this game was created from. Holds `mistake_count` and `board` (jsonb — the puzzle's categories + this game's shuffled tileOrder — publicly readable). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. A partial unique index on `(game_id, matched_category_rank) where result = 'correct'` enforces one match per category per game. |
 
 ### `board` jsonb shape
@@ -108,7 +110,7 @@ Race-idempotency for concurrent correct submissions is provided by the partial u
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `wordknit, common, public, extensions`.
 
-### `wordknit.create_game(target_club uuid, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
+### `wordknit.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
 The one entry point. Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `wordknit.puzzles`) and `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16, calls `common.create_game(target_club, 'wordknit', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the wordknit detail row referencing `puzzle_id`, and finally calls `common.update_state(new_id, 'playing', jsonb_build_object('matched_count', 0, 'mistake_count', 0))` to seed the listing-label payload. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; the puzzle row stays pristine.
 
@@ -134,7 +136,7 @@ Terminal transitions write `common.games.play_state` + `is_terminal=true` + the 
 
 ## Row-level security
 
-Both tables have RLS enabled with SELECT policies gated on `common.is_club_member(club_id)` (`wordknit.guesses` traces through `wordknit.games` for the membership check via EXISTS subquery — same pattern as `psychicnum.guesses_select`).
+Both tables have RLS enabled with SELECT policies gated on `common.is_club_member(club_handle)` (`wordknit.guesses` traces through `wordknit.games` for the membership check via EXISTS subquery — same pattern as `psychicnum.guesses_select`).
 
 No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPCs.
 
@@ -161,7 +163,7 @@ wordknit.puzzles {
 
 ### Import script
 
-[`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts), run via `npm run puzzles:import`. Fetches the connections.json from Eyefyre's repo (or `--file <path>` for offline), maps the upstream `{id, date, answers:[{group, members}]}` shape to our `{source_id, nyt_date, categories:[{rank, name, tiles}]}` shape, upserts on `source_id` with `ignoreDuplicates: true`. Re-runs are no-ops on already-imported rows.
+[`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts), run via `npm run wordknit:import`. Fetches the connections.json from Eyefyre's repo (or `--file <path>` for offline), maps the upstream `{id, date, answers:[{group, members}]}` shape to our `{source_id, nyt_date, categories:[{rank, name, tiles}]}` shape, upserts on `source_id` with `ignoreDuplicates: true`. Re-runs are no-ops on already-imported rows.
 
 Two upstream-shape notes worth keeping in mind:
 - The `level` field is dropped in later upstream records, so the importer uses the array index as `rank` (the array is always in rank order).
@@ -326,7 +328,7 @@ No FE test for the broadcast / presence plumbing — per [testing.md → What we
 
 Tracked in [`deferred.md`](../deferred.md). The wordknit-specific ones today:
 
-- **Scheduled puzzle import.** Today's `npm run puzzles:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
+- **Scheduled puzzle import.** Today's `npm run wordknit:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 
 ## File locations
@@ -335,7 +337,7 @@ Tracked in [`deferred.md`](../deferred.md). The wordknit-specific ones today:
 |---|---|
 | What does the create_game / submit_guess RPC do | [`supabase/migrations/20260615000003_wordknit_baseline.sql`](../../supabase/migrations/20260615000003_wordknit_baseline.sql) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
-| How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run puzzles:import` |
+| How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run wordknit:import` |
 | What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
 | What does the tile grid look like | [`src/wordknit/components/TileGrid.tsx`](../../src/wordknit/components/TileGrid.tsx) (per-tile self/peer attribution) |
 | What does the category-band render look like | [`src/wordknit/components/CategoryBands.tsx`](../../src/wordknit/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |

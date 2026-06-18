@@ -134,7 +134,7 @@ function buildChannel() {
 
 const GAME_ROW = {
   id: 'g1',
-  club_id: 'c1',
+  club_handle: 'club-one',
   gametype: 'tinyspy',
   title: 'Game One',
   setup: { timer: { kind: 'none' } },
@@ -145,7 +145,6 @@ const GAME_ROW = {
   total_idle_seconds: 0,
   started_at: '2026-01-01T00:00:00Z',
   ended_at: null,
-  clubs: { handle: 'club-one' },
 }
 
 const PLAYER_ROWS = [{ user_id: 'ada' }, { user_id: 'bea' }]
@@ -219,7 +218,6 @@ describe('useCommonGame — initial load', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.commonGame).toMatchObject({
       id: 'g1',
-      club_id: 'c1',
       club_handle: 'club-one',
       gametype: 'tinyspy',
       title: 'Game One',

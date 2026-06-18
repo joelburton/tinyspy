@@ -19,23 +19,62 @@ The payoff is the **removability invariant**:
 
 If removing a game requires editing anything in `common/`, the shell, or another game, **the boundary has leaked**. If common ever depended on a specific game, removing that game would break common — which would mean it wasn't really common. Every rule in this doc supports this invariant; the supporting code-side conventions (multi-schema design, import-direction rules, the games registry, per-game RLS helpers) live in [`code-conventions.md`](code-conventions.md).
 
-This applies on the database side too: the `common` schema must not reference any game schema. Game schemas reference common (`tinyspy.games.club_id → common.clubs.id`), never the reverse.
+This applies on the database side too: the `common` schema must not reference any game schema. Game schemas reference common (`tinyspy.games.club_handle → common.clubs.id`), never the reverse.
 
 ## Solo and multiplayer play — both live in clubs
 
-The architecture treats solo and multi-player uniformly: **every game has a club, and "solo" just means a club with one member.** There is no separate solo-game code path, no nullable-`club_id` sentinel, no `solo_games` table — solo is a club-size case of the same flow.
+The architecture treats solo and multi-player uniformly: **every game has a club, and "solo" just means a club with one member.** There is no separate solo-game code path, no nullable-`club_handle` sentinel, no `solo_games` table — solo is a club-size case of the same flow.
 
 Concretely:
 
-- Every game's `games` table has `club_id NOT NULL`. The FK is to `common.clubs`; there is no "solo" alternative.
-- Each user gets a **solo club** (handle `=<username>`) auto-created at first sign-in by the `handle_new_user` trigger. The solo club is the venue for that user's solo play — when a future gametype plays naturally as 1-player (a single-player boggle puzzle, a daily crossword), the user enters their solo club and starts it there. Same shell, same routing, same `create_game` RPC.
+- Every game's `games` table has `club_handle NOT NULL`. The FK is to `common.clubs`; there is no "solo" alternative.
+- Each user gets a **solo club** (handle `=<username>`) materialized at first sign-in by the `common.claim_username` RPC (see [Username claim flow](#username-claim-flow) below). The solo club is the venue for that user's solo play — when a future gametype plays naturally as 1-player (a single-player boggle puzzle, a daily crossword), the user enters their solo club and starts it there. Same shell, same routing, same `create_game` RPC.
 - Game-internal logic (score reports, replay history, board generation) is the same regardless of club size.
 - A gametype's supported player-count range is declared on its manifest (`numberOfPlayers: [min, max]`). The shell decides whether to surface "Start X" in a given club by checking the range against the club's member count. A fixed-seat range like tinyspy's `[2, 2]` never appears in a solo club; open-N ranges like `[1, 6]` appear in solo clubs and in clubs up to the cap; a future game with `[3, 5]` would only appear in clubs sized 3-5. ClubPage hides the button entirely when there's no `clubs_gametypes` row, and disables it with a tooltip when the row exists but the count is out of range — see `playerCountFits` / `playerCountLabel` in `src/common/lib/games.ts`.
-- Mode-specific UX, where it exists (a game that asks "cooperative or competitive?" only when multi-player), lives inside that game's setup form — same `setup jsonb` pattern as the existing setup options. The form's body is free to render different fields based on the mode choice; the shell doesn't notice.
+- Mode-specific UX (coop vs compete) does NOT live in the setup form — see [The sibling-manifest pattern](#the-sibling-manifest-pattern) below. Each variant is its own registered gametype with its own Start button; setup choices stay shape-uniform across siblings.
 
-The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_id` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
+The "every game has a club" invariant earns its keep on the **stats** axis: per-club aggregates (history, win-rate, recent activity) join cleanly on `club_handle` without a solo-records sidecar. Your solo club's stats *are* your solo stats by virtue of you being its only member. The orthogonality lives in the data shape, not in a forked solo-vs-club code path.
 
-TinySpy's `club_id NOT NULL` and 2-member requirement aren't an exception to this rule — they're just where its `[2, 2]` player-count range lands. Same shape as any other gametype.
+TinySpy's `club_handle NOT NULL` and 2-member requirement aren't an exception to this rule — they're just where its `[2, 2]` player-count range lands. Same shape as any other gametype.
+
+## The sibling-manifest pattern
+
+One game family can declare multiple variants — coop vs compete is today's canonical example; "super-tough boggle" with a different player range or rule tweak is a possible future shape. Each variant gets:
+
+- its own row in `common.gametypes` (`psychicnum_coop`, `psychicnum_compete`)
+- its own manifest entry in `src/games.ts` (`psychicnumCoopGame`, `psychicnumCompeteGame`)
+- its own URL prefix (`/g/psychicnum_coop/<id>`, `/g/psychicnum_compete/<id>`)
+- its own Start button on the ClubPage
+
+Variants share **everything else**:
+
+- One folder under `src/<baseGametype>/` — `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, `logo.svg` all serve every sibling. Components branch on `manifest.mode` (or, at runtime, on the gametype string / the denormalized `mode` column) where rendering differs.
+- One schema under `<baseGametype>.*` — the same tables back every variant. A `mode text` column on the game-row table is denormalized from the gametype string at create-time, expressly so RLS policies can branch without joining to `common.games` for every visibility check.
+- One create_game RPC — takes a `mode text` parameter that:
+  - selects which gametype string lands on `common.games.gametype` (`'<baseGametype>_' || mode`),
+  - is stored on the per-game row's `mode` column,
+  - drives any per-mode validation (e.g., compete requires ≥2 players).
+- One doc — `docs/games/<baseGametype>.md` covers every variant in the family.
+
+Each manifest declares two fields connecting these pieces:
+
+| field          | purpose                                                                     |
+|----------------|-----------------------------------------------------------------------------|
+| `baseGametype` | The family key. Equals `gametype` for single-mode games. Used to group siblings (today informally; later structurally — ClubPage may render siblings as a single visual group). |
+| `mode`         | The interaction axis: `'coop'` or `'compete'`. Used by the FE for component branching and as the per-mode constant passed into shared RPCs. |
+
+**Why per-gametype-per-variant** rather than a setup-form radio:
+
+- **Discoverability** — both modes are visible as separate Start buttons; the choice is the first click, not a buried radio.
+- **Saved defaults** — `common.clubs_gametypes.default_setup` is per `(club, gametype)`. Variants get independent defaults (coop remembers 7 guesses, compete remembers 5) for free.
+- **labelFor / Help copy** — coop "we won together" vs compete "you won the race" gets distinct copy per-manifest without `if (mode === 'coop')` inside the function bodies.
+- **Per-club opt-out** — `clubs_gametypes` is per (club, gametype); a club could disable compete without disabling coop.
+
+**Solo-club handling.** A compete manifest declares `numberOfPlayers: [2, max]`, so the Start button hides in 1-player solo clubs (`playerCountFits` filter on the ClubPage). The corresponding create_game RPC also enforces the floor server-side — `compete mode requires at least 2 players` is raised P0001 if anyone bypasses the FE gate. A coop manifest's `[1, max]` allows solo play, with the countdown timer (if set) doing the "lose if time runs out" job a compete opponent would otherwise do.
+
+**Removing a family.** Drop the folder, drop **all** the manifest's lines in `src/games.ts`, drop the schema. The removability invariant still holds — siblings are removed together.
+
+PsychicNum is the canonical reference today — see [`docs/games/psychicnum.md`](games/psychicnum.md). When wordknit and freebee pick up their compete-mode variants, they'll follow the same shape.
 
 ## Schema: `common.*`
 
@@ -43,13 +82,13 @@ TinySpy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 
 | table | purpose |
 |---|---|
-| `profiles` | One row per auth user. Holds `username` (unique). Materialized by the `handle_new_user` trigger on first sign-in; persists across sign-out. Cascades from `auth.users`. |
+| `profiles` | One row per auth user. Holds `username` (unique, CHECK-validated against the canonical regex `^[a-z][a-z0-9-]{2,29}$`). Materialized by the `common.claim_username` RPC the user calls themselves on first sign-in (no trigger; see [Username claim flow](#username-claim-flow)). Immutable in v1 — no UPDATE policy. Cascades from `auth.users`. |
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. |
 | `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
-| `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Used by `handle_new_user` / `create_club` to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
-| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_id`, `gametype`, `title`, the **view-state pair** (`is_current_view`, `paused`), the **play-state pair** (`play_state` text + `is_terminal` boolean), `status` jsonb (the gametype-specific listing-label payload), `idle_since` + `total_idle_seconds` (the timer-preservation accumulator), `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. The `title` is a short human-readable label built by each gametype's `create_game` at insert time (see [Title formulas](#title-formulas)) — the FE renders it as `"<gametypeName>: <title>"` in club game lists. The two state pairs and their orthogonality are written up in [`states.md`](states.md). |
+| `gametypes` | The registered-gametype list (`(gametype text PK)`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's baseline migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING`. Sibling families register one row per variant — psychicnum's baseline inserts both `psychicnum_coop` and `psychicnum_compete`. Used by `claim_username` (for solo clubs) and `create_club` (for friend clubs) to populate `clubs_gametypes` for newly-created clubs. Permissive SELECT — gametype identifiers aren't sensitive. |
+| `games` | The universal game-record header. One row per game-playing across all gametypes. Holds `club_handle`, `gametype`, `title`, the **view-state pair** (`is_current_view`, `paused`), the **play-state pair** (`play_state` text + `is_terminal` boolean), `status` jsonb (the gametype-specific listing-label payload), `idle_since` + `total_idle_seconds` (the timer-preservation accumulator), `started_at`, `ended_at`. Per-gametype detail (board, secret, current turn) lives on `<gametype>.games`, which shares an id with this row via FK. The `title` is a short human-readable label built by each gametype's `create_game` at insert time (see [Title formulas](#title-formulas)) — the FE renders it as `"<gametypeName>: <title>"` in club game lists. The two state pairs and their orthogonality are written up in [`states.md`](states.md). |
 | `game_players` | M2M between games and profiles, recording who played each game. Frozen at game-create time — distinct from `clubs_members`, which is current membership of the club. The `result jsonb` column carries each player's outcome (won/lost flag, score, etc.), populated by `common.end_game` at terminal transition. |
-| `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `handle_new_user` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. A `default_setup jsonb` column on each row carries the friends' last-used setup choices for that (club, gametype) — auto-written by `common.create_game` on every successful start, read by the FE on dialog-open and merged under the manifest's static defaults. Each gametype decides what fields of its setup are per-club preferences vs per-game decisions (e.g., tinyspy strips `firstClueGiverUserId` before saving since the seat picker is per-game); the per-game `create_game` RPC controls what gets passed as the `saved_setup` argument. See `deferred.md` for the setup-shape evolution policy. |
+| `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. v1 populates this with every registered gametype at club-creation time (in both `claim_username` for solo clubs and `create_club` for regular clubs); per-club opt-out is deferred behind a future club-settings UI. Sibling-variant pairs get one row per gametype string (`psychicnum_coop` AND `psychicnum_compete` both land here when the club is created). A `default_setup jsonb` column on each row carries the friends' last-used setup choices for that (club, gametype) — auto-written by `common.create_game` on every successful start, read by the FE on dialog-open and merged under the manifest's static defaults. Sibling variants get independent defaults (coop's last `setup.guesses` choice doesn't affect compete's). Each gametype decides what fields of its setup are per-club preferences vs per-game decisions (e.g., tinyspy strips `firstClueGiverUserId` before saving since the seat picker is per-game); the per-game `create_game` RPC controls what gets passed as the `saved_setup` argument. See `deferred.md` for the setup-shape evolution policy. |
 | `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. 1–1000 character constraint on `content`. **Important-prefix:** a message starting with `!` is treated as important — `<FloatingChat>` force-opens the chat popover for every other player when one arrives (the panel stays open until they dismiss it), and `<ChatBody>` styles the message text differently. Useful for "Hey everyone — I'm back!" or "Pause please." Implemented in `FloatingChat.tsx` (`startsWith('!')` check on the latest message) + `ChatBody.tsx` (display strip the `!` + apply `.importantContent` class). |
 
 ### The view-state pair on common.games
@@ -58,7 +97,7 @@ TinySpy's `club_id NOT NULL` and 2-member requirement aren't an exception to thi
 
 Two things to keep in mind:
 
-1. **A partial unique index on `(club_id) where is_current_view = true`** is what enforces the invariant. The index only contains the current rows; multiple `is_current_view=false` rows per club are fine (the index doesn't index them). A second `is_current_view=true` row for the same club would raise `unique_violation` — which would be a `common.create_game` (or `common.set_current_view`) bug, since both RPCs explicitly flip the prior current row off before flipping the new one on.
+1. **A partial unique index on `(club_handle) where is_current_view = true`** is what enforces the invariant. The index only contains the current rows; multiple `is_current_view=false` rows per club are fine (the index doesn't index them). A second `is_current_view=true` row for the same club would raise `unique_violation` — which would be a `common.create_game` (or `common.set_current_view`) bug, since both RPCs explicitly flip the prior current row off before flipping the new one on.
 
 2. **The view-state flip is presence-driven.** First-viewer-mounts fires `common.set_current_view(target_game)` from `useCommonGame`'s `SUBSCRIBED` handler; last-viewer-leaves fires `common.unset_current_view(target_game)` from cleanup-on-unmount when the local tab's last-known presence was just-me. `common.create_game` ALSO sets `is_current_view=true` on the new row + clears whichever row currently holds the slot (mid-game create-from-club-page would otherwise race against the FE's mount-time write). The replaced row's `is_current_view` flips to false; its `play_state` / `is_terminal` stay as they were. "Suspended" is the club-level state derived from `is_current_view = false AND is_terminal = false`.
 
@@ -96,33 +135,61 @@ The transitions that move a row between buckets:
 
 ### Solo clubs
 
-Every user gets a solo club on first sign-in, materialized by the `handle_new_user` trigger. The solo club's `handle` is `=<username>` — the `=` prefix lives in a slug-space user-typed names can't reach, because `slugify_club_name` strips `=` along with other non-alphanumerics.
+Every user gets a solo club at first sign-in, materialized by the `common.claim_username` RPC the user calls themselves on the ClaimHandleScreen (see [Username claim flow](#username-claim-flow) below). The solo club's `handle` is `=<username>` — the `=` prefix lives in a slug-space user-typed names can't reach, because `slugify_club_name` strips `=` along with other non-alphanumerics.
 
-Solo clubs are the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The HomePage lists each user's solo club alongside their regular clubs, visually distinguished (star icon, accent background tint, "Solo" badge) and always sorted to the top — once the user knows where their solo space is, "Start wordknit alone" is a normal flow inside that club rather than a separate UI shape. Most game logic doesn't distinguish solo clubs from regular ones; the `club_id` is just non-null in both cases.
+Solo clubs are the anchor for solo-game-mode play (boggle, crosswords) and per-user stats. The HomePage lists each user's solo club alongside their regular clubs, visually distinguished (star icon, accent background tint, "Solo" badge) and always sorted to the top — once the user knows where their solo space is, "Start wordknit alone" is a normal flow inside that club rather than a separate UI shape. Most game logic doesn't distinguish solo clubs from regular ones; the `club_handle` is just non-null in both cases.
 
-Open-N gametypes (anything with `min === 1`) render their Start buttons normally inside a solo club's ClubPage (same gating logic as multi-member clubs). Fixed-seat gametypes like tinyspy's `[2, 2]` stay multi-member-only — their Start button is hidden in a 1-member solo club. There's no separate "Play solo" UI on the HomePage; the user navigates to their solo club like any other and starts a game from there.
+Coop gametype variants (those declaring `mode: 'coop'`) with `min === 1` render their Start buttons normally inside a solo club's ClubPage. Compete variants declare `min === 2` so they never appear in solo clubs — a 1-player race against no opponent is degenerate; the FE just hides the button. Coop with a countdown timer is the right "race against a clock" UX for a solo player. Fixed-seat gametypes like tinyspy's `[2, 2]` stay multi-member-only — their Start button is hidden in a 1-member solo club.
+
+### Username claim flow
+
+There is no `handle_new_user` trigger anymore. The flow is now user-driven:
+
+1. User signs in via magic link → `auth.users` row materializes; `useSession` detects the new session.
+2. `useSession` queries `common.profiles` for the row; missing row → returns `needsClaim: true`.
+3. `App.tsx` gates on `needsClaim` and renders `<ClaimHandleScreen>` instead of HomePage.
+4. User picks a handle that matches the regex `^[a-z][a-z0-9-]{2,29}$`. Submit calls `common.claim_username(desired text)`.
+5. The RPC atomically inserts the profile row, creates the `=<username>` solo club, adds the membership row, and seeds `clubs_gametypes` for the solo club with every registered gametype.
+6. `useSession` re-probes; `needsClaim` flips to false; HomePage mounts.
+
+Reject reasons:
+
+| condition                                | SQLSTATE |
+|------------------------------------------|----------|
+| not authenticated                        | `42501`  |
+| handle fails the regex                   | `P0001`  |
+| profile already claimed (this user)      | `P0001`  |
+| handle collision with another profile    | `23505`  |
+| auth.users row vanished (stale-JWT case) | `23503`  |
+
+The 23503 case surfaces when a stale JWT from a previous Supabase project sits in localStorage but its `auth.uid()` no longer exists. `ClaimHandleScreen` catches that error and calls `supabase.auth.signOut()` to reset back to LoginScreen.
 
 ## RPCs
 
 All RPCs in `common` are `security definer` and granted only to the `authenticated` role.
 
-### `common.create_club(club_name text, member_usernames text[]) → table(id uuid, handle text)`
+### `common.claim_username(desired text) → text`
 
-Atomically creates a club plus all member rows. Reject reasons:
+Atomically creates this caller's profile, solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the claimed username. Reject reasons in [Username claim flow](#username-claim-flow) above.
+
+### `common.create_club(club_name text, member_usernames text[]) → text`
+
+Atomically creates a club plus all member rows plus its clubs_gametypes seeds. Returns the new club's `handle` (also its PK). Reject reasons:
 
 | condition | SQLSTATE |
 |---|---|
 | not authenticated | `42501` |
 | name slugifies to an empty handle (`"!!!"` etc.) | `P0001` |
+| name slugifies to a handle not starting with a letter (`"123 club"`) | `P0001` |
 | one or more usernames don't exist | `P0002` |
 | resulting membership < 2 | `P0001` |
 | handle collision with an existing club | `23505` (`unique_violation`) |
 
 The caller is auto-added if not in `member_usernames` — a UI that lets the creator type only their friends doesn't have to remember to also include themselves.
 
-### `common.send_message(target_club uuid, content text)`
+### `common.send_message(target_club text, content text)`
 
-Posts to a club's chat. Reject reasons: not authenticated, not a member, empty/whitespace-only, over 1000 chars.
+Posts to a club's chat. `target_club` is the club's handle (PK). Reject reasons: not authenticated, not a member, empty/whitespace-only, over 1000 chars.
 
 Writes go through this RPC only; the table itself has no insert grant on `authenticated`.
 
@@ -130,8 +197,7 @@ Writes go through this RPC only; the table itself has no insert grant on `authen
 
 | function | role |
 |---|---|
-| `common.handle_new_user()` | Trigger on `auth.users` insert. Materializes a `profiles` row + a solo club + `clubs_gametypes` rows for every gametype in `common.gametypes`. A username collision (unique constraint) aborts sign-in entirely. |
-| `common.is_club_member(target_club uuid) → boolean` | Security-definer RLS helper. Used by every `common.*` table's SELECT policy. Marked `stable` so Postgres can cache it within a SELECT — the RLS layer calls it once per row otherwise. |
+| `common.is_club_member(target_club text) → boolean` | Security-definer RLS helper. Used by every `common.*` table's SELECT policy. Marked `stable` so Postgres can cache it within a SELECT — the RLS layer calls it once per row otherwise. |
 | `common.slugify_club_name(name text) → text` | Lowercase → non-alnum to `-` → trim → cap at 40 chars. Strips `=` along the way, which is what keeps user-typed names from producing solo-club handles. |
 
 ### Game-RPC helpers (called by per-game RPCs)
@@ -140,9 +206,9 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 
 | function | role |
 |---|---|
-| `common.require_club_member(target_club uuid) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_id comes off the game row, e.g. `submit_guess`). |
+| `common.require_club_member(target_club text) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_handle comes off the game row, e.g. `submit_guess`). |
 | `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
-| `common.create_game(target_club uuid, gametype text, player_user_ids uuid[], title text, setup jsonb) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, vacates the prior current-view game for this club (UPDATE is_current_view=false + idle_since=now()), inserts the new `common.games` row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, the passed `title` and `setup`, and inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
+| `common.create_game(target_club text, gametype text, player_user_ids uuid[], title text, setup jsonb) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, vacates the prior current-view game for this club (UPDATE is_current_view=false + idle_since=now()), inserts the new `common.games` row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, the passed `title` and `setup`, and inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
 | `common.require_game_player(target_game uuid) → uuid` | Auth + game-player gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not playing this game'` if the caller isn't in `common.game_players` for the target game. Returns the caller's `user_id`. Use in mid-game RPCs (submit_guess, submit_clue, etc.) where the question is "is this caller actually playing this game" — finer than just club-membership. |
 | `common.update_state(target_game uuid, play_state text, status jsonb) → void` | Mid-game state-write helper for the duplicate-write discipline. Each gametype's submit_* RPC calls this on every state-affecting move (after writing its own per-gametype counters) so `common.games.play_state` + `status` stay current for the club-page listing label. `is_terminal` is forced to false; use `common.end_game` for terminal transitions. |
 | `common.end_game(target_game uuid, play_state text, status jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = coalesce(ended_at, now())`, writes the terminal `play_state` + `is_terminal = true` + `status` jsonb on `common.games`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). Does NOT clear `is_current_view` — see the view-state section above. |
@@ -152,7 +218,7 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 Canonical pattern for a new gametype's `create_game`:
 
 ```sql
-create function <gametype>.create_game(target_club uuid, setup jsonb)
+create function <gametype>.create_game(target_club text, setup jsonb)
 returns table(id uuid)
 language plpgsql security definer
 set search_path = <gametype>, common, public, extensions
@@ -346,7 +412,7 @@ ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.c
 
 ### ClubPage's auto-nav
 
-The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_id. When a row INSERTs or UPDATEs with `is_current_view = true` (a member started a game, switched the current one via `set_current_view`, or `common.create_game` set the slot), every member subscribed to the club is automatically navigated to the new current game's URL.
+The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_handle. When a row INSERTs or UPDATEs with `is_current_view = true` (a member started a game, switched the current one via `set_current_view`, or `common.create_game` set the slot), every member subscribed to the club is automatically navigated to the new current game's URL.
 
 This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's current game changes, every member's UI follows.
 
@@ -374,9 +440,9 @@ The sign-in email contains **both** a clickable magic link AND a 6-digit code. T
 
 The code path is what makes cross-device sign-in work: open the email on your phone, type the code on your laptop. Either path emits `SIGNED_IN`, which `useSession` is subscribed to.
 
-On first sign-in, the `auth.users` row triggers `handle_new_user`, which materializes a `profiles` row + a solo club. The username is derived from the email's local-part (`bob@foo.com → "bob"`). Username collision aborts the sign-in entirely — accepted under the alpha-software prior; a picker UI is deferred until the auth-method question is settled.
+On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username themselves. The `common.claim_username` RPC materializes their profile + solo club (see [Username claim flow](#username-claim-flow) above). Username collision raises 23505, surfaced as an inline "that username is taken" error — the user retries with a different name.
 
-[`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, loading}`. It's a thin wrapper, with one non-thin hop: every restored session is checked against `common.profiles` to make sure the user's profile row still exists. The JWT in localStorage stays signature-valid even after the user is gone (a local `supabase db reset` during dev, or an admin-deleted user in prod), and PostgREST will happily let the stale JWT through until a write trips the user_id FK. The verify-and-sign-out catches it on restore.
+[`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
 
 ## Common testing
 
@@ -392,4 +458,4 @@ There are no FE tests covering routing as a whole (no E2E in this project), but 
 See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
-- **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.clubs_gametypes` (via `handle_new_user` / `create_club`). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.
+- **Club-level game-list editor.** Today every newly-created club is auto-populated with every registered gametype in `common.clubs_gametypes` (via `claim_username` for solo clubs and `create_club` for friend clubs). No UI lets a club opt out of a gametype, and new gametypes registered after a club's creation don't auto-add to existing clubs (DB-admin INSERT handles that under the alpha prior). See `deferred.md` for the rollout idea.

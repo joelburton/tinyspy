@@ -15,7 +15,7 @@ type Props = {
   /** Club members — forwarded to per-game forms for member-aware UI. */
   members: Member[]
   /** Club the game would start in. */
-  clubId: string
+  clubHandle: string
   /**
    * The club's last-saved setup for this gametype, from
    * `common.clubs_gametypes.default_setup`. Sourced by the parent
@@ -76,7 +76,7 @@ type Props = {
  * accidental-creation possibility.
  */
 export function SetupGameDialog({
-  manifest, members, clubId, savedDefault, onStarted, onCancel,
+  manifest, members, clubHandle, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
@@ -121,7 +121,7 @@ export function SetupGameDialog({
     // until then, all club members play every game — matching
     // pre-game_players behavior.
     const playerUserIds = members.map((m) => m.user_id)
-    const result = await manifest.startGameInClub(clubId, setup, playerUserIds)
+    const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
       setError(result.error)
@@ -144,7 +144,7 @@ export function SetupGameDialog({
       <Suspense fallback={<p className="muted">Loading options…</p>}>
         <SetupBody
           members={members}
-          clubId={clubId}
+          clubHandle={clubHandle}
           value={setup}
           onChange={setSetup}
         />

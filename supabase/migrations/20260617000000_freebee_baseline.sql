@@ -156,9 +156,9 @@ grant insert, select on freebee.pangrams   to service_role;
 -- ON DELETE CASCADE means a row here goes away if its
 -- common.games parent is deleted (e.g., gametype unregistered).
 --
--- club_id is denormalized from common.games.club_id so the RLS
--- policy can `is_club_member(club_id)` without a join. Safe —
--- club_id is set at create-game time and never changes.
+-- club_handle is denormalized from common.games.club_handle so the RLS
+-- policy can `is_club_member(club_handle)` without a join. Safe —
+-- club_handle is set at create-game time and never changes.
 --
 -- ───────────────────────────────────────────────────────────
 -- The "hidden wordlists" trick
@@ -185,7 +185,7 @@ grant insert, select on freebee.pangrams   to service_role;
 
 create table freebee.games (
   id uuid primary key references common.games(id) on delete cascade,
-  club_id uuid not null references common.clubs(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
   -- 6 distinct lowercase outer letters, no order significance
   -- on the SQL side (the FE shuffles for display). char(6) is
   -- a width assertion — wider/narrower strings raise a type
@@ -210,7 +210,7 @@ create table freebee.games (
   created_at timestamptz not null default now()
 );
 
-create index freebee_games_club_id_idx on freebee.games (club_id);
+create index freebee_games_club_handle_idx on freebee.games (club_handle);
 
 -- Column-level grant: every column EXCEPT the two hidden ones.
 -- The presence of any column-level grant on a table changes
@@ -219,7 +219,7 @@ create index freebee_games_club_id_idx on freebee.games (club_id);
 -- ones explicitly. Per docs/code-conventions.md → "Avoid
 -- SELECT *", explicit column lists are the convention anyway.
 grant select
-  (id, club_id, outer_letters, center_letter,
+  (id, club_handle, outer_letters, center_letter,
    total_score, total_words, created_at)
   on freebee.games to authenticated;
 
@@ -275,7 +275,7 @@ alter table freebee.found_words enable row level security;
 -- separately at the column level + games_state view.
 create policy games_select on freebee.games
   for select to authenticated
-  using (common.is_club_member(club_id));
+  using (common.is_club_member(club_handle));
 
 -- found_words RLS is the load-bearing piece for compete.
 -- WRITTEN FOR BOTH MODES FROM DAY ONE — see docs/freebee.md →
@@ -298,7 +298,7 @@ create policy found_words_select on freebee.found_words
     exists (
       select 1 from common.games cg
        where cg.id = found_words.game_id
-         and common.is_club_member(cg.club_id)
+         and common.is_club_member(cg.club_handle)
          and (
               cg.setup->>'mode' = 'coop'
            or found_words.user_id = auth.uid()
@@ -373,7 +373,7 @@ grant execute on function freebee._legal_words_for(uuid)   to authenticated;
 create view freebee.games_state with (security_invoker = true) as
 select
   g.id,
-  g.club_id,
+  g.club_handle,
   g.outer_letters,
   g.center_letter,
   g.total_score,

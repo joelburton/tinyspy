@@ -31,7 +31,7 @@ select plan(10);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- send_message rejection paths
@@ -48,7 +48,7 @@ select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
 select throws_ok(
-  format($q$ select common.send_message(%L, 'hi') $q$, (select id from club)),
+  format($q$ select common.send_message(%L, 'hi') $q$, (select handle from club)),
   '42501',
   'must be authenticated',
   'send_message: not authenticated raises 42501'
@@ -57,7 +57,7 @@ select throws_ok(
 -- dee (a real user) is not in this club.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($q$ select common.send_message(%L, 'sneaking in') $q$, (select id from club)),
+  format($q$ select common.send_message(%L, 'sneaking in') $q$, (select handle from club)),
   '42501',
   'not a member of this club',
   'send_message: non-member is rejected'
@@ -67,14 +67,14 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
-  format($q$ select common.send_message(%L, '   ') $q$, (select id from club)),
+  format($q$ select common.send_message(%L, '   ') $q$, (select handle from club)),
   'P0001',
   'message must not be empty',
   'send_message: whitespace-only message is rejected'
 );
 
 select throws_ok(
-  format($q$ select common.send_message(%L, repeat('x', 1001)) $q$, (select id from club)),
+  format($q$ select common.send_message(%L, repeat('x', 1001)) $q$, (select handle from club)),
   'P0001',
   'message too long (max 1000 chars)',
   'send_message: over-1000-char message is rejected'
@@ -85,18 +85,18 @@ select throws_ok(
 -- ============================================================
 
 select lives_ok(
-  format($q$ select common.send_message(%L, 'hello from ada') $q$, (select id from club)),
+  format($q$ select common.send_message(%L, 'hello from ada') $q$, (select handle from club)),
   'send_message: member can post a normal message'
 );
 
 select is(
-  (select count(*) from common.messages where club_id = (select id from club)),
+  (select count(*) from common.messages where club_handle = (select handle from club)),
   1::bigint,
   'send_message: row was inserted'
 );
 
 select is(
-  (select content from common.messages where club_id = (select id from club) limit 1),
+  (select content from common.messages where club_handle = (select handle from club) limit 1),
   'hello from ada',
   'send_message: content was preserved verbatim'
 );
@@ -107,14 +107,14 @@ select is(
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from common.messages where club_id = (select id from club)),
+  (select count(*) from common.messages where club_handle = (select handle from club)),
   1::bigint,
   'RLS: fellow member can see club messages'
 );
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select is(
-  (select count(*) from common.messages where club_id = (select id from club)),
+  (select count(*) from common.messages where club_handle = (select handle from club)),
   0::bigint,
   'RLS: non-member cannot see club messages'
 );
@@ -123,14 +123,14 @@ select is(
 -- Direct INSERT blocked
 -- ============================================================
 -- authenticated has SELECT but no INSERT grant on common.messages,
--- so even a dee-with-a-correct-club_id can't write.
+-- so even a dee-with-a-correct-club_handle can't write.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $q$ insert into common.messages (club_id, user_id, content)
+    $q$ insert into common.messages (club_handle, user_id, content)
         values (%L, %L, 'direct write') $q$,
-    (select id from club),
+    (select handle from club),
     'dee44444-4444-4444-4444-444444444444'
   ),
   '42501',

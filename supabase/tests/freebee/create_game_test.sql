@@ -32,7 +32,7 @@ select plan(23);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada and Bea', array['ada','bea']);
+select common.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
 -- Happy path: ada creates a game; both rows materialize
@@ -40,7 +40,7 @@ select * from common.create_club('Ada and Bea', array['ada','bea']);
 
 create temp table g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
@@ -135,10 +135,10 @@ select is(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   '42501',
   null,
@@ -153,11 +153,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid,
+    $$ select freebee.create_game(%L,
                                    '{"timer": {"kind": "none"}}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   'setup.mode is required',
@@ -166,11 +166,11 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid,
+    $$ select freebee.create_game(%L,
                                    '{"mode": "solo", "timer": {"kind": "none"}}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -183,11 +183,11 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid,
+    $$ select freebee.create_game(%L,
                                    '{"mode": "compete", "timer": {"kind": "none"}}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   'setup.target_rank is required when mode=compete',
@@ -196,11 +196,11 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid,
+    $$ select freebee.create_game(%L,
                                    '{"mode": "compete", "target_rank": 7, "timer": {"kind": "none"}}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -209,11 +209,11 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid,
+    $$ select freebee.create_game(%L,
                                    '{"mode": "coop", "target_rank": 3, "timer": {"kind": "none"}}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   'setup.target_rank only allowed when mode=compete',
@@ -232,10 +232,10 @@ select throws_ok(
 -- the center-in-outer rejection path.
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board() || '{"outer_letters": "abcdef"}'::jsonb) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -245,10 +245,10 @@ select throws_ok(
 -- A 5-char outer (length mismatch).
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board() || '{"outer_letters": "abcde"}'::jsonb) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -258,10 +258,10 @@ select throws_ok(
 -- Outer containing 's'.
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board() || '{"outer_letters": "absdfg"}'::jsonb) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -271,10 +271,10 @@ select throws_ok(
 -- total_words below the 30-gate.
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    pg_temp.freebee_board() || '{"total_words": 29}'::jsonb) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,
@@ -290,7 +290,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select freebee.create_game(%L::uuid, pg_temp.freebee_setup(),
+    $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array[
                                      'ada11111-1111-1111-1111-111111111111'::uuid,
                                      'bea22222-2222-2222-2222-222222222222'::uuid,
@@ -301,7 +301,7 @@ select throws_ok(
                                      gen_random_uuid()
                                    ],
                                    pg_temp.freebee_board()) $$,
-    (select id from club)
+    (select handle from club)
   ),
   'P0001',
   null,

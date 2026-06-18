@@ -5,111 +5,182 @@ import { DEFAULT_PSYCHICNUM_SETUP, type PsychicNumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * psychicnum's registration with the shell. Mirrors the shape
- * of `src/tinyspy/manifest.ts` — see that file for the deeper
- * commentary on lazy-loading the Root, why gametype/schema/name
- * are separate fields, and how the registry pattern preserves
- * "remove a game in three actions."
+ * psychicnum's registration with the shell — **two manifests,
+ * one schema, one folder.**
  *
- * psychicnum is a deliberately minimal game added second to
- * prove the multi-game architecture works (the same shell, the
- * same ClubPage, the same chat — all unchanged — pick up a new
- * game by virtue of this one file plus an entry in
- * `src/games.ts`).
+ * psychicnum exists in coop and compete modes, each a separate
+ * row in `common.gametypes` ('psychicnum_coop',
+ * 'psychicnum_compete') and a separate Start button on the
+ * club page. Both share:
+ *
+ *   - the `psychicnum` schema (tables, RPCs, RLS — see
+ *     supabase/migrations/20260615000002_psychicnum_baseline.sql)
+ *   - the folder `src/psychicnum/` (PlayArea, SetupForm, Help,
+ *     useGame, theme.css, logo.svg)
+ *   - the docs file `docs/games/psychicnum.md`
+ *
+ * They differ on:
+ *
+ *   - `gametype` string, used as the URL segment + registry key.
+ *   - `name` shown in titles and Start-button copy.
+ *   - `mode` declaration (the canonical axis for downstream
+ *     code that wants to distinguish behavior — see
+ *     GameManifest.mode in src/common/lib/games.ts).
+ *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
+ *     requires an opposing player (`[2, 6]`).
+ *   - `labelFor`: terminal copy reads differently per mode.
+ *
+ * Both share `baseGametype: 'psychicnum'` — the family key any
+ * code wanting "treat these as siblings" reads. Today the
+ * registry filters by gametype string; tomorrow, ClubPage may
+ * render baseGametype siblings as a single grouped block.
+ *
+ * The single shared `startGameInClub` builds the RPC payload
+ * with the per-manifest mode injected — `psychicnum.create_game`
+ * routes on it server-side.
  */
-export const psychicnumGame: GameManifest = {
-  gametype: 'psychicnum',
-  schema: 'psychicnum',
-  name: 'PsychicNum',
-  shortDescription: 'Guess the secret number',
-  logoUrl,
 
-  // Help / rules modal opened from the GamePage menu's "Help"
-  // item. Lazy-loaded so the help content ships in psychicnum's
-  // chunk, not the main bundle.
-  help: lazy(() =>
-    import('./components/Help').then((m) => ({ default: m.Help })),
-  ),
+// Help loader is shared — both modes link to the same rules
+// modal. Lazy so the prose ships in psychicnum's chunk.
+const helpLoader = lazy(() =>
+  import('./components/Help').then((m) => ({ default: m.Help })),
+)
 
-  // psychicnum plays solo or with up to 6 club members — the
-  // game logic doesn't care how many people are guessing, the
-  // cap is just the project-wide "open-N" default. Must agree
-  // with the member-count check in psychicnum.create_game. See
-  // docs/code-conventions.md → "Per-game player counts" for the
-  // cross-reference convention.
-  numberOfPlayers: [1, 6],
+// PlayArea is shared — branches on `manifest.mode` (or, at
+// runtime, on `common.games.gametype` to derive mode) when
+// rendering history + budget strip.
+const playAreaLoader = lazy(() =>
+  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+)
 
-  PlayArea: lazy(() =>
-    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
-  ),
+// SetupForm is shared — guesses + timer, no mode picker (mode
+// is locked at gametype level now, not a setup choice).
+const setupFormLoader = lazy(() =>
+  import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
+)
 
-  // Per-game setup form: a single-fieldset guess-budget radio.
-  // The Component is lazy-loaded so the form ships in
-  // psychicnum's chunk (not the registry); `defaults` is a tiny
-  // literal that travels with the manifest. See
-  // src/common/lib/games.ts for the split's reasoning.
-  setupForm: {
-    Component: lazy(() =>
-      import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
-    ),
-    defaults: DEFAULT_PSYCHICNUM_SETUP,
-  },
-
-  // Called by SetupGameDialog when the player clicks Start. The
-  // RPC picks the random target server-side, validates the setup
-  // shape, initializes guesses_remaining from setup.guesses, and
-  // (via common.create_game) flips is_current_view=true on the new
-  // common.games row — auto-suspending any prior current-view game
-  // in the club per the one-current-view-per-club invariant
-  // enforced by the partial unique index on common.games.
-  //
-  // The `unknown` → PsychicNumSetup cast is safe because we own
-  // both ends of the boundary (this manifest's setupForm
-  // Component is the only thing populating the wrapper's value).
-  startGameInClub: async (clubId, setup, playerUserIds) => {
+// Shared start-game caller. `mode` is the per-manifest constant
+// — the RPC routes on it to write the right gametype string +
+// per-mode end-game vocabulary.
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return async (
+    clubHandle: string,
+    setup: unknown,
+    playerUserIds: string[],
+  ) => {
     const s = setup as PsychicNumSetup
     const { data, error } = await db
       .rpc('create_game', {
-        target_club: clubId,
+        target_club: clubHandle,
         setup: s,
         player_user_ids: playerUserIds,
+        mode,
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start PsychicNum game' }
+      return { error: error?.message ?? `failed to start PsychicNum (${mode}) game` }
     }
     return { id: data.id }
+  }
+}
+
+// Shared per-row label for the ClubPage games list. Pure,
+// synchronous — everything comes off the row.
+//
+// Mid-game `status` carries `{ guesses_remaining }`. Terminal-
+// on-win carries `{ outcome, guesses_used, winner_username }`.
+// Terminal-on-loss carries `{ outcome, guesses_used }`.
+//
+// play_state vocabulary:
+//   coop:    'playing' / 'won' / 'lost'
+//   compete: 'playing' / 'won_compete' / 'lost_compete'
+//
+// Each mode's labelFor handles its own play_state set; the
+// shared helper below covers what's identical between them.
+type StatusBlob = Record<string, unknown>
+function labelMidGame(row: { status: StatusBlob | null }, modeLabel: string) {
+  const s = (row.status ?? {}) as StatusBlob
+  const remaining = (s.guesses_remaining as number | undefined) ?? 0
+  const word = remaining === 1 ? 'guess' : 'guesses'
+  return `${modeLabel} · ${remaining} ${word} left`
+}
+
+export const psychicnumCoopGame: GameManifest = {
+  gametype: 'psychicnum_coop',
+  schema: 'psychicnum',
+  baseGametype: 'psychicnum',
+  mode: 'coop',
+  name: 'PsychicNum (coop)',
+  shortDescription: 'Guess the secret number together',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Solo or coop up to 6. Must agree with the server-side
+  // require_player_count_max(6) call in psychicnum.create_game.
+  numberOfPlayers: [1, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
-  // Render the per-row label from a common.games row. Pure,
-  // synchronous: every piece comes off the row.
-  //
-  // Mid-game `status` carries `{ guesses_remaining }` (written by
-  // submit_guess via common.update_state). Terminal-on-win
-  // `status` carries `{ outcome, guesses_used, winner_username }`
-  // — the username is frozen by the RPC at end-of-game time so
-  // the label renders without a follow-up profile fetch. Stale
-  // on rename is fine (rare; arguably the right thing to show
-  // anyway, since it's "who they were when they won"). Terminal-
-  // on-loss `status` carries `{ outcome, guesses_used }`.
+  startGameInClub: startGameInClubFactory('coop'),
+
   labelFor: (row) => {
-    const s = (row.status ?? {}) as Record<string, unknown>
-    if (row.play_state === 'playing') {
-      const remaining = (s.guesses_remaining as number | undefined) ?? 0
-      const word = remaining === 1 ? 'guess' : 'guesses'
-      return `${remaining} ${word} left`
-    }
+    const s = (row.status ?? {}) as StatusBlob
+    if (row.play_state === 'playing') return labelMidGame(row, 'coop')
     if (row.play_state === 'won') {
       const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `won — ${name} guessed it`
+      return `coop · won — ${name} guessed it`
     }
-    return 'lost'
+    return 'coop · lost'
   },
 
-  // Called by common's GamePage when its countdown timer hits 0.
-  // The RPC flips this gametype's play_state to 'lost' and writes
-  // common.games.status.outcome='lost_timeout'. Idempotent on the
-  // terminal-state check, so peers racing to fire is fine.
+  submitTimeout: async (gameId) => {
+    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
+}
+
+export const psychicnumCompeteGame: GameManifest = {
+  gametype: 'psychicnum_compete',
+  schema: 'psychicnum',
+  baseGametype: 'psychicnum',
+  mode: 'compete',
+  name: 'PsychicNum (compete)',
+  shortDescription: 'Race to guess the secret number',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Compete needs an opposing PLAYER — racing yourself is
+  // degenerate. Lower bound 2 hides the Start button in solo
+  // clubs; the RPC also enforces this server-side.
+  numberOfPlayers: [2, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_PSYCHICNUM_SETUP,
+  },
+
+  startGameInClub: startGameInClubFactory('compete'),
+
+  labelFor: (row) => {
+    const s = (row.status ?? {}) as StatusBlob
+    if (row.play_state === 'playing') return labelMidGame(row, 'compete')
+    if (row.play_state === 'won_compete') {
+      const name = (s.winner_username as string | undefined) ?? 'someone'
+      return `compete · ${name} won the race`
+    }
+    return 'compete · time/budget out — no winner'
+  },
+
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })
     if (error) return { error: error.message }

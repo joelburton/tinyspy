@@ -1,9 +1,15 @@
 /**
- * Tests for useSession. The critical branch is the profile-verify
- * signOut: if the JWT decodes to a user whose profiles row is gone
- * (after a local `supabase db reset` or an admin-deleted user in
- * prod), the hook should silently sign out so the next interaction
- * starts a clean magic-link flow.
+ * Tests for useSession.
+ *
+ * The hook resolves to one of three states for any signed-in user:
+ *   - `loading` → true while the initial profile probe is in flight
+ *   - `needsClaim` → session exists but the user hasn't claimed a
+ *                    handle yet (no common.profiles row)
+ *   - claimed     → session AND profile both exist; the app routes
+ *                   to HomePage and friends
+ *
+ * The "no profile" state used to force a signOut; it now surfaces
+ * as `needsClaim: true` so App.tsx can route to ClaimHandleScreen.
  *
  * Mocking strategy
  * ----------------
@@ -77,7 +83,7 @@ describe('useSession', () => {
     expect(result.current.session).toBeNull()
   })
 
-  it('resolves to the session when the profile row exists', async () => {
+  it('resolves to claimed state when the profile row exists', async () => {
     const { result } = renderHook(() => useSession())
 
     // Simulate the INITIAL_SESSION event that supabase-js fires on subscribe
@@ -88,27 +94,33 @@ describe('useSession', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.session).toBe(fakeSession)
+    expect(result.current.needsClaim).toBe(false)
     expect(mockSignOut).not.toHaveBeenCalled()
   })
 
-  it('signs out when no profile exists for the session (stale JWT)', async () => {
-    // The stale-session scenario: profile is gone but the JWT is still
-    // valid. This is exactly what happens after `supabase db reset`
-    // wiped auth.users while the browser still has localStorage.
+  it('reports needsClaim=true when no profile exists yet', async () => {
+    // The "fresh sign-in" path: user just authenticated via magic
+    // link, no profiles row materialized yet. The hook should NOT
+    // sign them out — App.tsx routes to ClaimHandleScreen.
     mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null })
 
-    renderHook(() => useSession())
+    const { result } = renderHook(() => useSession())
     await act(async () => {
       await authCb?.('INITIAL_SESSION', fakeSession)
     })
 
-    await waitFor(() => expect(mockSignOut).toHaveBeenCalledOnce())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.needsClaim).toBe(true)
+    expect(mockSignOut).not.toHaveBeenCalled()
   })
 
-  it('does not sign out on a transient profile-query error', async () => {
-    // If the verify query errors transiently we shouldn't punish the
-    // user — assume the session is valid and proceed. The console
-    // warning is fine in tests; silence it so the run is clean.
+  it('treats a transient profile-query error as needsClaim (not signOut)', async () => {
+    // Over-permissive on probe errors — same friends-alpha tradeoff as
+    // the old "don't punish on transient blips" behavior. Worst case
+    // the user lands on ClaimHandleScreen and the claim attempt fails
+    // with an explicit "profile already claimed" if they already have
+    // one. Silence the warn so the run is clean.
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'network blip' } })
 
@@ -119,6 +131,7 @@ describe('useSession', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.session).toBe(fakeSession)
+    expect(result.current.needsClaim).toBe(true)
     expect(mockSignOut).not.toHaveBeenCalled()
     warnSpy.mockRestore()
   })
@@ -132,6 +145,7 @@ describe('useSession', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.session).toBeNull()
+    expect(result.current.needsClaim).toBe(false)
     // The SIGNED_OUT branch short-circuits before the verify query.
     expect(mockMaybeSingle).not.toHaveBeenCalled()
   })

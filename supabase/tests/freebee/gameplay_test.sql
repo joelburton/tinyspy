@@ -46,11 +46,11 @@ select plan(48);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
-select * from common.create_club('Ada Bea Cade', array['ada','bea','cade']);
+select common.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 create temp table g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
@@ -229,7 +229,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table compete_g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup() || '{"mode": "compete", "target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
@@ -400,7 +400,7 @@ reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table timeout_g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup() || '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
@@ -485,7 +485,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table end_g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
@@ -570,7 +570,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table auth_g on commit drop as
 select * from freebee.create_game(
-  (select id from club),
+  (select handle from club),
   pg_temp.freebee_setup(),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,

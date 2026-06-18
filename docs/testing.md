@@ -102,7 +102,7 @@ Usage:
 
 ```sql
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');  -- now I'm ada
-select tinyspy.create_game(some_club_id);                         -- runs as ada
+select tinyspy.create_game(some_club_handle);                     -- runs as ada
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');  -- now I'm bea
 select tinyspy.submit_clue(...);                                  -- runs as bea
