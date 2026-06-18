@@ -14,43 +14,6 @@
  * for why this is a peer concept rendered with the member helper).
  */
 
-.frame {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-.boardHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* The countdown display in the header. Tabular-nums so the
- * MM:SS digits don't shift width as they tick down. */
-.timer {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.leave {
-  align-self: center;
-}
-
 .boardArea {
   position: relative;
   background: var(--color-surface);
@@ -138,7 +101,7 @@
 }
 
 .tile:hover:not(:disabled) {
-  background: #ece2cc;
+  background: var(--wordknit-tile-hover-bg);
 }
 
 .tileSelected {
@@ -223,11 +186,4 @@
   gap: 1rem;
   margin-top: 0.5rem;
   font-size: 0.95rem;
-}
-
-
-.endActions {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.5rem;
 }

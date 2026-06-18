@@ -18,18 +18,17 @@
  * terminal results." */
 
 /* Layout extends to the viewport bottom, per docs/ui.md →
- * "Page-height fits the viewport." The 9rem offset is the body's
- * 4rem padding (2rem top + 2rem bottom) plus the GamePage
- * header's height (~3.75rem) plus the 1rem gap between header
- * and play area. Approximate but stable; if the header design
- * changes substantively we'd revisit.
+ * "Page-height fits the viewport." The chrome-height offset (body
+ * padding + GamePage header + header-to-play-area gap) lives as
+ * a token on common/theme.css so a header redesign only touches
+ * one number — see --game-chrome-height there.
  *
  * With this height set, both columns inherit it via
  * `align-items: stretch` — the boardArea's placeholder fills
  * its column, and the rightCol's GuessHistory scrolls
  * internally without pushing the page past the viewport. */
 .layout {
-  height: calc(100vh - 9rem);
+  height: calc(100vh - var(--game-chrome-height));
   display: flex;
   flex-direction: row;
   gap: 1rem;

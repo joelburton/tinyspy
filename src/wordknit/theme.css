@@ -34,8 +34,12 @@
   --wordknit-rank-3-text: #1a1a1a;
 
   /* Tile palette. Selected uses the project's text color
-   * inverted — near-black background with white text. */
+   * inverted — near-black background with white text. The
+   * hover token is a slightly-darker warm gray than the resting
+   * tile bg, so the hover read is "this tile is selectable"
+   * without competing with the dark selected state. */
   --wordknit-tile-bg:           #f0e6d2;
+  --wordknit-tile-hover-bg:     #ece2cc;
   --wordknit-tile-border:       #e0d4b8;
   --wordknit-tile-text:         #1a1a1a;
   --wordknit-tile-selected-bg:  #5a594e;

@@ -11,7 +11,8 @@
  *   └────────────────────────┴───────────────────────────┘
  *
  * Layout follows docs/ui.md → "Page-height fits the viewport":
- * the .layout fills the remaining viewport (calc 100vh - 9rem
+ * the .layout fills the remaining viewport (100vh minus the
+ * shared --game-chrome-height token in common/theme.css, which
  * accounts for body padding + GamePage header + frame gap), the
  * board column claims the bulk of the width, and the right column
  * has a fixed-height status row + fixed-height action slot (clue
@@ -24,7 +25,7 @@
  */
 
 .layout {
-  height: calc(100vh - 9rem);
+  height: calc(100vh - var(--game-chrome-height));
   display: flex;
   flex-direction: row;
   gap: 1rem;

@@ -58,7 +58,17 @@
      fills so dark text reads against them; `*-border` is a
      darker companion for focused / hovered states. The mapping
      from per-gametype play_state to outcome bucket is each
-     game's own responsibility. */
+     game's own responsibility.
+
+     Five matched `-bg` / `-border` pairs form a deliberate
+     vocabulary (won / lost / active / near / current). A few of
+     the `-bg` tokens are unused today — the current chrome leans
+     on the `-border` left-strip pattern (see GuessHistory) and
+     the corner-flag triangle (see ClubGameCard) rather than full
+     pastel fills. Kept anyway so the vocabulary stays complete:
+     a reader who sees `-border` should reasonably expect its
+     `-bg` companion to exist. We'll re-audit once all the
+     planned games have landed; see docs/deferred.md. */
   --color-outcome-won-bg:     #c8e6c9;   /* green 100 */
   --color-outcome-won-border: #66bb6a;   /* green 400 */
   --color-outcome-lost-bg:    #ffcdd2;   /* red 100 */
@@ -105,6 +115,16 @@
   /* Radii. */
   --radius-md:                6px;   /* buttons, inputs, panels */
   --radius-lg:                8px;   /* cards, modals */
+
+  /* Chrome height that a viewport-bound game PlayArea has to
+     subtract from 100vh to fit. Comprises body padding (2rem top
+     + 2rem bottom = 4rem), GamePage header (~3.75rem), and the
+     1rem gap between header and play area = ~9rem total.
+     Centralized so a header redesign moves one number, not three.
+     See docs/ui.md → "Page-height fits the viewport"; consumed
+     today by tinyspy/PlayArea.module.css and psychicnum/PlayArea.
+     module.css (wordknit conversion pending). */
+  --game-chrome-height:       9rem;
 
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
