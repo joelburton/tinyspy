@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
@@ -54,6 +55,7 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  feedback,
 }: GamePageCtx) {
   // session intentionally unused — psychic-num has no per-self
   // rendering today, but the prop is part of the GamePage contract
@@ -62,6 +64,38 @@ export function PlayArea({
   void session
 
   const { game, guesses, loading } = useGame(gameId)
+
+  // Track the id of the last guess we've already-pilled-for, so a
+  // re-render doesn't fire feedback for the same guess twice and a
+  // navigate-into-an-existing-game doesn't fire for the whole
+  // history at once. Pattern lifted from FloatingChat's
+  // autoOpenOnImportantMessage detector.
+  const lastSeenGuessIdRef = useRef<string | null>(null)
+
+  // Surface each new wrong guess as a closeable feedback pill in
+  // the GamePage header — same UX wordknit uses for its non-
+  // matching guesses ("Incorrect", "One away!"). Correct guesses
+  // don't fire a pill: the game terminalizes and ResultBanner
+  // takes over the action slot, which IS the feedback.
+  useEffect(function pillEachNewWrongGuess() {
+    if (guesses.length === 0) return
+    const latest = guesses[guesses.length - 1]
+    // First render after mount: snapshot the latest id WITHOUT
+    // firing — existing history shouldn't pop a pill on
+    // navigate-in. Same first-load posture FloatingChat uses.
+    if (lastSeenGuessIdRef.current === null) {
+      lastSeenGuessIdRef.current = latest.id
+      return
+    }
+    if (latest.id === lastSeenGuessIdRef.current) return
+    lastSeenGuessIdRef.current = latest.id
+    if (latest.was_correct) return  // ResultBanner covers this case
+    feedback.show({
+      tone: 'error',
+      text: `${latest.number} — not the number`,
+      dismiss: { kind: 'closeable' },
+    })
+  }, [guesses, feedback])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
