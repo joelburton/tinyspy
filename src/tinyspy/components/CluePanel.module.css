@@ -1,24 +1,25 @@
-/* Contextual panel between board header and the 5x5 grid. Holds
- * the clue form (clue-giver, clue phase), the displayed clue
- * (guesser, guess phase), the pass button (guesser, guess phase),
- * or the sudden-death notice. BoardScreen always renders one of
- * these in the slot above the grid.
- */
+/* The CluePanel renders inside PlayArea's `.actionSlot`, which
+ * already sets a fixed minimum height + vertical centering. The
+ * panel itself no longer carries the surface chrome (border,
+ * background, vertical margin) it had when it sat full-width
+ * above the board — its container is the chrome now. This
+ * stylesheet just lays out the contents of whichever state is
+ * rendered. */
 
 .cluePanel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
-  margin: 1rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+/* Sudden death is the one state that still carries its own
+ * visual — a tinted background + accent border — to drive the
+ * "things just got real" beat. */
 .cluePanel.suddenDeath {
-  border-color: var(--tinyspy-assassin);
+  border: 1px solid var(--tinyspy-assassin);
   background: var(--tinyspy-assassin-soft);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
   font-size: 1.05rem;
 }
 
@@ -51,7 +52,7 @@
 }
 
 .suggestReasoning {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   font-size: 0.85rem;
   font-style: italic;
 }

@@ -1,56 +1,122 @@
-/* Turn-by-turn replay panel.
+/* Tinyspy's game log — wordknit-style guess cards inside per-turn
+ * groups. Renders in the right column beneath the action slot;
+ * scrolls internally when turns pile up.
  *
- * On wide viewports BoardScreen places this in column 2 of its
- * grid (via `.gameLogSlot`); on mobile it stacks below the board
- * with the top border showing.
+ * Structure per turn:
+ *
+ *   Turn N · ada: BIRD · 3        ← clue line, no strip
+ *   ┃ bea → HAMMER  [green]       ← guess card, green left strip
+ *   ┃ bea → COFFEE  [neutral]     ← guess card, amber left strip
+ *
+ * Same visual register as wordknit / psychic-num's GuessHistory
+ * cards, but with the per-turn clue heading above each group.
  */
 
 .gameLog {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-surface-border);
+  /* Take the remaining vertical space in the right column and
+   * scroll internally — same flex pattern as the wordknit /
+   * psychic-num GuessHistory components. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
-.gameLog h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.9rem;
-  color: var(--color-muted);
-  font-weight: 500;
-}
-
-.gameLog ol {
-  list-style: none;
-  padding: 0;
+.heading {
   margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* The list IS the scrolling sub-frame. flex: 1 + min-height: 0
+   * = "take whatever vertical space remains in the column and
+   * scroll internally when content exceeds it." */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* One per turn. Bundles a clue heading + the guesses that
+ * resolved against it. */
+.turn {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  font-size: 0.9rem;
 }
 
-.logGuess {
-  margin-left: 1rem;
-  padding: 0.1rem 0;
+/* "Turn N · <giver>: <CLUE> · <count>" — sits above the turn's
+ * guess cards as a single line. No left strip; the strip pattern
+ * is for outcomes, and a clue isn't yet an outcome. */
+.clueLine {
+  font-size: 0.85rem;
   color: var(--color-text);
 }
 
+.clueWord {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Guess card. Same shape as wordknit's GuessHistory items: thin
+ * surface-bound on three sides + thick (10px) colored strip on
+ * the left for the outcome signal. Card body transparent. */
+.guess {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-border);
+  border-left-width: 10px;
+  padding: 0.4rem 0.6rem 0.4rem 0.7rem;
+  font-size: 0.85rem;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.guess_G {
+  border-left-color: var(--color-outcome-won-border);
+}
+.guess_N {
+  border-left-color: var(--color-outcome-near-border);
+}
+.guess_A {
+  border-left-color: var(--color-outcome-lost-border);
+}
+
+/* Push the inline label chip to the right edge of the row. */
+.spacer {
+  flex: 1;
+}
+
 /* Inline label chip — the colored bubble showing what the guess
- * revealed. Three variants matching the Duet tile roles. */
-.logLabel {
-  font-size: 0.8rem;
+ * revealed. Three variants matching the Duet tile roles; same
+ * tokens the BoardGrid uses for the tiles themselves so the log
+ * speaks the same color vocabulary as the board. */
+.label {
+  font-size: 0.75rem;
   padding: 0.1rem 0.45rem;
   border-radius: 3px;
   font-weight: 600;
 }
-.logLabelG {
+.labelG {
   background: var(--tinyspy-agent-soft-bright);
   color: var(--tinyspy-agent-text);
 }
-.logLabelN {
+.labelN {
   background: var(--tinyspy-neutral-soft-bright);
   color: var(--tinyspy-neutral-text);
 }
-.logLabelA {
+.labelA {
   background: var(--tinyspy-assassin-soft-bright);
   color: var(--tinyspy-assassin-text);
 }

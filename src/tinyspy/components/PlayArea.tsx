@@ -6,28 +6,35 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
-import { GameHeader } from './GameHeader'
 import { GameLog } from './GameLog'
 import { GameOverBanner } from './GameOverBanner'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this chunk)
 
 /**
- * Tinyspy's play surface — composes the in-game pieces. The
- * cross-cutting chrome (title, timer, Pause, Back-to-club, chat)
- * lives on `<GamePage>` above this component in the route tree;
- * here we just stitch together the gametype-specific pieces.
+ * Tinyspy's play surface — two-column viewport-bound composition:
+ *
+ *   - **Board column** (left, flex) — the 5×5 BoardGrid.
+ *   - **Right column** (fixed-width):
+ *       - Status: "{greenFound}/15 agents · {turnsRemaining} tokens left"
+ *       - Action slot: CluePanel (clue/waiting/input) or GameOverBanner.
+ *         Fixed minimum height so swapping between states doesn't shift
+ *         the log below.
+ *       - GameLog: scrolls internally.
+ *
+ * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
+ * lives on `<GamePage>` above this component. The previous in-PlayArea
+ * GameHeader is gone — the GamePage header already tells you who's
+ * playing (via the PlayersStrip), and the visible state of the action
+ * slot (input form / "waiting for…" / displayed clue) already makes
+ * the current clue-giver obvious. No need to repeat either at the
+ * PlayArea level.
  *
  * Most of the game logic is server-side (in plpgsql RPCs); this
- * component's job is to:
- *   - load the row + board + clues via the three hooks
- *   - derive phase (who clicks what, when) via `derivePhase`
- *   - hand each piece to the right sub-component
- *
- * Realtime keeps everything in sync — useGame, useBoard, and
- * useClues each subscribe to their own table, so when the
- * partner gives a clue or makes a guess on their machine, our
- * view updates without a round trip.
+ * component's job is to load the row + board + clues via the three
+ * hooks, derive phase (who clicks what, when) via `derivePhase`, and
+ * hand each piece to the right sub-component. Realtime keeps
+ * everything in sync.
  */
 export function PlayArea({
   session,
@@ -53,7 +60,7 @@ export function PlayArea({
   }
 
   const mySeat = players.find((p) => p.user_id === session.user.id)?.seat
-  const opponent = players.find((p) => p.user_id !== session.user.id)
+  const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
   // Phase derivation: a turn is in "guess phase" iff a clue already
@@ -74,47 +81,48 @@ export function PlayArea({
     })
 
   return (
-    <div className={cls(styles.boardWrap, inSuddenDeath && styles.suddenDeath)}>
-      <GameHeader
-        mySeat={mySeat}
-        opponent={opponent}
-        currentClueGiver={game.current_clue_giver}
-        greenFound={greenFound}
-        turnsRemaining={game.turns_remaining}
-        inSuddenDeath={inSuddenDeath}
-        gameOver={gameOver}
-      />
+    <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
+      <div className={styles.boardCol}>
+        <BoardGrid
+          gameId={gameId}
+          words={words}
+          myKey={myKey}
+          peerKey={peerKey}
+          mySeat={mySeat}
+          gameOver={gameOver}
+          cellsClickable={cellsClickable}
+        />
+      </div>
 
-      {gameOver && (
-        <div className={styles.gameOverSlot}>
-          <GameOverBanner status={playState} />
+      <div className={styles.rightCol}>
+        <div className={styles.status}>
+          <strong>{greenFound}</strong> / 15 agents
+          <span className={styles.muted}>
+            {' · '}
+            {inSuddenDeath
+              ? 'sudden death'
+              : `${game.turns_remaining} tokens left`}
+          </span>
         </div>
-      )}
 
-      {!gameOver && (
-        <div className={styles.cluePanelSlot}>
-          <CluePanel
-            gameId={gameId}
-            isClueGiver={isClueGiver}
-            isGuessPhase={isGuessPhase}
-            currentClue={currentTurnClue}
-            inSuddenDeath={inSuddenDeath}
-          />
+        <div className={styles.actionSlot}>
+          {gameOver ? (
+            <GameOverBanner status={playState} />
+          ) : (
+            <CluePanel
+              gameId={gameId}
+              isClueGiver={isClueGiver}
+              isGuessPhase={isGuessPhase}
+              currentClue={currentTurnClue}
+              inSuddenDeath={inSuddenDeath}
+              peer={peer}
+            />
+          )}
         </div>
-      )}
 
-      <BoardGrid
-        gameId={gameId}
-        words={words}
-        myKey={myKey}
-        peerKey={peerKey}
-        mySeat={mySeat}
-        gameOver={gameOver}
-        cellsClickable={cellsClickable}
-      />
-
-      <div className={styles.gameLogSlot}>
-        <GameLog clues={clues} words={words} players={players} />
+        <div className={styles.gameLogSlot}>
+          <GameLog clues={clues} words={words} players={players} />
+        </div>
       </div>
     </div>
   )

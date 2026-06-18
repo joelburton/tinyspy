@@ -93,13 +93,13 @@ describe('GameLog', () => {
     expect(turns).toHaveLength(2)
 
     // Latest turn (2) appears first.
-    expect(turns[0]).toHaveTextContent('turn 2')
+    expect(turns[0]).toHaveTextContent('Turn 2')
     expect(turns[0]).toHaveTextContent('DRINK')
     expect(within(turns[0]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
     expect(within(turns[0]).getByText('neutral')).toBeInTheDocument()
 
     // Older turn (1) below.
-    expect(turns[1]).toHaveTextContent('turn 1')
+    expect(turns[1]).toHaveTextContent('Turn 1')
     expect(turns[1]).toHaveTextContent('TOOLS')
     expect(within(turns[1]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
     expect(within(turns[1]).getByText('green')).toBeInTheDocument()

@@ -1,267 +1,104 @@
-/* The 5x5 board screen + its desktop three-column layout.
+/* Tinyspy play surface — two-column viewport-bound layout.
  *
- * On mobile / narrow viewports: a single vertical stack —
- * header, clue panel, board grid, game log, chat.
+ *   ┌────────────────────────┬───────────────────────────┐
+ *   │                        │ 0/15 agents · 9 tokens    │
+ *   │                        │ ─────────────────────────  │
+ *   │                        │ Clue / Waiting / Input    │
+ *   │   BoardGrid (5×5)      │                            │
+ *   │                        │                            │
+ *   │                        │ Game log                   │
+ *   │                        │ (scrolls internally)       │
+ *   └────────────────────────┴───────────────────────────┘
  *
- * On >=1024px viewports: a three-column grid where the board
- * claims the remaining width, with game log and chat as fixed
- * 220px right-side panels. The header, clue panel, and the
- * game-over banner stay full-width above the grid.
+ * Layout follows docs/ui.md → "Page-height fits the viewport":
+ * the .layout fills the remaining viewport (calc 100vh - 9rem
+ * accounts for body padding + GamePage header + frame gap), the
+ * board column claims the bulk of the width, and the right column
+ * has a fixed-height status row + fixed-height action slot (clue
+ * / waiting / input / game-over) + a scrolling game log.
  *
- * The slot-wrapper pattern (.gameLogSlot, .chatPanelSlot, etc.)
- * lets BoardScreen position child components without reaching
- * into their (module-scoped) class names. The children render
- * their own internal styles in their own modules.
+ * Sudden death — game.status === 'sudden_death' — wraps the whole
+ * layout in an accent red border + tinted background. Real game-
+ * state distinction; the visual is the "any non-green reveal
+ * loses" warning made visceral.
  */
 
-.boardWrap {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+.layout {
+  height: calc(100vh - 9rem);
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: stretch;
 }
 
-.boardWrap.suddenDeath {
-  position: relative;
+.layout.suddenDeath {
   padding: 1rem;
   border: 2px solid var(--tinyspy-assassin);
   border-radius: var(--radius-lg);
   background: var(--tinyspy-assassin-soft-dim);
 }
 
-.boardHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1rem 0;
-}
-
-.status {
-  text-align: right;
+/* Board column — takes the bulk of the width; the BoardGrid
+ * inside lays out its own 5×5 grid. min-width: 0 so the column
+ * can shrink past the intrinsic grid width on narrow viewports
+ * (defensive — tinyspy is desktop-first and the grid fits comfortably
+ * on a laptop, but the bound keeps the right column from getting
+ * crushed). */
+.boardCol {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
+  min-width: 0;
 }
 
-.statusLinks {
+/* Right column — fixed-width side panel for status + clue action +
+ * game log. 26rem fits the clue form's count + word + submit row
+ * comfortably; tighter would crowd the form, wider would steal
+ * board space. */
+.rightCol {
+  flex: 0 0 26rem;
   display: flex;
+  flex-direction: column;
   gap: 0.75rem;
-  margin-top: 0.35rem;
+  min-height: 0;
 }
 
-.statusLeave {
-  font-size: 0.85rem;
-  opacity: 0.7;
-}
-
-.statusLeave:hover {
-  opacity: 1;
-}
-
-.errorBanner {
-  background: var(--tinyspy-assassin-soft);
-  border: 1px solid var(--tinyspy-assassin);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  margin: 0 0 1rem;
-  color: var(--color-error-soft-text);
-  font-size: 0.95rem;
-}
-
-/* --------- the 5x5 grid + tiles --------- */
-
-.boardGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.5rem;
-}
-
-.tile {
-  /* Roughly matches real Codenames cards' landscape shape and keeps
-     the whole 5x5 board on a laptop screen without scrolling. */
-  aspect-ratio: 5 / 3;
-  padding: 0.5rem;
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid transparent;
-  position: relative;
-  font: inherit;
-  text-align: left;
-  color: inherit;
-}
-
-.tileWord {
+/* Status row at the top of the right column: "0/15 agents ·
+ * 9 tokens left." Compact, with a faint divider below it so it
+ * reads as a header rather than a regular content row. */
+.status {
+  flex-shrink: 0;
   font-size: 0.95rem;
   font-weight: 500;
-  word-break: break-word;
+  color: var(--color-text);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-surface-border);
 }
 
-.tileKey {
-  font-size: 0.7rem;
-  align-self: flex-end;
-  opacity: 0.55;
-  font-family: ui-monospace, Menlo, monospace;
-  letter-spacing: 0.1em;
+.status .muted {
+  color: var(--color-muted);
 }
 
-/* Hint variant: tinted background that previews the seat's key
- * label without committing to a reveal. */
-.tileHint.tileAgent {
-  background: var(--tinyspy-agent-soft);
-  border-color: rgba(56, 161, 105, 0.4);
-}
-.tileHint.tileNeutral {
-  background: var(--tinyspy-neutral-soft);
-  border-color: rgba(180, 152, 110, 0.3);
-}
-.tileHint.tileAssassin {
-  background: var(--tinyspy-assassin-soft);
-  border-color: rgba(190, 60, 60, 0.45);
+/* Action slot — the fixed-height region that holds either the
+ * CluePanel (clue form / clue display / waiting copy / sudden-
+ * death notice) or the GameOverBanner. Constant height so the
+ * GameLog below it never shifts as the action changes — per
+ * docs/ui.md → "Layout stability." */
+.actionSlot {
+  flex-shrink: 0;
+  min-height: 8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-/* Revealed variant: solid color, applied after the reveal RPC
- * resolves and Realtime propagates the row update. */
-.tileRevealed {
-  color: white;
-}
-.tileRevealed.tileAgent {
-  background: var(--tinyspy-agent);
-  border-color: var(--tinyspy-agent);
-}
-.tileRevealed.tileNeutral {
-  background: var(--tinyspy-neutral);
-  border-color: var(--tinyspy-neutral);
-  color: var(--tinyspy-neutral-text-dark);
-}
-.tileRevealed.tileAssassin {
-  background: var(--tinyspy-assassin-bg);
-  border-color: var(--color-control-border-2);
-}
-
-.tileClickable {
-  cursor: pointer;
-}
-.tileClickable:hover:not(:disabled) {
-  filter: brightness(1.15);
-}
-
-.tile:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.tilePending {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-}
-
-/* Post-game reveal: two stripes for the two key views, word in
- * the middle. Used to show what each cell "actually was" on
- * both seats once a game has ended. */
-.tilePostgame {
-  background: var(--color-surface);
-  border-color: var(--color-surface-border);
-  padding: 0;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-}
-
-.tilePostgame .tileWord {
-  padding: 0.4rem 0.5rem;
-  align-self: center;
-}
-
-.tileStripe {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  padding: 0.15rem 0.4rem;
-  color: rgba(0, 0, 0, 0.65);
-}
-.tileStripe.tileAgent {
-  background: var(--tinyspy-agent);
-  color: white;
-}
-.tileStripe.tileNeutral {
-  background: var(--tinyspy-neutral);
-}
-.tileStripe.tileAssassin {
-  background: var(--tinyspy-assassin-bg);
-  /* Hardcoded white because --tinyspy-assassin-bg is a dark fill in
-     both themes (the "ominous" look); --color-text inverts with the
-     theme and would go invisible-on-dark in light mode. */
-  color: white;
-}
-
-/* --------- Desktop three-column layout --------- */
-
-@media (min-width: 1024px) {
-  .boardWrap {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 220px 220px;
-    column-gap: 1.5rem;
-    row-gap: 0;
-  }
-
-  /* Everything except the board, the log, and the chat spans the
-   * full width — header, clue panel, banners. cluePanelSlot
-   * wraps the CluePanel and the (full-width) game-over banner. */
-  .boardHeader,
-  .cluePanelSlot,
-  .errorBanner,
-  .gameOverSlot {
-    grid-column: 1 / -1;
-  }
-
-  .boardGrid {
-    grid-column: 1;
-    align-self: start;
-  }
-
-  .gameLogSlot,
-  .chatPanelSlot {
-    /* Stretch (not `start`) so each side panel matches the grid's
-     * height; the inner scroll container handles overflow.
-     * min-height: 0 on flex children is what makes them actually
-     * shrink below their content. */
-    align-self: stretch;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    /* Swap the horizontal top-rule for a vertical left-rule so each
-     * panel feels like a side column rather than a footer block.
-     * The child's own .gameLog/.chatPanel top-border becomes
-     * invisible under this padding/positioning. */
-    padding-left: 1.25rem;
-    border-left: 1px solid var(--color-surface-border);
-  }
-
-  .gameLogSlot { grid-column: 2; }
-  .chatPanelSlot { grid-column: 3; }
-
-  /* Make sure the slot wrappers neutralize the child's own
-   * top-margin/border (which would draw a horizontal rule the
-   * mobile layout uses). */
-  .gameLogSlot > section,
-  .chatPanelSlot > section {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* The scroll container inside each side panel. The `flex: 1`
-   * + `min-height: 0` pair lets these actually scroll inside
-   * a flex column instead of overflowing the page. */
-  .gameLogSlot > section > ol,
-  .chatPanelSlot > section > div:first-of-type {
-    overflow-y: auto;
-    flex: 1;
-    min-height: 0;
-  }
+/* The game-log region — takes the remaining column height and
+ * scrolls internally when turns pile up. The component's own
+ * styles (see GameLog.module.css) handle the inner list's flex
+ * + min-height + overflow-y. */
+.gameLogSlot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
