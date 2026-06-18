@@ -88,15 +88,41 @@ feedback: {
 
 ### Modals for terminal results
 
-Game-end "you won / you lost" UI moves to a modal, not an in-page banner. This **replaces** the previously-noted plan for a shared inline `GameResultBanner` (see [Components](#components) below) — a modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
+Game-end "you won / you lost" UI lives in a shared modal (`common/components/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
 
-The page underneath stays in *review mode*: the final board, revealed unmatched categories (wordknit), both key cards (tinyspy), the winning number (psychicnum). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
+The page underneath stays in *review mode*: the final board, revealed unmatched categories (wordknit), both key cards (tinyspy), the winning number (psychic-num). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
+
+**Auto-pop on terminal.** Each game's PlayArea opens the modal in two cases:
+
+1. **Navigate into an already-terminal game** (from ClubPage's "Other games" list) — initial `useState(isTerminal)` pops it on first render.
+2. **Mid-play transition** to terminal — the same player who just made the last move sees the modal pop immediately; peers see it via realtime as their `isTerminal` flips and the watching effect fires.
+
+**No reopen after close.** Once the player dismisses the modal, it's gone for the session. The PlayArea is in review mode; the user has already seen the verdict. No "Show summary" affordance — the modal isn't worth seeing twice.
+
+**No backdrop.** Matches HowToPlayModal / chat / hint modals — the user can click the board to start reviewing immediately without first dismissing the modal.
+
+**Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. The modal's "Back to club" button and each PlayArea's terminal indicator both call the same `goToClub: () => void` on `GamePageCtx`, which `<GamePage>` wires to direct navigation. The GamePage menu's "Back to club" item already does the terminal-direct-nav branch; same logic is now exposed for downstream consumers.
+
+**PlayArea terminal indicator.** After the modal closes (or for users who never opened it because they were already in review), the slot where input/action UI lived shows a small "Game over: `<status>` [Back to club]" indicator. The status word matches the modal's title in lowercase. Per-game (the indicator's slot location differs across games), but always carries the same two pieces of information.
+
+**Component shape** (kept minimal so per-game payloads slot in cleanly):
+
+```ts
+type Props = {
+  outcome: 'won' | 'lost'   // drives tone (subtle accent only)
+  title: string             // per-status verdict — "Victory!", "Out of time"
+  detail?: ReactNode        // per-game factual reveal: target, mistake count, etc.
+  onClose: () => void
+  onBackToClub: () => void
+}
+```
+
+The per-game PlayArea picks the right title + detail from the play_state + timer.expired + game data and passes them down.
 
 ### Existing offenders to retrofit
 
 Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:
 
-- **Result banners across all three games.** Tinyspy's `GameOverBanner.tsx`, psychic-num's `ResultBanner.tsx`, wordknit's inline terminal copy in `PlayArea.tsx` — all move to a shared `GameOverModal`.
 - **Tinyspy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
@@ -323,7 +349,7 @@ Same principle, applied to components.
 
 **The game-mechanic UI is per-game.** The board, rules display, input affordance (clue form vs number input vs guess box) — each game owns these. That's what the per-game `components/` directory is for.
 
-**The current grey zone: game-end UI.** Tinyspy has a styled [`GameOverBanner.tsx`](../src/tinyspy/components/GameOverBanner.tsx) with tone-tagged CSS (win / loss); psychic-num has a [`ResultBanner.tsx`](../src/psychicnum/components/ResultBanner.tsx) that's a bare `<section>` + `<h2>` with no styling; wordknit renders its terminal copy ("Solved!" / "Out of time.") inline in `PlayArea.tsx` with no banner component at all. Three games, three shapes. Per [Layout stability → Modals for terminal results](#modals-for-terminal-results) above, these all collapse into one shared `common/components/GameOverModal.tsx` rather than an inline banner — `{ outcome, title, detail?, actions? }` props, same component, per-game copy. The page underneath stays in review mode.
+**Game-end UI** — `common/components/GameOverModal.tsx` is the shared component all three games render at terminal. Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
 
 ## Explicitly deferred
 
