@@ -27,9 +27,16 @@
   background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
 }
 
+/* A big padded wrapper so the grid is centerable yet never auto-re-centers
+ * as it grows (the padding, set inline = CANVAS_PAD, makes the scroll area
+ * always larger than the viewport). width: max-content so it shrink-wraps to
+ * grid + padding rather than stretching to the viewport. */
+.canvas {
+  width: max-content;
+}
+
 .grid {
   display: grid;
-  margin: auto; /* centered when smaller than the scroll area; scrolls when larger */
 }
 
 .cell {

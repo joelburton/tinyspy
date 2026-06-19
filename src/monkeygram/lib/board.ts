@@ -16,6 +16,17 @@ export const CELL = 44 // px per cell — fixed, so drag precision is constant
 export const MARGIN = 5 // empty cells padded around the extent = the droppable ring
 export const MIN_WINDOW = 13 // never render a window smaller than this (cells per side)
 
+// The grid renders centered inside a much larger "canvas" (this much empty
+// padding on every side). Two reasons:
+//   - The board never re-centers as it grows: with the grid pinned in a big
+//     canvas, growth just reveals more padding; the scroll compensation keeps
+//     existing tiles fixed on screen (no jump). A `margin: auto` centered grid,
+//     by contrast, slides to stay centered every time it changes size.
+//   - Scroll never clamps at 0: there's always slack to compensate leftward /
+//     upward growth, so the pin is exact. ~36 cells of slack each way covers any
+//     realistic board.
+export const CANVAS_PAD = 1600 // px of empty space around the grid on every side
+
 /** Just the positional fields computeWindow needs from a placement. */
 export type Cell = { row: number; col: number }
 

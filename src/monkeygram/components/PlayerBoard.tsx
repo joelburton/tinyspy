@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react'
 import { db } from '../db'
-import { CELL, computeWindow } from '../lib/board'
+import { CANVAS_PAD, CELL, computeWindow } from '../lib/board'
 import type {
   MonkeyGramBoardState,
   MonkeyGramPlacement,
@@ -160,21 +160,30 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     prevWin.current = { top: win.top, left: win.left }
   }, [win.top, win.left])
 
-  // Keep the keyboard cursor comfortably in view (runs after the anchor
-  // effect, so for cursor moves it wins — like a caret in a text field).
+  // Keep the keyboard cursor visible WITHOUT shifting on every keystroke.
+  // We only scroll when the cursor actually reaches the viewport edge, and
+  // then reveal a generous chunk ahead (LEAD) so it won't re-trigger for many
+  // more cells — short words near the middle never move the board at all, and
+  // a long word scrolls in occasional pages rather than nudging every letter.
+  // Runs after the anchor effect, so for cursor moves it wins.
   useLayoutEffect(() => {
     if (!cursor) return
     const c = scrollRef.current
     if (!c) return
-    const x = (cursor.col - win.left) * CELL
-    const y = (cursor.row - win.top) * CELL
-    const pad = CELL * 1.5
-    if (x - pad < c.scrollLeft) c.scrollLeft = x - pad
-    else if (x + CELL + pad > c.scrollLeft + c.clientWidth)
-      c.scrollLeft = x + CELL + pad - c.clientWidth
-    if (y - pad < c.scrollTop) c.scrollTop = y - pad
-    else if (y + CELL + pad > c.scrollTop + c.clientHeight)
-      c.scrollTop = y + CELL + pad - c.clientHeight
+    const x = CANVAS_PAD + (cursor.col - win.left) * CELL
+    const y = CANVAS_PAD + (cursor.row - win.top) * CELL
+    const trigger = CELL * 0.75 // scroll just before the cell is cut off
+    const LEAD = 0.65 // viewport fraction to keep on the side we move toward
+    if (x - trigger < c.scrollLeft) {
+      c.scrollLeft = x + CELL - c.clientWidth * LEAD
+    } else if (x + CELL + trigger > c.scrollLeft + c.clientWidth) {
+      c.scrollLeft = x - c.clientWidth * (1 - LEAD)
+    }
+    if (y - trigger < c.scrollTop) {
+      c.scrollTop = y + CELL - c.clientHeight * LEAD
+    } else if (y + CELL + trigger > c.scrollTop + c.clientHeight) {
+      c.scrollTop = y - c.clientHeight * (1 - LEAD)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor?.row, cursor?.col])
 
@@ -184,11 +193,13 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     const w = computeWindow(placementsRef.current)
     const cr = w.extent ? (w.extent.minR + w.extent.maxR) / 2 : w.top + w.rows / 2 - 0.5
     const cc = w.extent ? (w.extent.minC + w.extent.maxC) / 2 : w.left + w.cols / 2 - 0.5
-    c.scrollLeft = (cc - w.left + 0.5) * CELL - c.clientWidth / 2
-    c.scrollTop = (cr - w.top + 0.5) * CELL - c.clientHeight / 2
+    c.scrollLeft = CANVAS_PAD + (cc - w.left + 0.5) * CELL - c.clientWidth / 2
+    c.scrollTop = CANVAS_PAD + (cr - w.top + 0.5) * CELL - c.clientHeight / 2
   }, [])
 
-  useEffect(() => {
+  // Center on mount (layout effect, so the centered scroll is set before
+  // paint — no first-frame flash of the empty canvas corner).
+  useLayoutEffect(() => {
     recenter()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -439,16 +450,20 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     <div className={styles.layout}>
       <div className={styles.boardCol}>
         <div className={styles.boardScroll} ref={scrollRef}>
-          <div
-            className={styles.grid}
-            style={{
-              gridTemplateColumns: `repeat(${win.cols}, ${CELL}px)`,
-              gridTemplateRows: `repeat(${win.rows}, ${CELL}px)`,
-              width: win.cols * CELL,
-              height: win.rows * CELL,
-            }}
-          >
-            {cells}
+          {/* The grid sits centered in a much larger padded canvas so it never
+              re-centers as it grows — see CANVAS_PAD in lib/board.ts. */}
+          <div className={styles.canvas} style={{ padding: CANVAS_PAD }}>
+            <div
+              className={styles.grid}
+              style={{
+                gridTemplateColumns: `repeat(${win.cols}, ${CELL}px)`,
+                gridTemplateRows: `repeat(${win.rows}, ${CELL}px)`,
+                width: win.cols * CELL,
+                height: win.rows * CELL,
+              }}
+            >
+              {cells}
+            </div>
           </div>
         </div>
         <button type="button" className={styles.recenter} onClick={recenter}>
