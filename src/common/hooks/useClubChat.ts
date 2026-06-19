@@ -11,12 +11,13 @@ import type { Database } from '../../types/db'
  * Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
  * SELECT *". Adding a new column to common.messages requires
  * explicitly listing it here AND in the select() below. `sent_at`
- * is intentionally omitted: the server orders by it but no client
- * code reads it.
+ * is included as the unread bookmark — the chat-unread badge compares
+ * each message's `sent_at` against a per-club last-seen timestamp
+ * (see lib/chatUnread).
  */
 export type ClubMessage = Pick<
   Database['common']['Tables']['messages']['Row'],
-  'id' | 'user_id' | 'content'
+  'id' | 'user_id' | 'content' | 'sent_at'
 >
 
 /**
@@ -41,7 +42,7 @@ export function useClubChat(clubHandle: string) {
     async function load() {
       const { data } = await commonDb
         .from('messages')
-        .select('id, user_id, content')
+        .select('id, user_id, content, sent_at')
         .eq('club_handle', clubHandle)
         .order('sent_at', { ascending: true })
       if (!mounted) return

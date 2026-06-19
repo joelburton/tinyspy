@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useClubChat } from '../hooks/useClubChat'
 import { setChatOpen, useChatOpen } from '../lib/chatOpenStore'
+import {
+  computeUnread,
+  getChatLastSeen,
+  setChatLastSeen,
+  setChatUnread,
+} from '../lib/chatUnread'
 import { FloatingPanel } from './FloatingPanel'
 import { ChatBody } from './ChatBody'
 import styles from './FloatingChat.module.css'
@@ -10,6 +16,8 @@ import type { Member } from '../lib/games'
 type Props = {
   clubHandle: string
   members: Member[]
+  /** The viewing member — their own messages never count as unread. */
+  selfUserId: string
   /** When true, render nothing in the closed state — the bubble
    *  is being supplied elsewhere (e.g. the GamePage header's
    *  `<ChatBubble>`). The open-state panel still renders here.
@@ -69,6 +77,7 @@ type Props = {
 export function FloatingChat({
   clubHandle,
   members,
+  selfUserId,
   hideClosedButton = false,
 }: Props) {
   // Open/closed state lives in the shared chatOpenStore so the
@@ -112,6 +121,24 @@ export function FloatingChat({
       setChatOpen(true)
     }
   }, [messages, loading])
+
+  // Unread badge. While the panel is OPEN, everything in the log is
+  // presumed read — advance the per-club bookmark to the newest
+  // message and clear the badge. While CLOSED, publish the count +
+  // latest-sender color for the messages past the bookmark (no
+  // bookmark ⇒ the whole backlog). `<ChatBubble>` reads the result.
+  useEffect(function trackUnread() {
+    if (loading) return
+    const newest = messages.length > 0 ? messages[messages.length - 1] : null
+    if (open) {
+      if (newest) setChatLastSeen(clubHandle, newest.sent_at)
+      setChatUnread({ count: 0, color: null })
+      return
+    }
+    setChatUnread(
+      computeUnread(messages, getChatLastSeen(clubHandle), selfUserId, members),
+    )
+  }, [messages, open, loading, selfUserId, members, clubHandle])
 
   // Closed shape — either render nothing (when the bubble is in
   // the GamePage header) or the legacy bottom-right toggle (for

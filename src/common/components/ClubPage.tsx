@@ -646,7 +646,12 @@ export function ClubPage({ handle, session }: Props) {
       {/* hideClosedButton: the chat-bubble toggle lives in the
           header (<ChatBubble> above); FloatingChat only renders
           the panel itself, not a duplicate bottom-right button. */}
-      <FloatingChat clubHandle={club.handle} members={members} hideClosedButton />
+      <FloatingChat
+        clubHandle={club.handle}
+        members={members}
+        selfUserId={selfUserId}
+        hideClosedButton
+      />
 
       {pendingSetup && (
         <SetupGameDialog

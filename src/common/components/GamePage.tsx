@@ -329,6 +329,7 @@ export function GamePage({
       <FloatingChat
         clubHandle={commonGame.club_handle}
         members={players}
+        selfUserId={session.user.id}
         hideClosedButton
       />
 

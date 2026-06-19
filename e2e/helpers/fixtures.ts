@@ -106,3 +106,17 @@ export async function createGame(
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: 'psychicnum_coop' }
 }
+
+/** Send a club chat message as `from`. The realtime INSERT reaches
+ *  every connected client — which is what the unread-badge test
+ *  exercises. */
+export async function sendMessage(
+  club: E2EClub,
+  from: E2EMember,
+  content: string,
+): Promise<void> {
+  const res = await asUser(from.session.access_token)
+    .schema('common')
+    .rpc('send_message', { target_club: club.handle, content })
+  if (res.error) throw new Error(`send_message: ${res.error.message}`)
+}
