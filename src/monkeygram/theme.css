@@ -1,0 +1,14 @@
+/*
+ * monkeygram/theme.css — game-specific design tokens.
+ *
+ * Mirrors the other games' per-game theme files (tinyspy/psychicnum/
+ * wordknit/freebee). MonkeyGram's only bespoke surface is the letter
+ * tile — a cream Bananagrams-style face — so that's all that lives
+ * here for now. Everything else piggybacks on common/theme.css.
+ */
+
+:root {
+  --monkeygram-tile-face: #f3e3bf;
+  --monkeygram-tile-edge: #cdb887;
+  --monkeygram-tile-ink: #4a3b22;
+}

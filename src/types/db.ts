@@ -616,6 +616,115 @@ export type Database = {
       [_ in never]: never
     }
   }
+  monkeygram: {
+    Tables: {
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          hand_size: number
+          id: string
+          seed: number
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          hand_size: number
+          id: string
+          seed: number
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          hand_size?: number
+          id?: string
+          seed?: number
+        }
+        Relationships: []
+      }
+      player_boards: {
+        Row: {
+          game_id: string
+          state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          state: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_boards_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      progress: {
+        Row: {
+          done: boolean
+          finished_at: string | null
+          game_id: string
+          placed: number
+          unplaced: number
+          user_id: string
+        }
+        Insert: {
+          done?: boolean
+          finished_at?: string | null
+          game_id: string
+          placed?: number
+          unplaced: number
+          user_id: string
+        }
+        Update: {
+          done?: boolean
+          finished_at?: string | null
+          game_id?: string
+          placed?: number
+          unplaced?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      create_game: {
+        Args: { player_user_ids: string[]; setup: Json; target_club: string }
+        Returns: {
+          id: string
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   psychicnum: {
     Tables: {
       games: {
@@ -1253,6 +1362,9 @@ export const Constants = {
     Enums: {},
   },
   graphql_public: {
+    Enums: {},
+  },
+  monkeygram: {
     Enums: {},
   },
   psychicnum: {
