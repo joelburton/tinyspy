@@ -51,7 +51,12 @@ language plpgsql
 as $$
 declare
   scoring jsonb := '[]'::jsonb;
-  legal jsonb := jsonb_build_array('bcdfge', 'abcdef');
+  -- legal_words holds bonus-only entries (in the large dictionary
+  -- but not the scoring one). 'gfedcba' is a synthetic 7-distinct-
+  -- letter word covering the bonus-pangram path — verifies that
+  -- a bonus word with 7 distinct letters earns the +10 pangram
+  -- bonus per freebee-ws scoring (sessions.js:988-989).
+  legal jsonb := jsonb_build_array('bcdfge', 'abcdef', 'gfedcba');
   -- 28 four-letter + 1 five-letter + 1 seven-letter, in that order.
   syn_words text[] := array[
     'bead','beef','face','fade','cage','cafe','deaf','aged',
@@ -89,16 +94,19 @@ begin
 end;
 $$;
 
--- Default setup: coop, no timer. Tests that need a specific
--- mode or timer override fields via jsonb concatenation:
---   pg_temp.freebee_setup() || '{"mode": "compete", "target_rank": 3}'::jsonb
+-- Default setup: no timer. Mode is now a positional RPC arg
+-- (sibling-manifest split — gametype string carries the mode);
+-- the new freebee.create_game REJECTS a `mode` field on setup so
+-- a stale FE fails fast. Tests that exercise compete-mode setup
+-- shape (target_rank validation) override via jsonb concatenation:
+--   pg_temp.freebee_setup() || '{"target_rank": 3}'::jsonb
+-- and pass 'compete' as the create_game `mode` arg.
 
 create function pg_temp.freebee_setup()
 returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'mode',  'coop',
     'timer', jsonb_build_object('kind', 'none')
   );
 $$;

@@ -5,42 +5,54 @@ import type { TimerMode } from '../../common/lib/games'
  * persisted to `common.games.setup`, validated server-side in
  * `freebee.create_game`.
  *
- * v1 fields:
- *   - `mode` — `'coop'` (shared found list, no winner) for v1.
- *     `'compete'` is designed-in at the schema / RPC / RLS level
- *     but the FE never sets it yet. See docs/freebee.md →
- *     "Designing for compete (future)" for the wider rationale.
+ * **Mode is NOT on this type** — it's locked at the gametype
+ * level (the sibling-manifest pattern), not a setup-time choice.
+ * Clicking "Start FreeBee (coop)" vs "(compete)" is what picks
+ * mode; both manifests share this same setup shape. The
+ * `freebee.create_game` RPC rejects a `mode` field on setup with
+ * a loud P0001 — so a stale FE that still embeds it fails fast
+ * rather than silently mismatching.
+ *
+ * Fields:
  *   - `timer` — wall-clock mode (none / countup / countdown).
  *     Per-game rather than per-gametype so friends can pick
  *     their own challenge each session.
+ *   - `target_rank` — REQUIRED when starting from the compete
+ *     manifest; absent when starting from the coop manifest.
+ *     0..6 maps to the Start..Genius rank ladder. Compete wins
+ *     when the first player reaches this rank.
  *
  * Deferred fields (designed-in, FE not yet wiring them):
- *   - `target_rank` — required when `mode === 'compete'`,
- *     absent when `mode === 'coop'`.
  *   - `custom_letters` + `custom_center` — a player-specified
  *     puzzle override; bypasses the random builder.
- *
- * The deferred fields are optional on the type so a future PR
- * can populate them without changing every existing call site.
  */
 export type FreeBeeSetup = {
-  mode: 'coop' | 'compete'
   timer: TimerMode
+  /** Required in compete, absent in coop. Optional on the type
+   *  because both manifests share it; the per-mode default
+   *  factories below seed the field iff compete. */
   target_rank?: number
   custom_letters?: string
   custom_center?: string
 }
 
 /**
- * Initial setup the manifest hands the SetupGameDialog wrapper
- * as `defaults`.
- *
- * 10-minute countdown is the default per the wider pattern —
- * matches wordknit's and psychicnum's default timer choices,
- * and it's a reasonable "you have to actually play" length
- * without being punishing.
+ * Initial setup for the coop manifest. 10-minute countdown matches
+ * wordknit + psychicnum defaults — a reasonable "you have to
+ * actually play" length without being punishing.
  */
-export const DEFAULT_FREEBEE_SETUP: FreeBeeSetup = {
-  mode: 'coop',
+export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
   timer: { kind: 'countdown', seconds: 600 },
+}
+
+/**
+ * Initial setup for the compete manifest. Adds `target_rank: 5`
+ * (Amazing — the second-toughest tier on the 7-rank ladder). The
+ * SetupForm surfaces a picker so the choice is changeable per
+ * game; the default is the "decisive race without being a slog"
+ * pick from the design conversation.
+ */
+export const DEFAULT_FREEBEE_SETUP_COMPETE: FreeBeeSetup = {
+  timer: { kind: 'countdown', seconds: 600 },
+  target_rank: 5,
 }

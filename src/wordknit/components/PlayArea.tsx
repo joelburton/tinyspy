@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
-import { colorByUserIdMap } from '../../common/lib/memberColor'
+import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
@@ -16,31 +16,42 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
 
 /**
- * wordknit's play surface — composes the in-game pieces. The
- * cross-cutting chrome (logo, chat, players-strip / feedback-pill,
- * pause, timer) lives on `<GamePage>` above this component in
- * the route tree; here we just stitch together the gametype-
- * specific pieces (status line, `<CategoryBands>`, `<TileGrid>`,
- * action row). Transient feedback flows out via `ctx.feedback`
- * → the GamePage header's status slot.
+ * wordknit's play surface, shared between the coop and compete
+ * manifests. The mode is read from `game.mode` (set at create-
+ * game time and never changes); rendering branches on it for:
  *
- * Submission flow:
+ *   - **Selection**: coop shares via Broadcast (the TileGrid
+ *     shows per-tile peer attribution); compete keeps selections
+ *     local (every tile reads as "mine" because the broadcast
+ *     send is suppressed in useGame).
+ *   - **Mistakes**: coop shows a single shared dot row; compete
+ *     shows an OpponentMistakesStrip with everyone's per-player
+ *     counts.
+ *   - **Eliminated state** (compete only, non-terminal): caller's
+ *     mistake_count >= 4 → render the unmatched categories
+ *     revealed + a "you're out" indicator; let the game continue
+ *     for the survivors (opponents' counts keep ticking via the
+ *     realtime players-row subscription).
+ *   - **Terminal copy**: coop says "you win/lose" (team verdict);
+ *     compete distinguishes "you won the race" from "beaten to
+ *     the punch" using the caller's matched-count.
+ *
+ * Submission flow (unchanged from baseline):
  *   1. FE evaluates the guess locally against board.categories
- *      (FE-knows-the-answer; see docs/wordknit.md).
+ *      (FE-knows-the-answer; see docs/games/wordknit.md).
  *   2. Dup detection (sameTileSet on the existing guess log) —
- *      if duplicate, show banner, skip RPC.
+ *      in compete the log is RLS-filtered to caller, so dup-
+ *      detection only catches the caller's own repeats. Good.
  *   3. Fire submit_guess RPC with (tiles, result, rank).
- *   4. Realtime postgres-changes propagate the new state to every
- *      player; this hook refetches automatically.
- *   5. Broadcast a `clear` to drop everyone's selection.
+ *   4. Realtime postgres-changes propagate to every player; the
+ *      hook refetches automatically (players + guesses + games).
+ *   5. Broadcast a `clear` (no-op in compete because broadcast is
+ *      local-only there; coop drops everyone's selection).
  *
  * **Pause behavior**: PauseBoundary in GamePage unmounts this
  * component on pause and remounts on resume. The shared selection
  * state lives in `useGame` (component-local + broadcast); the
- * unmount drops it automatically, so reconnecting peers land in
- * an empty-selection state without an explicit `sendClear`-on-
- * pause wiring. The realtime channel teardown + re-subscribe gap
- * is covered by the on-SUBSCRIBED refetch.
+ * unmount drops it automatically.
  */
 export function PlayArea({
   session,
@@ -57,6 +68,9 @@ export function PlayArea({
     game,
     guesses,
     matchedCategories,
+    mistakeCount,
+    opponentMistakes,
+    isEliminated,
     selections,
     unionTiles,
     toggleTile,
@@ -68,9 +82,7 @@ export function PlayArea({
   // Per-player local tile order. NULL = use upstream
   // `remainingTiles` as-is (the shuffle the create_game RPC
   // baked in, same for every player). Setting to a permutation
-  // gives this client its own view; doesn't broadcast. See
-  // src/wordknit/lib/localOrder.ts for the reconciliation rule
-  // when categories get matched mid-game.
+  // gives this client its own view; doesn't broadcast.
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
   // Tiles currently playing the wrong-guess shake. PlayArea sets
   // this for ~500ms after `submit_guess` returns 'wrong', then
@@ -81,8 +93,7 @@ export function PlayArea({
   )
 
   // Auto-clear the shake set ~500ms after we set it (just past
-  // the animation's 400ms duration). Effect-based so the timeout
-  // is cleaned up on unmount / re-shake correctly.
+  // the animation's 400ms duration).
   useEffect(function autoClearShakeAfterAnimation() {
     if (shakingTiles.size === 0) return
     const t = setTimeout(() => setShakingTiles(new Set()), 500)
@@ -90,35 +101,27 @@ export function PlayArea({
   }, [shakingTiles])
 
   // Register the per-game menu items. Today there's one: "Hints,"
-  // which opens the HintModal. The cleanup return resets to []
-  // so PlayArea-unmount (pause, route change) clears the per-game
-  // section of the menu — common items (Help, Back to club) stay.
-  //
-  // Disabled when the game is over: the hints no longer help with
-  // a guess; the categories are already on the board by then.
+  // which opens the HintModal. Disabled when the game is over OR
+  // (in compete) when the caller is eliminated — hints don't help
+  // a player who can't submit anymore.
   useEffect(function syncMenuItems() {
     menu.setGameItems([
       {
         id: 'hints',
         label: 'Hints',
         onClick: () => setHintsOpen(true),
-        disabled: isTerminal,
+        disabled: isTerminal || isEliminated,
       },
     ])
     return () => menu.setGameItems([])
-  }, [menu, isTerminal])
+  }, [menu, isTerminal, isEliminated])
 
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
-  // after dismiss. See common/hooks/useTerminalModal.ts.
+  // after dismiss.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
-  // Local helper: every wordknit feedback today is `closeable` —
-  // a guess outcome should stay on screen until the player either
-  // makes another guess (which fires a fresh `show()` and replaces
-  // the pill) or explicitly dismisses it via the × button. No
-  // self-vanishing timer; misclicked dismiss → next guess brings
-  // it back.
+  // Local helper: every wordknit feedback today is `closeable`.
   function showFeedback(tone: FeedbackTone, text: string) {
     feedback.show({ tone, text, dismiss: { kind: 'closeable' } })
   }
@@ -127,9 +130,7 @@ export function PlayArea({
     if (submitting) return
     if (unionTiles.length !== 4 || !game) return
 
-    // Dup detection (FE-side per the FE-knows model). If this
-    // exact set has already been submitted, surface a transient
-    // feedback toast and skip the RPC.
+    // Dup detection (FE-side per the FE-knows model).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
       showFeedback('error', 'You already tried that')
       return
@@ -153,11 +154,6 @@ export function PlayArea({
     if (verdict.kind === 'oneAway') showFeedback('neutral', 'One away!')
     else if (verdict.kind === 'wrong') {
       showFeedback('error', 'Incorrect')
-      // Capture the just-submitted tiles into the shake set
-      // BEFORE sendClear drops the selection — once cleared,
-      // unionTiles will be empty on the next render. The cleanup
-      // effect above clears the set ~500ms later, matching the
-      // animation duration.
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -168,11 +164,6 @@ export function PlayArea({
   }
 
   function handleShuffle() {
-    // Compute the shuffle off the CURRENTLY-DISPLAYED tiles, not
-    // the upstream `remainingTiles`. That way a click on Shuffle
-    // re-randomizes what the player is looking at right now,
-    // rather than reverting-and-reshuffling — feels natural for
-    // "I want a fresh take on this set."
     setLocalOrder(shuffleTiles(displayedTiles))
   }
 
@@ -187,54 +178,52 @@ export function PlayArea({
     (t) => !matchedTiles.has(t),
   )
 
-  // Apply the local-shuffle overlay if the player has shuffled.
-  // The reconcile helper drops any tiles that just got matched
-  // while preserving the player's chosen order for the rest.
-  // Without a localOrder, the upstream order is the display.
   const displayedTiles = localOrder
     ? reconcileLocalOrder(localOrder, remainingTiles)
     : remainingTiles
 
-  // tile → user_id: at most one owner under the union semantics,
-  // but `selections` is the map of userId → tiles[] so we invert
-  // here for per-tile lookup inside the grid.
+  // tile → user_id mapping. In coop this carries every peer's
+  // contribution; in compete it only ever has the caller's tiles
+  // (broadcast is local-only there) so every tile reads as "mine"
+  // and the peer-frame logic in TileGrid never activates.
   const ownerByTile = new Map<string, string>()
   for (const [userId, list] of selections) {
     for (const t of list) ownerByTile.set(t, userId)
   }
 
-  // Pre-resolve each player's profile color to a CSS var string,
-  // built once per players-array reference change so TileGrid can
-  // look up by user_id at render time without re-walking the
-  // roster per tile. See common/lib/memberColor.ts for the helper.
   const colorByUserId = colorByUserIdMap(players)
+
+  // Eliminated-but-not-terminal: caller hit 4 mistakes in compete
+  // but the game continues for survivors. Treat the reveal +
+  // input-freeze like a personal game-over while the rest play on.
+  const showReveal = isTerminal || isEliminated
+  const showInput = !isTerminal && !isEliminated
 
   const canSubmit =
     unionTiles.length === 4
     && !submitting
-    && !isTerminal
-  const gameOver = isTerminal
+    && showInput
+
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
-  const unmatched = gameOver
+  const unmatched = showReveal
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
-  // Modal + indicator copy. `playState === 'solved'` is the only
-  // win path; otherwise the game ended via out-of-mistakes or
-  // out-of-time (distinguished by timer.expired).
-  const over = gameOver ? buildOver({
+  // Modal copy. Compete distinguishes "you won the race" from
+  // "beaten to the punch" using the caller's own matched count —
+  // RLS hides peer matches, so caller-with-4-matched is the
+  // server-confirmed winner; anyone else terminal-with-fewer-matches
+  // got beaten. Coop verdicts are team-wide.
+  const over = isTerminal ? buildOver({
+    mode: game.mode,
     playState,
     timerExpired: timer.expired,
+    selfMatched: matchedCategories.length,
   }) : null
 
   return (
     <div className={styles.boardArea}>
       <div className={styles.layout}>
-        {/* Board column (left): all the gameplay UI that was the
-            entire PlayArea before the history sidebar landed.
-            Wrapping in a column so the history sits beside it on
-            wide screens (and stacks below on narrow ones — see
-            the CSS media query). */}
         <div className={styles.boardCol}>
           <HintModal
             categories={game.board.categories}
@@ -244,7 +233,7 @@ export function PlayArea({
 
           <CategoryBands matched={matchedCategories} unmatched={unmatched} />
 
-          {!gameOver && (
+          {showInput && (
             <TileGrid
               tiles={displayedTiles}
               ownerByTile={ownerByTile}
@@ -255,7 +244,21 @@ export function PlayArea({
             />
           )}
 
-          {gameOver && over ? (
+          {/* Compete: opponent-mistakes strip above the action row.
+              Visible during play and after the game ends (post-game
+              review still benefits from the per-player snapshot).
+              Hidden in coop where the single shared dot row covers
+              everything. */}
+          {game.mode === 'compete' && (
+            <OpponentMistakesStrip
+              players={players}
+              selfId={session.user.id}
+              selfMistakes={mistakeCount}
+              opponentMistakes={opponentMistakes}
+            />
+          )}
+
+          {isTerminal && over ? (
             <div className={styles.gameOverIndicator}>
               <span>
                 <span className="muted">Game over:</span> {over.status}
@@ -268,18 +271,31 @@ export function PlayArea({
                 Back to club
               </button>
             </div>
+          ) : isEliminated ? (
+            // Compete spectator state: caller's out, others race on.
+            // No "back to club" button here — leaving while the game
+            // is non-terminal triggers the suspend-confirm flow via
+            // the GamePage menu, which is the right path. Sitting
+            // and watching is the intended UX.
+            <div className={styles.gameOverIndicator}>
+              <span>
+                <span className="muted">You're out:</span> the rest are
+                still racing
+              </span>
+            </div>
           ) : (
             <div className={styles.actions}>
-              {/* Mistakes-remaining on the left, baseline-aligned
-                  with the action buttons on the right. The mistakes
-                  dots are the at-a-glance "how many wrong guesses
-                  can we still afford" indicator; sitting next to
-                  the Submit button makes the cost of a bad guess
-                  visible the instant the player thinks about
-                  hitting Submit. */}
+              {/* Coop: shared mistakes dots. In compete the
+                  OpponentMistakesStrip above carries the caller's
+                  count alongside opponents', so this slot stays
+                  blank for visual focus on the buttons. */}
               <div className={styles.actionsLeft}>
-                Mistakes remaining{' '}
-                <MistakeDots used={game.mistake_count} />
+                {game.mode === 'coop' && (
+                  <>
+                    Mistakes remaining{' '}
+                    <MistakeDots used={mistakeCount} />
+                  </>
+                )}
               </div>
               <button
                 type="button"
@@ -309,9 +325,9 @@ export function PlayArea({
 
         </div>
 
-        {/* History sidebar (right): per-guess outcome log. Shows
-            during play and after the game ends (the trail matters
-            for post-game review). */}
+        {/* History sidebar: in coop shows every player's guesses;
+            in compete RLS already filters to caller's own so the
+            FE doesn't need to do anything special. */}
         <GuessHistory
           guesses={guesses}
           matchedCategories={matchedCategories}
@@ -331,33 +347,105 @@ export function PlayArea({
   )
 }
 
-/** Per-status modal + indicator copy. `playState === 'solved'` is
- *  the only positive terminal state; otherwise the game ended
- *  via out-of-mistakes or out-of-time (distinguished by
- *  timer.expired). Detail-on-page intentionally: the matched
- *  vs. unmatched categories are visible on the CategoryBands
- *  in the play area, the mistake count was visible in the
- *  bottom action row until the game ended. The modal stays
+/**
+ * Per-player mistakes strip for compete mode. Renders
+ * "You: ●○○○ · Bea: ●●○○ · Cade: ●●●● out", with each name in
+ * their profile color so the strip matches the rest of the
+ * multiplayer chrome.
+ *
+ * The strip is the entire "opponent visibility" surface in
+ * compete mode — you see mistake counts but never their guesses,
+ * matched-category counts, or which categories they've matched.
+ * Server-side RLS on `wordknit.guesses` enforces the latter;
+ * this just renders what we're allowed to know.
+ */
+function OpponentMistakesStrip({
+  players,
+  selfId,
+  selfMistakes,
+  opponentMistakes,
+}: {
+  players: { user_id: string; username: string; color: string }[]
+  selfId: string
+  selfMistakes: number
+  opponentMistakes: ReadonlyMap<string, number>
+}) {
+  // Sort: self first, then peers by username for stable order.
+  const ordered = [...players].sort((a, b) => {
+    if (a.user_id === selfId) return -1
+    if (b.user_id === selfId) return 1
+    return a.username.localeCompare(b.username)
+  })
+  return (
+    <p className={styles.opponentStrip}>
+      {ordered.map((p, i) => {
+        const mistakes = p.user_id === selfId
+          ? selfMistakes
+          : (opponentMistakes.get(p.user_id) ?? 0)
+        const label = p.user_id === selfId ? 'You' : p.username
+        const eliminated = mistakes >= 4
+        return (
+          <span key={p.user_id} className={styles.opponentEntry}>
+            {i > 0 && <span className={styles.opponentSep}>·</span>}
+            <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>:{' '}
+            <MistakeDots used={mistakes} />
+            {eliminated && <span className="muted"> out</span>}
+          </span>
+        )
+      })}
+    </p>
+  )
+}
+
+/** Per-status modal + indicator copy. Coop verdicts are team-wide;
+ *  compete distinguishes the racer who hit 4 matches (the winner)
+ *  from everyone else (beaten to the punch). Detail-on-page
+ *  intentionally: matched vs. unmatched categories show on the
+ *  CategoryBands, mistake counts on the strip; the modal stays
  *  focused on the verdict. */
 function buildOver({
+  mode,
   playState,
   timerExpired,
+  selfMatched,
 }: {
+  mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
+  selfMatched: number
 }): {
   outcome: 'won' | 'lost'
   verdict: string
   status: string
 } {
-  if (playState === 'solved') {
-    return { outcome: 'won', verdict: 'You win!', status: 'won' }
+  if (mode === 'coop') {
+    if (playState === 'solved') {
+      return { outcome: 'won', verdict: 'You win!', status: 'won' }
+    }
+    return {
+      outcome: 'lost',
+      verdict: timerExpired
+        ? 'You lost: out of time'
+        : 'You lost: out of mistakes',
+      status: timerExpired ? 'out of time' : 'out of mistakes',
+    }
   }
+  // compete
+  if (playState === 'solved_compete') {
+    return selfMatched >= 4
+      ? { outcome: 'won', verdict: 'You won the race!', status: 'you won' }
+      : {
+          outcome: 'lost',
+          verdict: 'Beaten to the punch.',
+          status: 'opponent won',
+        }
+  }
+  // lost_compete (everyone eliminated OR timeout)
   return {
     outcome: 'lost',
     verdict: timerExpired
-      ? 'You lost: out of time'
-      : 'You lost: out of guesses',
-    status: timerExpired ? 'out of time' : 'out of guesses',
+      ? 'Out of time — nobody won.'
+      : 'Everyone eliminated — nobody won.',
+    status: timerExpired ? 'out of time' : 'all eliminated',
   }
 }

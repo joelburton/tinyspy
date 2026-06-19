@@ -55,7 +55,7 @@ select set_config('role', 'postgres', true);
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   '42501',
@@ -71,7 +71,7 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   '42501',
@@ -90,7 +90,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- validated first)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, jsonb_build_object('timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, jsonb_build_object('timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
   'P0001',
@@ -101,7 +101,7 @@ select throws_ok(
 -- puzzleId is not a uuid
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, jsonb_build_object('puzzleId', 'not-a-uuid', 'timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, jsonb_build_object('puzzleId', 'not-a-uuid', 'timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
   'P0001',
@@ -112,7 +112,7 @@ select throws_ok(
 -- puzzleId is a valid uuid but no puzzle has it
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup('00000000-0000-0000-0000-000000000000'::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup('00000000-0000-0000-0000-000000000000'::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
   'P0002',
@@ -132,7 +132,7 @@ select throws_ok(
 -- timer field missing entirely (puzzleId present)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, jsonb_build_object('puzzleId', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, jsonb_build_object('puzzleId', %L::text), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
@@ -143,7 +143,7 @@ select throws_ok(
 -- timer.kind is bogus
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"fast"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"fast"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
@@ -154,7 +154,7 @@ select throws_ok(
 -- countdown without seconds
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
@@ -165,7 +165,7 @@ select throws_ok(
 -- countdown with 0 seconds (below min)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown","seconds":0}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown","seconds":0}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
@@ -176,7 +176,7 @@ select throws_ok(
 -- countdown with 3601 seconds (above max — Joel's 60-min cap)
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown","seconds":3601}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countdown","seconds":3601}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
@@ -190,7 +190,7 @@ select throws_ok(
 -- prior one, so chained lives_ok calls below are safe.
 select lives_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"none"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"none"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'create_game: timer.kind=none is accepted'
@@ -199,7 +199,7 @@ select lives_ok(
 -- 'countup' is accepted (no seconds needed)
 select lives_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countup"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid, '{"kind":"countup"}'::jsonb), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'create_game: timer.kind=countup is accepted'
@@ -214,7 +214,7 @@ create temp table created on commit drop as
 select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 select is(
@@ -234,9 +234,14 @@ select is(
 );
 
 select is(
-  (select mistake_count from wordknit.games where id = (select id from created)),
+  -- Post-compete-mode-migration: mistake_count moved off
+  -- wordknit.games and onto wordknit.players (one row per player,
+  -- lock-step in coop). Reading any row gives the canonical
+  -- shared value in coop; here we assert both rows are at 0.
+  (select coalesce(max(mistake_count), -1) from wordknit.players
+    where game_id = (select id from created)),
   0,
-  'create_game: new game starts with mistake_count = 0'
+  'create_game: every player''s mistake_count seeded to 0'
 );
 
 -- wordknit.games.puzzle_id is set to the fixture puzzle.
@@ -288,14 +293,14 @@ select is(
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'wordknit'),
+    where club_handle = (select handle from club) and gametype = 'wordknit_coop'),
   (select id::text from puzzle),
   'saved defaults: wordknit saves puzzleId verbatim'
 );
 
 select is(
   (select default_setup->'timer'->>'kind' from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'wordknit'),
+    where club_handle = (select handle from club) and gametype = 'wordknit_coop'),
   'countdown',
   'saved defaults: wordknit saves the full timer shape (10-min countdown from the happy-path call)'
 );
@@ -346,8 +351,8 @@ select is(
 select is(
   (select gametype from common.games
     where club_handle = (select handle from club) and is_current_view = true),
-  'wordknit',
-  'create_game: current-view common.games row has gametype = wordknit'
+  'wordknit_coop',
+  'create_game: current-view common.games row has gametype = wordknit_coop'
 );
 
 -- Title = "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where
@@ -380,7 +385,7 @@ select throws_ok(
                                       gen_random_uuid(),
                                       gen_random_uuid(),
                                       gen_random_uuid()
-                                    ]) $$,
+                                    ], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   'P0001',

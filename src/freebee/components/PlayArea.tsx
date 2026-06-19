@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { GamePageCtx, Member } from '../../common/lib/games'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { formatTimerSeconds } from '../../common/hooks/useGameTimer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -60,53 +61,66 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 /**
- * freebee's play surface (Phase 3 — input loop only).
+ * One row from the compete-mode leaderboard payload on
+ * `common.games.status`. The RPC writes the full array on every
+ * submission; the FE reads it from `ctx.status.leaderboard` for
+ * the OpponentRanksStrip.
+ */
+type LeaderboardEntry = {
+  user_id: string
+  score: number
+  rank_idx: number
+  words_found: number
+}
+
+/**
+ * freebee's play surface — shared between the coop and compete
+ * manifests. Mode is read off `game.mode` (denormalized at
+ * create_game time, surfaced on `freebee.games_state`).
  *
- * Responsibilities:
- *   - Render the honeycomb (Letters), the in-progress word
- *     (WordInput), the feedback pill (Feedback), and the
- *     three action buttons (Actions).
- *   - Track the typed word as local state, with click handlers
- *     for the letters + a global key handler for typing.
- *   - Fire `freebee.submit_word` and map the result enum to
- *     a feedback message.
- *   - Auto-clear feedback after a short timeout.
- *   - Lock interaction (disable Delete + Enter) when the game
- *     is terminal. Shuffle stays clickable post-end so the user
- *     can fidget without losing the board state.
+ * Per-mode rendering:
+ *   - **Coop**: shared score, shared rank bar, shared WordList
+ *     showing every player's finds with per-finder color, score
+ *     reaches Genius at 70% of total. Terminal verdict on
+ *     `ended` is Genius (rank ≥ 6) vs Stopped (rank < 6).
+ *   - **Compete**: caller-only score, caller-only WordList (RLS
+ *     filters peer rows during play), OpponentRanksStrip in the
+ *     side panel showing each opponent's current rank — that's
+ *     the entire "what opponents know about you" surface during
+ *     play. Terminal verdict on `won_compete` is "You won the
+ *     race!" vs "Beaten to the punch."; `ended` with
+ *     `outcome=timeout`/`manual` is "No winner at <rank>".
  *
- * What this phase does NOT do (yet):
- *   - Render found words. The list + per-finder color comes in
- *     Phase 4 (WordList).
- *   - Score + rank meter. Same.
- *   - Definition popover. Common feature; deferred per the plan.
- *
- * The component reads game data via `useGame(gameId)` (Pattern A
- * useRealtimeRefetch) and the cross-cutting chrome (header,
- * timer, pause, chat) lives in `<GamePage>` upstream.
+ * Cross-cutting chrome (header / pause / chat / timer) lives in
+ * `<GamePage>` above this component.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, isTerminal, menu, playState, players, timer, setup, goToClub } = ctx
+  const {
+    gameId, isTerminal, menu, playState, players, session, status, timer,
+    setup, goToClub,
+  } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
-  // Cast setup to FreeBeeSetup so the timer-mode display below
-  // can read `setup.timer.kind` for the "—" timer-cell case.
   const freebeeSetup = setup as FreeBeeSetup
 
   // Score + words-found derived from the FE's view of
-  // freebee.found_words. The server computes the same values
-  // from the same source for status.score / status.words_found;
-  // the two agree as long as everyone reads from the canonical
-  // table. Bonus rows have points=0 and don't count toward
-  // words_found.
+  // freebee.found_words. RLS narrows the rows to caller-only in
+  // compete, so the same computation works for both modes
+  // without a branch — coop sees the team's total, compete sees
+  // the caller's own.
+  // wordsFound counts ALL of the caller's accepted submissions
+  // (scoring + bonus). Matches freebee-ws's "found.length" stat —
+  // the displayed "X / Y words" can legitimately overshoot Y when
+  // the player digs into the bonus list. The denominator
+  // (game.total_words) stays scoring-only. score sums every row's
+  // points, which include bonus-word points after the bonus-
+  // scoring fix in the freebee_compete migration.
   const { score, wordsFound } = useMemo(() => {
     let s = 0
-    let w = 0
     for (const row of foundWords) {
       s += row.points
-      if (!row.is_bonus) w += 1
     }
-    return { score: s, wordsFound: w }
+    return { score: s, wordsFound: foundWords.length }
   }, [foundWords])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
@@ -124,8 +138,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // set-state-in-effect lint rule), we store a `shuffleSeed`
   // counter and recompute via useMemo. The first computation
   // happens once outer_letters is non-null; each Shuffle click
-  // bumps the seed, which re-runs the memo and produces a
-  // fresh order.
+  // bumps the seed, which re-runs the memo and produces a fresh
+  // order.
   //
   // **Dep is the outer_letters STRING, not the `game` object.**
   // useGame refetches on every realtime event (e.g., every
@@ -140,9 +154,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const outerShuffled = useMemo(() => {
     if (!outerLetters) return []
-    // The seed is in the dep array but its value isn't read —
-    // bumping it is what tells React to re-run the memo. The
-    // body itself just shuffles fresh from the source letters.
     void shuffleSeed
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
@@ -168,9 +179,6 @@ export function PlayArea(ctx: GamePageCtx) {
     tone: FeedbackTone
   }>({ message: '', tone: 'success' })
 
-  // Track the latest timeout id so a fresh submit cancels any
-  // pending clear. Stored in a ref because we don't want the
-  // clearing to re-run on every render.
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showFeedback = useCallback((message: string, tone: FeedbackTone) => {
@@ -184,8 +192,6 @@ export function PlayArea(ctx: GamePageCtx) {
     }, FEEDBACK_TIMEOUT_MS)
   }, [])
 
-  // Clean up any pending timer on unmount so PauseBoundary's
-  // child-unmount on pause doesn't leak a setTimeout.
   useEffect(function clearFeedbackTimerOnUnmount() {
     return () => {
       if (clearTimerRef.current !== null) {
@@ -206,9 +212,6 @@ export function PlayArea(ctx: GamePageCtx) {
         word,
       })
       if (error) {
-        // Hard errors are auth / not-a-player / game-not-in-progress.
-        // Surface the message verbatim — friends-only audience, no
-        // sanitization needed.
         showFeedback(error.message, 'error')
         return
       }
@@ -216,9 +219,6 @@ export function PlayArea(ctx: GamePageCtx) {
       const tone = RESULT_TONE[result] ?? 'error'
       const label = RESULT_LABEL[result] ?? result
       showFeedback(`${word.toUpperCase()}: ${label}`, tone)
-      // Always clear the typed word after a submit attempt —
-      // matches freebee-ws UX. The user can up-arrow to recall
-      // the last word; that's a Phase 4 polish item.
       setWord('')
     } finally {
       setSubmitting(false)
@@ -229,8 +229,6 @@ export function PlayArea(ctx: GamePageCtx) {
   useGlobalKeyHandler(
     useCallback(
       (e: KeyboardEvent) => {
-        // Skip when focus is in an input/textarea — the chat box
-        // or a setup field shouldn't dispatch into the board.
         const target = e.target as HTMLElement | null
         if (
           target
@@ -241,7 +239,6 @@ export function PlayArea(ctx: GamePageCtx) {
         if (loading || !game) return
         if (isTerminal) return
 
-        // Letter keys: a-z (one character) goes into the typed word.
         if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
           setWord((prev) => prev + e.key.toUpperCase())
           return
@@ -253,16 +250,10 @@ export function PlayArea(ctx: GamePageCtx) {
         }
         if (e.key === 'Enter') {
           e.preventDefault()
-          // handleSubmit is intentionally fire-and-forget here —
-          // the keydown event doesn't await anything. The
-          // submitting-guard inside handleSubmit prevents the
-          // race where the user mashes Enter.
           void handleSubmit()
           return
         }
         if (e.key === ' ') {
-          // Space = shuffle, matching freebee-ws. preventDefault
-          // so the browser doesn't scroll.
           e.preventDefault()
           handleShuffle()
           return
@@ -273,24 +264,16 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── End-game action (per-game menu item) ──────────────
-  // freebee has no intrinsic terminal state — coop play continues
-  // until either the countdown hits 0 or the friends agree they're
-  // done. The "agree they're done" path is this menu item; it
-  // fires freebee.end_game which flips play_state='ended' with
-  // status.outcome='manual'. The window.confirm guard catches
-  // the misclick — light UI bar matching the alpha-software prior.
+  // Available in both modes. In compete, manual end terminates
+  // the race with everyone {won:false} — friends agreeing to stop
+  // the race is a valid outcome, not a "you lose" punishment.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      // Surface in the existing feedback pill; the user already
-      // dismissed the confirm so an error is unexpected.
       showFeedback(`End game failed: ${error.message}`, 'error')
     }
-    // No optimistic UI — once the RPC commits, useCommonGame's
-    // realtime sub on common.games sees is_terminal=true and the
-    // GameOverModal pops via useTerminalModal below.
   }, [gameId, isTerminal, showFeedback])
 
   useEffect(function syncMenuItems() {
@@ -305,23 +288,10 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameItems([])
   }, [handleEndGame, isTerminal, menu])
 
-  // ─── Terminal modal + verdict mapping ──────────────────
-  // Shared scaffold: open on mount if already-terminal, re-pop
-  // when isTerminal flips during play, no re-pop after dismiss.
-  // See common/hooks/useTerminalModal.ts.
-  //
   // Called UNCONDITIONALLY here, before any early returns —
-  // React forbids conditional hook calls. The early returns
-  // below are pure-render branches that all happen after every
-  // hook has run.
+  // React forbids conditional hook calls.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
-  // ─── Early returns ─────────────────────────────────────
-  // Saved (suspended / terminal) freebee games trip these on
-  // every reopen: the realtime channel attaches, then `load()`
-  // resolves async, so the first render has `loading=true` and
-  // `game=null`. Without the guards, the JSX below would
-  // dereference `game.center_letter` and crash.
   if (loading) {
     return <div className={styles.loading}>Loading…</div>
   }
@@ -329,32 +299,48 @@ export function PlayArea(ctx: GamePageCtx) {
     return <div className={styles.empty}>Game not found.</div>
   }
 
-  // ─── Derived values (game is guaranteed non-null) ──────
-  // Timer display: "—" when timer mode is none (countup / countdown
-  // share the same MM:SS render). The useGameTimer hook upstream
-  // gives us displaySeconds regardless of mode; we only need to
-  // decide whether to surface the digits or the em-dash.
+  const isCompete = game.mode === 'compete'
+
   const timerDisplay =
     freebeeSetup.timer?.kind === 'none'
       ? '—'
       : formatTimerSeconds(timer.displaySeconds)
 
-  // The verdict mapper is pure: given playState + the final
-  // stats, return modal + indicator copy. Kept alongside the
-  // render so future mode/outcome additions land in one place.
-  //
-  // status.outcome isn't on GamePageCtx today (it lives on
-  // common.games and the ctx doesn't surface the full jsonb).
-  // For v1 we derive the outcome from `playState` + the
-  // foundWords-derived score, which is sufficient to choose
-  // between "Genius!" and "Time's up — you reached <rank>".
-  // When the ctx exposes status, threading it through here is
-  // the cleanup.
+  // Caller's current rank in the local ladder. For compete this
+  // is the value the OpponentRanksStrip surfaces for the "You:
+  // <rank>" entry. For coop it's the team rank (same number, same
+  // computation — the RLS-narrowed sum just happens to equal the
+  // team sum in coop because everyone sees every row).
+  const selfRankIdx = currentRankIndex(score, game.total_score)
+
+  // Compete-only: pull the leaderboard payload off the live
+  // status jsonb. Pre-first-submission the array is empty and
+  // the strip falls back to placeholder zeros for opponents.
+  const leaderboard = isCompete
+    ? readLeaderboard(status)
+    : null
+  // Target rank reads off `setup`, NOT `status.target_rank`. Setup
+  // is fixed at create_game time and lives on every code path; the
+  // status copy is written by submit_word's mid-game path and by
+  // the won_compete terminal, but submit_timeout + end_game don't
+  // re-emit it on the terminal status. Reading from setup avoids
+  // a "Time up — no winner at Genius" verdict on a game that
+  // actually targeted Amazing.
+  const targetRankIdx = isCompete
+    ? (freebeeSetup.target_rank ?? null)
+    : null
+
   const over = isTerminal
     ? buildOver({
+      mode: game.mode,
       playState,
+      status,
+      targetRankIdx,
       score,
       totalScore: game.total_score,
+      selfRankIdx,
+      selfUserId: session.user.id,
+      players,
     })
     : null
 
@@ -387,6 +373,15 @@ export function PlayArea(ctx: GamePageCtx) {
       </div>
       <div className={styles.sidePanel}>
         <RankBar score={score} total={game.total_score} />
+        {isCompete && targetRankIdx !== null && (
+          <OpponentRanksStrip
+            players={players}
+            leaderboard={leaderboard ?? []}
+            selfUserId={session.user.id}
+            selfRankIdx={selfRankIdx}
+            targetRankIdx={targetRankIdx}
+          />
+        )}
         <Stats
           score={score}
           totalScore={game.total_score}
@@ -417,6 +412,83 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 }
 
+/** Type-narrow read for status.leaderboard. Returns an empty
+ *  array if the field is missing or malformed (defensive — the
+ *  server writes it on every submit but pre-first-submission
+ *  it's `[]`). */
+function readLeaderboard(
+  status: Record<string, unknown> | null,
+): LeaderboardEntry[] {
+  if (!status) return []
+  const raw = status.leaderboard
+  if (!Array.isArray(raw)) return []
+  return raw as LeaderboardEntry[]
+}
+
+/**
+ * Per-player rank strip for compete mode. Renders
+ * "You: Great · Bea: Nice · Cade: Solid · target: Amazing", with
+ * each name in their profile color so the strip matches the rest
+ * of the multiplayer chrome.
+ *
+ * Per the design decision, opponents see RANK ONLY — no raw
+ * score, no words-found count. The leaderboard payload carries
+ * all three; the strip ignores the latter two. Matches wordknit's
+ * OpponentMistakesStrip framing.
+ *
+ * Self's rank reads from the local FE computation (`selfRankIdx`,
+ * derived from caller-narrowed `foundWords`) rather than from the
+ * leaderboard entry; that way the strip's "You" updates in lock
+ * step with the RankBar above it, without waiting for the round-
+ * trip refresh of `common.games.status`.
+ */
+function OpponentRanksStrip({
+  players,
+  leaderboard,
+  selfUserId,
+  selfRankIdx,
+  targetRankIdx,
+}: {
+  players: Member[]
+  leaderboard: LeaderboardEntry[]
+  selfUserId: string
+  selfRankIdx: number
+  targetRankIdx: number
+}) {
+  const byUserId = new Map<string, LeaderboardEntry>()
+  for (const entry of leaderboard) byUserId.set(entry.user_id, entry)
+
+  // Sort: self first, then peers by username for stable order.
+  const ordered = [...players].sort((a, b) => {
+    if (a.user_id === selfUserId) return -1
+    if (b.user_id === selfUserId) return 1
+    return a.username.localeCompare(b.username)
+  })
+
+  return (
+    <div className={styles.opponentStrip}>
+      <div className={styles.opponentTargetRow}>
+        target: <strong>{RANKS[targetRankIdx]}</strong>
+      </div>
+      <div className={styles.opponentEntries}>
+        {ordered.map((p, i) => {
+          const rankIdx = p.user_id === selfUserId
+            ? selfRankIdx
+            : (byUserId.get(p.user_id)?.rank_idx ?? 0)
+          const label = p.user_id === selfUserId ? 'You' : p.username
+          return (
+            <span key={p.user_id} className={styles.opponentEntry}>
+              {i > 0 && <span className={styles.opponentSep}>·</span>}
+              <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>
+              : {RANKS[rankIdx]}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Maps the terminal play_state to:
  *   - `outcome` — the GameOverModal's green/red color cue.
@@ -425,53 +497,93 @@ export function PlayArea(ctx: GamePageCtx) {
  *     indicator (the line that replaces the Feedback row once
  *     the modal is dismissed).
  *
- * v1 cases:
- *   - playState='ended' with no further info → derived as
- *     completed-vs-timeout by score: if score reaches Genius
- *     threshold (rank 6) it was almost certainly a 100%-found
- *     completion, and we frame it as a win. Otherwise it's
- *     reasonable to frame as a timeout (the only other v1
- *     terminal path). We can refine when status.outcome flows
- *     down through GamePageCtx — until then, score-based
- *     framing is good enough for the modal copy.
+ * Coop:
+ *   - `playState='ended'` + Genius rank → "Genius! N/M points."
+ *   - `playState='ended'` + lower rank → "Stopped at <rank> —
+ *     N/M points." (covers timeout AND manual end, since the
+ *     player already knows which one happened)
  *
- * Future cases (designed-in):
- *   - 'won_compete' → outcome='won', verdict="<winner> won at
- *     <rank>". Renders when compete mode ships.
+ * Compete:
+ *   - `playState='won_compete'` + caller is winner → "You won
+ *     the race — reached <rank>!"
+ *   - `playState='won_compete'` + caller is NOT winner → "<name>
+ *     beat you to <rank>."
+ *   - `playState='ended'` with outcome='timeout' → "Time's up —
+ *     no winner at <rank>."
+ *   - `playState='ended'` with outcome='manual' → "Game ended —
+ *     no winner at <rank>."
  */
 function buildOver({
+  mode,
   playState,
+  status,
+  targetRankIdx,
   score,
   totalScore,
+  selfRankIdx,
+  selfUserId,
+  players,
 }: {
+  mode: 'coop' | 'compete'
   playState: string
+  status: Record<string, unknown> | null
+  /** From `setup.target_rank` — null in coop, present in compete. */
+  targetRankIdx: number | null
   score: number
   totalScore: number
+  selfRankIdx: number
+  selfUserId: string
+  players: Member[]
 }): {
   outcome: 'won' | 'lost'
   verdict: string
   indicator: string
 } {
-  const rank = currentRankIndex(score, totalScore)
-  const rankName = RANKS[rank]
+  const rankName = RANKS[selfRankIdx]
 
-  if (playState === 'won_compete') {
+  if (mode === 'compete') {
+    // Passed in from setup, not derived here — see the comment at
+    // the call site for why status is the wrong source for this.
+    const targetRankName = RANKS[targetRankIdx ?? 6]
+
+    if (playState === 'won_compete') {
+      const winnerId = (status?.winner_user_id as string | undefined) ?? null
+      const selfWon = winnerId === selfUserId
+      if (selfWon) {
+        return {
+          outcome: 'won',
+          verdict: `You won the race — reached ${targetRankName}!`,
+          indicator: `you won at ${targetRankName}`,
+        }
+      }
+      const winnerName =
+        players.find((p) => p.user_id === winnerId)?.username ?? 'someone'
+      return {
+        outcome: 'lost',
+        verdict: `${winnerName} beat you to ${targetRankName}.`,
+        indicator: `${winnerName} won at ${targetRankName}`,
+      }
+    }
+
+    // playState='ended' in compete: timeout or manual. No winner
+    // either way — the race didn't finish.
+    const outcome = (status?.outcome as string | undefined) ?? 'ended'
+    if (outcome === 'timeout') {
+      return {
+        outcome: 'lost',
+        verdict: `Time's up — no winner at ${targetRankName}.`,
+        indicator: `time up — no winner at ${targetRankName}`,
+      }
+    }
     return {
-      outcome: 'won',
-      verdict: 'Compete won!',
-      indicator: 'compete winner',
+      outcome: 'lost',
+      verdict: `Game ended — no winner at ${targetRankName}.`,
+      indicator: `ended — no winner at ${targetRankName}`,
     }
   }
 
-  // playState === 'ended' — covers all three v1 outcomes:
-  // 'completed' (100% found), 'timeout' (countdown expired),
-  // and 'manual' (the End-game menu item). The ctx doesn't
-  // surface status.outcome today so we frame by rank instead:
-  // Genius means a near-100% finish (well-played) and gets the
-  // green/positive treatment; lower ranks get neutral copy
-  // that reads correctly whether the timer ran out or the
-  // friends stopped on purpose.
-  if (rank >= 6) {
+  // coop
+  if (selfRankIdx >= 6) {
     return {
       outcome: 'won',
       verdict: `Genius! ${score}/${totalScore} points.`,

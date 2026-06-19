@@ -36,6 +36,10 @@ export type Player = Member
 export type FreeBeeGame = {
   id: string
   club_handle: string
+  /** Denormalized from `freebee.games.mode`. Drives FE branching
+   *  for the OpponentRanksStrip + win-vs-loss verdict copy in the
+   *  PlayArea. Set at create_game time, immutable afterward. */
+  mode: 'coop' | 'compete'
   outer_letters: string
   center_letter: string
   total_score: number
@@ -109,7 +113,7 @@ export function useGame(gameId: string): {
         db
           .from('games_state')
           .select(
-            'id, club_handle, outer_letters, center_letter, total_score, total_words, created_at, scoring_words, legal_words',
+            'id, club_handle, mode, outer_letters, center_letter, total_score, total_words, created_at, scoring_words, legal_words',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -133,6 +137,7 @@ export function useGame(gameId: string): {
       setGame({
         id: gameRes.data.id as string,
         club_handle: gameRes.data.club_handle as string,
+        mode: gameRes.data.mode as 'coop' | 'compete',
         outer_letters: gameRes.data.outer_letters as string,
         center_letter: gameRes.data.center_letter as string,
         total_score: gameRes.data.total_score as number,

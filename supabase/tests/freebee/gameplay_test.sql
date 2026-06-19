@@ -35,7 +35,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(48);
+select plan(50);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -55,6 +55,7 @@ select * from freebee.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
+  'coop',
   pg_temp.freebee_board()
 );
 
@@ -130,25 +131,52 @@ select is(
   'submit_word: legal-but-not-scoring word returns "bonus"'
 );
 
+-- Bonus words score the same as scoring words per freebee-ws:
+-- length-based (1 pt for 4-letter, length pts for ≥5) + pangram
+-- bonus when 7 distinct letters. 'bcdfge' is 6 distinct letters,
+-- length 6 → 6 pts, not a pangram.
 select is(
-  (select (points, is_bonus) from freebee.found_words
+  (select (points, is_bonus, is_pangram) from freebee.found_words
     where game_id = (select id from g) and word = 'bcdfge'),
-  (0, true),
-  'submit_word: bonus row has 0 points + is_bonus=true'
+  (6, true, false),
+  'submit_word: bonus row scores length-based (6 pts), is_bonus=true, not a pangram'
 );
 
--- Score did NOT change (bonus is 0 pts), but words_found is
--- also unchanged because bonus words don't count toward
--- words_found / total_words.
+-- Score advances WITH the bonus points. words_found counts ALL
+-- accepted submissions (scoring + bonus), matching freebee-ws's
+-- "found.length" stat — the display can overshoot total_words
+-- when the team finds bonus extras.
 select is(
   (select (status->>'score')::int from common.games where id = (select id from g)),
-  18,                                       -- 1 (bead) + 17 (pangram); bonus contributes 0
-  'status.score unchanged by bonus word'
+  24,                                       -- 1 (bead) + 17 (pangram) + 6 (bonus)
+  'status.score includes bonus-word points'
 );
 select is(
   (select (status->>'words_found')::int from common.games where id = (select id from g)),
-  2,                                        -- bead + pangram; bonus not counted
-  'status.words_found excludes bonus words'
+  3,                                        -- bead + pangram + bonus (all counted)
+  'status.words_found counts ALL submissions incl. bonus (overshoot OK)'
+);
+
+-- ============================================================
+-- (3b) Bonus pangram: legal-only word with 7 distinct letters
+-- ============================================================
+-- 'gfedcba' (synthetic, in legal_words via the fixture) uses
+-- all 7 puzzle letters. Per freebee-ws scoring, the +10 pangram
+-- bonus applies regardless of whether the word is in the scoring
+-- or legal set — pangram-ness comes from the WORD's distinct
+-- letter count, not from the precomputed scoring-entry flag.
+
+select is(
+  freebee.submit_word((select id from g), 'gfedcba'),
+  'bonus',
+  'submit_word: legal-only 7-distinct-letter word returns "bonus"'
+);
+
+select is(
+  (select (points, is_bonus, is_pangram) from freebee.found_words
+    where game_id = (select id from g) and word = 'gfedcba'),
+  (17, true, true),
+  'submit_word: bonus pangram scores length(7)+pangram(10) = 17, is_pangram=true'
 );
 
 -- ============================================================
@@ -230,10 +258,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table compete_g on commit drop as
 select * from freebee.create_game(
   (select handle from club),
-  pg_temp.freebee_setup() || '{"mode": "compete", "target_rank": 2}'::jsonb,
+  pg_temp.freebee_setup() || '{"target_rank": 2}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
+  'compete',
   pg_temp.freebee_board()
 );
 
@@ -381,13 +410,14 @@ select is(
 );
 
 -- legal_words materializes through the parallel helper. The
--- test board's legal_words array has 2 entries (the synthetic
--- bonus-only words from setup.psql); confirm they surface too.
+-- test board's legal_words array has 3 entries (the synthetic
+-- bonus-only words from setup.psql, incl. the 7-letter bonus
+-- pangram); confirm they surface too.
 select is(
   (select array_length(legal_words, 1) from freebee.games_state
     where id = (select id from g)),
-  2,
-  'coop terminal: games_state.legal_words is now visible (2 bonus entries)'
+  3,
+  'coop terminal: games_state.legal_words is now visible (3 bonus entries)'
 );
 
 -- ============================================================
@@ -405,6 +435,7 @@ select * from freebee.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
+  'coop',
   pg_temp.freebee_board()
 );
 
@@ -490,6 +521,7 @@ select * from freebee.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
+  'coop',
   pg_temp.freebee_board()
 );
 
@@ -575,6 +607,7 @@ select * from freebee.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
+  'coop',
   pg_temp.freebee_board()
 );
 

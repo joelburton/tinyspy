@@ -41,6 +41,21 @@ export type GamePageCtx = {
    *  on access. Read-only at this level — setup is fixed at
    *  game-creation time. */
   setup: Record<string, unknown>
+  /** The game's live `common.games.status` jsonb — the per-
+   *  gametype "where is this game now" snapshot maintained by
+   *  each state-transition RPC (the duplicate-write discipline;
+   *  see docs/states.md). Typed as `Record<string, unknown> | null`
+   *  here because each gametype writes its own shape; per-game
+   *  PlayAreas cast to their own status type on access. Reflects
+   *  the latest value seen by `useCommonGame`'s realtime
+   *  subscription — updates in place as RPCs land.
+   *
+   *  Today's primary consumer is freebee's compete-mode
+   *  OpponentRanksStrip, which reads `status.leaderboard` for
+   *  the per-player rank summary. The same channel is open to
+   *  any future game that wants a live status field surfaced
+   *  to the play surface. */
+  status: Record<string, unknown> | null
   /** Imperative API for the GamePage-header feedback slot. The
    *  PlayArea calls `feedback.show({...})` to surface transient
    *  or persistent feedback in the `<StatusSlot>` (replacing the
@@ -156,6 +171,12 @@ export type SetupBodyProps = {
   /** Club the game would start in. Per-game setup forms that
    *  need club-scoped data read it; the rest ignore it. */
   clubHandle: string
+  /** The manifest's `mode` — `'coop'` or `'compete'`. Forwarded
+   *  so sibling-pair setup forms (wordknit, psychicnum) that
+   *  query mode-aware club state (e.g. wordknit's per-date
+   *  calendar overlay) can scope their reads to the right mode.
+   *  Setup forms for single-mode games can ignore it. */
+  mode: 'coop' | 'compete'
   value: unknown
   onChange: (next: unknown) => void
 }

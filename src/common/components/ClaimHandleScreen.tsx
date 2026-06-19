@@ -7,6 +7,10 @@ type Props = {
    *  succeeds, so the parent App.tsx flips needsClaim → false and
    *  renders HomePage instead of this screen. */
   onClaimed: () => void
+  /** Signed-in user's email address. Used to derive a placeholder
+   *  suggestion from the local-part — better than a hardcoded
+   *  "joel" that's confusing for everyone else. */
+  email: string | null | undefined
 }
 
 /**
@@ -38,10 +42,39 @@ type Props = {
 // claim_username_test.sql gate the server side.
 const HANDLE_REGEX = /^[a-z][a-z0-9-]{2,29}$/
 
-export function ClaimHandleScreen({ onClaimed }: Props) {
+/**
+ * Derive a placeholder handle from an email address. Normalizes
+ * the local-part (lowercase, drop invalid chars, drop leading
+ * non-letters, truncate to 30) and returns the result only if it
+ * satisfies HANDLE_REGEX — otherwise an empty string so the input
+ * shows no placeholder rather than something misleading like
+ * "foo!" or a too-short fragment.
+ *
+ * Examples:
+ *   joel.burton@gmail.com  → "joelburton"
+ *   joel+test@example.com  → "joeltest"
+ *   123foo@x.com           → "foo"     (leading digits dropped)
+ *   jb@x.com               → ""        (only 2 chars, fails regex)
+ */
+function suggestedHandleFromEmail(email: string | null | undefined): string {
+  if (!email) return ''
+  const localPart = email.split('@')[0] ?? ''
+  const normalized = localPart
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')   // strip dots, plus-tags, underscores, …
+    .replace(/^[^a-z]+/, '')       // must start with a letter
+    .slice(0, 30)
+  return HANDLE_REGEX.test(normalized) ? normalized : ''
+}
+
+export function ClaimHandleScreen({ onClaimed, email }: Props) {
   const [desired, setDesired] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Computed once per email-prop change — cheap regex work, no
+  // need for useMemo. Empty string when the email doesn't yield
+  // a valid handle (the <input> just shows no placeholder then).
+  const placeholder = suggestedHandleFromEmail(email)
 
   // FE-side regex check, shown as you type. Empty string → no
   // hint (don't badger the user before they've typed anything).
@@ -98,7 +131,7 @@ export function ClaimHandleScreen({ onClaimed }: Props) {
             value={desired}
             onChange={(e) => setDesired(e.target.value)}
             disabled={busy}
-            placeholder="joel"
+            placeholder={placeholder}
             autoFocus
             required
           />

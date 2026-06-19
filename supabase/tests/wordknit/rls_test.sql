@@ -35,7 +35,7 @@ create temp table g on commit drop as
 select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 -- A wrong guess so there's a row in wordknit.guesses for dee
@@ -98,7 +98,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    $$ select wordknit.create_game(%L, pg_temp.wordknit_setup(%L::uuid), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club), (select id from puzzle)
   ),
   '42501',

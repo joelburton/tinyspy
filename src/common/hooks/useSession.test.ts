@@ -25,10 +25,11 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockOnAuthStateChange, mockSignOut, mockMaybeSingle } = vi.hoisted(() => ({
+const { mockOnAuthStateChange, mockSignOut, mockMaybeSingle, mockGetUser } = vi.hoisted(() => ({
   mockOnAuthStateChange: vi.fn(),
   mockSignOut: vi.fn(),
   mockMaybeSingle: vi.fn(),
+  mockGetUser: vi.fn(),
 }))
 
 vi.mock('../lib/supabase', () => ({
@@ -36,6 +37,7 @@ vi.mock('../lib/supabase', () => ({
     auth: {
       onAuthStateChange: mockOnAuthStateChange,
       signOut: mockSignOut,
+      getUser: mockGetUser,
     },
     // The hook's query is `supabase.schema('common').from('profiles')
     //   .select('user_id').eq('user_id', X).maybeSingle()` — we collapse
@@ -70,6 +72,13 @@ beforeEach(() => {
   })
   mockSignOut.mockResolvedValue({ error: null })
   mockMaybeSingle.mockResolvedValue({ data: { user_id: fakeSession.user.id }, error: null })
+  // Default: getUser confirms the stored session is valid. The
+  // tests that exercise the "JWT outlived the user" path override
+  // this with mockGetUser.mockResolvedValueOnce({...}).
+  mockGetUser.mockResolvedValue({
+    data: { user: { id: fakeSession.user.id } },
+    error: null,
+  })
 })
 
 afterEach(() => {
@@ -133,6 +142,61 @@ describe('useSession', () => {
     expect(result.current.session).toBe(fakeSession)
     expect(result.current.needsClaim).toBe(true)
     expect(mockSignOut).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('signs out when the stored JWT refers to a deleted user (4xx from getUser)', async () => {
+    // The "db:reset wiped auth.users while a JWT is still in
+    // localStorage" case: getUser returns a 401-ish AuthError.
+    // The hook must call signOut so the next render falls back
+    // to LoginScreen — without this, the user lands on
+    // ClaimHandleScreen and the claim attempt fails with 23503,
+    // which surfaces as a confusing inline error rather than a
+    // clean restart.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: Object.assign(new Error('User from sub claim in JWT does not exist'), {
+        status: 403,
+      }),
+    })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockSignOut).toHaveBeenCalledTimes(1)
+    expect(result.current.session).toBeNull()
+    expect(result.current.needsClaim).toBe(false)
+    // We never reached the profile probe — the auth check
+    // short-circuited.
+    expect(mockMaybeSingle).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('treats a transient getUser error as trust-the-session (no signOut)', async () => {
+    // 5xx / network-down case: Supabase is reachable enough to
+    // attempt the request but the response is unusable. Friends-
+    // alpha posture is "trust the stored session, proceed to the
+    // profile probe" — better than booting the user out every
+    // time Supabase has a hiccup.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: Object.assign(new Error('upstream timeout'), { status: 503 }),
+    })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockSignOut).not.toHaveBeenCalled()
+    expect(result.current.session).toBe(fakeSession)
+    expect(result.current.needsClaim).toBe(false)  // profile probe defaulted to claimed
     warnSpy.mockRestore()
   })
 

@@ -60,7 +60,9 @@ export default function App() {
   // Signed in but no profile row yet — block all app routes until
   // they pick a username. ClaimHandleScreen calls refresh() on
   // success so this gate flips off without a page reload.
-  if (needsClaim) return <ClaimHandleScreen onClaimed={refresh} />
+  if (needsClaim) return (
+    <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
+  )
 
   // Resolve the current route to a page component. UserMenu is
   // mounted as a sibling below — appears on every authenticated
@@ -78,7 +80,12 @@ export default function App() {
       // Anything else under /g/ falls through to HomePage (rather
       // than rendering a broken game screen), matching the
       // "be forgiving with URLs" stance.
-      const gameMatch = path.match(/^\/g\/([a-z0-9]+)\/([0-9a-f-]+)\/?$/i)
+      // Gametype allows underscore so the sibling-manifest pair strings
+      // (wordknit_coop, wordknit_compete, psychicnum_coop, …) match.
+      // Without it, opening a sibling game silently falls through to
+      // the HomePage fallback below — the user lands back at their
+      // club list with no console error to explain why.
+      const gameMatch = path.match(/^\/g\/([a-z0-9_]+)\/([0-9a-f-]+)\/?$/i)
       if (gameMatch) {
         const [, gametype, gameId] = gameMatch
         const game = games.find((g) => g.gametype === gametype)

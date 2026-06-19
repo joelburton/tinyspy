@@ -415,6 +415,7 @@ export type Database = {
           created_at: string
           id: string
           legal_words: string[]
+          mode: string
           outer_letters: string
           scoring_words: Json
           total_score: number
@@ -426,6 +427,7 @@ export type Database = {
           created_at?: string
           id: string
           legal_words: string[]
+          mode: string
           outer_letters: string
           scoring_words: Json
           total_score: number
@@ -437,6 +439,7 @@ export type Database = {
           created_at?: string
           id?: string
           legal_words?: string[]
+          mode?: string
           outer_letters?: string
           scoring_words?: Json
           total_score?: number
@@ -471,6 +474,7 @@ export type Database = {
           created_at: string | null
           id: string | null
           legal_words: string[] | null
+          mode: string | null
           outer_letters: string | null
           scoring_words: Json | null
           total_score: number | null
@@ -482,6 +486,7 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           legal_words?: never
+          mode?: string | null
           outer_letters?: string | null
           scoring_words?: never
           total_score?: number | null
@@ -493,6 +498,7 @@ export type Database = {
           created_at?: string | null
           id?: string | null
           legal_words?: never
+          mode?: string | null
           outer_letters?: string | null
           scoring_words?: never
           total_score?: number | null
@@ -516,6 +522,7 @@ export type Database = {
       create_game: {
         Args: {
           board: Json
+          mode: string
           player_user_ids: string[]
           setup: Json
           target_club: string
@@ -902,7 +909,7 @@ export type Database = {
           club_handle: string
           created_at: string
           id: string
-          mistake_count: number
+          mode: string
           puzzle_id: string
         }
         Insert: {
@@ -910,7 +917,7 @@ export type Database = {
           club_handle: string
           created_at?: string
           id: string
-          mistake_count?: number
+          mode: string
           puzzle_id: string
         }
         Update: {
@@ -918,7 +925,7 @@ export type Database = {
           club_handle?: string
           created_at?: string
           id?: string
-          mistake_count?: number
+          mode?: string
           puzzle_id?: string
         }
         Relationships: [
@@ -944,6 +951,7 @@ export type Database = {
           guessed_at: string
           id: string
           matched_category_rank: number | null
+          mode: string
           result: string
           tiles: string[]
           user_id: string
@@ -953,6 +961,7 @@ export type Database = {
           guessed_at?: string
           id?: string
           matched_category_rank?: number | null
+          mode: string
           result: string
           tiles: string[]
           user_id: string
@@ -962,6 +971,7 @@ export type Database = {
           guessed_at?: string
           id?: string
           matched_category_rank?: number | null
+          mode?: string
           result?: string
           tiles?: string[]
           user_id?: string
@@ -969,6 +979,32 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          game_id: string
+          mistake_count: number
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          mistake_count?: number
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          mistake_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
@@ -1007,6 +1043,7 @@ export type Database = {
           club_handle: string | null
           game_id: string | null
           is_terminal: boolean | null
+          mode: string | null
           nyt_date: string | null
           play_state: string | null
         }
@@ -1015,7 +1052,12 @@ export type Database = {
     }
     Functions: {
       create_game: {
-        Args: { player_user_ids: string[]; setup: Json; target_club: string }
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
         Returns: {
           id: string
         }[]

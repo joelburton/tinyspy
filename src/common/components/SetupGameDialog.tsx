@@ -145,6 +145,7 @@ export function SetupGameDialog({
         <SetupBody
           members={members}
           clubHandle={clubHandle}
+          mode={manifest.mode}
           value={setup}
           onChange={setSetup}
         />

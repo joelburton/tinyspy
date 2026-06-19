@@ -46,7 +46,7 @@ create temp table g on commit drop as
 select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 -- ============================================================
@@ -131,7 +131,10 @@ select lives_ok(
 
 reset role;
 select is(
-  (select mistake_count from wordknit.games where id = (select id from g)),
+  -- mistake_count moved to wordknit.players (per-player). Coop
+  -- updates every row in lock-step; reading max gives the
+  -- canonical shared value.
+  (select max(mistake_count) from wordknit.players where game_id = (select id from g)),
   1,
   'submit_guess: wrong guess increments mistake_count to 1'
 );
@@ -235,7 +238,7 @@ create temp table g2 on commit drop as
 select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 -- Four wrong guesses with distinct tile sets so they pass the
@@ -261,7 +264,7 @@ select wordknit.submit_guess(
 reset role;
 -- After 3 wrong, mistake_count = 3, play_state still playing.
 select is(
-  (select mistake_count from wordknit.games where id = (select id from g2)),
+  (select max(mistake_count) from wordknit.players where game_id = (select id from g2)),
   3,
   'submit_guess: 3 wrong guesses leaves mistake_count at 3'
 );
@@ -300,7 +303,7 @@ create temp table g3 on commit drop as
 select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
-  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid]
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 -- Happy path: playing → submit_timeout → lost.

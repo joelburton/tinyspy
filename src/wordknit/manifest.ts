@@ -5,123 +5,160 @@ import { DEFAULT_WORDKNIT_SETUP, type WordKnitSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * wordknit's registration with the shell.
+ * wordknit's registration with the shell — **two manifests,
+ * one schema, one folder.**
  *
  * "wordknit" is the codename for our Connections-style word-
- * grouping game (analogous to "tinyspy" for Codenames Duet).
- * The user-facing copy reads however we like; gametype /
- * schema / folder are all `wordknit`.
+ * grouping game. The user-facing copy reads however we like;
+ * gametype / schema / folder are all `wordknit`.
  *
- * See docs/wordknit.md for the rules, the architectural
- * decisions (FE-knows-the-answer, Presence + Broadcast for
- * shared selection, pause-on-disconnect), and the deferred
- * features list.
+ * WordKnit exists in coop and compete modes, each a separate
+ * row in `common.gametypes` ('wordknit_coop', 'wordknit_compete')
+ * and a separate Start button on the club page. Same sibling-
+ * manifest pattern psychicnum introduced — see
+ * [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md) for
+ * the canonical write-up and `src/psychicnum/manifest.ts` for the
+ * structural twin.
+ *
+ * Both share:
+ *   - the `wordknit` schema (tables, RPCs, RLS — see
+ *     supabase/migrations/20260620000000_wordknit_compete.sql)
+ *   - the folder `src/wordknit/` (PlayArea, SetupForm, Help,
+ *     useGame, theme.css, logo.svg)
+ *   - the docs file `docs/games/wordknit.md`
+ *
+ * They differ on:
+ *   - `gametype` string, used as the URL segment + registry key.
+ *   - `name` shown in titles and Start-button copy.
+ *   - `mode` declaration (the canonical axis for downstream
+ *     code that wants to distinguish behavior — see
+ *     GameManifest.mode in src/common/lib/games.ts).
+ *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
+ *     requires an opposing player (`[2, 6]`).
+ *   - `labelFor`: terminal copy reads differently per mode.
+ *
+ * Both share `baseGametype: 'wordknit'` — the family key any
+ * code wanting "treat these as siblings" reads.
+ *
+ * The single shared `startGameInClub` factory builds the RPC
+ * payload with the per-manifest mode injected — `wordknit.create_game`
+ * routes on it server-side. See docs/wordknit.md for the rules,
+ * architectural decisions (FE-knows-the-answer, Presence +
+ * Broadcast for shared selection, pause-on-disconnect), and the
+ * deferred features list.
  */
-export const wordknitGame: GameManifest = {
-  gametype: 'wordknit',
-  schema: 'wordknit',
-  baseGametype: 'wordknit',
-  mode: 'coop',
-  name: 'WordKnit',
-  shortDescription: 'Find categories, like Connections',
-  logoUrl,
 
-  // Help / rules modal opened from the GamePage menu's "Help"
-  // item. Lazy-loaded so the help content ships in wordknit's
-  // chunk, not the main bundle.
-  help: lazy(() =>
-    import('./components/Help').then((m) => ({ default: m.Help })),
-  ),
+// Help loader is shared — both modes link to the same rules modal.
+// Lazy so the prose ships in wordknit's chunk.
+const helpLoader = lazy(() =>
+  import('./components/Help').then((m) => ({ default: m.Help })),
+)
 
-  // Plays solo (1 player at their solo club) or coop (up to 6 club
-  // members poke at the same board). Must agree with the
-  // member-count check in wordknit.create_game. See
-  // docs/code-conventions.md → "Per-game player counts".
-  numberOfPlayers: [1, 6],
+// PlayArea is shared — branches on `game.mode` (read from the
+// hook's loaded game row) for the compete-only OpponentMistakesStrip
+// + eliminated-state UI.
+const playAreaLoader = lazy(() =>
+  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+)
 
-  // No manifest-level `timerMode`: wordknit's timer is a
-  // per-game choice (the setup dialog has the None / Up / Down
-  // radio). BoardScreen reads `game.config.timer` to drive
-  // useGameTimer. The GameManifest field is preserved for
-  // future games that want a fixed per-gametype timer (e.g. a
-  // hypothetical Boggle with a fixed-3-minute round).
+// SetupForm is shared — puzzle picker + timer-mode field, mode-
+// independent. The mode is locked at the gametype level, not a
+// setup choice; clicking "Start WordKnit (coop)" vs "(compete)"
+// is what picks the mode.
+const setupFormLoader = lazy(() =>
+  import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
+)
 
-  PlayArea: lazy(() =>
-    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
-  ),
-
-  // Setup form: timer-mode picker (None / Up / Down with MM:SS).
-  // The Component is lazy-loaded so the form ships in wordknit's
-  // chunk (not the registry); `defaults` is a tiny literal that
-  // travels with the manifest.
-  setupForm: {
-    Component: lazy(() =>
-      import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
-    ),
-    defaults: DEFAULT_WORDKNIT_SETUP,
-  },
-
-  // SetupGameDialog calls this on submit. The RPC validates the
-  // payload shape and writes the new game.
-  //
-  // **Find-or-create**: wordknit's one-game-per-(club, puzzle)
-  // model means that if this club has already started a game on
-  // the picked puzzle, we open the existing game rather than
-  // create a duplicate. The setup form's calendar widget shows
-  // this status visually (colored squares for played dates); the
-  // dialog's Start button maps to "open it" or "create it"
-  // depending on which it is, with no FE branching above this
-  // function — `SetupGameDialog` always navigates to the
-  // returned id regardless.
-  //
-  // RLS makes the lookup safe: `wordknit.games.select where
-  // club_handle = X and puzzle_id = Y` only returns rows this user
-  // can see (i.e. games in clubs they're a member of), so the
-  // .eq('club_handle', clubHandle) is belt-and-braces. maybeSingle()
-  // tolerates the no-existing-game case as `data === null`.
-  //
-  // playerUserIds defaults to "everyone in the club" today via
-  // the dialog wrapper — the picker-UI for selecting a subset
-  // hasn't landed yet (deferred). Behavior matches today: every
-  // newly-created game has every club member in its game_players.
-  startGameInClub: async (clubHandle, setup, playerUserIds) => {
+// Shared start-game caller. `mode` is the per-manifest constant —
+// the RPC routes on it to write the right gametype string + the
+// per-mode terminal vocabulary.
+//
+// **Find-or-create** preserves the baseline behavior: if this
+// club has already started a game of THIS mode on the picked
+// puzzle, open the existing game rather than create a duplicate.
+// The .eq('mode', mode) filter is what disambiguates the
+// (club, puzzle) pair across the two modes — a club can play the
+// same puzzle in coop AND in compete and they're separate games.
+//
+// RLS makes the lookup safe: the row only appears for club members,
+// belt-and-braces on top of the .eq('club_handle', ...) filter.
+function startGameInClubFactory(mode: 'coop' | 'compete') {
+  return async (
+    clubHandle: string,
+    setup: unknown,
+    playerUserIds: string[],
+  ) => {
     const s = setup as WordKnitSetup
 
-    // Existing-game check first. A real id in `data` means the
-    // friends played this puzzle before in this club; we open
-    // that game rather than create a new one. `maybeSingle()`
-    // returns `data: null` cleanly when nothing matches.
     const existing = await db
       .from('games')
       .select('id')
       .eq('club_handle', clubHandle)
       .eq('puzzle_id', s.puzzleId)
+      .eq('mode', mode)
       .maybeSingle()
     if (existing.data) return { id: existing.data.id }
 
-    // No prior game — create one. The RPC is the same as before.
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
         setup: s,
         player_user_ids: playerUserIds,
+        mode,
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start WordKnit game' }
+      return {
+        error:
+          error?.message ?? `failed to start WordKnit (${mode}) game`,
+      }
     }
     return { id: data.id }
+  }
+}
+
+// Shared submit_timeout dispatcher. The RPC is mode-aware
+// server-side (writes 'lost' for coop, 'lost_compete' for compete)
+// so the FE just fires the call; idempotent on the terminal-state
+// check.
+async function submitTimeout(gameId: string) {
+  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
+// Shared listing-label helper for coop's familiar
+// "{matched}/4 categories · {mistakes}/4 mistakes" mid-game shape.
+// Coop terminal labels are also derived from the same status keys.
+type StatusBlob = Record<string, unknown>
+
+export const wordknitCoopGame: GameManifest = {
+  gametype: 'wordknit_coop',
+  schema: 'wordknit',
+  baseGametype: 'wordknit',
+  mode: 'coop',
+  name: 'WordKnit (coop)',
+  shortDescription: 'Find categories, like Connections',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Plays solo (1 player at their solo club) or coop (up to 6).
+  // Must agree with the player-count guards in
+  // wordknit.create_game.
+  numberOfPlayers: [1, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_WORDKNIT_SETUP,
   },
 
-  // Render the per-row label from a common.games row. Pure,
-  // synchronous: every piece comes off the row.
-  //
-  // Mid-game `status` carries `{ matched_count, mistake_count }`
-  // (written by submit_guess via common.update_state). Terminal
-  // `status` carries `{ outcome, matched_count, mistake_count }`
-  // (set by submit_guess / submit_timeout via common.end_game).
+  startGameInClub: startGameInClubFactory('coop'),
+
   labelFor: (row) => {
-    const s = (row.status ?? {}) as Record<string, unknown>
+    const s = (row.status ?? {}) as StatusBlob
     const matched = (s.matched_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
     if (row.play_state === 'playing') {
@@ -133,14 +170,50 @@ export const wordknitGame: GameManifest = {
     return `lost · ${matched}/4 matched`
   },
 
-  // Called by common's GamePage when its countdown timer hits 0.
-  // The RPC flips common.games.play_state to 'lost' and writes
-  // status.outcome='lost_timeout'. Idempotent on the terminal-
-  // state check.
-  submitTimeout: async (gameId) => {
-    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
+  submitTimeout,
 }
 
+export const wordknitCompeteGame: GameManifest = {
+  gametype: 'wordknit_compete',
+  schema: 'wordknit',
+  baseGametype: 'wordknit',
+  mode: 'compete',
+  name: 'WordKnit (compete)',
+  shortDescription: 'Race to solve, NYT Connections',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Compete needs an opposing PLAYER — racing yourself against
+  // a Connections puzzle would just be a solo coop game. Lower
+  // bound 2 hides the Start button in solo clubs; the RPC also
+  // enforces it server-side.
+  numberOfPlayers: [2, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_WORDKNIT_SETUP,
+  },
+
+  startGameInClub: startGameInClubFactory('compete'),
+
+  // Compete listing labels are intentionally numeric-free — the
+  // "opponents see mistakes only" decision means we don't surface
+  // per-player matched_count anywhere in the club view either.
+  // Terminal copy carries the winner's name (frozen onto status
+  // at submit_guess time) so post-game review reads as
+  // "compete · ada won the race."
+  labelFor: (row) => {
+    const s = (row.status ?? {}) as StatusBlob
+    if (row.play_state === 'playing') return 'compete · in progress'
+    if (row.play_state === 'solved_compete') {
+      const name = (s.winner_username as string | undefined) ?? 'someone'
+      return `compete · ${name} won the race`
+    }
+    return 'compete · time out — no winner'
+  },
+
+  submitTimeout,
+}

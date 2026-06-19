@@ -4,8 +4,14 @@ import {
   psychicnumCoopGame,
   psychicnumCompeteGame,
 } from './psychicnum/manifest'
-import { wordknitGame } from './wordknit/manifest'
-import { freebeeGame } from './freebee/manifest'
+import {
+  wordknitCoopGame,
+  wordknitCompeteGame,
+} from './wordknit/manifest'
+import {
+  freebeeCoopGame,
+  freebeeCompeteGame,
+} from './freebee/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -36,6 +42,8 @@ export const games: GameManifest[] = [
   tinyspyGame,
   psychicnumCoopGame,
   psychicnumCompeteGame,
-  wordknitGame,
-  freebeeGame,
+  wordknitCoopGame,
+  wordknitCompeteGame,
+  freebeeCoopGame,
+  freebeeCompeteGame,
 ]

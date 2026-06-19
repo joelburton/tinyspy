@@ -179,7 +179,11 @@
 /* Terminal-state indicator — replaces the .actions row once the
  * game is over. "Game over: <status>" on the left, Back-to-club
  * button on the right. Once the GameOverModal is dismissed, this
- * is the lasting cue that the game has ended. */
+ * is the lasting cue that the game has ended. Also used for the
+ * compete "you're out" spectator state when the caller is
+ * eliminated but the race continues — same shape, no button
+ * (going back to club mid-game is the menu's job, not a
+ * persistent affordance here). */
 .gameOverIndicator {
   display: flex;
   justify-content: space-between;
@@ -187,4 +191,31 @@
   gap: 1rem;
   margin-top: 0.5rem;
   font-size: 0.95rem;
+}
+
+/* Compete-only: per-player mistake strip above the action row.
+ * "You: ●●○○ · Bea: ●○○○ · Cade: ●●●● out" — opponent visibility
+ * is mistakes-only per the trust model (matched-counts hidden).
+ * Inline-flex so the entries flow naturally with their MistakeDots
+ * inline; wraps when the player count + names push past the
+ * column width. */
+.opponentStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  align-items: center;
+  margin: 0.25rem 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.opponentEntry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.opponentSep {
+  margin-right: 0.25rem;
+  opacity: 0.5;
 }

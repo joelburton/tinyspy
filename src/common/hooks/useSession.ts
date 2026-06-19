@@ -27,9 +27,15 @@ import { db } from '../db'
  * claim_username RPC without forcing a re-auth.
  *
  * Stale-session edge case (db:reset wiped auth.users while a JWT
- * is still in localStorage): the next claim attempt fails with
- * 23503; ClaimHandleScreen catches that and calls
- * supabase.auth.signOut() to reset the user back to LoginScreen.
+ * is still in localStorage, OR a user was deleted from auth.users
+ * in prod while their tab was open): handled upfront via
+ * `supabase.auth.getUser()`, which makes a server round-trip that
+ * validates the JWT against auth.users. A 4xx response means the
+ * user is gone — we sign out so the next render falls back to
+ * LoginScreen rather than routing to ClaimHandleScreen (the
+ * previous behavior was "ask them to pick a username, fail with
+ * 23503 on submit," which surfaces the orphan state as a
+ * confusing error rather than a clean restart).
  */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
@@ -49,6 +55,54 @@ export function useSession() {
         }
         return
       }
+
+      // Validate the JWT against auth.users before trusting it.
+      // The session object in localStorage is whatever was cached
+      // at sign-in time; supabase-js doesn't re-verify it on app
+      // load. So a stored JWT can outlive the user it references —
+      // db:reset (dev) or a delete-user in prod both produce that
+      // state. getUser() is the documented "round-trip and check"
+      // call; a 4xx response means the user is no longer in
+      // auth.users. Treat that as definitively-signed-out.
+      //
+      // 5xx / network errors get the permissive treatment (same
+      // friends-alpha posture as the profile-probe error below):
+      // trust the stored session and proceed. The cost of "the
+      // user is actually gone but we couldn't reach Supabase" is
+      // a wasted ClaimHandleScreen render that the next reload
+      // will correct; the cost of being strict on 5xx would be
+      // booting people out every time Supabase has a hiccup.
+      const { data: userRes, error: userErr } = await supabase.auth.getUser()
+      if (!mountedRef.value) return
+      if (userErr) {
+        const status = (userErr as { status?: number }).status
+        if (status !== undefined && status >= 400 && status < 500) {
+          console.warn(
+            'stored session refers to a missing user — signing out',
+            userErr,
+          )
+          await supabase.auth.signOut()
+          if (!mountedRef.value) return
+          setSession(null)
+          setHasProfile(false)
+          setLoading(false)
+          return
+        }
+        // Transient (5xx / network). Log and proceed permissively.
+        console.warn('auth.getUser() failed transiently; trusting stored session', userErr)
+      } else if (userRes.user === null) {
+        // Defensive: 200 with `user: null` shouldn't happen per
+        // the supabase-js contract, but treat it the same as a
+        // 401 if it does.
+        console.warn('auth.getUser() returned no user — signing out')
+        await supabase.auth.signOut()
+        if (!mountedRef.value) return
+        setSession(null)
+        setHasProfile(false)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await db
         .from('profiles')
         .select('user_id')

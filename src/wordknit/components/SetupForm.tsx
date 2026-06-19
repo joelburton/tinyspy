@@ -58,7 +58,7 @@ type ClubGameStatusRow = {
  * (`wordknit/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
+export function SetupForm({ clubHandle, mode, value, onChange }: SetupBodyProps) {
   const s = value as WordKnitSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
   const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
@@ -94,11 +94,18 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
   // resolve). RLS on the underlying tables gates visibility, so
   // a non-member's query returns zero rows even without the
   // .eq('club_handle') filter — the filter is belt-and-braces.
+  //
+  // Scoped to THIS dialog's `mode`: with both wordknit_coop and
+  // wordknit_compete present, a club may have games in both modes
+  // on the same date and the calendar should color per the mode
+  // the user is about to start. The view exposes the `mode`
+  // column for exactly this filter.
   useEffect(function loadClubGameStatuses() {
     let cancelled = false
     db.from('club_game_status')
       .select('game_id, play_state, is_terminal, nyt_date')
       .eq('club_handle', clubHandle)
+      .eq('mode', mode)
       .then(({ data, error }) => {
         if (cancelled) return
         if (error || !data) return
@@ -107,7 +114,7 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
     return () => {
       cancelled = true
     }
-  }, [clubHandle])
+  }, [clubHandle, mode])
 
   // Auto-pick the default puzzle once the list arrives. We pick
   // today's puzzle if it exists in the imported set, otherwise

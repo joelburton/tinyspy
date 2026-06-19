@@ -301,6 +301,7 @@ export function GamePage({
           isTerminal: commonGame.is_terminal,
           timer,
           setup: commonGame.setup,
+          status: commonGame.status,
           goToClub,
           feedback: feedbackApi,
           menu: menuApi,

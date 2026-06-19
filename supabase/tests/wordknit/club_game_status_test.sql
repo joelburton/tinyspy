@@ -46,7 +46,7 @@ select * from wordknit.create_game(
   (select handle from club),
   pg_temp.wordknit_setup((select id from puzzle)),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid]
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 -- ============================================================
@@ -171,7 +171,7 @@ select * from wordknit.create_game(
     (select id from wordknit.puzzles where source_id = 'TEST-NULL-DATE')
   ),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
-        'bea22222-2222-2222-2222-222222222222'::uuid]
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop'
 );
 
 select is(

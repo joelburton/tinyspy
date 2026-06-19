@@ -21,16 +21,13 @@ import type { Board, CategoryRank } from '../lib/board'
 export type Player = Member
 
 // Narrower than Database[...]['Row']. The board jsonb column is
-// read once on load and stays put — only mutable fields
-// (mistake_count) appear on the realtime update payloads we care
-// about. play_state lives on common.games and arrives via ctx.
+// read once on load and stays put; mode + created_at are also
+// immutable. Mutable per-player state (mistake_count) lives on
+// the players table, not here. play_state lives on common.games
+// and arrives via ctx.
 type GameRow = Pick<
   Database['wordknit']['Tables']['games']['Row'],
-  | 'id'
-  | 'club_handle'
-  | 'mistake_count'
-  | 'board'
-  | 'created_at'
+  'id' | 'club_handle' | 'mode' | 'board' | 'created_at'
 >
 
 export type GuessRow = {
@@ -42,12 +39,21 @@ export type GuessRow = {
   guessed_at: string
 }
 
+/** One row from `wordknit.players` — per-player mistake counter
+ *  (lock-step across all rows in coop, independent in compete). */
+export type PlayerRow = {
+  user_id: string
+  mistake_count: number
+}
+
 /**
  * One matched category, derived from a `result='correct'` guess
- * row joined with the static board.categories. The partial unique
- * index on `guesses (game_id, matched_category_rank) where
- * result='correct'` enforces "one match per rank per game" at
- * the DB layer; we project that record here.
+ * row joined with the static board.categories. In coop the partial
+ * unique index on `(game_id, matched_category_rank) where
+ * result='correct' and mode='coop'` enforces one match per rank
+ * per game; in compete the index extends to include user_id so
+ * each player can independently solve every category. The FE
+ * just projects whatever it can see.
  */
 export type MatchedCategory = {
   rank: CategoryRank
@@ -59,7 +65,7 @@ export type MatchedCategory = {
 export type WordKnitGame = {
   id: string
   club_handle: string
-  mistake_count: number
+  mode: 'coop' | 'compete'
   board: Board
   /** Server-stamped game-start timestamp, ISO. Mirrored from the
    *  per-gametype row (which carries its own created_at). */
@@ -85,34 +91,33 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  * needs a stable-name channel so peers merge into the same room,
  * and postgres-changes ride along on that same channel rather
  * than opening a second UUID-suffixed one via `useRealtimeRefetch`.
- * Same shape `useCommonGame` uses for its presence + manual-pause
- * + suspend broadcasts; the factory is for refetch-only hooks
- * (tinyspy + psychicnum data hooks). See the conventions doc for
- * the decision rule when porting a new game.
  *
  * Two responsibilities split across two channels (one per hook):
  *   1. **This hook** owns the gametype-specific channel. It
- *      subscribes to postgres-changes on `wordknit.{games,guesses}`
- *      AND carries the shared-selection Broadcast events (`select`,
- *      `deselect`, `clear`). Both peer-side concerns live on the
- *      same channel because selections need a shared room across
- *      peers — same constraint that pushes the common-side hook
- *      onto its own stable channel.
+ *      subscribes to postgres-changes on `wordknit.{games,
+ *      guesses, players}` AND (coop only) carries the shared-
+ *      selection Broadcast events. Compete keeps selections local
+ *      — each player's tile picks are private to them, so the
+ *      Broadcast send is suppressed.
  *   2. **useCommonGame** (mounted by `<GamePage>`) owns the
  *      common-side channel — presence, manual-pause Broadcast,
  *      common.games row changes, the timer.
  *
- * Why this split: supabase-js requires every `.on()` handler to be
- * registered BEFORE `.subscribe()`. One hook per channel keeps
- * each subscriber's registration synchronous. The two hooks use
- * DIFFERENT channel names (`wordknit:${gameId}` vs `game:${gameId}`)
- * so they don't share state across the supabase-js client.
+ * Mode-aware projections (compete only meaningful in compete mode;
+ * coop falls back to lock-step shared values):
+ *   - `mistakeCount` — caller's row's mistake_count. In coop,
+ *     equals every other row's; in compete, the caller's own.
+ *   - `opponentMistakes` — Map<user_id, count> excluding caller.
+ *     Drives the compete OpponentMistakesStrip; empty in coop.
+ *   - `isEliminated` — caller's mistake_count >= 4. Compete-only
+ *     meaningful (in coop the whole game would already be terminal
+ *     once mistakes hit 4); always false in coop pre-game-over.
  *
  * Returns:
  *   - game / guesses / matchedCategories — postgres-derived state.
+ *   - mistakeCount / opponentMistakes / isEliminated — see above.
  *   - selections / unionTiles — shared peer-selection state
- *     driven by Broadcast events. "Peer" = another player in
- *     this game from my POV; see naming.md → peer.
+ *     (coop only; compete's map only ever contains caller's own).
  *   - toggleTile / sendClear — emit selection events.
  *   - loading — false once initial fetch completes.
  *
@@ -125,6 +130,9 @@ export function useGame(
   game: WordKnitGame | null
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
+  mistakeCount: number
+  opponentMistakes: ReadonlyMap<string, number>
+  isEliminated: boolean
   selections: SelectionMap
   unionTiles: string[]
   toggleTile: (tile: string) => void
@@ -133,6 +141,7 @@ export function useGame(
 } {
   const [game, setGame] = useState<WordKnitGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [players, setPlayers] = useState<PlayerRow[]>([])
   const [selections, setSelections] = useState<Map<string, string[]>>(
     () => new Map(),
   )
@@ -174,18 +183,20 @@ export function useGame(
   }, [])
 
   // Join this game's wordknit-specific Realtime room: load the
-  // game row + guesses, attach postgres-changes on
-  // wordknit.{games,guesses}, attach the shared-selection
-  // Broadcast handler. Stable channel name (no UUID suffix)
-  // because selection broadcasts need a shared room across peers.
+  // game row + guesses + players, attach postgres-changes on
+  // wordknit.{games, guesses, players}, attach the shared-selection
+  // Broadcast handler (coop semantics — compete senders short-
+  // circuit in `broadcast()` below, so foreign events shouldn't
+  // arrive in compete; the handler is registered unconditionally
+  // because the channel is built before mode is known).
   useEffect(function joinWordKnitRoom() {
     let mounted = true
 
     async function load() {
-      const [gameRes, guessesRes] = await Promise.all([
+      const [gameRes, guessesRes, playersRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_handle, mistake_count, board, created_at')
+          .select('id, club_handle, mode, board, created_at')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -195,6 +206,10 @@ export function useGame(
           )
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
+        db
+          .from('players')
+          .select('user_id, mistake_count')
+          .eq('game_id', gameId),
       ])
       if (!mounted) return
       if (!gameRes.data) {
@@ -206,7 +221,7 @@ export function useGame(
       setGame({
         id: row.id,
         club_handle: row.club_handle,
-        mistake_count: row.mistake_count,
+        mode: row.mode as 'coop' | 'compete',
         board: row.board as Board,
         created_at: row.created_at,
       })
@@ -216,27 +231,17 @@ export function useGame(
           result: g.result as GuessRow['result'],
         })),
       )
+      setPlayers(playersRes.data ?? [])
 
       setLoading(false)
     }
 
-    // Stable channel name — selection Broadcast needs a shared
-    // room across peers (broadcasts only reach channel-name peers,
-    // so a UUID-suffix would put each tab in its own room and
-    // selections would never propagate). The cleanup-then-recreate
-    // cycle in this effect handles StrictMode's double-mount via
-    // removeChannel(ch) before the second effect run.
-    //
-    // Tradeoff worth naming: this channel ALSO carries the
-    // postgres_changes subscriptions for wordknit.{games,guesses}
-    // below, which don't need shared-room semantics — each tab
-    // could read its own changefeed. Future games that mix
-    // broadcast + postgres_changes (e.g. Boggle with shared
-    // selection) should consider splitting into two channels — a
-    // stable one for broadcast + a UUID-suffixed one for
-    // postgres_changes — to avoid the two concerns sharing
-    // reconnect semantics. See docs/code-review-2026-06-16.md §4.3
-    // and docs/deferred.md → wordknit.
+    // Stable channel name — selection Broadcast (coop) needs a
+    // shared room across peers, so a UUID-suffix would defeat the
+    // purpose. StrictMode's double-mount is handled by the
+    // removeChannel(ch) in the effect cleanup. See useGame for
+    // tinyspy/psychicnum's UUID-suffixed approach when broadcast
+    // isn't in play.
     const ch = supabase.channel(`wordknit:${gameId}`)
 
     ch.on(
@@ -249,15 +254,18 @@ export function useGame(
       { event: '*', schema: 'wordknit', table: 'guesses', filter: `game_id=eq.${gameId}` },
       load,
     )
+    ch.on(
+      'postgres_changes',
+      { event: '*', schema: 'wordknit', table: 'players', filter: `game_id=eq.${gameId}` },
+      load,
+    )
     ch.on('broadcast', { event: 'selection' }, ({ payload }) =>
       applySelection(payload as SelectionEvent),
     )
 
     // SUBSCRIBED fires on initial subscribe AND on every reconnect,
     // so this single hook covers both the mount-time fetch and the
-    // missed-events-on-reconnect refetch. (No separate explicit
-    // load() after .subscribe() — it would just double-fetch on
-    // mount.)
+    // missed-events-on-reconnect refetch.
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') load()
     })
@@ -275,13 +283,20 @@ export function useGame(
   // apply ensures the clicker sees the change immediately; the
   // echo-back of the broadcast is a no-op due to idempotency
   // inside applySelection.
+  //
+  // **Compete short-circuit**: each player's selection is private,
+  // so we skip the `channel.send` and only apply locally. Peers
+  // in compete also short-circuit, so no foreign events should
+  // arrive — the `applySelection` map stays caller-only and the
+  // TileGrid renders every tile as "mine" (no peer attribution).
   const broadcast = useCallback(
     (event: SelectionEvent) => {
       if (!channel) return
       applySelection(event)
+      if (game?.mode === 'compete') return
       channel.send({ type: 'broadcast', event: 'selection', payload: event })
     },
-    [applySelection, channel],
+    [applySelection, channel, game?.mode],
   )
 
   // Toggle handler — see docs/wordknit.md → "Peer selection".
@@ -319,9 +334,10 @@ export function useGame(
   }
 
   // Project matched categories from the guess log + static board.
-  // The DB enforces at-most-one correct-per-rank-per-game via the
-  // partial unique index, so we can index categories[] by rank
-  // without worrying about duplicates surfacing here.
+  // RLS in compete hides peers' guesses server-side, so a compete
+  // caller's projection naturally yields only their own matches.
+  // Coop sees every player's matches (one row per rank because of
+  // the partial unique index).
   const matchedCategories: MatchedCategory[] = []
   if (game) {
     const categoryByRank = new Map<number, Board['categories'][number]>()
@@ -340,10 +356,38 @@ export function useGame(
     }
   }
 
+  // Caller's mistake_count (defaults to 0 if the players row
+  // hasn't arrived yet — pre-load state). In coop every row has
+  // the same value; in compete this is the caller's own.
+  const selfPlayer = players.find((p) => p.user_id === session.user.id)
+  const mistakeCount = selfPlayer?.mistake_count ?? 0
+
+  // Opponents' per-row mistake counts. Drives the compete
+  // OpponentMistakesStrip. Returns an empty Map in coop (every
+  // row equals the caller's, so listing peers separately would
+  // just be noise).
+  const opponentMistakes = new Map<string, number>()
+  if (game?.mode === 'compete') {
+    for (const p of players) {
+      if (p.user_id === session.user.id) continue
+      opponentMistakes.set(p.user_id, p.mistake_count)
+    }
+  }
+
+  // Eliminated in compete: caller's 4-mistake limit reached.
+  // (Coop hits this threshold only on the game-ending guess, so
+  // the play_state guard upstream catches it — keeping this
+  // false in coop until terminal lines up with how PlayArea
+  // gates its "you're out" branch on mode === 'compete'.)
+  const isEliminated = game?.mode === 'compete' && mistakeCount >= 4
+
   return {
     game,
     guesses,
     matchedCategories,
+    mistakeCount,
+    opponentMistakes,
+    isEliminated,
     selections,
     unionTiles,
     toggleTile,

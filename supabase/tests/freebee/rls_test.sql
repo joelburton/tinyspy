@@ -53,9 +53,9 @@ with ins as (
   values (
     gen_random_uuid(),
     (select handle from club),
-    'freebee',
+    'freebee_coop',
     'E·CABDNO',
-    '{"mode": "coop", "timer": {"kind": "none"}}'::jsonb,
+    '{"timer": {"kind": "none"}}'::jsonb,
     'playing',
     false
   )
@@ -64,11 +64,12 @@ with ins as (
 insert into coop_game (id) select id from ins;
 
 insert into freebee.games
-  (id, club_handle, outer_letters, center_letter,
+  (id, club_handle, mode, outer_letters, center_letter,
    total_score, total_words, scoring_words, legal_words)
 values (
   (select id from coop_game),
   (select handle from club),
+  'coop',
   'cabdno', 'e', 17, 2,
   '[]'::jsonb, '{}'::text[]
 );
@@ -180,9 +181,9 @@ with ins as (
   values (
     gen_random_uuid(),
     (select handle from club),
-    'freebee',
+    'freebee_compete',
     'E·CABDNO compete',
-    '{"mode": "compete", "target_rank": 5, "timer": {"kind": "none"}}'::jsonb,
+    '{"target_rank": 5, "timer": {"kind": "none"}}'::jsonb,
     'playing',
     false
   )
@@ -191,11 +192,12 @@ with ins as (
 insert into compete_game (id) select id from ins;
 
 insert into freebee.games
-  (id, club_handle, outer_letters, center_letter,
+  (id, club_handle, mode, outer_letters, center_letter,
    total_score, total_words, scoring_words, legal_words)
 values (
   (select id from compete_game),
   (select handle from club),
+  'compete',
   'cabdno', 'e', 17, 2,
   '[]'::jsonb, '{}'::text[]
 );
