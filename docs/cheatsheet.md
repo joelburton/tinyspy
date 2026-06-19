@@ -15,7 +15,8 @@
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
 | `npm run wordknit:import` | populate `wordknit.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
-| `npm run freebee:import` | populate `freebee.dictionary` + `freebee.pangrams` from the vendored SCOWL files in `supabase/data/` (one-shot per environment; idempotent) |
+| `npm run freebee:import` | populate `freebee.dictionary` + `freebee.pangrams` from the vendored SCOWL files in `supabase/data/`. Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
+| `npm run defs:import` | populate `common.definitions` (the word-lookup cache seed) from `supabase/data/scrabble-defs.tsv`. Same psql `COPY` reseed; needs `psql` |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 
 ## `supabase …`

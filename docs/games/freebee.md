@@ -278,12 +278,14 @@ Both are [SCOWL](http://wordlist.aspell.net/) (Spell Checker Oriented Word Lists
 2. Normalize each word: trim, lowercase, ASCII-only, drop length<4, drop any word containing `s`.
 3. Compute the 26-bit `letter_mask` per word.
 4. Union the two sets; rows with `(word, mask, in_scoring, in_legal)`.
-5. Batch-upsert into `freebee.dictionary` (`on conflict (word) do nothing`).
-6. Build the pangrams from the resulting dictionary: aggregate `letter_mask` where `popcount(letter_mask) = 7` and `isValidPuzzleMask(mask)` (q→u when q is set, ≥2 vowels). Compute `scoring_words` count per mask. Insert into `freebee.pangrams`.
+5. Build the pangrams from the dictionary rows: aggregate `letter_mask` where `popcount(letter_mask) = 7` and `isValidPuzzleMask(mask)` (q→u when q is set, ≥2 vowels), with the `scoring_words` count per mask.
+6. **Bulk-load both tables via psql `COPY`** — `TRUNCATE` then insert, using [`lib/copyLoad.ts`](../../supabase/scripts/lib/copyLoad.ts). The TS still does the mask/pangram computation; only the *load* is psql.
 
-**Idempotent.** Re-runs are no-ops on already-imported rows. A SCOWL bump (unlikely) needs a manual `truncate freebee.dictionary, freebee.pangrams cascade` before re-running.
+**Reseed, not upsert.** Both tables are fully derived from the vendored files, so each run TRUNCATEs and reloads from scratch — there's nothing to preserve. (`definitions` loads the same way; see [common.md → Word definitions](../common.md#word-definitions-click-to-define--lookup).)
 
-**Env:** `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Local defaults to `127.0.0.1:54321` and the well-known local service-role JWT. For hosted, point env at the project ref + service-role key from the dashboard.
+**Why COPY, not the REST API.** The loader connects directly to Postgres as the superuser and streams rows over one connection. This is what makes bulk loading to a *hosted* project fast (~1s) and reliable: the earlier supabase-js batch-upsert path choked on `TypeError: fetch failed` mid-import when the hosted API gateway closed reused keep-alive connections between batches.
+
+**Connection:** `SUPABASE_DB_URL` (a Postgres connection string), defaulting to the local stack. Requires `psql` on PATH. The deploy script (`import-to-hosted.sh`) sets it to the hosted project's direct connection.
 
 ## Row-level security
 

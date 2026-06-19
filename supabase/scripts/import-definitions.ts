@@ -1,105 +1,73 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Seed `common.definitions` from the vendored Scrabble-dictionary
- * definitions at `supabase/data/scrabble-defs.tsv`.
+ * Seed `common.definitions` from the vendored Scrabble dictionary
+ * (`supabase/data/scrabble-defs.tsv`) using psql `COPY` — the right
+ * tool for bulk loading.
  *
- * The TSV is `word<TAB>def`, one line per word, words already
- * lowercased and ASCII (exported from the freebee-ws SQLite defs
- * table — see docs/common.md). ~192k rows, terse glosses with
- * Scrabble markup (`[n AAS]` inflections, `<aah=v>` / `{word=pos}`
- * cross-refs) preserved verbatim — the FE cleans/links them at
- * render time, and keeping the raw markup keeps the cross-ref data
- * machine-readable for the click-through feature.
+ * Strategy: TRUNCATE, then plain INSERT (no upsert). This is a full
+ * reseed of a reference table — there's nothing to preserve — so we
+ * empty it and load fresh. COPY streams the whole file to the server
+ * over ONE direct Postgres connection, which sidesteps the
+ * PostgREST/HTTP keep-alive failures that made batched API upserts
+ * flaky against a hosted project (the gateway kept closing reused
+ * connections mid-import). ~192k rows land in about a second.
  *
- * This is the SEED, not the whole story: `common.definitions` also
- * grows lazily at runtime as the `define` Edge Function caches
- * Wiktionary lookups for words the Scrabble set lacks. Every row
- * here is tagged `source = 'scrabble'`.
+ * The file is already `word<TAB>def`, so there's no row processing to
+ * do in TS at all — psql does the loading. We COPY into a staging
+ * temp table and INSERT with the constant `source='scrabble'` tag
+ * (the table's `source` column is NOT NULL, so we can't COPY straight
+ * into it). The whole thing is one transaction: if anything fails it
+ * rolls back, leaving the previous contents intact.
  *
- * Idempotency: rows are upserted on `word` with
- * ignoreDuplicates=true, so a re-run is a safe no-op and never
- * clobbers an API-filled (`source='wiktionary'`) def. For a clean
- * reseed: `truncate common.definitions;` then re-run.
+ * Connection: `SUPABASE_DB_URL`, a Postgres connection string.
+ * Defaults to the local stack. The deploy script
+ * (import-to-hosted.sh) sets it to the hosted project's connection.
  *
- * Usage:    npm run defs:import
- * Auth:     local service_role key by default (bypasses the
- *           SELECT-only grant on common.definitions). Override via
- *           SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY for non-local.
+ * Requires `psql` on PATH.
+ *
+ * Usage:  npm run defs:import
  */
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { readFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-  // Local-dev default — the well-known service_role key emitted by
-  // `supabase status`. Non-local targets must set the env var.
-  ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+const DB_URL =
+  process.env.SUPABASE_DB_URL ??
+  'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFS_PATH = resolve(__dirname, '../data/scrabble-defs.tsv')
 
-/** PostgREST handles larger, but 5k keeps payloads + memory bounded.
- *  Matches import-freebee-dictionary.ts. */
-const BATCH_SIZE = 5000
+// One transaction: empty the table, COPY the word/def pairs into a
+// staging temp table, then INSERT them with the constant source tag.
+// `\copy` (client-side) streams the file over the psql connection —
+// no HTTP, no batching. ON_ERROR_STOP aborts (and thus rolls back)
+// on any failure, so a partial load can't leave the table half-empty.
+const sql = `
+\\set ON_ERROR_STOP on
+begin;
+truncate common.definitions;
+create temp table _defs_staging (word text, def text) on commit drop;
+\\copy _defs_staging (word, def) from '${DEFS_PATH}'
+insert into common.definitions (word, def, source)
+  select word, def, 'scrabble' from _defs_staging;
+commit;
+select count(*) || ' definitions loaded' as result from common.definitions;
+`
 
-type DefinitionRow = {
-  word: string
-  def: string
-  source: 'scrabble'
-}
+// Mask the password when echoing the target, so a connection string
+// never lands in logs / CI output.
+const safeTarget = DB_URL.replace(/:[^:@/]*@/, ':****@')
+console.log(`Loading ${DEFS_PATH}`)
+console.log(`  into ${safeTarget}`)
 
-/** Insert in batches; surface PostgREST errors. */
-async function batchInsert(
-  supabase: SupabaseClient,
-  rows: DefinitionRow[],
-): Promise<void> {
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE)
-    const { error } = await supabase
-      .from('definitions')
-      .upsert(batch, { onConflict: 'word', ignoreDuplicates: true })
-    if (error) {
-      console.error(`definitions batch at row ${i} failed:`, error.message)
-      process.exit(1)
-    }
-    process.stdout.write(
-      `  upserted rows ${i}..${Math.min(i + batch.length, rows.length)} of ${rows.length}\r`,
-    )
-  }
-  process.stdout.write('\n')
-}
-
-async function main() {
-  console.log(`Reading ${DEFS_PATH}`)
-  const raw = await readFile(DEFS_PATH, 'utf8')
-
-  const rows: DefinitionRow[] = []
-  for (const line of raw.split('\n')) {
-    if (!line) continue
-    const tab = line.indexOf('\t')
-    if (tab === -1) continue // malformed; skip defensively
-    const word = line.slice(0, tab).trim().toLowerCase()
-    const def = line.slice(tab + 1)
-    if (!word) continue
-    rows.push({ word, def, source: 'scrabble' })
-  }
-  console.log(`Parsed ${rows.length} definition rows.`)
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    db: { schema: 'common' },
-    auth: { persistSession: false },
+try {
+  execFileSync('psql', [DB_URL], {
+    input: sql,
+    stdio: ['pipe', 'inherit', 'inherit'],
   })
-
-  console.log(`Upserting ${rows.length} rows into common.definitions...`)
-  await batchInsert(supabase, rows)
-  console.log('Done.')
-}
-
-main().catch((err) => {
-  console.error(err)
+} catch (e) {
+  console.error('\npsql load failed:', e instanceof Error ? e.message : String(e))
   process.exit(1)
-})
+}

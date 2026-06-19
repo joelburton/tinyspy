@@ -40,36 +40,31 @@
  * Usage:
  *   npm run freebee:import
  *
- * Auth: uses the local Supabase service_role key by default
- * (matches `supabase status -o env`'s SERVICE_ROLE_KEY).
- * Override via SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env
- * vars for a non-local target. Service-role bypasses RLS and
- * column-grants — required to INSERT into both tables (no
- * authenticated grant for INSERT).
+ * Loading: both tables are bulk-reloaded via psql `COPY` (TRUNCATE +
+ * insert) over a direct Postgres connection — see lib/copyLoad. That
+ * connects as the superuser, so no RLS / grant gymnastics, and it
+ * avoids the PostgREST/HTTP flakiness that bulk batch-upserts hit
+ * against hosted projects.
+ *
+ * Connection: SUPABASE_DB_URL (a Postgres connection string).
+ * Defaults to the local stack; the deploy script (import-to-hosted.sh)
+ * sets it to the hosted project's connection. Requires psql on PATH.
  */
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { copyLoad } from './lib/copyLoad'
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-  // Local-dev default — the well-known service_role key emitted
-  // by `supabase status`. Anything other than localhost should
-  // set the env var explicitly.
-  ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+const DB_URL =
+  process.env.SUPABASE_DB_URL ??
+  'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
 // Vendored SCOWL files. Resolved relative to THIS script's
 // directory so the working directory doesn't matter.
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCOWL_50_PATH = resolve(__dirname, '../data/scowl-50.txt')
 const SCOWL_80_PATH = resolve(__dirname, '../data/scowl-80.txt')
-
-/** Bulk-insert batch size. PostgREST can handle larger but
- *  5k keeps memory bounded and request payloads reasonable. */
-const BATCH_SIZE = 5000
 
 /** ASCII letter test: lowercase a..z only, no other chars. */
 const ASCII_LOWER_RE = /^[a-z]+$/
@@ -187,32 +182,6 @@ type PangramRow = {
   has_rare_letters: boolean
 }
 
-/** Insert in batches; surface PostgREST errors. */
-async function batchInsert<T>(
-  supabase: SupabaseClient,
-  table: string,
-  rows: T[],
-  conflictKey: string,
-): Promise<void> {
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE)
-    const { error } = await supabase
-      .from(table)
-      .upsert(batch, { onConflict: conflictKey, ignoreDuplicates: true })
-    if (error) {
-      console.error(
-        `${table} batch starting at row ${i} failed:`,
-        error.message,
-      )
-      process.exit(1)
-    }
-    process.stdout.write(
-      `  upserted rows ${i}..${Math.min(i + batch.length, rows.length)} of ${rows.length}\r`,
-    )
-  }
-  process.stdout.write('\n')
-}
-
 async function main() {
   // ─── Load + normalize ────────────────────────────────────
   const scoring = await loadScowl(SCOWL_50_PATH, 'scowl-50 (scoring)')
@@ -294,17 +263,24 @@ async function main() {
   }
   console.log(`Prepared ${pangramRows.length} pangram seed rows (≥30 words each).`)
 
-  // ─── Insert ──────────────────────────────────────────────
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    db: { schema: 'freebee' },
-    auth: { persistSession: false },
-  })
+  // ─── Load via COPY ───────────────────────────────────────
+  // Both tables are full reseeds, so TRUNCATE + COPY (not upsert).
+  // Cell order must match the column list passed to copyLoad.
+  console.log(`Loading ${dictRows.length} dictionary rows via COPY...`)
+  copyLoad(
+    DB_URL,
+    'freebee.dictionary',
+    ['word', 'letter_mask', 'in_scoring', 'in_legal'],
+    dictRows.map((r) => [r.word, r.letter_mask, r.in_scoring, r.in_legal]),
+  )
 
-  console.log(`Upserting ${dictRows.length} dictionary rows...`)
-  await batchInsert(supabase, 'dictionary', dictRows, 'word')
-
-  console.log(`Upserting ${pangramRows.length} pangram rows...`)
-  await batchInsert(supabase, 'pangrams', pangramRows, 'mask')
+  console.log(`Loading ${pangramRows.length} pangram rows via COPY...`)
+  copyLoad(
+    DB_URL,
+    'freebee.pangrams',
+    ['mask', 'scoring_words', 'has_rare_letters'],
+    pangramRows.map((r) => [r.mask, r.scoring_words, r.has_rare_letters]),
+  )
 
   console.log('Done.')
 }
