@@ -47,12 +47,14 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     return members.find((m) => m.user_id === userId)
   }
 
-  // Focus the input on mount so a user opening the panel can
-  // start typing immediately without an extra click. Matches the
-  // ../connections pattern.
-  useEffect(function focusInputOnMount() {
-    inputRef.current?.focus()
-  }, [])
+  // Focus the input on mount AND whenever a send finishes (busy flips
+  // back to false). Sending disables the input mid-flight, which
+  // blurs it; refocusing on completion keeps the cursor in the box so
+  // the user can fire off the next message without an extra click.
+  // (Mount is the busy=false initial render, so this covers both.)
+  useEffect(function keepInputFocused() {
+    if (!busy) inputRef.current?.focus()
+  }, [busy])
 
   // Auto-scroll to the bottom whenever new messages arrive, so a
   // reader sees them without having to scroll manually. See the

@@ -29,9 +29,11 @@
   background: var(--color-surface-border);
 }
 
-/* Unread count, top-left. Red regardless of the bubble's fill color
- * (which carries the sender's color) so "you have unread" reads at a
- * glance. Sits half-off the corner like a notification badge. */
+/* Unread count, top-left. Black (NOT red — red is a valid player
+ * color, so a red pill could be mistaken for, or clash with, the
+ * bubble's sender-color fill). A white count on black reads as
+ * "unread" against any fill. Sits half-off the corner like a
+ * notification badge. */
 .unreadPill {
   position: absolute;
   top: -3px;
@@ -41,7 +43,7 @@
   padding: 0 0.25rem;
   box-sizing: border-box;
   border-radius: 999px;
-  background: var(--color-danger, #c0392b);
+  background: var(--color-text);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
