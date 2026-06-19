@@ -40,10 +40,17 @@ const RESULT_TONE: Record<string, FeedbackTone> = {
 }
 
 /** Short human-readable label for each result enum. The typed
- *  word is prefixed at render time for context. */
+ *  word is prefixed at render time for context.
+ *
+ *  `bonus` reads identically to `accepted`: a bonus word scores the
+ *  same points as a scoring word (submit_word computes length-based +
+ *  pangram points for it — see the freebee_compete migration), it just
+ *  doesn't count toward the "X / Y words" denominator. That internal
+ *  distinction isn't worth surfacing to the player, and the old
+ *  "Bonus — no points" was simply wrong — they DO earn points. */
 const RESULT_LABEL: Record<string, string> = {
   accepted: 'Good!',
-  bonus: 'Bonus — no points',
+  bonus: 'Good!',
   alreadyFound: 'Already found',
   tooShort: 'Too short',
   badLetters: 'Bad letters',

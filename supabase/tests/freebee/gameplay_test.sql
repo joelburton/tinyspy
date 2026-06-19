@@ -8,8 +8,10 @@
 --   2. submit_word coop pangram: pangram word →
 --      'accepted' with the +10 bonus reflected in points
 --      and is_pangram=true.
---   3. submit_word coop bonus: legal-only word →
---      'bonus', 0 points, is_bonus=true.
+--   3. submit_word coop bonus: legal-only word → 'bonus',
+--      is_bonus=true, and scored length-based the SAME as a scoring
+--      word (the bonus-scoring fix — assertion below expects 6 pts,
+--      not 0).
 --   4. submit_word soft rejections (each returns a string —
 --      no row inserted, no exception): tooShort, badLetters,
 --      missingCenter, notAWord.
