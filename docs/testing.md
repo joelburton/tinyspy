@@ -203,12 +203,33 @@ The pattern is: **mock at the lowest layer that lets you write the test simply**
 - No "test the suspense fallback" — Suspense in this app is a thin lazy-loading affordance, not a behavior. The boundary is tested implicitly by manual smoke.
 - No mocking of Realtime channel internals. If a test needs to simulate a realtime event, mock the higher-level `from(...).on(...).subscribe(...)` callback that the hook actually calls.
 
+## E2E smoke tests (Playwright)
+
+A **deliberately narrow** Playwright suite (`e2e/`, `npm run test:e2e`) for the one surface Vitest and pgTAP structurally can't reach: **realtime presence / pause / multi-client behavior.** Those suites mock the Supabase client, so the realtime layer — exactly the part that has broken — is the part they never exercise. E2E runs two real browser contexts against the live local stack.
+
+**Scope boundary (intentional):** this is NOT for routine game logic — that stays in Vitest + pgTAP. E2E covers only the critical realtime areas, today three smoke tests:
+
+- **member presence dots** — two clients in a club; a present member's dot fills, a leaving member's goes hollow.
+- **the abandoned-game heal** — a current game nobody's viewing gets its `is_current_view` cleared when the club page loads (the stuck-pointer bug).
+- **pause-on-disconnect** — two players in a game; one disconnects, the other's game pauses.
+
+**How it works.** No magic-link flow: `e2e/helpers/fixtures.ts` creates confirmed users + claims usernames + builds clubs/games through the admin API and the same RPCs the app uses, then `e2e/helpers/session.ts` seeds each user's Supabase session into `localStorage` (key `sb-127-auth-token`, the local-URL default) *before* the app boots, so it loads already signed in. Two `browser.newContext()`s = two independent users in one test.
+
+**Running it:**
+
+```bash
+npm run test:e2e       # needs the local Supabase stack running; auto-starts the Vite dev server
+```
+
+Deliberately **not** part of `npm test` — it's slower and flakier (real realtime timing), so run it before a push/deploy, not on every save. It accumulates suffixed test users/clubs in the local DB; `npm run db:reset` clears them. If the local Supabase URL ever changes, recompute the storage key via `createClient(url, key).auth.storageKey`.
+
 ## Running the suites
 
 ```bash
-npm test               # FE first, then DB; the canonical "is everything green"
+npm test               # FE first, then DB; the canonical "is everything green" (NOT e2e)
 npm run test:fe        # Vitest only (add `-- --watch` for the dev loop)
 npm run test:db        # pgTAP only — needs the local Supabase stack running
+npm run test:e2e       # Playwright realtime smoke tests — see above
 ```
 
 Single-file pgTAP run, for tightening one test:
