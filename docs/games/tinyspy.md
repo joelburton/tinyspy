@@ -102,7 +102,7 @@ There's no `tinyspy.game_players` table. The "who played this game" record lives
 - **won** — all 15 greens revealed. Terminal.
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
-- **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-browser-side-no-server-sync) below.
+- **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-server-authoritative-ticks) below.
 
 The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
 
@@ -129,7 +129,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the tinyspy detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
-Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync)).
+Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
 The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. Inlined directly in `create_game` rather than extracted into a helper — `create_game` is the only place that generates a board, so there's no duplication to factor out.
 
@@ -179,7 +179,7 @@ Voluntary turn-end during the guess phase. Spends one timer token, swaps the clu
 
 Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's timer-tokens-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
 
-Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
+Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 
 Reject reasons: not authenticated; not a game player; game not found; already terminal.
 
@@ -203,9 +203,9 @@ Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_
 
 `grant select on tinyspy.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
 
-## Timer (browser-side, no server sync)
+## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — see [`wordknit.md → Timer`](wordknit.md#timer-browser-side-no-server-sync) for the design rationale and drift bounds.
+Standard `<TimerField>` + `useGameTimer` setup — see [`wordknit.md → Timer`](wordknit.md#timer-server-authoritative-ticks) for the design rationale and drift bounds.
 
 **Distinct from the rulebook's timer tokens.** Duet has its own clock (the 9 starting tokens, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
 

@@ -303,18 +303,11 @@ create table common.games (
   play_state text not null default 'playing',
   is_terminal boolean not null default false,
   status jsonb,
-  -- Timer-state preservation: when the last viewer leaves (or
-  -- a vacate path runs), idle_since is stamped with now(). On
-  -- the next set_current_view, (now - idle_since) is added
-  -- into total_idle_seconds and idle_since is cleared. The FE
-  -- timer hook subtracts total_idle_seconds from elapsed so a
-  -- 10-minute countdown that sat unseen for 5 minutes still
-  -- shows 9:50, not 4:50. Invariant: idle_since IS NULL iff
-  -- is_current_view = true. See common.set_current_view /
-  -- common.unset_current_view + docs/deferred.md → "Timer
-  -- counts wall-clock time while no one's on the game (bug)."
-  idle_since timestamptz,
-  total_idle_seconds int not null default 0,
+  -- `started_at` anchors the games list ordering; it is NOT the
+  -- timer source. Elapsed game time lives in common.timers as an
+  -- additive tick count (see that table + common.tick_timer), so
+  -- pauses and "nobody viewing" gaps simply don't accrue ticks —
+  -- no wall-clock subtraction, no idle accumulator.
   started_at timestamptz not null default now(),
   ended_at timestamptz
 );
@@ -329,6 +322,40 @@ create index common_games_club_handle_started_at_idx
 create unique index common_games_one_current_view_per_club
   on common.games (club_handle)
   where is_current_view = true;
+
+-- ============================================================
+-- common.timers — the additive game clock
+-- ============================================================
+-- One row per game. `ticks` is the number of whole seconds of
+-- ACTIVE play (someone viewing, not paused) that have elapsed.
+-- The FE timer derives display from it: countdown shows
+-- max(0, duration - ticks), countup shows ticks.
+--
+-- Why additive (vs. wall-clock-minus-gaps): every active player's
+-- browser calls common.tick_timer once a second; that advances
+-- `ticks` by at most 1 per real second (see the conditional
+-- there). When the game is paused, or nobody is viewing it, NOBODY
+-- calls tick_timer — so the clock simply stops. Pauses and idle
+-- gaps need no tracking at all; they're just seconds with no tick.
+-- This replaces the old idle_since/total_idle_seconds accumulator
+-- + the FE's pause-duration bookkeeping with one counter.
+--
+-- Kept in its own table (not a column on common.games) so the
+-- once-per-second tick UPDATE doesn't churn the games row — that
+-- row drives the club-page + game realtime subscriptions, which we
+-- do NOT want firing every second.
+create table common.timers (
+  game_id   uuid primary key references common.games(id) on delete cascade,
+  ticks     int not null default 0,
+  last_tick timestamptz not null default now()
+);
+
+-- Read-only to members (the FE seeds its initial display from
+-- `ticks`); writes go exclusively through common.tick_timer. RLS
+-- (members-of-the-game's-club) is enabled in the policy section
+-- below, alongside the other tables — it gates on is_club_member,
+-- which isn't defined yet here.
+grant select on common.timers to authenticated;
 
 -- ============================================================
 -- common.game_players — who played + per-player outcome
@@ -433,6 +460,7 @@ alter table common.games            enable row level security;
 alter table common.game_players     enable row level security;
 alter table common.clubs_gametypes  enable row level security;
 alter table common.messages         enable row level security;
+alter table common.timers           enable row level security;
 
 create function common.is_club_member(target_club text)
 returns boolean
@@ -464,6 +492,19 @@ $$;
 -- read the base table directly.
 create policy profiles_select_authenticated on common.profiles
   for select to authenticated using (true);
+
+-- Timers: readable by members of the game's club (the FE seeds its
+-- initial timer display from `ticks`). Writes go through
+-- common.tick_timer only — no INSERT/UPDATE policy.
+create policy timers_select on common.timers
+  for select to authenticated
+  using (
+    exists (
+      select 1 from common.games g
+       where g.id = timers.game_id
+         and common.is_club_member(g.club_handle)
+    )
+  );
 
 -- No UPDATE policy on profiles. username and color are both
 -- immutable in v1 — the only way to alter either is to
@@ -873,13 +914,10 @@ begin
   -- the partial unique index would reject the new
   -- is_current_view=true row otherwise. The previously-current
   -- game stays in common.games with is_current_view=false;
-  -- it's now a suspended game (non-current, non-terminal).
-  -- Stamp idle_since=now() as we vacate so the per-game idle
-  -- accumulator stays correct (see common.games.idle_since for
-  -- the invariant).
+  -- it's now a suspended game (non-current, non-terminal). Pure
+  -- pointer flip — no timer bookkeeping (see common.timers).
   update common.games
-     set is_current_view = false,
-         idle_since = now()
+     set is_current_view = false
    where club_handle = target_club and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
@@ -892,6 +930,11 @@ begin
   insert into common.games (club_handle, gametype, title, setup, is_current_view)
   values (target_club, gametype, title, setup, true)
   returning id into new_id;
+
+  -- Seed the additive game clock at zero. last_tick = now() so the
+  -- first tick_timer call doesn't immediately jump (it needs a full
+  -- real second to elapse before the first +1).
+  insert into common.timers (game_id) values (new_id);
 
   insert into common.game_players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) as uid;
@@ -1133,32 +1176,22 @@ begin
 
   perform common.require_club_member(target_club);
 
-  -- Vacate any other current-view game for this club. Done
-  -- first so the partial unique index doesn't reject the
-  -- target's write. The `id <> target_game` clause keeps this
-  -- a no-op when the target is already current (it won't write
-  -- itself to false-then-true). Stamp idle_since=now() on the
-  -- vacated row so its idle accumulator stays correct.
+  -- Vacate any other current-view game for this club. Done first
+  -- so the partial unique index doesn't reject the target's write.
+  -- The `id <> target_game` clause keeps this a no-op when the
+  -- target is already current.
   update common.games
-     set is_current_view = false,
-         idle_since = now()
+     set is_current_view = false
    where club_handle = target_club
      and is_current_view = true
      and id <> target_game;
 
-  -- Set the target current. If it had been idle, fold the idle
-  -- window into total_idle_seconds and clear idle_since. The
-  -- coalesce(idle_since, now()) covers the case where idle_since
-  -- was never stamped (a row created and immediately set current
-  -- with no prior unset_current_view) — the result is now-now=0
-  -- and the +0 is harmless. (The WHERE clause skips re-mounts of
-  -- an already-current game; the arithmetic above only runs when
-  -- the row was non-current.)
+  -- Set the target current. Pure pointer flip — no timer work: the
+  -- clock is the additive tick count in common.timers, which simply
+  -- doesn't advance while nobody's viewing, so there's no idle
+  -- window to fold here.
   update common.games
-     set is_current_view = true,
-         total_idle_seconds = total_idle_seconds
-           + extract(epoch from (now() - coalesce(idle_since, now())))::int,
-         idle_since = null
+     set is_current_view = true
    where id = target_game
      and is_current_view = false;
 end;
@@ -1194,11 +1227,11 @@ begin
 
   perform common.require_club_member(target_club);
 
-  -- Stamp idle_since=now() as we clear current-view so the idle
-  -- accumulator picks up the gap until the next viewer arrives.
+  -- Pure pointer flip. No timer work — the tick clock in
+  -- common.timers stops advancing on its own once no one's viewing
+  -- (nobody calls tick_timer), so there's no idle gap to stamp.
   update common.games
-     set is_current_view = false,
-         idle_since = now()
+     set is_current_view = false
    where id = target_game
      and is_current_view = true;
 end;
@@ -1206,6 +1239,65 @@ $$;
 
 revoke execute on function common.unset_current_view(uuid) from public;
 grant execute on function common.unset_current_view(uuid) to authenticated;
+
+-- ─── common.tick_timer ─────────────────────────────────────
+-- The game clock's one writer. Every actively-playing client calls
+-- this once a second; it advances common.timers.ticks by AT MOST 1
+-- per real second and returns the current count.
+--
+-- The conditional (`now() - last_tick >= 1 second`) does all the
+-- work:
+--   - **Dedup across players.** Three clients calling within the
+--     same second: only the first passes the WHERE and advances;
+--     the other two no-op and just read the value back. So the
+--     clock runs at ~1 tick/sec no matter how many are driving it —
+--     no leader election needed.
+--   - **Pause / idle are free.** When the game is paused, or nobody
+--     is viewing it, no client calls this, so last_tick stays put.
+--     The first call on resume adds +1 (it's `ticks + 1`, never
+--     `ticks + gap`), so a five-minute pause costs one second, not
+--     five minutes. No gap tracking anywhere.
+--   - **Server clock is authority.** The `now()` is the database's,
+--     so a client's wall-clock skew or setInterval drift can't move
+--     the count — it only triggers the attempt.
+--
+-- Returns the current ticks either way, so the same call the FE
+-- uses to advance the clock also reads it back.
+create function common.tick_timer(target_game uuid)
+returns int
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  target_club text;
+  current_ticks int;
+begin
+  select club_handle into target_club from common.games where id = target_game;
+  if target_club is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+  perform common.require_club_member(target_club);
+
+  update common.timers
+     set ticks = ticks + 1,
+         last_tick = now()
+   where game_id = target_game
+     and now() - last_tick >= interval '1 second'
+  returning ticks into current_ticks;
+
+  -- WHERE didn't match (already ticked this second) — read current.
+  if current_ticks is null then
+    select ticks into current_ticks
+      from common.timers where game_id = target_game;
+  end if;
+
+  return coalesce(current_ticks, 0);
+end;
+$$;
+
+revoke execute on function common.tick_timer(uuid) from public;
+grant execute on function common.tick_timer(uuid) to authenticated;
 
 -- ─── common.delete_game ────────────────────────────────────
 -- Permanently remove a game and everything that belongs to it.

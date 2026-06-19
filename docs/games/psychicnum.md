@@ -200,7 +200,7 @@ After validation, picks a random target 1–10, calls `common.create_game(target
 - Coop: `common.require_player_count_max(player_user_ids, 6)`. Matches `numberOfPlayers: [1, 6]`.
 - Compete: same max-6 plus an explicit `array_length >= 2` check. Matches `numberOfPlayers: [2, 6]`.
 
-Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-browser-side-no-server-sync) below).
+Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; `setup.guesses` not in {3, 5, 7, 9}; `setup.guesses` missing; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks) below).
 
 ### Title formula
 
@@ -247,7 +247,7 @@ Fires when the FE's count-down timer expires. Calls `common.end_game` with:
 
 Either way, **everyone loses** — `common.game_players.result = {won: false}` for every player. Compete-mode players were racing; the clock running out before anyone won is a collective loss.
 
-Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-browser-side-no-server-sync).
+Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 
@@ -256,15 +256,15 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 The start-game dialog collects two options from the players before `create_game` fires:
 
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default; 3 is hard mode; 5 medium; 9 the easy warm-up.
-- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field wordknit uses, validated server-side by `common.validate_timer`. See [Timer](#timer-browser-side-no-server-sync) below.
+- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field wordknit uses, validated server-side by `common.validate_timer`. See [Timer](#timer-server-authoritative-ticks) below.
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
 
 The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicNumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
 
-## Timer (browser-side, no server sync)
+## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — same as wordknit; see [`wordknit.md → Timer`](wordknit.md#timer-browser-side-no-server-sync) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
+Standard `<TimerField>` + `useGameTimer` setup — same as wordknit; see [`wordknit.md → Timer`](wordknit.md#timer-server-authoritative-ticks) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
 
 ## Pause-on-disconnect
 

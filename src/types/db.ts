@@ -170,7 +170,6 @@ export type Database = {
           ended_at: string | null
           gametype: string
           id: string
-          idle_since: string | null
           is_current_view: boolean
           is_terminal: boolean
           paused: boolean
@@ -179,14 +178,12 @@ export type Database = {
           started_at: string
           status: Json | null
           title: string
-          total_idle_seconds: number
         }
         Insert: {
           club_handle: string
           ended_at?: string | null
           gametype: string
           id?: string
-          idle_since?: string | null
           is_current_view?: boolean
           is_terminal?: boolean
           paused?: boolean
@@ -195,14 +192,12 @@ export type Database = {
           started_at?: string
           status?: Json | null
           title: string
-          total_idle_seconds?: number
         }
         Update: {
           club_handle?: string
           ended_at?: string | null
           gametype?: string
           id?: string
-          idle_since?: string | null
           is_current_view?: boolean
           is_terminal?: boolean
           paused?: boolean
@@ -211,7 +206,6 @@ export type Database = {
           started_at?: string
           status?: Json | null
           title?: string
-          total_idle_seconds?: number
         }
         Relationships: [
           {
@@ -302,6 +296,32 @@ export type Database = {
         }
         Relationships: []
       }
+      timers: {
+        Row: {
+          game_id: string
+          last_tick: string
+          ticks: number
+        }
+        Insert: {
+          game_id: string
+          last_tick?: string
+          ticks?: number
+        }
+        Update: {
+          game_id?: string
+          last_tick?: string
+          ticks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timers_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: true
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -351,6 +371,7 @@ export type Database = {
       }
       set_current_view: { Args: { target_game: string }; Returns: undefined }
       slugify_club_name: { Args: { name: string }; Returns: string }
+      tick_timer: { Args: { target_game: string }; Returns: number }
       unset_current_view: { Args: { target_game: string }; Returns: undefined }
       update_state: {
         Args: { play_state: string; status: Json; target_game: string }

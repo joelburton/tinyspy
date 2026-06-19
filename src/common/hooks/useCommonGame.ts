@@ -47,13 +47,6 @@ export type CommonGame = {
    *  by every state-transitioning RPC via common.update_state /
    *  common.end_game — not just a terminal-time snapshot. */
   status: Record<string, unknown> | null
-  /** Server-tracked accumulator of wall-clock time during which
-   *  no one was viewing this game. Maintained by
-   *  common.set_current_view / unset_current_view. Fed into the
-   *  timer hook so countdown timers don't tick when nobody's
-   *  watching. See common.games column comments for the full
-   *  invariant. */
-  total_idle_seconds: number
   started_at: string
   ended_at: string | null
 }
@@ -222,7 +215,7 @@ export function useCommonGame(
         commonDb
           .from('games')
           .select(
-            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, total_idle_seconds, started_at, ended_at',
+            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -475,16 +468,16 @@ export function useCommonGame(
     (presencePaused || manuallyPausedBy !== null)
     && commonGame?.ended_at == null
 
-  // Timer. Anchored to common.games.started_at; mode from setup;
-  // idle_seconds folded in so countdowns don't tick while nobody's
-  // viewing. Pre-load (commonGame null) feeds placeholder values
-  // so the hook stays callable; consumers gate the display on
-  // commonGame !== null below.
+  // Timer. The additive tick clock (common.timers) — mode from
+  // setup; `running` gates the per-second driver so the count only
+  // advances during live, unpaused play. Pre-load (commonGame null)
+  // → running=false, so the hook stays callable but idle until the
+  // game loads.
   const timer = useGameTimer({
-    startedAt: commonGame?.started_at ?? new Date().toISOString(),
+    gameId,
     paused,
     mode: commonGame?.setup.timer ?? { kind: 'none' },
-    idleSeconds: commonGame?.total_idle_seconds ?? 0,
+    running: commonGame != null && !commonGame.is_terminal,
   })
 
   return {

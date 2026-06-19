@@ -1,170 +1,124 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useGameTimer, formatTimerSeconds } from './useGameTimer'
 
 /**
- * Tests for the per-game timer hook. Drives the hook with
- * Vitest's fake timers + a fixed Date.now() so the assertions
- * pin specific second-by-second behavior.
+ * Tests for the additive-tick timer hook.
  *
- * What we cover:
- *   - mode='none' is inert
- *   - mode='countup' ticks up from 0
- *   - mode='countdown' ticks down and flips `expired` at 0
- *   - pause freezes the display, unpause resumes from where
- *     it left off (accumulated pause is subtracted from
- *     elapsed)
- *   - the format helper for the MM:SS display
- *
- * What we don't cover here:
- *   - StrictMode double-mounting (covered by the general
- *     React Testing Library setup)
- *   - cross-client drift behavior (it's "compute from
- *     Date.now() each tick" — nothing to test in isolation)
+ * The hook reads `common.timers.ticks` (initial seed) and drives the
+ * shared count via the `tick_timer` RPC once a second. We mock the
+ * common db client so we can pin what `ticks` the server reports,
+ * then assert the display mapping + the driver gating (paused / not
+ * running / untimed → no RPC). Fake timers + `advanceTimersByTimeAsync`
+ * flush the hook's async reads.
  */
 
-const START = '2026-06-14T12:00:00.000Z'
-const START_MS = new Date(START).getTime()
+const { rpcMock, maybeSingleMock } = vi.hoisted(() => ({
+  rpcMock: vi.fn(),
+  maybeSingleMock: vi.fn(),
+}))
+
+vi.mock('../db', () => ({
+  db: {
+    from: () => ({
+      select: () => ({ eq: () => ({ maybeSingle: maybeSingleMock }) }),
+    }),
+    rpc: rpcMock,
+  },
+}))
+
+import { useGameTimer, formatTimerSeconds } from './useGameTimer'
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.setSystemTime(START_MS)
+  maybeSingleMock.mockResolvedValue({ data: { ticks: 0 } })
+  rpcMock.mockResolvedValue({ data: 0, error: null })
 })
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.clearAllMocks()
 })
 
-function advance(ms: number) {
-  act(() => {
-    vi.advanceTimersByTime(ms)
+/** Flush the immediate driver call + initial read (and any pending
+ *  microtasks) without advancing wall time. */
+async function flush() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0)
   })
 }
 
 describe('useGameTimer', () => {
-  it('returns 0 / not-expired in "none" mode and never ticks', () => {
+  it('is inert in "none" mode and never calls tick_timer', async () => {
     const { result } = renderHook(() =>
-      useGameTimer({ startedAt: START, paused: false, mode: { kind: 'none' } }),
+      useGameTimer({ gameId: 'g', mode: { kind: 'none' }, paused: false, running: true }),
     )
+    await flush()
     expect(result.current.displaySeconds).toBe(0)
     expect(result.current.expired).toBe(false)
-
-    advance(10_000)
-    expect(result.current.displaySeconds).toBe(0)
-    expect(result.current.expired).toBe(false)
+    expect(rpcMock).not.toHaveBeenCalled()
   })
 
-  it('counts up from 0 in "countup" mode', () => {
+  it('countup display equals the tick count', async () => {
+    rpcMock.mockResolvedValue({ data: 3, error: null })
     const { result } = renderHook(() =>
-      useGameTimer({
-        startedAt: START,
-        paused: false,
-        mode: { kind: 'countup' },
-      }),
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
     )
-    // Initial snapshot at exactly the start: 0 elapsed.
-    expect(result.current.displaySeconds).toBe(0)
-
-    advance(3_000)
+    await flush()
     expect(result.current.displaySeconds).toBe(3)
   })
 
-  it('counts down from `seconds` in "countdown" mode', () => {
+  it('countdown display is max(0, seconds - ticks)', async () => {
+    rpcMock.mockResolvedValue({ data: 4, error: null })
     const { result } = renderHook(() =>
-      useGameTimer({
-        startedAt: START,
-        paused: false,
-        mode: { kind: 'countdown', seconds: 10 },
-      }),
+      useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
-    expect(result.current.displaySeconds).toBe(10)
-
-    advance(4_000)
+    await flush()
     expect(result.current.displaySeconds).toBe(6)
+    expect(result.current.expired).toBe(false)
   })
 
-  it('flips `expired` true when a countdown hits 0', () => {
+  it('flips `expired` when a countdown reaches 0 and never goes negative', async () => {
+    rpcMock.mockResolvedValue({ data: 12, error: null }) // past the 10s duration
     const { result } = renderHook(() =>
-      useGameTimer({
-        startedAt: START,
-        paused: false,
-        mode: { kind: 'countdown', seconds: 3 },
-      }),
+      useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 10 }, paused: false, running: true }),
     )
-    expect(result.current.expired).toBe(false)
-
-    advance(3_000)
-    expect(result.current.displaySeconds).toBe(0)
-    expect(result.current.expired).toBe(true)
-
-    // Continues to report 0 / expired past the deadline; doesn't
-    // go negative.
-    advance(5_000)
+    await flush()
     expect(result.current.displaySeconds).toBe(0)
     expect(result.current.expired).toBe(true)
   })
 
-  it('freezes the display while paused', () => {
-    const { result, rerender } = renderHook(
-      ({ paused }: { paused: boolean }) =>
-        useGameTimer({
-          startedAt: START,
-          paused,
-          mode: { kind: 'countup' },
-        }),
-      { initialProps: { paused: false } },
+  it('does not drive while paused (count stops), but still seeds from the read', async () => {
+    maybeSingleMock.mockResolvedValue({ data: { ticks: 5 } })
+    const { result } = renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: true, running: true }),
     )
-    advance(2_000)
-    expect(result.current.displaySeconds).toBe(2)
-
-    // Pause at t=2s. Advance wall clock another 5s. Display
-    // should stay at 2.
-    rerender({ paused: true })
-    advance(5_000)
-    expect(result.current.displaySeconds).toBe(2)
+    await flush()
+    expect(result.current.displaySeconds).toBe(5) // seeded from the initial read
+    expect(rpcMock).not.toHaveBeenCalled() // paused → driver off
   })
 
-  it('resumes from where it left off after a pause', () => {
-    const { result, rerender } = renderHook(
-      ({ paused }: { paused: boolean }) =>
-        useGameTimer({
-          startedAt: START,
-          paused,
-          mode: { kind: 'countup' },
-        }),
-      { initialProps: { paused: false } },
+  it('does not drive while not running (terminal / loading)', async () => {
+    const { result } = renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: false }),
     )
-    advance(2_000)
-    rerender({ paused: true })
-    advance(5_000) // wall clock advances but display stays
-    rerender({ paused: false })
-    expect(result.current.displaySeconds).toBe(2) // resumed at 2s
-    advance(3_000)
-    expect(result.current.displaySeconds).toBe(5) // 2 + 3 wall-clock seconds post-resume
-  })
-
-  it('respects pause through countdown — does not expire while paused', () => {
-    const { result, rerender } = renderHook(
-      ({ paused }: { paused: boolean }) =>
-        useGameTimer({
-          startedAt: START,
-          paused,
-          mode: { kind: 'countdown', seconds: 5 },
-        }),
-      { initialProps: { paused: false } },
-    )
-    advance(3_000)
-    expect(result.current.displaySeconds).toBe(2)
-
-    rerender({ paused: true })
-    advance(10_000) // would have expired several seconds ago if not paused
-    expect(result.current.displaySeconds).toBe(2)
-    expect(result.current.expired).toBe(false)
-
-    rerender({ paused: false })
-    advance(2_000)
+    await flush()
+    expect(rpcMock).not.toHaveBeenCalled()
     expect(result.current.displaySeconds).toBe(0)
-    expect(result.current.expired).toBe(true)
+  })
+
+  it('never rewinds the display when a later read reports fewer ticks', async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: 5, error: null })
+      .mockResolvedValue({ data: 3, error: null }) // out-of-order / stale
+    const { result } = renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countup' }, paused: false, running: true }),
+    )
+    await flush()
+    expect(result.current.displaySeconds).toBe(5)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000) // next interval call returns 3
+    })
+    expect(result.current.displaySeconds).toBe(5) // held by Math.max
   })
 })
 

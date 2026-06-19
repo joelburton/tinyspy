@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(49);
+select plan(43);
 
 \ir ../_shared/setup.psql
 
@@ -394,17 +394,9 @@ select is(
 );
 
 -- Re-mount idempotency: set_current_view on the already-current
--- game is a no-op (no write to the row itself, no write to
--- others, no change to total_idle_seconds). The index would
--- reject a true→true rewrite if we did it naively; the WHERE
--- clause `and is_current_view = false` in set_current_view's
--- body is what keeps it a no-op. Force a non-zero baseline on
--- total_idle_seconds first so the assertion has signal.
-reset role;
-update common.games
-   set total_idle_seconds = 42
- where id = current_setting('test.created_game_id')::uuid;
-
+-- game is a no-op. The index would reject a true→true rewrite if
+-- we did it naively; the WHERE clause `and is_current_view = false`
+-- in set_current_view's body is what keeps it a no-op.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   format(
@@ -423,21 +415,6 @@ select is(
   true,
   'set_current_view: re-mount left current-view = true'
 );
-
-select is(
-  (select total_idle_seconds from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  42,
-  'set_current_view: re-mount did NOT mutate total_idle_seconds'
-);
-
--- Clear the 42-baseline so the later idle-accounting block
--- (which expects total_idle_seconds = 0 before its 5-second
--- window) starts from a clean slate.
-reset role;
-update common.games
-   set total_idle_seconds = 0
- where id = current_setting('test.created_game_id')::uuid;
 
 -- unset_current_view clears the target's flag. Idempotent on
 -- the `is_current_view = true` guard.
@@ -484,71 +461,21 @@ select throws_ok(
   'set_current_view: unknown game raises P0002'
 );
 
--- ============================================================
--- Idle accounting (the timer-state-preservation contract)
--- ============================================================
--- The invariant: is_current_view=true iff idle_since IS NULL.
--- Every transition out of current-view stamps idle_since=now();
--- every transition into current-view folds the gap into
--- total_idle_seconds and clears idle_since. See common.games's
--- column comments for the why.
+-- Restore the precondition for the partial-unique-index test
+-- below: created_game must be the current view again (the unset
+-- test above cleared it). set_current_view's vacate-first step
+-- guarantees it's the ONLY current row for the club.
 --
--- The first game (current_setting('test.created_game_id')) is
--- currently non-current (we left it that way after the unset
--- test above). We use it to exercise idle-set / idle-fold.
-
-reset role;
-select set_config('request.jwt.claims', '', true);
-
-select isnt(
-  (select idle_since from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  null,
-  'idle: unset_current_view stamped idle_since'
-);
-
-select is(
-  (select total_idle_seconds from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  0,
-  'idle: total_idle_seconds is still 0 (the window is open)'
-);
-
--- Force idle_since back by 5 seconds so set_current_view's fold
--- has a deterministic gap to add. (now() inside the next RPC
--- minus this rewound timestamp = ~5 seconds.)
-update common.games
-   set idle_since = now() - interval '5 seconds'
- where id = current_setting('test.created_game_id')::uuid;
-
+-- (There is no idle-accounting block any more: the timer is an
+-- additive tick count in common.timers, advanced only during
+-- active play, so "nobody viewing" simply doesn't tick — no
+-- idle_since / total_idle_seconds to fold. See tick_timer_test.sql
+-- for the clock's contract.)
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.set_current_view(current_setting('test.created_game_id')::uuid);
 
 reset role;
 select set_config('request.jwt.claims', '', true);
-
-select is(
-  (select idle_since from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  null,
-  'idle: set_current_view cleared idle_since'
-);
-
-select cmp_ok(
-  (select total_idle_seconds from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  '>=',
-  5,
-  'idle: total_idle_seconds folded in the ~5s window'
-);
-
-select cmp_ok(
-  (select total_idle_seconds from common.games
-    where id = current_setting('test.created_game_id')::uuid),
-  '<=',
-  7,
-  'idle: total_idle_seconds didn''t pick up implausible extra'
-);
 
 -- ============================================================
 -- Partial unique index: one current-view game per club, enforced
