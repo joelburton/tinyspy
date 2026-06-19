@@ -1,11 +1,7 @@
-<!-- Placeholder logo. Generic 4-dot grid inside a rounded
-     square — reads as "tiles / a game board / four of something"
-     without committing to per-game iconography. Replace when we
-     have real art. -->
-<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5">
-  <rect x="2.5" y="2.5" width="19" height="19" rx="4" ry="4" />
-  <circle cx="9" cy="9" r="1.5" fill="currentColor" stroke="none" />
-  <circle cx="15" cy="9" r="1.5" fill="currentColor" stroke="none" />
-  <circle cx="9" cy="15" r="1.5" fill="currentColor" stroke="none" />
-  <circle cx="15" cy="15" r="1.5" fill="currentColor" stroke="none" />
-</svg>
+<!-- PsychicNum logo — a "thinking head" (brain + radiating thought
+     lines), for the mind-reading / number-guessing theme. From
+     Openclipart (public domain). Removed a broken root-<svg> transform
+     that browsers ignore but some renderers honored (it shrank/rotated
+     the art into a corner), then ran svgo. GameLogo renders this via
+     <img>; colors are baked into the paths. -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 200 200"><title>imagebot_2</title><path fill="#fffdfc" stroke="#333" stroke-width="5" d="M53.717 195.21c6.2-12.042 4.591-44.846 3.75-58.459 0 0-8.111-6.824-10.626-10.134-4.664-6.146-10.132-14.701-12.473-21.854-2.67-8.163-3.941-19.84-3.228-28.385.667-7.975 2.972-18.929 7.389-25.682 4.81-7.351 14.722-14.844 22.632-18.92 7.992-4.121 20.081-6.985 29.097-7.663 8.751-.651 20.594 1.008 29.098 3.158 9.738 2.462 22.725 7.288 30.479 13.515 18.718 15.95 18.518 36.752 19.859 59.027 1.336 5.29 5.937 11.374 9.236 15.771 1.454 1.929 4.453 3.711 5.543 5.853.694 1.355 1.519 3.56.922 4.961-.832 1.97-4.086 3.004-5.998 4.049-1.188.65-3.494.642-4.16 1.802-1.572 2.739 2.605 7.172.695 9.688-1.007 1.318-4.848 1.578-4.848 1.578s4.755 5.879 2.771 5.859c-1.106-.018-4.474 5.451-3.694 7.208 0 0 2.267 5.265 2.304 7.654.037 2.657-.43 6.637-2.304 8.562-1.911 1.953-6.118 1.997-8.779 2.703-4.252 1.123-11.11.463-15.7 1.579-3.045.74-7.051 2.193-9.703 3.826-1.91 1.178-4.617 2.953-5.541 4.96-2.908 6.28-.539 3.627-1.381 10.478l-75.778-.793"/><path fill="#919899" stroke="#454a4b" stroke-width="3" d="M88.064 131.7s-3.314 2.55-4.997 3.019c-1.512.421-3.772.577-5.231 0-1.215-.487-3.177-3.019-3.177-3.019-13.099 3.293-19.447-8.039-20.239-14.828 0 0-4.582-1.176-6.59-1.387-5.689-.615-8.607-15.352-8.642-16.224-1.072-25.995 2.457-38.822 19.778-55.843 7.536-7.414 18.888-11.25 35.922-11.818 10.74-.359 19.733.128 27.053 3.936 0 0 14.998 6.387 20.463 10.662 5.248 4.101 10.921 10.818 14.783 16.682 5.222 11.607 3.16 29.298-9.104 31.28l-14.312 2.321c-4.07.708 5.41 8.46-5.69 15.296-9.201 9.451-20.031.99-20.913 1.854 0 0-3.943 5.671-5.23 8.341-1.242 2.587-2.484 6.248-3.188 9.038-.541 2.176.783 6.294-1.134 7.413-4.646 2.707-9.552.918-9.552-.229v-6.48z"/><path fill="none" stroke="#3d3d3d" stroke-linecap="round" stroke-width="9" d="m158.67 33.725 6.17-7.683M120.42 16.625l2.67-9.485M74.816 15.694l-2.122-9.623M25.272 113.92l-9.035 3.93M39.878 33.693l-6.246-7.621M20.619 67.67l-9.728-1.575M179.97 67.04l9.57-2.315"/></svg>
