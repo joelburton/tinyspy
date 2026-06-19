@@ -7,9 +7,9 @@ type Props = {
    *  succeeds, so the parent App.tsx flips needsClaim → false and
    *  renders HomePage instead of this screen. */
   onClaimed: () => void
-  /** Signed-in user's email address. Used to derive a placeholder
-   *  suggestion from the local-part — better than a hardcoded
-   *  "joel" that's confusing for everyone else. */
+  /** Signed-in user's email address. Used to derive the pre-filled
+   *  default username from the local-part — better than a blank field
+   *  or a hardcoded "joel" that's confusing for everyone else. */
   email: string | null | undefined
 }
 
@@ -43,12 +43,13 @@ type Props = {
 const HANDLE_REGEX = /^[a-z][a-z0-9-]{2,29}$/
 
 /**
- * Derive a placeholder handle from an email address. Normalizes
- * the local-part (lowercase, drop invalid chars, drop leading
- * non-letters, truncate to 30) and returns the result only if it
- * satisfies HANDLE_REGEX — otherwise an empty string so the input
- * shows no placeholder rather than something misleading like
- * "foo!" or a too-short fragment.
+ * Derive a suggested handle from an email address — used to pre-fill
+ * the field as an editable default. Normalizes the local-part
+ * (lowercase, drop invalid chars, drop leading non-letters, truncate
+ * to 30) and returns the result only if it satisfies HANDLE_REGEX —
+ * otherwise an empty string, so the field starts blank rather than
+ * pre-filled with something misleading like "foo!" or a too-short
+ * fragment.
  *
  * Examples:
  *   joel.burton@gmail.com  → "joelburton"
@@ -68,13 +69,15 @@ function suggestedHandleFromEmail(email: string | null | undefined): string {
 }
 
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
-  const [desired, setDesired] = useState('')
+  // Pre-fill with the email-derived suggestion as an editable
+  // default — the user can accept it as-is (one click on Claim) or
+  // type over it. Lazy initializer so it runs once on mount; `email`
+  // is always present here (App only renders this screen for a
+  // signed-in session). Empty string when the email yields no valid
+  // handle, so the field just starts blank.
+  const [desired, setDesired] = useState(() => suggestedHandleFromEmail(email))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Computed once per email-prop change — cheap regex work, no
-  // need for useMemo. Empty string when the email doesn't yield
-  // a valid handle (the <input> just shows no placeholder then).
-  const placeholder = suggestedHandleFromEmail(email)
 
   // FE-side regex check, shown as you type. Empty string → no
   // hint (don't badger the user before they've typed anything).
@@ -131,7 +134,6 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
             value={desired}
             onChange={(e) => setDesired(e.target.value)}
             disabled={busy}
-            placeholder={placeholder}
             autoFocus
             required
           />
