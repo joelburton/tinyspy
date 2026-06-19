@@ -25,11 +25,13 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
   - Pangram: **+10 bonus** on top of the length score (a 7-letter pangram is 7 + 10 = 17). Pangram-ness is determined at submit time by the WORD's distinct-letter count (= 7), not by a precomputed flag — so a *bonus* word with 7 distinct letters earns the +10 too.
 - **Bonus words:** the dictionary has two tiers — a smaller *scoring set* (SCOWL-50) and a larger *legal set* (SCOWL-80). A word in the legal set but NOT in the scoring set is accepted as **bonus** and **scores the same way as a scoring word** (length-based + pangram bonus). The difference is purely about what the player saw before they found it: bonus words are NOT counted in `total_words` and NOT included in the puzzle-quality gate (`≥30 scoring words`) or the rank-threshold *denominator* (`total_score`). So a player who finds a bonus pangram (rare-word knowledge!) can legitimately rocket past the displayed "max" score and even past the Genius rank. The `Words: X/Y` display lets `X` overshoot `Y` when bonus words are found, signaling the extra credit. Bonus contribution to score + rank is *intentional* — the design call is "we don't want players to feel bad for missing obscure words, but reward them if they find them." Matches `~/freebee-ws/server/sessions.js:988-990`.
 - **Rank ladder:** as score climbs vs. the puzzle's maximum-possible score, the player passes through **Start → Good → Solid → Nice → Great → Amazing → Genius**. Genius unlocks at **70%** of the maximum. The ladder is mirrored on the FE in [`src/freebee/lib/ranks.ts`](../../src/freebee/lib/ranks.ts) and on the SQL side in `freebee._rank_idx` — both compute from the same constants, and a Vitest assertion checks they agree numerically across every score-vs-total combination.
-- **Lifecycle (v1):** the game ends when (a) the countdown timer expires (`timer.kind = 'countdown'` only), (b) every scoring word is found (100%), or (c) any player chooses the **End game** menu item. Untimed and count-up games end only via (b) or (c).
+- **Lifecycle:**
+  - *Coop*: ends when (a) the countdown timer expires (`timer.kind = 'countdown'` only) or (b) any player chooses the **End game** menu item. **There's no auto-end on 100%-found** — players who exhaust the scoring set keep going, finding bonus words past the displayed `Y / total_words` and pushing the score past `total_score` (the rank clamps at Genius). Untimed and count-up games end only via (b). Matches `~/freebee-ws/server/sessions.js`'s `submitWord` (no terminal check past acceptance).
+  - *Compete*: ends when (a) a player reaches the configured `target_rank` first (→ `play_state='won_compete'`, that player wins, others lose), (b) the countdown timer expires before any winner emerges (→ `play_state='ended'`, no winner), or (c) any player ends the game manually (→ `play_state='ended'`, no winner). Per-player elimination doesn't exist — players keep racing until terminal.
 
 ### Coop vs compete
 
-**Coop**: all players see the same found-words list; whoever finds a word first claims it (their color marks the entry). The team score is everyone's points combined. The game ends when (a) the countdown timer expires, (b) every scoring word is found (100% = `outcome='completed'`), or (c) any player chooses the **End game** menu item (`outcome='manual'`).
+**Coop**: all players see the same found-words list; whoever finds a word first claims it (their color marks the entry). The team score is everyone's points combined. The game ends when (a) the countdown timer expires (`outcome='timeout'`) or (b) any player chooses the **End game** menu item (`outcome='manual'`). No auto-end at 100%-found — past the scoring set, players climb the score with bonus words; rank clamps at Genius.
 
 **Compete**: each player races independently on the same honeycomb. Per-player score, per-player found-words list (RLS hides peers' rows during play). **First to the setup-configured target rank wins** — the race ends instantly for everyone with `play_state='won_compete'`, the winner's `common.game_players.result = {won: true}`, opponents `{won: false}`. Timer expiry or manual end before any winner emerges → `play_state='ended'` with everyone `{won: false}` (a collective non-finish; no winner declared on a non-race outcome). Opponents see each other's RANK ONLY during play (via the `status.leaderboard` payload); guesses + matched-word lists stay private until terminal. See [Compete mode](#compete-mode) for the per-mode picks + schema details.
 
@@ -39,10 +41,7 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
 
 ### Parity with `~/freebee-ws`
 
-The rules + scoring match `~/freebee-ws` (the standalone codebase this is ported from). Two intentional differences:
-
-1. **Coop auto-end on 100% scoring-words-found** is *new in this port* — `~/freebee-ws` only ends coop via timer or manual end. The auto-end is a courtesy "nothing left to do"; the check is gated on `count(*) filter (where not is_bonus) >= total_words` so finding bonus words doesn't prematurely fire it.
-2. **Compete winner determination**: this port pins `winner_user_id = caller` when the target-hitting `submit_word` lands. `~/freebee-ws` ends the session and then picks the highest-score player; in practice these match because the target-hitter just gained points and has the top score, but the local-pinned variant is more deterministic.
+The rules + scoring match `~/freebee-ws` (the standalone codebase this is ported from). One intentional difference: **compete winner determination** — this port pins `winner_user_id = caller` when the target-hitting `submit_word` lands. `~/freebee-ws` ends the session and then picks the highest-score player; in practice these match because the target-hitter just gained points and has the top score, but the local-pinned variant is more deterministic.
 
 ## Vocabulary
 
@@ -57,7 +56,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **bonus word** | Synonym for legal-not-scoring. Accepted by `submit_word` as `'bonus'`; **scores normally** (length-based + pangram bonus per the same rules as a scoring word), but does NOT count toward `total_words` and doesn't affect the rank-threshold *denominator*. Recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. Because score climbs without the max climbing, finding bonus words can push you past the displayed-max score and even past Genius / past compete's target rank. |
 | **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `score / total_score` via `currentRankIndex`. Genius unlocks at 70% (`GENIUS_AT`). Same word `wordknit` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
 | **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the importer): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
-| **outcome** | The `status.outcome` enum value for terminal freebee games: `'completed'` (100%-found in coop), `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), or `'won_compete'` (compete mode; deferred). The corresponding `play_state` is `'ended'` for the first three and `'won_compete'` for the last. |
+| **outcome** | The `status.outcome` enum value for terminal freebee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`), `'lost_compete'` (compete: timer / manual end with no winner — but actually this port writes `'timeout'`/`'manual'` with `mode='compete'` in the status to distinguish). The corresponding `play_state` is `'ended'` for everything except `'won_compete'` which uses `play_state='won_compete'`. |
 
 ## Scope: v1 vs. deferred
 
@@ -147,7 +146,7 @@ The edge function `freebee-build-board` accepts `mode` as a top-level body field
 | `dictionary` | Global word-lookup table. ~46k rows (after normalization: lowercase ASCII, ≥4 chars, no `s`). One row per word with `letter_mask` (26-bit), `in_scoring` (counts toward score/rank), `in_legal` (accepted as bonus). Populated by `npm run freebee:import`. Public-readable to `authenticated`; only `service_role` has INSERT. |
 | `pangrams` | Precomputed seed pool. ~3.5k rows: one per unique 7-letter mask drawn from the scoring set that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Each row carries `scoring_words` (count of scoring words that fit; ≥30 gate at sample time) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. See [Why a seeds table?](#why-a-seeds-table) below. |
 | `games` | One row per playthrough. `id` is FK to `common.games(id)`. Holds `mode` (`'coop'`/`'compete'`, denormalized from the gametype string for RLS branching), `outer_letters` (6 chars), `center_letter` (1 char), `total_score` and `total_words` (cached at create-game time), plus the **hidden** wordlist columns `scoring_words` (jsonb array of `{word, points, is_pangram}`) and `legal_words` (text[] bonus-only). Hidden via column-level grant; exposed conditionally via `games_state`. The column grant explicitly includes `mode` so the security_invoker view + the mode-aware found_words RLS policy can read it. |
-| `found_words` | One row per `(player, word)`. Includes `points` (0 if bonus), `is_pangram`, `is_bonus`. PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
+| `found_words` | One row per `(player, word)`. Includes `points` (length-based + `+10` if pangram; bonus rows score normally too), `is_pangram` (true when the word's distinct-letter count = 7), `is_bonus` (true when the word came from `legal_words` rather than `scoring_words`). PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
 
 ### The hidden-wordlist pattern
 
@@ -181,17 +180,17 @@ It exists because the obvious-looking pattern — "fetch all in_legal words, fil
 `common.games.play_state` carries freebee's lifecycle enum:
 
 - **`playing`** — submissions accepted. The default.
-- **`ended`** — terminal. Covers all three v1 outcomes: 100%-found, countdown expiry, and manual end. Distinguish in `status.outcome` — `'completed'`, `'timeout'`, `'manual'`.
-- **`won_compete`** — terminal. Compete only: a player hit `setup.target_rank`. Reserved from day one even though v1 never writes it.
+- **`ended`** — terminal. Covers two outcome shapes: countdown expiry (`status.outcome='timeout'`) and manual end (`'manual'`). In compete, both still write `play_state='ended'` (no winner). In coop, these are the *only* paths to terminal.
+- **`won_compete`** — terminal. Compete only: a player hit `setup.target_rank`. `status.outcome='won_compete'` + `status.winner_user_id`.
 
 `is_terminal` is true for `ended` and `won_compete`.
 
 ### `status` jsonb
 
-Drives `manifest.labelFor` for the club page's game-list label.
+Drives `manifest.labelFor` for the club page's game-list label and (in compete) drives the live `OpponentRanksStrip` via `GamePageCtx.status`.
 
-- **Coop:** `{ mode: 'coop', outcome?, score, total_score, rank_idx, words_found, total_words }`. `outcome` is absent mid-game and present at terminal.
-- **Compete (future):** adds `{ leaderboard: [{user_id, score, rank_idx, words_found}, …], target_rank, winner_user_id? }`.
+- **Coop:** `{ mode: 'coop', outcome?, score, total_score, rank_idx, words_found, total_words }`. `outcome` is absent mid-game and present at terminal (`'timeout'` or `'manual'`). `words_found` counts ALL submissions (scoring + bonus); `score` includes bonus points. The displayed `Y / total_words` can overshoot, and `score / total_score` can climb past 1.0 (rank_idx clamps at 6).
+- **Compete:** `{ mode: 'compete', target_rank, leaderboard: [{user_id, score, rank_idx, words_found}, …], total_score, total_words, winner_user_id?, outcome? }`. The leaderboard array drives the FE's `OpponentRanksStrip` — opponent visibility is rank-only by design (score + words_found are in the payload but the FE intentionally surfaces only `rank_idx`). At terminal: `winner_user_id` set on `won_compete`; `outcome` set on `'timeout'`/`'manual'`.
 
 ### Title formula
 
@@ -224,9 +223,9 @@ The main mid-game action. Validates the word in the freebee-ws order (chosen so 
 3. `missingCenter` — doesn't include the center letter
 4. `notAWord` — not in scoring_words and not in legal_words
 5. `alreadyFound` — per mode rule (coop: any row with `(game_id, word)`; compete: row with `(game_id, user_id, word)`)
-6. otherwise: `accepted` (scoring word) or `bonus` (legal-but-not-scoring, 0 points)
+6. otherwise: `accepted` (scoring word) or `bonus` (legal-but-not-scoring). **Bonus scores normally** — length + pangram bonus, same as a scoring word; the `'bonus'` enum value just lets the FE render a different feedback pill copy.
 
-On accept: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (mid-game) or `common.end_game` (100%-found in coop; target-rank-hit in compete).
+On accept: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` (compete target-rank-hit only — coop never auto-terminates from `submit_word`).
 
 `SELECT … FOR UPDATE` on `freebee.games` serializes concurrent submissions. The PK on `found_words` is `(game_id, user_id, word)` — a same-player double-submit is also caught at the constraint level.
 
@@ -320,7 +319,10 @@ src/freebee/
     PlayArea.tsx          Two-column composition (input column left, side panel right).
                           Owns the typed word, the shuffle seed, the feedback pill timer,
                           the submit_word dispatch, and the End-game menu item registration.
-                          Mounts GameOverModal via useTerminalModal on the isTerminal flip.
+                          Compete-only: renders the OpponentRanksStrip between RankBar
+                          and Stats (reading from ctx.status.leaderboard). buildOver
+                          branches mode → terminal verdict copy. Mounts GameOverModal
+                          via useTerminalModal on the isTerminal flip.
     PlayArea.module.css   Two-column grid; no @media reflow — desktop-first per ui.md.
     Letters.tsx           The 7-hex honeycomb. Render order: center → top → upper-right →
                           lower-right → bottom → lower-left → upper-left. Position via
@@ -348,7 +350,10 @@ src/freebee/
                           memberColor.colorVarFor. Pangram = font-weight: 700; bonus =
                           trailing dot via ::after; recently-found = underline (5s via
                           useRecentlyFound). Post-terminal: revealWords prop fills in
-                          unfound scoring words in gray (alongside the found ones).
+                          unfound scoring words in gray. In compete mode the foundWords
+                          input is already caller-only (RLS branch (b) hides peers'
+                          rows mid-game) — the list renders just the caller's finds
+                          without an FE branch.
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
                           SetupGameDialog wrapper). Reads `mode` from SetupBodyProps
                           (fed by the sibling-manifest's GameManifest.mode). Coop:
@@ -391,7 +396,7 @@ src/freebee/
 
 ### Routes & shell
 
-Standard pupgames route: `/g/freebee/<gameId>`. Mounted by `App.tsx` via `<GamePage>` with `freebee`'s `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as wordknit / PsychicNum / tinyspy, since the verdict copy needs game-specific context.
+Standard pupgames route: `/g/freebee_coop/<gameId>` or `/g/freebee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `freebee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as wordknit / PsychicNum / tinyspy, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 
@@ -432,7 +437,7 @@ The verdict copy is computed by `buildOver({mode, playState, status, targetRankI
 
 | channel | who opens it | what rides on it |
 |---|---|---|
-| `game:${gameId}` (stable) | `useCommonGame` | Presence + manual-pause Broadcast + suspend Broadcast + postgres-changes on `common.games`. |
+| `game:${gameId}` (stable) | `useCommonGame` | Presence + manual-pause Broadcast + suspend Broadcast + postgres-changes on `common.games`. The compete OpponentRanksStrip rides this channel — `submit_word` writes the updated `status.leaderboard` to `common.games.status`, which propagates here, and `useCommonGame` surfaces it through `GamePageCtx.status` to the PlayArea. |
 | `freebee:${gameId}:${uuid}` | `useRealtimeRefetch` inside `useGame` | postgres-changes on `freebee.{games, found_words}`. UUID-suffixed because there's no peer-coordination state here — each tab gets its own room. |
 
 See [`code-conventions.md` → Realtime data hooks](../code-conventions.md#realtime-data-hooks--two-patterns) for the pattern catalogue.
@@ -450,14 +455,14 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | `tests/freebee/schema_test.sql` | Both gametype rows registered, public reference reads, column-grant blocks SELECT of hidden columns, view exposes them conditionally pre/post-terminal. |
 | `tests/freebee/rls_test.sql` | Coop branch (everyone sees all in club); outsider sees nothing; INSERT-grant rejections; compete-mode mid-game narrowing (only own rows); compete post-terminal opens reveal. |
 | `tests/freebee/create_game_test.sql` | Auth, membership, coop + compete happy paths, gametype-string routing, mode arg validation, setup.mode rejected if present (loud catch for stale FE), target_rank-iff-compete + range + coop-must-omit, compete ≥2-player floor, board structure validation, title formula, per-mode status seeding. |
-| `tests/freebee/gameplay_test.sql` | Coop `submit_word` result-enum branches incl. pangram +10 bonus, soft-reject "no row inserted" check, coop duplicate semantics, 100%-found terminal + games_state reveal, `submit_timeout` (incl. ctid touch + idempotency), `freebee.end_game` (incl. ctid touch, status.outcome='manual', auth, idempotency). |
+| `tests/freebee/gameplay_test.sql` | Coop `submit_word` result-enum branches incl. pangram +10 bonus (scoring AND bonus paths), bonus-words-score-normally assertions, soft-reject "no row inserted" check, coop duplicate semantics, coop-has-no-auto-terminal sanity (play_state stays 'playing' past total_words; score overshoots total_score; rank clamps at Genius), `submit_timeout` (ctid touch + idempotency + post-terminal games_state reveal), `freebee.end_game` (ctid touch, status.outcome='manual', auth, idempotency). |
 | `tests/freebee/compete_test.sql` | Per-player duplicate rule (bea can re-find ada's word; ada can't re-find her own), mid-game leaderboard shape, first-to-target → won_compete (winner_user_id, {won:true}/{won:false} per-player results, opponents can't submit post-win), submit_timeout in compete (no winner, all {won:false}), end_game in compete (no winner, outcome=manual), RLS branches (a / b / c) per mode + terminal state. |
 
 ### Per-test fixtures
 
 `tests/freebee/setup.psql` provides:
-- `pg_temp.freebee_board()` — a valid 30-scoring-word + 2-bonus board jsonb. Letters: outer `'abcdfg'`, center `'e'`. Includes a synthetic 7-letter pangram (`'abcdefg'`) for testing the +10 bonus. Total: 50 points across 30 words.
-- `pg_temp.freebee_setup()` — coop + no timer; tests override fields via `|| jsonb_build_object(...)`.
+- `pg_temp.freebee_board()` — a valid 30-scoring-word + 3-bonus board jsonb. Letters: outer `'abcdfg'`, center `'e'`. Includes a synthetic 7-letter scoring pangram (`'abcdefg'`) for the scoring-pangram +10 path AND a synthetic 7-letter bonus pangram (`'gfedcba'`) for the bonus-pangram +10 path. Total: 50 scoring points across 30 words.
+- `pg_temp.freebee_setup()` — no-timer setup blob (mode is now an RPC arg, not a setup field). Tests override timer / target_rank via `|| jsonb_build_object(...)` and pass `'coop'`/`'compete'` as the 4th positional arg to `freebee.create_game`.
 
 ### FE Vitest
 

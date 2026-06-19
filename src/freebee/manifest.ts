@@ -171,10 +171,12 @@ export const freebeeCoopGame: GameManifest = {
     if (row.play_state === 'playing') {
       return `${score}/${totalScore} pts · ${wordsFound}/${totalWords} words`
     }
+    // Terminal coop outcomes: only 'timeout' (countdown ran out)
+    // or 'manual' (someone hit End game). There's no auto-end
+    // at 100%-found in freebee — players keep going past the
+    // displayed denominator (bonus words climb the score past
+    // total_score, the Words counter past total_words).
     const outcome = s.outcome as string | undefined
-    if (outcome === 'completed') {
-      return `solved · ${score}/${totalScore} pts`
-    }
     if (outcome === 'timeout') {
       return `time up · ${score}/${totalScore} pts · ${wordsFound}/${totalWords} words`
     }

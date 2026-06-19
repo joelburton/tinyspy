@@ -425,7 +425,6 @@ declare
   duplicate_count int;
 
   team_score int;
-  team_scoring_found int;   -- count of !bonus rows; for the 100%-found gate
   team_words_found int;     -- count of ALL rows; for the status display
   team_rank_idx int;
   caller_score int;
@@ -560,62 +559,32 @@ begin
   values
     (target_game, caller_id, w_lower, word_points, word_is_pangram, word_is_bonus);
 
-  -- ─── Recompute aggregates + status; check terminal ───────
+  -- ─── Recompute aggregates + status (no terminal in coop) ─
+  -- Coop submissions never end the game — coop only ends via
+  -- timer expiry or the manual End-game menu item. Players can
+  -- keep finding bonus words past the displayed `Y / total_words`
+  -- denominator and the score can overshoot `total_score` (the
+  -- freebee-ws design — see the file-header comment for the
+  -- bonus-scoring write-up).
   if g_row.mode = 'coop' then
-    -- Two counts: `team_scoring_found` (scoring-only) drives the
-    -- 100%-found terminal — coop ends when the answer key's
-    -- scoring set is exhausted, regardless of how many bonus
-    -- extras the team has collected. `team_words_found` (all
-    -- rows incl. bonus) drives the status display, matching
-    -- freebee-ws's "found.length" stat that can overshoot
-    -- total_words when bonus is found.
     select coalesce(sum(points), 0),
-           count(*) filter (where not is_bonus),
            count(*)
-      into team_score, team_scoring_found, team_words_found
+      into team_score, team_words_found
       from freebee.found_words
      where game_id = target_game;
     team_rank_idx := freebee._rank_idx(team_score, g_row.total_score);
 
-    if team_scoring_found >= g_row.total_words then
-      select jsonb_object_agg(
-               user_id::text,
-               jsonb_build_object(
-                 'finished', true,
-                 'team_score', team_score,
-                 'team_rank_idx', team_rank_idx
-               )
-             )
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-
-      perform common.end_game(
-        target_game, 'ended',
-        jsonb_build_object(
-          'outcome', 'completed',
-          'mode', 'coop',
-          'score', team_score,
-          'total_score', g_row.total_score,
-          'rank_idx', team_rank_idx,
-          'words_found', team_words_found,
-          'total_words', g_row.total_words
-        ),
-        player_results
-      );
-    else
-      perform common.update_state(
-        target_game, 'playing',
-        jsonb_build_object(
-          'mode', 'coop',
-          'score', team_score,
-          'total_score', g_row.total_score,
-          'rank_idx', team_rank_idx,
-          'words_found', team_words_found,
-          'total_words', g_row.total_words
-        )
-      );
-    end if;
+    perform common.update_state(
+      target_game, 'playing',
+      jsonb_build_object(
+        'mode', 'coop',
+        'score', team_score,
+        'total_score', g_row.total_score,
+        'rank_idx', team_rank_idx,
+        'words_found', team_words_found,
+        'total_words', g_row.total_words
+      )
+    );
 
   else
     -- compete: per-player aggregates. caller_words_found counts

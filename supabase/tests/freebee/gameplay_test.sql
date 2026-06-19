@@ -18,9 +18,9 @@
 --   6. submit_word compete duplicate: per-player; same word
 --      by another player is OK, same word by same player is
 --      'alreadyFound'.
---   7. submit_word coop 100%-found → terminal 'ended' with
---      outcome='completed'; is_terminal flips; games_state
---      surfaces scoring_words.
+--   7. submit_word coop has NO auto-terminal — players can
+--      continue past total_words (bonus words push score over
+--      total_score, rank clamps to Genius).
 --   8. submit_word compete target-rank-hit → terminal
 --      'won_compete'; status.leaderboard populated.
 --   9. submit_word hard rejections: post-terminal P0001;
@@ -35,7 +35,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(50);
+select plan(52);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -122,8 +122,11 @@ select is(
 -- ============================================================
 -- (3) Coop bonus: ada submits a legal-only word
 -- ============================================================
--- The board's legal_words is ['bcdfge', 'abcdef']. We pick
--- 'bcdfge' — uses only puzzle letters, includes 'e'.
+-- The board's legal_words is ['bcdfge', 'abcdef', 'gfedcba'].
+-- We pick 'bcdfge' here — uses only puzzle letters, includes 'e',
+-- non-pangram (6 distinct letters). 'gfedcba' is exercised
+-- separately (3b) as the bonus-pangram path; 'abcdef' is used
+-- past-100% in the no-auto-terminal test (10).
 
 select is(
   freebee.submit_word((select id from g), 'bcdfge'),
@@ -329,11 +332,18 @@ select throws_ok(
 );
 
 -- ============================================================
--- (10) Coop 100%-found → terminal 'ended' (outcome=completed)
+-- (10) Coop has NO auto-terminal — players keep going past
+--      total_words; only timer / manual end terminate
 -- ============================================================
--- We're already past 2 finds (bead + pangram + 1 bonus) on the
--- coop game `g`. Pre-seed the remaining 28 non-bonus rows
--- directly so the next-RPC-call boundary triggers the terminal.
+-- freebee-ws's coop loop never auto-ends on "all scoring words
+-- found" (sessions.js submitWord has no such check). This port
+-- matches: players who exhaust the scoring set keep finding
+-- bonus words; the rank stays at Genius; the Words counter
+-- overshoots Y. Terminal comes from timer or the End-game menu
+-- item only.
+--
+-- Sanity: bulk-insert the rest of the scoring set and verify
+-- play_state stays 'playing' — no auto-flip.
 
 reset role;
 insert into freebee.found_words (game_id, user_id, word, points, is_pangram, is_bonus)
@@ -345,34 +355,15 @@ insert into freebee.found_words (game_id, user_id, word, points, is_pangram, is_
     (sw->>'is_pangram')::boolean,
     false
   from jsonb_array_elements(pg_temp.freebee_board()->'scoring_words') sw
-  where sw->>'word' not in ('bead', 'abcdefg')   -- already submitted via RPC
+  where sw->>'word' not in ('bead', 'abcdefg')
     and not exists (
       select 1 from freebee.found_words fw
       where fw.game_id = (select id from g)
         and fw.word = sw->>'word'
     );
 
--- We just bulk-inserted 28 rows. Now the game has 2 + 28 = 30
--- non-bonus found_words. submit_word's terminal check fires
--- when it sees the 30th — but the 30th is already there from
--- the direct insert. So the next call (any soft-rejection or
--- duplicate) WON'T trigger terminal — we need to trigger the
--- aggregate-count code path. Easiest: submit a word that's
--- ALREADY in found_words (duplicate); the RPC's mode-rule
--- short-circuits BEFORE the terminal check, so no flip.
--- Better: take an existing scoring word that's NOT in the
--- bulk insert (the only one bulk-skipped is 'bead' and
--- 'abcdefg'), then submit a fresh duplicate via a different
--- word that's NOT yet found. But we bulk-inserted all 28
--- remaining non-bonus + 2 already there = 30. Total = 30 = full.
---
--- The terminal check runs INSIDE submit_word AFTER the insert.
--- Without inserting a new row, the check doesn't fire. So we
--- need a way to trigger the check with the 30 already there.
--- Approach: delete the LAST direct-inserted row, then
--- re-submit it via RPC. The RPC inserts (rolling count to 30
--- again), then the terminal check fires.
-
+-- Drop one and re-submit via RPC to exercise the aggregate
+-- recount + status-write path with the count at total_words.
 delete from freebee.found_words
  where game_id = (select id from g) and word = 'bfeg';
 
@@ -380,48 +371,49 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   freebee.submit_word((select id from g), 'bfeg'),
   'accepted',
-  'coop: the 30th scoring word returns "accepted"'
+  'coop: 30th scoring word returns "accepted"'
 );
 
+reset role;
 select is(
   (select play_state from common.games where id = (select id from g)),
-  'ended',
-  'coop: play_state flips to "ended" on 100%-found'
+  'playing',
+  'coop: play_state STAYS "playing" past 100%-found (no auto-terminal)'
 );
 
 select is(
   (select is_terminal from common.games where id = (select id from g)),
+  false,
+  'coop: is_terminal stays false past 100%-found'
+);
+
+-- A bonus word ALSO submits successfully past 100% — the
+-- score climbs above total_score, and the rank clamps to
+-- Genius (max=6). 'abcdef' is in legal_words (per setup.psql)
+-- and hasn't been submitted yet in this test file.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  freebee.submit_word((select id from g), 'abcdef'),
+  'bonus',
+  'coop: bonus word accepted after the scoring set is exhausted'
+);
+
+reset role;
+select is(
+  (select (status->>'score')::int > (status->>'total_score')::int
+     from common.games where id = (select id from g)),
   true,
-  'coop: is_terminal=true on 100%-found'
+  'coop: status.score can exceed total_score once bonus words are found'
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g)),
-  'completed',
-  'coop: status.outcome=completed on 100%-found'
-);
-
--- games_state surfaces scoring_words after terminal.
-select is(
-  (select jsonb_array_length(scoring_words) from freebee.games_state
-    where id = (select id from g)),
-  30,
-  'coop terminal: games_state.scoring_words is now visible (30 entries)'
-);
-
--- legal_words materializes through the parallel helper. The
--- test board's legal_words array has 3 entries (the synthetic
--- bonus-only words from setup.psql, incl. the 7-letter bonus
--- pangram); confirm they surface too.
-select is(
-  (select array_length(legal_words, 1) from freebee.games_state
-    where id = (select id from g)),
-  3,
-  'coop terminal: games_state.legal_words is now visible (3 bonus entries)'
+  (select (status->>'rank_idx')::int from common.games where id = (select id from g)),
+  6,
+  'coop: status.rank_idx clamps at 6 (Genius) past total_score'
 );
 
 -- ============================================================
--- (11) submit_timeout: terminal 'ended' outcome='timeout'
+-- (10b) submit_timeout: terminal 'ended' outcome='timeout'
 -- ============================================================
 -- Fresh coop game to exercise the timeout path. (The other
 -- two are already terminal.)
@@ -492,7 +484,7 @@ select is(
 select is(
   (select status->>'outcome' from common.games where id = (select id from timeout_g)),
   'timeout',
-  'submit_timeout: status.outcome=timeout (distinguishes from completed)'
+  'submit_timeout: status.outcome=timeout'
 );
 
 -- Idempotency: a second call raises P0001. The FE swallows
@@ -502,6 +494,26 @@ select throws_ok(
   'P0001',
   'game is not in progress',
   'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)'
+);
+
+-- Post-terminal: games_state surfaces the hidden wordlists via
+-- the _scoring_words_for / _legal_words_for helpers' CASE-on-
+-- is_terminal gate. Previously asserted in the now-removed
+-- 100%-found block; the conditional-reveal is mode-agnostic
+-- (any terminal opens it), so the timeout-terminated game
+-- exercises it the same way.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select jsonb_array_length(scoring_words) from freebee.games_state
+    where id = (select id from timeout_g)),
+  30,
+  'post-terminal: games_state.scoring_words materializes (30 scoring entries)'
+);
+select is(
+  (select array_length(legal_words, 1) from freebee.games_state
+    where id = (select id from timeout_g)),
+  3,
+  'post-terminal: games_state.legal_words materializes (3 bonus entries)'
 );
 
 -- ============================================================
@@ -558,7 +570,7 @@ select is(
 select is(
   (select status->>'outcome' from common.games where id = (select id from end_g)),
   'manual',
-  'end_game: status.outcome=manual (distinguishes from completed / timeout)'
+  'end_game: status.outcome=manual (distinguishes from timeout)'
 );
 
 select is(
