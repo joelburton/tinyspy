@@ -1,0 +1,46 @@
+/* Body of the "look up any word" dialog. The FloatingPanel shell
+ * provides the surface/header/drag; this styles the search row +
+ * the result area beneath it. */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+}
+
+.form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+.input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.button {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-accent-hover);
+}

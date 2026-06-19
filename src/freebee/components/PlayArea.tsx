@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -104,24 +105,39 @@ export function PlayArea(ctx: GamePageCtx) {
   const freebeeSetup = setup as FreeBeeSetup
 
   // Score + words-found derived from the FE's view of
-  // freebee.found_words. RLS narrows the rows to caller-only in
-  // compete, so the same computation works for both modes
-  // without a branch — coop sees the team's total, compete sees
-  // the caller's own.
-  // wordsFound counts ALL of the caller's accepted submissions
+  // freebee.found_words. The bucket of rows we sum depends on mode:
+  //
+  //   - coop: the team's total — every visible row (everyone's).
+  //   - compete: the *caller's own* rows only.
+  //
+  // Mid-game RLS already narrows compete rows to the caller, so a
+  // naive "sum every row" matched both modes. But post-terminal the
+  // reveal opens peers' rows (so the WordList can show cat B), which
+  // would otherwise inflate the caller's score/rank at game end. So
+  // compete filters to the caller explicitly rather than leaning on
+  // RLS, and stays correct across the terminal transition.
+  //
+  // wordsFound counts ALL of the bucket's accepted submissions
   // (scoring + bonus). Matches freebee-ws's "found.length" stat —
   // the displayed "X / Y words" can legitimately overshoot Y when
   // the player digs into the bonus list. The denominator
   // (game.total_words) stays scoring-only. score sums every row's
   // points, which include bonus-word points after the bonus-
   // scoring fix in the freebee_compete migration.
+  const scoringRows = useMemo(
+    () =>
+      game?.mode === 'compete'
+        ? foundWords.filter((r) => r.user_id === session.user.id)
+        : foundWords,
+    [foundWords, game?.mode, session.user.id],
+  )
   const { score, wordsFound } = useMemo(() => {
     let s = 0
-    for (const row of foundWords) {
+    for (const row of scoringRows) {
       s += row.points
     }
-    return { score: s, wordsFound: foundWords.length }
-  }, [foundWords])
+    return { score: s, wordsFound: scoringRows.length }
+  }, [scoringRows])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -164,6 +180,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Typed-word state ──────────────────────────────────
   const [word, setWord] = useState('')
+
+  // ─── "Look up any word" dialog (tilde shortcut) ────────
+  const [lookupOpen, setLookupOpen] = useState(false)
 
   const handleLetterClick = useCallback((letter: string) => {
     setWord((prev) => prev + letter.toUpperCase())
@@ -236,6 +255,18 @@ export function PlayArea(ctx: GamePageCtx) {
         ) {
           return
         }
+
+        // Tilde opens the "look up any word" dialog. Handled BEFORE the
+        // loading/terminal guards so it works in every state — chasing
+        // a "see X" definition during the post-game reveal is a prime
+        // use. The INPUT/TEXTAREA guard above already lets `~` type
+        // literally when a text box (chat, this dialog) has focus.
+        if (e.key === '~') {
+          e.preventDefault()
+          setLookupOpen(true)
+          return
+        }
+
         if (loading || !game) return
         if (isTerminal) return
 
@@ -392,6 +423,7 @@ export function PlayArea(ctx: GamePageCtx) {
         <WordList
           foundWords={foundWords}
           players={players}
+          selfUserId={session.user.id}
           scoringFoundCount={wordsFound}
           totalWords={game.total_words}
           // Once terminal, games_state surfaces the full scoring
@@ -407,6 +439,9 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={closeModal}
           onBackToClub={goToClub}
         />
+      )}
+      {lookupOpen && (
+        <WordLookupDialog onClose={() => setLookupOpen(false)} />
       )}
     </div>
   )

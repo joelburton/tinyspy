@@ -1,0 +1,67 @@
+/* Shared inner body for the definition popover + lookup dialog.
+ * No surface/border/shadow here — those belong to the host
+ * container (the floating card or the FloatingPanel body); this
+ * file only styles the text + the clickable cross-ref. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* The word being defined. Lowercased + emphasized so the eye lands
+ * on it; updates in place as the user chases cross-refs. */
+.headword {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.01em;
+}
+
+.body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--color-text);
+  /* Wiktionary defs are one line per part-of-speech (joined with
+   * '\n' in the Edge Function) — honor those breaks. */
+  white-space: pre-wrap;
+}
+
+.status {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.error {
+  font-size: 0.9rem;
+  color: var(--color-danger, #c0392b);
+}
+
+/* A clickable cross-reference rendered inline in the definition.
+ * Looks like a link (accent color, underline) but is a real button
+ * for keyboard + a11y. Reset the button chrome so it sits in the
+ * text flow. */
+.ref {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ref:hover {
+  color: var(--color-accent-hover);
+}
+
+.attribution {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+}

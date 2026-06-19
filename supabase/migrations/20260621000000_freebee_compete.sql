@@ -154,10 +154,9 @@ grant select on freebee.games_state to authenticated;
 --   - coop: any club member sees any found_words row.
 --   - compete mid-game: only the row owner sees their own.
 --   - compete post-terminal: all rows become visible to all club
---     members, supporting an "everyone's finds revealed at game
---     end" UX. (FE v1 doesn't surface peer finds even when
---     visible — see freebee.md → Compete mode for the rationale;
---     this is left open at the RLS layer for a future expansion.)
+--     members, powering the "everyone's finds revealed at game
+--     end" UX. The FE surfaces these as the post-terminal cat-B
+--     bucket in the WordList (see freebee.md → Compete mode).
 
 create policy found_words_select on freebee.found_words
   for select to authenticated

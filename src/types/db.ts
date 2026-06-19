@@ -107,6 +107,27 @@ export type Database = {
           },
         ]
       }
+      definitions: {
+        Row: {
+          def: string | null
+          fetched_at: string
+          source: string
+          word: string
+        }
+        Insert: {
+          def?: string | null
+          fetched_at?: string
+          source: string
+          word: string
+        }
+        Update: {
+          def?: string | null
+          fetched_at?: string
+          source?: string
+          word?: string
+        }
+        Relationships: []
+      }
       game_players: {
         Row: {
           game_id: string
@@ -286,6 +307,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cache_definition: {
+        Args: { p_def: string; p_source: string; p_word: string }
+        Returns: undefined
+      }
       claim_username: { Args: { desired: string }; Returns: string }
       color_for_username: { Args: { username: string }; Returns: string }
       create_club: {

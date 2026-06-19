@@ -444,6 +444,25 @@ On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username t
 
 [`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
 
+## Word definitions (click-to-define + lookup)
+
+A shared definition lookup, available to every word game (freebee today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover, and a per-game **shortcut key** (`~` in freebee) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen.
+
+**Why it lives in `common`.** Definitions aren't game-specific, and the removability invariant forbids one game owning data another reads. So the def store is decoupled from any game's dictionary:
+
+- **`common.definitions`** `(word pk, def, source check(scrabble|wiktionary), fetched_at)` — the word→def cache + superset store. A NULL `def` is a *negative-cache tombstone* ("looked up, found nothing") so the free-form box doesn't re-hit the API on repeated typos. It relates to `freebee.dictionary` only by `word`, and the hot paths never join (lookups want `def`; gameplay wants the `in_scoring`/`in_legal` flags).
+- **`common.cache_definition(word, def, source)`** — SECURITY DEFINER, service_role-only write path. Conditional upsert (`where def is null`) so a real definition — notably a seeded Scrabble gloss — is **never** clobbered by a later API write.
+
+**Seed + growth.** Seeded from the vendored Scrabble dictionary (`supabase/data/scrabble-defs.tsv`, 192k terse glosses, `npm run defs:import`, ~21 MB in PG). It then grows lazily: the **`define` Edge Function** is a read-through cache — reads `common.definitions` as the caller, and on a miss (or a stale tombstone) fetches **Wiktionary** (`freedictionaryapi.com`, CC BY-SA) and caches the result via `cache_definition`. Wiktionary won the bake-off over `api.dictionaryapi.dev` (~93% vs ~30% coverage on obscure bonus words, and no aggressive rate-limiting); a transient API failure surfaces an error *without* writing a tombstone, so only definitive empty answers are negatively cached.
+
+**Frontend.** All in `common/`, so freebee is just the first consumer:
+- `hooks/useDefinition(word)` — declarative lookup over `supabase.functions.invoke('define')`; cancels in-flight results so fast cross-ref chasing never flashes stale text.
+- `lib/parseDefinition` — turns a raw def into renderable parts. The stored def text is authoritative and shown **in full**; the parser only *adds* markup — Scrabble `<word=pos>` / `{word=pos}` cross-refs become clickable `ref` parts. Everything else (prose, and `[…]` inflection tags like `[n SUPPRESSIONS]`) passes through verbatim, so an inflection-only stub still displays its text rather than rendering blank.
+- `components/DefinitionView` — the shared body (heading + parsed def + clickable refs + CC BY-SA attribution when Wiktionary-sourced); a ref click calls `onNavigate` to re-point the lookup in place.
+- `components/DefinitionPopover` (anchored card, click-to-define) and `components/WordLookupDialog` (FloatingPanel + text box, the shortcut) both embed `DefinitionView` — they differ only in *how the first word is chosen*.
+
+**Per-game wiring (freebee).** `WordList` rows are click/keyboard-activatable → `DefinitionPopover`. The `~` shortcut is added to `PlayArea`'s existing `useGlobalKeyHandler`, *before* the loading/terminal guards (so lookups work during the post-game reveal) but *after* the INPUT/TEXTAREA guard (so `~` types literally in chat and the lookup box).
+
 ## Common testing
 
 See [`testing.md`](testing.md) for the full theory. Common-layer specifics:

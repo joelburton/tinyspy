@@ -1,8 +1,9 @@
 /* The found-words list. Multi-column alphabetical flow with a
- * fixed row-height so columns balance evenly. Each word renders
- * in the finder's color (per-finder visual attribution); the
+ * fixed row-height so columns balance evenly. Mid-game each word
+ * renders in the finder's color (per-finder attribution) and the
  * recently-found state adds a thick same-color underline that
- * fades after 5s.
+ * fades after 5s; post-terminal the list switches to the muted
+ * cat-A / cat-B review styling below.
  *
  * Same visual idiom as freebee-ws WordList, simplified for
  * pupgames Phase 4: no in-list definition popover (that's the
@@ -54,6 +55,20 @@
   color: var(--color-text, #1a1a1a);
   /* Avoid breaking a row across columns. */
   break-inside: avoid;
+  /* Every row is click-to-define (see WordList.tsx). */
+  cursor: pointer;
+}
+
+.row:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-accent, #1976d2);
+  outline-offset: 1px;
+  border-radius: 2px;
 }
 
 /* Pangram — emphasized by font-weight, since color is already
@@ -85,17 +100,25 @@
   padding: 16px 8px;
 }
 
-/* Reveal-mode entries: words the team didn't find by the time
- * the game ended. Same line height + layout as found rows so
- * the alphabetical scan reads smoothly; just dimmed and
- * de-emphasized. Inline `color` is NOT set on the li for these
- * (so the gray here wins; found rows keep their inline finder
- * color which beats this rule by specificity). */
-.unfound {
+/* Post-terminal categories. Once a game ends the list stops using
+ * per-finder colors and splits every word into two stylable buckets
+ * (see WordList.tsx → the cat-A / cat-B review model):
+ *
+ *   .catSelf  — cat A: words the viewing player found. Keeps the
+ *               player's own finder color (set inline on the <li>),
+ *               so "what I got" stays prominent. This rule is mostly
+ *               a styling hook for future emphasis (a left accent,
+ *               weight, etc.) without touching the TSX.
+ *
+ *   .catOther — cat B: words found by *other* players OR scoring
+ *               words nobody found. Deliberately merged into one
+ *               muted style — "everything that isn't mine,"
+ *               undifferentiated. No inline color is set on these
+ *               rows, so this gray wins. */
+.catSelf {
+  /* Color comes from the inline finder color. Hook for later. */
+}
+
+.catOther {
   color: var(--color-muted, #888);
-  font-weight: 400;
-  /* If we accidentally apply .recent or .pangram to an unfound
-   * row, neutralize the extras visually — the row is purely
-   * informational. */
-  text-decoration: none;
 }
