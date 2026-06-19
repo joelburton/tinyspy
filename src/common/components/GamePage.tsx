@@ -17,6 +17,7 @@ import type {
   MenuItem,
   MenuSection,
 } from '../lib/games'
+import { useClubPresence } from '../hooks/useClubPresence'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
 import { navigate } from '../lib/router'
@@ -129,6 +130,13 @@ export function GamePage({
     timer,
     loading,
   } = useCommonGame(gameId, session)
+
+  // Announce on the club's presence channel that this player is
+  // viewing THIS game, so the club page's member dots +
+  // abandoned-game heal can see them. We don't read the roster here —
+  // GamePage only announces. `club_handle` is null until the game row
+  // loads, so the hook is a no-op until then.
+  useClubPresence(commonGame?.club_handle ?? null, gameId, session.user.id)
 
   // Open/closed state for the suspend-confirm modal (fired from
   // the menu's "Back to club" item for non-terminal games).

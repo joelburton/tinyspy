@@ -64,7 +64,7 @@ The schema split: `common.games` is the cross-cutting metadata; `<gametype>.game
 - `play_state` (text — the gametype's enum value, e.g. `'solved'` for wordknit)
 - `is_terminal` (boolean — materialized, in sync with play_state)
 - `status` (jsonb — gametype-specific data needed for the club-page listing label; each gametype consumes its own shape via `manifest.labelFor`)
-- `idle_since` (timestamptz, nullable) + `total_idle_seconds` (int) — the timer-preservation accumulator. Invariant: `is_current_view = true ⟺ idle_since IS NULL`. Every vacate (create_game's "vacate prior," set_current_view's "vacate others," unset_current_view) stamps `idle_since = now()`; every set_current_view that flips a row to current folds `(now - idle_since)` into `total_idle_seconds` and clears the timestamp. The FE timer hook subtracts `total_idle_seconds * 1000` from elapsed-ms so countdowns don't tick when nobody's watching.
+- The game clock lives in a **separate table, `common.timers (game_id, ticks, last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks` is an **additive** count of whole seconds of *active play*: every actively-playing client calls `common.tick_timer` once a second, which advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s` conditional dedupes across players and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing" need **no tracking** — they're just seconds where nobody calls tick_timer, so the clock stops. This replaced the old subtractive `idle_since`/`total_idle_seconds` accumulator; `set_current_view`/`unset_current_view` are now pure pointer-flips with no timer work.
 - plus the cross-cutting fields already there: `id`, `club_handle`, `gametype`, `title`, `setup`, `started_at`, `ended_at`, etc.
 
 `status`'s semantic: *state for label rendering*, kept in sync on every state-transitioning RPC. Not just a terminal-time snapshot — every mid-game state-affecting move writes whatever the manifest's `labelFor` needs to render the current row.
@@ -100,7 +100,13 @@ The first member to open its GamePage. The mount fires a write that:
 
 ### A game stops being current
 
-When the last viewer leaves. Detection via presence-sync seeing zero connected members; the leaving tab fires a conditional update (`set is_current_view = false where ... and is_current_view = true`). Idempotent — concurrent "I'm the last one!" writes are safe; the first wins, the rest no-op.
+Two mechanisms, a fast path and a safety net:
+
+1. **Last-viewer-leave write (fast path).** When a viewer's `useCommonGame` unmounts and its latest presence snapshot says it's the only viewer, it fires a conditional update (`set is_current_view = false where ... and is_current_view = true`). Idempotent — concurrent "I'm the last one!" writes are safe; the first wins, the rest no-op.
+
+2. **Club-presence heal (safety net).** The fast path has a race: when *all* viewers leave near-simultaneously — notably a **suspend**, which broadcasts and navigates everyone at once — each leaving tab still sees the others in presence, so *nobody* fires the unset and the flag gets stuck `true`. (Visiting the club page does NOT call `set_current_view`, so there's no automatic recovery from that path — the old assumption that it did was wrong.) The fix: a **club-level presence channel** (`club:<handle>`, `useClubPresence`) that every member of the club orbit joins, announcing whether they're on the club page or viewing a game. The club page reconciles the DB flag against it: if a game is flagged current but **nobody present is viewing it** (after a short grace for presence to sync), the club page fires `unset_current_view`. Presence can't get stuck the way a missed write can, so loading the club page always heals an abandoned pointer.
+
+The same `club:<handle>` presence channel also drives the member-strip "who's in the club" dots — see `useClubPresence`.
 
 ### Solo vs multi-player at the "viewer leaves" moment
 

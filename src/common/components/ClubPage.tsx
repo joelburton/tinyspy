@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { channelDedupSuffix } from '../lib/channelDedup'
+import { useClubPresence } from '../hooks/useClubPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
@@ -56,6 +58,9 @@ type ListedGame = {
 
 type Props = {
   handle: string
+  /** Signed-in session — its user id is this client's identity on the
+   *  club presence channel (member dots + abandoned-game heal). */
+  session: Session
 }
 
 /**
@@ -80,13 +85,69 @@ type Props = {
  * only cares about the club's current-view pointer + the
  * games-list shape.
  */
-export function ClubPage({ handle }: Props) {
+export function ClubPage({ handle, session }: Props) {
+  const selfUserId = session.user.id
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [allGames, setAllGames] = useState<ListedGame[]>([])
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Club presence: who's in the club orbit right now (this page, or
+  // any game page of the club) and which game they're viewing. We
+  // pass `null` for our own location — we're in the club room, not a
+  // game. Drives the member-strip dots + the abandoned-game heal.
+  const presence = useClubPresence(handle, null, selfUserId)
+  const presentUserIds = useMemo(
+    () => new Set(presence.map((e) => e.userId)),
+    [presence],
+  )
+
+  // Heal an abandoned current-view pointer. `is_current_view` is a
+  // synced DB flag that can get stuck `true` when the last viewer's
+  // "I left" write is missed — the simultaneous-leave race in
+  // useCommonGame (e.g. a suspend that navigates everyone at once).
+  // Presence is the reliable truth for "is anyone actually viewing
+  // this game?", and the club page is where the staleness shows — so
+  // reconcile here: a game flagged current but with nobody present in
+  // it gets its flag cleared.
+  const healedRef = useRef<string | null>(null)
+  useEffect(function healAbandonedCurrentGame() {
+    if (!activeGameId) {
+      healedRef.current = null
+      return
+    }
+    // Someone present is viewing it — game pages announce their
+    // gameId on this same channel — so it's genuinely current.
+    if (presence.some((e) => e.gameId === activeGameId)) {
+      healedRef.current = null
+      return
+    }
+    // Don't re-fire while a prior unset propagates back through the
+    // realtime refetch.
+    if (healedRef.current === activeGameId) return
+    // Grace period: a just-arriving viewer's presence may not have
+    // synced yet (or we just mounted with an empty roster). If a
+    // viewer appears within the window, `presence` changes, this
+    // effect re-runs, the someone-viewing branch returns, and the
+    // cleanup cancels this timer — so we only unset a genuinely
+    // unattended game.
+    const timer = setTimeout(() => {
+      healedRef.current = activeGameId
+      void commonDb
+        .rpc('unset_current_view', { target_game: activeGameId })
+        .then((res) => {
+          if (res.error) {
+            console.error('heal unset_current_view failed', res.error)
+          }
+          // No manual refetch — the is_current_view UPDATE flows back
+          // through the club-games postgres-changes subscription,
+          // which re-runs loadGames and clears activeGameId.
+        })
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [activeGameId, presence])
   // Shared error channel for club-page actions (delete-game today;
   // future surfaces land here too rather than competing for
   // screen space). Named for legacy reasons — once dominated by
@@ -499,6 +560,7 @@ export function ClubPage({ handle }: Props) {
           players={members}
           feedback={feedback}
           onCloseFeedback={clearFeedback}
+          presentUserIds={presentUserIds}
         />
       </header>
 

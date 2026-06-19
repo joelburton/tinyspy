@@ -7,6 +7,10 @@ type Props = {
   players: Member[]
   feedback: FeedbackMsg | null
   onCloseFeedback: () => void
+  /** Forwarded to PlayersStrip — when set, absent members render
+   *  dimmed. The club page passes its live presence set; the in-game
+   *  header omits it. */
+  presentUserIds?: Set<string>
 }
 
 /**
@@ -28,13 +32,18 @@ type Props = {
  * Callers who want feedback to drop on pause must `clear()`
  * explicitly.
  */
-export function StatusSlot({ players, feedback, onCloseFeedback }: Props) {
+export function StatusSlot({
+  players,
+  feedback,
+  onCloseFeedback,
+  presentUserIds,
+}: Props) {
   return (
     <div className={styles.slot}>
       {feedback ? (
         <FeedbackPill msg={feedback} onClose={onCloseFeedback} />
       ) : (
-        <PlayersStrip players={players} />
+        <PlayersStrip players={players} presentUserIds={presentUserIds} />
       )}
     </div>
   )
