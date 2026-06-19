@@ -16,3 +16,50 @@
 .actions button {
   min-width: 6rem;
 }
+
+/* Player picker — a checkbox list of club members, all checked by
+ * default. Sits above the game-specific setup body. */
+.players {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+.playersLegend {
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.playerDot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.playerHint {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-danger, #c0392b);
+}
+
+/* The "(you)" marker on the creator's row — they can't deselect
+ * themselves. */
+.playerSelf {
+  color: var(--color-muted);
+  font-size: 0.85em;
+}

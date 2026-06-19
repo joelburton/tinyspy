@@ -1,5 +1,6 @@
 import { Suspense, useState } from 'react'
 import type { GameManifest, Member } from '../lib/games'
+import { colorVarFor } from '../lib/memberColor'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './SetupGameDialog.module.css'
 
@@ -14,6 +15,9 @@ type Props = {
   manifest: GameManifest
   /** Club members — forwarded to per-game forms for member-aware UI. */
   members: Member[]
+  /** The creating user. Always a player — their checkbox in the
+   *  picker is locked on (you can't start a game you don't play in). */
+  selfUserId: string
   /** Club the game would start in. */
   clubHandle: string
   /**
@@ -76,7 +80,7 @@ type Props = {
  * accidental-creation possibility.
  */
 export function SetupGameDialog({
-  manifest, members, clubHandle, savedDefault, onStarted, onCancel,
+  manifest, members, selfUserId, clubHandle, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
@@ -94,6 +98,43 @@ export function SetupGameDialog({
   }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Who's playing this game. Defaults to every club member; the
+  // creator unchecks anyone sitting this one out (the moth+joel
+  // game while leah's still en route). game_players already models
+  // a subset — this is just the UI that finally lets a human pick
+  // it. Lazy init once; `members` is the club roster, fixed for the
+  // dialog's lifetime.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(members.map((m) => m.user_id)),
+  )
+
+  function togglePlayer(userId: string) {
+    // The creator is always a player — you can't start a game you're
+    // not in. Their checkbox is also disabled below; this guards the
+    // state too.
+    if (userId === selfUserId) return
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  // The picker only earns its keep with >1 member — a solo club has
+  // nothing to choose. Validate the count against the manifest's
+  // [min, max]; the server re-checks in create_game.
+  const showPicker = members.length > 1
+  const [minPlayers, maxPlayers] = manifest.numberOfPlayers
+  const playerCount = selectedIds.size
+  const countOk = playerCount >= minPlayers && playerCount <= maxPlayers
+  const playerHint =
+    playerCount < minPlayers
+      ? `Pick at least ${minPlayers} player${minPlayers === 1 ? '' : 's'}.`
+      : playerCount > maxPlayers
+        ? `At most ${maxPlayers} players.`
+        : null
 
   const SetupBody = manifest.setupForm.Component
 
@@ -115,12 +156,10 @@ export function SetupGameDialog({
   async function handleStartGame() {
     setBusy(true)
     setError(null)
-    // For now: default playerUserIds to every club member. A
-    // future player-picker UI will let users select a subset
-    // (defaulting to all-selected) and live above this call;
-    // until then, all club members play every game — matching
-    // pre-game_players behavior.
-    const playerUserIds = members.map((m) => m.user_id)
+    // The checked members become this game's players. (For a solo
+    // club the picker is hidden and the set is just the lone
+    // member.) The server validates the count + membership again.
+    const playerUserIds = Array.from(selectedIds)
     const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
@@ -141,6 +180,40 @@ export function SetupGameDialog({
       minWidth={320}
       minHeight={300}
     >
+      {showPicker && (
+        <fieldset className={styles.players}>
+          <legend className={styles.playersLegend}>Players</legend>
+          {members.map((m) => {
+            const isSelf = m.user_id === selfUserId
+            return (
+              <label
+                key={m.user_id}
+                className={styles.playerRow}
+                title={isSelf ? "You're always a player" : undefined}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(m.user_id)}
+                  onChange={() => togglePlayer(m.user_id)}
+                  // The creator can't deselect themselves.
+                  disabled={busy || isSelf}
+                />
+                <span
+                  className={styles.playerDot}
+                  style={{ background: colorVarFor(m.color) }}
+                  aria-hidden
+                />
+                <span>
+                  {m.username}
+                  {isSelf && <span className={styles.playerSelf}> (you)</span>}
+                </span>
+              </label>
+            )
+          })}
+          {playerHint && <p className={styles.playerHint}>{playerHint}</p>}
+        </fieldset>
+      )}
+
       <Suspense fallback={<p className="muted">Loading options…</p>}>
         <SetupBody
           members={members}
@@ -163,7 +236,7 @@ export function SetupGameDialog({
         <button
           type="button"
           onClick={handleStartGame}
-          disabled={busy}
+          disabled={busy || !countOk}
           autoFocus
         >
           {busy ? 'Starting…' : `Start ${manifest.name}`}

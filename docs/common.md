@@ -264,6 +264,17 @@ See the comment block above the policy in [`supabase/migrations/20260615000000_c
 
 There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes go through the security-definer RPCs above.
 
+### Membership gates viewing; playership gates acting
+
+A game's players are a **subset** of the club, picked at create time (the `SetupGameDialog` player checklist, defaulting to all members) and frozen into `common.game_players`. The authz model splits cleanly along that line:
+
+- **Viewing is club-gated.** Read-RLS on every game table uses `is_club_member`, so *any* club member can watch any of the club's games — including one they're not playing in.
+- **Acting is player-gated.** Every game **move** RPC (`submit_clue` / `submit_guess` / `submit_word` / `submit_timeout`, per-game `end_game`) gates on `require_game_player` — a club member who isn't a player of *this* game is rejected with `42501 'not playing this game'`.
+
+This is what makes **spectators a free future affordance**: a member can already view a game they're not in; they just can't act in it. No schema or auth change is needed to add spectator UI later — only the absence of a `game_players` seat. (Pinned by [`tests/freebee/player_subset_test.sql`](../supabase/tests/freebee/player_subset_test.sql).)
+
+The deliberate exceptions — `set_current_view` / `unset_current_view` / `tick_timer` use `require_club_member`, not `require_game_player` — are *viewing*-adjacent, not moves: a member watching a game should be able to drive its current-view pointer and its clock even if they're not seated.
+
 ### Realtime publication
 
 Four club tables are in `supabase_realtime`:

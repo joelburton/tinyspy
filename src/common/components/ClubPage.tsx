@@ -652,6 +652,7 @@ export function ClubPage({ handle, session }: Props) {
         <SetupGameDialog
           manifest={pendingSetup}
           members={members}
+          selfUserId={selfUserId}
           clubHandle={club.handle}
           savedDefault={savedDefaults.get(pendingSetup.gametype)}
           onStarted={(id) => {
