@@ -15,12 +15,17 @@
 .boardCol {
   flex: 1;
   min-width: 0;
-  position: relative; /* anchors the Recenter button */
-  display: flex;
+  position: relative; /* sizing anchor for the scroll area + Recenter button */
 }
 
+/* Absolutely filled to the column rather than flex-sized, so its size comes
+ * from the column — NOT from its giant padded canvas child. A flex/auto-sized
+ * scroll container can balloon to its content's max-content width (here ~3700px
+ * of canvas), which pushes the hand column off-screen AND removes the overflow
+ * that scrolling depends on. inset:0 + overflow:auto guarantees it clips. */
 .boardScroll {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   overflow: auto;
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);

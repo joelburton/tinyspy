@@ -33,11 +33,11 @@ export type E2EMember = { username: string; userId: string; session: Session }
 export type E2EClub = { handle: string; members: E2EMember[] }
 
 /**
- * Create N fresh confirmed users (each with a claimed username) and a
- * club containing them. Names are suffixed per-run so repeated runs
- * don't collide on the global username/club uniqueness.
+ * Create N fresh confirmed users, each with a claimed username (which also
+ * materializes their solo club `=<username>`). Names are suffixed per-run so
+ * repeated runs don't collide on the global username uniqueness.
  */
-export async function createClubWithMembers(names: string[]): Promise<E2EClub> {
+async function createMembers(names: string[]): Promise<E2EMember[]> {
   const suffix = Date.now().toString(36).slice(-6)
   const members: E2EMember[] = []
 
@@ -69,17 +69,39 @@ export async function createClubWithMembers(names: string[]): Promise<E2EClub> {
     members.push({ username, userId: session.user.id, session })
   }
 
-  // The first member creates the club with everyone in it.
+  return members
+}
+
+/**
+ * Create N users and a friend club containing all of them. (`create_club`
+ * requires ≥2 members — for a single-player game use `createSoloClub`.)
+ */
+export async function createClubWithMembers(names: string[]): Promise<E2EClub> {
+  const members = await createMembers(names)
+
+  // The first member creates the club with everyone in it. Name it after the
+  // creator's (per-run-unique) username so the derived club handle doesn't
+  // collide across test runs.
   const creator = members[0]
   const club = await asUser(creator.session.access_token)
     .schema('common')
     .rpc('create_club', {
-      club_name: `E2E ${suffix}`,
+      club_name: `E2E ${creator.username}`,
       member_usernames: members.map((m) => m.username),
     })
   if (club.error || !club.data) throw new Error(`create_club: ${club.error?.message}`)
 
   return { handle: club.data as string, members }
+}
+
+/**
+ * Create one user and return their auto-created solo club (`=<username>`).
+ * The cleanest fixture for single-player game tests — claim_username already
+ * registers every gametype on the solo club, so it can start any game.
+ */
+export async function createSoloClub(name: string): Promise<E2EClub> {
+  const [member] = await createMembers([name])
+  return { handle: `=${member.username}`, members: [member] }
 }
 
 /**
@@ -105,6 +127,27 @@ export async function createGame(
   if (res.error) throw new Error(`psychicnum.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: 'psychicnum_coop' }
+}
+
+/**
+ * Start a monkeygram game in the club, with all members as players.
+ * Returns the id + gametype for building the `/g/monkeygram/<id>` URL.
+ */
+export async function createMonkeygramGame(
+  club: E2EClub,
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('monkeygram')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { hand_size: 15, timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+    })
+  if (res.error) throw new Error(`monkeygram.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: 'monkeygram' }
 }
 
 /** Send a club chat message as `from`. The realtime INSERT reaches
