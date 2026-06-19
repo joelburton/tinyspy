@@ -1,0 +1,167 @@
+/* Two-column play surface: the board grid on the left (takes all the
+ * room left over), the hand on the right (3 tiles across). Height is
+ * bounded to the viewport via --game-chrome-height (see common/theme.css
+ * → "Page-height fits the viewport") so the board scrolls inside its
+ * frame rather than growing the page. */
+
+.layout {
+  height: calc(100vh - var(--game-chrome-height));
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+}
+
+/* ---- board column (left, fills remaining width) ---- */
+.boardCol {
+  flex: 1;
+  min-width: 0;
+  position: relative; /* anchors the Recenter button */
+  display: flex;
+}
+
+.boardScroll {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
+}
+
+.grid {
+  display: grid;
+  margin: auto; /* centered when smaller than the scroll area; scrolls when larger */
+}
+
+.cell {
+  position: relative; /* anchors the keyboard cursor overlay */
+  border: 1px solid var(--color-surface-border);
+  background: transparent;
+  cursor: pointer;
+}
+.dropOk {
+  background: rgba(120, 200, 130, 0.22);
+  outline: 2px solid rgba(120, 200, 130, 0.6);
+  outline-offset: -2px;
+}
+.dropNo {
+  background: rgba(210, 110, 110, 0.22);
+  outline: 2px solid rgba(210, 110, 110, 0.6);
+  outline-offset: -2px;
+}
+
+.recenter {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+/* ---- tiles (shared look on board + hand + ghost) ---- */
+.tile,
+.handTile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--monkeygram-tile-ink);
+  background: var(--monkeygram-tile-face);
+  border: 1px solid var(--monkeygram-tile-edge);
+  border-radius: 7px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: grab;
+  touch-action: none; /* don't let a touch-drag scroll the board */
+  user-select: none;
+}
+.tile {
+  width: 100%;
+  height: 100%;
+}
+.lifted {
+  opacity: 0.28;
+}
+
+/* ---- keyboard cursor ----
+   Horizontal thickens top/bottom, vertical thickens left/right — the
+   emphasized edges point the way you'll move. Pointer-transparent so it
+   never blocks dragging the tile beneath. */
+.cursor {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+}
+.cursorH {
+  border: 1px solid var(--mg-cursor);
+  border-top-width: 5px;
+  border-bottom-width: 5px;
+}
+.cursorV {
+  border: 1px solid var(--mg-cursor);
+  border-left-width: 5px;
+  border-right-width: 5px;
+}
+.cursorError {
+  border-color: var(--mg-cursor-err) !important;
+  animation: mg-shake 180ms ease;
+}
+@keyframes mg-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  75% {
+    transform: translateX(3px);
+  }
+}
+
+/* ---- hand column (right, 3 across) ---- */
+.hand {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 0.4rem;
+  align-content: start;
+  padding: 0.6rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.handTile {
+  width: 44px;
+  height: 44px;
+}
+.handEmpty {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* ---- drag ghost ---- */
+.ghost {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--monkeygram-tile-ink);
+  background: var(--monkeygram-tile-face);
+  border: 1px solid var(--monkeygram-tile-edge);
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 1000;
+}

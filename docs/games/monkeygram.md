@@ -220,7 +220,7 @@ alternative; two tables reads simpler.)
 ### Suggested build order
 
 1. **Schema + `create_game` + manifest + a stub PlayArea** — game starts, tiles deal, the board loads from `player_boards`. Plumbing alive end to end. **✓ DONE** (migration `20260623000000_monkeygram_baseline.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`). The stub PlayArea shows the dealt hand; the draggable board is Phase 2.
-2. **`PlayerBoard`** (port the prototype) + `save_player_board` + snapshot lifecycle — you can build a board and a reload restores it.
+2. **`PlayerBoard`** (port the prototype) + `save_player_board` + snapshot lifecycle — you can build a board and a reload restores it. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts` ported from the prototype; two-column layout board-left / hand-right-3-across; debounced autosave + save-on-unmount; migration `20260624000000_monkeygram_save_player_board.sql`; pgTAP `save_player_board_test.sql`).
 3. **`progress` realtime + PeersStrip** — watch a peer's count drop.
 4. **`declare_done` + terminal** — first-to-finish wins; result modal.
 5. **Polish** — hand sort/group, optional elapsed timer.

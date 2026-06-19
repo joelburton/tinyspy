@@ -717,6 +717,10 @@ export type Database = {
           id: string
         }[]
       }
+      save_player_board: {
+        Args: { state: Json; target_game: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
