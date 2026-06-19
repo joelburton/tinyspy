@@ -192,6 +192,7 @@ For hooks that need to **send and receive Broadcast events between peers** (sele
 Canonical examples:
 - [`common/useCommonGame`](../src/common/hooks/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
 - [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) — stable `wordknit:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `wordknit.{games, guesses}`.
+- [`common/useClubPresence`](../src/common/hooks/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
 

@@ -266,7 +266,7 @@ There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes 
 
 ### Membership gates viewing; playership gates acting
 
-A game's players are a **subset** of the club, picked at create time (the `SetupGameDialog` player checklist, defaulting to all members) and frozen into `common.game_players`. The authz model splits cleanly along that line:
+A game's players are a **subset** of the club, picked at create time (the `SetupGameDialog` player checklist, defaulting to all members; the creator's own checkbox is locked on — you can't start a game you're not in) and frozen into `common.game_players`. The authz model splits cleanly along that line:
 
 - **Viewing is club-gated.** Read-RLS on every game table uses `is_club_member`, so *any* club member can watch any of the club's games — including one they're not playing in.
 - **Acting is player-gated.** Every game **move** RPC (`submit_clue` / `submit_guess` / `submit_word` / `submit_timeout`, per-game `end_game`) gates on `require_game_player` — a club member who isn't a player of *this* game is rejected with `42501 'not playing this game'`.
@@ -335,6 +335,14 @@ src/
     hooks/
       useSession.ts        Auth session subscription
       useClubChat.ts       Subscribes to a club's chat log
+      useClubPresence.ts   Joins the club-orbit presence channel (`club:<handle>`) that every
+                           connected member shares — the club page AND every game page of the
+                           club. Returns the live roster of { userId, gameId|null }: who's
+                           here and which game they're viewing. Drives the member-strip
+                           presence dots and the abandoned-current-view heal (see
+                           docs/states.md). Presence-only, no postgres-changes; the roster
+                           expires on disconnect, which is why it's a reliable signal where
+                           the synced is_current_view flag isn't (no write to miss).
       useGameTimer.ts      Browser-side countdown / count-up timer hook. Anchors at
                            a server-stamped startedAt, ticks locally via
                            useSyncExternalStore, observes a paused flag. See
@@ -361,6 +369,11 @@ src/
                            playerCountLabel helpers
       pause.ts             computePause helper — pure derivation of
                            { paused, missing } from presentUserIds + members
+      chatUnread.ts        Unread-chat store + pure computeUnread(messages, lastSeen, self,
+                           members) → { count, color }. A per-club lastSeen timestamp lives in
+                           localStorage (so unread survives reloads and a never-opened panel
+                           treats the whole backlog as unread); FloatingChat publishes the
+                           count, ChatBubble subscribes. See docs/ui.md → GamePage header.
       cls.ts               Tiny class-name combiner (hand-rolled `clsx` equivalent)
     db.ts                  export const db = supabase.schema('common')
     theme.css              Global design tokens at :root + utility classes (.card, .muted, etc.)

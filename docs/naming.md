@@ -95,7 +95,7 @@ For the database row specifically (regardless of context), `profile` is the name
 
 ### player
 
-A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because a future player-picker UI will let a subset of the club start a game.
+A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameDialog` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
 
 **Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/lib/games.ts` plus a per-game `Player` alias in each game's hook file:
 
