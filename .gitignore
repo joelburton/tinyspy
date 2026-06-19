@@ -45,3 +45,7 @@ import-to-hosted.sh
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# MonkeyGram UX prototype — standalone throwaway Vite app, deliberately
+# not part of the real app and not committed (see docs/games/monkeygram.md).
+/monkeygram-ui/
