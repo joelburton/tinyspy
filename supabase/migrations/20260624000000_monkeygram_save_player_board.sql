@@ -46,16 +46,20 @@ begin
     return; -- harmless no-op after game-over
   end if;
 
-  -- Minimal shape guard (catches an FE bug clearly rather than letting
-  -- jsonb_array_length raise an opaque error). The contents are trusted.
-  if jsonb_typeof(state->'hand') <> 'array'
-     or jsonb_typeof(state->'placements') <> 'array' then
-    raise exception 'state must have array fields "hand" and "placements"'
+  -- Minimal shape guard (catches an FE bug clearly rather than raising an
+  -- opaque error below). The contents are trusted.
+  if jsonb_typeof(state->'board') is distinct from 'string'
+     or jsonb_typeof(state->'hand') is distinct from 'string' then
+    raise exception 'state must have string fields "board" and "hand"'
       using errcode = 'P0001';
   end if;
+  if length(state->>'board') <> 25 * 25 then
+    raise exception 'board must be a 625-char string' using errcode = 'P0001';
+  end if;
 
-  n_hand := jsonb_array_length(state->'hand');
-  n_placed := jsonb_array_length(state->'placements');
+  -- unplaced = letters still in hand; placed = filled (non-'.') board cells.
+  n_hand := length(state->>'hand');
+  n_placed := length(replace(state->>'board', '.', ''));
 
   update monkeygram.player_boards
      set state = save_player_board.state,

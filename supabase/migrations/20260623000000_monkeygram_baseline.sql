@@ -54,10 +54,10 @@ grant usage on schema monkeygram to authenticated;
 -- psychicnum.games.target). RPCs run SECURITY DEFINER and read it
 -- freely; the FE never needs it (the server deals).
 --
--- Storing the seed (rather than the dealt tiles) is also what
--- lets the full game's PEEL draw the next tile later: tile ids are
--- the tile's position in the shuffled bag, so position hand_size
--- × N_players onward is the undrawn remainder.
+-- Storing the seed (rather than the dealt letters) is also what
+-- lets the full game's PEEL draw the next tile later: the bag is a
+-- fixed shuffle, so position hand_size × N_players onward is the
+-- undrawn remainder a future draw cursor reads from.
 --
 -- club_handle is denormalized from common.games.club_handle so
 -- the RLS policies (and progress's policy) can call
@@ -76,16 +76,17 @@ create index monkeygram_games_club_handle_idx on monkeygram.games (club_handle);
 -- ============================================================
 -- monkeygram.player_boards — the private player board
 -- ============================================================
--- One row per player. `state` is the whole board as the FE
--- models it (see docs/games/monkeygram.md → "the logical model"):
+-- One row per player. `state` is the whole board as the FE models
+-- it (see docs/games/monkeygram.md → "The player board"):
 --
---   { "placements": [ { "id": "t12", "letter": "C", "row": 0, "col": 3 }, ... ],
---     "hand":       [ { "id": "t7",  "letter": "Q" }, ... ] }
+--   { "board": "....C....", "hand": "AAQ" }
 --
--- placements are sparse (only occupied cells) on an unbounded
--- integer grid — never a dense 2D array. hand is the undrawn/
--- unplaced tiles. A tile carries its `id` (its position in the
--- shuffled bag) so identity is stable across hand↔board moves.
+-- The board is a FIXED 25×25 arena: a flat GRID*GRID = 625-char
+-- string, board[row*25 + col] = a letter or '.' (empty). The hand
+-- is a string of the player's unplaced letters. Tiles are
+-- interchangeable by letter — no per-tile ids — so both are just
+-- strings, which is also what makes word/connectivity validation
+-- (later) a simple scan over a 2D char array.
 --
 -- This is the one table that breaks our "every club member reads
 -- every game table" default: RLS restricts SELECT to the owner.
@@ -197,11 +198,11 @@ alter publication supabase_realtime add table monkeygram.progress;
 -- offer a count-up.)
 --
 -- The deal: build the 144-tile Bananagrams bag, shuffle it
--- deterministically by a freshly-picked seed, and hand each player
--- a contiguous slice of hand_size tiles. Tile ids are the tile's
--- 0-based position in the shuffled bag, so the undrawn remainder
--- (position N_players × hand_size onward) is what a future peel
--- draws from.
+-- deterministically by a freshly-picked seed, and hand each player a
+-- contiguous slice of hand_size letters as their starting hand
+-- string. The slice positions are fixed by the seed, so the undrawn
+-- remainder (position N_players × hand_size onward) is what a future
+-- peel draws from.
 
 create function monkeygram.create_game(
   target_club text,
@@ -280,21 +281,16 @@ begin
   values (new_id, target_club, s_seed, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
-  -- shuffled[(pi-1)*hs + 1 .. pi*hs]; each tile's id is its
-  -- 0-based global position in the shuffled bag. All tiles start
-  -- in the hand; placements is empty.
+  -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting hand string.
+  -- The board starts empty — a 25×25 = 625-char string of '.'.
   insert into monkeygram.player_boards (game_id, user_id, state)
   select
     new_id,
     pu.uid,
     jsonb_build_object(
-      'placements', '[]'::jsonb,
+      'board', repeat('.', 25 * 25),
       'hand', (
-        select coalesce(
-                 jsonb_agg(
-                   jsonb_build_object('id', 't' || (gidx - 1), 'letter', shuffled[gidx])
-                   order by gidx),
-                 '[]'::jsonb)
+        select string_agg(shuffled[gidx], '' order by gidx)
           from generate_series((pu.pi - 1) * s_hand_size + 1, pu.pi * s_hand_size) as gidx
       )
     )

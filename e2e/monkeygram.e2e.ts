@@ -40,18 +40,18 @@ test.describe('monkeygram renders', () => {
     expect(handBox!.x, 'hand is on screen (not pushed off the right)').toBeLessThan(vp.width)
     expect(handBox!.x).toBeGreaterThanOrEqual(0)
 
-    // The board renders a grid of cells, and the origin cell (0,0) — what
-    // recenter frames — must sit INSIDE the viewport, not scrolled off into the
-    // off-screen part of the grid (the "blank PlayArea" regression).
-    expect(await page.locator('[data-cell]').count(), 'board cells rendered').toBeGreaterThan(100)
-    const origin = page.locator('[data-cell][data-row="0"][data-col="0"]')
-    await expect(origin).toBeVisible()
-    const obox = await origin.boundingBox()
-    expect(obox, 'origin cell has a box').not.toBeNull()
-    expect(obox!.x, 'origin cell is on screen (left)').toBeGreaterThanOrEqual(0)
-    expect(obox!.x, 'origin cell is on screen (right)').toBeLessThan(vp.width)
-    expect(obox!.y, 'origin cell is on screen (top)').toBeGreaterThanOrEqual(0)
-    expect(obox!.y, 'origin cell is on screen (bottom)').toBeLessThan(vp.height)
+    // The fixed 25×25 arena renders all its cells; the board opens centered on
+    // the middle of the arena, so the center cell (12,12) must sit INSIDE the
+    // viewport, not scrolled off-screen (the "blank PlayArea" regression).
+    expect(await page.locator('[data-cell]').count(), 'all arena cells rendered').toBe(25 * 25)
+    const center = page.locator('[data-cell][data-row="12"][data-col="12"]')
+    await expect(center).toBeVisible()
+    const cbox = await center.boundingBox()
+    expect(cbox, 'center cell has a box').not.toBeNull()
+    expect(cbox!.x, 'center cell is on screen (left)').toBeGreaterThanOrEqual(0)
+    expect(cbox!.x, 'center cell is on screen (right)').toBeLessThan(vp.width)
+    expect(cbox!.y, 'center cell is on screen (top)').toBeGreaterThanOrEqual(0)
+    expect(cbox!.y, 'center cell is on screen (bottom)').toBeLessThan(vp.height)
 
     await ctx.close()
   })

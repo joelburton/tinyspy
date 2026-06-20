@@ -17,7 +17,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/games/psychicnum.md](docs/games/psychicnum.md) | PsychicNum rules + schema, the hidden-target pattern, FE, tests |
 | [docs/games/wordknit.md](docs/games/wordknit.md) | WordKnit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/games/freebee.md](docs/games/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
-| [docs/games/monkeygram.md](docs/games/monkeygram.md) | MonkeyGram (Bananagrams-style) — **greenlit; v1 planned, not built.** The "minimal shared state, maximal private FE" inversion, grid snapshot-on-unmount, the logical-coordinate **player-board** model (per-player, unlike the shared boards elsewhere) + recenter-and-grow render, the keyboard-cursor rules, and the v1 Supabase build plan (no peel/dump/validation yet — first to place starter tiles wins). UX validated in the throwaway `monkeygram-ui/` prototype. |
+| [docs/games/monkeygram.md](docs/games/monkeygram.md) | MonkeyGram (Bananagrams-style) — **greenlit; Phases 1–2 built.** Per-player **player board** = a fixed 25×25 arena (a 625-char string) navigated with zoom + scroll + Center-and-fit; snapshot-on-unmount persistence; owner-only RLS; the keyboard-cursor rules; the v1 plan (no peel/dump/validation yet — first to place starter tiles wins). Board feel settled in the throwaway `monkeygram-ui/` prototype. |
 
 
 ## Educational priority — clarity over brevity

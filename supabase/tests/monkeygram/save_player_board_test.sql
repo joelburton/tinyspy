@@ -29,22 +29,20 @@ select * from monkeygram.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
--- ─── ada snapshots a board: 2 placed, 1 in hand ───
+-- ─── ada snapshots a board: 2 placed (A, B), 1 in hand (C) ───
 select monkeygram.save_player_board(
   (select id from mg_game),
-  '{"placements":[{"id":"t0","letter":"A","row":0,"col":0},
-                  {"id":"t1","letter":"B","row":0,"col":1}],
-    "hand":[{"id":"t2","letter":"C"}]}'::jsonb
+  jsonb_build_object('board', 'AB' || repeat('.', 25 * 25 - 2), 'hand', 'C')
 );
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select jsonb_array_length(state->'placements')::int from monkeygram.player_boards
+  (select left(state->>'board', 2) from monkeygram.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  2,
+  'AB',
   'save_player_board writes the caller''s board state'
 );
 
@@ -61,26 +59,26 @@ select is(
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2,
-  'progress.placed recomputed from the submitted placements'
+  'progress.placed recomputed from the filled board cells'
 );
 
 -- ─── Shape guard ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select monkeygram.save_player_board(%L, '{"placements":[],"hand":"nope"}'::jsonb) $$,
+    $$ select monkeygram.save_player_board(%L, '{"board":[],"hand":"C"}'::jsonb) $$,
     (select id from mg_game)
   ),
   'P0001',
-  'state must have array fields "hand" and "placements"',
-  'non-array hand is rejected'
+  'state must have string fields "board" and "hand"',
+  'non-string board is rejected'
 );
 
 -- ─── Non-player rejected ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select monkeygram.save_player_board(%L, '{"placements":[],"hand":[]}'::jsonb) $$,
+    $$ select monkeygram.save_player_board(%L, '{"board":"","hand":""}'::jsonb) $$,
     (select id from mg_game)
   ),
   '42501',
@@ -96,10 +94,7 @@ select common.end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   format(
-    $$ select monkeygram.save_player_board(%L,
-         '{"placements":[],"hand":[{"id":"t0","letter":"A"},{"id":"t1","letter":"B"},
-                                   {"id":"t2","letter":"C"},{"id":"t3","letter":"D"},
-                                   {"id":"t4","letter":"E"}]}'::jsonb) $$,
+    $$ select monkeygram.save_player_board(%L, '{"board":"","hand":"ABCDE"}'::jsonb) $$,
     (select id from mg_game)
   ),
   'snapshotting a terminal game does not error'

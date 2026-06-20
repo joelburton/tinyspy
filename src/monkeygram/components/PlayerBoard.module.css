@@ -1,8 +1,6 @@
-/* Two-column play surface: the board grid on the left (takes all the
- * room left over), the hand on the right (3 tiles across). Height is
- * bounded to the viewport via --game-chrome-height (see common/theme.css
- * → "Page-height fits the viewport") so the board scrolls inside its
- * frame rather than growing the page. */
+/* Two-column play surface: the board column on the left (toolbar + the fixed
+ * 25×25 arena), the hand on the right. Height is bounded to the viewport via
+ * --game-chrome-height so the board scrolls inside its frame. */
 
 .layout {
   height: calc(100vh - var(--game-chrome-height));
@@ -11,36 +9,54 @@
   gap: 0.75rem;
 }
 
-/* ---- board column (left, fills remaining width) ---- */
 .boardCol {
   flex: 1;
   min-width: 0;
-  position: relative; /* sizing anchor for the scroll area + Recenter button */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* Absolutely filled to the column rather than flex-sized, so its size comes
- * from the column — NOT from its giant padded canvas child. A flex/auto-sized
- * scroll container can balloon to its content's max-content width (here ~3700px
- * of canvas), which pushes the hand column off-screen AND removes the overflow
- * that scrolling depends on. inset:0 + overflow:auto guarantees it clips. */
+/* ---- board toolbar (zoom + center-and-fit) ---- */
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.toolbar button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+/* ---- the fixed arena ---- */
 .boardScroll {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
   overflow: auto;
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
   background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
 }
-
-/* The grid IS the scroll content — sized to the view box (which always covers
- * at least the viewport), so the scrollable area is exactly the gridded area:
- * there's no blank to scroll into. */
 .grid {
   display: grid;
+  margin: auto; /* center the arena when it's smaller than the viewport (zoomed out) */
+  /* A thick outer border marks the real edge of the board, distinct from the
+   * thin internal cell lines. content-box so it sits OUTSIDE the GRID×cell
+   * content and doesn't shrink the cells. */
+  box-sizing: content-box;
+  border: 4px solid var(--mg-grid-edge);
 }
-
 .cell {
-  position: relative; /* anchors the keyboard cursor overlay */
+  position: relative;
   border: 1px solid var(--color-surface-border);
   background: transparent;
   cursor: pointer;
@@ -56,44 +72,32 @@
   outline-offset: -2px;
 }
 
-.recenter {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
-}
-
-/* ---- tiles (shared look on board + hand + ghost) ---- */
+/* ---- tiles (board + hand + ghost) ---- */
 .tile,
 .handTile {
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.25rem;
   color: var(--monkeygram-tile-ink);
   background: var(--monkeygram-tile-face);
   border: 1px solid var(--monkeygram-tile-edge);
-  border-radius: 7px;
+  border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   cursor: grab;
-  touch-action: none; /* don't let a touch-drag scroll the board */
+  touch-action: none;
   user-select: none;
 }
 .tile {
   width: 100%;
   height: 100%;
+  font-size: inherit; /* the grid sets font-size from the zoom */
 }
 .lifted {
   opacity: 0.28;
 }
 
-/* ---- keyboard cursor ----
-   Horizontal thickens top/bottom, vertical thickens left/right — the
-   emphasized edges point the way you'll move. Pointer-transparent so it
-   never blocks dragging the tile beneath. */
+/* ---- keyboard cursor ---- */
 .cursor {
   position: absolute;
   inset: 0;
@@ -145,6 +149,7 @@
 .handTile {
   width: 44px;
   height: 44px;
+  font-size: 1.25rem;
 }
 .handEmpty {
   grid-column: 1 / -1;
@@ -156,18 +161,15 @@
 /* ---- drag ghost ---- */
 .ghost {
   position: fixed;
-  width: 48px;
-  height: 48px;
   transform: translate(-50%, -50%) rotate(-3deg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.35rem;
   color: var(--monkeygram-tile-ink);
   background: var(--monkeygram-tile-face);
   border: 1px solid var(--monkeygram-tile-edge);
-  border-radius: 8px;
+  border-radius: 7px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   z-index: 1000;

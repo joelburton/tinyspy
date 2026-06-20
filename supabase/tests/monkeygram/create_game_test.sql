@@ -151,19 +151,19 @@ select is(
 );
 
 select is(
-  (select jsonb_array_length(state->'hand')::int from monkeygram.player_boards
+  (select length(state->>'hand') from monkeygram.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   21,
-  'ada is dealt a 21-tile hand'
+  'ada is dealt a 21-letter hand'
 );
 
 select is(
-  (select jsonb_array_length(state->'placements')::int from monkeygram.player_boards
+  (select state->>'board' from monkeygram.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  0,
-  'ada starts with an empty board (no placements)'
+  repeat('.', 25 * 25),
+  'ada starts with an empty 625-cell board'
 );
 
 select is(
@@ -174,14 +174,13 @@ select is(
   'progress.unplaced seeds to the hand size'
 );
 
--- Every dealt tile across BOTH hands has a distinct id: 2 × 21 = 42.
+-- Both players are dealt distinct slices of the shuffled bag: 2 × 21 = 42
+-- letters total, all uppercase.
 select is(
-  (select count(distinct elem->>'id')::int
-     from monkeygram.player_boards pb,
-          lateral jsonb_array_elements(pb.state->'hand') elem
-    where pb.game_id = (select id from mg_game)),
-  42,
-  'all 42 dealt tiles have distinct ids — no overlap between hands'
+  (select string_agg(pb.state->>'hand', '') from monkeygram.player_boards pb
+    where pb.game_id = (select id from mg_game)) ~ '^[A-Z]{42}$',
+  true,
+  'both hands together are 42 uppercase letters dealt from the bag'
 );
 
 select * from finish();

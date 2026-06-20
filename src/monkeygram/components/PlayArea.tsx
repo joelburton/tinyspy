@@ -14,9 +14,9 @@ import '../theme.css' // monkeygram tokens + the global drag-cursor rule
  * setState-in-effect), so a reload restores exactly where you left off.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { board, loading } = useGame(ctx.gameId)
+  const { state, loading } = useGame(ctx.gameId)
 
   if (loading) return <p className="muted">Dealing tiles…</p>
 
-  return <PlayerBoard gameId={ctx.gameId} initialBoard={board} />
+  return <PlayerBoard gameId={ctx.gameId} initialState={state} />
 }

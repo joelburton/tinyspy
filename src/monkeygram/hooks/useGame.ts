@@ -1,40 +1,36 @@
 import { useEffect, useState } from 'react'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
+import { emptyBoard } from '../lib/board'
 
 /** Cross-game vocabulary: a player in a MonkeyGram game is just a
  *  Member today (no per-game enrichment). Declared for parity with
  *  the other game folders' `Player` alias. */
 export type Player = Member
 
-/** A single tile. `id` is the tile's stable identity (its position in
- *  the shuffled bag); `letter` rides along so a board never needs to
- *  look a tile up. On the board it also carries `row`/`col`. */
-export type MonkeyGramTile = { id: string; letter: string }
-export type MonkeyGramPlacement = MonkeyGramTile & { row: number; col: number }
-
-/** The whole player board as stored in `monkeygram.player_boards.state`
- *  — sparse placements on an unbounded grid + the unplaced hand. */
+/**
+ * The whole player board as stored in `monkeygram.player_boards.state`:
+ * the fixed 25×25 board (a 625-char string) + the unplaced hand (a string
+ * of letters). See `lib/board.ts` for the model.
+ */
 export type MonkeyGramBoardState = {
-  placements: MonkeyGramPlacement[]
-  hand: MonkeyGramTile[]
+  board: string
+  hand: string
 }
 
-const EMPTY_BOARD: MonkeyGramBoardState = { placements: [], hand: [] }
+const EMPTY_STATE: MonkeyGramBoardState = { board: emptyBoard(), hand: '' }
 
 /**
  * Per-gametype data hook for MonkeyGram.
  *
- * **Phase 1 (this file)** loads the caller's OWN player board once.
- * RLS on `monkeygram.player_boards` is owner-only, so the unfiltered
- * select returns exactly the caller's row — no peer's board is
- * reachable. The board is private, single-reader state, so it isn't
- * realtime-subscribed; later phases add the snapshot-write side
- * (`save_player_board`) and a realtime subscription to
- * `monkeygram.progress` for peers' unplaced counts.
+ * Loads the caller's OWN player board once. RLS on
+ * `monkeygram.player_boards` is owner-only, so the unfiltered select returns
+ * exactly the caller's row — no peer's board is reachable. The board is
+ * private, single-reader state, so it isn't realtime-subscribed; later phases
+ * add a realtime subscription to `monkeygram.progress` for peers' counts.
  */
 export function useGame(gameId: string) {
-  const [board, setBoard] = useState<MonkeyGramBoardState>(EMPTY_BOARD)
+  const [state, setState] = useState<MonkeyGramBoardState>(EMPTY_STATE)
   const [loading, setLoading] = useState(true)
 
   useEffect(
@@ -47,11 +43,8 @@ export function useGame(gameId: string) {
           .eq('game_id', gameId)
           .maybeSingle()
         if (!mounted) return
-        const state = (data?.state as MonkeyGramBoardState | undefined) ?? EMPTY_BOARD
-        setBoard({
-          placements: state.placements ?? [],
-          hand: state.hand ?? [],
-        })
+        const s = (data?.state as Partial<MonkeyGramBoardState> | undefined) ?? EMPTY_STATE
+        setState({ board: s.board ?? emptyBoard(), hand: s.hand ?? '' })
         setLoading(false)
       }
       load()
@@ -62,5 +55,5 @@ export function useGame(gameId: string) {
     [gameId],
   )
 
-  return { board, loading }
+  return { state, loading }
 }

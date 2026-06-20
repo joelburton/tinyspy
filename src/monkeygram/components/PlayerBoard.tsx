@@ -1,79 +1,52 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import {
-  CELL,
-  type Box,
-  boxAround,
-  centerOf,
-  extentOf,
-  initialView,
-  requiredBox,
-  trimmedView,
-  unionBox,
-  viewportCells,
+  GRID,
+  DEFAULT_CELL,
+  MAX_CELL,
+  idx,
+  clamp,
+  setChar,
+  removeCharAt,
+  tilesExtent,
 } from '../lib/board'
-import type {
-  MonkeyGramBoardState,
-  MonkeyGramPlacement,
-  MonkeyGramTile,
-} from '../hooks/useGame'
+import type { MonkeyGramBoardState } from '../hooks/useGame'
 import styles from './PlayerBoard.module.css'
 
 /**
- * The interactive player board — ported from the `monkeygram-ui/`
- * prototype (`src/App.jsx` + `src/board.js`) into the real app.
+ * The interactive player board — a FIXED 25×25 arena (see lib/board.ts).
  *
- * Two ways to build (they coexist):
- *   1. DRAG tiles from the hand / around the board (hand-rolled pointer
- *      events with a click-vs-drag threshold).
- *   2. A crossword-style KEYBOARD CURSOR: click a cell (starts
- *      horizontal), type letters to place from the hand, ←↑→↓ to move /
- *      flip direction, Backspace to step back / unplace, Esc to dismiss.
- *      See `onKeyDown` and docs/games/monkeygram.md → "Keyboard input".
+ * You navigate with the **zoom** slider + scrollbars; the grid never resizes,
+ * so placing a tile never shifts the view — that's what keeps this simple (no
+ * view box, no growth, no scroll compensation). **Center + fit** shifts your
+ * tiles to the middle of the arena and zooms to frame them.
  *
- * The rendered grid is a **view box** (`win`, in state). It starts
- * viewport-sized (no scrollbars). PLACING tiles only grows it (to keep the
- * tiles + their margin + the cursor inside), so the board never jumps on
- * placement — it grows off-screen and the scroll position compensates.
- * RECENTER is the only thing that shrinks it: it trims the view back to the
- * minimum that frames the tiles and scrolls to them (biased up-left). The box
- * algebra lives in `lib/board.ts`. Because the grid IS the scroll content, you
- * can only ever scroll over real cells.
+ * Two ways to place: DRAG from the hand / around the board, or click a cell and
+ * type (the crossword cursor). Bounds are clamped to `[0, 24]`.
  *
- * **Persistence.** This component OWNS the live board as local state
- * (seeded once from `initialBoard`) and snapshots it to
- * `monkeygram.save_player_board` on a debounce AND on unmount. The
- * unmount save is load-bearing: `PauseBoundary` unmounts the play area
- * on pause, so without it an un-saved board would be lost. See
- * docs/games/monkeygram.md → "Persistence".
+ * **Persistence.** Owns the live board (`board` + `hand` strings, seeded from
+ * `initialState`) and snapshots to `monkeygram.save_player_board` on a debounce
+ * AND on unmount — the unmount save is load-bearing because `PauseBoundary`
+ * unmounts the play area on pause (docs/games/monkeygram.md → "Persistence").
  */
 
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
-const RECENTER_BIAS = 0.42 // recenter frames content toward the upper-left (< 0.5)
+const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
-type DragSource = { kind: 'hand' } | { kind: 'board'; row: number; col: number }
-type Drag = { tile: MonkeyGramTile; source: DragSource; x: number; y: number }
+type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; row: number; col: number }
+type Drag = { letter: string; source: DragSource; x: number; y: number }
 type Gesture = {
   cell: Cell | null
-  tile: MonkeyGramTile | null
-  source: DragSource | null
+  letter: string | null
+  source: DragSource
   startX: number
   startY: number
   started: boolean
 }
 
-// Hit-test helpers — the dragged ghost has pointer-events:none, so
-// elementFromPoint sees the cells / hand beneath it.
 function cellAtPoint(x: number, y: number): Cell | null {
   const el = document.elementFromPoint(x, y)
   const cell = el?.closest('[data-cell]') as HTMLElement | null
@@ -84,228 +57,183 @@ function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
 }
 
-type Props = { gameId: string; initialBoard: MonkeyGramBoardState }
+type Props = { gameId: string; initialState: MonkeyGramBoardState }
 
-export function PlayerBoard({ gameId, initialBoard }: Props) {
-  const [placements, setPlacements] = useState<MonkeyGramPlacement[]>(
-    initialBoard.placements,
-  )
-  const [hand, setHand] = useState<MonkeyGramTile[]>(initialBoard.hand)
+export function PlayerBoard({ gameId, initialState }: Props) {
+  const [board, setBoard] = useState(initialState.board)
+  const [hand, setHand] = useState(initialState.hand)
+  const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
+  const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
+  const [cursor, setCursor] = useState<Cursor | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [hover, setHover] = useState<Cell | null>(null)
-  const [cursor, setCursor] = useState<Cursor | null>(null)
   const [errFlash, setErrFlash] = useState(false)
   const [errNonce, setErrNonce] = useState(0)
 
-  // Refs mirror state so the always-on pointer/key handlers read the
-  // latest without being re-subscribed on every change. Synced in an
-  // effect (not during render) — handlers fire after commit, so they
-  // always see the latest committed value.
-  const placementsRef = useRef(placements)
+  // Refs mirror state for the always-on pointer/key handlers (synced in an
+  // effect, never written during render).
+  const boardRef = useRef(board)
   const handRef = useRef(hand)
   const cursorRef = useRef(cursor)
-
-  // The rendered grid is a "view box" held in state. PLACING tiles only grows
-  // it (to cover the tiles + margin + cursor); RECENTER is the only thing that
-  // shrinks it (trims). It always covers at least the viewport and IS the
-  // scrollable area, so you can only ever scroll over real cells.
-  const [win, setWin] = useState<Box>(() => initialView(initialBoard.placements))
   useEffect(() => {
-    placementsRef.current = placements
+    boardRef.current = board
     handRef.current = hand
     cursorRef.current = cursor
-  }, [placements, hand, cursor])
-
-  const occupied = useMemo(() => {
-    const m = new Map<string, MonkeyGramPlacement>()
-    for (const p of placements) m.set(p.row + ',' + p.col, p)
-    return m
-  }, [placements])
+  }, [board, hand, cursor])
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const prevWin = useRef<{ top: number; left: number } | null>(null)
 
-  // Recenter = TRIM + FRAME. Reset the view to the minimum that frames the
-  // tiles (trimmedView) — discarding the empty grid that growth left behind —
-  // then scroll so the tiles sit biased UP-and-LEFT (content center ~42% from
-  // the top-left: more empty room down/right, where people keep building). The
-  // trim is the ONLY thing that shrinks the view; placing tiles only grows it.
-  // Also used for the initial framing on mount (see the RO below).
-  const recenter = useCallback(() => {
+  // --- Persistence: debounced autosave + save-on-unmount ----------------
+  const save = useCallback(() => {
+    void db.rpc('save_player_board', {
+      target_game: gameId,
+      state: { board: boardRef.current, hand: handRef.current },
+    })
+  }, [gameId])
+  const saveTimer = useRef(0)
+  const firstSave = useRef(true)
+  useEffect(() => {
+    if (firstSave.current) {
+      firstSave.current = false
+      return
+    }
+    clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(save, AUTOSAVE_MS)
+    return () => clearTimeout(saveTimer.current)
+  }, [board, hand, save])
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveTimer.current)
+      save()
+    }
+  }, [save])
+
+  // --- Zoom keeps the viewport center fixed -----------------------------
+  const zoomAnchor = useRef<{ cx: number; cy: number } | null>(null)
+  function onZoom(next: number) {
+    const c = scrollRef.current
+    if (c) {
+      zoomAnchor.current = {
+        cx: (c.scrollLeft + c.clientWidth / 2) / cell,
+        cy: (c.scrollTop + c.clientHeight / 2) / cell,
+      }
+    }
+    setCell(next)
+  }
+  useLayoutEffect(() => {
+    const c = scrollRef.current
+    if (!c || !zoomAnchor.current) return
+    const { cx, cy } = zoomAnchor.current
+    c.scrollLeft = cx * cell - c.clientWidth / 2
+    c.scrollTop = cy * cell - c.clientHeight / 2
+    zoomAnchor.current = null
+  }, [cell])
+
+  // Start centered on the middle of the arena (or the player's tiles).
+  useLayoutEffect(() => {
     const c = scrollRef.current
     if (!c) return
-    const { rows, cols } = viewportCells(c.clientWidth, c.clientHeight)
-    const next = trimmedView(placementsRef.current, cursorRef.current, rows, cols)
-    setWin(next)
-    requestAnimationFrame(() => {
-      const el = scrollRef.current
-      if (!el) return
-      const center = centerOf(extentOf(placementsRef.current))
-      el.scrollLeft = (center.col - next.left + 0.5) * CELL - el.clientWidth * RECENTER_BIAS
-      el.scrollTop = (center.row - next.top + 0.5) * CELL - el.clientHeight * RECENTER_BIAS
-    })
+    const ext = tilesExtent(boardRef.current)
+    const cr = ext ? (ext.minR + ext.maxR + 1) / 2 : GRID / 2
+    const cc = ext ? (ext.minC + ext.maxC + 1) / 2 : GRID / 2
+    c.scrollLeft = cc * cell - c.clientWidth / 2
+    c.scrollTop = cr * cell - c.clientHeight / 2
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // --- Size the view to the viewport (mount + resize) -------------------
-  // The FIRST measurement frames the board (trim + scroll) once the real
-  // viewport is known. Later measurements (window resize) grow the view to
-  // keep covering the viewport — never shrinking it (the user can Recenter to
-  // trim). The RO callback isn't an effect body, so its setWin is fine.
-  const framedRef = useRef(false)
+  // The smallest zoom shows the WHOLE grid and no more: min cell = the board
+  // area's binding dimension / GRID. Measured on mount + resize.
   useLayoutEffect(() => {
     const c = scrollRef.current
     if (!c) return
     const ro = new ResizeObserver(() => {
       const el = scrollRef.current
       if (!el) return
-      if (!framedRef.current) {
-        framedRef.current = true
-        recenter() // initial framing
-        return
-      }
-      const { rows, cols } = viewportCells(el.clientWidth, el.clientHeight)
-      setWin((prev) => {
-        const center = { row: prev.top + prev.rows / 2 - 0.5, col: prev.left + prev.cols / 2 - 0.5 }
-        return unionBox(prev, boxAround(center, rows, cols))
-      })
+      const m = Math.max(8, Math.floor(Math.min(el.clientWidth, el.clientHeight) / GRID))
+      setMinCell(m)
+      setCell((cur) => Math.max(cur, m))
     })
     ro.observe(c)
     return () => ro.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Keep the placements + their droppable margin + the cursor inside the view.
-  // Monotonic growth genuinely needs the previous view (cross-render memory),
-  // so it can't be a pure render-time derivation; the unionBox bailout returns
-  // the same box when no growth is needed, so setWin no-ops and never cascades.
-  useLayoutEffect(() => {
-    const req = requiredBox(placements, cursor ? { row: cursor.row, col: cursor.col } : null)
-    if (!req) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWin((prev) => unionBox(prev, req))
-  }, [placements, cursor])
-
-  // --- Persistence: debounced autosave + save-on-unmount -----------------
-  const stateRef = useRef<MonkeyGramBoardState>({ placements, hand })
-  useEffect(() => {
-    stateRef.current = { placements, hand }
-  }, [placements, hand])
-  const saveTimer = useRef(0)
-  const save = useCallback(() => {
-    void db.rpc('save_player_board', {
-      target_game: gameId,
-      state: stateRef.current,
-    })
-  }, [gameId])
-
-  const firstSave = useRef(true)
-  useEffect(
-    function debouncedAutosave() {
-      // Skip the seed render — the loaded board is already persisted.
-      if (firstSave.current) {
-        firstSave.current = false
-        return
-      }
-      clearTimeout(saveTimer.current)
-      saveTimer.current = window.setTimeout(save, AUTOSAVE_MS)
-      return () => clearTimeout(saveTimer.current)
-    },
-    [placements, hand, save],
-  )
-  useEffect(
-    function saveOnUnmount() {
-      return () => {
-        clearTimeout(saveTimer.current)
-        save() // flush the latest state before the component goes away
-      }
-    },
-    [save],
-  )
-
-  // --- Scroll-anchored growth -------------------------------------------
-  // When the window grows up/left, existing tiles shift down/right; bump
-  // scroll by the same number of cells, before paint, so what the user is
-  // looking at stays visually pinned.
-  useLayoutEffect(() => {
-    const c = scrollRef.current
-    if (!c) return
-    const prev = prevWin.current
-    if (prev) {
-      const dTop = prev.top - win.top
-      const dLeft = prev.left - win.left
-      if (dTop) c.scrollTop += dTop * CELL
-      if (dLeft) c.scrollLeft += dLeft * CELL
-    }
-    prevWin.current = { top: win.top, left: win.left }
-  }, [win.top, win.left])
-
-  // Keep the keyboard cursor visible WITHOUT shifting on every keystroke.
-  // We only scroll when the cursor actually reaches the viewport edge, and
-  // then reveal a generous chunk ahead (LEAD) so it won't re-trigger for many
-  // more cells — short words near the middle never move the board at all, and
-  // a long word scrolls in occasional pages rather than nudging every letter.
-  // Runs after the anchor effect, so for cursor moves it wins.
+  // Keep the keyboard cursor in view (just scrolls — the grid never moves).
   useLayoutEffect(() => {
     if (!cursor) return
     const c = scrollRef.current
     if (!c) return
-    const x = (cursor.col - win.left) * CELL
-    const y = (cursor.row - win.top) * CELL
-    const trigger = CELL * 0.75 // scroll just before the cell is cut off
-    const LEAD = 0.65 // viewport fraction to keep on the side we move toward
-    if (x - trigger < c.scrollLeft) {
-      c.scrollLeft = x + CELL - c.clientWidth * LEAD
-    } else if (x + CELL + trigger > c.scrollLeft + c.clientWidth) {
-      c.scrollLeft = x - c.clientWidth * (1 - LEAD)
-    }
-    if (y - trigger < c.scrollTop) {
-      c.scrollTop = y + CELL - c.clientHeight * LEAD
-    } else if (y + CELL + trigger > c.scrollTop + c.clientHeight) {
-      c.scrollTop = y - c.clientHeight * (1 - LEAD)
-    }
+    const m = cell
+    const x = cursor.col * cell
+    const y = cursor.row * cell
+    if (x - m < c.scrollLeft) c.scrollLeft = x - m
+    else if (x + cell + m > c.scrollLeft + c.clientWidth) c.scrollLeft = x + cell + m - c.clientWidth
+    if (y - m < c.scrollTop) c.scrollTop = y - m
+    else if (y + cell + m > c.scrollTop + c.clientHeight) c.scrollTop = y + cell + m - c.clientHeight
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor?.row, cursor?.col])
 
-  // --- Drag plumbing (click-vs-drag) -------------------------------------
-  const gestureRef = useRef<Gesture | null>(null)
+  // --- Error flash ------------------------------------------------------
+  const flashError = useCallback(() => {
+    setErrFlash(true)
+    setErrNonce((n) => n + 1)
+  }, [])
+  useEffect(() => {
+    if (!errFlash) return
+    const id = setTimeout(() => setErrFlash(false), 180)
+    return () => clearTimeout(id)
+  }, [errFlash, errNonce])
 
-  const finishDrag = useCallback((tile: MonkeyGramTile, source: DragSource, x: number, y: number) => {
-    const cell = cellAtPoint(x, y)
-    if (cell) {
-      const occupant = placementsRef.current.find((p) => p.row === cell.row && p.col === cell.col)
-      const ownCell = source.kind === 'board' && source.row === cell.row && source.col === cell.col
-      if (occupant && !ownCell) return // cell taken by another tile → snap back
-      setHand((h) => h.filter((t) => t.id !== tile.id))
-      setPlacements((ps) => [
-        ...ps.filter((p) => p.id !== tile.id),
-        { id: tile.id, letter: tile.letter, row: cell.row, col: cell.col },
-      ])
-      return
-    }
-    if (overHandAtPoint(x, y)) {
-      setPlacements((ps) => ps.filter((p) => p.id !== tile.id))
-      setHand((h) => (h.some((t) => t.id === tile.id) ? h : [...h, { id: tile.id, letter: tile.letter }]))
-    }
-    // else dropped in the void → snap back (no state change)
+  // --- Mutations --------------------------------------------------------
+  const handToBoard = useCallback((handIndex: number, letter: string, r: number, c: number) => {
+    setBoard((b) => setChar(b, idx(r, c), letter))
+    setHand((h) => removeCharAt(h, handIndex))
+  }, [])
+  const boardToBoard = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+    setBoard((b) => {
+      const letter = b[idx(r1, c1)]
+      return setChar(setChar(b, idx(r1, c1), '.'), idx(r2, c2), letter)
+    })
+  }, [])
+  const boardToHand = useCallback((r: number, c: number) => {
+    const letter = boardRef.current[idx(r, c)]
+    if (letter === '.') return
+    setBoard((b) => setChar(b, idx(r, c), '.'))
+    setHand((h) => h + letter)
   }, [])
 
-  // The move/up handlers listen on window for the whole mount and act
-  // only while a gesture is in flight (gestureRef set by a pointerdown).
-  // Always-on (rather than add/remove per gesture) keeps the handlers
-  // free of self-reference and the listener bookkeeping in one effect.
+  // --- Drag plumbing (always-on window listeners) -----------------------
+  const gestureRef = useRef<Gesture | null>(null)
+
+  const finishDrag = useCallback(
+    (g: Gesture, x: number, y: number) => {
+      const target = cellAtPoint(x, y)
+      if (target) {
+        const occupied = boardRef.current[idx(target.row, target.col)] !== '.'
+        const ownCell =
+          g.source.kind === 'board' && g.source.row === target.row && g.source.col === target.col
+        if (occupied && !ownCell) return // taken → snap back
+        if (g.source.kind === 'hand' && g.letter) handToBoard(g.source.index, g.letter, target.row, target.col)
+        else if (g.source.kind === 'board') boardToBoard(g.source.row, g.source.col, target.row, target.col)
+        return
+      }
+      if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
+    },
+    [handToBoard, boardToBoard, boardToHand],
+  )
+
   const onGestureMove = useCallback((e: PointerEvent) => {
     const g = gestureRef.current
     if (!g) return
     if (
       !g.started &&
-      g.tile &&
+      g.letter &&
       Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD
     ) {
       g.started = true
       document.body.classList.add('mg-dragging')
     }
-    if (g.started && g.tile && g.source) {
-      setDrag({ tile: g.tile, source: g.source, x: e.clientX, y: e.clientY })
+    if (g.started && g.letter) {
+      setDrag({ letter: g.letter, source: g.source, x: e.clientX, y: e.clientY })
       setHover(cellAtPoint(e.clientX, e.clientY))
     }
   }, [])
@@ -316,13 +244,11 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
       if (!g) return
       gestureRef.current = null
       document.body.classList.remove('mg-dragging')
-      if (g.started && g.tile && g.source) {
-        finishDrag(g.tile, g.source, e.clientX, e.clientY)
+      if (g.started) {
+        finishDrag(g, e.clientX, e.clientY)
         setDrag(null)
         setHover(null)
       } else if (g.cell) {
-        // A click on a board cell drops the keyboard cursor there,
-        // horizontal by default (arrows flip it).
         setCursor({ row: g.cell.row, col: g.cell.col, dir: 'h' })
       }
     },
@@ -338,67 +264,47 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     }
   }, [onGestureMove, onGestureUp])
 
-  const onCellPointerDown = useCallback(
-    (row: number, col: number, p: MonkeyGramPlacement | undefined, e: React.PointerEvent) => {
-      if (e.button !== 0) return
-      e.preventDefault()
-      gestureRef.current = {
-        cell: { row, col },
-        tile: p ? { id: p.id, letter: p.letter } : null,
-        source: p ? { kind: 'board', row, col } : null,
-        startX: e.clientX,
-        startY: e.clientY,
-        started: false,
-      }
-    },
-    [],
-  )
-
-  const onHandPointerDown = useCallback((t: MonkeyGramTile, e: React.PointerEvent) => {
+  const onCellPointerDown = useCallback((r: number, c: number, e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const letter = boardRef.current[idx(r, c)]
+    gestureRef.current = {
+      cell: { row: r, col: c },
+      letter: letter !== '.' ? letter : null,
+      source: { kind: 'board', row: r, col: c },
+      startX: e.clientX,
+      startY: e.clientY,
+      started: false,
+    }
+  }, [])
+  const onHandPointerDown = useCallback((index: number, letter: string, e: React.PointerEvent) => {
     if (e.button !== 0) return
     e.preventDefault()
     gestureRef.current = {
-      cell: null, // hand tiles don't set a cursor
-      tile: { id: t.id, letter: t.letter },
-      source: { kind: 'hand' },
+      cell: null,
+      letter,
+      source: { kind: 'hand', index },
       startX: e.clientX,
       startY: e.clientY,
       started: false,
     }
   }, [])
 
-  // --- Keyboard cursor ---------------------------------------------------
-  const flashError = useCallback(() => {
-    setErrFlash(true)
-    setErrNonce((n) => n + 1)
-  }, [])
-  useEffect(() => {
-    if (!errFlash) return
-    const id = setTimeout(() => setErrFlash(false), 180)
-    return () => clearTimeout(id)
-  }, [errFlash, errNonce])
-
-  const advanceCursor = useCallback((cur: Cursor) => {
+  // --- Keyboard cursor --------------------------------------------------
+  const advance = useCallback((cur: Cursor) => {
     setCursor({
-      row: cur.row + (cur.dir === 'v' ? 1 : 0),
-      col: cur.col + (cur.dir === 'h' ? 1 : 0),
+      row: clamp(cur.row + (cur.dir === 'v' ? 1 : 0)),
+      col: clamp(cur.col + (cur.dir === 'h' ? 1 : 0)),
       dir: cur.dir,
     })
-  }, [])
-
-  const unplaceToHand = useCallback((p: MonkeyGramPlacement) => {
-    setPlacements((ps) => ps.filter((x) => x.id !== p.id))
-    setHand((h) => (h.some((t) => t.id === p.id) ? h : [...h, { id: p.id, letter: p.letter }]))
   }, [])
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const cur = cursorRef.current
       if (!cur) return
-      // Don't steal keystrokes from the chat input or any text field.
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-
       const k = e.key
 
       if (k === 'Escape' || k === 'Enter') {
@@ -406,21 +312,17 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
         setCursor(null)
         return
       }
-
       if (k === 'Backspace') {
         e.preventDefault()
-        const here = placementsRef.current.find((p) => p.row === cur.row && p.col === cur.col)
-        if (here) unplaceToHand(here)
+        if (boardRef.current[idx(cur.row, cur.col)] !== '.') boardToHand(cur.row, cur.col)
         setCursor({
-          row: cur.row - (cur.dir === 'v' ? 1 : 0),
-          col: cur.col - (cur.dir === 'h' ? 1 : 0),
+          row: clamp(cur.row - (cur.dir === 'v' ? 1 : 0)),
+          col: clamp(cur.col - (cur.dir === 'h' ? 1 : 0)),
           dir: cur.dir,
         })
         return
       }
-
-      const isArrow = k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown'
-      if (isArrow) {
+      if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
         e.preventDefault()
         const axis = k === 'ArrowLeft' || k === 'ArrowRight' ? 'h' : 'v'
         if (cur.dir !== axis) {
@@ -428,70 +330,103 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
         } else {
           const dc = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0
           const dr = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0
-          setCursor({ row: cur.row + dr, col: cur.col + dc, dir: cur.dir })
+          setCursor({ row: clamp(cur.row + dr), col: clamp(cur.col + dc), dir: cur.dir })
         }
         return
       }
-
       if (k.length === 1 && /[a-z]/i.test(k)) {
         e.preventDefault()
         const letter = k.toUpperCase()
-        const occupant = placementsRef.current.find((p) => p.row === cur.row && p.col === cur.col)
-        if (occupant) {
-          if (occupant.letter === letter) advanceCursor(cur)
+        const here = boardRef.current[idx(cur.row, cur.col)]
+        if (here !== '.') {
+          if (here === letter) advance(cur)
           else flashError()
           return
         }
-        const tile = handRef.current.find((t2) => t2.letter === letter)
-        if (!tile) {
+        const i = handRef.current.indexOf(letter)
+        if (i < 0) {
           flashError()
           return
         }
-        setHand((h) => {
-          const i = h.findIndex((x) => x.id === tile.id)
-          return i < 0 ? h : [...h.slice(0, i), ...h.slice(i + 1)]
-        })
-        setPlacements((ps) => [
-          ...ps.filter((p) => !(p.row === cur.row && p.col === cur.col)),
-          { id: tile.id, letter, row: cur.row, col: cur.col },
-        ])
-        advanceCursor(cur)
+        handToBoard(i, letter, cur.row, cur.col)
+        advance(cur)
       }
     },
-    [advanceCursor, flashError, unplaceToHand],
+    [advance, flashError, boardToHand, handToBoard],
   )
-
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onKeyDown])
 
-  // --- Render ------------------------------------------------------------
+  // --- Center + fit -----------------------------------------------------
+  const centerAndFit = useCallback(() => {
+    const c = scrollRef.current
+    if (!c) return
+    const ext = tilesExtent(boardRef.current)
+    if (!ext) {
+      setCell(DEFAULT_CELL)
+      requestAnimationFrame(() => {
+        const el = scrollRef.current
+        if (!el) return
+        el.scrollLeft = (GRID / 2) * DEFAULT_CELL - el.clientWidth / 2
+        el.scrollTop = (GRID / 2) * DEFAULT_CELL - el.clientHeight / 2
+      })
+      return
+    }
+    const h = ext.maxR - ext.minR + 1
+    const w = ext.maxC - ext.minC + 1
+    const top = Math.floor((GRID - h) / 2)
+    const left = Math.floor((GRID - w) / 2)
+    const dr = top - ext.minR
+    const dc = left - ext.minC
+    setBoard((b) => {
+      const nb = new Array(GRID * GRID).fill('.')
+      for (let r = 0; r < GRID; r++)
+        for (let col = 0; col < GRID; col++) {
+          const ch = b[idx(r, col)]
+          if (ch !== '.') nb[idx(r + dr, col + dc)] = ch
+        }
+      return nb.join('')
+    })
+    setCursor(null)
+
+    const usedW = Math.min(GRID, w + 2 * FIT_MARGIN)
+    const usedH = Math.min(GRID, h + 2 * FIT_MARGIN)
+    const fit = Math.max(
+      minCell,
+      Math.min(MAX_CELL, Math.floor(Math.min(c.clientWidth / usedW, c.clientHeight / usedH))),
+    )
+    setCell(fit)
+    requestAnimationFrame(() => {
+      const el = scrollRef.current
+      if (!el) return
+      el.scrollLeft = (left + w / 2) * fit - el.clientWidth / 2
+      el.scrollTop = (top + h / 2) * fit - el.clientHeight / 2
+    })
+  }, [minCell])
+
+  // --- Render -----------------------------------------------------------
   const cells: React.ReactNode[] = []
-  for (let r = 0; r < win.rows; r++) {
-    for (let c = 0; c < win.cols; c++) {
-      const row = win.top + r
-      const col = win.left + c
-      const p = occupied.get(row + ',' + col)
-      const isHover = hover && hover.row === row && hover.col === col
-      const lifting = drag && p && drag.tile.id === p.id
-      const blocked = isHover && p && !lifting
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      const ch = board[idx(r, c)]
+      const isHover = hover && hover.row === r && hover.col === c
+      const lifting =
+        drag && drag.source.kind === 'board' && drag.source.row === r && drag.source.col === c
+      const blocked = isHover && ch !== '.' && !lifting
       const dropOk = isHover && !blocked
-      const cursorHere = cursor && cursor.row === row && cursor.col === col
+      const cursorHere = cursor && cursor.row === r && cursor.col === c
       cells.push(
         <div
-          key={row + ',' + col}
+          key={r * GRID + c}
           data-cell
-          data-row={row}
-          data-col={col}
-          className={
-            styles.cell + (dropOk ? ' ' + styles.dropOk : '') + (blocked ? ' ' + styles.dropNo : '')
-          }
-          onPointerDown={(e) => onCellPointerDown(row, col, p, e)}
+          data-row={r}
+          data-col={c}
+          className={styles.cell + (dropOk ? ' ' + styles.dropOk : '') + (blocked ? ' ' + styles.dropNo : '')}
+          onPointerDown={(e) => onCellPointerDown(r, c, e)}
         >
-          {p && (
-            <div className={styles.tile + (lifting ? ' ' + styles.lifted : '')}>{p.letter}</div>
-          )}
+          {ch !== '.' && <div className={styles.tile + (lifting ? ' ' + styles.lifted : '')}>{ch}</div>}
           {cursorHere && (
             <div
               key={'cur-' + errNonce}
@@ -511,42 +446,56 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
   return (
     <div className={styles.layout}>
       <div className={styles.boardCol}>
+        <div className={styles.toolbar}>
+          <label className={styles.zoom}>
+            zoom
+            <input
+              type="range"
+              min={minCell}
+              max={MAX_CELL}
+              value={cell}
+              onChange={(e) => onZoom(Number(e.target.value))}
+            />
+          </label>
+          <button type="button" onClick={centerAndFit}>
+            Center + fit
+          </button>
+        </div>
         <div className={styles.boardScroll} ref={scrollRef}>
-          {/* The grid IS the scroll content — its size is the view box, so you
-              can only scroll over real cells, never into blank space. */}
           <div
             className={styles.grid}
             style={{
-              gridTemplateColumns: `repeat(${win.cols}, ${CELL}px)`,
-              gridTemplateRows: `repeat(${win.rows}, ${CELL}px)`,
-              width: win.cols * CELL,
-              height: win.rows * CELL,
+              gridTemplateColumns: `repeat(${GRID}, ${cell}px)`,
+              gridTemplateRows: `repeat(${GRID}, ${cell}px)`,
+              width: GRID * cell,
+              height: GRID * cell,
+              fontSize: cell * 0.5,
             }}
           >
             {cells}
           </div>
         </div>
-        <button type="button" className={styles.recenter} onClick={recenter}>
-          Recenter
-        </button>
       </div>
 
       <div className={styles.hand} data-zone="hand">
-        {hand.map((t) => (
+        {hand.split('').map((letter, i) => (
           <div
-            key={t.id}
-            className={styles.handTile + (drag && drag.tile.id === t.id ? ' ' + styles.lifted : '')}
-            onPointerDown={(e) => onHandPointerDown(t, e)}
+            key={i}
+            className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
+            onPointerDown={(e) => onHandPointerDown(i, letter, e)}
           >
-            {t.letter}
+            {letter}
           </div>
         ))}
         {hand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
       </div>
 
       {drag && (
-        <div className={styles.ghost} style={{ left: drag.x, top: drag.y }}>
-          {drag.tile.letter}
+        <div
+          className={styles.ghost}
+          style={{ left: drag.x, top: drag.y, width: cell, height: cell, fontSize: cell * 0.5 }}
+        >
+          {drag.letter}
         </div>
       )}
     </div>
