@@ -47,12 +47,42 @@
   border-radius: var(--radius-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+/* Custom-styled so the thumb travels nearly edge-to-edge of the visible track
+ * (the native chrome leaves a lot of unreachable track at the ends). A thin
+ * rail (the element background) with a small knob keeps the leftover to ~the
+ * thumb radius. */
 .zoom {
+  -webkit-appearance: none;
+  appearance: none;
   writing-mode: vertical-lr;
   direction: rtl; /* high zoom at the top */
-  height: 120px;
-  width: auto;
-  accent-color: var(--mg-cursor);
+  width: 5px;
+  height: 132px;
+  margin: 0;
+  background: var(--color-surface-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.zoom::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.zoom::-moz-range-track {
+  background: transparent;
+}
+.zoom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--mg-cursor);
+  cursor: pointer;
+}
+.zoom::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--mg-cursor);
   cursor: pointer;
 }
 .fitBtn {
