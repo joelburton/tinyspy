@@ -92,13 +92,13 @@ describe('GameLog', () => {
     expect(turns).toHaveLength(2)
 
     // Oldest turn (1) appears first in chronological order.
-    expect(turns[0]).toHaveTextContent('Turn #1')
+    expect(turns[0]).toHaveTextContent('#1')
     expect(turns[0]).toHaveTextContent('TOOLS')
     expect(within(turns[0]).getByText('HAMMER', { exact: false })).toBeInTheDocument()
 
     // Latest turn (2) below — auto-scroll keeps it in view in the
     // real app, but the DOM order is oldest-first.
-    expect(turns[1]).toHaveTextContent('Turn #2')
+    expect(turns[1]).toHaveTextContent('#2')
     expect(turns[1]).toHaveTextContent('DRINK')
     expect(within(turns[1]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
   })
@@ -132,9 +132,8 @@ describe('GameLog', () => {
   })
 
   it('renders the "no guesses made" placeholder when the turn has a clue but no guesses', () => {
-    // The guesser passed without revealing anything. The log
-    // should still show their name and the placeholder copy so
-    // the reader sees who was up.
+    // The guesser passed without revealing anything. The guess line still
+    // renders (with its `->` lead-in) so the reader sees the turn happened.
     const clues = [
       clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'PASS', count: 1 }),
     ]
@@ -142,10 +141,8 @@ describe('GameLog', () => {
     render(<GameLog clues={clues} guesses={[]} players={PLAYERS} />)
 
     expect(screen.getByText(/no guesses made/)).toBeInTheDocument()
-    // The guesser (bea — the seat opposite the clue-giver) is
-    // named, not the clue-giver.
+    // The guesser is no longer named — the line leads with an arrow.
     const turn = screen.getByRole('listitem')
-    const text = turn.textContent ?? ''
-    expect(text.indexOf('bea')).toBeGreaterThanOrEqual(0)
+    expect(turn.textContent ?? '').toContain('->')
   })
 })

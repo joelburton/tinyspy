@@ -122,7 +122,8 @@ export function PlayArea({
     return <p>Loading board…</p>
   }
 
-  const mySeat = players.find((p) => p.user_id === session.user.id)?.seat
+  const me = players.find((p) => p.user_id === session.user.id)
+  const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 

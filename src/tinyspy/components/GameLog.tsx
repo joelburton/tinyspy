@@ -102,16 +102,11 @@ export function GameLog({ clues, guesses, players }: Props) {
           const clue = clues.find((c) => c.turn_number === t)
           if (!clue) return null
           const clueGiver = playerBySeat.get(clue.by_seat)
-          // The guesser is whoever isn't the clue-giver. tinyspy is
-          // always 2-player, so this is the other seat. Use a
-          // string-typed find rather than hardcoding A↔B so any
-          // future seat-vocabulary change lands cleanly.
-          const guesser = players.find((p) => p.seat !== clue.by_seat)
           const turnGuesses = sortedGuesses.filter((g) => g.turn_number === t)
           return (
             <li key={t} className={styles.turn}>
               <div className={styles.clueLine}>
-                <span className="muted">Turn #{t}:</span>{' '}
+                <span className="muted">#{t}:</span>{' '}
                 <strong style={{ color: colorVarFor(clueGiver?.color) }}>
                   {clueGiver?.username ?? clue.by_seat}
                 </strong>
@@ -120,11 +115,10 @@ export function GameLog({ clues, guesses, players }: Props) {
                   {clue.word.toUpperCase()}
                 </span>
               </div>
+              {/* The guesser is implicit (the other of two seats), so the line
+                  leads with an arrow rather than naming them. */}
               <div className={styles.guessLine}>
-                <strong style={{ color: colorVarFor(guesser?.color) }}>
-                  {guesser?.username ?? '?'}
-                </strong>
-                {' → '}
+                {'-> '}
                 {turnGuesses.length === 0 ? (
                   <span className="muted">(no guesses made)</span>
                 ) : (

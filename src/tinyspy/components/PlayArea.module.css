@@ -54,11 +54,10 @@
 }
 
 /* Right column — fixed-width side panel for status + clue action +
- * game log. 26rem fits the clue form's count + word + submit row
- * comfortably; tighter would crowd the form, wider would steal
- * board space. */
+ * game log. 18rem keeps the board roomy on a small laptop; the clue
+ * form's count + word + submit row still fits. */
 .rightCol {
-  flex: 0 0 26rem;
+  flex: 0 0 18rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

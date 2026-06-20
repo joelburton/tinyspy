@@ -7,40 +7,32 @@ import type { Seat } from '../lib/phase'
 import styles from './BoardGrid.module.css'
 
 /**
- * Per-label module-class lookup. Local to BoardGrid since it's the
- * only consumer; the actual style rules live in
- * PlayArea.module.css under `.tileAgent`, `.tileNeutral`,
- * `.tileAssassin`. Indirection lets the rest of the file say
- * `styles[TILE_BG[label]]` and have everything stay scoped.
- *
- * The data-side KeyLabel ('G'|'N'|'A') keeps its single-letter
- * shape — those letters are persisted in tinyspy.words.revealed_as
- * and in the seat key cards. The mapping below is the one place
- * that translates from the data alphabet to the presentation-
- * layer's semantic class names.
+ * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
+ * use the *unrevealed* (soft) palette — they show what a key card SAYS about a
+ * cell, independent of what's been guessed. Style rules live in
+ * BoardGrid.module.css; this map is the one place translating the data alphabet
+ * to presentation classes.
  */
-const TILE_BG: Record<KeyLabel, 'tileAgent' | 'tileNeutral' | 'tileAssassin'> = {
-  G: 'tileAgent',
-  N: 'tileNeutral',
-  A: 'tileAssassin',
+const KEY_SQUARE: Record<KeyLabel, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = {
+  G: 'keyAgent',
+  N: 'keyNeutral',
+  A: 'keyAssassin',
 }
 
 type Props = {
   gameId: string
-  /** The 25 board word rows, including any reveal state. */
+  /** The 25 board word rows, with denormalized reveal state. */
   words: WordRow[]
   /** The caller's own key view (a 25-element array of G/N/A). */
   myKey: KeyLabel[]
-  /** The partner's key view. Null while the game is in play;
-   *  populated post-game so we can render the dual-stripe review. */
+  /** The partner's key view. Null while the game is in play; populated
+   *  post-game so the peer's keycard square can be shown. */
   peerKey: KeyLabel[] | null
-  /** Caller's seat ('A' | 'B') or undefined if they're not seated.
-   *  Drives which key view appears on top vs bottom in the
-   *  post-game stripes. */
+  /** Caller's seat ('A' | 'B') or undefined if not seated. Picks which
+   *  per-seat neutral flag is "mine" for the background + click gate. */
   mySeat: Seat | undefined
-  /** Whether the game has reached a terminal status. Switches the
-   *  per-cell render between "in-play hint" and "post-game dual
-   *  stripe." */
+  /** Whether the game has reached a terminal status. Gates the peer keycard
+   *  square (shown only once the game is over). */
   gameOver: boolean
   /** Whether the caller should be able to click cells right now.
    *  Computed by derivePhase against game.status + seat + clue
@@ -120,52 +112,28 @@ export function BoardGrid({
         {words.map((w) => {
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null
-          // GLOBAL reveal — agent contacted ('G') or assassin ('A'), solid for
-          // everyone. Neutrals are not global (see below).
-          const revealed = w.revealed_as !== null
 
           // Per-seat bystander marks. A neutral I made locks the cell for ME;
           // one my partner made does NOT — the word may be my agent in the
-          // other direction (the Duet rule). When both marked it, it's dead.
+          // other direction (the Duet rule). Both are PUBLIC events (a neutral
+          // guess is visible on the shared board), so both triangles show
+          // during play; only the peer's KEY (the square) stays secret.
           const iNeutraled =
             mySeat === 'A' ? w.neutral_a : mySeat === 'B' ? w.neutral_b : false
           const partnerNeutraled =
             mySeat === 'A' ? w.neutral_b : mySeat === 'B' ? w.neutral_a : false
+          const revealed = w.revealed_as !== null
 
-          // Two split-tile renderings:
-          //  - in-play neutral: my keycard color on top, the "was guessed as a
-          //    bystander" neutral color on the bottom (shown to BOTH the
-          //    guesser and the partner; only the partner can still click it).
-          //  - post-game review: A's key on top, B's on bottom, for every
-          //    still-unrevealed cell.
-          const neutralSplit =
-            !revealed && !gameOver && (iNeutraled || partnerNeutraled)
-          const showPostGameReveal = gameOver && !revealed && peerLabel !== null
-
-          // For the post-game stripes, A's label goes on top and B's on bottom
-          // regardless of who's looking.
-          const aLabel: KeyLabel =
-            mySeat === 'A' ? myLabel : peerLabel ?? myLabel
-          const bLabel: KeyLabel =
-            mySeat === 'B' ? myLabel : peerLabel ?? myLabel
-
-          let topStripe: KeyLabel | 'neutral' | null = null
-          let bottomStripe: KeyLabel | 'neutral' | null = null
-          if (neutralSplit) {
-            topStripe = myLabel // my keycard color
-            bottomStripe = 'neutral' // the bystander-was-guessed color
-          } else if (showPostGameReveal) {
-            topStripe = aLabel
-            bottomStripe = bLabel
-          }
-          const stripeCls = (s: KeyLabel | 'neutral') =>
-            s === 'neutral' ? styles.tileNeutral : styles[TILE_BG[s]]
-
-          const tintCls = revealed
-            ? cls(styles.tileRevealed, styles[TILE_BG[w.revealed_as as KeyLabel]])
-            : topStripe !== null
-              ? styles.tilePostgame
-              : cls(styles.tileHint, styles[TILE_BG[myLabel]])
+          // The tile BACKGROUND is what HAPPENED on this cell:
+          //   green  — we contacted an agent (global)
+          //   red    — the assassin was hit (global)
+          //   tan    — SOMEONE guessed it as a neutral (which player → triangles)
+          //   white  — no one has guessed it
+          const bgCls =
+            w.revealed_as === 'G' ? styles.bgAgent
+            : w.revealed_as === 'A' ? styles.bgAssassin
+            : (w.neutral_a || w.neutral_b) ? styles.bgNeutral
+            : styles.bgWhite
 
           // Clickable unless globally revealed or *I* already neutraled it. A
           // partner-only neutral stays clickable (it may be my agent).
@@ -178,20 +146,39 @@ export function BoardGrid({
               type="button"
               className={cls(
                 styles.tile,
-                tintCls,
+                bgCls,
                 clickable && styles.tileClickable,
                 isPending && styles.tilePending,
               )}
               disabled={!clickable || isPending}
               onClick={() => clickable && handleGuess(w.position)}
             >
-              {topStripe !== null && (
-                <div className={cls(styles.tileStripe, stripeCls(topStripe))} aria-hidden />
+              {/* Peer's keycard — top-right, only once the game's over (their
+                  view is secret during play). */}
+              {gameOver && peerLabel !== null && (
+                <span
+                  className={cls(styles.keySquare, styles.keyPeer, styles[KEY_SQUARE[peerLabel]])}
+                  aria-hidden
+                />
+              )}
+              {/* "Peer guessed this neutral" — triangle above the word, pointing
+                  up toward where they sit. Dropped once the cell is contacted
+                  (agent/assassin) — the markers are only for live neutrals. */}
+              {partnerNeutraled && !revealed && (
+                <span className={cls(styles.triangle, styles.triPeer)} aria-hidden />
               )}
               <span className={styles.tileWord}>{w.word}</span>
-              {bottomStripe !== null && (
-                <div className={cls(styles.tileStripe, stripeCls(bottomStripe))} aria-hidden />
+              {/* "I guessed this neutral" — triangle below the word, pointing
+                  down toward me. */}
+              {iNeutraled && !revealed && (
+                <span className={cls(styles.triangle, styles.triMine)} aria-hidden />
               )}
+              {/* My keycard — bottom-left, always shown (it's how I read which
+                  cells to clue for). */}
+              <span
+                className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myLabel]])}
+                aria-hidden
+              />
               {isPending && <span className={styles.tileKey}>…</span>}
             </button>
           )

@@ -60,9 +60,8 @@
   position: relative;
   font: inherit;
   color: inherit;
-  /* Reset the global filled-blue button default — tiles have
-     their own per-state palette below (hint tints, revealed
-     solids, post-game stripes) and inherit from those. */
+  /* Fallback background; every tile gets one of the `.bg*` result classes
+     (white / tan / green / red) below, plus the corner keycard squares. */
   background: transparent;
   /* Container-queries on the tile so the word's font-size can
    * scale with the tile's width — wider tiles, bigger letters,
@@ -80,6 +79,11 @@
   font-size: clamp(0.85rem, 10cqi, 1.5rem);
   word-break: break-word;
   line-height: 1.15;
+
+  /*background-color: white;*/
+  /*color: black;*/
+  /*padding: 0.25em;*/
+  /*border-radius: 0.25em;*/
 }
 
 .tileKey {
@@ -94,50 +98,46 @@
   letter-spacing: 0.1em;
 }
 
-/* Hint variant: tinted background that previews the seat's key
- * label without committing to a reveal. */
-.tileHint.tileAgent {
-  background: var(--tinyspy-agent-soft);
-  border-color: rgba(56, 161, 105, 0.4);
+/* Tile BACKGROUND = the caller's OWN result on this cell (set in BoardGrid):
+ *   white   — I haven't guessed it (incl. cells only my partner has)
+ *   tan     — I guessed it and it came up neutral (mine only)
+ *   green   — we contacted an agent (global)
+ *   red     — the assassin was hit (global)
+ * The keycard squares (below) carry the "what does a key SAY" signal; the
+ * background carries "what happened." */
+.bgWhite {
+  background: #fff;
+  border-color: var(--color-surface-border);
 }
-.tileHint.tileNeutral {
-  background: var(--tinyspy-neutral-soft);
-  border-color: rgba(180, 152, 110, 0.3);
-}
-.tileHint.tileAssassin {
-  background: var(--tinyspy-assassin-soft);
-  border-color: rgba(190, 60, 60, 0.45);
-}
-
-/* Revealed variant: solid color, applied after the reveal RPC
- * resolves and Realtime propagates the row update. */
-.tileRevealed {
-  color: white;
-}
-.tileRevealed.tileAgent {
-  background: var(--tinyspy-agent);
-  border-color: var(--tinyspy-agent);
-}
-.tileRevealed.tileNeutral {
+.bgNeutral {
   background: var(--tinyspy-neutral);
   border-color: var(--tinyspy-neutral);
-  color: var(--tinyspy-neutral-text-dark);
+  color: white;
 }
-.tileRevealed.tileAssassin {
-  /* Solid assassin red on reveal — same color the active board
-   * uses for the hinted assassin tile and the dramatic "you just
-   * lost" beat. Real Duet uses black for the assassin reveal;
-   * we use red instead because "red = wrong pick" reads more
-   * obviously on screen than "black = ominous." */
+.bgAgent {
+  background: var(--tinyspy-agent);
+  border-color: var(--tinyspy-agent);
+  color: white;
+}
+.bgAssassin {
+  /* Real Duet uses black for the assassin; we use red because "red = wrong
+   * pick" reads more obviously on screen than "black = ominous." */
   background: var(--tinyspy-assassin);
   border-color: var(--tinyspy-assassin);
+  color: white;
 }
 
 .tileClickable {
   cursor: pointer;
 }
+/* Hover affordance: a black ring AROUND the tile — and nothing else. The
+ * background must NOT change on hover (a recolor reads as a real reveal — a
+ * partner once mistook the old hover-blue for a played tile). Bare <button>s
+ * carry no global look now (see common/theme.css), so the tile keeps its own
+ * per-state color on hover; we just add the outline. */
 .tileClickable:hover:not(:disabled) {
-  filter: brightness(1.15);
+  outline: 2px solid #000;
+  outline-offset: 2px;
 }
 
 .tile:disabled {
@@ -150,45 +150,56 @@
   outline-offset: -2px;
 }
 
-/* Post-game reveal: two stripes for the two key views, word in
- * the middle. Used to show what each cell "actually was" on
- * both seats once a game has ended. */
-.tilePostgame {
-  background: var(--color-surface);
-  border-color: var(--color-surface-border);
-  padding: 0;
-  display: grid;
-  /* Explicit `1fr` column so the grid column fills the tile's
-   * full inline width. Without this, `grid-template-columns`
-   * defaults to `auto`, which sizes the column to the widest
-   * item's content (the word) — leaving the empty-content stripes
-   * only painting under that word. */
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
+/* Keycard squares — small corner chips showing what a key card SAYS about the
+ * cell, always in the soft/unrevealed palette (independent of what's been
+ * guessed). My own is bottom-left and always shown (it's how I read which cells
+ * to clue for); the peer's is top-right and shown only once the game is over
+ * (their view is secret during play). Bottom/top placement mirrors a
+ * tabletop: my card near me, my opponent's across the table. */
+.keySquare {
+  position: absolute;
+  width: clamp(24px, 18cqi, 36px);
+  height: clamp(24px, 18cqi, 36px);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+}
+.keyMine {
+  bottom: 5px;
+  left: 5px;
+}
+.keyPeer {
+  top: 5px;
+  right: 5px;
+}
+.keyAgent {
+  background: var(--tinyspy-agent-key);
+}
+.keyNeutral {
+  background: var(--tinyspy-neutral-key);
+}
+.keyAssassin {
+  background: var(--tinyspy-assassin-key);
 }
 
-.tilePostgame .tileWord {
-  padding: 0.4rem 0.5rem;
-  align-self: center;
+/* Neutral-guessed triangles — above/below the word, one per player who guessed
+ * this cell as a neutral, pointing toward where they sit (peer above pointing
+ * up, me below pointing down). White: it reads cleanly on the saturated tile
+ * backgrounds, where black (and profile colors) get lost. Shown only while the
+ * cell is unrevealed — a contacted agent / hit assassin drops the markers. */
+.triangle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: clamp(6px, 6cqi, 10px) solid transparent;
+  border-right: clamp(6px, 6cqi, 10px) solid transparent;
 }
-
-/* Post-game stripe — a full-width colored band at the top and
- * bottom of each unrevealed tile, signaling how the cell was
- * keyed for seat A (top) and seat B (bottom). Empty of text
- * (the colored band IS the signal); display: block so it fills
- * the grid cell's width regardless of content (a span would
- * only paint the background under its text width — same bug we
- * saw before adding this rule). */
-.tileStripe {
-  display: block;
-  height: 0.6rem;
+.triPeer {
+  top: 4px;
+  border-bottom: clamp(8px, 8cqi, 13px) solid #fff; /* points up */
 }
-.tileStripe.tileAgent {
-  background: var(--tinyspy-agent);
-}
-.tileStripe.tileNeutral {
-  background: var(--tinyspy-neutral);
-}
-.tileStripe.tileAssassin {
-  background: var(--tinyspy-assassin);
+.triMine {
+  bottom: 4px;
+  border-top: clamp(8px, 8cqi, 13px) solid #fff; /* points down */
 }

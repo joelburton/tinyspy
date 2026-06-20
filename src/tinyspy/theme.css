@@ -48,4 +48,13 @@
   --tinyspy-assassin-soft-bright:rgba(190, 60, 60, 0.28);
   --tinyspy-assassin-bg:         #1a1a1a;  /* dark fill behind the revealed assassin tile */
   --tinyspy-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
+
+  /* Keycard-square fills — the small corner chips showing what a key card says
+     about a cell. Mid-saturation: more present than the translucent `-soft`
+     hints, but lighter than the solid "found" fills, so the square (what the
+     key SAYS) never competes with the tile background (what HAPPENED). Solid,
+     not translucent, so they read consistently on any tile background. */
+  --tinyspy-agent-key:           #66bb6a;
+  --tinyspy-neutral-key:         #d4b483;
+  --tinyspy-assassin-key:        #e06666;
 }

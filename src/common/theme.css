@@ -192,9 +192,12 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
+/* No hover effect on the raw <button> element. Too many <button>s are
+ * "non-button-buttons" (board tiles, icon hit-targets) for a blanket
+ * background-changing hover to be safe — on a tinyspy tile the old accent-blue
+ * hover read as a real reveal. Components that want a hover style their own
+ * (e.g. tinyspy's tile gets a black outline); a future `.button` class can
+ * reintroduce a hover for genuine buttons. */
 
 button:disabled {
   opacity: 0.5;
