@@ -63,6 +63,17 @@ helps. It's a draggable 2D crossword that grows in **any** direction (including
 up/left), recentering and growing as the player rearranges. The whole design
 hangs on one decision.
 
+> **Fallback / "nuclear option" — a fixed-size board.** MonkeyGram is
+> desktop-only (no mobile), played maximized in landscape, so we can assume a
+> laptop-ish viewport. A completed half-bag solo grid (~72 tiles, see the
+> sizing estimate) only fills ~17% of a **24×18** grid — and 24×18 fits on a
+> MacBook-14 screen at a readable ~40px tile. So if the scroll/grow/recenter
+> board never feels right, we can revert to a **totally fixed 24×18 board**:
+> always fully on screen, no scrolling, no growing — which deletes the entire
+> class of shift/center/jump problems. It would keep a manual **Recenter**
+> button (players tend to build down/right, so they'd want to re-frame). This
+> is the deliberate escape hatch; the dynamic board below is the attempt.
+
 ### Big idea: separate the logical model from the rendered viewport
 
 Tiles live at integer `(row, col)` coordinates in an **unbounded virtual

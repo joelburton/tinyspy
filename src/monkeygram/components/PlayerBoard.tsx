@@ -7,7 +7,18 @@ import {
   useState,
 } from 'react'
 import { db } from '../db'
-import { CANVAS_PAD, CELL, computeWindow } from '../lib/board'
+import {
+  CELL,
+  type Box,
+  boxAround,
+  centerOf,
+  extentOf,
+  initialView,
+  requiredBox,
+  trimmedView,
+  unionBox,
+  viewportCells,
+} from '../lib/board'
 import type {
   MonkeyGramBoardState,
   MonkeyGramPlacement,
@@ -27,9 +38,14 @@ import styles from './PlayerBoard.module.css'
  *      flip direction, Backspace to step back / unplace, Esc to dismiss.
  *      See `onKeyDown` and docs/games/monkeygram.md → "Keyboard input".
  *
- * The board's "intelligence" is the layout deriver in `lib/board.ts`:
- * the window is recomputed every render from the sparse placements, so
- * "recenter and grow" is a derivation, not stateful logic.
+ * The rendered grid is a **view box** (`win`, in state). It starts
+ * viewport-sized (no scrollbars). PLACING tiles only grows it (to keep the
+ * tiles + their margin + the cursor inside), so the board never jumps on
+ * placement — it grows off-screen and the scroll position compensates.
+ * RECENTER is the only thing that shrinks it: it trims the view back to the
+ * minimum that frames the tiles and scrolls to them (biased up-left). The box
+ * algebra lives in `lib/board.ts`. Because the grid IS the scroll content, you
+ * can only ever scroll over real cells.
  *
  * **Persistence.** This component OWNS the live board as local state
  * (seeded once from `initialBoard`) and snapshots it to
@@ -41,6 +57,7 @@ import styles from './PlayerBoard.module.css'
 
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
+const RECENTER_BIAS = 0.42 // recenter frames content toward the upper-left (< 0.5)
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
@@ -87,16 +104,18 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
   const placementsRef = useRef(placements)
   const handRef = useRef(hand)
   const cursorRef = useRef(cursor)
+
+  // The rendered grid is a "view box" held in state. PLACING tiles only grows
+  // it (to cover the tiles + margin + cursor); RECENTER is the only thing that
+  // shrinks it (trims). It always covers at least the viewport and IS the
+  // scrollable area, so you can only ever scroll over real cells.
+  const [win, setWin] = useState<Box>(() => initialView(initialBoard.placements))
   useEffect(() => {
     placementsRef.current = placements
     handRef.current = hand
     cursorRef.current = cursor
   }, [placements, hand, cursor])
 
-  const win = useMemo(
-    () => computeWindow(placements, cursor ? { row: cursor.row, col: cursor.col } : null),
-    [placements, cursor],
-  )
   const occupied = useMemo(() => {
     const m = new Map<string, MonkeyGramPlacement>()
     for (const p of placements) m.set(p.row + ',' + p.col, p)
@@ -105,6 +124,66 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const prevWin = useRef<{ top: number; left: number } | null>(null)
+
+  // Recenter = TRIM + FRAME. Reset the view to the minimum that frames the
+  // tiles (trimmedView) — discarding the empty grid that growth left behind —
+  // then scroll so the tiles sit biased UP-and-LEFT (content center ~42% from
+  // the top-left: more empty room down/right, where people keep building). The
+  // trim is the ONLY thing that shrinks the view; placing tiles only grows it.
+  // Also used for the initial framing on mount (see the RO below).
+  const recenter = useCallback(() => {
+    const c = scrollRef.current
+    if (!c) return
+    const { rows, cols } = viewportCells(c.clientWidth, c.clientHeight)
+    const next = trimmedView(placementsRef.current, cursorRef.current, rows, cols)
+    setWin(next)
+    requestAnimationFrame(() => {
+      const el = scrollRef.current
+      if (!el) return
+      const center = centerOf(extentOf(placementsRef.current))
+      el.scrollLeft = (center.col - next.left + 0.5) * CELL - el.clientWidth * RECENTER_BIAS
+      el.scrollTop = (center.row - next.top + 0.5) * CELL - el.clientHeight * RECENTER_BIAS
+    })
+  }, [])
+
+  // --- Size the view to the viewport (mount + resize) -------------------
+  // The FIRST measurement frames the board (trim + scroll) once the real
+  // viewport is known. Later measurements (window resize) grow the view to
+  // keep covering the viewport — never shrinking it (the user can Recenter to
+  // trim). The RO callback isn't an effect body, so its setWin is fine.
+  const framedRef = useRef(false)
+  useLayoutEffect(() => {
+    const c = scrollRef.current
+    if (!c) return
+    const ro = new ResizeObserver(() => {
+      const el = scrollRef.current
+      if (!el) return
+      if (!framedRef.current) {
+        framedRef.current = true
+        recenter() // initial framing
+        return
+      }
+      const { rows, cols } = viewportCells(el.clientWidth, el.clientHeight)
+      setWin((prev) => {
+        const center = { row: prev.top + prev.rows / 2 - 0.5, col: prev.left + prev.cols / 2 - 0.5 }
+        return unionBox(prev, boxAround(center, rows, cols))
+      })
+    })
+    ro.observe(c)
+    return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep the placements + their droppable margin + the cursor inside the view.
+  // Monotonic growth genuinely needs the previous view (cross-render memory),
+  // so it can't be a pure render-time derivation; the unionBox bailout returns
+  // the same box when no growth is needed, so setWin no-ops and never cascades.
+  useLayoutEffect(() => {
+    const req = requiredBox(placements, cursor ? { row: cursor.row, col: cursor.col } : null)
+    if (!req) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWin((prev) => unionBox(prev, req))
+  }, [placements, cursor])
 
   // --- Persistence: debounced autosave + save-on-unmount -----------------
   const stateRef = useRef<MonkeyGramBoardState>({ placements, hand })
@@ -170,8 +249,8 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     if (!cursor) return
     const c = scrollRef.current
     if (!c) return
-    const x = CANVAS_PAD + (cursor.col - win.left) * CELL
-    const y = CANVAS_PAD + (cursor.row - win.top) * CELL
+    const x = (cursor.col - win.left) * CELL
+    const y = (cursor.row - win.top) * CELL
     const trigger = CELL * 0.75 // scroll just before the cell is cut off
     const LEAD = 0.65 // viewport fraction to keep on the side we move toward
     if (x - trigger < c.scrollLeft) {
@@ -186,23 +265,6 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor?.row, cursor?.col])
-
-  const recenter = useCallback(() => {
-    const c = scrollRef.current
-    if (!c) return
-    const w = computeWindow(placementsRef.current)
-    const cr = w.extent ? (w.extent.minR + w.extent.maxR) / 2 : w.top + w.rows / 2 - 0.5
-    const cc = w.extent ? (w.extent.minC + w.extent.maxC) / 2 : w.left + w.cols / 2 - 0.5
-    c.scrollLeft = CANVAS_PAD + (cc - w.left + 0.5) * CELL - c.clientWidth / 2
-    c.scrollTop = CANVAS_PAD + (cr - w.top + 0.5) * CELL - c.clientHeight / 2
-  }, [])
-
-  // Center on mount (layout effect, so the centered scroll is set before
-  // paint — no first-frame flash of the empty canvas corner).
-  useLayoutEffect(() => {
-    recenter()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // --- Drag plumbing (click-vs-drag) -------------------------------------
   const gestureRef = useRef<Gesture | null>(null)
@@ -450,20 +512,18 @@ export function PlayerBoard({ gameId, initialBoard }: Props) {
     <div className={styles.layout}>
       <div className={styles.boardCol}>
         <div className={styles.boardScroll} ref={scrollRef}>
-          {/* The grid sits centered in a much larger padded canvas so it never
-              re-centers as it grows — see CANVAS_PAD in lib/board.ts. */}
-          <div className={styles.canvas} style={{ padding: CANVAS_PAD }}>
-            <div
-              className={styles.grid}
-              style={{
-                gridTemplateColumns: `repeat(${win.cols}, ${CELL}px)`,
-                gridTemplateRows: `repeat(${win.rows}, ${CELL}px)`,
-                width: win.cols * CELL,
-                height: win.rows * CELL,
-              }}
-            >
-              {cells}
-            </div>
+          {/* The grid IS the scroll content — its size is the view box, so you
+              can only scroll over real cells, never into blank space. */}
+          <div
+            className={styles.grid}
+            style={{
+              gridTemplateColumns: `repeat(${win.cols}, ${CELL}px)`,
+              gridTemplateRows: `repeat(${win.rows}, ${CELL}px)`,
+              width: win.cols * CELL,
+              height: win.rows * CELL,
+            }}
+          >
+            {cells}
           </div>
         </div>
         <button type="button" className={styles.recenter} onClick={recenter}>

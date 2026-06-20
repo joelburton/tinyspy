@@ -40,15 +40,18 @@ test.describe('monkeygram renders', () => {
     expect(handBox!.x, 'hand is on screen (not pushed off the right)').toBeLessThan(vp.width)
     expect(handBox!.x).toBeGreaterThanOrEqual(0)
 
-    // The board renders its grid of cells, centered into view (not scrolled
-    // off into the blank canvas padding). Assert a cell lands in the viewport.
-    const cells = page.locator('[data-cell]')
-    expect(await cells.count(), 'board cells rendered').toBeGreaterThan(100)
-    const cellBox = await cells.first().boundingBox()
-    expect(cellBox, 'first board cell has a box').not.toBeNull()
-    expect(cellBox!.x, 'a board cell is within the viewport horizontally').toBeLessThan(vp.width)
-    expect(cellBox!.x).toBeGreaterThan(-cellBox!.width)
-    expect(cellBox!.y, 'a board cell is within the viewport vertically').toBeLessThan(vp.height)
+    // The board renders a grid of cells, and the origin cell (0,0) — what
+    // recenter frames — must sit INSIDE the viewport, not scrolled off into the
+    // off-screen part of the grid (the "blank PlayArea" regression).
+    expect(await page.locator('[data-cell]').count(), 'board cells rendered').toBeGreaterThan(100)
+    const origin = page.locator('[data-cell][data-row="0"][data-col="0"]')
+    await expect(origin).toBeVisible()
+    const obox = await origin.boundingBox()
+    expect(obox, 'origin cell has a box').not.toBeNull()
+    expect(obox!.x, 'origin cell is on screen (left)').toBeGreaterThanOrEqual(0)
+    expect(obox!.x, 'origin cell is on screen (right)').toBeLessThan(vp.width)
+    expect(obox!.y, 'origin cell is on screen (top)').toBeGreaterThanOrEqual(0)
+    expect(obox!.y, 'origin cell is on screen (bottom)').toBeLessThan(vp.height)
 
     await ctx.close()
   })
