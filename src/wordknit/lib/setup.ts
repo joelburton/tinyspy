@@ -38,5 +38,5 @@ export type WordKnitSetup = {
  */
 export const DEFAULT_WORDKNIT_SETUP: WordKnitSetup = {
   puzzleId: '',
-  timer: { kind: 'countdown', seconds: 600 },
+  timer: { kind: 'none' },
 }
