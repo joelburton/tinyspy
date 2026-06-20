@@ -78,6 +78,51 @@ test.describe('monkeygram renders', () => {
 })
 
 /**
+ * Persistence: a placed tile must survive a reload (debounced autosave →
+ * monkeygram.save_player_board → reload → useGame restore).
+ */
+test.describe('monkeygram persistence', () => {
+  test('a placed tile survives a reload', async ({ browser }) => {
+    const club = await createSoloClub('alice')
+    const [alice] = club.members
+    const game = await createMonkeygramGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+
+    const saves: number[] = []
+    page.on('response', (r) => {
+      if (r.url().includes('save_player_board')) saves.push(r.status())
+    })
+
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    // Place the first hand tile at the center cell via the keyboard cursor.
+    const firstTile = page.locator('[data-zone="hand"] > *').first()
+    await expect(firstTile).toBeVisible({ timeout: 15000 })
+    const letter = (await firstTile.textContent())!.trim()
+    const centerCell = page.locator('[data-cell][data-row="12"][data-col="12"]')
+    await centerCell.click()
+    await page.keyboard.type(letter)
+    await expect(centerCell).toContainText(letter)
+
+    // Wait out the debounced autosave, then reload — the tile must still be there.
+    await page.waitForTimeout(1500)
+    expect(saves.length, 'save_player_board was called').toBeGreaterThan(0)
+    expect(saves.every((s) => s < 400), `save responses ok (${saves})`).toBe(true)
+
+    await page.reload()
+    await expect(
+      page.locator('[data-cell][data-row="12"][data-col="12"]'),
+      'tile survived the reload',
+    ).toContainText(letter, { timeout: 15000 })
+
+    await ctx.close()
+  })
+})
+
+/**
  * The Phase 3 realtime signal: a peer's tiles-left count updating live in the
  * PeersStrip. A 2-player game presence-pauses unless both players are present,
  * so both browsers stay open; one player's board snapshot must tick the other's

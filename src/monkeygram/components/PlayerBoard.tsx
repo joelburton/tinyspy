@@ -90,10 +90,13 @@ export function PlayerBoard({ gameId, initialState, peers }: Props) {
 
   // --- Persistence: debounced autosave + save-on-unmount ----------------
   const save = useCallback(() => {
-    void db.rpc('save_player_board', {
+    // The PostgREST builder is LAZY — it only sends the request once `.then()`
+    // is called, so we must invoke it (not just `void` it). Fire-and-forget:
+    // a failed snapshot just means a stale save, so swallow errors.
+    db.rpc('save_player_board', {
       target_game: gameId,
       state: { board: boardRef.current, hand: handRef.current },
-    })
+    }).then(undefined, () => {})
   }, [gameId])
   const saveTimer = useRef(0)
   const firstSave = useRef(true)
