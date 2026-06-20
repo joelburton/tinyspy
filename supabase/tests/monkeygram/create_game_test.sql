@@ -7,9 +7,9 @@
 --   2. Membership gating (non-member caller rejected)
 --   3. Setup-shape validation: hand_size + timer
 --   4. Happy path: writes the 'monkeygram' gametype, the
---      monkeygram.games row, deals a hand_size hand to each
---      player (placements empty), seeds progress, and the dealt
---      tiles are globally distinct across hands
+--      monkeygram.games row, deals a hand_size `tiles` to each
+--      player (board empty), materializes the bunch (`pool` =
+--      undealt remainder), seeds progress
 --   5. Solo (1-player) is allowed
 -- ============================================================
 
@@ -17,7 +17,7 @@ begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(13);
+select plan(14);
 
 \ir ../_shared/setup.psql
 
@@ -151,15 +151,15 @@ select is(
 );
 
 select is(
-  (select length(state->>'hand') from monkeygram.player_boards
+  (select length(tiles) from monkeygram.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   21,
-  'ada is dealt a 21-letter hand'
+  'ada is dealt 21 tiles (everything she holds)'
 );
 
 select is(
-  (select state->>'board' from monkeygram.player_boards
+  (select board from monkeygram.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   repeat('.', 25 * 25),
@@ -175,12 +175,19 @@ select is(
 );
 
 -- Both players are dealt distinct slices of the shuffled bag: 2 × 21 = 42
--- letters total, all uppercase.
+-- tiles total, all uppercase.
 select is(
-  (select string_agg(pb.state->>'hand', '') from monkeygram.player_boards pb
+  (select string_agg(pb.tiles, '') from monkeygram.player_boards pb
     where pb.game_id = (select id from mg_game)) ~ '^[A-Z]{42}$',
   true,
-  'both hands together are 42 uppercase letters dealt from the bag'
+  'both hands together are 42 uppercase tiles dealt from the bag'
+);
+
+-- The bunch holds everything not dealt: 144-tile bag − 42 dealt = 102.
+select is(
+  (select length(pool) from monkeygram.games where id = (select id from mg_game)),
+  102,
+  'pool (the bunch) holds the 102 undealt tiles'
 );
 
 select * from finish();

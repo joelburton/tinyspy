@@ -624,40 +624,43 @@ export type Database = {
           created_at: string
           hand_size: number
           id: string
-          seed: number
+          pool: string
         }
         Insert: {
           club_handle: string
           created_at?: string
           hand_size: number
           id: string
-          seed: number
+          pool: string
         }
         Update: {
           club_handle?: string
           created_at?: string
           hand_size?: number
           id?: string
-          seed?: number
+          pool?: string
         }
         Relationships: []
       }
       player_boards: {
         Row: {
+          board: string
           game_id: string
-          state: Json
+          tiles: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          board: string
           game_id: string
-          state: Json
+          tiles: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          board?: string
           game_id?: string
-          state?: Json
+          tiles?: string
           updated_at?: string
           user_id?: string
         }
@@ -719,7 +722,7 @@ export type Database = {
       }
       declare_done: { Args: { target_game: string }; Returns: undefined }
       save_player_board: {
-        Args: { state: Json; target_game: string }
+        Args: { board: string; target_game: string }
         Returns: undefined
       }
     }

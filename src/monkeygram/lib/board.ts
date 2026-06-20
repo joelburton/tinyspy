@@ -5,8 +5,13 @@
  * letter or `'.'` (empty). The grid never resizes — you navigate it with zoom
  * + scroll — so placing a tile can never shift the view, which is what keeps
  * this code simple (no view box, no growth, no scroll compensation). Coordinates
- * are bounded to `[0, GRID-1]`, so a placement is just a string write. The hand
- * is likewise a string of the player's unplaced letters.
+ * are bounded to `[0, GRID-1]`, so a placement is just a string write.
+ *
+ * The HAND is not stored — it's DERIVED from the two server/FE-split pieces:
+ * `hand = tiles − placed`, where `tiles` (server-owned) is everything the
+ * player holds and `placed` is the letters already on the board. See
+ * `deriveHand` + the comment on monkeygram.player_boards. A local "shuffle"
+ * order is layered on top with `reconcileHandOrder`.
  */
 
 export const GRID = 25
@@ -29,6 +34,80 @@ export function setChar(s: string, i: number, ch: string): string {
 /** A copy of `s` with the char at index `i` removed. */
 export function removeCharAt(s: string, i: number): string {
   return s.slice(0, i) + s.slice(i + 1)
+}
+
+/** The letters currently placed on the board (the non-empty cells). */
+export function boardLetters(board: string): string {
+  return board.replace(/\./g, '')
+}
+
+/**
+ * Multiset subtraction over letter strings: `a` with ONE occurrence of each
+ * char in `b` removed, preserving `a`'s order. (`"AAB" − "A" = "AB"`.) A char
+ * in `b` not found in `a` is simply ignored.
+ */
+export function multisetSubtract(a: string, b: string): string {
+  const counts = new Map<string, number>()
+  for (const ch of b) counts.set(ch, (counts.get(ch) ?? 0) + 1)
+  let out = ''
+  for (const ch of a) {
+    const n = counts.get(ch) ?? 0
+    if (n > 0) counts.set(ch, n - 1) // consume one — drop this char
+    else out += ch
+  }
+  return out
+}
+
+/**
+ * The player's hand: every tile they hold (`tiles`) minus the letters already
+ * placed on the `board`. This is the canonical multiset; display order is a
+ * separate concern (see `reconcileHandOrder`).
+ */
+export function deriveHand(tiles: string, board: string): string {
+  return multisetSubtract(tiles, boardLetters(board))
+}
+
+/**
+ * Reconcile a local shuffle order against the canonical hand multiset — the
+ * multiset-aware sibling of WordKnit's `reconcileLocalOrder` (letters repeat,
+ * so we count occurrences rather than use a Set). Keeps the chars `order`
+ * already has (in their positions), drops any the canonical no longer has, and
+ * appends canonical chars `order` is missing (newly drawn from peel/dump) at
+ * the end. Computed in render — never stored — so a placement, a peel, or a
+ * dump just changes the canonical and this re-derives.
+ */
+export function reconcileHandOrder(order: string, canonical: string): string {
+  const counts = new Map<string, number>()
+  for (const ch of canonical) counts.set(ch, (counts.get(ch) ?? 0) + 1)
+  let kept = ''
+  for (const ch of order) {
+    const n = counts.get(ch) ?? 0
+    if (n > 0) {
+      kept += ch
+      counts.set(ch, n - 1)
+    }
+  }
+  // Anything still counted is in `canonical` but not in `order` — append it in
+  // canonical order so duplicates land predictably.
+  let extra = ''
+  for (const ch of canonical) {
+    const n = counts.get(ch) ?? 0
+    if (n > 0) {
+      extra += ch
+      counts.set(ch, n - 1)
+    }
+  }
+  return kept + extra
+}
+
+/** Fisher–Yates shuffle of a string's characters (pure). */
+export function shuffleString(s: string): string {
+  const out = s.split('')
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out.join('')
 }
 
 export type Extent = { minR: number; maxR: number; minC: number; maxC: number }

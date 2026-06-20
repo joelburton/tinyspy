@@ -21,15 +21,20 @@
 -- The state split is the design's spine — three visibility
 -- classes, three handlings:
 --
---   monkeygram.games          club-readable header (seed hidden)
+--   monkeygram.games          club-readable header (pool hidden)
 --   monkeygram.player_boards  the private grid — OWNER-ONLY read
 --   monkeygram.progress       the public projection — club read
 --
--- The player board is NOT mutated per drag through an RPC; it's
--- FE scratch state snapshotted to player_boards.state (Phase 2's
--- save_player_board). This baseline only deals the starter hands
--- and stands up the schema; the snapshot + declare_done RPCs land
--- in later phases.
+-- Within player_boards, a second split (board = FE-owned, tiles =
+-- server-owned, hand = derived) is what lets peel/dump grow every
+-- player's holdings without colliding with live FE placement — see
+-- that table's comment.
+--
+-- The board is NOT mutated per drag through an RPC; it's FE scratch
+-- state snapshotted to player_boards.board (save_player_board).
+-- This baseline deals the starter hands, materializes the bunch, and
+-- stands up the schema; the snapshot, peel, dump, and declare_done
+-- RPCs land in their own migrations.
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- gametypes, is_club_member, create_game). Per the removability
@@ -45,19 +50,21 @@ grant usage on schema monkeygram to authenticated;
 -- ============================================================
 -- monkeygram.games — one row per playing
 -- ============================================================
--- `seed` is the deterministic shuffle source for the tile bag.
--- It is SENSITIVE: the deal is "shuffle the 144-tile bag by seed,
--- hand the first hand_size tiles to player 1, the next to player
--- 2, …" — so knowing the seed reconstructs every opponent's
--- starting hand. The column-level grant below excludes `seed`
--- from authenticated SELECT (same hidden-column pattern as
--- psychicnum.games.target). RPCs run SECURITY DEFINER and read it
--- freely; the FE never needs it (the server deals).
+-- `pool` is the live "bunch": every tile not currently held by a
+-- player. It starts as the undealt remainder of the shuffled
+-- 144-tile bag and MUTATES during play — PEEL draws from it (one
+-- tile per player), DUMP swaps with it (return one, draw three).
+-- It is SENSITIVE: the contents/order are the upcoming draws, so
+-- the column-level grant below EXCLUDES `pool` from authenticated
+-- SELECT (same hidden-column pattern as psychicnum.games.target).
+-- RPCs run SECURITY DEFINER and read it freely; the FE only ever
+-- learns the pool's COUNT (surfaced via the live status the
+-- peel/dump RPCs write).
 --
--- Storing the seed (rather than the dealt letters) is also what
--- lets the full game's PEEL draw the next tile later: the bag is a
--- fixed shuffle, so position hand_size × N_players onward is the
--- undrawn remainder a future draw cursor reads from.
+-- The deal shuffles the bag with a throwaway seed; once `pool` is
+-- materialized it's the sole authority (dump returns tiles into it,
+-- so a fixed seed could no longer describe it), so the seed isn't
+-- stored.
 --
 -- club_handle is denormalized from common.games.club_handle so
 -- the RLS policies (and progress's policy) can call
@@ -66,7 +73,7 @@ grant usage on schema monkeygram to authenticated;
 create table monkeygram.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
-  seed double precision not null,
+  pool text not null,
   hand_size int not null check (hand_size between 1 and 30),
   created_at timestamptz not null default now()
 );
@@ -76,17 +83,29 @@ create index monkeygram_games_club_handle_idx on monkeygram.games (club_handle);
 -- ============================================================
 -- monkeygram.player_boards — the private player board
 -- ============================================================
--- One row per player. `state` is the whole board as the FE models
--- it (see docs/games/monkeygram.md → "The player board"):
+-- One row per player, split by WHO OWNS each piece of state — the
+-- key idea that lets PEEL hand a tile to every player at once
+-- without write-conflicts (see docs/games/monkeygram.md → "The
+-- player board"):
 --
---   { "board": "....C....", "hand": "AAQ" }
+--   board   FE-OWNED. The fixed 25×25 arena: a flat 625-char
+--           string, board[row*25 + col] = a letter or '.' (empty).
+--           The player drags/types into it; it round-trips only via
+--           save_player_board's debounced snapshot.
+--   tiles   SERVER-OWNED. Every tile this player HOLDS — whether
+--           sitting in their hand or already placed on the board.
+--           Set at the deal, grown by PEEL, swapped by DUMP. The FE
+--           never writes it.
 --
--- The board is a FIXED 25×25 arena: a flat GRID*GRID = 625-char
--- string, board[row*25 + col] = a letter or '.' (empty). The hand
--- is a string of the player's unplaced letters. Tiles are
--- interchangeable by letter — no per-tile ids — so both are just
--- strings, which is also what makes word/connectivity validation
--- (later) a simple scan over a 2D char array.
+-- The hand the player sees is DERIVED, never stored:
+--   hand = tiles − (the letters already on the board).
+-- That's the whole trick: peel only ever APPENDS to each player's
+-- `tiles` (server-side, all players at once), while every FE is
+-- independently editing its own `board` — the two writers never
+-- touch the same column, so there's nothing to reconcile on the
+-- server. Tiles are interchangeable by letter (no per-tile ids), so
+-- both columns are plain strings, which also keeps a future
+-- word/connectivity check a simple scan over the 2D char array.
 --
 -- This is the one table that breaks our "every club member reads
 -- every game table" default: RLS restricts SELECT to the owner.
@@ -94,13 +113,17 @@ create index monkeygram_games_club_handle_idx on monkeygram.games (club_handle);
 -- the public projection a peer is allowed to see lives on
 -- `progress` instead.
 --
--- NOT in the realtime publication: only the owner reads or writes
--- their own board, so there's nothing to broadcast to peers.
+-- IN the realtime publication (owner-scoped by RLS): a player
+-- subscribes to their OWN row so a server-side `tiles` change (the
+-- tile a peel/dump just dealt them) reaches the FE, which folds it
+-- into the derived hand. Board snapshots echo back to the same
+-- owner harmlessly — the FE reacts only to `tiles` changes.
 
 create table monkeygram.player_boards (
   game_id uuid not null references monkeygram.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
-  state jsonb not null,
+  board text not null,
+  tiles text not null,
   updated_at timestamptz not null default now(),
   primary key (game_id, user_id)
 );
@@ -137,7 +160,7 @@ alter table monkeygram.games         enable row level security;
 alter table monkeygram.player_boards enable row level security;
 alter table monkeygram.progress      enable row level security;
 
--- Games: any club member sees the row (`seed` is additionally
+-- Games: any club member sees the row (`pool` is additionally
 -- column-hidden, regardless of policy).
 create policy games_select on monkeygram.games
   for select to authenticated
@@ -163,7 +186,7 @@ create policy progress_select on monkeygram.progress
   );
 
 -- ============================================================
--- Grants — `seed` is column-excluded
+-- Grants — `pool` is column-excluded
 -- ============================================================
 
 grant select
@@ -174,13 +197,17 @@ grant select on monkeygram.player_boards to authenticated;
 grant select on monkeygram.progress to authenticated;
 
 -- ============================================================
--- Realtime publication — progress only
+-- Realtime publication — progress + player_boards
 -- ============================================================
--- Only `progress` broadcasts: peers watch each other's unplaced
--- counts + the winner flag. Player boards are private + loaded
--- once (no peer subscribes); games is immutable after create.
+-- progress broadcasts to the whole club: peers watch each other's
+-- unplaced counts + the winner flag. player_boards broadcasts only
+-- to its owner (owner-only RLS scopes the stream): the FE listens to
+-- its own row so a peel/dump's `tiles` change reaches it. games is
+-- immutable to the FE (its `pool` mutates, but that's hidden and the
+-- count rides on common.games.status instead).
 
 alter publication supabase_realtime add table monkeygram.progress;
+alter publication supabase_realtime add table monkeygram.player_boards;
 
 -- ============================================================
 -- monkeygram.create_game(target_club, setup, player_user_ids)
@@ -197,12 +224,11 @@ alter publication supabase_realtime add table monkeygram.progress;
 -- timer machinery has something to read and a later version can
 -- offer a count-up.)
 --
--- The deal: build the 144-tile Bananagrams bag, shuffle it
--- deterministically by a freshly-picked seed, and hand each player a
--- contiguous slice of hand_size letters as their starting hand
--- string. The slice positions are fixed by the seed, so the undrawn
--- remainder (position N_players × hand_size onward) is what a future
--- peel draws from.
+-- The deal: build the 144-tile Bananagrams bag, shuffle it with a
+-- throwaway seed, and hand each player a contiguous slice of
+-- hand_size letters as their starting `tiles` string. Everything
+-- past the dealt slices becomes the `pool` (the bunch) that peel and
+-- dump later draw from. Each player's `board` starts empty.
 
 create function monkeygram.create_game(
   target_club text,
@@ -217,7 +243,6 @@ as $$
 declare
   new_id uuid;
   s_hand_size int;
-  s_seed double precision;
   bag_text text;
   letters text[];
   shuffled text[];
@@ -260,12 +285,12 @@ begin
       s_hand_size, player_count using errcode = 'P0001';
   end if;
 
-  -- ─── Deterministic shuffle by a stored seed ──────────
-  -- Pick a fresh seed (the first random() uses the ambient
-  -- session seed), then setseed() makes the shuffle reproducible
-  -- FROM that stored seed. setseed wants a double in [-1, 1].
-  s_seed := random() * 2 - 1;
-  perform setseed(s_seed);
+  -- ─── Shuffle the bag (throwaway seed) ────────────────
+  -- A fresh seed makes the shuffle order unpredictable; we don't
+  -- store it (the materialized `pool` below is the authority, and
+  -- dump mutates it past anything a seed could describe). setseed
+  -- wants a double in [-1, 1].
+  perform setseed(random() * 2 - 1);
   select array_agg(ch order by random()) into shuffled
     from unnest(letters) as ch;
 
@@ -277,22 +302,33 @@ begin
     setup
   );
 
-  insert into monkeygram.games (id, club_handle, seed, hand_size)
-  values (new_id, target_club, s_seed, s_hand_size);
+  -- The bunch = every tile past the dealt slices
+  -- (shuffled[player_count*hand_size + 1 ..]). coalesce to '' for the
+  -- degenerate "exact deal, nothing left over" case so NOT NULL holds.
+  insert into monkeygram.games (id, club_handle, pool, hand_size)
+  values (
+    new_id, target_club,
+    coalesce(
+      (select string_agg(shuffled[gidx], '' order by gidx)
+         from generate_series(player_count * s_hand_size + 1,
+                              array_length(shuffled, 1)) as gidx),
+      ''
+    ),
+    s_hand_size
+  );
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
-  -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting hand string.
-  -- The board starts empty — a 25×25 = 625-char string of '.'.
-  insert into monkeygram.player_boards (game_id, user_id, state)
+  -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
+  -- (everything they hold; nothing placed yet). The board starts
+  -- empty — a 25×25 = 625-char string of '.'.
+  insert into monkeygram.player_boards (game_id, user_id, board, tiles)
   select
     new_id,
     pu.uid,
-    jsonb_build_object(
-      'board', repeat('.', 25 * 25),
-      'hand', (
-        select string_agg(shuffled[gidx], '' order by gidx)
-          from generate_series((pu.pi - 1) * s_hand_size + 1, pu.pi * s_hand_size) as gidx
-      )
+    repeat('.', 25 * 25),
+    (
+      select string_agg(shuffled[gidx], '' order by gidx)
+        from generate_series((pu.pi - 1) * s_hand_size + 1, pu.pi * s_hand_size) as gidx
     )
   from unnest(player_user_ids) with ordinality as pu(uid, pi);
 

@@ -30,7 +30,7 @@ import '../theme.css' // monkeygram tokens + the global drag-cursor rule
  * verdict, which deriving self-won from the separate `progress` channel risks).
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { state, loading } = useGame(ctx.gameId)
+  const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
   const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
@@ -45,7 +45,7 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, feedback])
 
-  if (loading) return <p className="muted">Dealing tiles…</p>
+  if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
   const selfUsername = ctx.players.find((p) => p.user_id === ctx.session.user.id)?.username
   const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
@@ -61,7 +61,8 @@ export function PlayArea(ctx: GamePageCtx) {
     <>
       <PlayerBoard
         gameId={gameId}
-        initialState={state}
+        initialBoard={initialBoard}
+        tiles={tiles}
         isTerminal={ctx.isTerminal}
         onDeclareDone={declareDone}
         peers={

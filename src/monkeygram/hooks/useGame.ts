@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { db } from '../db'
 import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
-import { emptyBoard } from '../lib/board'
 
 /** Cross-game vocabulary: a player in a MonkeyGram game is just a
  *  Member today (no per-game enrichment). Declared for parity with
@@ -10,53 +9,47 @@ import { emptyBoard } from '../lib/board'
 export type Player = Member
 
 /**
- * The whole player board as stored in `monkeygram.player_boards.state`:
- * the fixed 25×25 board (a 625-char string) + the unplaced hand (a string
- * of letters). See `lib/board.ts` for the model.
- */
-export type MonkeyGramBoardState = {
-  board: string
-  hand: string
-}
-
-const EMPTY_STATE: MonkeyGramBoardState = { board: emptyBoard(), hand: '' }
-
-/**
- * Per-gametype data hook for MonkeyGram.
+ * Per-gametype data hook for MonkeyGram — the caller's OWN player board.
  *
- * Loads the caller's OWN player board once. RLS on
- * `monkeygram.player_boards` is owner-only, so the unfiltered select returns
- * exactly the caller's row — no peer's board is reachable. The board is
- * private, single-reader state, so it isn't realtime-subscribed; later phases
- * add a realtime subscription to `monkeygram.progress` for peers' counts.
+ * Two split pieces (see the monkeygram.player_boards comment):
+ *
+ *   - `initialBoard` — the FE-owned placement grid, read ONCE for seeding.
+ *     The FE owns the board after mount, so we never re-seed it (a realtime
+ *     echo of our own snapshot must not clobber live local placements).
+ *   - `tiles` — the SERVER-owned holdings, kept LIVE: a peel/dump updates it
+ *     server-side and the realtime subscription folds the change in, so the
+ *     derived hand grows/swaps without the FE ever writing `tiles`.
+ *
+ * RLS on player_boards is owner-only, so the subscription + select see exactly
+ * the caller's row (no peer's board). Pattern A: re-read on any change — the
+ * row is tiny and `tiles` changes only at deal/peel/dump (board snapshots also
+ * echo here, but re-reading the unchanged `tiles` is a harmless no-op).
  */
 export function useGame(gameId: string) {
-  const [state, setState] = useState<MonkeyGramBoardState>(EMPTY_STATE)
-  const [loading, setLoading] = useState(true)
+  const [initialBoard, setInitialBoard] = useState<string | null>(null)
+  const [tiles, setTiles] = useState('')
+  const seeded = useRef(false)
 
-  useEffect(
-    function loadOwnBoard() {
-      let mounted = true
-      async function load() {
-        const { data } = await db
-          .from('player_boards')
-          .select('state')
-          .eq('game_id', gameId)
-          .maybeSingle()
-        if (!mounted) return
-        const s = (data?.state as Partial<MonkeyGramBoardState> | undefined) ?? EMPTY_STATE
-        setState({ board: s.board ?? emptyBoard(), hand: s.hand ?? '' })
-        setLoading(false)
+  useRealtimeRefetch({
+    tables: { schema: 'monkeygram', table: 'player_boards', filter: `game_id=eq.${gameId}` },
+    channelPrefix: 'monkeygram-board',
+    id: gameId,
+    load: async ({ mounted }) => {
+      const { data } = await db
+        .from('player_boards')
+        .select('board, tiles')
+        .eq('game_id', gameId)
+        .maybeSingle()
+      if (!mounted() || !data) return
+      if (!seeded.current) {
+        setInitialBoard(data.board)
+        seeded.current = true
       }
-      load()
-      return () => {
-        mounted = false
-      }
+      setTiles(data.tiles)
     },
-    [gameId],
-  )
+  })
 
-  return { state, loading }
+  return { initialBoard, tiles, loading: initialBoard === null }
 }
 
 /** One row of `monkeygram.progress` — the public per-player projection peers

@@ -4,6 +4,7 @@ import {
   createClubWithMembers,
   createMonkeygramGame,
   saveMonkeygramBoard,
+  getMonkeygramTiles,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
@@ -132,13 +133,12 @@ test.describe('monkeygram win', () => {
     const [alice] = club.members
     const game = await createMonkeygramGame(club)
 
-    // Empty alice's hand server-side (all 15 tiles "placed") so Done is enabled
-    // on load — placing 15 tiles through the UI is covered elsewhere and would
-    // only make this test slow and flaky.
-    await saveMonkeygramBoard(alice, game.id, {
-      board: 'ABCDEFGHIJKLMNO' + '.'.repeat(25 * 25 - 15),
-      hand: '',
-    })
+    // Empty alice's hand server-side by placing all her REAL dealt tiles (the
+    // FE derives the hand by letter, so arbitrary letters wouldn't empty it).
+    // Done becomes enabled on load — placing 15 tiles through the UI is covered
+    // elsewhere and would only make this slow/flaky.
+    const tiles = await getMonkeygramTiles(alice, game.id)
+    await saveMonkeygramBoard(alice, game.id, tiles + '.'.repeat(25 * 25 - tiles.length))
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -184,11 +184,9 @@ test.describe('monkeygram peer counts', () => {
     const bobCount = pageA.locator(`[data-peer="${bob.userId}"] [data-count]`)
     await expect(bobCount).toHaveText('15', { timeout: 15000 })
 
-    // Bob places two tiles (hand drops to 13) → alice's strip updates live.
-    await saveMonkeygramBoard(bob, game.id, {
-      board: 'AB' + '.'.repeat(25 * 25 - 2),
-      hand: 'CDEFGHIJKLMNO', // 13 letters
-    })
+    // Bob places two tiles (15 held − 2 placed = 13 left) → alice's strip
+    // updates live.
+    await saveMonkeygramBoard(bob, game.id, 'AB' + '.'.repeat(25 * 25 - 2))
     await expect(bobCount).toHaveText('13')
 
     await ctxA.close()

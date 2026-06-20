@@ -41,14 +41,13 @@ select throws_ok(
   'cannot declare done while tiles remain in hand'
 );
 
--- ─── ada empties her hand (snapshots an all-placed board), then declares ───
+-- ─── ada empties her hand (places all 21 tiles), then declares ───
+-- Her hand is empty when every held tile is on the board: 21 filled
+-- cells == 21 tiles dealt. (No letter validation — counts only.)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select monkeygram.save_player_board(
   (select id from mg_game),
-  jsonb_build_object(
-    'board', 'ABCDEFGHIJKLMNOPQRSTU' || repeat('.', 25 * 25 - 21),
-    'hand', ''
-  )
+  'ABCDEFGHIJKLMNOPQRSTU' || repeat('.', 25 * 25 - 21)
 );
 select monkeygram.declare_done((select id from mg_game));
 

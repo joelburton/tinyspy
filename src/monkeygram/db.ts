@@ -7,7 +7,7 @@ import { supabase } from '../common/lib/supabase'
  *
  *     import { db } from '../db'
  *
- *     const { data } = await db.from('player_boards').select('state')...
+ *     const { data } = await db.from('player_boards').select('board, tiles')...
  *     await db.rpc('create_game', { target_club, setup, player_user_ids })
  *
  * Same pattern as the other game schemas — gametype schemas are

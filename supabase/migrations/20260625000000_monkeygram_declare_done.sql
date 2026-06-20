@@ -28,7 +28,8 @@ as $$
 declare
   caller_id uuid;
   current_play_state text;
-  n_hand int;
+  n_tiles int;
+  n_placed int;
   winner_name text;
   player_results jsonb;
 begin
@@ -48,15 +49,18 @@ begin
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
-  -- The ONLY v1 gate: the caller's hand must be empty. The board is not
-  -- validated (trust model above).
-  select length(state->>'hand') into n_hand
+  -- The ONLY v1 gate: the caller's hand must be empty — i.e. every tile
+  -- they hold is on the board (hand = tiles − placed = 0). The board is
+  -- not otherwise validated (trust model above). Relies on the FE having
+  -- flushed its latest board snapshot before calling this.
+  select length(tiles), length(replace(board, '.', ''))
+    into n_tiles, n_placed
     from monkeygram.player_boards
    where game_id = target_game and user_id = caller_id;
-  if n_hand is null then
+  if n_tiles is null then
     raise exception 'no board for caller' using errcode = 'P0002';
   end if;
-  if n_hand <> 0 then
+  if n_placed <> n_tiles then
     raise exception 'your hand is not empty' using errcode = 'P0001';
   end if;
 

@@ -25,9 +25,10 @@ MonkeyGram keeps very little state shared. Three kinds, each handled differently
 
 | state | shared? | mechanism | notes |
 |---|---|---|---|
-| **The bank** (shuffled finite tile pool) | yes | atomic RPC (full game) | A contended finite pool that *must* hand out distinct tiles. v1 deals from it once at create-time; the live draw arrives with peel. Fits our **generated-board-from-seed** taxonomy (see [naming.md](../naming.md)): a seeded shuffle built by `create_game`. |
-| **The player board** (their crossword) | **no** | snapshot to `jsonb` | Private (no peer sees it), high-frequency (many drag/place ops per second), and only needs Postgres for *restore* (post-pause / shelved game), not for sharing. It must **not** round-trip per move. |
-| **The thin realtime surface** | yes | postgres-changes + presence | What crosses the wire to peers is small and low-frequency: the **unplaced count**, game-end. Player boards never go over the wire. |
+| **The bunch** (`monkeygram.games.pool`, hidden) | yes | atomic RPC | The finite tile pool. `create_game` deals from it once; peel/dump draw/swap during play. A mutating string (dump returns tiles), so it's materialized rather than seed-derived — the column is hidden; the FE only learns its count. |
+| **`tiles`** (what a player holds) | **per-player** | server-owned column, owner-only | Set at the deal, grown by peel, swapped by dump. The hand the player sees is *derived* (`tiles − placed`), never stored — that's what lets peel grow every player's holdings at once without colliding with live FE placement. |
+| **`board`** (their placements) | **no** | snapshot to a `text` column | Private (no peer sees it), high-frequency (many drag/place ops per second), and only needs Postgres for *restore* (post-pause / shelved game), not for sharing. It must **not** round-trip per move. |
+| **The thin realtime surface** | yes | postgres-changes + presence | `progress` (unplaced counts, game-end) to the whole club; each player's own `player_boards` row to themselves (so a peel/dump's `tiles` change arrives). Boards never go to *peers*. |
 
 ### The player board is scratch state, not a move
 
@@ -55,7 +56,7 @@ not from memory. A debounced autosave (~800 ms) during play bounds crash-loss
 ## The player board — a fixed 25×25 arena
 
 The player board is a **fixed 25×25 grid**: a flat 625-char string
-(`player_boards.state.board`), `board[row*25 + col]` = a letter or `'.'`
+(`player_boards.board`), `board[row*25 + col]` = a letter or `'.'`
 (empty). You navigate it with a **zoom slider + scrollbars**; the grid never
 resizes.
 
@@ -81,11 +82,18 @@ cases we don't care about.
 - **Center + fit** (one button): shifts the tiles to the middle of the arena (a string rewrite) AND sets the zoom so the used area + a few cells of margin fills the viewport, then scrolls to it. The "re-frame my work / give me room to keep building" action — and the *only* thing that shrinks the view (placing only ever fills cells). Players build down/right, so it's reached for often.
 - A **thick outer border** marks the real edge of the arena, distinct from the thin internal cell lines.
 
-**The hand** is likewise a string of the player's unplaced letters. Tiles are
-**interchangeable by letter** — there are no per-tile ids — so both board and
-hand are plain strings. That keeps the snapshot tiny and makes later word +
+**The hand is DERIVED, not stored.** A player's `tiles` (server-owned) is
+everything they hold — hand *and* board. The hand they see is
+`deriveHand(tiles, board)` = the held letters minus what's already placed. This
+is the keystone of peel/dump: those RPCs only ever append to / swap within
+`tiles` (server-side, all players at once), while each FE independently edits
+its own `board`; the two never write the same column, so a tile dealt by a peel
+appears in the hand by *re-derivation* — no merge, no lost-tile race on reload.
+A local shuffle order (the ⟲ button) is layered on top via `reconcileHandOrder`
+(multiset-aware: letters repeat). Tiles are **interchangeable by letter** — no
+per-tile ids — so everything is plain strings, which also keeps later word +
 connectivity validation a simple scan / flood-fill over the 2D char array. A
-peer's **unplaced count is the hand string's length** (`progress.unplaced`).
+peer's **unplaced count** is `tiles − placed` (`progress.unplaced`).
 
 ## Keyboard input — the crossword cursor
 
@@ -151,25 +159,25 @@ by "peers see counts, never boards":
 
 | table | columns (sketch) | RLS read | why |
 |---|---|---|---|
-| `monkeygram.games` | `game_id` (PK → `common.games`), `seed`, `hand_size` | club | The seeded shuffle source. v1 deals from it once; storing the **seed** (not the dealt tiles) is what lets peel draw the next tile later — generated-board-from-seed. |
-| `monkeygram.player_boards` | `game_id`, `user_id`, `state jsonb` = `{ board, hand }` (both strings), `updated_at` | **owner only** (`user_id = auth.uid()`) | The private player board — the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge here. |
-| `monkeygram.progress` | `game_id`, `user_id`, `unplaced`, `placed`, `done`, `finished_at` | club | The public projection peers read: unplaced count + done flag. The board stays hidden; only the count leaks. Drives the peer strip + winner surface. |
+| `monkeygram.games` | `game_id` (PK → `common.games`), `pool`, `hand_size` | club (`pool` column-hidden) | `pool` is the live bunch — the undealt remainder, mutated by peel/dump. Hidden because its contents are the upcoming draws; the FE learns only the count (via status). |
+| `monkeygram.player_boards` | `game_id`, `user_id`, `board text`, `tiles text`, `updated_at` | **owner only** (`user_id = auth.uid()`) | The private player board. `board` = FE-owned placements; `tiles` = server-owned holdings. Owner-only RLS is the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge. |
+| `monkeygram.progress` | `game_id`, `user_id`, `unplaced`, `placed`, `done`, `finished_at` | club | The public projection peers read: unplaced count + done flag. The board/tiles stay hidden; only the count leaks. Drives the peer strip + winner surface. |
 
-(Two tables rather than column-grants on one: each gets a single clean RLS
-policy, and the RPCs write both. A peers-only *view* over `player_boards` is the
-alternative; two tables reads simpler.)
+(Splitting `board`/`tiles` into two columns with one writer each — FE for
+`board`, server for `tiles` — is what makes peel/dump conflict-free; see the
+table comment in the baseline migration.)
 
 ### RPCs (all security-definer; no table write policies — writes go through these)
 
-- `monkeygram.create_game(target_club, setup, player_user_ids)` — calls `common.create_game` (header), picks a `seed`, computes the shuffled bag, deals each player a `hand_size` slice as their starting **hand string**, and seeds one `player_boards` row (`state = { board: 625 dots, hand: "<letters>" }`) + one `progress` row (`unplaced = hand_size`) per player. Compete-only, so no `mode` param. Gated by `require_club_member`.
-- `monkeygram.save_player_board(target_game, state jsonb)` — the snapshot endpoint. `require_game_player`; writes the caller's own `player_boards.state` and recomputes their `progress` (`unplaced = length(hand)`, `placed = filled board cells`). String shape guard (board must be 625 chars). Called **debounced during play and on player-board unmount** (the pause / navigate / shelve safety net). No-op once the game is terminal.
-- `monkeygram.declare_done(target_game)` — `require_game_player`; loads the caller's `state`, rejects unless the hand is empty (the only v1 check — no word/connectivity validation), then sets `progress.done` and calls `common.end_game('won', {winner_username}, …)` with the caller as winner. Locks the gametype row up front, so the first valid declare wins; a racing second reads a non-`playing` state and is rejected (`game is not active`).
+- `monkeygram.create_game(target_club, setup, player_user_ids)` — calls `common.create_game` (header), shuffles the 144-tile bag, deals each player a `hand_size` slice as their starting `tiles`, materializes the leftover as `games.pool` (the bunch), and seeds one `player_boards` row (`board` = 625 dots, `tiles` = "<letters>") + one `progress` row (`unplaced = hand_size`) per player. Compete-only, so no `mode` param. Gated by `require_club_member`.
+- `monkeygram.save_player_board(target_game, board)` — the snapshot endpoint. `require_game_player`; writes the caller's own `player_boards.board` (only — `tiles` is server-owned) and recomputes their `progress` (`placed = filled cells`, `unplaced = length(tiles) − placed`). Length guard (board must be 625 chars). Called **debounced during play and on player-board unmount** (the pause / navigate / shelve safety net). No-op once the game is terminal.
+- `monkeygram.declare_done(target_game)` — `require_game_player`; rejects unless the hand is empty (`placed == length(tiles)` — the only check, no word/connectivity validation), then sets `progress.done` and calls `common.end_game('won', {winner_username}, …)` with the caller as winner. Locks the gametype row up front, so the first valid declare wins; a racing second reads a non-`playing` state and is rejected (`game is not active`). *(v2 replaces this with `peel`.)*
 
 ### Realtime + FE
 
 - **Inherited free** from the shell: `useCommonGame` (presence-pause — a MonkeyGram race pauses if anyone drops, per the house principle), the GamePage header, chat, suspend/shelve, the player-subset picker, the terminal result modal.
-- **`monkeygram/useGame`**: `useGame` loads the caller's own `player_boards` row once (private — no realtime; only I write it); `useProgress` subscribes to `monkeygram.progress` filtered by `game_id` (Pattern A) for peers' counts. A *thin* realtime surface — player boards never cross the wire.
-- **`PlayerBoard`** (the PlayArea): the fixed 25×25 arena — zoom + scroll, drag, keyboard cursor, Center + fit — plus the snapshot lifecycle (debounced autosave + save-on-unmount) and the **Done** button (enabled only when the hand is empty). `PlayArea` owns the terminal modal: it watches the `is_terminal` flip via `useTerminalModal` and reads the winner from `status.winner_username` (same `common.games` update as the flip, so no cross-channel verdict flash).
+- **`monkeygram/useGame`**: `useGame` reads the caller's own `player_boards` row — `board` once (for seeding; the FE owns it after) and `tiles` LIVE via a Pattern-A subscription to its own row (so a peel/dump's `tiles` change folds into the derived hand). `useProgress` subscribes to `monkeygram.progress` for peers' counts. A peer's board never crosses the wire; only your own row reaches you.
+- **`PlayerBoard`** (the PlayArea): the fixed 25×25 arena — zoom + scroll, drag, keyboard cursor, Center + fit, ⟲ shuffle — plus the snapshot lifecycle (debounced autosave + save-on-unmount, board only) and the **Done** button (enabled only when the derived hand is empty; flushes the board first so the server's `placed == tiles` check is current). Every board mutation writes the board only — the hand re-derives. `PlayArea` owns the terminal modal: it watches the `is_terminal` flip via `useTerminalModal` and reads the winner from `status.winner_username` (same `common.games` update as the flip, so no cross-channel verdict flash).
 - **`PeersStrip`**: opponents' tiles-left counts (sorted by closest-to-done), slotted above the hand in the right column. Renders nothing in a solo game.
 - **SetupForm**: `hand_size` (15 / 21, default 21). No timer in v1. Manifest compete-only; solo is N = 1.
 

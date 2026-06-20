@@ -7,10 +7,12 @@ import {
   idx,
   clamp,
   setChar,
-  removeCharAt,
   tilesExtent,
+  deriveHand,
+  reconcileHandOrder,
+  shuffleString,
 } from '../lib/board'
-import type { MonkeyGramBoardState } from '../hooks/useGame'
+import { ShuffleButton } from '../../common/components/ShuffleButton'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -24,10 +26,17 @@ import styles from './PlayerBoard.module.css'
  * Two ways to place: DRAG from the hand / around the board, or click a cell and
  * type (the crossword cursor). Bounds are clamped to `[0, 24]`.
  *
- * **Persistence.** Owns the live board (`board` + `hand` strings, seeded from
- * `initialState`) and snapshots to `monkeygram.save_player_board` on a debounce
- * AND on unmount — the unmount save is load-bearing because `PauseBoundary`
- * unmounts the play area on pause (docs/games/monkeygram.md → "Persistence").
+ * **Board vs hand.** This component owns only the `board` (seeded once from
+ * `initialBoard`); the HAND is derived from the server-owned `tiles` prop as
+ * `deriveHand(tiles, board)`. So every mutation here writes the board ONLY —
+ * placing a tile fills a cell, and the hand shrinks by re-derivation; a peel/
+ * dump grows `tiles` upstream and the hand grows by re-derivation. A local
+ * shuffle order (the ⟲ button) is layered on with `reconcileHandOrder`.
+ *
+ * **Persistence.** Snapshots the board to `monkeygram.save_player_board` on a
+ * debounce AND on unmount — the unmount save is load-bearing because
+ * `PauseBoundary` unmounts the play area on pause (docs/games/monkeygram.md →
+ * "Persistence"). `tiles` is server-owned and never saved from here.
  */
 
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
@@ -59,7 +68,12 @@ function overHandAtPoint(x: number, y: number): boolean {
 
 type Props = {
   gameId: string
-  initialState: MonkeyGramBoardState
+  /** The FE-owned placement grid at load — seeds local board state ONCE. */
+  initialBoard: string
+  /** Server-owned holdings (everything the player holds). LIVE: a peel/dump
+   *  changes it upstream and the derived hand follows. The board is never part
+   *  of it; the hand the player sees is `deriveHand(tiles, board)`. */
+  tiles: string
   /** Opponents' tiles-left strip, slotted above the hand (null in solo). */
   peers?: React.ReactNode
   /** True once the game is over — disables the Done button (the race is run). */
@@ -69,9 +83,12 @@ type Props = {
   onDeclareDone?: () => void | Promise<void>
 }
 
-export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclareDone }: Props) {
-  const [board, setBoard] = useState(initialState.board)
-  const [hand, setHand] = useState(initialState.hand)
+export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onDeclareDone }: Props) {
+  const [board, setBoard] = useState(initialBoard)
+  // A local shuffle order for the hand (the ⟲ button). null = use the canonical
+  // derived order. Reconciled against the live hand each render, so it survives
+  // placements / peels without going stale.
+  const [handOrder, setHandOrder] = useState<string | null>(null)
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
   const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
   const [cursor, setCursor] = useState<Cursor | null>(null)
@@ -81,16 +98,23 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
   const [errNonce, setErrNonce] = useState(0)
   const [declaring, setDeclaring] = useState(false) // Done click in flight
 
+  // The derived hand: held tiles minus what's on the board. `displayedHand`
+  // applies the local shuffle order on top (reconciled so it never drifts from
+  // the canonical multiset).
+  const derivedHand = deriveHand(tiles, board)
+  const displayedHand = handOrder !== null ? reconcileHandOrder(handOrder, derivedHand) : derivedHand
+
   // Refs mirror state for the always-on pointer/key handlers (synced in an
-  // effect, never written during render).
+  // effect, never written during render). `tilesRef` lets the keyboard handler
+  // check tile availability against the live holdings.
   const boardRef = useRef(board)
-  const handRef = useRef(hand)
+  const tilesRef = useRef(tiles)
   const cursorRef = useRef(cursor)
   useEffect(() => {
     boardRef.current = board
-    handRef.current = hand
+    tilesRef.current = tiles
     cursorRef.current = cursor
-  }, [board, hand, cursor])
+  }, [board, tiles, cursor])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -98,10 +122,11 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
   const save = useCallback(() => {
     // The PostgREST builder is LAZY — it only sends the request once `.then()`
     // is called, so we must invoke it (not just `void` it). Fire-and-forget:
-    // a failed snapshot just means a stale save, so swallow errors.
+    // a failed snapshot just means a stale save, so swallow errors. Only the
+    // board is sent; `tiles` is server-owned.
     db.rpc('save_player_board', {
       target_game: gameId,
-      state: { board: boardRef.current, hand: handRef.current },
+      board: boardRef.current,
     }).then(undefined, () => {})
   }, [gameId])
   const saveTimer = useRef(0)
@@ -114,7 +139,7 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
     clearTimeout(saveTimer.current)
     saveTimer.current = window.setTimeout(save, AUTOSAVE_MS)
     return () => clearTimeout(saveTimer.current)
-  }, [board, hand, save])
+  }, [board, save])
   useEffect(() => {
     return () => {
       clearTimeout(saveTimer.current)
@@ -197,10 +222,11 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
     return () => clearTimeout(id)
   }, [errFlash, errNonce])
 
-  // --- Mutations --------------------------------------------------------
-  const handToBoard = useCallback((handIndex: number, letter: string, r: number, c: number) => {
+  // --- Mutations (board-only; the hand re-derives) ----------------------
+  // Placing a hand tile just fills a cell — the derived hand loses that letter
+  // automatically. (No hand index needed: tiles are interchangeable by letter.)
+  const handToBoard = useCallback((letter: string, r: number, c: number) => {
     setBoard((b) => setChar(b, idx(r, c), letter))
-    setHand((h) => removeCharAt(h, handIndex))
   }, [])
   const boardToBoard = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     setBoard((b) => {
@@ -208,11 +234,11 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
       return setChar(setChar(b, idx(r1, c1), '.'), idx(r2, c2), letter)
     })
   }, [])
+  // Returning a tile to the hand just empties its cell — the derived hand gains
+  // the letter back.
   const boardToHand = useCallback((r: number, c: number) => {
-    const letter = boardRef.current[idx(r, c)]
-    if (letter === '.') return
+    if (boardRef.current[idx(r, c)] === '.') return
     setBoard((b) => setChar(b, idx(r, c), '.'))
-    setHand((h) => h + letter)
   }, [])
 
   // --- Drag plumbing (always-on window listeners) -----------------------
@@ -226,7 +252,7 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
         const ownCell =
           g.source.kind === 'board' && g.source.row === target.row && g.source.col === target.col
         if (occupied && !ownCell) return // taken → snap back
-        if (g.source.kind === 'hand' && g.letter) handToBoard(g.source.index, g.letter, target.row, target.col)
+        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter, target.row, target.col)
         else if (g.source.kind === 'board') boardToBoard(g.source.row, g.source.col, target.row, target.col)
         return
       }
@@ -357,12 +383,12 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
           else flashError()
           return
         }
-        const i = handRef.current.indexOf(letter)
-        if (i < 0) {
+        // Available iff the derived hand (held tiles − placed) still has one.
+        if (!deriveHand(tilesRef.current, boardRef.current).includes(letter)) {
           flashError()
           return
         }
-        handToBoard(i, letter, cur.row, cur.col)
+        handToBoard(letter, cur.row, cur.col)
         advance(cur)
       }
     },
@@ -500,8 +526,16 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
 
       <div className={styles.rightCol}>
         {peers}
+        <div className={styles.handHeader}>
+          <span className={styles.handLabel}>Hand</span>
+          <ShuffleButton
+            onShuffle={() => setHandOrder(shuffleString(displayedHand))}
+            disabled={displayedHand.length === 0}
+            label="Shuffle hand"
+          />
+        </div>
         <div className={styles.hand} data-zone="hand">
-          {hand.split('').map((letter, i) => (
+          {displayedHand.split('').map((letter, i) => (
             <div
               key={i}
               className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
@@ -510,18 +544,24 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
               {letter}
             </div>
           ))}
-          {hand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
+          {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
         </div>
-        {/* The win move: enabled only once the hand is empty. The terminal
-         *  modal is driven from above by realtime, not by this click. */}
+        {/* The win move: enabled only once the hand is empty. We FLUSH the
+         *  board first so declare_done's "placed == tiles" check sees the
+         *  latest placements; the terminal modal is driven from above by
+         *  realtime, not by this click. */}
         {onDeclareDone && (
           <button
             type="button"
             className={styles.doneBtn}
-            disabled={hand.length !== 0 || isTerminal || declaring}
+            disabled={derivedHand.length !== 0 || isTerminal || declaring}
             onClick={async () => {
               setDeclaring(true)
               try {
+                await db.rpc('save_player_board', {
+                  target_game: gameId,
+                  board: boardRef.current,
+                })
                 await onDeclareDone()
               } finally {
                 setDeclaring(false)
@@ -530,7 +570,7 @@ export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclare
           >
             {isTerminal
               ? 'Game over'
-              : hand.length === 0
+              : derivedHand.length === 0
                 ? "Done — I finished!"
                 : 'Place all your tiles'}
           </button>

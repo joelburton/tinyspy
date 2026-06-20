@@ -150,15 +150,34 @@ export async function createMonkeygramGame(
   return { id: (row as { id: string }).id, gametype: 'monkeygram' }
 }
 
-/** Save `member`'s monkeygram board (drives their public progress count). */
+/** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
+ *  select to their own player_boards row. Useful when a test needs to place a
+ *  player's REAL tiles (the FE derives the hand by letter, so placing arbitrary
+ *  letters wouldn't empty it). */
+export async function getMonkeygramTiles(
+  member: E2EMember,
+  gameId: string,
+): Promise<string> {
+  const res = await asUser(member.session.access_token)
+    .schema('monkeygram')
+    .from('player_boards')
+    .select('tiles')
+    .eq('game_id', gameId)
+    .single()
+  if (res.error || !res.data) throw new Error(`get tiles: ${res.error?.message}`)
+  return res.data.tiles as string
+}
+
+/** Save `member`'s monkeygram board placement (a 625-char grid). Drives their
+ *  public progress count: unplaced = held tiles − filled cells. */
 export async function saveMonkeygramBoard(
   member: E2EMember,
   gameId: string,
-  state: { board: string; hand: string },
+  board: string,
 ): Promise<void> {
   const res = await asUser(member.session.access_token)
     .schema('monkeygram')
-    .rpc('save_player_board', { target_game: gameId, state })
+    .rpc('save_player_board', { target_game: gameId, board })
   if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
 }
 

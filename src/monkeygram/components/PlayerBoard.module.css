@@ -173,6 +173,21 @@
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* The hand's little toolbar: label on the left, ⟲ shuffle on the right. */
+.handHeader {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.handLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
 .hand {
   flex: 1;
   min-height: 0;
