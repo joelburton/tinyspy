@@ -1,7 +1,10 @@
-import type { GamePageCtx } from '../../common/lib/games'
+import { useEffect, useRef } from 'react'
+import type { FeedbackApi, FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import type { ClueRow } from '../hooks/useClues'
+import type { Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
@@ -88,12 +91,78 @@ function buildOver(
   }
 }
 
+/**
+ * Surface the current turn-state in the header feedback pill, firing once each
+ * time it CHANGES (so a player doesn't miss "it's your turn now"). The two
+ * "your move" states (give a clue / make your guesses) are sticky — they sit
+ * there as a reminder until you act; the "waiting on your partner" states (and
+ * sudden death) auto-dismiss after a few seconds. Self-contained so it can be
+ * called unconditionally before PlayArea's loading early-return.
+ */
+function useTurnPill(args: {
+  game: { current_clue_giver: string | null; turn_number: number } | null | undefined
+  players: Player[]
+  clues: ClueRow[]
+  playState: string
+  gameOver: boolean
+  sessionUserId: string
+  feedback: FeedbackApi
+}) {
+  const { game, players, clues, playState, gameOver, sessionUserId, feedback } = args
+
+  let text: string | null = null
+  let tone: FeedbackTone = 'neutral'
+  let sticky = false
+  if (game && !gameOver) {
+    const me = players.find((p) => p.user_id === sessionUserId)
+    const peer = players.find((p) => p.user_id !== sessionUserId)
+    const peerName = peer?.username ?? 'your partner'
+    const { isGuessPhase, isClueGiver, inSuddenDeath } = derivePhase({
+      status: playState as GameStatus,
+      currentClueGiver: game.current_clue_giver as Seat | null,
+      mySeat: me?.seat,
+      hasCurrentTurnClue: clues.some((c) => c.turn_number === game.turn_number),
+    })
+    if (inSuddenDeath) {
+      text = 'Sudden death — any non-green reveal loses'
+      tone = 'error'
+    } else if (!isGuessPhase) {
+      // Clue phase.
+      if (isClueGiver) { text = `Give a clue to ${peerName}`; tone = 'info'; sticky = true }
+      else text = `${peerName} is writing a clue`
+    } else {
+      // Guess phase.
+      if (!isClueGiver) { text = 'Make your guesses'; tone = 'info'; sticky = true }
+      else text = `${peerName} is guessing`
+    }
+  }
+
+  // Fire only on an actual change (the ref also absorbs StrictMode's double
+  // effect-invoke). Clearing when there's no state (game over / loading) tidies
+  // up any lingering sticky pill.
+  const prev = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (text === prev.current) return
+    prev.current = text
+    if (text === null) {
+      feedback.clear()
+      return
+    }
+    feedback.show({
+      tone,
+      text,
+      dismiss: sticky ? { kind: 'sticky' } : { kind: 'timed', ms: 6000 },
+    })
+  }, [text, tone, sticky, feedback])
+}
+
 export function PlayArea({
   session,
   gameId,
   playState,
   isTerminal,
   setup,
+  feedback,
   goToClub,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to tinyspy's
@@ -117,6 +186,19 @@ export function PlayArea({
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss. See common/hooks/useTerminalModal.ts.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
+
+  // Announce turn-state changes in the header feedback pill — it's easy to miss
+  // "the other player ended their turn, it's your turn now" otherwise. Called
+  // before the early return (hook order); it no-ops while the game is loading.
+  useTurnPill({
+    game,
+    players,
+    clues,
+    playState,
+    gameOver: isTerminal,
+    sessionUserId: session.user.id,
+    feedback,
+  })
 
   if (loading || !game || !myKey || words.length < 25) {
     return <p>Loading board…</p>

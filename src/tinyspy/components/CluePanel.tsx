@@ -223,12 +223,14 @@ function ClueForm({
         </button>
       </div>
       <div className={styles.clueFormRow}>
+        {/* Digit-only text input rather than type=number — no spinner chrome,
+            and a clue count is a single digit. */}
         <input
-          type="number"
-          min={0}
-          placeholder="count"
+          type="text"
+          inputMode="numeric"
+          placeholder="#"
           value={count}
-          onChange={(e) => setCount(e.target.value)}
+          onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
           disabled={eitherBusy}
           required
           className={styles.countInput}
@@ -236,14 +238,23 @@ function ClueForm({
         />
         <input
           type="text"
-          placeholder="word or phrase"
+          placeholder="word"
           value={word}
           onChange={(e) => setWord(e.target.value.toUpperCase())}
           disabled={eitherBusy}
           required
+          className={styles.wordInput}
         />
-        <button type="submit" disabled={eitherBusy || !submittable}>
-          {busy ? 'Sending…' : 'Submit'}
+        {/* Up-arrow (the same "peer" marker the board uses) — points toward the
+            partner, reading as "send this to them." */}
+        <button
+          type="submit"
+          className={styles.submitBtn}
+          disabled={eitherBusy || !submittable}
+          aria-label="Submit clue"
+          title="Submit clue"
+        >
+          {busy ? '…' : '▲'}
         </button>
       </div>
       {reasoning && (

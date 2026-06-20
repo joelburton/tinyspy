@@ -173,12 +173,17 @@ export function BoardGrid({
               {iNeutraled && !revealed && (
                 <span className={cls(styles.triangle, styles.triMine)} aria-hidden />
               )}
-              {/* My keycard — bottom-left, always shown (it's how I read which
-                  cells to clue for). */}
-              <span
-                className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myLabel]])}
-                aria-hidden
-              />
+              {/* My keycard — bottom-left. Hidden while I'm actively guessing
+                  the peer's clue (cellsClickable): my own key is irrelevant to
+                  a guess, and its absence is a big visual "you're still
+                  guessing — press Done when you're through" reminder. Shown the
+                  rest of the time (clue-giving, waiting, game over). */}
+              {!cellsClickable && (
+                <span
+                  className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myLabel]])}
+                  aria-hidden
+                />
+              )}
               {isPending && <span className={styles.tileKey}>…</span>}
             </button>
           )

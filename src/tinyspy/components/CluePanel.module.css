@@ -36,15 +36,34 @@
 
 .clueFormRow {
   display: grid;
-  /* count input first, then the wide word/phrase field, then the
-     submit button. Matches the visual order of the rendered clue
-     (e.g. "3 vehicles"). */
-  grid-template-columns: 5rem 1fr auto;
-  gap: 0.5rem;
+  /* A single-digit count, then the word field (fills), then the compact
+     up-arrow submit. Matches the rendered clue order (e.g. "3 vehicles"). */
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.4rem;
 }
 
+/* All three fields trim their default L/R padding and drop their intrinsic
+ * min-width, so the row fits the (now narrow) right column instead of
+ * overflowing it. */
 .countInput {
   text-align: center;
+  min-width: 0;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.wordInput {
+  min-width: 0;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Compact icon submit — just the up-arrow glyph, minimal side padding. */
+.submitBtn {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .suggestBtn {
