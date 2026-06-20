@@ -76,14 +76,18 @@ type Props = {
   tiles: string
   /** Opponents' tiles-left strip, slotted above the hand (null in solo). */
   peers?: React.ReactNode
-  /** True once the game is over — disables the Done button (the race is run). */
+  /** True once the game is over — disables the Peel button (the race is run). */
   isTerminal?: boolean
-  /** Declare this board finished (calls `declare_done`). Enabled only when the
-   *  hand is empty; the win/terminal modal is driven from above by realtime. */
-  onDeclareDone?: () => void | Promise<void>
+  /** Peel (calls `peel`). Enabled only when the hand is empty; draws a tile for
+   *  everyone, or — if the bunch can't refill the table — wins the game (the
+   *  win/terminal modal is driven from above by realtime). */
+  onPeel?: () => void | Promise<void>
+  /** Tiles left in the shared bunch (from status.pool_remaining), or undefined
+   *  before it's known. Shown next to Peel so players sense the endgame. */
+  bunchCount?: number
 }
 
-export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onDeclareDone }: Props) {
+export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, bunchCount }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
   // derived order. Reconciled against the live hand each render, so it survives
@@ -538,6 +542,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           {displayedHand.split('').map((letter, i) => (
             <div
               key={i}
+              data-hand-tile
               className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
               onPointerDown={(e) => onHandPointerDown(i, letter, e)}
             >
@@ -546,34 +551,41 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           ))}
           {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
         </div>
-        {/* The win move: enabled only once the hand is empty. We FLUSH the
-         *  board first so declare_done's "placed == tiles" check sees the
-         *  latest placements; the terminal modal is driven from above by
-         *  realtime, not by this click. */}
-        {onDeclareDone && (
-          <button
-            type="button"
-            className={styles.doneBtn}
-            disabled={derivedHand.length !== 0 || isTerminal || declaring}
-            onClick={async () => {
-              setDeclaring(true)
-              try {
-                await db.rpc('save_player_board', {
-                  target_game: gameId,
-                  board: boardRef.current,
-                })
-                await onDeclareDone()
-              } finally {
-                setDeclaring(false)
-              }
-            }}
-          >
-            {isTerminal
-              ? 'Game over'
-              : derivedHand.length === 0
-                ? "Done — I finished!"
-                : 'Place all your tiles'}
-          </button>
+        {/* The draw/win move: enabled only once the hand is empty. We FLUSH the
+         *  board first so peel's "placed == tiles" check sees the latest
+         *  placements; if the bunch is dry this wins, and the terminal modal is
+         *  driven from above by realtime, not by this click. */}
+        {onPeel && (
+          <div className={styles.peelRow}>
+            <button
+              type="button"
+              className={styles.doneBtn}
+              disabled={derivedHand.length !== 0 || isTerminal || declaring}
+              onClick={async () => {
+                setDeclaring(true)
+                try {
+                  await db.rpc('save_player_board', {
+                    target_game: gameId,
+                    board: boardRef.current,
+                  })
+                  await onPeel()
+                } finally {
+                  setDeclaring(false)
+                }
+              }}
+            >
+              {isTerminal
+                ? 'Game over'
+                : derivedHand.length === 0
+                  ? 'Peel! 🍌'
+                  : 'Place all your tiles'}
+            </button>
+            {bunchCount !== undefined && !isTerminal && (
+              <span className={styles.bunch} title="Tiles left in the bunch">
+                🍌 {bunchCount} in bunch
+              </span>
+            )}
+          </div>
         )}
       </div>
 

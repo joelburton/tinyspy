@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { createClient, type Session } from '@supabase/supabase-js'
 
 /**
@@ -179,6 +180,24 @@ export async function saveMonkeygramBoard(
     .schema('monkeygram')
     .rpc('save_player_board', { target_game: gameId, board })
   if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
+}
+
+/** Empty a monkeygram game's bunch so the next peel can't refill the table —
+ *  the way to drive a winning peel in a test without draining tile-by-tile.
+ *  `monkeygram.pool` is hidden from PostgREST roles (it's a secret column), so
+ *  we reach it the same way the import scripts do: psql as the local superuser.
+ *  Test-only — no prod grant required. */
+export function drainMonkeygramPool(gameId: string): void {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1',
+      '-c', `update monkeygram.games set pool = '' where id = '${gameId}';`,
+    ],
+    { stdio: 'pipe' },
+  )
 }
 
 /** Send a club chat message as `from`. The realtime INSERT reaches

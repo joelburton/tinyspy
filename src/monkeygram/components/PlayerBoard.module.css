@@ -213,8 +213,22 @@
   text-align: center;
 }
 
-/* The win move, pinned at the bottom of the right column (flex:0, so it never
- * shrinks). Disabled — muted and un-clickable — until the hand is empty. */
+/* Peel + bunch-count, pinned at the bottom of the right column. */
+.peelRow {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+.bunch {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+/* The draw/win move. Disabled — muted and un-clickable — until the hand is
+ * empty. */
 .doneBtn {
   flex: 0 0 auto;
   padding: 0.6rem 1rem;

@@ -247,6 +247,7 @@ declare
   letters text[];
   shuffled text[];
   player_count int;
+  s_pool text;
 begin
   -- ─── Player count: 1..6 (solo allowed — see header) ──
   -- MUST AGREE with numberOfPlayers: [1, 6] in
@@ -305,17 +306,14 @@ begin
   -- The bunch = every tile past the dealt slices
   -- (shuffled[player_count*hand_size + 1 ..]). coalesce to '' for the
   -- degenerate "exact deal, nothing left over" case so NOT NULL holds.
-  insert into monkeygram.games (id, club_handle, pool, hand_size)
-  values (
-    new_id, target_club,
-    coalesce(
-      (select string_agg(shuffled[gidx], '' order by gidx)
-         from generate_series(player_count * s_hand_size + 1,
-                              array_length(shuffled, 1)) as gidx),
-      ''
-    ),
-    s_hand_size
+  s_pool := coalesce(
+    (select string_agg(shuffled[gidx], '' order by gidx)
+       from generate_series(player_count * s_hand_size + 1,
+                            array_length(shuffled, 1)) as gidx),
+    ''
   );
+  insert into monkeygram.games (id, club_handle, pool, hand_size)
+  values (new_id, target_club, s_pool, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
   -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
@@ -335,6 +333,12 @@ begin
   insert into monkeygram.progress (game_id, user_id, unplaced, placed, done)
   select new_id, uid, s_hand_size, 0, false
     from unnest(player_user_ids) as uid;
+
+  -- Surface the bunch COUNT to the FE: `pool` itself is hidden, so the count
+  -- rides on common.games.status (which the FE already reads live). peel/dump
+  -- keep it current as the bunch shrinks.
+  perform common.update_state(new_id, 'playing',
+    jsonb_build_object('pool_remaining', length(s_pool)));
 
   return query select new_id;
 end;

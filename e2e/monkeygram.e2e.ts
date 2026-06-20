@@ -5,6 +5,7 @@ import {
   createMonkeygramGame,
   saveMonkeygramBoard,
   getMonkeygramTiles,
+  drainMonkeygramPool,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
@@ -124,35 +125,77 @@ test.describe('monkeygram persistence', () => {
 })
 
 /**
- * Phase 4 win flow: emptying your hand enables Done; declaring ends the game
- * and pops the win modal (declare_done → is_terminal flip → useTerminalModal).
+ * Peel — win path: with an empty hand and a dry bunch, peeling goes out and
+ * wins (peel → is_terminal flip → useTerminalModal). We empty the hand by
+ * placing alice's REAL tiles (the FE derives the hand by letter) and drain the
+ * bunch so the peel can't refill.
  */
 test.describe('monkeygram win', () => {
-  test('finishing your tiles wins the game', async ({ browser }) => {
+  test('peeling a dry bunch with an empty hand wins', async ({ browser }) => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
     const game = await createMonkeygramGame(club)
 
-    // Empty alice's hand server-side by placing all her REAL dealt tiles (the
-    // FE derives the hand by letter, so arbitrary letters wouldn't empty it).
-    // Done becomes enabled on load — placing 15 tiles through the UI is covered
-    // elsewhere and would only make this slow/flaky.
     const tiles = await getMonkeygramTiles(alice, game.id)
     await saveMonkeygramBoard(alice, game.id, tiles + '.'.repeat(25 * 25 - tiles.length))
+    drainMonkeygramPool(game.id)
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    const done = page.getByRole('button', { name: 'Done — I finished!' })
-    await expect(done).toBeEnabled({ timeout: 15000 })
-    await done.click()
+    const peel = page.getByRole('button', { name: /Peel/ })
+    await expect(peel).toBeEnabled({ timeout: 15000 })
+    await peel.click()
 
-    // The terminal modal appears with the self-won verdict.
-    await expect(page.getByText('You finished first!')).toBeVisible({ timeout: 15000 })
+    // The terminal modal appears with the Bananas win verdict.
+    await expect(page.getByText('Bananas! You went out first')).toBeVisible({ timeout: 15000 })
 
     await ctx.close()
+  })
+})
+
+/**
+ * Peel — continue path: with a full bunch, peeling deals a tile to EVERY
+ * player. From the peeler's view their own hand gains a tile (live `tiles`
+ * subscription) and a peer's count ticks up (progress realtime).
+ */
+test.describe('monkeygram peel draw', () => {
+  test('peeling deals a tile to every player', async ({ browser }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+    const game = await createMonkeygramGame(club, [alice.userId, bob.userId])
+
+    // Empty alice's hand by placing all her real tiles.
+    const aliceTiles = await getMonkeygramTiles(alice, game.id)
+    await saveMonkeygramBoard(alice, game.id, aliceTiles + '.'.repeat(25 * 25 - aliceTiles.length))
+
+    const ctxA = await browser.newContext()
+    await signIn(ctxA, alice.session)
+    const pageA = await ctxA.newPage()
+    const ctxB = await browser.newContext()
+    await signIn(ctxB, bob.session)
+    const pageB = await ctxB.newPage()
+    await Promise.all([
+      pageA.goto(`/g/${game.gametype}/${game.id}`),
+      pageB.goto(`/g/${game.gametype}/${game.id}`),
+    ])
+
+    // Both present (no pause). alice's hand is empty; bob shows 15 unplaced.
+    const bobCount = pageA.locator(`[data-peer="${bob.userId}"] [data-count]`)
+    await expect(bobCount).toHaveText('15', { timeout: 15000 })
+    await expect(pageA.locator('[data-hand-tile]')).toHaveCount(0)
+
+    // alice peels → everyone draws 1.
+    await pageA.getByRole('button', { name: /Peel/ }).click()
+
+    // alice's own hand gains the drawn tile; bob's count ticks 15 → 16.
+    await expect(pageA.locator('[data-hand-tile]')).toHaveCount(1)
+    await expect(bobCount).toHaveText('16')
+
+    await ctxA.close()
+    await ctxB.close()
   })
 })
 

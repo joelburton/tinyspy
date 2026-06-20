@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -11,23 +11,24 @@ import '../theme.css' // monkeygram tokens + the global drag-cursor rule
 /**
  * MonkeyGram play surface.
  *
- * Load gate: `useGame` fetches the caller's own player board (RLS-scoped),
- * `useProgress` subscribes to every player's public count. We mount
- * `<PlayerBoard>` — the fixed 25×25 arena + hand — and hand it the
- * `<PeersStrip>` (opponents' tiles-left) to slot above the hand. Seeding the
- * board state by mounting only once it's loaded (no setState-in-effect) means
- * a reload restores exactly where you left off.
+ * Load gate: `useGame` fetches the caller's own player board (`board` seeded
+ * once, `tiles` kept live), `useProgress` subscribes to every player's public
+ * count. We mount `<PlayerBoard>` — the fixed 25×25 arena + derived hand — and
+ * hand it the `<PeersStrip>` (opponents' tiles-left) to slot above the hand.
  *
- * Win flow (Phase 4): the **Done** button (enabled only when the hand is
- * empty) calls `declare_done`. The first valid declaration ends the game for
- * everyone; the resulting `is_terminal` flip arrives over `useCommonGame`'s
- * realtime and drives `useTerminalModal` → the GameOverModal. So the winner
- * and the losers all show the same modal from the same signal — we never pop
- * it imperatively on the click. Both "did *I* win?" and the winner's name come
- * from `status.winner_username` (globally-unique handle) — and crucially that
- * field rides the SAME `common.games` update as the `is_terminal` flip, so it's
- * present the instant the modal opens (no cross-channel flash of the wrong
- * verdict, which deriving self-won from the separate `progress` channel risks).
+ * Win flow: the **Peel** button (enabled only when the hand is empty) calls
+ * `peel`. If the bunch can't refill the table the peeler goes out and the game
+ * ends for everyone; the `is_terminal` flip arrives over `useCommonGame`'s
+ * realtime and drives `useTerminalModal` → the GameOverModal. Winner and losers
+ * all show the same modal from the same signal — never popped imperatively on
+ * the click. Both "did *I* win?" and the winner's name come from
+ * `status.winner_username`, which rides the SAME `common.games` update as the
+ * flip (no cross-channel flash of the wrong verdict).
+ *
+ * Peel announcement: a peel grows EVERY player's `tiles` at once. Each FE picks
+ * up its own growth via the live `tiles` subscription, so watching `tiles`
+ * length increase is the universal "a peel just happened — here's your new
+ * tile" signal (the peeler and every drawer see the same pill).
  */
 export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
@@ -35,15 +36,35 @@ export function PlayArea(ctx: GamePageCtx) {
   const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
   const { gameId, feedback } = ctx
-  const declareDone = useCallback(async () => {
-    const { error } = await db.rpc('declare_done', { target_game: gameId })
-    // On success there's nothing to do here — the realtime is_terminal flip
-    // drives the modal. A failure (race lost, hand not actually empty) is the
-    // only thing worth surfacing.
+  const peel = useCallback(async () => {
+    const { error } = await db.rpc('peel', { target_game: gameId })
+    // On success there's nothing to do — a continuing peel grows `tiles` (the
+    // announcement effect below reacts) and a winning peel flips is_terminal
+    // (the modal reacts). Only a failure is worth surfacing.
     if (error) {
       feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
     }
   }, [gameId, feedback])
+
+  // Announce a peel: my own `tiles` growing means a peel dealt me a tile.
+  // Seed the baseline after load so the initial deal doesn't read as a draw.
+  const seenTilesLen = useRef<number | null>(null)
+  useEffect(() => {
+    if (loading) return
+    if (seenTilesLen.current === null) {
+      seenTilesLen.current = tiles.length
+      return
+    }
+    if (tiles.length > seenTilesLen.current) {
+      const drawn = tiles.length - seenTilesLen.current
+      feedback.show({
+        tone: 'neutral',
+        text: `🍌 Peel! You drew ${drawn} tile${drawn === 1 ? '' : 's'}.`,
+        dismiss: { kind: 'timed', ms: 2500 },
+      })
+    }
+    seenTilesLen.current = tiles.length
+  }, [tiles, loading, feedback])
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
@@ -53,9 +74,11 @@ export function PlayArea(ctx: GamePageCtx) {
   const over = ctx.isTerminal
     ? {
         outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
-        verdict: selfWon ? 'You finished first! 🎉' : `${winnerName} finished first.`,
+        verdict: selfWon ? '🍌 Bananas! You went out first.' : `${winnerName} went out — Bananas!`,
       }
     : null
+
+  const bunchCount = ctx.status?.pool_remaining as number | undefined
 
   return (
     <>
@@ -64,7 +87,8 @@ export function PlayArea(ctx: GamePageCtx) {
         initialBoard={initialBoard}
         tiles={tiles}
         isTerminal={ctx.isTerminal}
-        onDeclareDone={declareDone}
+        onPeel={peel}
+        bunchCount={bunchCount}
         peers={
           <PeersStrip players={ctx.players} progress={progress} selfUserId={ctx.session.user.id} />
         }
