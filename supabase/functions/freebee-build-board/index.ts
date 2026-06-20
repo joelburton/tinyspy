@@ -129,6 +129,11 @@ const MIN_SCORING_WORDS = 30
  *  unlikely to hit, but protects against pathological inputs
  *  (e.g. previous board with all-rare letters). */
 const MAX_SAMPLE_ATTEMPTS = 50
+/** How many seeds to try when a sampled seed has NO center that clears the
+ *  word gate. A seed's stored count is over its whole 7-letter set; a specific
+ *  center can fall short, and (rarely) every center of a barely-≥30 seed does.
+ *  Re-sample in that case. */
+const MAX_SEED_ATTEMPTS = 25
 
 const I_BIT = 1n << BigInt('i'.charCodeAt(0) - 97)
 const N_BIT = 1n << BigInt('n'.charCodeAt(0) - 97)
@@ -184,6 +189,17 @@ function applyOverlapCap(
     const overlap = popcount26(BigInt(row.mask) & previousMask)
     return overlap <= MAX_PREVIOUS_OVERLAP
   })
+}
+
+/** Fisher–Yates shuffle of a copy — used to try a seed's 7 candidate centers
+ *  in random order (so repeated boards on the same seed vary their center). */
+function shuffled<T>(arr: T[]): T[] {
+  const out = [...arr]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
 }
 
 /** Build the weighted candidate array. A mask appears
@@ -453,34 +469,50 @@ serve(async (req) => {
       )
     }
     const weighted = buildWeightedPool(eligible)
-    const seed = sampleMask(weighted)
-    const mask = BigInt(seed.mask)
-    const letters = maskLetters(mask)
-    console.log(`sampled mask: letters=${letters}`)
 
-    // ─── 3. Pick center uniformly from the 7 letters ──────
-    const centerLetter = letters[Math.floor(Math.random() * letters.length)]
-    const outerLetters = letters.replace(centerLetter, '')
-    const centerBit = 1n << BigInt(centerLetter.charCodeAt(0) - 97)
+    // ─── 3-4. Sample a seed AND a center that clears the word gate ─────────
+    // A seed's stored `scoring_words` is over its whole 7-letter SET, but the
+    // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
+    // center can land a real board below the ≥30 gate even though the set is
+    // fine — which the old "pick center uniformly, then reject if short" path
+    // surfaced as an error when create_game re-checked the gate. Fix: try the
+    // seed's 7 centers in random order and keep the first that clears the gate;
+    // re-sample the seed only if NONE of its centers do (rare).
+    let board: Board | null = null
+    for (
+      let seedAttempt = 0;
+      seedAttempt < MAX_SEED_ATTEMPTS && board === null;
+      seedAttempt++
+    ) {
+      const seed = sampleMask(weighted)
+      const mask = BigInt(seed.mask)
+      const letters = maskLetters(mask)
+      for (const center of shuffled([...letters])) {
+        const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
+        const candidates = await fetchCandidateWords(supabase, mask, centerBit)
+        const cand = buildBoard(letters.replace(center, ''), center, candidates)
+        if (cand.total_words >= MIN_SCORING_WORDS) {
+          board = cand
+          break
+        }
+        console.log(
+          `seed ${letters} center '${center}': ${cand.total_words} words`
+          + ` (< ${MIN_SCORING_WORDS}) — trying another center`,
+        )
+      }
+    }
 
-    // ─── 4. Build the wordlists ───────────────────────────
-    const candidates = await fetchCandidateWords(supabase, mask, centerBit)
-    console.log(`fetched ${candidates.length} candidate words`)
-    const board = buildBoard(outerLetters, centerLetter, candidates)
+    if (board === null) {
+      console.log(`reject: no seed/center cleared the ${MIN_SCORING_WORDS}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
+      return json(
+        { error: `could not build a board with ≥${MIN_SCORING_WORDS} scoring words` },
+        500,
+      )
+    }
     console.log(
       `board: outer=${board.outer_letters} center=${board.center_letter}`
       + ` total_score=${board.total_score} total_words=${board.total_words}`,
     )
-
-    if (board.total_words < MIN_SCORING_WORDS) {
-      console.log(`reject: board has only ${board.total_words} scoring words`)
-      return json(
-        {
-          error: `built board has only ${board.total_words} scoring words (< ${MIN_SCORING_WORDS}); pangram seed table may be stale`,
-        },
-        500,
-      )
-    }
 
     // ─── 5. Create the game ───────────────────────────────
     const { data: createdRows, error: createErr } = await supabase
