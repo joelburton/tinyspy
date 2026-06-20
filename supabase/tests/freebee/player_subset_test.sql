@@ -54,7 +54,7 @@ select is(
 -- A player can act.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  freebee.submit_word((select id from g), 'bead')->>'result',
   'accepted',
   'a player (ada) can submit_word'
 );

@@ -32,6 +32,7 @@ const FEEDBACK_TIMEOUT_MS = 2500
 const RESULT_TONE: Record<string, FeedbackTone> = {
   accepted: 'success',
   bonus: 'success',
+  pangram: 'success',
   alreadyFound: 'warning',
   tooShort: 'warning',
   badLetters: 'error',
@@ -51,6 +52,7 @@ const RESULT_TONE: Record<string, FeedbackTone> = {
 const RESULT_LABEL: Record<string, string> = {
   accepted: 'Good!',
   bonus: 'Good!',
+  pangram: 'Pangram!',
   alreadyFound: 'Already found',
   tooShort: 'Too short',
   badLetters: 'Bad letters',
@@ -248,10 +250,17 @@ export function PlayArea(ctx: GamePageCtx) {
         showFeedback(error.message, 'error')
         return
       }
-      const result = (data ?? 'notAWord') as string
-      const tone = RESULT_TONE[result] ?? 'error'
-      const label = RESULT_LABEL[result] ?? result
-      showFeedback(`${word.toUpperCase()}: ${label}`, tone)
+      // submit_word returns { result, points } — points lets us show the score
+      // earned (and the result enum carries 'pangram') without re-deriving the
+      // scoring rules on the FE.
+      const payload =
+        (data as unknown as { result: string; points: number } | null)
+        ?? { result: 'notAWord', points: 0 }
+      const tone = RESULT_TONE[payload.result] ?? 'error'
+      const label = RESULT_LABEL[payload.result] ?? payload.result
+      // Scoring results (accepted / bonus / pangram) carry points > 0.
+      const suffix = payload.points > 0 ? ` +${payload.points}pts` : ''
+      showFeedback(`${word.toUpperCase()}: ${label}${suffix}`, tone)
       setWord('')
     } finally {
       setSubmitting(false)

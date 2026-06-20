@@ -41,7 +41,7 @@ export type PsychicNumSetup = {
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicNumSetup = {
   guesses: 7,
-  timer: { kind: 'countdown', seconds: 600 },
+  timer: { kind: 'countdown', seconds: 15 },
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */

@@ -20,7 +20,7 @@
 }
 
 .placeholder {
-  color: var(--color-muted, #888);
+  color: #aaa;
   font-weight: 500;
   font-style: italic;
   letter-spacing: 0.02em;
@@ -31,5 +31,5 @@
  * Visual cue that the submission will be rejected as
  * "badLetters" — same affordance freebee-ws uses. */
 .illegal {
-  color: var(--color-muted, #888);
+  color: #aaa;
 }

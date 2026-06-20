@@ -581,7 +581,7 @@ export type Database = {
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: { target_game: string; word: string }
-        Returns: string
+        Returns: Json
       }
     }
     Enums: {

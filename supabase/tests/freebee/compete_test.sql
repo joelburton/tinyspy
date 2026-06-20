@@ -61,21 +61,21 @@ select * from freebee.create_game(
 -- player has their own list). Ada re-submits 'bead' — rejected.
 
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  freebee.submit_word((select id from g), 'bead')->>'result',
   'accepted',
   'compete: ada''s first "bead" submission accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  freebee.submit_word((select id from g), 'bead')->>'result',
   'accepted',
   'compete: bea also gets credit for "bead" — per-player ownership'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  freebee.submit_word((select id from g), 'bead')->>'result',
   'alreadyFound',
   'compete: ada re-submitting "bead" rejected as already-found-by-her'
 );
@@ -125,9 +125,9 @@ select is(
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  freebee.submit_word((select id from g), 'abcdefg'),
-  'accepted',
-  'compete: cade''s target-hitting pangram accepted'
+  freebee.submit_word((select id from g), 'abcdefg')->>'result',
+  'pangram',
+  'compete: cade''s target-hitting pangram returns "pangram"'
 );
 
 reset role;

@@ -2,17 +2,20 @@
 -- Test: freebee.submit_word + freebee.submit_timeout
 -- ============================================================
 --
+-- submit_word returns jsonb `{ result, points }` (so the FE can show points
+-- without re-deriving scoring). Assertions read `->>'result'`; one capture
+-- checks `points` too. A pangram (scoring OR bonus) reports result 'pangram'.
+--
 -- Coverage:
---   1. submit_word coop happy: scoring word → 'accepted',
---      row inserted, status updated.
---   2. submit_word coop pangram: pangram word →
---      'accepted' with the +10 bonus reflected in points
---      and is_pangram=true.
---   3. submit_word coop bonus: legal-only word → 'bonus',
+--   1. submit_word coop happy: scoring word → result 'accepted',
+--      row inserted, status updated, return carries points.
+--   2. submit_word coop pangram: pangram word → result 'pangram'
+--      with the +10 bonus reflected in points and is_pangram=true.
+--   3. submit_word coop bonus: legal-only word → result 'bonus',
 --      is_bonus=true, and scored length-based the SAME as a scoring
 --      word (the bonus-scoring fix — assertion below expects 6 pts,
---      not 0).
---   4. submit_word soft rejections (each returns a string —
+--      not 0). A legal-only word with 7 distinct letters → 'pangram'.
+--   4. submit_word soft rejections (each returns { result, points: 0 } —
 --      no row inserted, no exception): tooShort, badLetters,
 --      missingCenter, notAWord.
 --   5. submit_word coop duplicate: once found by anyone,
@@ -37,7 +40,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(52);
+select plan(53);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -65,10 +68,19 @@ select * from freebee.create_game(
 -- (1) Coop happy path: ada submits 'bead' → accepted, 1pt
 -- ============================================================
 
+-- Capture the return so we assert both halves of the new { result, points }
+-- shape (the rest of the suite just reads ->>'result').
+create temp table bead_ret on commit drop as
+select freebee.submit_word((select id from g), 'bead') as ret;
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  (select ret->>'result' from bead_ret),
   'accepted',
-  'submit_word: scoring 4-letter word returns "accepted"'
+  'submit_word: scoring 4-letter word returns result "accepted"'
+);
+select is(
+  (select (ret->>'points')::int from bead_ret),
+  1,
+  'submit_word: return carries points (bead = 1)'
 );
 
 select is(
@@ -102,9 +114,9 @@ select is(
 -- ============================================================
 
 select is(
-  freebee.submit_word((select id from g), 'abcdefg'),
-  'accepted',
-  'submit_word: 7-letter pangram returns "accepted"'
+  freebee.submit_word((select id from g), 'abcdefg')->>'result',
+  'pangram',
+  'submit_word: 7-letter pangram returns result "pangram"'
 );
 
 select is(
@@ -131,7 +143,7 @@ select is(
 -- past-100% in the no-auto-terminal test (10).
 
 select is(
-  freebee.submit_word((select id from g), 'bcdfge'),
+  freebee.submit_word((select id from g), 'bcdfge')->>'result',
   'bonus',
   'submit_word: legal-but-not-scoring word returns "bonus"'
 );
@@ -172,9 +184,9 @@ select is(
 -- letter count, not from the precomputed scoring-entry flag.
 
 select is(
-  freebee.submit_word((select id from g), 'gfedcba'),
-  'bonus',
-  'submit_word: legal-only 7-distinct-letter word returns "bonus"'
+  freebee.submit_word((select id from g), 'gfedcba')->>'result',
+  'pangram',
+  'submit_word: legal-only 7-distinct-letter word returns "pangram" (bonus pangram)'
 );
 
 select is(
@@ -189,25 +201,25 @@ select is(
 -- ============================================================
 
 select is(
-  freebee.submit_word((select id from g), 'be'),
+  freebee.submit_word((select id from g), 'be')->>'result',
   'tooShort',
   'submit_word: <4-letter word returns "tooShort"'
 );
 
 select is(
-  freebee.submit_word((select id from g), 'help'),
+  freebee.submit_word((select id from g), 'help')->>'result',
   'badLetters',
   'submit_word: word using non-puzzle letters returns "badLetters"'
 );
 
 select is(
-  freebee.submit_word((select id from g), 'badg'),
+  freebee.submit_word((select id from g), 'badg')->>'result',
   'missingCenter',
   'submit_word: word without center letter returns "missingCenter"'
 );
 
 select is(
-  freebee.submit_word((select id from g), 'bcde'),
+  freebee.submit_word((select id from g), 'bcde')->>'result',
   'notAWord',
   'submit_word: valid-letter word not in scoring/legal returns "notAWord"'
 );
@@ -228,7 +240,7 @@ select is(
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  freebee.submit_word((select id from g), 'bead'),
+  freebee.submit_word((select id from g), 'bead')->>'result',
   'alreadyFound',
   'coop duplicate: bea cannot re-submit a word ada already found'
 );
@@ -272,21 +284,21 @@ select * from freebee.create_game(
 );
 
 select is(
-  freebee.submit_word((select id from compete_g), 'bead'),
+  freebee.submit_word((select id from compete_g), 'bead')->>'result',
   'accepted',
   'compete: ada''s first submission of "bead" is accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  freebee.submit_word((select id from compete_g), 'bead'),
+  freebee.submit_word((select id from compete_g), 'bead')->>'result',
   'accepted',
   'compete: bea ALSO finds "bead" (per-player ownership; not blocked by ada''s find)'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  freebee.submit_word((select id from compete_g), 'bead'),
+  freebee.submit_word((select id from compete_g), 'bead')->>'result',
   'alreadyFound',
   'compete: ada''s SECOND submission of "bead" is "alreadyFound" (same-player rule)'
 );
@@ -299,9 +311,9 @@ select is(
 -- target_rank=2, triggering the terminal flip.
 
 select is(
-  freebee.submit_word((select id from compete_g), 'abcdefg'),
-  'accepted',
-  'compete: pangram submission that crosses target_rank returns "accepted"'
+  freebee.submit_word((select id from compete_g), 'abcdefg')->>'result',
+  'pangram',
+  'compete: pangram submission that crosses target_rank returns "pangram"'
 );
 
 select is(
@@ -371,7 +383,7 @@ delete from freebee.found_words
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  freebee.submit_word((select id from g), 'bfeg'),
+  freebee.submit_word((select id from g), 'bfeg')->>'result',
   'accepted',
   'coop: 30th scoring word returns "accepted"'
 );
@@ -395,7 +407,7 @@ select is(
 -- and hasn't been submitted yet in this test file.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  freebee.submit_word((select id from g), 'abcdef'),
+  freebee.submit_word((select id from g), 'abcdef')->>'result',
   'bonus',
   'coop: bonus word accepted after the scoring set is exhausted'
 );
@@ -436,7 +448,7 @@ select * from freebee.create_game(
 -- One submission so the score isn't zero (proves the timeout
 -- captures the current state).
 select is(
-  freebee.submit_word((select id from timeout_g), 'face'),
+  freebee.submit_word((select id from timeout_g), 'face')->>'result',
   'accepted',
   'submit_word: face accepted in timeout-game setup'
 );
@@ -543,7 +555,7 @@ select * from freebee.create_game(
 -- score (proves end_game captures the live aggregate, not the
 -- create-time zero).
 select is(
-  freebee.submit_word((select id from end_g), 'bead'),
+  freebee.submit_word((select id from end_g), 'bead')->>'result',
   'accepted',
   'submit_word: bead accepted in end_game setup'
 );

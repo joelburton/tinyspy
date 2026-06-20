@@ -42,7 +42,7 @@ export type FreeBeeSetup = {
  * actually play" length without being punishing.
  */
 export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
-  timer: { kind: 'countdown', seconds: 600 },
+  timer: { kind: 'none' },
 }
 
 /**
@@ -53,6 +53,6 @@ export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
  * pick from the design conversation.
  */
 export const DEFAULT_FREEBEE_SETUP_COMPETE: FreeBeeSetup = {
-  timer: { kind: 'countdown', seconds: 600 },
+  timer: { kind: 'none' },
   target_rank: 5,
 }

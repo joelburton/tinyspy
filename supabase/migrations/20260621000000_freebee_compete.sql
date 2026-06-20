@@ -392,17 +392,23 @@ grant execute on function freebee.create_game(text, jsonb, uuid[], text, jsonb) 
 -- ============================================================
 -- 6. freebee.submit_word — read mode from freebee.games.mode
 -- ============================================================
--- The signature is unchanged ((target_game, word) → text) and the
--- logic is identical to the prior version. The only delta: mode
--- comes off freebee.games (which we already lock with FOR UPDATE)
--- instead of off common.games.setup. One fewer cross-schema read
--- per submission.
+-- Mode comes off freebee.games (which we already lock with FOR
+-- UPDATE) instead of off common.games.setup — one fewer cross-schema
+-- read per submission.
+--
+-- Returns jsonb `{ result, points }` rather than a bare result enum,
+-- so the FE can show points earned (and call out a pangram) in the
+-- entry feedback WITHOUT re-deriving the scoring/pangram rules on the
+-- client. The `result` vocabulary gains `'pangram'` (a scoring OR
+-- bonus word using all 7 letters; takes precedence over the
+-- accepted/bonus distinction, which the FE doesn't surface anyway).
+-- Non-scoring results carry `points: 0`.
 
 create function freebee.submit_word(
   target_game uuid,
   word text
 )
-returns text
+returns jsonb
 language plpgsql
 security definer
 set search_path = freebee, common, public, extensions
@@ -457,7 +463,7 @@ begin
 
   -- (1) tooShort
   if length(w_lower) < 4 then
-    return 'tooShort';
+    return jsonb_build_object('result', 'tooShort', 'points', 0);
   end if;
 
   w_mask := 0;
@@ -467,7 +473,7 @@ begin
       code int := ascii(ch);
     begin
       if code < 97 or code > 122 then
-        return 'badLetters';
+        return jsonb_build_object('result', 'badLetters', 'points', 0);
       end if;
       w_mask := w_mask | (1::bigint << (code - 97));
     end;
@@ -483,12 +489,12 @@ begin
 
   -- (2) badLetters
   if (w_mask & ~puzzle_mask) <> 0 then
-    return 'badLetters';
+    return jsonb_build_object('result', 'badLetters', 'points', 0);
   end if;
 
   -- (3) missingCenter
   if (w_mask & center_bit) = 0 then
-    return 'missingCenter';
+    return jsonb_build_object('result', 'missingCenter', 'points', 0);
   end if;
 
   -- (4) notAWord
@@ -533,7 +539,7 @@ begin
       word_points := word_points + 10;
     end if;
   else
-    return 'notAWord';
+    return jsonb_build_object('result', 'notAWord', 'points', 0);
   end if;
 
   -- (5) alreadyFound (per mode rule, reading off g_row.mode)
@@ -549,7 +555,7 @@ begin
        and fw.word = w_lower;
   end if;
   if duplicate_count > 0 then
-    return 'alreadyFound';
+    return jsonb_build_object('result', 'alreadyFound', 'points', 0);
   end if;
 
   -- ─── Insert the row ──────────────────────────────────────
@@ -687,10 +693,18 @@ begin
     end if;
   end if;
 
-  if word_is_bonus then
-    return 'bonus';
-  end if;
-  return 'accepted';
+  -- A pangram (scoring OR bonus) reports as 'pangram' so the FE can call it
+  -- out; otherwise the scoring/bonus split (which the FE renders identically).
+  -- `points` is the authoritative value already stored on the row.
+  return jsonb_build_object(
+    'result',
+    case
+      when word_is_pangram then 'pangram'
+      when word_is_bonus then 'bonus'
+      else 'accepted'
+    end,
+    'points', word_points
+  );
 end;
 $$;
 

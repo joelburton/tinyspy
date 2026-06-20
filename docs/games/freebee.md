@@ -214,7 +214,9 @@ Called only by the `freebee-build-board` edge function in practice (it builds th
 
 Builds the title (per the formula above), calls `common.create_game` with the `'freebee_<mode>'` gametype string, inserts the `freebee.games` detail row (with `mode` column), and seeds `common.update_state`. The seeded status shape differs by mode: coop carries `{score:0, total_score, rank_idx:0, words_found:0, total_words}`; compete carries `{target_rank, total_score, total_words, leaderboard:[]}` (numeric per-player fields land once the first `submit_word` runs).
 
-### `freebee.submit_word(target_game uuid, word text) → text`
+### `freebee.submit_word(target_game uuid, word text) → jsonb`
+
+Returns `{ "result": <enum>, "points": int }`. Returning the points (not just the enum) lets the FE show the score earned in the entry feedback — and call out a pangram — **without re-deriving the scoring/pangram rules on the client** (the server already computed them). `points` is 0 for every non-scoring result.
 
 The main mid-game action. Validates the word in the freebee-ws order (chosen so the friendliest message wins when multiple things are wrong):
 
@@ -223,7 +225,7 @@ The main mid-game action. Validates the word in the freebee-ws order (chosen so 
 3. `missingCenter` — doesn't include the center letter
 4. `notAWord` — not in scoring_words and not in legal_words
 5. `alreadyFound` — per mode rule (coop: any row with `(game_id, word)`; compete: row with `(game_id, user_id, word)`)
-6. otherwise: `accepted` (scoring word) or `bonus` (legal-but-not-scoring). **Bonus scores normally** — length + pangram bonus, same as a scoring word; the `'bonus'` enum value just lets the FE render a different feedback pill copy.
+6. otherwise: `pangram` (uses all 7 letters — scoring OR bonus), else `accepted` (scoring word), else `bonus` (legal-but-not-scoring). **Bonus scores normally** — length + pangram bonus, same as a scoring word; the `pangram` value takes precedence over the accepted/bonus split (which the FE renders identically anyway), so the entry feedback can flag it.
 
 On accept: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` (compete target-rank-hit only — coop never auto-terminates from `submit_word`).
 
@@ -407,7 +409,7 @@ Standard pupgames route: `/g/freebee_coop/<gameId>` or `/g/freebee_compete/<game
 3. RPC validates, inserts a `found_words` row, updates `common.games.status`, possibly fires the terminal flip.
 4. Realtime UPDATE event on `freebee.found_words` reaches `useGame`'s `useRealtimeRefetch`; `load()` re-reads `games_state` + `found_words`.
 5. `setGame({...})` + `setFoundWords(...)` re-render `PlayArea`.
-6. The submission's `result` enum (`'accepted'` / `'bonus'` / `'tooShort'` / …) drives the feedback pill.
+6. The submission's `{ result, points }` drives the feedback pill — the `result` enum (`'pangram'` / `'accepted'` / `'bonus'` / `'tooShort'` / …) picks the tone + copy, and `points` appends "+Npts" for scoring results.
 7. `useRecentlyFound` flags the new word as recent for 5s → `<WordList>` underlines it in the finder's color.
 
 ### "End game" menu wiring
