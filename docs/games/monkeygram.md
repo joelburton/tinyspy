@@ -1,10 +1,11 @@
 # MonkeyGram
 
-> **Status: greenlit; Phases 1–2 built.** Schema + dealing (Phase 1) and the
-> interactive player board + snapshot persistence (Phase 2) are live in the real
-> app. Still to come: peer counts (Phase 3), the "Done"/win flow (Phase 4), and
-> the full game (peel / dump / word validation). The throwaway UX prototype in
-> `monkeygram-ui/` (gitignored) is where the board feel was settled.
+> **Status: greenlit; Phases 1–4 built (v1 complete).** Schema + dealing
+> (Phase 1), the interactive player board + snapshot persistence (Phase 2),
+> live peer counts (Phase 3), and the "Done"/win flow (Phase 4) are all live in
+> the real app. Still to come: the full game (peel / dump / word validation).
+> The throwaway UX prototype in `monkeygram-ui/` (gitignored) is where the board
+> feel was settled.
 
 MonkeyGram is a **Bananagrams** clone: a real-time, simultaneous,
 **competitive** word-tile race. Each player builds their own **player board**
@@ -162,13 +163,13 @@ alternative; two tables reads simpler.)
 
 - `monkeygram.create_game(target_club, setup, player_user_ids)` — calls `common.create_game` (header), picks a `seed`, computes the shuffled bag, deals each player a `hand_size` slice as their starting **hand string**, and seeds one `player_boards` row (`state = { board: 625 dots, hand: "<letters>" }`) + one `progress` row (`unplaced = hand_size`) per player. Compete-only, so no `mode` param. Gated by `require_club_member`.
 - `monkeygram.save_player_board(target_game, state jsonb)` — the snapshot endpoint. `require_game_player`; writes the caller's own `player_boards.state` and recomputes their `progress` (`unplaced = length(hand)`, `placed = filled board cells`). String shape guard (board must be 625 chars). Called **debounced during play and on player-board unmount** (the pause / navigate / shelve safety net). No-op once the game is terminal.
-- `monkeygram.declare_done(target_game)` *(Phase 4)* — `require_game_player`; loads the caller's `state`, rejects unless the hand is empty (the only v1 check — no word/connectivity validation), then atomically (guarded on the game not already being terminal) sets `progress.done` and calls `common.end_game` with the caller as winner. First valid declare wins; a racing second sees terminal and is rejected.
+- `monkeygram.declare_done(target_game)` — `require_game_player`; loads the caller's `state`, rejects unless the hand is empty (the only v1 check — no word/connectivity validation), then sets `progress.done` and calls `common.end_game('won', {winner_username}, …)` with the caller as winner. Locks the gametype row up front, so the first valid declare wins; a racing second reads a non-`playing` state and is rejected (`game is not active`).
 
 ### Realtime + FE
 
 - **Inherited free** from the shell: `useCommonGame` (presence-pause — a MonkeyGram race pauses if anyone drops, per the house principle), the GamePage header, chat, suspend/shelve, the player-subset picker, the terminal result modal.
 - **`monkeygram/useGame`**: `useGame` loads the caller's own `player_boards` row once (private — no realtime; only I write it); `useProgress` subscribes to `monkeygram.progress` filtered by `game_id` (Pattern A) for peers' counts. A *thin* realtime surface — player boards never cross the wire.
-- **`PlayerBoard`** (the PlayArea): the fixed 25×25 arena — zoom + scroll, drag, keyboard cursor, Center + fit — plus the snapshot lifecycle (debounced autosave + save-on-unmount). Phase 4 adds a **Done** button enabled only when the hand is empty.
+- **`PlayerBoard`** (the PlayArea): the fixed 25×25 arena — zoom + scroll, drag, keyboard cursor, Center + fit — plus the snapshot lifecycle (debounced autosave + save-on-unmount) and the **Done** button (enabled only when the hand is empty). `PlayArea` owns the terminal modal: it watches the `is_terminal` flip via `useTerminalModal` and reads the winner from `status.winner_username` (same `common.games` update as the flip, so no cross-channel verdict flash).
 - **`PeersStrip`**: opponents' tiles-left counts (sorted by closest-to-done), slotted above the hand in the right column. Renders nothing in a solo game.
 - **SetupForm**: `hand_size` (15 / 21, default 21). No timer in v1. Manifest compete-only; solo is N = 1.
 
@@ -177,7 +178,7 @@ alternative; two tables reads simpler.)
 1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_monkeygram_baseline.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`).
 2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260624000000_monkeygram_save_player_board.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/monkeygram.e2e.ts`).
 3. **`progress` realtime + PeersStrip** — watch a peer's count drop. **✓ DONE** (`hooks/useGame.ts` → `useProgress` subscribes to `monkeygram.progress`; `components/PeersStrip.tsx` renders opponents' tiles-left; e2e covers the live update).
-4. **`declare_done` + terminal** — first-to-finish wins; result modal.
+4. **`declare_done` + terminal** — first-to-finish wins; result modal. **✓ DONE**
 5. **Polish** — hand sort/group, optional elapsed timer.
 
 ### What v1 deliberately sets up for the full game

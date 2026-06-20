@@ -69,7 +69,7 @@ export const monkeygramGame: GameManifest = {
   // v1 doesn't write a mid-game status to common.games (progress
   // lives on monkeygram.progress), so "in progress" is the live
   // label; the terminal label reads the winner from status (written
-  // by declare_done in Phase 4).
+  // by declare_done).
   labelFor: (row) => {
     if (row.play_state === 'playing') return 'in progress'
     if (row.play_state === 'won') {

@@ -198,6 +198,30 @@
   text-align: center;
 }
 
+/* The win move, pinned at the bottom of the right column (flex:0, so it never
+ * shrinks). Disabled — muted and un-clickable — until the hand is empty. */
+.doneBtn {
+  flex: 0 0 auto;
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--mg-cursor);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: filter 100ms ease;
+}
+.doneBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.doneBtn:disabled {
+  background: var(--color-surface);
+  color: var(--color-muted);
+  border: 1px solid var(--color-surface-border);
+  cursor: not-allowed;
+}
+
 /* ---- drag ghost ---- */
 .ghost {
   position: fixed;

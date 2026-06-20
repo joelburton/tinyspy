@@ -62,9 +62,14 @@ type Props = {
   initialState: MonkeyGramBoardState
   /** Opponents' tiles-left strip, slotted above the hand (null in solo). */
   peers?: React.ReactNode
+  /** True once the game is over — disables the Done button (the race is run). */
+  isTerminal?: boolean
+  /** Declare this board finished (calls `declare_done`). Enabled only when the
+   *  hand is empty; the win/terminal modal is driven from above by realtime. */
+  onDeclareDone?: () => void | Promise<void>
 }
 
-export function PlayerBoard({ gameId, initialState, peers }: Props) {
+export function PlayerBoard({ gameId, initialState, peers, isTerminal, onDeclareDone }: Props) {
   const [board, setBoard] = useState(initialState.board)
   const [hand, setHand] = useState(initialState.hand)
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
@@ -74,6 +79,7 @@ export function PlayerBoard({ gameId, initialState, peers }: Props) {
   const [hover, setHover] = useState<Cell | null>(null)
   const [errFlash, setErrFlash] = useState(false)
   const [errNonce, setErrNonce] = useState(0)
+  const [declaring, setDeclaring] = useState(false) // Done click in flight
 
   // Refs mirror state for the always-on pointer/key handlers (synced in an
   // effect, never written during render).
@@ -506,6 +512,29 @@ export function PlayerBoard({ gameId, initialState, peers }: Props) {
           ))}
           {hand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
         </div>
+        {/* The win move: enabled only once the hand is empty. The terminal
+         *  modal is driven from above by realtime, not by this click. */}
+        {onDeclareDone && (
+          <button
+            type="button"
+            className={styles.doneBtn}
+            disabled={hand.length !== 0 || isTerminal || declaring}
+            onClick={async () => {
+              setDeclaring(true)
+              try {
+                await onDeclareDone()
+              } finally {
+                setDeclaring(false)
+              }
+            }}
+          >
+            {isTerminal
+              ? 'Game over'
+              : hand.length === 0
+                ? "Done — I finished!"
+                : 'Place all your tiles'}
+          </button>
+        )}
       </div>
 
       {drag && (

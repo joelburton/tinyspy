@@ -123,6 +123,40 @@ test.describe('monkeygram persistence', () => {
 })
 
 /**
+ * Phase 4 win flow: emptying your hand enables Done; declaring ends the game
+ * and pops the win modal (declare_done → is_terminal flip → useTerminalModal).
+ */
+test.describe('monkeygram win', () => {
+  test('finishing your tiles wins the game', async ({ browser }) => {
+    const club = await createSoloClub('alice')
+    const [alice] = club.members
+    const game = await createMonkeygramGame(club)
+
+    // Empty alice's hand server-side (all 15 tiles "placed") so Done is enabled
+    // on load — placing 15 tiles through the UI is covered elsewhere and would
+    // only make this test slow and flaky.
+    await saveMonkeygramBoard(alice, game.id, {
+      board: 'ABCDEFGHIJKLMNO' + '.'.repeat(25 * 25 - 15),
+      hand: '',
+    })
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    const done = page.getByRole('button', { name: 'Done — I finished!' })
+    await expect(done).toBeEnabled({ timeout: 15000 })
+    await done.click()
+
+    // The terminal modal appears with the self-won verdict.
+    await expect(page.getByText('You finished first!')).toBeVisible({ timeout: 15000 })
+
+    await ctx.close()
+  })
+})
+
+/**
  * The Phase 3 realtime signal: a peer's tiles-left count updating live in the
  * PeersStrip. A 2-player game presence-pauses unless both players are present,
  * so both browsers stay open; one player's board snapshot must tick the other's

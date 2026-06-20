@@ -717,6 +717,7 @@ export type Database = {
           id: string
         }[]
       }
+      declare_done: { Args: { target_game: string }; Returns: undefined }
       save_player_board: {
         Args: { state: Json; target_game: string }
         Returns: undefined
