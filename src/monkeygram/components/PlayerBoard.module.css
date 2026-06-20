@@ -165,9 +165,17 @@
   }
 }
 
-/* ---- hand column (right, 3 across) ---- */
-.hand {
+/* ---- right column: peers strip (top) + hand (fills the rest) ---- */
+.rightCol {
   flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.hand {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(3, 44px);
   gap: 0.4rem;

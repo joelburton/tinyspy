@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { db } from '../db'
+import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 import { emptyBoard } from '../lib/board'
 
@@ -56,4 +57,38 @@ export function useGame(gameId: string) {
   )
 
   return { state, loading }
+}
+
+/** One row of `monkeygram.progress` — the public per-player projection peers
+ *  read: unplaced/placed counts + the done flag. */
+export type MonkeyGramProgress = {
+  user_id: string
+  unplaced: number
+  placed: number
+  done: boolean
+}
+
+/**
+ * Subscribe to every player's `monkeygram.progress` row for this game — the
+ * thin realtime surface (counts only, never boards). `progress` is
+ * club-readable, so the caller sees all players' rows; the PeersStrip renders
+ * the opponents'. Pattern A (refetch on any change) — the table is tiny
+ * (one row per player) and updates at most on each player's debounced save.
+ */
+export function useProgress(gameId: string): MonkeyGramProgress[] {
+  const [rows, setRows] = useState<MonkeyGramProgress[]>([])
+  useRealtimeRefetch({
+    tables: { schema: 'monkeygram', table: 'progress', filter: `game_id=eq.${gameId}` },
+    channelPrefix: 'monkeygram-progress',
+    id: gameId,
+    load: async ({ mounted }) => {
+      const { data } = await db
+        .from('progress')
+        .select('user_id, unplaced, placed, done')
+        .eq('game_id', gameId)
+      if (!mounted()) return
+      setRows(data ?? [])
+    },
+  })
+  return rows
 }

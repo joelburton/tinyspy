@@ -150,6 +150,18 @@ export async function createMonkeygramGame(
   return { id: (row as { id: string }).id, gametype: 'monkeygram' }
 }
 
+/** Save `member`'s monkeygram board (drives their public progress count). */
+export async function saveMonkeygramBoard(
+  member: E2EMember,
+  gameId: string,
+  state: { board: string; hand: string },
+): Promise<void> {
+  const res = await asUser(member.session.access_token)
+    .schema('monkeygram')
+    .rpc('save_player_board', { target_game: gameId, state })
+  if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
+}
+
 /** Send a club chat message as `from`. The realtime INSERT reaches
  *  every connected client — which is what the unread-badge test
  *  exercises. */

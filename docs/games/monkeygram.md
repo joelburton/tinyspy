@@ -167,16 +167,16 @@ alternative; two tables reads simpler.)
 ### Realtime + FE
 
 - **Inherited free** from the shell: `useCommonGame` (presence-pause — a MonkeyGram race pauses if anyone drops, per the house principle), the GamePage header, chat, suspend/shelve, the player-subset picker, the terminal result modal.
-- **`monkeygram/useGame`**: loads the caller's own `player_boards` row once (private — no realtime; only I write it). Phase 3 adds a subscription to `monkeygram.progress` filtered by `game_id` (Pattern A) for peer counts + the winner. A *thin* realtime surface — player boards never cross the wire.
+- **`monkeygram/useGame`**: `useGame` loads the caller's own `player_boards` row once (private — no realtime; only I write it); `useProgress` subscribes to `monkeygram.progress` filtered by `game_id` (Pattern A) for peers' counts. A *thin* realtime surface — player boards never cross the wire.
 - **`PlayerBoard`** (the PlayArea): the fixed 25×25 arena — zoom + scroll, drag, keyboard cursor, Center + fit — plus the snapshot lifecycle (debounced autosave + save-on-unmount). Phase 4 adds a **Done** button enabled only when the hand is empty.
-- **PeersStrip** *(Phase 3)*: opponents' unplaced counts — a `PlayersStrip`-shaped component fed `progress`.
+- **`PeersStrip`**: opponents' tiles-left counts (sorted by closest-to-done), slotted above the hand in the right column. Renders nothing in a solo game.
 - **SetupForm**: `hand_size` (15 / 21, default 21). No timer in v1. Manifest compete-only; solo is N = 1.
 
 ### Build order
 
 1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_monkeygram_baseline.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`).
 2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260624000000_monkeygram_save_player_board.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/monkeygram.e2e.ts`).
-3. **`progress` realtime + PeersStrip** — watch a peer's count drop.
+3. **`progress` realtime + PeersStrip** — watch a peer's count drop. **✓ DONE** (`hooks/useGame.ts` → `useProgress` subscribes to `monkeygram.progress`; `components/PeersStrip.tsx` renders opponents' tiles-left; e2e covers the live update).
 4. **`declare_done` + terminal** — first-to-finish wins; result modal.
 5. **Polish** — hand sort/group, optional elapsed timer.
 

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { createSoloClub, createMonkeygramGame } from './helpers/fixtures'
+import {
+  createSoloClub,
+  createClubWithMembers,
+  createMonkeygramGame,
+  saveMonkeygramBoard,
+} from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -69,5 +74,45 @@ test.describe('monkeygram renders', () => {
     expect(handAtMax!.x).toBeGreaterThanOrEqual(0)
 
     await ctx.close()
+  })
+})
+
+/**
+ * The Phase 3 realtime signal: a peer's tiles-left count updating live in the
+ * PeersStrip. A 2-player game presence-pauses unless both players are present,
+ * so both browsers stay open; one player's board snapshot must tick the other's
+ * peer count down.
+ */
+test.describe('monkeygram peer counts', () => {
+  test("a peer's tiles-left count updates live", async ({ browser }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+    const game = await createMonkeygramGame(club, [alice.userId, bob.userId])
+
+    const ctxA = await browser.newContext()
+    await signIn(ctxA, alice.session)
+    const pageA = await ctxA.newPage()
+    const ctxB = await browser.newContext()
+    await signIn(ctxB, bob.session)
+    const pageB = await ctxB.newPage()
+    await Promise.all([
+      pageA.goto(`/g/${game.gametype}/${game.id}`),
+      pageB.goto(`/g/${game.gametype}/${game.id}`),
+    ])
+
+    // Once both are present (so the game isn't paused), alice's PeersStrip shows
+    // bob's row at his starting count (15 tiles dealt).
+    const bobCount = pageA.locator(`[data-peer="${bob.userId}"] [data-count]`)
+    await expect(bobCount).toHaveText('15', { timeout: 15000 })
+
+    // Bob places two tiles (hand drops to 13) → alice's strip updates live.
+    await saveMonkeygramBoard(bob, game.id, {
+      board: 'AB' + '.'.repeat(25 * 25 - 2),
+      hand: 'CDEFGHIJKLMNO', // 13 letters
+    })
+    await expect(bobCount).toHaveText('13')
+
+    await ctxA.close()
+    await ctxB.close()
   })
 })

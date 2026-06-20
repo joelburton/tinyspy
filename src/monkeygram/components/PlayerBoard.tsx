@@ -57,9 +57,14 @@ function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
 }
 
-type Props = { gameId: string; initialState: MonkeyGramBoardState }
+type Props = {
+  gameId: string
+  initialState: MonkeyGramBoardState
+  /** Opponents' tiles-left strip, slotted above the hand (null in solo). */
+  peers?: React.ReactNode
+}
 
-export function PlayerBoard({ gameId, initialState }: Props) {
+export function PlayerBoard({ gameId, initialState, peers }: Props) {
   const [board, setBoard] = useState(initialState.board)
   const [hand, setHand] = useState(initialState.hand)
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
@@ -484,17 +489,20 @@ export function PlayerBoard({ gameId, initialState }: Props) {
         </div>
       </div>
 
-      <div className={styles.hand} data-zone="hand">
-        {hand.split('').map((letter, i) => (
-          <div
-            key={i}
-            className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
-            onPointerDown={(e) => onHandPointerDown(i, letter, e)}
-          >
-            {letter}
-          </div>
-        ))}
-        {hand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
+      <div className={styles.rightCol}>
+        {peers}
+        <div className={styles.hand} data-zone="hand">
+          {hand.split('').map((letter, i) => (
+            <div
+              key={i}
+              className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
+              onPointerDown={(e) => onHandPointerDown(i, letter, e)}
+            >
+              {letter}
+            </div>
+          ))}
+          {hand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
+        </div>
       </div>
 
       {drag && (
