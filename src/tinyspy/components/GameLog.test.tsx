@@ -1,6 +1,6 @@
 /**
  * Tests for GameLog. This is a pure presentational component — it
- * takes `clues` + `words` and renders a turn-by-turn replay. No
+ * takes `clues` + `guesses` and renders a turn-by-turn replay. No
  * supabase mocking needed; just RTL render with props.
  *
  * What matters here:
@@ -8,7 +8,7 @@
  *   2. Per-turn grouping: each turn's clue lines up with the guesses
  *      that happened during that turn.
  *   3. Guess sort order: within a turn, guesses are listed by
- *      revealed_at (so the log replays in the order things happened).
+ *      guessed_at (so the log replays in the order things happened).
  *
  * NOT covered: the per-label color hookup. With CSS Modules the
  * literal class name is hashed (`_logLabelG_a3f9k` etc.) so
@@ -22,6 +22,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { GameLog } from './GameLog'
+import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import type { Database } from '../../types/db'
 
@@ -35,7 +36,6 @@ const PLAYERS: Player[] = [
 ]
 
 type ClueRow = Database['tinyspy']['Tables']['clues']['Row']
-type WordRow = Database['tinyspy']['Tables']['words']['Row']
 
 function clue(overrides: Partial<ClueRow>): ClueRow {
   return {
@@ -50,22 +50,21 @@ function clue(overrides: Partial<ClueRow>): ClueRow {
   }
 }
 
-function word(overrides: Partial<WordRow>): WordRow {
+function guess(overrides: Partial<GuessRow>): GuessRow {
   return {
-    game_id: 'game-id',
     position: 0,
     word: 'STEEL',
-    revealed_by: null,
-    revealed_as: null,
-    revealed_at: null,
-    revealed_in_turn: null,
+    guesser_seat: 'B',
+    outcome: 'G',
+    turn_number: 1,
+    guessed_at: '2026-06-12T18:00:00Z',
     ...overrides,
   }
 }
 
 describe('GameLog', () => {
   it('renders nothing when there are no clues', () => {
-    const { container } = render(<GameLog clues={[]} words={[]} players={PLAYERS} />)
+    const { container } = render(<GameLog clues={[]} guesses={[]} players={PLAYERS} />)
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -74,20 +73,20 @@ describe('GameLog', () => {
       clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'TOOLS', count: 2 }),
       clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'DRINK', count: 1 }),
     ]
-    const words = [
-      word({
+    const guesses = [
+      guess({
         position: 5, word: 'HAMMER',
-        revealed_as: 'G', revealed_by: 'B',
-        revealed_at: '2026-06-12T18:01:00Z', revealed_in_turn: 1,
+        outcome: 'G', guesser_seat: 'B',
+        guessed_at: '2026-06-12T18:01:00Z', turn_number: 1,
       }),
-      word({
+      guess({
         position: 11, word: 'COFFEE',
-        revealed_as: 'N', revealed_by: 'A',
-        revealed_at: '2026-06-12T18:03:00Z', revealed_in_turn: 2,
+        outcome: 'N', guesser_seat: 'A',
+        guessed_at: '2026-06-12T18:03:00Z', turn_number: 2,
       }),
     ]
 
-    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
+    render(<GameLog clues={clues} guesses={guesses} players={PLAYERS} />)
 
     const turns = screen.getAllByRole('listitem')
     expect(turns).toHaveLength(2)
@@ -104,25 +103,25 @@ describe('GameLog', () => {
     expect(within(turns[1]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
   })
 
-  it('sorts guesses within a turn by revealed_at', () => {
+  it('sorts guesses within a turn by guessed_at', () => {
     // Two guesses in the same turn, deliberately presented in the
     // wrong order in the input array. The log should still display
-    // them in revealed_at order.
+    // them in guessed_at order.
     const clues = [clue({ turn_number: 1 })]
-    const words = [
-      word({
+    const guesses = [
+      guess({
         position: 2, word: 'LATER',
-        revealed_as: 'G', revealed_by: 'B',
-        revealed_at: '2026-06-12T18:00:20Z', revealed_in_turn: 1,
+        outcome: 'G', guesser_seat: 'B',
+        guessed_at: '2026-06-12T18:00:20Z', turn_number: 1,
       }),
-      word({
+      guess({
         position: 1, word: 'FIRST',
-        revealed_as: 'G', revealed_by: 'B',
-        revealed_at: '2026-06-12T18:00:10Z', revealed_in_turn: 1,
+        outcome: 'G', guesser_seat: 'B',
+        guessed_at: '2026-06-12T18:00:10Z', turn_number: 1,
       }),
     ]
 
-    render(<GameLog clues={clues} words={words} players={PLAYERS} />)
+    render(<GameLog clues={clues} guesses={guesses} players={PLAYERS} />)
 
     // Pull the textContent of the single turn slot and confirm FIRST
     // appears before LATER.
@@ -140,7 +139,7 @@ describe('GameLog', () => {
       clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'PASS', count: 1 }),
     ]
 
-    render(<GameLog clues={clues} words={[]} players={PLAYERS} />)
+    render(<GameLog clues={clues} guesses={[]} players={PLAYERS} />)
 
     expect(screen.getByText(/no guesses made/)).toBeInTheDocument()
     // The guesser (bea — the seat opposite the clue-giver) is

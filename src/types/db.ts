@@ -984,6 +984,44 @@ export type Database = {
         }
         Relationships: []
       }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          guesser_seat: string
+          id: string
+          outcome: string
+          position: number
+          turn_number: number
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          guesser_seat: string
+          id?: string
+          outcome: string
+          position: number
+          turn_number: number
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          guesser_seat?: string
+          id?: string
+          outcome?: string
+          position?: number
+          turn_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       word_pool: {
         Row: {
           word: string
@@ -999,29 +1037,26 @@ export type Database = {
       words: {
         Row: {
           game_id: string
+          neutral_a: boolean
+          neutral_b: boolean
           position: number
           revealed_as: string | null
-          revealed_at: string | null
-          revealed_by: string | null
-          revealed_in_turn: number | null
           word: string
         }
         Insert: {
           game_id: string
+          neutral_a?: boolean
+          neutral_b?: boolean
           position: number
           revealed_as?: string | null
-          revealed_at?: string | null
-          revealed_by?: string | null
-          revealed_in_turn?: number | null
           word: string
         }
         Update: {
           game_id?: string
+          neutral_a?: boolean
+          neutral_b?: boolean
           position?: number
           revealed_as?: string | null
-          revealed_at?: string | null
-          revealed_by?: string | null
-          revealed_in_turn?: number | null
           word?: string
         }
         Relationships: [

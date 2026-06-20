@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ClueRow } from '../hooks/useClues'
-import type { WordRow } from '../hooks/useBoard'
+import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -8,7 +8,10 @@ import styles from './GameLog.module.css'
 
 type Props = {
   clues: ClueRow[]
-  words: WordRow[]
+  /** Every guess, in any order — grouped by turn below. (A word can appear
+   *  twice, once per seat, which is exactly why this is the guess log and not
+   *  the per-word board state.) */
+  guesses: GuessRow[]
   /** Both seated players, with usernames + profile colors. Used to
    *  resolve seat letters (`'A'` / `'B'`) on each clue / guess row
    *  back to the human-facing identity. */
@@ -50,7 +53,7 @@ type Props = {
  * already has from useClues + useBoard. All grouping happens
  * client-side — no extra queries — because the data set is tiny.
  */
-export function GameLog({ clues, words, players }: Props) {
+export function GameLog({ clues, guesses, players }: Props) {
   const listRef = useRef<HTMLOListElement>(null)
 
   // Auto-scroll to the bottom on every new clue or guess —
@@ -61,7 +64,7 @@ export function GameLog({ clues, words, players }: Props) {
     const el = listRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
-  }, [clues, words])
+  }, [clues, guesses])
 
   if (clues.length === 0) return null
 
@@ -75,12 +78,10 @@ export function GameLog({ clues, words, players }: Props) {
     players.map((p) => [p.seat, p] as const),
   )
 
-  const guesses = words
-    .filter((w) => w.revealed_at !== null)
-    .sort((a, b) =>
-      (a.revealed_in_turn ?? 0) - (b.revealed_in_turn ?? 0)
-      || (a.revealed_at ?? '').localeCompare(b.revealed_at ?? ''),
-    )
+  const sortedGuesses = [...guesses].sort((a, b) =>
+    (a.turn_number - b.turn_number)
+    || a.guessed_at.localeCompare(b.guessed_at),
+  )
 
   // Turns may exist in the clue list, in the guess list, or both.
   // Union the turn numbers so the log shows every turn that did
@@ -89,7 +90,7 @@ export function GameLog({ clues, words, players }: Props) {
   const turnNumbers = Array.from(
     new Set([
       ...clues.map((c) => c.turn_number),
-      ...guesses.map((g) => g.revealed_in_turn ?? 0),
+      ...sortedGuesses.map((g) => g.turn_number),
     ]),
   ).sort((a, b) => a - b)
 
@@ -106,7 +107,7 @@ export function GameLog({ clues, words, players }: Props) {
           // string-typed find rather than hardcoding A↔B so any
           // future seat-vocabulary change lands cleanly.
           const guesser = players.find((p) => p.seat !== clue.by_seat)
-          const turnGuesses = guesses.filter((g) => g.revealed_in_turn === t)
+          const turnGuesses = sortedGuesses.filter((g) => g.turn_number === t)
           return (
             <li key={t} className={styles.turn}>
               <div className={styles.clueLine}>
@@ -133,9 +134,9 @@ export function GameLog({ clues, words, players }: Props) {
                       <span
                         className={cls(
                           styles.guessWord,
-                          g.revealed_as === 'G' && styles.guessWord_G,
-                          g.revealed_as === 'N' && styles.guessWord_N,
-                          g.revealed_as === 'A' && styles.guessWord_A,
+                          g.outcome === 'G' && styles.guessWord_G,
+                          g.outcome === 'N' && styles.guessWord_N,
+                          g.outcome === 'A' && styles.guessWord_A,
                         )}
                       >
                         {g.word.toUpperCase()}

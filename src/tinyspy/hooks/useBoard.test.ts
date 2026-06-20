@@ -57,7 +57,14 @@ function buildSupabaseMock() {
     const chain: Record<string, unknown> & { _table: string } = {
       _table: table,
       select() { return chain },
-      eq() { return chain },
+      // The guesses query ends in .eq() (no .order()/.single()), so for that
+      // table .eq() is the terminal and resolves the (empty) guess log. The
+      // words/games queries chain further off .eq().
+      eq() {
+        return table === 'guesses'
+          ? Promise.resolve({ data: [], error: null })
+          : chain
+      },
       neq() { return chain },
       order() {
         // Only words uses .order() — return 25 word rows.
@@ -66,10 +73,9 @@ function buildSupabaseMock() {
             game_id: GAME_ID,
             position,
             word: `W${position}`,
-            revealed_by: null,
             revealed_as: null,
-            revealed_at: null,
-            revealed_in_turn: null,
+            neutral_a: false,
+            neutral_b: false,
           })),
           error: null,
         })

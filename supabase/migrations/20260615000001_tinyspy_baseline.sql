@@ -102,10 +102,20 @@ create table tinyspy.words (
   game_id uuid not null references tinyspy.games(id) on delete cascade,
   position int not null check (position between 0 and 24),
   word text not null,
-  revealed_by text check (revealed_by in ('A', 'B')),
-  revealed_as text check (revealed_as in ('G', 'N', 'A')),
-  revealed_at timestamptz,
-  revealed_in_turn int,
+  -- GLOBAL reveal: 'G' once this word has been contacted as an agent (one of
+  -- the 15), 'A' if the assassin was hit. NULL while still in play. Neutrals
+  -- are deliberately NOT global — a bystander on one player's key may be the
+  -- other player's agent (Duet rulebook), so a neutral only locks the guesser's
+  -- own direction. See the per-seat flags below.
+  revealed_as text check (revealed_as in ('G', 'A')),
+  -- Per-seat bystander marks: seat A / seat B guessed this word and it came up
+  -- neutral on the clue-giver's (their partner's) key. Locks the word for THAT
+  -- seat only — the partner can still guess it (it may be their agent). When
+  -- BOTH are true the word is dead for both, the "two timer tokens cover the
+  -- word" rule. The per-guess history (for the Game Log) lives in
+  -- `tinyspy.guesses`; these two flags are the denormalized board state.
+  neutral_a boolean not null default false,
+  neutral_b boolean not null default false,
   primary key (game_id, position)
 );
 
@@ -128,6 +138,29 @@ create table tinyspy.clues (
 );
 
 -- ============================================================
+-- tinyspy.guesses — append-only log of every guess
+-- ============================================================
+-- One row per guess (not per word). The board's per-cell state is
+-- denormalized onto `tinyspy.words` for rendering; this is the full
+-- history the Game Log replays. A word can legitimately be guessed
+-- TWICE — neutral by one player, then agent/neutral/assassin by the
+-- other — so the per-word row can't hold the history. `guesser_seat`
+-- is the seat that made the guess; `outcome` is the label on the
+-- clue-giver's (i.e. the partner's) key.
+
+create table tinyspy.guesses (
+  id uuid primary key default gen_random_uuid(),
+  game_id uuid not null references tinyspy.games(id) on delete cascade,
+  position int not null check (position between 0 and 24),
+  guesser_seat text not null check (guesser_seat in ('A', 'B')),
+  outcome text not null check (outcome in ('G', 'N', 'A')),
+  turn_number int not null,
+  guessed_at timestamptz not null default now()
+);
+
+create index tinyspy_guesses_game_idx on tinyspy.guesses (game_id);
+
+-- ============================================================
 -- RLS
 -- ============================================================
 -- Same shape as psychicnum + wordknit: SELECT gated on
@@ -148,6 +181,7 @@ alter table tinyspy.games     enable row level security;
 alter table tinyspy.word_pool enable row level security;
 alter table tinyspy.words     enable row level security;
 alter table tinyspy.clues     enable row level security;
+alter table tinyspy.guesses   enable row level security;
 
 create policy games_select on tinyspy.games
   for select to authenticated
@@ -173,6 +207,16 @@ create policy clues_select on tinyspy.clues
     )
   );
 
+create policy guesses_select on tinyspy.guesses
+  for select to authenticated
+  using (
+    exists (
+      select 1 from tinyspy.games g
+       where g.id = guesses.game_id
+         and common.is_club_member(g.club_handle)
+    )
+  );
+
 -- No insert/update/delete policies on any table. All writes go
 -- through RPCs. word_pool has no policies at all — only
 -- security-definer RPCs read from it.
@@ -180,6 +224,7 @@ create policy clues_select on tinyspy.clues
 grant select on tinyspy.games to authenticated;
 grant select on tinyspy.words to authenticated;
 grant select on tinyspy.clues to authenticated;
+grant select on tinyspy.guesses to authenticated;
 
 -- ============================================================
 -- Realtime publication
@@ -188,6 +233,7 @@ grant select on tinyspy.clues to authenticated;
 alter publication supabase_realtime add table tinyspy.games;
 alter publication supabase_realtime add table tinyspy.words;
 alter publication supabase_realtime add table tinyspy.clues;
+alter publication supabase_realtime add table tinyspy.guesses;
 
 -- ============================================================
 -- tinyspy._end_turn — internal helper
@@ -620,9 +666,18 @@ begin
     key_owner_seat := case caller_seat when 'A' then 'B' else 'A' end;
   end if;
 
+  -- Already resolved FOR THIS GUESSER? A word is off-limits to the caller if
+  -- it's globally done (contacted as an agent, or the assassin was hit) OR this
+  -- seat already hit it as a neutral. The PARTNER's neutral does not block the
+  -- caller — the word may be the caller's agent in the other direction (the
+  -- Duet "a word marked by a timer token might need to be guessed by the other
+  -- player" rule).
   if exists (
-    select 1 from tinyspy.words
-    where game_id = target_game and position = target_position and revealed_as is not null
+    select 1 from tinyspy.words w
+    where w.game_id = target_game and w.position = target_position
+      and (w.revealed_as is not null
+           or (caller_seat = 'A' and w.neutral_a)
+           or (caller_seat = 'B' and w.neutral_b))
   ) then
     raise exception 'cell already revealed' using errcode = 'P0001';
   end if;
@@ -635,12 +690,27 @@ begin
 
   revealed_label := key_card ->> target_position;
 
-  update tinyspy.words
-    set revealed_as = revealed_label,
-        revealed_by = caller_seat,
-        revealed_at = now(),
-        revealed_in_turn = g_row.turn_number
-    where game_id = target_game and position = target_position;
+  -- Log every guess (full per-guess history for the Game Log; a word can be
+  -- guessed twice — once per seat).
+  insert into tinyspy.guesses (game_id, position, guesser_seat, outcome, turn_number)
+  values (target_game, target_position, caller_seat, revealed_label, g_row.turn_number);
+
+  -- Denormalize the board state onto tinyspy.words. Green (agent contacted) and
+  -- assassin are GLOBAL — true for both players. A neutral only marks the
+  -- guesser's own seat, so the partner can still guess the word.
+  if revealed_label = 'G' then
+    update tinyspy.words set revealed_as = 'G'
+      where game_id = target_game and position = target_position;
+  elsif revealed_label = 'A' then
+    update tinyspy.words set revealed_as = 'A'
+      where game_id = target_game and position = target_position;
+  elsif caller_seat = 'A' then
+    update tinyspy.words set neutral_a = true
+      where game_id = target_game and position = target_position;
+  else
+    update tinyspy.words set neutral_b = true
+      where game_id = target_game and position = target_position;
+  end if;
 
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and

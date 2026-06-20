@@ -106,7 +106,7 @@ export function PlayArea({
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
   // for the phase derivation and the GameOverModal copy.
   const gameOver = isTerminal
-  const { words, myKey, peerKey, loading } = useBoard(
+  const { words, guesses, myKey, peerKey, loading } = useBoard(
     gameId,
     session.user.id,
     gameOver,
@@ -198,7 +198,7 @@ export function PlayArea({
         </div>
 
         <div className={styles.gameLogSlot}>
-          <GameLog clues={clues} words={words} players={players} />
+          <GameLog clues={clues} guesses={guesses} players={players} />
         </div>
       </div>
 

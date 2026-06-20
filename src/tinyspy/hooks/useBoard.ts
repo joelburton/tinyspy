@@ -3,42 +3,56 @@ import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
+import type { Seat } from '../lib/phase'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
-// SELECT *". Adding a new column to tinyspy.words requires
-// explicitly listing it here AND in the select() below.
-// Exported so GameLog can share the same narrowed shape rather
-// than redeclaring its own (now-broader) version.
+// SELECT *". Adding a new column to tinyspy.words requires explicitly listing
+// it here AND in the select() below.
+//
+// `revealed_as` is the GLOBAL reveal ('G' agent contacted / 'A' assassin / null
+// still in play). Neutrals are NOT global — `neutral_a` / `neutral_b` record
+// which seat hit this word as a bystander, so a word can stay guessable by the
+// partner (Duet: a bystander on one key may be the other's agent).
 export type WordRow = Pick<
   Database['tinyspy']['Tables']['words']['Row'],
-  'position' | 'word' | 'revealed_by' | 'revealed_as' | 'revealed_at' | 'revealed_in_turn'
+  'position' | 'word' | 'revealed_as' | 'neutral_a' | 'neutral_b'
 >
+
+/** One logged guess, joined with its word text for the Game Log. A word can
+ *  appear twice (once per seat). */
+export type GuessRow = {
+  position: number
+  word: string
+  guesser_seat: Seat
+  outcome: KeyLabel
+  turn_number: number
+  guessed_at: string
+}
 
 /**
  * Subscribes to a game's board state for the current player.
  *
- * Returns the 25 word rows, the caller's own key view (`myKey`), and
- * optionally the partner's key view (`peerKey`) for post-game review.
+ * Returns the 25 word rows (with denormalized reveal state), the full
+ * per-guess log (`guesses`, for the Game Log), the caller's own key view
+ * (`myKey`), and optionally the partner's key view (`peerKey`) for post-game
+ * review.
  *
- * Why this hook is separate from `useGame`:
- *   - The board only needs words + the caller's key, not the whole roster.
- *   - The peer key is sensitive during play (it would leak the partner's
- *     view) and is only fetched when `revealPeer` is true. Even though the
- *     RLS policy on `game_players` would technically allow reading the
- *     partner's row during play (the "Harden `game_players_select`" item
- *     in `docs/deferred.md`), we don't ask for it until the game ends.
+ * Why a separate guess log: a word can be guessed by BOTH players (a bystander
+ * on one key may be the other's agent), so the per-word row can't hold the
+ * history — `tinyspy.guesses` does. The board reads the denormalized `words`
+ * state; the log reads `guesses`.
  *
- * Realtime: drives off `useRealtimeRefetch` — full refetch on
- * any postgres-changes event, plus on every SUBSCRIBED status.
- * Wasteful for a chatty table but trivial at 25 rows and a few
- * events per turn; same trade-off as the other tinyspy hooks.
+ * The peer key is sensitive during play (it would leak the partner's view) and
+ * is only fetched when `revealPeer` is true.
  *
- * The lazy peer-key fetch lives in a SEPARATE effect (not in the
- * main realtime load) so it can run independently when
- * `revealPeer` flips without rebuilding the channel.
+ * Realtime: drives off `useRealtimeRefetch`, watching both `words` (the board)
+ * and `guesses` (the log) — full refetch on any event. Every guess updates
+ * `words` (denormalization) and inserts into `guesses`, so either event lands
+ * the same fresh state.
  */
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
+  const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
   // The peer key is fetched into `fetchedPeerKey` and tagged with the
   // gameId+userId it was fetched for. The publicly-returned `peerKey`
@@ -53,17 +67,21 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
-    tables: { schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },
+    tables: [
+      { schema: 'tinyspy', table: 'words', filter: `game_id=eq.${gameId}` },
+      { schema: 'tinyspy', table: 'guesses', filter: `game_id=eq.${gameId}` },
+    ],
     channelPrefix: 'board',
     id: gameId,
     load: async ({ mounted }) => {
-      // Seats + key cards are now columns on tinyspy.games (not a
-      // separate game_players table). Pull the row, pick the column
-      // matching the caller's seat.
-      const [wordsRes, gameRes] = await Promise.all([
+      // Seats + key cards are columns on tinyspy.games (not a separate
+      // game_players table). Pull the row, pick the column matching the
+      // caller's seat. The guess log joins word text in JS (the guesses table
+      // stores positions, not words).
+      const [wordsRes, gameRes, guessesRes] = await Promise.all([
         db
           .from('words')
-          .select('position, word, revealed_by, revealed_as, revealed_at, revealed_in_turn')
+          .select('position, word, revealed_as, neutral_a, neutral_b')
           .eq('game_id', gameId)
           .order('position'),
         db
@@ -71,9 +89,27 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
           .select('user_a_id, user_b_id, key_card_a, key_card_b')
           .eq('id', gameId)
           .single(),
+        db
+          .from('guesses')
+          .select('position, guesser_seat, outcome, turn_number, guessed_at')
+          .eq('game_id', gameId),
       ])
       if (!mounted()) return
-      if (wordsRes.data) setWords(wordsRes.data)
+      const wordRows = wordsRes.data ?? []
+      if (wordsRes.data) setWords(wordRows)
+      if (guessesRes.data) {
+        const wordAt = new Map(wordRows.map((w) => [w.position, w.word]))
+        setGuesses(
+          guessesRes.data.map((g) => ({
+            position: g.position,
+            word: wordAt.get(g.position) ?? '',
+            guesser_seat: g.guesser_seat as Seat,
+            outcome: g.outcome as KeyLabel,
+            turn_number: g.turn_number,
+            guessed_at: g.guessed_at,
+          })),
+        )
+      }
       const g = gameRes.data
       if (g) {
         // key_card_X is `jsonb` in the schema and typed as `Json` here;
@@ -119,5 +155,5 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     }
   }, [gameId, userId, revealPeer])
 
-  return { words, myKey, peerKey, loading }
+  return { words, guesses, myKey, peerKey, loading }
 }

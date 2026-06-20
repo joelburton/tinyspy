@@ -120,33 +120,57 @@ export function BoardGrid({
         {words.map((w) => {
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null
+          // GLOBAL reveal — agent contacted ('G') or assassin ('A'), solid for
+          // everyone. Neutrals are not global (see below).
           const revealed = w.revealed_as !== null
-          // Post-game we render two stripes per cell (A's view, B's
-          // view) so you can review what each card "actually was"
-          // on both keys.
-          const showPostGameReveal =
-            gameOver && !revealed && peerLabel !== null
 
-          const tintCls = revealed
-            ? cls(
-                styles.tileRevealed,
-                styles[TILE_BG[w.revealed_as as KeyLabel]],
-              )
-            : showPostGameReveal
-              ? styles.tilePostgame
-              : cls(styles.tileHint, styles[TILE_BG[myLabel]])
+          // Per-seat bystander marks. A neutral I made locks the cell for ME;
+          // one my partner made does NOT — the word may be my agent in the
+          // other direction (the Duet rule). When both marked it, it's dead.
+          const iNeutraled =
+            mySeat === 'A' ? w.neutral_a : mySeat === 'B' ? w.neutral_b : false
+          const partnerNeutraled =
+            mySeat === 'A' ? w.neutral_b : mySeat === 'B' ? w.neutral_a : false
 
-          const clickable = cellsClickable && !revealed
-          const isPending = pendingPos === w.position
+          // Two split-tile renderings:
+          //  - in-play neutral: my keycard color on top, the "was guessed as a
+          //    bystander" neutral color on the bottom (shown to BOTH the
+          //    guesser and the partner; only the partner can still click it).
+          //  - post-game review: A's key on top, B's on bottom, for every
+          //    still-unrevealed cell.
+          const neutralSplit =
+            !revealed && !gameOver && (iNeutraled || partnerNeutraled)
+          const showPostGameReveal = gameOver && !revealed && peerLabel !== null
 
-          // For the post-game stripes, we want A's label on top
-          // and B's on bottom regardless of who's looking. So we
-          // re-derive each from whichever of my/peer happens to
-          // belong to that seat.
+          // For the post-game stripes, A's label goes on top and B's on bottom
+          // regardless of who's looking.
           const aLabel: KeyLabel =
             mySeat === 'A' ? myLabel : peerLabel ?? myLabel
           const bLabel: KeyLabel =
             mySeat === 'B' ? myLabel : peerLabel ?? myLabel
+
+          let topStripe: KeyLabel | 'neutral' | null = null
+          let bottomStripe: KeyLabel | 'neutral' | null = null
+          if (neutralSplit) {
+            topStripe = myLabel // my keycard color
+            bottomStripe = 'neutral' // the bystander-was-guessed color
+          } else if (showPostGameReveal) {
+            topStripe = aLabel
+            bottomStripe = bLabel
+          }
+          const stripeCls = (s: KeyLabel | 'neutral') =>
+            s === 'neutral' ? styles.tileNeutral : styles[TILE_BG[s]]
+
+          const tintCls = revealed
+            ? cls(styles.tileRevealed, styles[TILE_BG[w.revealed_as as KeyLabel]])
+            : topStripe !== null
+              ? styles.tilePostgame
+              : cls(styles.tileHint, styles[TILE_BG[myLabel]])
+
+          // Clickable unless globally revealed or *I* already neutraled it. A
+          // partner-only neutral stays clickable (it may be my agent).
+          const clickable = cellsClickable && !revealed && !iNeutraled
+          const isPending = pendingPos === w.position
 
           return (
             <button
@@ -161,23 +185,12 @@ export function BoardGrid({
               disabled={!clickable || isPending}
               onClick={() => clickable && handleGuess(w.position)}
             >
-              {showPostGameReveal && (
-                // No "A" / "B" labels — we don't use seat letters
-                // anywhere else in the UI now (username + color is
-                // the identity vocabulary). The top vs. bottom
-                // position itself is the cue: top stripe = seat A,
-                // bottom stripe = seat B.
-                <div
-                  className={cls(styles.tileStripe, styles[TILE_BG[aLabel]])}
-                  aria-hidden
-                />
+              {topStripe !== null && (
+                <div className={cls(styles.tileStripe, stripeCls(topStripe))} aria-hidden />
               )}
               <span className={styles.tileWord}>{w.word}</span>
-              {showPostGameReveal && (
-                <div
-                  className={cls(styles.tileStripe, styles[TILE_BG[bLabel]])}
-                  aria-hidden
-                />
+              {bottomStripe !== null && (
+                <div className={cls(styles.tileStripe, stripeCls(bottomStripe))} aria-hidden />
               )}
               {isPending && <span className={styles.tileKey}>…</span>}
             </button>

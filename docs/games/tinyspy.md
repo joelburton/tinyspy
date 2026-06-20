@@ -53,6 +53,12 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 3. The guesser may stop voluntarily at any time. Doing so ends the turn and spends a timer token.
 4. Reveal markers go on the **guesser's** side of the board, but the label comes from the clue-giver's key.
 
+#### Neutrals are per-direction (the timer-token rule)
+
+A neutral is only neutral *on the clue-giver's key*. The same word may be the **other player's agent**, so a neutral locks it for the guesser's direction only — the partner can still contact it. From the rulebook: *"A word marked by a timer token might need to be guessed by the other player."* When that partner guesses it, it resolves on *their* clue-giver's key (agent → contacted, neutral → a second token, assassin → loss). Only when **both** players have hit a word as a neutral is it dead for both ("the timer tokens cover the word").
+
+Green (agent contacted) and assassin are **global** — true for both players the moment they're revealed. This is why the board stores a global `revealed_as` (`'G'`/`'A'`) *plus* per-seat `neutral_a` / `neutral_b` flags (a word can be a neutral for one player while still live for the other). The earlier implementation made *every* reveal global, which incorrectly stranded a partner's agent — a bug, not a house rule.
+
 ### End conditions
 
 - **Win:** all 15 green agents revealed.
@@ -72,11 +78,14 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 | 9 starting tokens, decrements only on neutral / voluntary stop | `games.turns_remaining` (default 9), decremented by `_end_turn` |
 | Turn alternates clue-giver | `games.current_clue_giver` flips in `_end_turn` |
 | Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
+| Neutral is per-direction (partner can still guess) | `submit_guess` sets `words.neutral_a` / `neutral_b` for the *guesser's* seat (not global `revealed_as`); the "already resolved" check blocks only that seat |
+| Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE greys it for both) |
 | Sudden death on token = 0 | `_end_turn` flips `status = 'sudden_death'` when `turns_remaining` hits 0 |
 | Sudden-death reveal uses partner's view | `submit_guess` picks the `key_card_*` column for the seat *opposite* to the caller |
-| Win: 15 greens revealed | `submit_guess` counts `revealed_as = 'G'` after every green reveal |
+| Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
+| Every guess replayable in the Game Log | one row per guess in `tinyspy.guesses` (a word can be guessed twice) |
 
 The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../../supabase/migrations/20260615000001_tinyspy_baseline.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/tinyspy/win_test.sql).
 
@@ -88,7 +97,8 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 |---|---|
 | `games` | One row per match. `club_handle` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
-| `words` | 25 rows per game — the board. `revealed_as` is null until a guess reveals the cell. |
+| `words` | 25 rows per game — the board, with denormalized reveal state. `revealed_as` (`'G'`/`'A'`/null) is the **global** reveal (agent contacted / assassin); `neutral_a` / `neutral_b` are **per-seat** bystander marks (a neutral on the giver's key may be the partner's agent, so it only locks the guesser's seat). |
+| `guesses` | One row per guess — the append-only history the Game Log replays. A word can appear twice (once per seat), which is why this is separate from the per-word `words` row. Holds `position`, `guesser_seat`, `outcome` (`'G'`/`'N'`/`'A'`), `turn_number`. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
 
 There's no `tinyspy.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `tinyspy.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `tinyspy.games`'s seat columns answer "in which seat, with what key view."
@@ -161,8 +171,8 @@ Logic in order:
 5. Determine **whose key view labels this reveal**:
    - During `playing`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
    - During `sudden_death`: the partner's view (the seat opposite the caller).
-6. Verify the cell isn't already revealed.
-7. Insert the reveal into `tinyspy.words`.
+6. Verify the cell isn't already resolved **for this guesser** — blocked if it's globally revealed (`revealed_as` set) OR this seat already hit it as a neutral. A *partner's* neutral does not block the caller (it may be the caller's agent).
+7. Log the guess into `tinyspy.guesses`, then denormalize onto `tinyspy.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
 8. Resolve the outcome:
    - Assassin → `common.end_game(target_game, 'lost_assassin', …)`, return `'A'`.
    - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`, return label.
@@ -295,7 +305,9 @@ src/tinyspy/
                           on its own per-tab UUID-suffixed channel for postgres-changes only.
                           (Members, presence, manual-pause, timer are NOT here — they live in
                           common's useCommonGame, consumed by GamePage.)
-    useBoard.ts           Loads words + reveal state, subscribes to realtime.
+    useBoard.ts           Loads words (denormalized board state) + the guess
+                          log + the caller's key; subscribes to realtime on
+                          both `words` and `guesses`.
     useBoard.test.ts
     useClues.ts           Loads the clue history.
 
@@ -328,6 +340,8 @@ During active play, each player's own `key_card` is what tints the board ([`useB
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
+The same split-stripe rendering is reused **during play** for a neutral'd cell (`neutral_a` / `neutral_b`): the viewer's own keycard color on top, the "guessed as a bystander" neutral color on the bottom. Both players see the split, but only the one who *didn't* hit it as a neutral can still click it (it may be their agent) — `BoardGrid` gates `clickable` on `!iNeutraled`. See the per-direction rule above.
+
 The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today `<GamePage>` is keyed by `gameId` at the route level, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
 
 ### Code-splitting
@@ -344,6 +358,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-speci
 |---|---|
 | `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in wordknit's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
+| `tests/tinyspy/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
 | `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
