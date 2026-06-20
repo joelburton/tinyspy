@@ -720,6 +720,7 @@ export type Database = {
           id: string
         }[]
       }
+      dump: { Args: { target_game: string; tile: string }; Returns: undefined }
       peel: { Args: { target_game: string }; Returns: undefined }
       save_player_board: {
         Args: { board: string; target_game: string }

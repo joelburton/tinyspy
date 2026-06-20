@@ -46,8 +46,25 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, feedback])
 
-  // Announce a peel: my own `tiles` growing means a peel dealt me a tile.
-  // Seed the baseline after load so the initial deal doesn't read as a draw.
+  // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). Flag it so the
+  // announcement reads it as a dump, not a peel — only the dumper's own tiles
+  // change (a peel changes everyone's), so this never races a real peel here.
+  const dumpPending = useRef(false)
+  const dump = useCallback(
+    async (tile: string) => {
+      dumpPending.current = true
+      const { error } = await db.rpc('dump', { target_game: gameId, tile })
+      if (error) {
+        dumpPending.current = false // no tiles change is coming
+        feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+      }
+    },
+    [gameId, feedback],
+  )
+
+  // Announce a draw: my own `tiles` growing means a peel dealt me a tile (or my
+  // dump just resolved). Seed the baseline after load so the initial deal
+  // doesn't read as a draw.
   const seenTilesLen = useRef<number | null>(null)
   useEffect(() => {
     if (loading) return
@@ -56,12 +73,22 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     if (tiles.length > seenTilesLen.current) {
-      const drawn = tiles.length - seenTilesLen.current
-      feedback.show({
-        tone: 'neutral',
-        text: `🍌 Peel! You drew ${drawn} tile${drawn === 1 ? '' : 's'}.`,
-        dismiss: { kind: 'timed', ms: 2500 },
-      })
+      const grew = tiles.length - seenTilesLen.current
+      if (dumpPending.current) {
+        dumpPending.current = false
+        // dump drew `grew + 1` (it also removed the one dumped tile).
+        feedback.show({
+          tone: 'neutral',
+          text: `♻️ Dumped 1, drew ${grew + 1}.`,
+          dismiss: { kind: 'timed', ms: 2500 },
+        })
+      } else {
+        feedback.show({
+          tone: 'neutral',
+          text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
+          dismiss: { kind: 'timed', ms: 2500 },
+        })
+      }
     }
     seenTilesLen.current = tiles.length
   }, [tiles, loading, feedback])
@@ -88,6 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
         tiles={tiles}
         isTerminal={ctx.isTerminal}
         onPeel={peel}
+        onDump={dump}
         bunchCount={bunchCount}
         peers={
           <PeersStrip players={ctx.players} progress={progress} selfUserId={ctx.session.user.id} />

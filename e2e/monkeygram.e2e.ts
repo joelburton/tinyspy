@@ -200,6 +200,46 @@ test.describe('monkeygram peel draw', () => {
 })
 
 /**
+ * Dump: dragging a hand tile onto the dump slot swaps it for DUMP_COUNT (3)
+ * from the bunch — a net +2 to the hand, −2 to the bunch. Exercises the
+ * drag-to-dump gesture + the dump RPC + the live re-derive of the hand.
+ */
+test.describe('monkeygram dump', () => {
+  test('dumping a tile swaps it for three from the bunch', async ({ browser }) => {
+    const club = await createSoloClub('alice')
+    const [alice] = club.members
+    const game = await createMonkeygramGame(club) // hand_size 15
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    // Full hand (15); the bunch holds 144 − 15 = 129.
+    await expect(page.locator('[data-hand-tile]')).toHaveCount(15, { timeout: 15000 })
+    await expect(page.getByText('129 in bunch')).toBeVisible()
+
+    // Drag the first hand tile onto the dump slot.
+    const tile = page.locator('[data-hand-tile]').first()
+    const dump = page.locator('[data-zone="dump"]')
+    const t = await tile.boundingBox()
+    const d = await dump.boundingBox()
+    if (!t || !d) throw new Error('no bounding box for tile/dump')
+    await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(t.x + t.width / 2 + 12, t.y + t.height / 2 + 12) // pass drag threshold
+    await page.mouse.move(d.x + d.width / 2, d.y + d.height / 2) // over the dump slot
+    await page.mouse.up()
+
+    // Net +2 tiles in hand, −2 in the bunch.
+    await expect(page.locator('[data-hand-tile]')).toHaveCount(17)
+    await expect(page.getByText('127 in bunch')).toBeVisible()
+
+    await ctx.close()
+  })
+})
+
+/**
  * The Phase 3 realtime signal: a peer's tiles-left count updating live in the
  * PeersStrip. A 2-player game presence-pauses unless both players are present,
  * so both browsers stay open; one player's board snapshot must tick the other's

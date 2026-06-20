@@ -213,6 +213,37 @@
   text-align: center;
 }
 
+/* Dump slot: a dashed drop target below the hand. Quiet by default; lights up
+ * when a hand tile is being dragged, brightest when one hovers it. */
+.dump {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 38px;
+  padding: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  border: 2px dashed var(--color-surface-border);
+  border-radius: var(--radius-md);
+  transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+.dumpArmed {
+  border-color: var(--mg-cursor);
+  color: var(--mg-cursor);
+}
+.dumpHot {
+  background: rgba(120, 200, 130, 0.22);
+  border-color: rgba(120, 200, 130, 0.8);
+  border-style: solid;
+  color: var(--color-text);
+}
+.dumpDisabled {
+  opacity: 0.5;
+  border-style: dotted;
+}
+
 /* Peel + bunch-count, pinned at the bottom of the right column. */
 .peelRow {
   flex: 0 0 auto;

@@ -42,6 +42,7 @@ import styles from './PlayerBoard.module.css'
 const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
 const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
+const DUMP_COUNT = 3 // tiles drawn per dump (server default; mirrored for the FE label/gate)
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
@@ -65,6 +66,9 @@ function cellAtPoint(x: number, y: number): Cell | null {
 function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
 }
+function overDumpAtPoint(x: number, y: number): boolean {
+  return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
+}
 
 type Props = {
   gameId: string
@@ -82,12 +86,15 @@ type Props = {
    *  everyone, or — if the bunch can't refill the table — wins the game (the
    *  win/terminal modal is driven from above by realtime). */
   onPeel?: () => void | Promise<void>
+  /** Dump a hand tile (calls `dump`): swap it for DUMP_COUNT from the bunch.
+   *  Fired by dropping a hand tile on the dump slot. */
+  onDump?: (letter: string) => void | Promise<void>
   /** Tiles left in the shared bunch (from status.pool_remaining), or undefined
    *  before it's known. Shown next to Peel so players sense the endgame. */
   bunchCount?: number
 }
 
-export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, bunchCount }: Props) {
+export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, onDump, bunchCount }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
   // derived order. Reconciled against the live hand each render, so it survives
@@ -98,6 +105,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const [cursor, setCursor] = useState<Cursor | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [hover, setHover] = useState<Cell | null>(null)
+  const [dumpHot, setDumpHot] = useState(false) // a hand tile is hovering the dump slot
   const [errFlash, setErrFlash] = useState(false)
   const [errNonce, setErrNonce] = useState(0)
   const [declaring, setDeclaring] = useState(false) // Done click in flight
@@ -260,9 +268,17 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         else if (g.source.kind === 'board') boardToBoard(g.source.row, g.source.col, target.row, target.col)
         return
       }
+      // Drop a HAND tile on the dump slot → dump it (server swaps it for
+      // DUMP_COUNT; the live `tiles` update re-derives the hand). Snap back if
+      // the bunch is too low to cover the draw — the slot shows that state.
+      const canDump = bunchCount === undefined || bunchCount >= DUMP_COUNT
+      if (overDumpAtPoint(x, y) && g.source.kind === 'hand' && g.letter && canDump) {
+        onDump?.(g.letter)
+        return
+      }
       if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
     },
-    [handToBoard, boardToBoard, boardToHand],
+    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount],
   )
 
   const onGestureMove = useCallback((e: PointerEvent) => {
@@ -279,6 +295,8 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     if (g.started && g.letter) {
       setDrag({ letter: g.letter, source: g.source, x: e.clientX, y: e.clientY })
       setHover(cellAtPoint(e.clientX, e.clientY))
+      // Only HAND tiles dump; light the slot when one hovers it.
+      setDumpHot(g.source.kind === 'hand' && overDumpAtPoint(e.clientX, e.clientY))
     }
   }, [])
 
@@ -292,6 +310,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         finishDrag(g, e.clientX, e.clientY)
         setDrag(null)
         setHover(null)
+        setDumpHot(false)
       } else if (g.cell) {
         setCursor({ row: g.cell.row, col: g.cell.col, dir: 'h' })
       }
@@ -551,6 +570,24 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           ))}
           {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
         </div>
+        {/* Dump slot: drop a hand tile here to swap it for DUMP_COUNT. Lights up
+         *  while a hand tile is dragged; dims when the bunch can't cover it. */}
+        {onDump && !isTerminal && (() => {
+          const tooLow = bunchCount !== undefined && bunchCount < DUMP_COUNT
+          return (
+            <div
+              data-zone="dump"
+              className={
+                styles.dump +
+                (drag?.source.kind === 'hand' && !tooLow ? ' ' + styles.dumpArmed : '') +
+                (dumpHot ? ' ' + styles.dumpHot : '') +
+                (tooLow ? ' ' + styles.dumpDisabled : '')
+              }
+            >
+              {tooLow ? '♻️ bunch too low to dump' : `♻️ drag a tile here to dump (1 → ${DUMP_COUNT})`}
+            </div>
+          )
+        })()}
         {/* The draw/win move: enabled only once the hand is empty. We FLUSH the
          *  board first so peel's "placed == tiles" check sees the latest
          *  placements; if the bunch is dry this wins, and the terminal modal is
