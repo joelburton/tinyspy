@@ -9,42 +9,61 @@
   gap: 0.75rem;
 }
 
+/* Positioned container for the absolutely-sized scroll area + the floating
+ * controls. */
 .boardCol {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  position: relative;
 }
 
-/* ---- board toolbar (zoom + center-and-fit) ---- */
-.toolbar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.zoom {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-.toolbar button {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.85rem;
-}
-
-/* ---- the fixed arena ---- */
+/* ---- the fixed arena ----
+ * Absolutely filled to the column so its size comes from the COLUMN, never
+ * from the grid inside it. A flex/auto-sized scroll container would grow to
+ * the grid's width at high zoom and push the hand column off-screen; inset:0
+ * pins it to the column and the grid just scrolls. */
 .boardScroll {
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
+  position: absolute;
+  inset: 0;
   overflow: auto;
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
   background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
+}
+
+/* ---- floating controls (top-right of the board) ---- */
+.controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.4rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.zoom {
+  writing-mode: vertical-lr;
+  direction: rtl; /* high zoom at the top */
+  height: 120px;
+  width: auto;
+  accent-color: var(--mg-cursor);
+  cursor: pointer;
+}
+.fitBtn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 .grid {
   display: grid;

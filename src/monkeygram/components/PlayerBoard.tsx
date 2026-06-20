@@ -446,21 +446,6 @@ export function PlayerBoard({ gameId, initialState }: Props) {
   return (
     <div className={styles.layout}>
       <div className={styles.boardCol}>
-        <div className={styles.toolbar}>
-          <label className={styles.zoom}>
-            zoom
-            <input
-              type="range"
-              min={minCell}
-              max={MAX_CELL}
-              value={cell}
-              onChange={(e) => onZoom(Number(e.target.value))}
-            />
-          </label>
-          <button type="button" onClick={centerAndFit}>
-            Center + fit
-          </button>
-        </div>
         <div className={styles.boardScroll} ref={scrollRef}>
           <div
             className={styles.grid}
@@ -474,6 +459,28 @@ export function PlayerBoard({ gameId, initialState }: Props) {
           >
             {cells}
           </div>
+        </div>
+        {/* Floating controls over the board's top-right corner. */}
+        <div className={styles.controls}>
+          <input
+            type="range"
+            className={styles.zoom}
+            min={minCell}
+            max={MAX_CELL}
+            value={cell}
+            onChange={(e) => onZoom(Number(e.target.value))}
+            aria-label="Zoom"
+            title="Zoom"
+          />
+          <button
+            type="button"
+            className={styles.fitBtn}
+            onClick={centerAndFit}
+            title="Center + fit"
+            aria-label="Center and fit"
+          >
+            ◎
+          </button>
         </div>
       </div>
 

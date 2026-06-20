@@ -53,6 +53,21 @@ test.describe('monkeygram renders', () => {
     expect(cbox!.y, 'center cell is on screen (top)').toBeGreaterThanOrEqual(0)
     expect(cbox!.y, 'center cell is on screen (bottom)').toBeLessThan(vp.height)
 
+    // At MAX zoom the grid is ~1600px wide — it must scroll inside the board
+    // column, NOT widen it and push the hand off-screen. (Use the native value
+    // setter so React's onChange actually fires.)
+    await page.locator('input[type="range"]').evaluate((el: HTMLInputElement) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+      setter.call(el, el.max)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const cellAtMax = await center.boundingBox()
+    expect(cellAtMax!.width, 'zoom actually applied (cells got bigger)').toBeGreaterThan(cbox!.width)
+    const handAtMax = await handTiles.first().boundingBox()
+    expect(handAtMax, 'hand tile has a box at max zoom').not.toBeNull()
+    expect(handAtMax!.x, 'hand stays on screen at max zoom').toBeLessThan(vp.width)
+    expect(handAtMax!.x).toBeGreaterThanOrEqual(0)
+
     await ctx.close()
   })
 })
