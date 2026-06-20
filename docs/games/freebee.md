@@ -75,7 +75,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Reveal scoring + bonus wordlists on game end** | shipped | Via `freebee.games_state` view's conditional-on-terminal column exposure |
 | **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or "Stopped at <rank>" (rank < 6 — covers both timeout and manual) |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
-| **Compete mode** (per-player found list, target-rank race, OpponentRanksStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair landed in the 20260621 freebee_compete migration. See [Compete mode](#compete-mode). |
+| **Compete mode** (per-player found list, target-rank race, OpponentRanksStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_freebee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
 | **Click-to-define popover** | **deferred (→ common)** | Common feature, not freebee-specific. See `~/.claude/projects/-Users-joel-src-codenames/memory/project_common_dictionary_lookup.md`. |
 | **Sounds** | out of scope | freebee-ws doesn't have them either. |
@@ -171,7 +171,7 @@ To build a board, the edge function:
 
 ### Why a SQL helper for `candidate_words`?
 
-[`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260618000001_freebee_candidate_words.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every dictionary row whose mask is a subset of `puzzle_mask` and contains `center_bit`.
+[`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260617000000_freebee.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every dictionary row whose mask is a subset of `puzzle_mask` and contains `center_bit`.
 
 It exists because the obvious-looking pattern — "fetch all in_legal words, filter the bitmask in JS" — silently truncates against PostgREST's `max_rows = 1000` cap. The dictionary has 46k rows; the alphabetical first 1000 mostly start with `a` and don't represent the puzzle's candidate space at all, so `total_words` ends up below the ≥30 gate and the function returns 500. Pushing the filter into Postgres returns only the ~hundreds of actual candidates in one round-trip, well under any cap.
 
@@ -235,7 +235,7 @@ On accept: inserts `found_words` row, recomputes team/player score, calls `commo
 
 Countdown-expiry handler. Calls `common.end_game(target_game, 'ended', {outcome:'timeout', ...}, player_results)`. Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.
 
-**Realtime touch at the tail**: `update freebee.games set club_handle = club_handle where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See [`migration 20260618000002`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) for the bug history.
+**Realtime touch at the tail**: `update freebee.games set club_handle = club_handle where id = target_game`. `submit_timeout` would otherwise never write to any `freebee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `freebee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See the "realtime touch" notes in [`20260617000000_freebee.sql`](../../supabase/migrations/20260617000000_freebee.sql) for the bug history.
 
 ### `freebee.end_game(target_game uuid) → void`
 
@@ -481,12 +481,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 
 | asking… | look at… |
 |---|---|
-| The Phase-1 schema, column grants, RLS, view, hidden-wordlist helpers | [`supabase/migrations/20260617000000_freebee_baseline.sql`](../../supabase/migrations/20260617000000_freebee_baseline.sql) |
-| The Phase-2 RPCs (`create_game`, `submit_word`, `submit_timeout`) + `_rank_idx` (pre-split signatures) | [`supabase/migrations/20260618000000_freebee_rpcs.sql`](../../supabase/migrations/20260618000000_freebee_rpcs.sql) |
-| `candidate_words` helper | [`supabase/migrations/20260618000001_freebee_candidate_words.sql`](../../supabase/migrations/20260618000001_freebee_candidate_words.sql) |
-| `submit_timeout`'s Realtime-touch fix | [`supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql`](../../supabase/migrations/20260618000002_freebee_submit_timeout_realtime_touch.sql) |
-| `freebee.end_game` (manual terminal — pre-split signature) | [`supabase/migrations/20260618000003_freebee_end_game.sql`](../../supabase/migrations/20260618000003_freebee_end_game.sql) |
-| Sibling-manifest split: mode column, gametype-row swap, mode-aware RLS, RPC rewrites with `mode text` arg | [`supabase/migrations/20260621000000_freebee_compete.sql`](../../supabase/migrations/20260621000000_freebee_compete.sql) |
+| Everything server-side — schema, column grants, RLS, the `games_state` view, hidden-wordlist helpers (`_scoring_words_for` / `_legal_words_for` / `candidate_words`), the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `freebee_coop`/`freebee_compete` gametype rows | [`supabase/migrations/20260617000000_freebee.sql`](../../supabase/migrations/20260617000000_freebee.sql) |
 | Compete-specific FE rendering (OpponentRanksStrip, mode-aware buildOver) | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
 | Target-rank picker in the setup dialog | [`src/freebee/components/SetupForm.tsx`](../../src/freebee/components/SetupForm.tsx) |
 | How the dictionary is populated | [`supabase/scripts/import-freebee-dictionary.ts`](../../supabase/scripts/import-freebee-dictionary.ts); SCOWL data in `supabase/data/` |

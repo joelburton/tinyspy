@@ -362,3 +362,314 @@ on conflict do nothing;
 insert into common.clubs_gametypes (club_handle, gametype)
 select handle, 'monkeygram' from common.clubs
 on conflict do nothing;
+-- ============================================================
+-- monkeygram.save_player_board — snapshot the private board
+-- ============================================================
+--
+-- The board is high-frequency, PRIVATE scratch state (drag a tile,
+-- place a letter — many times a second). It does NOT round-trip per
+-- move; the FE owns it as local state and snapshots the whole grid
+-- here on a debounce + when the board component unmounts (which, per
+-- docs/games/monkeygram.md, is what makes pause/navigate/shelve
+-- durable — PauseBoundary UNMOUNTS the play area, so an un-snapshotted
+-- board would be lost).
+--
+-- Only `board` is sent. The player's `tiles` (everything they hold)
+-- is SERVER-owned — set at the deal, grown by peel, swapped by dump —
+-- and the snapshot never touches it. The hand the player sees is
+-- derived FE-side as `tiles − placed`; here we just recompute the
+-- public `progress` counts peers watch from the same relationship:
+--   placed   = filled (non-'.') board cells
+--   unplaced = held tiles not yet placed = length(tiles) − placed
+--
+-- Trust model: the board is private and unvalidated in v1, so we
+-- persist it as-handed. We do NOT check the placed letters are a
+-- subset of `tiles` (no injected/relettered tiles) — friends-alpha.
+-- `unplaced` is clamped at 0 so a buggy/cheating client can't show a
+-- negative count.
+--
+-- Terminal games are a no-op: a late unmount-snapshot arriving after
+-- someone has won shouldn't clobber the final board.
+
+create function monkeygram.save_player_board(target_game uuid, board text)
+returns void
+language plpgsql
+security definer
+set search_path = monkeygram, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  is_term boolean;
+  n_tiles int;
+  n_placed int;
+begin
+  caller_id := common.require_game_player(target_game);
+
+  select is_terminal into is_term from common.games where id = target_game;
+  if is_term is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+  if is_term then
+    return; -- harmless no-op after game-over
+  end if;
+
+  if length(board) <> 25 * 25 then
+    raise exception 'board must be a 625-char string' using errcode = 'P0001';
+  end if;
+
+  update monkeygram.player_boards
+     set board = save_player_board.board,
+         updated_at = now()
+   where game_id = target_game and user_id = caller_id;
+
+  -- tiles is unchanged by this call; read it back to recompute counts.
+  select length(tiles) into n_tiles
+    from monkeygram.player_boards
+   where game_id = target_game and user_id = caller_id;
+  n_placed := length(replace(board, '.', ''));
+
+  update monkeygram.progress
+     set unplaced = greatest(n_tiles - n_placed, 0),
+         placed = n_placed
+   where game_id = target_game and user_id = caller_id;
+end;
+$$;
+
+revoke execute on function monkeygram.save_player_board(uuid, text) from public;
+grant execute on function monkeygram.save_player_board(uuid, text) to authenticated;
+-- ============================================================
+-- monkeygram.peel — draw a round, or go out (Bananas!)
+-- ============================================================
+--
+-- The heart of v2. A player who has placed every tile they hold (empty hand)
+-- clicks "Peel". Two outcomes, decided by whether the bunch can refill the
+-- whole table:
+--
+--   - Enough tiles (pool >= players × peel_count): EVERY player draws
+--     peel_count from the bunch and the game continues. (Yes — everyone draws,
+--     not just the peeler; that's the threshold's shape.)
+--   - Not enough: the peeler goes out and WINS — the Bananagrams endgame.
+--
+-- v1's declare_done is gone: "place your last tile and the bunch is dry" IS
+-- the win condition now, so peel subsumes it.
+--
+-- peel_count comes from setup (default 1) — a future setup option can make it
+-- 2 without touching this logic. There is NO board/word validation in v2; the
+-- only gate is "hand empty" (placed == length(tiles)), trusting the FE flushed
+-- its latest board first.
+--
+-- Race-safety: lock the gametype row up front so two simultaneous peels
+-- serialize. The first either ends the game or advances the pool; the second
+-- then sees the new state (a non-'playing' game, or a smaller pool) and acts on
+-- it. Without the lock two peelers could both draw from the same pool slice.
+
+create function monkeygram.peel(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = monkeygram, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  current_play_state text;
+  s_setup jsonb;
+  n_tiles int;
+  n_placed int;
+  s_peel_count int;
+  s_pool text;
+  player_count int;
+  needed int;
+  winner_name text;
+  player_results jsonb;
+begin
+  -- Serialize concurrent peels on the gametype row (see header).
+  perform 1 from monkeygram.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  select play_state, setup into current_play_state, s_setup
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not active' using errcode = 'P0001';
+  end if;
+
+  -- Gate: the caller's hand must be empty (every held tile placed).
+  select length(tiles), length(replace(board, '.', ''))
+    into n_tiles, n_placed
+    from monkeygram.player_boards
+   where game_id = target_game and user_id = caller_id;
+  if n_tiles is null then
+    raise exception 'no board for caller' using errcode = 'P0002';
+  end if;
+  if n_placed <> n_tiles then
+    raise exception 'your hand is not empty' using errcode = 'P0001';
+  end if;
+
+  s_peel_count := greatest(coalesce((s_setup->>'peel_count')::int, 1), 1);
+  select pool into s_pool from monkeygram.games where id = target_game;
+  select count(*)::int into player_count
+    from common.game_players where game_id = target_game;
+  needed := player_count * s_peel_count;
+
+  -- ─── Not enough to refill the table → the peeler goes out (win) ───
+  if length(s_pool) < needed then
+    update monkeygram.progress
+       set done = true, finished_at = now()
+     where game_id = target_game and user_id = caller_id;
+
+    select username into winner_name
+      from common.profiles where user_id = caller_id;
+
+    select jsonb_object_agg(
+             user_id::text,
+             case when user_id = caller_id
+                  then '{"won": true}'::jsonb
+                  else '{"won": false}'::jsonb
+             end)
+      into player_results
+      from common.game_players where game_id = target_game;
+
+    perform common.end_game(
+      target_game,
+      'won',
+      jsonb_build_object('outcome', 'won', 'winner_username', winner_name,
+                         'pool_remaining', length(s_pool)),
+      player_results
+    );
+    return;
+  end if;
+
+  -- ─── Enough → every player draws peel_count from the front of the bunch ───
+  -- Player at rank `pi` (1-based, stable order) takes the slice
+  -- s_pool[(pi-1)*peel_count + 1 .. peel_count]; the total drawn is `needed`.
+  with ranked as (
+    select user_id, row_number() over (order by user_id) as pi
+      from common.game_players where game_id = target_game
+  )
+  update monkeygram.player_boards pb
+     set tiles = pb.tiles || substr(s_pool, ((r.pi - 1) * s_peel_count + 1)::int, s_peel_count),
+         updated_at = now()
+    from ranked r
+   where pb.game_id = target_game and pb.user_id = r.user_id;
+
+  -- Each player's unplaced count grows by what they just drew (placed is
+  -- unchanged by a peel).
+  update monkeygram.progress
+     set unplaced = unplaced + s_peel_count
+   where game_id = target_game;
+
+  -- Advance the bunch past the drawn tiles.
+  update monkeygram.games
+     set pool = substr(s_pool, needed + 1)
+   where id = target_game;
+
+  -- Keep the FE's bunch count current.
+  perform common.update_state(target_game, 'playing',
+    jsonb_build_object('pool_remaining', length(s_pool) - needed));
+end;
+$$;
+
+revoke execute on function monkeygram.peel(uuid) from public;
+grant execute on function monkeygram.peel(uuid) to authenticated;
+-- ============================================================
+-- monkeygram.dump — swap one tile for three from the bunch
+-- ============================================================
+--
+-- A player stuck with an awkward tile (a Q, a lone consonant) trades it: the
+-- dumped tile goes back into the bunch and they draw dump_count (default 3) in
+-- return — a net +2 to the hand, the cost of getting unstuck.
+--
+-- Two guarantees from the rules:
+--   - You can't dump if the bunch can't cover the draw (length(pool) <
+--     dump_count). The dumped tile is returned only AFTER the draw, so it can
+--     never refill its own swap.
+--   - You won't draw back the SAME tile: we draw from the FRONT of the pool and
+--     append the dumped tile to the BACK. (You might draw the same LETTER if
+--     another copy was near the front — that's allowed.)
+--
+-- dump_count comes from setup (default 3) — a future setup option can change it
+-- without touching this logic. No board/word validation (v2 trust model); the
+-- only check is that the caller actually holds the tile they're dumping.
+--
+-- Locks the gametype row so a dump and a concurrent peel serialize on the
+-- shared pool (both draw from the front).
+
+create function monkeygram.dump(target_game uuid, tile text)
+returns void
+language plpgsql
+security definer
+set search_path = monkeygram, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  current_play_state text;
+  s_setup jsonb;
+  s_dump_count int;
+  s_pool text;
+  caller_tiles text;
+  drawn text;
+  pos int;
+begin
+  -- Serialize against concurrent peels/dumps on the shared pool.
+  perform 1 from monkeygram.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  select play_state, setup into current_play_state, s_setup
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not active' using errcode = 'P0001';
+  end if;
+
+  tile := upper(tile);
+  if tile !~ '^[A-Z]$' then
+    raise exception 'tile must be a single letter' using errcode = 'P0001';
+  end if;
+
+  s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
+
+  select pool into s_pool from monkeygram.games where id = target_game;
+  if length(s_pool) < s_dump_count then
+    raise exception 'not enough tiles in the bunch to dump' using errcode = 'P0001';
+  end if;
+
+  -- The caller must hold the tile they're dumping.
+  select tiles into caller_tiles
+    from monkeygram.player_boards
+   where game_id = target_game and user_id = caller_id;
+  pos := position(tile in caller_tiles);
+  if pos = 0 then
+    raise exception 'you do not hold that tile' using errcode = 'P0001';
+  end if;
+
+  -- Draw dump_count from the FRONT; the dumped tile returns to the BACK.
+  drawn := substr(s_pool, 1, s_dump_count);
+
+  update monkeygram.player_boards
+     set tiles = overlay(caller_tiles placing '' from pos for 1) || drawn,
+         updated_at = now()
+   where game_id = target_game and user_id = caller_id;
+
+  update monkeygram.games
+     set pool = substr(s_pool, s_dump_count + 1) || tile
+   where id = target_game;
+
+  -- Held grew by dump_count − 1 (placed unchanged), so unplaced does too.
+  update monkeygram.progress
+     set unplaced = unplaced + (s_dump_count - 1)
+   where game_id = target_game and user_id = caller_id;
+
+  -- Pool net change: −dump_count drawn + 1 returned.
+  perform common.update_state(target_game, 'playing',
+    jsonb_build_object('pool_remaining', length(s_pool) - s_dump_count + 1));
+end;
+$$;
+
+revoke execute on function monkeygram.dump(uuid, text) from public;
+grant execute on function monkeygram.dump(uuid, text) to authenticated;

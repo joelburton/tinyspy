@@ -458,8 +458,8 @@ select is(
 -- post-timeout assertion below checks it changed — proving the
 -- RPC touched the row, which is what fires the Realtime event
 -- the FE's useGame depends on for the post-terminal wordlist
--- reveal. See migration 20260618000002_freebee_submit_timeout_
--- realtime_touch.sql for the longer story.
+-- reveal. See the "realtime touch" notes in migration
+-- 20260617000000_freebee.sql for the longer story.
 reset role;
 -- ctid is the row's physical tuple location; an UPDATE writes a
 -- new tuple at a new ctid, even within the same transaction

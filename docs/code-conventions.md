@@ -8,7 +8,7 @@ For terminology and the architectural backdrop see [`naming.md`](naming.md). For
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260615000001_tinyspy_baseline.sql`](../supabase/migrations/20260615000001_tinyspy_baseline.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260615000001_tinyspy.sql`](../supabase/migrations/20260615000001_tinyspy.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
@@ -72,18 +72,25 @@ Canonical example: `psychicnum.games_state` + `psychicnum._target_for(uuid)` —
 
 ### Migration filenames
 
-Pattern: `<timestamp>_<schema>_<topic>.sql`. The schema-prefix-in-filename gives per-schema grouping without nested directories.
+Pattern: `<timestamp>_<schema>[_<topic>].sql`. The schema-prefix-in-filename gives per-schema grouping without nested directories.
 
-Examples:
+While we're still building (no real deploys yet), each schema is **squashed to a single final-state file** — one per concern — because that's far easier to read than a pile of incremental deltas:
 
 ```
-20260612000000_common_baseline.sql
-20260615000001_tinyspy_baseline.sql
-20260612000002_psychicnum_baseline.sql
+20260615000000_common.sql
+20260615000001_tinyspy.sql
+20260615000002_psychicnum.sql
+20260615000003_wordknit.sql
+20260617000000_freebee.sql
+20260623000000_monkeygram.sql
+```
 
-# future:
-20260620000000_tinyspy_add_difficulty.sql
-20260621000000_common_add_friends.sql
+These get re-squashed in place as a schema evolves (alpha — `db reset` re-runs everything from scratch, so there's no migration history to preserve). Once we deploy for real, new changes become append-only topic deltas instead:
+
+```
+# future, post-deploy:
+20260720000000_tinyspy_add_difficulty.sql
+20260721000000_common_add_friends.sql
 ```
 
 Cross-schema FKs (game → common) need `common.*` to exist first, which timestamp ordering handles naturally.

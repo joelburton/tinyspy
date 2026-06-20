@@ -260,7 +260,7 @@ using (true)
 
 Profile visibility has to be permissive for club-creation lookup — when you type "leah" into the new-club form, the FE has to resolve `leah → user_id` *before* you share a club with her. The right hardening axis, if it ever matters, is column-restriction via a view (`common.profiles_public`) that exposes only the safe columns. Tightening to "rows for users I share a club with" would break the lookup.
 
-See the comment block above the policy in [`supabase/migrations/20260615000000_common_baseline.sql`](../supabase/migrations/20260615000000_common_baseline.sql) for the longer reasoning.
+See the comment block above the policy in [`supabase/migrations/20260615000000_common.sql`](../supabase/migrations/20260615000000_common.sql) for the longer reasoning.
 
 There are no INSERT / UPDATE / DELETE policies anywhere in `common`. All writes go through the security-definer RPCs above.
 

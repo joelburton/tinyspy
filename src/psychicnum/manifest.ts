@@ -14,7 +14,7 @@ import logoUrl from './logo.svg?url'
  * club page. Both share:
  *
  *   - the `psychicnum` schema (tables, RPCs, RLS — see
- *     supabase/migrations/20260615000002_psychicnum_baseline.sql)
+ *     supabase/migrations/20260615000002_psychicnum.sql)
  *   - the folder `src/psychicnum/` (PlayArea, SetupForm, Help,
  *     useGame, theme.css, logo.svg)
  *   - the docs file `docs/games/psychicnum.md`

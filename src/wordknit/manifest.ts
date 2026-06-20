@@ -22,7 +22,7 @@ import logoUrl from './logo.svg?url'
  *
  * Both share:
  *   - the `wordknit` schema (tables, RPCs, RLS — see
- *     supabase/migrations/20260620000000_wordknit_compete.sql)
+ *     supabase/migrations/20260615000003_wordknit.sql)
  *   - the folder `src/wordknit/` (PlayArea, SetupForm, Help,
  *     useGame, theme.css, logo.svg)
  *   - the docs file `docs/games/wordknit.md`

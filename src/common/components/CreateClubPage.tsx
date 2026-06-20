@@ -18,7 +18,7 @@ type Props = {
  * version before insert, so this is purely for UX feedback.
  *
  * Keep in sync with `common.slugify_club_name` in
- * 20260615000000_common_baseline.sql.
+ * 20260615000000_common.sql.
  */
 function slugify(name: string): string {
   return name

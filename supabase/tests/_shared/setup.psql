@@ -115,7 +115,7 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
 -- — that's where the end-to-end contract gets pinned.
 --
 -- Keep this in sync with the body of common.claim_username in
--- 20260615000000_common_baseline.sql. If the claim RPC starts
+-- 20260615000000_common.sql. If the claim RPC starts
 -- materializing more (say, a "welcome" chat message), this fixture
 -- needs the same addition to keep tests representative.
 

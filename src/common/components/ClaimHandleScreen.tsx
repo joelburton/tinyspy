@@ -27,7 +27,7 @@ type Props = {
  * user types) and on the server (CHECK constraint + RPC's explicit
  * P0001 raise). The two surfaces use the same source-of-truth
  * pattern, kept in sync with the SQL CHECK in
- * 20260615000000_common_baseline.sql.
+ * 20260615000000_common.sql.
  *
  * Error mapping (the RPC's SQLSTATE codes → display):
  *   - P0001 "username must be 3–30 chars …" → show as-is

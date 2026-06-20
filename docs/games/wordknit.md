@@ -438,8 +438,8 @@ Tracked in [`deferred.md`](../deferred.md). The wordknit-specific ones today:
 
 | asking… | look at… |
 |---|---|
-| What does the create_game / submit_guess RPC do | Coop baseline: [`supabase/migrations/20260615000003_wordknit_baseline.sql`](../../supabase/migrations/20260615000003_wordknit_baseline.sql). Compete-mode rewrite + per-mode branches: [`supabase/migrations/20260620000000_wordknit_compete.sql`](../../supabase/migrations/20260620000000_wordknit_compete.sql). |
-| What does compete mode look like at the schema level | The wordknit_compete migration above — schema delta (mode columns, players table, mode-aware indexes + RLS), RPC mode-routing, and the gametype-row split |
+| What does the create_game / submit_guess RPC do | [`supabase/migrations/20260615000003_wordknit.sql`](../../supabase/migrations/20260615000003_wordknit.sql) — the full schema + RPCs, both modes |
+| What does compete mode look like at the schema level | Same file — `mode` columns, the `players` table, mode-aware partial indexes + RLS, the RPCs' per-mode branches, and the `wordknit_coop`/`wordknit_compete` gametype rows |
 | How does the FE branch on mode | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (OpponentMistakesStrip + buildOver + eliminated state) and [`src/wordknit/hooks/useGame.ts`](../../src/wordknit/hooks/useGame.ts) (mistakeCount / opponentMistakes / isEliminated projections + broadcast short-circuit) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run wordknit:import` |

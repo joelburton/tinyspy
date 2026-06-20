@@ -408,7 +408,7 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 
 | asking… | look at… |
 |---|---|
-| What does an RPC do | [`supabase/migrations/20260615000002_psychicnum_baseline.sql`](../../supabase/migrations/20260615000002_psychicnum_baseline.sql) |
+| What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
 | What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Is the target really hidden? | column-level grant + `psychicnum.games_state` view with `_target_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

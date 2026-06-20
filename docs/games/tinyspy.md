@@ -87,7 +87,7 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
 | Every guess replayable in the Game Log | one row per guess in `tinyspy.guesses` (a word can be guessed twice) |
 
-The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../../supabase/migrations/20260615000001_tinyspy_baseline.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/tinyspy/win_test.sql).
+The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../../supabase/migrations/20260615000001_tinyspy.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/tinyspy/win_test.sql).
 
 ## Schema: `tinyspy.*`
 
@@ -404,7 +404,7 @@ Deferred or sketched but not built:
 
 | asking… | look at… |
 |---|---|
-| What does an RPC do | [`supabase/migrations/20260615000001_tinyspy_baseline.sql`](../../supabase/migrations/20260615000001_tinyspy_baseline.sql) |
+| What does an RPC do | [`supabase/migrations/20260615000001_tinyspy.sql`](../../supabase/migrations/20260615000001_tinyspy.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../../supabase/tests/tinyspy/) |
 | What does the board look like | [`src/tinyspy/components/BoardGrid.tsx`](../../src/tinyspy/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
 | What does the page composition look like | [`src/tinyspy/components/PlayArea.tsx`](../../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |

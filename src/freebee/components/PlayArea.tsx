@@ -45,7 +45,7 @@ const RESULT_TONE: Record<string, FeedbackTone> = {
  *
  *  `bonus` reads identically to `accepted`: a bonus word scores the
  *  same points as a scoring word (submit_word computes length-based +
- *  pangram points for it — see the freebee_compete migration), it just
+ *  pangram points for it — see the freebee migration), it just
  *  doesn't count toward the "X / Y words" denominator. That internal
  *  distinction isn't worth surfacing to the player, and the old
  *  "Bonus — no points" was simply wrong — they DO earn points. */
@@ -132,7 +132,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the player digs into the bonus list. The denominator
   // (game.total_words) stays scoring-only. score sums every row's
   // points, which include bonus-word points after the bonus-
-  // scoring fix in the freebee_compete migration.
+  // scoring fix in the freebee migration.
   const scoringRows = useMemo(
     () =>
       game?.mode === 'compete'

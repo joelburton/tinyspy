@@ -179,16 +179,16 @@ table comment in the baseline migration.)
 
 ### Build order
 
-1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_monkeygram_baseline.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`).
-2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260624000000_monkeygram_save_player_board.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/monkeygram.e2e.ts`).
+1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_monkeygram.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`).
+2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260623000000_monkeygram.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/monkeygram.e2e.ts`).
 3. **`progress` realtime + PeersStrip** — watch a peer's count drop. **✓ DONE** (`hooks/useGame.ts` → `useProgress` subscribes to `monkeygram.progress`; `components/PeersStrip.tsx` renders opponents' tiles-left; e2e covers the live update).
 4. **`declare_done` + terminal** — hand-empty win; result modal. **✓ DONE** *(v1; replaced by `peel` in v2)*
 
 **v2 build order:**
 1. **Standard ⟲ ShuffleButton** (common; adopted in FreeBee + WordKnit). **✓ DONE** (`common/components/ShuffleButton`).
 2. **Re-platform the hand as derived** (`board` + `tiles` + `pool`; live `tiles` subscription). **✓ DONE** (baseline + `save_player_board` migrations; `lib/board.ts` helpers; `useGame`/`PlayerBoard`).
-3. **`peel`** — draw a round / go out (Bananas!); Peel button + bunch count + announcement. **✓ DONE** (migration `20260625000000_monkeygram_peel.sql`; pgTAP `peel_test.sql`; e2e win + draw paths).
-4. **`dump`** — swap one tile for three (drag-to-dump-slot). **✓ DONE** (migration `20260626000000_monkeygram_dump.sql`; pgTAP `dump_test.sql`; e2e drag-to-dump).
+3. **`peel`** — draw a round / go out (Bananas!); Peel button + bunch count + announcement. **✓ DONE** (migration `20260623000000_monkeygram.sql`; pgTAP `peel_test.sql`; e2e win + draw paths).
+4. **`dump`** — swap one tile for three (drag-to-dump-slot). **✓ DONE** (migration `20260623000000_monkeygram.sql`; pgTAP `dump_test.sql`; e2e drag-to-dump).
 5. **Polish / future** — hand sort/group, optional elapsed timer; eventually word/board validation (the one Bananagrams rule we still trust players on).
 
 ### From v1 to v2 — what held, what changed
