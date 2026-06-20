@@ -187,6 +187,10 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Typed-word state ──────────────────────────────────
   const [word, setWord] = useState('')
+  // The last word the player submitted, kept so ArrowUp can recall it into the
+  // input for quick editing (add an 'S' for the plural, fix a typo, …).
+  // FE-only — never shared or stored.
+  const [lastWord, setLastWord] = useState('')
 
   // ─── "Look up any word" dialog (tilde shortcut) ────────
   const [lookupOpen, setLookupOpen] = useState(false)
@@ -231,6 +235,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const handleSubmit = useCallback(async () => {
     if (submitting || word.length === 0 || isTerminal) return
+    // Remember what was submitted so ArrowUp can recall it (the word clears on
+    // submit, including a rejected one — recalling lets them fix it too).
+    setLastWord(word)
     setSubmitting(true)
     try {
       const { data, error } = await db.rpc('submit_word', {
@@ -291,13 +298,27 @@ export function PlayArea(ctx: GamePageCtx) {
           void handleSubmit()
           return
         }
+        // ArrowUp recalls the previously-submitted word into the input for
+        // editing — fast "add an S" entry. (The INPUT/TEXTAREA guard above
+        // means this only fires for word entry, never in chat.)
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          if (lastWord) setWord(lastWord)
+          return
+        }
+        // ArrowDown clears the current entry.
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          setWord('')
+          return
+        }
         if (e.key === ' ') {
           e.preventDefault()
           handleShuffle()
           return
         }
       },
-      [game, handleShuffle, handleSubmit, isTerminal, loading],
+      [game, handleShuffle, handleSubmit, isTerminal, lastWord, loading],
     ),
   )
 
