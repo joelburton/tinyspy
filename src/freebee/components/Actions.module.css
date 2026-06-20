@@ -53,22 +53,6 @@
   outline-offset: 2px;
 }
 
-/* Shuffle button gets the icon-only treatment: square-ish pad,
- * the glyph (⟲) rotates on hover as a small affordance. The
- * rotation lives on the inner .iconGlyph span, not the button
- * itself — rotating the button would spin the pill, which
- * reads as the whole control twitching. */
-.iconAction {
-  width: 44px;
-  padding: 0;
-  font-size: 18px;
-}
-
-.iconGlyph {
-  display: inline-block;
-  transition: transform 120ms ease;
-}
-
-.iconAction:hover:not(:disabled) .iconGlyph {
-  transform: rotate(90deg);
-}
+/* The center ⟲ Shuffle is now the shared common/components/ShuffleButton —
+ * its icon-only pill + hover-spin styling lives there. Only Delete / Enter
+ * use .action above. */

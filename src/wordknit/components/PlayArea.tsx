@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -297,14 +298,11 @@ export function PlayArea({
                   </>
                 )}
               </div>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleShuffle}
+              <ShuffleButton
+                onShuffle={handleShuffle}
                 disabled={displayedTiles.length === 0}
-              >
-                Shuffle
-              </button>
+                label="Shuffle tiles"
+              />
               <button
                 type="button"
                 className="secondary"

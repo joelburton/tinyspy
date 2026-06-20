@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { ShuffleButton } from '../../common/components/ShuffleButton'
 import styles from './Actions.module.css'
 
 type Props = {
@@ -45,20 +45,10 @@ export function Actions({
       >
         Delete
       </button>
-      <button
-        type="button"
-        className={cls(styles.action, styles.iconAction)}
-        onClick={onShuffle}
-        onMouseDown={(e) => e.preventDefault()}
-        aria-label="Shuffle outer letters"
-        title="Shuffle"
-      >
-        {/* The glyph is wrapped so the hover rotation animates
-            the symbol, not the whole button. (Rotating the
-            button moves the whole pill — unwanted; rotating
-            the inner span keeps the pill stable.) */}
-        <span className={styles.iconGlyph}>⟲</span>
-      </button>
+      {/* The standard shared ⟲ control — see common/components/ShuffleButton.
+       *  Always clickable (even when `locked`): shuffling is a harmless local
+       *  rearrange the player can keep doing after the game ends. */}
+      <ShuffleButton onShuffle={onShuffle} label="Shuffle outer letters" />
       <button
         type="button"
         className={styles.action}
