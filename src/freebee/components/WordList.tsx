@@ -8,6 +8,7 @@ import { DefinitionPopover } from '../../common/components/DefinitionPopover'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
 import type { FoundWordRow, Player } from '../hooks/useGame'
+import { buildDisplayRows } from '../lib/displayRows'
 import { useRecentlyFound } from '../hooks/useRecentlyFound'
 import styles from './WordList.module.css'
 
@@ -32,19 +33,9 @@ type Props = {
   revealWords?: Array<{ word: string; points: number; is_pangram: boolean }> | null
 }
 
-/** A merged-list row — either a found word (full FoundWordRow)
- *  or an unfound reveal entry. Distinct kinds so the render
- *  branch on `kind` cleanly without union-narrowing tricks.
- *
- *  `category` is the post-terminal stylable bucket:
- *    - 'a' — the viewing player found this word ("my words").
- *    - 'b' — everything else: words found by *other* players, and
- *            (for unfound rows) scoring words nobody found.
- *  Mid-game the category is computed but unused — the render keeps
- *  per-finder colors until `revealWords` arrives. */
-type DisplayRow =
-  | { kind: 'found'; row: FoundWordRow; category: 'a' | 'b' }
-  | { kind: 'unfound'; word: string; isPangram: boolean } // always cat B
+// The merged-row shape + the build/dedup logic live in
+// `../lib/displayRows` so the dedup (mine-wins-over-opponent's for a
+// word both found, post-terminal in compete) is unit-tested.
 
 /**
  * Alphabetical list of every accepted submission.
@@ -113,39 +104,12 @@ export function WordList({
     return m
   }, [players])
 
-  // Merge the found rows with any reveal entries (if provided)
-  // into a single alphabetical list. Found rows shadow unfound
-  // entries with the same word — we never want to render a
-  // word both as "found in finder color" AND "missed in gray."
-  const displayRows = useMemo<DisplayRow[]>(() => {
-    const foundByWord = new Map<string, FoundWordRow>()
-    for (const r of foundWords) foundByWord.set(r.word, r)
-
-    const rows: DisplayRow[] = []
-    for (const r of foundWords) {
-      rows.push({
-        kind: 'found',
-        row: r,
-        category: r.user_id === selfUserId ? 'a' : 'b',
-      })
-    }
-    if (revealWords) {
-      for (const sw of revealWords) {
-        if (foundByWord.has(sw.word)) continue   // shadowed
-        rows.push({
-          kind: 'unfound',
-          word: sw.word,
-          isPangram: sw.is_pangram,
-        })
-      }
-    }
-    rows.sort((a, b) => {
-      const aw = a.kind === 'found' ? a.row.word : a.word
-      const bw = b.kind === 'found' ? b.row.word : b.word
-      return aw.localeCompare(bw)
-    })
-    return rows
-  }, [foundWords, revealWords, selfUserId])
+  // Merge the found rows with any reveal entries into one alphabetical
+  // list (dedup rules in buildDisplayRows).
+  const displayRows = useMemo(
+    () => buildDisplayRows(foundWords, revealWords, selfUserId),
+    [foundWords, revealWords, selfUserId],
+  )
 
   // Just the found words for the useRecentlyFound input — the
   // unfound reveal entries arrive in bulk when the game
