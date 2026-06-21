@@ -1,0 +1,42 @@
+-- ============================================================
+-- Per-test-file waffle fixtures
+-- ============================================================
+--
+-- Loaded by every waffle/*_test.sql via `\ir setup.psql` (after the
+-- shared persona setup).
+--
+-- Provides:
+--   - one deterministic test puzzle in waffle.puzzles, whose scramble
+--     is exactly ONE swap (cells 0 and 1) away from solved — so a test
+--     can solve it with submit_swap(game, 0, 1). The solution uses 21
+--     distinct letters (a..u) so there's no color/duplicate ambiguity.
+--     create_game has only this puzzle to pick, so games are
+--     deterministic.
+--   - pg_temp.waffle_setup(extra) — the coop setup jsonb. `extra` is
+--     the swap-budget slack (max_swaps = par + extra); par is 1 here,
+--     so extra=0 gives a 1-swap budget (handy for the lose path).
+
+reset role;
+
+-- Clear any imported library so create_game deterministically picks
+-- OUR test puzzle (the whole test runs in a transaction that rolls
+-- back, so the real library is untouched).
+delete from waffle.puzzles;
+
+insert into waffle.puzzles (solution, scramble, par_swaps, title)
+values (
+  'abcdef.g.hijklmn.o.pqrstu',   -- solved
+  'bacdef.g.hijklmn.o.pqrstu',   -- cells 0,1 swapped → 1 swap from solved
+  1,
+  'Test'
+);
+
+create function pg_temp.waffle_setup(extra int default 5)
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'extra_swaps', extra,
+    'timer', jsonb_build_object('kind', 'none')
+  );
+$$;

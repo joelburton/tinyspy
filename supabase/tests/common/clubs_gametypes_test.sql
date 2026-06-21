@@ -40,14 +40,14 @@ select plan(10);
 
 select is(
   (select count(*) from common.gametypes),
-  8::bigint,
-  'common.gametypes contains eight rows (tinyspy + 2 psychicnum + 2 wordknit + 2 freebee + monkeygram)'
+  9::bigint,
+  'common.gametypes contains nine rows (tinyspy + 2 psychicnum + 2 wordknit + 2 freebee + monkeygram + waffle_coop)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','wordknit_compete','wordknit_coop'],
-  'common.gametypes contains the eight registered gametypes by name'
+  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','waffle_coop','wordknit_compete','wordknit_coop'],
+  'common.gametypes contains the nine registered gametypes by name'
 );
 
 -- ============================================================
@@ -64,8 +64,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  8::bigint,
-  'claim_username populated 8 clubs_gametypes rows for ada''s solo club'
+  9::bigint,
+  'claim_username populated 9 clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -75,8 +75,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','wordknit_compete','wordknit_coop'],
-  'ada''s solo club has m2m rows for all eight registered gametypes'
+  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','waffle_coop','wordknit_compete','wordknit_coop'],
+  'ada''s solo club has m2m rows for all nine registered gametypes'
 );
 
 -- ============================================================
@@ -94,8 +94,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  8::bigint,
-  'create_club populated 8 m2m rows for the new club'
+  9::bigint,
+  'create_club populated 9 m2m rows for the new club'
 );
 
 select is(
@@ -104,8 +104,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','wordknit_compete','wordknit_coop'],
-  'new club has m2m rows for all eight registered gametypes'
+  array['freebee_compete','freebee_coop','monkeygram','psychicnum_compete','psychicnum_coop','tinyspy','waffle_coop','wordknit_compete','wordknit_coop'],
+  'new club has m2m rows for all nine registered gametypes'
 );
 
 -- ============================================================
@@ -120,7 +120,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  8::bigint,
+  9::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -149,7 +149,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  8::bigint,
+  9::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 

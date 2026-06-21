@@ -1106,6 +1106,81 @@ export type Database = {
   }
   waffle: {
     Tables: {
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          id: string
+          max_swaps: number
+          mode: string
+          puzzle_id: string
+          scramble: string
+          solution: string
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          id: string
+          max_swaps: number
+          mode: string
+          puzzle_id: string
+          scramble: string
+          solution: string
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          id?: string
+          max_swaps?: number
+          mode?: string
+          puzzle_id?: string
+          scramble?: string
+          solution?: string
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          board: string
+          game_id: string
+          solved: boolean
+          solved_at: string | null
+          swaps_used: number
+          user_id: string
+        }
+        Insert: {
+          board: string
+          game_id: string
+          solved?: boolean
+          solved_at?: string | null
+          swaps_used?: number
+          user_id: string
+        }
+        Update: {
+          board?: string
+          game_id?: string
+          solved?: boolean
+          solved_at?: string | null
+          swaps_used?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       puzzles: {
         Row: {
           id: string
@@ -1132,10 +1207,89 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      games_state: {
+        Row: {
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          max_swaps: number | null
+          mode: string | null
+          puzzle_id: string | null
+          scramble: string | null
+          solution: string | null
+        }
+        Insert: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          max_swaps?: number | null
+          mode?: string | null
+          puzzle_id?: string | null
+          scramble?: string | null
+          solution?: never
+        }
+        Update: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          max_swaps?: number | null
+          mode?: string | null
+          puzzle_id?: string | null
+          scramble?: string | null
+          solution?: never
+        }
+        Relationships: []
+      }
+      players_state: {
+        Row: {
+          board: string | null
+          colors: string | null
+          game_id: string | null
+          solved: boolean | null
+          solved_at: string | null
+          swaps_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          board?: string | null
+          colors?: never
+          game_id?: string | null
+          solved?: boolean | null
+          solved_at?: string | null
+          swaps_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          board?: string | null
+          colors?: never
+          game_id?: string | null
+          solved?: boolean | null
+          solved_at?: string | null
+          swaps_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _color_rank: { Args: { c: string }; Returns: number }
+      _colors_for: { Args: { board: string; g_id: string }; Returns: string }
+      _solution_for: { Args: { g_id: string }; Returns: string }
       _wordle_colors: {
         Args: { answer: string; guess: string }
         Returns: string
@@ -1143,6 +1297,21 @@ export type Database = {
       compute_colors: {
         Args: { board: string; solution: string }
         Returns: string
+      }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      submit_swap: {
+        Args: { pos_a: number; pos_b: number; target_game: string }
+        Returns: Json
       }
     }
     Enums: {

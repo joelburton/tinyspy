@@ -196,3 +196,385 @@ create table waffle.puzzles (
 -- DEFINER. authenticated gets SELECT for parity with the other
 -- reference tables (wordknit.puzzles, freebee.pangrams).
 grant select on waffle.puzzles to authenticated;
+
+-- ============================================================
+-- waffle.games — one row per playthrough
+-- ============================================================
+-- The puzzle, copied onto the game so it's self-contained (a later
+-- puzzle-library refresh never disturbs in-flight games). `solution`
+-- is the answer key — HIDDEN via a column-level grant and revealed
+-- only post-terminal through games_state (the freebee/psychicnum
+-- hidden-answer pattern). `scramble` is the starting board (public).
+create table waffle.games (
+  id          uuid primary key references common.games(id) on delete cascade,
+  club_handle text not null references common.clubs(handle) on delete cascade,
+  -- Sibling-manifest mode axis; agrees with the gametype string
+  -- ('waffle_coop' / 'waffle_compete') by construction in create_game.
+  mode        text not null check (mode in ('coop', 'compete')),
+  -- Informational back-reference to the source puzzle. NOT a FK: the
+  -- library is reseeded with TRUNCATE (which regenerates ids), so a FK
+  -- here would either block the reseed or orphan existing games. The
+  -- game copies solution/scramble below, so it never needs the puzzle
+  -- row to exist.
+  puzzle_id   uuid not null,
+  scramble    char(25) not null,   -- starting board, holes '.'
+  max_swaps   int not null,        -- par + extra (the swap budget)
+  solution    char(25) not null,   -- HIDDEN answer key
+  created_at  timestamptz not null default now()
+);
+
+create index waffle_games_club_handle_idx on waffle.games (club_handle);
+
+-- Column-level grant: everything EXCEPT `solution`. The presence of
+-- any column grant flips the table from "all columns visible" to
+-- "only granted columns," so we enumerate the safe ones. games_state
+-- exposes the solution conditionally via a SECURITY DEFINER helper.
+grant select
+  (id, club_handle, mode, puzzle_id, scramble, max_swaps, created_at)
+  on waffle.games to authenticated;
+
+alter table waffle.games enable row level security;
+-- Read gating: any club member can read any of the club's games
+-- (viewing is club-gated; acting is player-gated in the RPCs).
+create policy games_select on waffle.games
+  for select to authenticated
+  using (common.is_club_member(club_handle));
+
+-- ============================================================
+-- waffle.players — per-player working state
+-- ============================================================
+-- One row per player. `board` is the player's current arrangement,
+-- starting equal to the scramble. In COOP every row is kept identical
+-- and updated in lock-step on each swap (mirrors wordknit.players);
+-- in COMPETE each row moves independently. `solved` / `solved_at`
+-- drive the compete fewest-swaps + earliest-time tie-break (Phase 4).
+create table waffle.players (
+  game_id    uuid not null references waffle.games(id) on delete cascade,
+  user_id    uuid not null references common.profiles(user_id) on delete cascade,
+  board      char(25) not null,
+  swaps_used int not null default 0,
+  solved     boolean not null default false,
+  solved_at  timestamptz,
+  primary key (game_id, user_id)
+);
+
+create index waffle_players_game_id_idx on waffle.players (game_id);
+grant select on waffle.players to authenticated;
+
+alter table waffle.players enable row level security;
+-- Phase 3: club-member read (coop shows the shared board to everyone).
+-- Phase 4 narrows this so a COMPETE opponent's board is hidden
+-- mid-game (only swaps_used / solved exposed) and revealed at terminal.
+create policy players_select on waffle.players
+  for select to authenticated
+  using (
+    exists (
+      select 1 from waffle.games g
+       where g.id = players.game_id
+         and common.is_club_member(g.club_handle)
+    )
+  );
+
+-- Realtime: coop sees the shared board update live; the in-game
+-- subscription is on waffle.{games, players}.
+alter publication supabase_realtime add table waffle.games;
+alter publication supabase_realtime add table waffle.players;
+
+-- ============================================================
+-- Hidden-answer helpers (SECURITY DEFINER) + read views
+-- ============================================================
+-- _solution_for reveals the solution only once the game is terminal
+-- (the end-of-game reveal). _colors_for computes a board's feedback
+-- against the hidden solution during play — colors are the gameplay
+-- signal, the solution itself stays hidden. Both run as definer so
+-- they can read the grant-hidden `solution` column; the
+-- security_invoker views call them as the caller, and base-table RLS
+-- still gates which rows the caller sees.
+
+create function waffle._solution_for(g_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+  select case when cg.is_terminal then wg.solution::text else null end
+    from waffle.games wg
+    join common.games cg on cg.id = wg.id
+   where wg.id = g_id;
+$$;
+
+create function waffle._colors_for(g_id uuid, board text)
+returns text
+language sql
+stable
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+  select waffle.compute_colors(board, wg.solution)
+    from waffle.games wg
+   where wg.id = g_id;
+$$;
+
+revoke execute on function waffle._solution_for(uuid) from public;
+revoke execute on function waffle._colors_for(uuid, text) from public;
+grant execute on function waffle._solution_for(uuid) to authenticated;
+grant execute on function waffle._colors_for(uuid, text) to authenticated;
+
+create view waffle.games_state with (security_invoker = true) as
+  select wg.id,
+         wg.club_handle,
+         wg.mode,
+         wg.puzzle_id,
+         wg.scramble,
+         wg.max_swaps,
+         wg.created_at,
+         waffle._solution_for(wg.id) as solution   -- NULL until terminal
+    from waffle.games wg;
+
+create view waffle.players_state with (security_invoker = true) as
+  select wp.game_id,
+         wp.user_id,
+         wp.board,
+         wp.swaps_used,
+         wp.solved,
+         wp.solved_at,
+         waffle._colors_for(wp.game_id, wp.board) as colors
+    from waffle.players wp;
+
+grant select on waffle.games_state to authenticated;
+grant select on waffle.players_state to authenticated;
+
+-- ============================================================
+-- Register the gametype(s)
+-- ============================================================
+-- Phase 3 ships COOP only. waffle_compete is registered in Phase 4
+-- alongside the compete submit_swap branch + opponent-visibility RLS.
+insert into common.gametypes (gametype) values
+  ('waffle_coop')
+on conflict do nothing;
+
+-- ============================================================
+-- waffle.create_game — mode is a positional arg
+-- ============================================================
+-- Setup shape (server validates):
+--   { "extra_swaps": int (0..15, default 5),     -- budget = par + this
+--     "timer": (none | countup | countdown{seconds}) }
+-- `mode` ('coop' | 'compete') routes the gametype string and the
+-- working-state semantics. Picks a puzzle the club hasn't played yet
+-- (fallback: any), copies its boards onto the game, and seeds one
+-- players row per player (board = scramble). The game title is the
+-- puzzle's title (currently its difficulty label).
+create function waffle.create_game(
+  target_club     text,
+  setup           jsonb,
+  player_user_ids uuid[],
+  mode            text
+)
+returns table(id uuid)
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  new_id    uuid;
+  s_extra   int;
+  puzzle    waffle.puzzles%rowtype;
+  budget    int;
+begin
+  perform common.require_club_member(target_club);
+  -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
+  perform common.require_player_count_max(player_user_ids, 6);
+
+  if mode not in ('coop', 'compete') then
+    raise exception 'mode must be coop or compete (got %)', mode
+      using errcode = 'P0001';
+  end if;
+
+  -- ─── Validate setup.extra_swaps (the difficulty knob) ────
+  s_extra := coalesce((setup->>'extra_swaps')::int, 5);
+  if s_extra < 0 or s_extra > 15 then
+    raise exception 'setup.extra_swaps must be 0..15 (got %)', s_extra
+      using errcode = 'P0001';
+  end if;
+
+  perform common.validate_timer(setup->'timer');
+
+  -- ─── Pick a puzzle the club hasn't played; fallback any ──
+  -- Alias the table: RETURNS TABLE(id …) puts `id` in scope, so an
+  -- unqualified `id` here would be ambiguous with the OUT param.
+  select * into puzzle
+    from waffle.puzzles p
+   where p.id not in (
+     select puzzle_id from waffle.games where club_handle = target_club
+   )
+   order by random()
+   limit 1;
+  if not found then
+    select * into puzzle from waffle.puzzles order by random() limit 1;
+  end if;
+  if not found then
+    raise exception 'no waffle puzzles available — run waffle:import'
+      using errcode = 'P0002';
+  end if;
+
+  budget := puzzle.par_swaps + s_extra;
+
+  new_id := common.create_game(
+    target_club, 'waffle_' || mode, player_user_ids, puzzle.title, setup,
+    setup
+  );
+
+  insert into waffle.games
+    (id, club_handle, mode, puzzle_id, scramble, max_swaps, solution)
+  values
+    (new_id, target_club, mode, puzzle.id, puzzle.scramble, budget,
+     puzzle.solution);
+
+  insert into waffle.players (game_id, user_id, board)
+  select new_id, uid, puzzle.scramble
+    from unnest(player_user_ids) uid;
+
+  perform common.update_state(
+    new_id,
+    'playing',
+    jsonb_build_object(
+      'mode', mode,
+      'max_swaps', budget,
+      'swaps_used', 0,
+      'solved', false
+    )
+  );
+
+  return query select new_id;
+end;
+$$;
+
+revoke execute on function waffle.create_game(text, jsonb, uuid[], text) from public;
+grant execute on function waffle.create_game(text, jsonb, uuid[], text) to authenticated;
+
+-- ============================================================
+-- waffle.submit_swap — the core move
+-- ============================================================
+-- Swap the letters of two filled cells. Returns the resulting per-
+-- tile colors + the new swap count + whether the board is solved +
+-- whether the game just terminated.
+--
+-- The `for update` lock on the games row serializes concurrent coop
+-- swaps (two friends swapping at once): the second waits, then reads
+-- the first's committed board. The working board lives in
+-- waffle.players, so the games-row lock is purely the mutex.
+create function waffle.submit_swap(
+  target_game uuid,
+  pos_a       int,
+  pos_b       int
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  caller_id          uuid;
+  g_row              waffle.games%rowtype;
+  current_play_state text;
+  p_board            char(25);
+  p_swaps            int;
+  a1                 int;
+  b1                 int;
+  new_board          char(25);
+  new_swaps          int;
+  did_solve          boolean;
+  out_terminal       boolean := false;
+  term_state         text;
+  player_results     jsonb;
+begin
+  caller_id := common.require_game_player(target_game);
+
+  select * into g_row from waffle.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'swaps only allowed during active play'
+      using errcode = 'P0001';
+  end if;
+
+  -- ─── Validate the two positions ──────────────────────────
+  if pos_a is null or pos_b is null or pos_a = pos_b
+     or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
+    raise exception 'swap needs two distinct cells in 0..24'
+      using errcode = 'P0001';
+  end if;
+  if pos_a in (6, 8, 16, 18) or pos_b in (6, 8, 16, 18) then
+    raise exception 'cannot swap a hole cell' using errcode = 'P0001';
+  end if;
+
+  -- The caller's working board (coop rows are identical; compete is
+  -- the caller's own).
+  select board, swaps_used into p_board, p_swaps
+    from waffle.players
+   where game_id = target_game and user_id = caller_id;
+  if p_swaps >= g_row.max_swaps then
+    raise exception 'no swaps remaining' using errcode = 'P0001';
+  end if;
+
+  -- Apply the swap (overlay/substr are 1-based). Both placements use
+  -- the ORIGINAL board so the two cells exchange cleanly.
+  a1 := pos_a + 1;
+  b1 := pos_b + 1;
+  new_board := overlay(p_board placing substr(p_board, b1, 1) from a1 for 1);
+  new_board := overlay(new_board placing substr(p_board, a1, 1) from b1 for 1);
+  new_swaps := p_swaps + 1;
+  did_solve := (new_board = g_row.solution);
+
+  if g_row.mode = 'coop' then
+    -- Lock-step: every player's row mirrors the shared board + count.
+    update waffle.players
+       set board      = new_board,
+           swaps_used = new_swaps,
+           solved     = did_solve,
+           solved_at  = case when did_solve then now() else solved_at end
+     where game_id = target_game;
+
+    if did_solve then
+      term_state := 'won';
+      out_terminal := true;
+    elsif new_swaps >= g_row.max_swaps then
+      term_state := 'lost';
+      out_terminal := true;
+    end if;
+
+    if out_terminal then
+      -- Coop: everyone shares the outcome.
+      select jsonb_object_agg(user_id::text, jsonb_build_object('won', did_solve))
+        into player_results
+        from common.game_players
+       where game_id = target_game;
+      perform common.end_game(
+        target_game, term_state,
+        jsonb_build_object('mode', 'coop', 'solved', did_solve,
+                           'swaps_used', new_swaps, 'max_swaps', g_row.max_swaps),
+        player_results
+      );
+    end if;
+  else
+    -- Compete branch lands in Phase 4 (per-player terminal + winner).
+    raise exception 'compete mode is not yet implemented'
+      using errcode = 'P0001';
+  end if;
+
+  return jsonb_build_object(
+    'colors',     waffle.compute_colors(new_board, g_row.solution),
+    'swaps_used', new_swaps,
+    'solved',     did_solve,
+    'terminal',   out_terminal
+  );
+end;
+$$;
+
+revoke execute on function waffle.submit_swap(uuid, int, int) from public;
+grant execute on function waffle.submit_swap(uuid, int, int) to authenticated;
