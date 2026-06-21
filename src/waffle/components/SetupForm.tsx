@@ -1,6 +1,10 @@
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
-import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
+import {
+  DIFFICULTY_OPTIONS,
+  EXTRA_SWAP_OPTIONS,
+  type WaffleSetup,
+} from '../lib/setup'
 import styles from './SetupForm.module.css'
 
 /**
@@ -20,6 +24,23 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
 
   return (
     <div className={styles.setup}>
+      <fieldset className={styles.fieldset}>
+        <legend>Word difficulty</legend>
+        <p className="muted">Which vocabulary the puzzle's words come from.</p>
+        <div className={styles.radioRow}>
+          {DIFFICULTY_OPTIONS.map((opt) => (
+            <label key={opt.value} className={styles.radio}>
+              <input
+                type="radio"
+                name="difficulty"
+                checked={s.difficulty === opt.value}
+                onChange={() => onChange({ ...s, difficulty: opt.value })}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <fieldset className={styles.fieldset}>
         <legend>Swap budget</legend>
         <p className="muted">

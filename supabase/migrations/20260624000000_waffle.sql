@@ -401,13 +401,15 @@ on conflict do nothing;
 -- waffle.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "extra_swaps": int (0..15, default 5),     -- budget = par + this
+--   { "difficulty": 35 | 50 | 60,                -- vocab tier
+--     "extra_swaps": int (0..15, default 5),     -- budget = par + this
 --     "timer": (none | countup | countdown{seconds}) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
--- working-state semantics. Picks a puzzle the club hasn't played yet
--- (fallback: any), copies its boards onto the game, and seeds one
--- players row per player (board = scramble). The game title is the
--- puzzle's title (currently its difficulty label).
+-- working-state semantics. Picks a puzzle of the chosen vocab tier the
+-- club hasn't played yet (fallback: any of that tier), copies its
+-- boards onto the game, and seeds one players row per player (board =
+-- scramble). The game title is the puzzle's title (its difficulty
+-- label).
 create function waffle.create_game(
   target_club     text,
   setup           jsonb,
@@ -420,10 +422,12 @@ security definer
 set search_path = waffle, common, public, extensions
 as $$
 declare
-  new_id    uuid;
-  s_extra   int;
-  puzzle    waffle.puzzles%rowtype;
-  budget    int;
+  new_id       uuid;
+  s_extra      int;
+  s_difficulty int;
+  tier_title   text;
+  puzzle       waffle.puzzles%rowtype;
+  budget       int;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
@@ -434,30 +438,45 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- ─── Validate setup.extra_swaps (the difficulty knob) ────
+  -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((setup->>'extra_swaps')::int, 5);
   if s_extra < 0 or s_extra > 15 then
     raise exception 'setup.extra_swaps must be 0..15 (got %)', s_extra
       using errcode = 'P0001';
   end if;
 
+  -- ─── Validate setup.difficulty (the vocab tier) ──────────
+  -- While we're trialling tiers, the puzzle's vocab difficulty lives
+  -- in its `title` ("Difficulty 35/50/60"), so we pick by matching it.
+  -- A "real" library (post-trial) would carry difficulty as data.
+  s_difficulty := coalesce((setup->>'difficulty')::int, 50);
+  if s_difficulty not in (35, 50, 60) then
+    raise exception 'setup.difficulty must be 35, 50, or 60 (got %)', s_difficulty
+      using errcode = 'P0001';
+  end if;
+  tier_title := 'Difficulty ' || s_difficulty;
+
   perform common.validate_timer(setup->'timer');
 
-  -- ─── Pick a puzzle the club hasn't played; fallback any ──
+  -- ─── Pick a puzzle of the chosen tier the club hasn't played ──
   -- Alias the table: RETURNS TABLE(id …) puts `id` in scope, so an
   -- unqualified `id` here would be ambiguous with the OUT param.
   select * into puzzle
     from waffle.puzzles p
-   where p.id not in (
-     select puzzle_id from waffle.games where club_handle = target_club
-   )
+   where p.title = tier_title
+     and p.id not in (
+       select puzzle_id from waffle.games where club_handle = target_club
+     )
    order by random()
    limit 1;
   if not found then
-    select * into puzzle from waffle.puzzles order by random() limit 1;
+    -- Club has played every puzzle of this tier — let them replay.
+    select * into puzzle from waffle.puzzles p
+     where p.title = tier_title
+     order by random() limit 1;
   end if;
   if not found then
-    raise exception 'no waffle puzzles available — run waffle:import'
+    raise exception 'no waffle puzzles for "%" — run waffle:import', tier_title
       using errcode = 'P0002';
   end if;
 

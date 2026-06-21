@@ -23,12 +23,15 @@ reset role;
 -- back, so the real library is untouched).
 delete from waffle.puzzles;
 
+-- Titled for the difficulty-50 tier so create_game (which picks by
+-- the puzzle's "Difficulty N" title) finds it when waffle_setup sends
+-- difficulty 50.
 insert into waffle.puzzles (solution, scramble, par_swaps, title)
 values (
   'abcdef.g.hijklmn.o.pqrstu',   -- solved
   'bacdef.g.hijklmn.o.pqrstu',   -- cells 0,1 swapped → 1 swap from solved
   1,
-  'Test'
+  'Difficulty 50'
 );
 
 create function pg_temp.waffle_setup(extra int default 5)
@@ -36,6 +39,7 @@ returns jsonb
 language sql
 as $$
   select jsonb_build_object(
+    'difficulty', 50,
     'extra_swaps', extra,
     'timer', jsonb_build_object('kind', 'none')
   );

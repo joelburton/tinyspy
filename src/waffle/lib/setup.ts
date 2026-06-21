@@ -10,6 +10,13 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type WaffleSetup = {
   /**
+   * Vocabulary tier — which difficulty band the six words are drawn
+   * from (35 everyday / 50 common / 60 tricky). While we're trialling
+   * tiers the server picks a puzzle whose `title` matches; valid
+   * values are 35, 50, 60.
+   */
+  difficulty: number
+  /**
    * Slack added to the puzzle's par to get the swap budget
    * (`max_swaps = par + extra_swaps`). Fewer extra swaps = harder.
    * Server bounds it to 0..15; the form offers a friendly few.
@@ -25,9 +32,22 @@ export type WaffleSetup = {
 
 /** Initial setup the manifest hands the dialog as `defaults`. */
 export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
+  difficulty: 50,
   extra_swaps: 5,
   timer: { kind: 'none' },
 }
+
+/**
+ * The vocab tiers the form offers. These match the `Difficulty N`
+ * puzzle titles in the library. The difficulty ratings are a bit noisy
+ * at the upper tiers (some "common" words are Scrabble-common, not
+ * everyday), so the labels stay loose.
+ */
+export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 35, label: 'Everyday' },
+  { value: 50, label: 'Common' },
+  { value: 60, label: 'Tricky' },
+]
 
 /**
  * The extra-swap choices the form offers, with a difficulty gloss.
