@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { CELLS, isHole } from '../lib/waffle'
 import { tileColor } from '../lib/colors'
@@ -24,6 +24,8 @@ type Props = {
  */
 export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
+  // Drag source (HTML5 drag-and-drop, the desktop alternative to tap).
+  const dragFrom = useRef<number | null>(null)
 
   function activate(pos: number) {
     if (disabled || isHole(pos)) return
@@ -35,6 +37,16 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
       onSwap(selected, pos)
       setSelected(null)
     }
+  }
+
+  function drop(pos: number) {
+    const from = dragFrom.current
+    dragFrom.current = null
+    if (from === null || from === pos || isHole(from) || isHole(pos) || disabled) {
+      return
+    }
+    onSwap(from, pos)
+    setSelected(null)
   }
 
   return (
@@ -61,7 +73,20 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
             aria-label={`${letter.toUpperCase()} (${color})`}
             aria-pressed={selected === pos}
             disabled={disabled}
+            draggable={!disabled}
             onClick={() => activate(pos)}
+            onDragStart={(e) => {
+              dragFrom.current = pos
+              e.dataTransfer.effectAllowed = 'move'
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault()
+              drop(pos)
+            }}
+            onDragEnd={() => {
+              dragFrom.current = null
+            }}
           >
             {letter.toUpperCase()}
           </button>

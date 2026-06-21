@@ -671,3 +671,87 @@ $$;
 
 revoke execute on function waffle.submit_swap(uuid, int, int) from public;
 grant execute on function waffle.submit_swap(uuid, int, int) to authenticated;
+
+-- ============================================================
+-- waffle.submit_timeout — countdown-timer expiry
+-- ============================================================
+-- Called by the FE (every player races to fire it) when a countdown
+-- timer hits 0. Idempotent on the play_state check: the first call
+-- ends the game, the rest raise "not in progress" which the manifest
+-- swallows. Coop: the shared board wasn't solved → lost. Compete:
+-- time's up — the winner is whoever solved in the fewest swaps (the
+-- same rule as a natural finish); nobody solved → lost_compete.
+create function waffle.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  g_row              waffle.games%rowtype;
+  current_play_state text;
+  winner_id          uuid;
+  term_state         text;
+  player_results     jsonb;
+begin
+  select * into g_row from waffle.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  if g_row.mode = 'coop' then
+    select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+      into player_results
+      from common.game_players
+     where game_id = target_game;
+    perform common.end_game(
+      target_game, 'lost',
+      jsonb_build_object('mode', 'coop', 'solved', false, 'outcome', 'timeout'),
+      player_results
+    );
+  else
+    -- Compete: winner among whoever solved before the clock ran out.
+    select user_id into winner_id
+      from waffle.players
+     where game_id = target_game and solved
+     order by swaps_used asc, solved_at asc
+     limit 1;
+    select jsonb_object_agg(
+             user_id::text,
+             jsonb_build_object(
+               'won',    coalesce(user_id = winner_id, false),
+               'solved', solved,
+               'swaps',  swaps_used
+             )
+           )
+      into player_results
+      from waffle.players
+     where game_id = target_game;
+    term_state := case when winner_id is not null
+                       then 'won_compete' else 'lost_compete' end;
+    perform common.end_game(
+      target_game, term_state,
+      jsonb_build_object('mode', 'compete', 'outcome', 'timeout',
+                         'winner', winner_id),
+      player_results
+    );
+  end if;
+
+  -- Realtime touch: common.end_game writes common.games, not waffle.*,
+  -- so the FE's useGame subscription (on waffle.{games,players}) would
+  -- never wake. A no-op self-update produces a WAL entry it picks up,
+  -- refetching games_state (now revealing the solution).
+  update waffle.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function waffle.submit_timeout(uuid) from public;
+grant execute on function waffle.submit_timeout(uuid) to authenticated;

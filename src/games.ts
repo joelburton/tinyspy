@@ -13,7 +13,7 @@ import {
   freebeeCompeteGame,
 } from './freebee/manifest'
 import { monkeygramGame } from './monkeygram/manifest'
-import { waffleCoopGame } from './waffle/manifest'
+import { waffleCoopGame, waffleCompeteGame } from './waffle/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -50,4 +50,5 @@ export const games: GameManifest[] = [
   freebeeCompeteGame,
   monkeygramGame,
   waffleCoopGame,
+  waffleCompeteGame,
 ]

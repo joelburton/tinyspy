@@ -55,18 +55,29 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
   }
 }
 
+/** Fire the countdown-timeout RPC (shared by both modes). The RPC
+ *  raises "not in progress" if a peer already ended the game; we
+ *  return that — GamePage swallows timeout errors. */
+async function submitTimeout(gameId: string): Promise<{ error?: string }> {
+  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 /** One-line label for the ClubPage games list — pure + synchronous. */
 function labelFor(modeLabel: string) {
   return (row: CommonGameListRow): string => {
     switch (row.play_state) {
       case 'won':
-      case 'won_compete':
         return `${modeLabel} · solved`
+      case 'won_compete':
+        return `${modeLabel} · winner decided`
       case 'lost':
-      case 'lost_compete':
         return `${modeLabel} · out of swaps`
+      case 'lost_compete':
+        return `${modeLabel} · no winner`
       default:
-        return `${modeLabel} · solving…`
+        return `${modeLabel} · ${modeLabel === 'compete' ? 'racing' : 'solving'}…`
     }
   }
 }
@@ -97,7 +108,35 @@ export const waffleCoopGame: GameManifest = {
 
   labelFor: labelFor('coop'),
 
-  // Countdown-timer auto-end is slice 2 (needs waffle.submit_timeout);
-  // until then a no-op so an expired clock doesn't error.
-  submitTimeout: async () => ({}),
+  submitTimeout,
+}
+
+export const waffleCompeteGame: GameManifest = {
+  gametype: 'waffle_compete',
+  schema: 'waffle',
+  baseGametype: 'waffle',
+  mode: 'compete',
+  name: 'SyrupSwap (compete)',
+  shortDescription: 'Race to unscramble the waffle',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Compete needs an opposing PLAYER — racing yourself is degenerate.
+  // Lower bound 2 hides the Start button in solo clubs; the RPC also
+  // enforces it. Must agree with require_player_count_max(6).
+  numberOfPlayers: [2, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_WAFFLE_SETUP,
+  },
+
+  startGameInClub: startGameInClubFactory('compete'),
+
+  labelFor: labelFor('compete'),
+
+  submitTimeout,
 }
