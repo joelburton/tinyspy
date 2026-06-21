@@ -1042,7 +1042,7 @@ grant execute on function tinyspy.get_clue_context(uuid) to authenticated;
 -- Register tinyspy with common.gametypes
 -- ============================================================
 
-insert into common.gametypes (gametype) values ('tinyspy')
+insert into common.gametypes (gametype, min_players) values ('tinyspy', 2)
 on conflict do nothing;
 
 -- ============================================================

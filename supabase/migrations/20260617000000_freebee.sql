@@ -391,9 +391,9 @@ alter publication supabase_realtime add table freebee.found_words;
 -- gametype rows sharing this one schema. create_club seeds new
 -- clubs with both; create_game routes to one via the mode arg.
 
-insert into common.gametypes (gametype) values
-  ('freebee_coop'),
-  ('freebee_compete')
+insert into common.gametypes (gametype, min_players) values
+  ('freebee_coop', 1),
+  ('freebee_compete', 2)
 on conflict do nothing;
 
 -- ============================================================

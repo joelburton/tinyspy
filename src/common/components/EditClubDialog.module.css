@@ -1,0 +1,64 @@
+/* Edit-club dialog styles. The chrome (surface, padding, backdrop,
+ * drag-handle, close X) lives on <FloatingPanel>; this stylesheet
+ * owns the games checkbox list + the Cancel | Save action row.
+ * Mirrors SetupGameDialog's fieldset/actions treatment so the two
+ * dialogs read as siblings. */
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.actions button {
+  min-width: 6rem;
+}
+
+/* Scrollable checkbox list — one row per registered gametype. */
+.games {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+.gamesLegend {
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted);
+}
+
+.gameRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+/* The label + description stack to the right of the checkbox. */
+.gameText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.gameName {
+  font-weight: 600;
+}
+
+/* The "(coop)" / "(compete)" tag after the game name. */
+.gameMode {
+  font-weight: 400;
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.gameDesc {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}

@@ -1028,7 +1028,7 @@ grant execute on function wordknit.submit_timeout(uuid) to authenticated;
 -- create_club's RPC adds clubs_gametypes rows for both modes to
 -- every new club automatically.
 
-insert into common.gametypes (gametype) values
-  ('wordknit_coop'),
-  ('wordknit_compete')
+insert into common.gametypes (gametype, min_players) values
+  ('wordknit_coop', 1),
+  ('wordknit_compete', 2)
 on conflict do nothing;

@@ -355,10 +355,12 @@ grant execute on function monkeygram.create_game(text, jsonb, uuid[]) to authent
 -- new clubs, but any club that exists before this migration needs
 -- the row so its MonkeyGram Start button surfaces.
 
-insert into common.gametypes (gametype) values
-  ('monkeygram')
+insert into common.gametypes (gametype, min_players) values
+  ('monkeygram', 1)
 on conflict do nothing;
 
+-- monkeygram is solo-playable (min_players 1), so every club —
+-- solo clubs included — gets the row.
 insert into common.clubs_gametypes (club_handle, gametype)
 select handle, 'monkeygram' from common.clubs
 on conflict do nothing;

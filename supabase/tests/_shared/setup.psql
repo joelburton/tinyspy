@@ -103,8 +103,9 @@ insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, c
 -- Manually materialize what common.claim_username would have
 -- produced for each persona: a common.profiles row, a solo club
 -- ('=<username>' handle), a clubs_members row joining the user
--- to their solo club, and a clubs_gametypes row per registered
--- gametype.
+-- to their solo club, and a clubs_gametypes row per SOLO-PLAYABLE
+-- gametype (min_players <= 1 — a solo club never enrolls in a
+-- two-player game; see common.default_gametypes_for_club).
 --
 -- Why direct INSERTs instead of calling the RPC five times: the
 -- RPC reads auth.uid() and runs SECURITY DEFINER, so we'd have
@@ -141,9 +142,9 @@ insert into common.clubs_members (club_handle, user_id) values
   ('=eda',  'eda55555-5555-5555-5555-555555555555');
 
 insert into common.clubs_gametypes (club_handle, gametype)
-  select c.handle, g.gametype
+  select c.handle, gt.gametype
     from (values ('=ada'), ('=bea'), ('=cade'), ('=dee'), ('=eda')) as c(handle)
-   cross join common.gametypes g;
+   cross join lateral common.default_gametypes_for_club(c.handle) as gt(gametype);
 
 -- ============================================================
 -- pg_temp.as_user — switch the session to "I am this user"

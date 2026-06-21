@@ -206,12 +206,15 @@ export type Database = {
       gametypes: {
         Row: {
           gametype: string
+          min_players: number
         }
         Insert: {
           gametype: string
+          min_players?: number
         }
         Update: {
           gametype?: string
+          min_players?: number
         }
         Relationships: []
       }
@@ -372,6 +375,10 @@ export type Database = {
         }
         Returns: string
       }
+      default_gametypes_for_club: {
+        Args: { target_handle: string }
+        Returns: string[]
+      }
       delete_game: { Args: { target_game: string }; Returns: undefined }
       end_game: {
         Args: {
@@ -391,6 +398,10 @@ export type Database = {
       }
       send_message: {
         Args: { content: string; target_club: string }
+        Returns: undefined
+      }
+      set_club_gametypes: {
+        Args: { gametypes: string[]; target_club: string }
         Returns: undefined
       }
       set_current_view: { Args: { target_game: string }; Returns: undefined }

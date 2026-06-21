@@ -396,9 +396,9 @@ grant select on waffle.players_state to authenticated;
 -- ============================================================
 -- The sibling-manifest pair: coop (shared board, lock-step) and
 -- compete (own board each, fewest-swaps winner).
-insert into common.gametypes (gametype) values
-  ('waffle_coop'),
-  ('waffle_compete')
+insert into common.gametypes (gametype, min_players) values
+  ('waffle_coop', 1),
+  ('waffle_compete', 2)
 on conflict do nothing;
 
 -- ============================================================

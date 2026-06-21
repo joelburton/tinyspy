@@ -190,12 +190,13 @@ select is(
   'solo club''s sole member is fia herself'
 );
 
--- clubs_gametypes fans out across the registry.
+-- clubs_gametypes fans out across the solo-playable registry — a
+-- solo club only enrolls in gametypes one person can play.
 select is(
   (select count(*) from common.clubs_gametypes
     where club_handle = '=fia'),
-  (select count(*) from common.gametypes),
-  'solo club opted in to every registered gametype'
+  (select count(*) from common.gametypes where min_players <= 1),
+  'solo club opted in to every solo-playable gametype'
 );
 
 -- ============================================================

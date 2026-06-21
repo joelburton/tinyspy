@@ -9,6 +9,7 @@ import { useClubPresence } from '../hooks/useClubPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
+import { EditClubDialog } from './EditClubDialog'
 import { Menu } from './Menu'
 import { PupgamesLogo } from './PupgamesLogo'
 import { SetupGameDialog } from './SetupGameDialog'
@@ -155,11 +156,11 @@ export function ClubPage({ handle, session }: Props) {
   // it's a generic action error.
   const [startError, setStartError] = useState<string | null>(null)
   // The set of gametypes this club is allowed to play, read from
-  // common.clubs_gametypes. v1 populates this with every registered
-  // gametype at club-creation time; per-club opt-out is deferred.
-  // We still gate FE rendering on this set so a future
-  // gametype-not-auto-added-to-this-club state works correctly,
-  // and so the shape is in place for the eventual club-settings UI.
+  // common.clubs_gametypes. Seeded at club-creation (every gametype
+  // for friend clubs; the solo-playable subset for solo clubs) and
+  // editable via the "Edit club" dialog (set_club_gametypes). We gate
+  // the Start-button rendering on this set; the EditClubDialog hands
+  // back the new set on save so the buttons update without a refetch.
   const [allowedGametypes, setAllowedGametypes] = useState<Set<string>>(new Set())
   // Saved setup defaults per gametype, also from clubs_gametypes.
   // NULL when the friends haven't started a game of that gametype
@@ -178,6 +179,9 @@ export function ClubPage({ handle, session }: Props) {
   // dialog component is mounted iff this is non-null); the dialog
   // calls back into us via onStarted / onCancel to close.
   const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
+  // Whether the "Edit club" options dialog is open. Like the setup
+  // dialog, the component is mounted iff this is true.
+  const [editing, setEditing] = useState(false)
   // The currently-active feedback pill shown in the header's
   // <StatusSlot>, or null when the slot should show the default
   // <PlayersStrip>. Local-only — ClubPage doesn't expose a
@@ -520,6 +524,11 @@ export function ClubPage({ handle, session }: Props) {
           onClick: () => navigate('/'),
         },
         {
+          id: 'edit',
+          label: 'Edit club',
+          onClick: () => setEditing(true),
+        },
+        {
           id: 'rename',
           label: 'Rename club',
           onClick: () => setFeedback({
@@ -671,6 +680,24 @@ export function ClubPage({ handle, session }: Props) {
             navigate(`/g/${gametype}/${id}`)
           }}
           onCancel={() => setPendingSetup(null)}
+        />
+      )}
+
+      {editing && (
+        <EditClubDialog
+          clubHandle={club.handle}
+          clubName={club.name}
+          allowedGametypes={allowedGametypes}
+          onSaved={(next) => {
+            // Reflect the new enrolled set immediately so the Start
+            // buttons update without a refetch. (default_setup for
+            // any removed gametype is gone server-side, but those
+            // gametypes no longer render a Start button anyway, so
+            // the stale savedDefaults entries are harmless.)
+            setAllowedGametypes(next)
+            setEditing(false)
+          }}
+          onCancel={() => setEditing(false)}
         />
       )}
     </div>

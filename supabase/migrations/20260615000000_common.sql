@@ -176,21 +176,58 @@ create table common.clubs_members (
 -- Defined before common.games so that table's `gametype` column
 -- can carry a real FK pointing here.
 --
--- ┌─ Convention for new gametypes ─────────────────────────┐
--- │ Each gametype's baseline migration must self-register: │
--- │                                                        │
--- │   insert into common.gametypes (gametype)              │
--- │   values ('boggle')                                    │
--- │   on conflict do nothing;                              │
--- │                                                        │
--- │ The three existing baselines (tinyspy, psychicnum,     │
--- │ wordknit) all do this at the bottom of their files;    │
--- │ a future game follows the same pattern.                │
--- └────────────────────────────────────────────────────────┘
+-- `min_players` mirrors the lower bound of each manifest's
+-- `numberOfPlayers` range (see src/common/lib/games.ts). It's the
+-- one fact the SERVER needs from that range: whether a gametype can
+-- be played solo (`min_players <= 1`). New-club enrollment uses it
+-- to keep one-player-only clubs out of two-player games — see
+-- common.default_gametypes_for_club below. Like the gametype string
+-- itself, it's a hand-kept mirror of the manifest; drift only
+-- affects which Start buttons a solo club is offered, never move
+-- legality (each create_game re-checks its own member count).
+--
+-- ┌─ Convention for new gametypes ──────────────────────────┐
+-- │ Each gametype's baseline migration must self-register,  │
+-- │ declaring its minimum player count:                     │
+-- │                                                         │
+-- │   insert into common.gametypes (gametype, min_players)  │
+-- │   values ('boggle', 1)                                  │
+-- │   on conflict do nothing;                               │
+-- │                                                         │
+-- │ Every game baseline does this at the bottom of its      │
+-- │ file; a sibling coop/compete pair registers one row     │
+-- │ each (coop usually min 1, compete min 2).               │
+-- └─────────────────────────────────────────────────────────┘
 
 create table common.gametypes (
-  gametype text primary key
+  gametype text primary key,
+  -- Fewest players a game of this gametype needs. Defaults to 1
+  -- (solo-playable) so a forgotten value fails open to "offered
+  -- everywhere" rather than silently hiding a game.
+  min_players smallint not null default 1
 );
+
+-- Which gametypes a freshly-created club should be enrolled in
+-- (i.e. which Start buttons it should offer). Solo clubs — handle
+-- prefixed '=', see common.clubs — have a single member, so they
+-- only get gametypes playable by one person (`min_players <= 1`);
+-- friend clubs get the whole registry. Centralizing the solo-filter
+-- rule here keeps claim_username, create_club, and the per-game
+-- backfills from drifting apart.
+-- Returns a one-column `gametype` set so callers can `select ...,
+-- gametype from common.default_gametypes_for_club(handle)` directly
+-- (a bare `returns setof text` would expose the column under the
+-- function's name, not `gametype`).
+create function common.default_gametypes_for_club(target_handle text)
+returns table(gametype text)
+language sql
+stable
+set search_path = common, public, extensions
+as $$
+  select gametype
+    from common.gametypes
+   where target_handle not like '=%' or min_players <= 1
+$$;
 
 -- ============================================================
 -- common.games — the universal game record (header)
@@ -1380,9 +1417,10 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- so a UI that lets the creator type only their friends doesn't
 -- have to remember to also include themselves.
 --
--- clubs_gametypes is populated with every registered gametype; v1
--- lets every new club play every game. Per-club opt-out is
--- deferred (see docs/deferred.md).
+-- clubs_gametypes is seeded via common.default_gametypes_for_club:
+-- a friend club (always ≥2 members) gets every registered gametype.
+-- Members can edit the set afterward from the club-settings UI
+-- (common.set_club_gametypes).
 
 create function common.create_club(
   club_name text,
@@ -1457,14 +1495,15 @@ begin
   insert into common.clubs_members (club_handle, user_id)
   select new_handle, member_id from unnest(resolved_ids) as member_id;
 
-  -- Populate clubs_gametypes with every registered gametype.
-  -- v1 lets every new club play every registered game; per-club
-  -- opt-out is deferred (see docs/deferred.md). The FE's
-  -- per-club Start-button rendering still applies the player-
-  -- count range from each gametype's manifest, so e.g. tinyspy
-  -- appears disabled in a 3-member club's button list.
+  -- Enroll the club in its default gametype set. A friend club
+  -- (always ≥2 members) gets every registered gametype; the helper
+  -- only trims the set for solo clubs, which create_club never makes.
+  -- We route through it anyway so both club-creation paths share one
+  -- rule. Per-club opt-out beyond this is now possible via the
+  -- club-settings UI (common.set_club_gametypes).
   insert into common.clubs_gametypes (club_handle, gametype)
-  select new_handle, gametype from common.gametypes;
+  select new_handle, gametype
+    from common.default_gametypes_for_club(new_handle);
 
   return new_handle;
 end;
@@ -1472,6 +1511,63 @@ $$;
 
 revoke execute on function common.create_club(text, text[]) from public;
 grant execute on function common.create_club(text, text[]) to authenticated;
+
+-- ============================================================
+-- common.set_club_gametypes RPC — the club-settings "which games
+-- does this club play?" editor
+-- ============================================================
+--
+-- Replaces a club's enrolled-gametype set (the rows in
+-- common.clubs_gametypes) with exactly the passed list. Backs the
+-- "Edit club" dialog on ClubPage. Any club member may edit — this
+-- is a friends venue, not an admin hierarchy (see CLAUDE.md → trust
+-- model); the membership gate is the only check.
+--
+-- Deliberately does NOT re-apply the solo-club min_players filter:
+-- per the FE spec, if someone wants to list a 2-player game in their
+-- solo club they may, they just won't be able to start it (the Start
+-- button stays disabled via numberOfPlayers). The filter only shapes
+-- the *default* enrollment at club creation, not later hand-editing.
+--
+-- The FK on clubs_gametypes.gametype means an unknown gametype in
+-- the list raises 23503; the FE only ever sends registered ones.
+create function common.set_club_gametypes(
+  target_club text,
+  gametypes text[]
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  -- Null-coalesced so an explicit "play nothing" (empty array) and
+  -- a NULL argument behave the same: clear every enrollment.
+  wanted text[] := coalesce(gametypes, array[]::text[]);
+begin
+  -- Auth + membership gate (raises 42501 on either failure).
+  perform common.require_club_member(target_club);
+
+  -- Delete-by-difference rather than truncate-and-refill so an
+  -- unchanged row keeps its default_setup (the saved setup-form
+  -- values for that (club, gametype) pair). Against an empty
+  -- `wanted`, `<> all` is vacuously true for every row, so this
+  -- clears the whole set — the "uncheck everything" case.
+  delete from common.clubs_gametypes
+   where club_handle = target_club
+     and gametype <> all(wanted);
+
+  -- Add the newly-checked gametypes; on conflict skip the ones the
+  -- club already had (preserving their default_setup).
+  insert into common.clubs_gametypes (club_handle, gametype)
+  select target_club, g
+    from unnest(wanted) as g
+  on conflict do nothing;
+end;
+$$;
+
+revoke execute on function common.set_club_gametypes(text, text[]) from public;
+grant execute on function common.set_club_gametypes(text, text[]) to authenticated;
 
 -- ============================================================
 -- common.send_message RPC
@@ -1527,11 +1623,13 @@ grant execute on function common.send_message(text, text) to authenticated;
 --      slug-space user-typed names cannot reach (slugify_club_name
 --      strips '='), so there's no risk of collision with
 --      friend-club handles.
---   3. clubs_gametypes rows for the solo club covering every
---      registered gametype. (The FE still hides Start buttons
---      whose `numberOfPlayers` range excludes solo, but the m2m
---      row is there for the future "your solo club doesn't play
---      tinyspy because solo" tooltip.)
+--   3. clubs_gametypes rows for the solo club, covering only the
+--      gametypes a single player can actually play (min_players <=
+--      1, via common.default_gametypes_for_club). A solo club has
+--      one member forever, so two-player games like tinyspy would
+--      never be startable there — we don't enroll the club in them.
+--      The member can still add them later from the club-settings UI
+--      (common.set_club_gametypes) if they want them listed.
 --
 -- Returns the claimed username on success.
 --
@@ -1593,7 +1691,8 @@ begin
   values ('=' || desired, caller_id);
 
   insert into common.clubs_gametypes (club_handle, gametype)
-  select '=' || desired, gametype from common.gametypes;
+  select '=' || desired, gametype
+    from common.default_gametypes_for_club('=' || desired);
 
   return desired;
 end;

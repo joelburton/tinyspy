@@ -672,7 +672,7 @@ grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 -- manifests carry the per-mode display + behavior; the
 -- create_game RPC routes on mode.
 
-insert into common.gametypes (gametype) values
-  ('psychicnum_coop'),
-  ('psychicnum_compete')
+insert into common.gametypes (gametype, min_players) values
+  ('psychicnum_coop', 1),
+  ('psychicnum_compete', 2)
 on conflict do nothing;
