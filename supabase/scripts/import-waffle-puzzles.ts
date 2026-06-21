@@ -4,9 +4,9 @@
  * vendored, gzipped TSV at `supabase/data/waffle-puzzles.tsv.gz` into
  * `waffle.puzzles` using psql `COPY`.
  *
- * The TSV is `solution \t scramble \t par_swaps \t title`, one puzzle
- * per line (boards are 25-char strings, holes = '.'). `id` is omitted
- * — it defaults to gen_random_uuid().
+ * The TSV is `solution \t scramble \t par_swaps \t difficulty \t title`,
+ * one puzzle per line (boards are 25-char strings, holes = '.'). `id`
+ * is omitted — it defaults to gen_random_uuid().
  *
  * Strategy: one transaction — TRUNCATE, then COPY (a full reseed of a
  * reference table; nothing to preserve). ON_ERROR_STOP aborts (and
@@ -37,7 +37,7 @@ const sql = `
 \\set ON_ERROR_STOP on
 begin;
 truncate waffle.puzzles;
-\\copy waffle.puzzles (solution, scramble, par_swaps, title) from program 'gzip -dc ''${PUZZLES_PATH}''' with (format text, null '\\N')
+\\copy waffle.puzzles (solution, scramble, par_swaps, difficulty, title) from program 'gzip -dc ''${PUZZLES_PATH}''' with (format text, null '\\N')
 commit;
 select count(*) || ' puzzles loaded' as result from waffle.puzzles;
 `

@@ -5,17 +5,17 @@
  * external puzzle corpus, so we make our own; `waffle:import` loads
  * the committed TSV into `waffle.puzzles`.
  *
- *   npm run waffle:generate [perTier]      (default 10)
+ *   npm run waffle:generate [perTier]      (default 100)
  *
  * Produces `perTier` puzzles at each discrete difficulty tier
- * (35 everyday, 50 common, 60 solid) so we can A/B how each tier
- * plays once the UI exists. Each puzzle is tagged with its tier in
- * the `title` column ("Difficulty 50"), which surfaces in the game
- * listing. A tier-N puzzle uses only words ≤ N with at least one
- * exactly N (see tierGenerator).
+ * (35 everyday, 50 common, 60 solid). A tier-N puzzle's HARDEST word
+ * is exactly N — so a tier-50 puzzle genuinely *uses* a 50-level word,
+ * not merely allows one (and never a harder word). See tierGenerator.
  *
  * Output columns (tab-separated, gzipped): solution, scramble,
- * par_swaps, title. Boards are 25-char strings, holes = '.'.
+ * par_swaps, difficulty, title. `difficulty` is the tier; `title` is
+ * "Difficulty N" (the game-listing label). Boards are 25-char
+ * strings, holes = '.'.
  *
  * No DB needed — reads the committed word list directly. Output is
  * non-deterministic (random sampling); regenerate + review + commit
@@ -33,7 +33,7 @@ const WORDS_PATH = resolve(__dirname, '../data/words.tsv.gz')
 const OUT_PATH = resolve(__dirname, '../data/waffle-puzzles.tsv.gz')
 
 const TIERS = [35, 50, 60]
-const PER_TIER = Number(process.argv[2] ?? 10)
+const PER_TIER = Number(process.argv[2] ?? 100)
 
 function main() {
   const rows = loadWordRows(WORDS_PATH)
@@ -45,7 +45,7 @@ function main() {
     for (let i = 0; i < PER_TIER; i++) {
       const p = gen.next()
       if (!p) break
-      out.push(`${p.solution}\t${p.scramble}\t${p.par}\tDifficulty ${tier}`)
+      out.push(`${p.solution}\t${p.scramble}\t${p.par}\t${tier}\tDifficulty ${tier}`)
       made++
     }
     console.log(

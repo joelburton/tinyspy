@@ -23,14 +23,14 @@ reset role;
 -- back, so the real library is untouched).
 delete from waffle.puzzles;
 
--- Titled for the difficulty-50 tier so create_game (which picks by
--- the puzzle's "Difficulty N" title) finds it when waffle_setup sends
--- difficulty 50.
-insert into waffle.puzzles (solution, scramble, par_swaps, title)
+-- Difficulty-50 tier so create_game (which picks by the `difficulty`
+-- column) finds it when waffle_setup sends difficulty 50.
+insert into waffle.puzzles (solution, scramble, par_swaps, difficulty, title)
 values (
   'abcdef.g.hijklmn.o.pqrstu',   -- solved
   'bacdef.g.hijklmn.o.pqrstu',   -- cells 0,1 swapped → 1 swap from solved
   1,
+  50,
   'Difficulty 50'
 );
 

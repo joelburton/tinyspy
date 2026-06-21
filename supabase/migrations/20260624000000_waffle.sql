@@ -188,7 +188,11 @@ create table waffle.puzzles (
   solution   char(25) not null,   -- solved board, 25-char, holes '.'
   scramble   char(25) not null,   -- starting board, same letters scrambled
   par_swaps  int not null,        -- minimum swaps to solve
-  title      text not null        -- player-facing label (currently the difficulty)
+  -- Vocabulary tier (35 / 50 / 60): the HARDEST word in the puzzle is
+  -- exactly this difficulty, so a tier-50 puzzle genuinely uses a
+  -- 50-level word (not merely allows one). create_game picks by it.
+  difficulty smallint not null,
+  title      text not null        -- player-facing label (e.g. "Difficulty 50")
 );
 
 -- Public reference data: no RLS. The bulk import connects as the
@@ -425,7 +429,6 @@ declare
   new_id       uuid;
   s_extra      int;
   s_difficulty int;
-  tier_title   text;
   puzzle       waffle.puzzles%rowtype;
   budget       int;
 begin
@@ -446,15 +449,11 @@ begin
   end if;
 
   -- ─── Validate setup.difficulty (the vocab tier) ──────────
-  -- While we're trialling tiers, the puzzle's vocab difficulty lives
-  -- in its `title` ("Difficulty 35/50/60"), so we pick by matching it.
-  -- A "real" library (post-trial) would carry difficulty as data.
   s_difficulty := coalesce((setup->>'difficulty')::int, 50);
   if s_difficulty not in (35, 50, 60) then
     raise exception 'setup.difficulty must be 35, 50, or 60 (got %)', s_difficulty
       using errcode = 'P0001';
   end if;
-  tier_title := 'Difficulty ' || s_difficulty;
 
   perform common.validate_timer(setup->'timer');
 
@@ -463,7 +462,7 @@ begin
   -- unqualified `id` here would be ambiguous with the OUT param.
   select * into puzzle
     from waffle.puzzles p
-   where p.title = tier_title
+   where p.difficulty = s_difficulty
      and p.id not in (
        select puzzle_id from waffle.games where club_handle = target_club
      )
@@ -472,12 +471,12 @@ begin
   if not found then
     -- Club has played every puzzle of this tier — let them replay.
     select * into puzzle from waffle.puzzles p
-     where p.title = tier_title
+     where p.difficulty = s_difficulty
      order by random() limit 1;
   end if;
   if not found then
-    raise exception 'no waffle puzzles for "%" — run waffle:import', tier_title
-      using errcode = 'P0002';
+    raise exception 'no waffle puzzles for difficulty % — run waffle:import',
+                    s_difficulty using errcode = 'P0002';
   end if;
 
   budget := puzzle.par_swaps + s_extra;

@@ -1183,6 +1183,7 @@ export type Database = {
       }
       puzzles: {
         Row: {
+          difficulty: number
           id: string
           par_swaps: number
           scramble: string
@@ -1190,6 +1191,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          difficulty: number
           id?: string
           par_swaps: number
           scramble: string
@@ -1197,6 +1199,7 @@ export type Database = {
           title: string
         }
         Update: {
+          difficulty?: number
           id?: string
           par_swaps?: number
           scramble?: string
