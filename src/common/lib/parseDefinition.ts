@@ -1,24 +1,26 @@
 /**
  * Turn a raw definition string into renderable parts.
  *
- * The definition text stored in `common.definitions` is authoritative
- * and shown in full — we never drop any of it. The only thing this
- * does is *add* markup: turning the Scrabble dictionary's cross-refs
- * into clickable links. Everything else (including the bracketed
- * inflection tags like `[n PENGUINS]`) is rendered verbatim as text;
- * a player who looks up an inflected form whose gloss is only
- * `[n SUPPRESSIONS]` still sees exactly that, rather than a blank.
+ * The definition text stored in `common.words` is authoritative and
+ * shown in full — we never drop any of it. The only thing this does
+ * is *add* markup: turning the custom format's cross-refs into
+ * clickable links. Everything else (the bracketed inflection tags
+ * like `[n PENGUINS]`, the `/` sense separators, the `(YEAR)` tags)
+ * is rendered verbatim as text; a player who looks up an inflected
+ * form whose gloss is only `[n SUPPRESSIONS]` still sees exactly
+ * that, rather than a blank.
  *
- *   - **Wiktionary** (`source === 'wiktionary'`): clean prose, no
+ *   - **Wiktionary** (`source === 'w'`): clean prose fetched live, no
  *     markup. Returned as a single text part, verbatim.
  *
- *   - **Scrabble** (`source === 'scrabble'`): the only markup we act
- *     on is the cross-reference — a target word + part-of-speech in
- *     angle or curly brackets: `<aah=v>`, `{advertisement=n}` (24k of
- *     the 192k glosses carry one). Each becomes a `ref` part the FE
+ *   - **Seeded glosses** (`source` is 's' / 'e' / 'm'): the shared
+ *     custom symbology (see the definition-format notes in
+ *     docs/games/freebee.md — richer than the original Scrabble
+ *     glosses). The only markup we act on is the cross-reference — a
+ *     target word + part-of-speech in angle or curly brackets:
+ *     `<aah=v>`, `{vulture=n}`. Each becomes a `ref` part the FE
  *     renders as a clickable lookup — tap it to chase the reference
- *     without retyping. The surrounding text, including any `[…]`
- *     inflection tags, passes through untouched.
+ *     without retyping. The surrounding text passes through untouched.
  *
  * The split keeps the render dumb: the component walks the parts and
  * renders text as text, refs as buttons. It never has to know the
@@ -34,8 +36,10 @@ export type DefPart =
  *  dictionary entry and isn't shown. */
 const REF_RE = /[<{]([a-z]+)=[a-z]+[>}]/g
 
-export function parseDefinition(def: string, source: string): DefPart[] {
-  if (source !== 'scrabble') {
+export function parseDefinition(def: string, source: string | null): DefPart[] {
+  // Only live Wiktionary prose ('w') is plain text; every seeded
+  // gloss uses the custom symbology and gets parsed for cross-refs.
+  if (source === 'w') {
     return [{ kind: 'text', value: def }]
   }
 

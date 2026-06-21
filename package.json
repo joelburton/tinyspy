@@ -17,7 +17,6 @@
     "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts",
     "wordknit:import": "npx tsx supabase/scripts/import-wordknit-puzzles.ts",
     "freebee:import": "npx tsx supabase/scripts/import-freebee-pangrams.ts",
-    "defs:import": "npx tsx supabase/scripts/import-definitions.ts",
     "words:import": "npx tsx supabase/scripts/import-words.ts",
     "deploy": "supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist",
     "test:e2e": "playwright test"

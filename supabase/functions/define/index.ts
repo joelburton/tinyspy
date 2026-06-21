@@ -1,28 +1,37 @@
 /**
  * define — Edge Function behind the click-to-define popover and the
  * "look up any word" shortcut. Read-through cache over the shared
- * `common.definitions` table:
+ * `common.words` master list (the `definition` / `definition_source`
+ * columns):
  *
  *   1. Verify the caller's JWT (any signed-in user; definitions are
  *      not game-specific, so no membership check).
- *   2. Look the word up in common.definitions (as the caller; RLS
- *      grants authenticated SELECT).
- *        - non-null def  → return it (the seeded Scrabble gloss or a
- *          previously-cached Wiktionary entry). Done, no network.
- *        - NULL tombstone, still fresh → return "not found", cached.
- *        - absent, or stale tombstone → fall through to the API.
+ *   2. Look the word up in common.words (as the caller; authenticated
+ *      gets SELECT).
+ *        - NO ROW → the word isn't a playable word at all → return
+ *          { unknown: true }. We never look up or store definitions
+ *          for words outside the list (the list is the universe).
+ *        - definition present → return it (the seeded custom-format
+ *          gloss or a previously-cached Wiktionary entry). No network.
+ *        - definition NULL, source 'w' → negative-cache tombstone
+ *          ("looked up, Wiktionary had nothing") → return not-found.
+ *        - definition NULL, source NULL → never looked up → fall
+ *          through to the API.
  *   3. Fetch Wiktionary (freedictionaryapi.com, CC BY-SA). Format a
  *      compact def string, or null if it has no entry.
  *   4. Cache the result back via common.cache_definition (as
- *      service_role — the only write path). A null result writes a
- *      tombstone so repeat lookups of an unknown word (the free-form
- *      box invites typos) don't re-hit the API. A *transient* API
- *      failure does NOT write a tombstone — we only cache a
- *      definitive empty answer.
+ *      service_role — the only write path; an UPDATE of the existing
+ *      row). A null result writes a tombstone so repeats don't re-hit
+ *      the API. A *transient* API failure does NOT tombstone — only a
+ *      definitive empty answer does.
  *
- * Response: { word, def: string | null, source: 'scrabble' |
- * 'wiktionary', cached: boolean }. def === null means "looked up,
- * no definition."
+ * Response: { word, def: string | null, source: 's'|'e'|'w'|'m'|null,
+ * cached: boolean, unknown?: boolean }. `source` is the one-char
+ * provenance code: seeded glosses ('s'/'e'/'m') are the custom
+ * symbology (parseDefinition handles it); 'w' is plain Wiktionary
+ * prose (rendered verbatim + CC BY-SA attribution). `def === null`
+ * means "looked up, no definition"; `unknown` means "not a word in
+ * the list."
  *
  * Secrets (all auto-injected by the Edge Runtime):
  *   - SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
@@ -43,10 +52,6 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
-
-/** Tombstone (NULL-def) rows older than this get a re-fetch — a word
- *  Wiktionary lacked last month may exist now. Real defs never expire. */
-const TOMBSTONE_STALE_DAYS = 30
 
 /** Permissive but bounded normalization for the free-form lookup box.
  *  Lowercase, trim, collapse internal whitespace. Returns null if the
@@ -105,25 +110,35 @@ serve(async (req) => {
     const { data: auth } = await userClient.auth.getUser()
     if (!auth?.user) return json({ error: 'invalid or expired session' }, 401)
 
-    // Step 1: cache read.
+    // Step 1: cache read against the master word list.
     const { data: row } = await userClient
       .schema('common')
-      .from('definitions')
-      .select('def, source, fetched_at')
+      .from('words')
+      .select('definition, definition_source')
       .eq('word', word)
       .maybeSingle()
 
-    if (row) {
-      if (row.def !== null) {
-        return json({ word, def: row.def, source: row.source, cached: true })
-      }
-      // NULL tombstone — honor it unless stale.
-      const ageMs = Date.now() - new Date(row.fetched_at).getTime()
-      if (ageMs < TOMBSTONE_STALE_DAYS * 86_400_000) {
-        return json({ word, def: null, source: row.source, cached: true })
-      }
-      // else: stale tombstone, fall through to re-fetch.
+    // No row → not a playable word. We never look these up or store
+    // them (the list is the universe of definable words).
+    if (!row) {
+      return json({ word, def: null, source: null, unknown: true, cached: true })
     }
+
+    if (row.definition !== null) {
+      // Seeded gloss or a previously-cached Wiktionary entry.
+      return json({
+        word,
+        def: row.definition,
+        source: row.definition_source,
+        cached: true,
+      })
+    }
+    if (row.definition_source === 'w') {
+      // Negative-cache tombstone — looked up, Wiktionary had nothing.
+      // Permanent (no staleness): "don't refetch."
+      return json({ word, def: null, source: 'w', cached: true })
+    }
+    // else: definition_source is NULL — never looked up; fall through.
 
     // Step 2: Wiktionary fetch (the cache miss path).
     let def: string | null = null
@@ -161,11 +176,11 @@ serve(async (req) => {
       .rpc('cache_definition', {
         p_word: word,
         p_def: def,
-        p_source: 'wiktionary',
+        p_source: 'w',
       })
     if (cacheErr) console.error('cache_definition failed', cacheErr.message)
 
-    return json({ word, def, source: 'wiktionary', cached: false })
+    return json({ word, def, source: 'w', cached: false })
   } catch (e) {
     console.error('define failed', e)
     return json({ error: String(e instanceof Error ? e.message : e) }, 500)

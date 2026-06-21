@@ -1602,108 +1602,6 @@ $$;
 revoke execute on function common.claim_username(text) from public;
 grant execute on function common.claim_username(text) to authenticated;
 -- ============================================================
--- common.definitions — the shared word→definition cache
--- ============================================================
---
--- Powers the click-to-define popover + the "look up any word"
--- shortcut. Lives in `common` (NOT in any game's schema) because
--- every word game wants definitions — freebee today, boggle and
--- crosswords later. Putting it here keeps the removability
--- invariant intact: removing a game never deletes the shared
--- dictionary the other games read. See docs/common.md.
---
--- This table is the *superset* word store. It is seeded from the
--- Scrabble-dictionary definitions vendored alongside the SCOWL
--- lists (192k words, terse glosses like "rough, cindery lava"),
--- and grows lazily: when a lookup misses, the `define` Edge
--- Function fetches Wiktionary (freedictionaryapi.com, CC BY-SA)
--- and caches the result back here via `cache_definition` below.
---
--- It is (for now) decoupled from `common.words`:
---   - common.words = gameplay categorization (difficulty, dialect,
---     slur, letter_mask) for the ~283k playable words.
---   - common.definitions = the def text for *any* word, including
---     novel words a player looks up that aren't playable. "Is it
---     playable" is each game's question, not the cache's. The two
---     relate only by `word`, and the hot paths never join (lookups
---     want def; gameplay wants the categorization columns).
--- (These two will be folded into one — definition columns already
--- live on common.words; the define feature migrates onto it next.)
---
--- A NULL `def` is a *negative-cache tombstone*: "we asked and the
--- source had nothing." It exists so the free-form lookup box
--- (which invites typos + nonsense) doesn't re-hit the API on
--- every repeat of an unknown word. `fetched_at` lets the Edge
--- Function re-try a stale tombstone (a word Wiktionary adds later).
-
-create table common.definitions (
-  word        text primary key,        -- lowercase; the exact-match lookup key
-  def         text,                     -- NULL = looked-up-but-not-found tombstone
-  source      text not null
-                check (source in ('scrabble', 'wiktionary')),
-  fetched_at  timestamptz not null default now()
-);
-
--- Public reference data: readable by any signed-in user (an
--- English dictionary isn't secret, and exposing it leaks no
--- per-game answer key — the board's legal words live in the
--- hidden freebee.games_state columns, not here). No RLS; writes
--- are funnelled through cache_definition() below, so authenticated
--- gets SELECT only. The bulk seed import runs as service_role,
--- which bypasses the missing INSERT grant.
-grant select on common.definitions to authenticated;
--- The seed importer (scripts/import-definitions.ts) and the
--- `define` Edge Function connect as service_role and need schema
--- USAGE + write access. `common` grants authenticated USAGE in the
--- baseline but not service_role, so grant it here. INSERT alongside
--- SELECT because PostgREST's upsert path reads back on conflict.
-grant usage on schema common to service_role;
-grant insert, select on common.definitions to service_role;
-
--- ============================================================
--- common.cache_definition — the lazy-fill write path
--- ============================================================
--- Called by the `define` Edge Function (as service_role) after it
--- fetches a missing word from the API. SECURITY DEFINER so the
--- single write path is auditable + atomic; the conditional ON
--- CONFLICT is the important part:
---
---   we only ever call this on a cache MISS, so the existing row is
---   either absent or a NULL tombstone. The `where ... def is null`
---   guard means a real definition (notably a seeded Scrabble
---   gloss) is NEVER clobbered by a later API write or tombstone —
---   Scrabble's direct glosses win over Wiktionary's thinner
---   "plural of X" entries when both exist.
---
--- p_def NULL writes/refreshes a tombstone. Word is lowercased so
--- callers don't have to.
-create function common.cache_definition(
-  p_word   text,
-  p_def    text,
-  p_source text
-) returns void
-language plpgsql
-security definer
-set search_path = common, public
-as $$
-begin
-  insert into common.definitions (word, def, source, fetched_at)
-  values (lower(trim(p_word)), p_def, p_source, now())
-  on conflict (word) do update
-    set def        = excluded.def,
-        source     = excluded.source,
-        fetched_at = excluded.fetched_at
-    where common.definitions.def is null;
-end;
-$$;
-
--- Only the Edge Function (service_role) writes. Not authenticated:
--- letting any client cache arbitrary (word, def) pairs is a
--- junk-injection vector with no upside.
-revoke execute on function common.cache_definition(text, text, text) from public;
-grant execute on function common.cache_definition(text, text, text) to service_role;
-
--- ============================================================
 -- common.words — the master playable-word list
 -- ============================================================
 -- One row per playable word, shared by every word game (freebee
@@ -1804,6 +1702,57 @@ create index words_len_idx        on common.words (len);
 -- authenticated gets SELECT only. The bulk seed importer connects as
 -- the superuser and bypasses grants.
 grant select on common.words to authenticated;
+
+-- ============================================================
+-- common.cache_definition — the lazy definition-fill write path
+-- ============================================================
+-- The click-to-define popover + "look up any word" shortcut read
+-- `definition` straight off common.words (authenticated SELECT). When
+-- a word is in the table but has no definition yet (definition_source
+-- IS NULL = never looked up), the `define` Edge Function fetches
+-- Wiktionary and writes the result back here via this RPC.
+--
+-- We ONLY ever fill words that are already in common.words — a lookup
+-- of a word that isn't a playable word returns "unknown word" and is
+-- never inserted (per the friends-only design: the word list is the
+-- universe). So this is an UPDATE, never an INSERT.
+--
+-- The `definition is null` guard means a seeded definition (a real
+-- `s`-source gloss or an `e`-source auto-gloss) is NEVER clobbered by
+-- a later API write. It also lets a never-looked word (source NULL)
+-- be filled, and a tombstone (source 'w' + NULL def, "looked up,
+-- Wiktionary had nothing") be filled if a later fetch succeeds —
+-- though the Edge Function honors tombstones and won't re-fetch them.
+--
+-- p_def NULL writes the negative-cache tombstone. p_source is the
+-- one-char provenance code ('w' for Wiktionary — the only writer).
+-- Word is lowercased so callers don't have to.
+create function common.cache_definition(
+  p_word   text,
+  p_def    text,
+  p_source text
+) returns void
+language plpgsql
+security definer
+set search_path = common, public
+as $$
+begin
+  update common.words
+     set definition        = p_def,
+         definition_source = p_source
+   where word = lower(trim(p_word))
+     and definition is null;
+end;
+$$;
+
+-- service_role needs schema USAGE + EXECUTE to call this from the
+-- `define` Edge Function. Not authenticated: letting any client cache
+-- arbitrary (word, def) pairs is a junk-injection vector with no
+-- upside. (The bulk word import connects as the superuser and seeds
+-- definitions straight from the TSV, bypassing this path entirely.)
+grant usage on schema common to service_role;
+revoke execute on function common.cache_definition(text, text, text) from public;
+grant execute on function common.cache_definition(text, text, text) to service_role;
 
 -- ============================================================
 -- common.require_player_count_max — player-count upper bound

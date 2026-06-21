@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 /** The `define` Edge Function's response. `def === null` means
- *  "looked up, no definition found" (distinct from a fetch error). */
+ *  "looked up, no definition found" (distinct from a fetch error);
+ *  `unknown` means the word isn't in the master word list at all.
+ *  `source` is the one-char provenance code ('s'/'e'/'w'/'m') or null. */
 export type DefinitionResult = {
   word: string
   def: string | null
-  source: string
+  source: string | null
+  unknown?: boolean
 }
 
 type State = {
@@ -26,7 +29,7 @@ type Loaded = {
 
 /**
  * Declarative read-through lookup against the `define` Edge Function
- * (which fronts the `common.definitions` cache → Wiktionary). Pass the
+ * (which fronts the `common.words` definition columns → Wiktionary). Pass the
  * word to define, or `null` to sit idle; the hook refetches whenever
  * the word changes and cancels the in-flight result if it changes
  * again first (so chasing cross-refs quickly never flashes a stale

@@ -34,7 +34,10 @@ export function DefinitionView({ word, onNavigate }: Props) {
       {!loading && error && (
         <div className={styles.error}>Couldn’t look that up. {error}</div>
       )}
-      {!loading && !error && result?.def === null && (
+      {!loading && !error && result?.unknown && (
+        <div className={styles.status}>Unknown word.</div>
+      )}
+      {!loading && !error && result?.def === null && !result.unknown && (
         <div className={styles.status}>No definition found.</div>
       )}
       {!loading && !error && result?.def != null && (
@@ -57,9 +60,9 @@ export function DefinitionView({ word, onNavigate }: Props) {
           )}
         </p>
       )}
-      {!loading && result?.source === 'wiktionary' && result.def != null && (
-        // CC BY-SA attribution for Wiktionary-sourced text (see
-        // docs/common.md). Scrabble-sourced glosses need none.
+      {!loading && result?.source === 'w' && result.def != null && (
+        // CC BY-SA attribution for live Wiktionary text (see
+        // docs/common.md). Seeded glosses ('s'/'e'/'m') need none.
         <div className={styles.attribution}>via Wiktionary (CC BY-SA)</div>
       )}
     </div>

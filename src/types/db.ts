@@ -107,27 +107,6 @@ export type Database = {
           },
         ]
       }
-      definitions: {
-        Row: {
-          def: string | null
-          fetched_at: string
-          source: string
-          word: string
-        }
-        Insert: {
-          def?: string | null
-          fetched_at?: string
-          source: string
-          word: string
-        }
-        Update: {
-          def?: string | null
-          fetched_at?: string
-          source?: string
-          word?: string
-        }
-        Relationships: []
-      }
       game_players: {
         Row: {
           game_id: string
