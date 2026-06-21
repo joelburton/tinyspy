@@ -4,6 +4,7 @@ import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { OpponentStrip } from './OpponentStrip'
+import { SolutionReveal } from './SolutionReveal'
 import { WaffleGrid } from './WaffleGrid'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -40,15 +41,11 @@ export function PlayArea({
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
 
-  // Post-terminal, reveal the solved board (all green) — the answer.
-  // During play, show the caller's own board + its live colors.
-  const showSolution = isTerminal && game.solution !== null
-  const board = showSolution
-    ? (game.solution as string)
-    : (self?.board ?? game.scramble)
-  const colors = showSolution
-    ? (game.solution as string).replace(/[^.]/g, 'g')
-    : (self?.colors ?? null)
+  // The left grid always shows the caller's own board + live colors —
+  // including at game-over (their final state). The solved board is
+  // revealed separately on the right (SolutionReveal).
+  const board = self?.board ?? game.scramble
+  const colors = self?.colors ?? null
 
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
@@ -94,6 +91,7 @@ export function PlayArea({
             <span>
               <span className="muted">Game over:</span> {over.status}
             </span>
+            {game.solution && <SolutionReveal solution={game.solution} />}
             <button type="button" className="secondary" onClick={goToClub}>
               Back to club
             </button>

@@ -1,0 +1,53 @@
+.reveal {
+  /* Compact tiles for the answer grid (the playable one uses 3.5rem). */
+  --tile: 2.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.gridWrap {
+  align-self: center;
+}
+
+.wordCols {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #666);
+}
+
+.word {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text, inherit);
+}
+
+.word:hover {
+  background: var(--color-surface-2, #eee);
+  text-decoration: underline;
+}

@@ -1,0 +1,75 @@
+import { useState } from 'react'
+import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { boardWords } from '../lib/waffle'
+import { WaffleGrid } from './WaffleGrid'
+import styles from './SolutionReveal.module.css'
+
+/**
+ * End-of-game answer panel: the solved board (all green) plus the six
+ * words grouped across / down, each click-to-define via the shared
+ * `DefinitionPopover` — the same lookup freebee's WordList uses (the
+ * define Edge Function reads common.words, where these words live).
+ * Shown on the right at terminal while the player's final board stays
+ * on the left.
+ */
+export function SolutionReveal({ solution }: { solution: string }) {
+  const [a0, a2, a4, d0, d2, d4] = boardWords(solution)
+  // Every filled cell is correct in the solution → all green.
+  const colors = solution.replace(/[^.]/g, 'g')
+
+  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(
+    null,
+  )
+  function define(word: string, el: HTMLElement) {
+    setDefining({ word, rect: el.getBoundingClientRect() })
+  }
+
+  return (
+    <div className={styles.reveal}>
+      <div className={styles.label}>The answer</div>
+      <div className={styles.gridWrap}>
+        <WaffleGrid board={solution} colors={colors} disabled onSwap={() => {}} />
+      </div>
+
+      <div className={styles.wordCols}>
+        <WordGroup heading="Across" words={[a0, a2, a4]} onDefine={define} />
+        <WordGroup heading="Down" words={[d0, d2, d4]} onDefine={define} />
+      </div>
+
+      {defining && (
+        <DefinitionPopover
+          initialWord={defining.word}
+          anchorRect={defining.rect}
+          onClose={() => setDefining(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function WordGroup({
+  heading,
+  words,
+  onDefine,
+}: {
+  heading: string
+  words: string[]
+  onDefine: (word: string, el: HTMLElement) => void
+}) {
+  return (
+    <div className={styles.group}>
+      <div className={styles.heading}>{heading}</div>
+      {words.map((w) => (
+        <button
+          key={w}
+          type="button"
+          className={styles.word}
+          title="Click for definition"
+          onClick={(e) => onDefine(w, e.currentTarget)}
+        >
+          {w.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
