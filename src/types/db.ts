@@ -322,6 +322,51 @@ export type Database = {
           },
         ]
       }
+      words: {
+        Row: {
+          american: boolean
+          australian: boolean
+          british: boolean
+          canadian: boolean
+          definition: string | null
+          definition_source: string | null
+          difficulty: number
+          len: number
+          letter_mask: number | null
+          root_word: string | null
+          slur: boolean
+          word: string
+        }
+        Insert: {
+          american: boolean
+          australian: boolean
+          british: boolean
+          canadian: boolean
+          definition?: string | null
+          definition_source?: string | null
+          difficulty: number
+          len: number
+          letter_mask?: number | null
+          root_word?: string | null
+          slur?: boolean
+          word: string
+        }
+        Update: {
+          american?: boolean
+          australian?: boolean
+          british?: boolean
+          canadian?: boolean
+          definition?: string | null
+          definition_source?: string | null
+          difficulty?: number
+          len?: number
+          letter_mask?: number | null
+          root_word?: string | null
+          slur?: boolean
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -378,6 +423,7 @@ export type Database = {
         Returns: undefined
       }
       validate_timer: { Args: { timer_obj: Json }; Returns: undefined }
+      word_letter_mask: { Args: { w: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

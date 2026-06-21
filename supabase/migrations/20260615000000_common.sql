@@ -1703,6 +1703,108 @@ revoke execute on function common.cache_definition(text, text, text) from public
 grant execute on function common.cache_definition(text, text, text) to service_role;
 
 -- ============================================================
+-- common.words — the master playable-word list
+-- ============================================================
+-- One row per playable word, shared by every word game (freebee
+-- today; Boggle, MonkeyGram board-validation, crosswords later). A
+-- single categorized source means each game filters the same table
+-- to its own taste instead of vendoring its own word list. Every
+-- row is a single lowercase a–z word fit for play — no proper nouns,
+-- abbreviations, contractions, hyphenated or multi-word entries.
+--
+-- The categorization columns are the knobs games filter on:
+--   difficulty  — 35..90, bundles "how common is it" + "how odd is
+--                 the spelling" into one number (octopus=35,
+--                 octopi=70). A single threshold controls how hard
+--                 the playable set is. Rough tiers: 35 everyday,
+--                 50 common, 60 most literate adults, 70 less-common,
+--                 80 word-game/Scrabble tail, 85 archaic/obscure,
+--                 90 anything-goes. freebee uses two thresholds:
+--                 required = difficulty <= 50, legal = <= 70.
+--   american/british/canadian/australian — dialect validity. Mostly
+--                 a SPELLING filter (colour/color, -ise/-ize); a word
+--                 like `lorry` is american=true too. Default play is
+--                 `american AND british`.
+--   slur        — a serious slur with no innocent sense. Playable
+--                 (it's a legal word) but MUST never appear on a
+--                 required / must-find list. Golden rule: slurs are
+--                 legal, never required.
+--   len         — char length, stored so per-game length rules
+--                 (freebee >=4, Boggle >=3, MonkeyGram >=2) filter
+--                 cheaply without a function call.
+--   root_word   — lemma of an inflected form (cats -> cat), else
+--                 NULL; drives "see also" grouping.
+--   definition / definition_source — the click-to-define payload, in
+--                 the compact freebee symbology (parseDefinition on
+--                 the FE). source provenance: s=real scrabble def,
+--                 e=auto gloss ("plural of cat"), w=looked up online
+--                 (Wiktionary), m=manual; NULL=never looked up.
+--                 definition NULL with source NULL is eligible for a
+--                 live lookup; source='w' with definition still NULL
+--                 is the negative-cache tombstone (looked up, nothing
+--                 found — don't refetch). See common.cache_definition.
+--
+-- letter_mask is a GENERATED column: the 26-bit set of distinct
+-- letters in the word (bit 0 = 'a'). It powers the "find every word
+-- whose letters fit this puzzle" bitmask query the freebee board
+-- builder runs (word.letter_mask & ~puzzle_mask = 0). Generated, so
+-- it's always correct and the importer never has to compute it.
+
+-- The bit convention here (bit 0 = 'a', ascii('a')=97) must match
+-- the TS letterMask() the freebee board builder uses to compute
+-- puzzle masks, or the subset test would compare incompatible bit
+-- layouts. IMMUTABLE so it's usable in the generated column + any
+-- expression index.
+create function common.word_letter_mask(w text)
+returns bigint
+language sql
+immutable
+strict
+as $$
+  select coalesce(bit_or(1::bigint << (ascii(ch) - 97)), 0::bigint)
+    from regexp_split_to_table(w, '') as ch
+   where ch between 'a' and 'z';
+$$;
+
+create table common.words (
+  word              text primary key,        -- lowercase a-z, the playable form
+  difficulty        smallint not null
+                      check (difficulty between 35 and 90),
+  american          boolean not null,
+  british           boolean not null,
+  canadian          boolean not null,
+  australian        boolean not null,
+  slur              boolean not null default false,
+  len               smallint not null,
+  root_word         text,                     -- lemma of an inflected form, else NULL
+  definition        text,                     -- gloss/def in freebee symbology, NULL if none yet
+  -- NULL allowed (a CHECK passes when its expression is NULL): a
+  -- word that's never been looked up has a NULL source.
+  definition_source char(1)
+                      check (definition_source in ('s', 'e', 'w', 'm')),
+  -- Distinct-letter bitmask, derived from `word`. See above.
+  letter_mask       bigint
+                      generated always as (common.word_letter_mask(word)) stored
+);
+
+-- The two common per-game filters (mirrors the upstream schema): a
+-- difficulty threshold and a length floor. The letter_mask board-
+-- build index lands with freebee's queries in a later migration — it
+-- wants a partial index tuned to the freebee universe (len, no-'s'),
+-- so it's defined where that query lives, not here.
+create index words_difficulty_idx on common.words (difficulty);
+create index words_len_idx        on common.words (len);
+
+-- Public reference data: an English dictionary isn't secret and
+-- leaks no per-game answer key (a freebee board's legal words live
+-- in the hidden freebee.games_state columns, not here). Readable by
+-- any signed-in user; no RLS. The only write path is the lazy
+-- definition fill through cache_definition (SECURITY DEFINER), so
+-- authenticated gets SELECT only. The bulk seed importer connects as
+-- the superuser and bypasses grants.
+grant select on common.words to authenticated;
+
+-- ============================================================
 -- common.require_player_count_max — player-count upper bound
 -- ============================================================
 -- Centralizes the "max N players" check that each open-N game's

@@ -18,6 +18,7 @@
     "wordknit:import": "npx tsx supabase/scripts/import-wordknit-puzzles.ts",
     "freebee:import": "npx tsx supabase/scripts/import-freebee-dictionary.ts",
     "defs:import": "npx tsx supabase/scripts/import-definitions.ts",
+    "words:import": "npx tsx supabase/scripts/import-words.ts",
     "deploy": "supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist",
     "test:e2e": "playwright test"
   },
