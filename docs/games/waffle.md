@@ -1,9 +1,11 @@
-# SyrupSwap (codename `waffle`) — scoping doc
+# SyrupSwap (codename `waffle`)
 
-**Status: PLANNED, not built.** This is the design doc, written the way
-[`freebee.md`](freebee.md) was scoped before implementation. Nothing in
-`supabase/migrations`, `src/waffle/`, or `supabase/tests/waffle/` exists yet —
-this file is the spec to build from.
+**Status: BUILT** — coop + compete, server + frontend. This began as the
+scoping doc and the design below still holds; it's now implemented in migration
+`20260624000000_waffle.sql`, the `src/waffle/` frontend, and the pgTAP
+(`supabase/tests/waffle/`) + Vitest (`src/waffle/lib/*.test.ts`) suites.
+Remaining polish is minor (recently-swapped tile flash; a "real" non-difficulty
+puzzle library when we're past tier-trialling).
 
 **Brand name vs codename.** The user-facing brand is **SyrupSwap** — it's the
 manifest `title` and the wording in any end-user copy (game listing, help,
