@@ -166,3 +166,33 @@ begin
   return array_to_string(res, '');
 end;
 $$;
+
+-- ============================================================
+-- waffle.puzzles — the generated puzzle library
+-- ============================================================
+-- Waffle has no external puzzle corpus, so we generate our own
+-- offline and ship them as a committed artifact
+-- (supabase/data/waffle-puzzles.tsv.gz, loaded by `waffle:import`).
+-- Each row is one solvable puzzle: the solved board, a scrambled
+-- starting board with the same letters, and `par_swaps` (the minimum
+-- swaps to solve — the budget is par + extra, set at create_game).
+--
+-- `title` is a short player-facing label. While we're trialling
+-- difficulty tiers it carries the puzzle's vocabulary difficulty
+-- ("Difficulty 50") so friends can pick a tier and feel the
+-- difference; a later "real" library can title them however we like.
+-- create_game (Phase 3) copies the chosen puzzle's solution/scramble
+-- onto the game and derives the game title from this.
+create table waffle.puzzles (
+  id         uuid primary key default gen_random_uuid(),
+  solution   char(25) not null,   -- solved board, 25-char, holes '.'
+  scramble   char(25) not null,   -- starting board, same letters scrambled
+  par_swaps  int not null,        -- minimum swaps to solve
+  title      text not null        -- player-facing label (currently the difficulty)
+);
+
+-- Public reference data: no RLS. The bulk import connects as the
+-- superuser (bypasses grants); create_game reads it as SECURITY
+-- DEFINER. authenticated gets SELECT for parity with the other
+-- reference tables (wordknit.puzzles, freebee.pangrams).
+grant select on waffle.puzzles to authenticated;

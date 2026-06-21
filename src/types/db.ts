@@ -1104,6 +1104,54 @@ export type Database = {
       [_ in never]: never
     }
   }
+  waffle: {
+    Tables: {
+      puzzles: {
+        Row: {
+          id: string
+          par_swaps: number
+          scramble: string
+          solution: string
+          title: string
+        }
+        Insert: {
+          id?: string
+          par_swaps: number
+          scramble: string
+          solution: string
+          title: string
+        }
+        Update: {
+          id?: string
+          par_swaps?: number
+          scramble?: string
+          solution?: string
+          title?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      _color_rank: { Args: { c: string }; Returns: number }
+      _wordle_colors: {
+        Args: { answer: string; guess: string }
+        Returns: string
+      }
+      compute_colors: {
+        Args: { board: string; solution: string }
+        Returns: string
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   wordknit: {
     Tables: {
       games: {
@@ -1422,6 +1470,9 @@ export const Constants = {
     Enums: {},
   },
   tinyspy: {
+    Enums: {},
+  },
+  waffle: {
     Enums: {},
   },
   wordknit: {
