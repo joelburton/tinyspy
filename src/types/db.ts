@@ -1251,7 +1251,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          board?: string | null
+          board?: never
           colors?: never
           game_id?: string | null
           solved?: boolean | null
@@ -1260,7 +1260,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          board?: string | null
+          board?: never
           colors?: never
           game_id?: string | null
           solved?: boolean | null
@@ -1287,8 +1287,23 @@ export type Database = {
       }
     }
     Functions: {
+      _board_visible: {
+        Args: {
+          cg: Database["waffle"]["Tables"]["games"]["Row"]
+          row_user: string
+          wg: Database["waffle"]["Tables"]["games"]["Row"]
+        }
+        Returns: boolean
+      }
       _color_rank: { Args: { c: string }; Returns: number }
-      _colors_for: { Args: { board: string; g_id: string }; Returns: string }
+      _player_board_for: {
+        Args: { g_id: string; row_user: string }
+        Returns: string
+      }
+      _player_colors_for: {
+        Args: { g_id: string; row_user: string }
+        Returns: string
+      }
       _solution_for: { Args: { g_id: string }; Returns: string }
       _wordle_colors: {
         Args: { answer: string; guess: string }

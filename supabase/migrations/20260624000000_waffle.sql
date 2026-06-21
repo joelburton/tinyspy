@@ -259,12 +259,20 @@ create table waffle.players (
 );
 
 create index waffle_players_game_id_idx on waffle.players (game_id);
-grant select on waffle.players to authenticated;
+
+-- Column grant EXCLUDING `board`: in compete you race independently, so
+-- an opponent's board (and the deductions it reveals) is hidden until
+-- the game ends. players_state exposes the board conditionally via a
+-- SECURITY DEFINER helper; swaps_used / solved stay visible (the
+-- opponent-progress strip). In coop the board is shared, so the helper
+-- shows it to everyone.
+grant select (game_id, user_id, swaps_used, solved, solved_at)
+  on waffle.players to authenticated;
 
 alter table waffle.players enable row level security;
--- Phase 3: club-member read (coop shows the shared board to everyone).
--- Phase 4 narrows this so a COMPETE opponent's board is hidden
--- mid-game (only swaps_used / solved exposed) and revealed at terminal.
+-- Row visibility is club-member-wide (you can see that an opponent
+-- row exists, with its swaps_used / solved). The board column-hiding
+-- above is what keeps the opponent's actual tiles private mid-compete.
 create policy players_select on waffle.players
   for select to authenticated
   using (
@@ -284,12 +292,15 @@ alter publication supabase_realtime add table waffle.players;
 -- Hidden-answer helpers (SECURITY DEFINER) + read views
 -- ============================================================
 -- _solution_for reveals the solution only once the game is terminal
--- (the end-of-game reveal). _colors_for computes a board's feedback
--- against the hidden solution during play — colors are the gameplay
--- signal, the solution itself stays hidden. Both run as definer so
--- they can read the grant-hidden `solution` column; the
--- security_invoker views call them as the caller, and base-table RLS
--- still gates which rows the caller sees.
+-- (the end-of-game reveal). _player_board_for / _player_colors_for
+-- return a player's board + its color feedback, but only when the
+-- caller is allowed to see that board: it's their OWN row, or the
+-- game is coop (shared board), or the game is over. Otherwise they
+-- return NULL — that's how a compete opponent's tiles stay hidden
+-- mid-game. All run as definer so they can read the grant-hidden
+-- `board` / `solution` columns; the security_invoker views call them
+-- as the caller (so auth.uid() is the real caller), and base-table
+-- RLS still gates which rows the caller sees.
 
 create function waffle._solution_for(g_id uuid)
 returns text
@@ -304,22 +315,51 @@ as $$
    where wg.id = g_id;
 $$;
 
-create function waffle._colors_for(g_id uuid, board text)
+-- Visible iff the caller owns the row, or it's coop, or it's over.
+create function waffle._board_visible(wg waffle.games, cg common.games, row_user uuid)
+returns boolean
+language sql
+stable                         -- auth.uid() is stable
+as $$
+  select row_user = auth.uid() or wg.mode = 'coop' or cg.is_terminal;
+$$;
+
+create function waffle._player_board_for(g_id uuid, row_user uuid)
 returns text
 language sql
 stable
 security definer
 set search_path = waffle, common, public, extensions
 as $$
-  select waffle.compute_colors(board, wg.solution)
-    from waffle.games wg
-   where wg.id = g_id;
+  select case when waffle._board_visible(wg, cg, row_user)
+              then wp.board::text else null end
+    from waffle.players wp
+    join waffle.games wg on wg.id = wp.game_id
+    join common.games cg on cg.id = wg.id
+   where wp.game_id = g_id and wp.user_id = row_user;
+$$;
+
+create function waffle._player_colors_for(g_id uuid, row_user uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+  select case when waffle._board_visible(wg, cg, row_user)
+              then waffle.compute_colors(wp.board, wg.solution) else null end
+    from waffle.players wp
+    join waffle.games wg on wg.id = wp.game_id
+    join common.games cg on cg.id = wg.id
+   where wp.game_id = g_id and wp.user_id = row_user;
 $$;
 
 revoke execute on function waffle._solution_for(uuid) from public;
-revoke execute on function waffle._colors_for(uuid, text) from public;
+revoke execute on function waffle._player_board_for(uuid, uuid) from public;
+revoke execute on function waffle._player_colors_for(uuid, uuid) from public;
 grant execute on function waffle._solution_for(uuid) to authenticated;
-grant execute on function waffle._colors_for(uuid, text) to authenticated;
+grant execute on function waffle._player_board_for(uuid, uuid) to authenticated;
+grant execute on function waffle._player_colors_for(uuid, uuid) to authenticated;
 
 create view waffle.games_state with (security_invoker = true) as
   select wg.id,
@@ -335,11 +375,13 @@ create view waffle.games_state with (security_invoker = true) as
 create view waffle.players_state with (security_invoker = true) as
   select wp.game_id,
          wp.user_id,
-         wp.board,
          wp.swaps_used,
          wp.solved,
          wp.solved_at,
-         waffle._colors_for(wp.game_id, wp.board) as colors
+         -- board/colors via the definer helpers — NULL for a compete
+         -- opponent mid-game (the column grant hides wp.board directly).
+         waffle._player_board_for(wp.game_id, wp.user_id)  as board,
+         waffle._player_colors_for(wp.game_id, wp.user_id) as colors
     from waffle.players wp;
 
 grant select on waffle.games_state to authenticated;
@@ -348,10 +390,11 @@ grant select on waffle.players_state to authenticated;
 -- ============================================================
 -- Register the gametype(s)
 -- ============================================================
--- Phase 3 ships COOP only. waffle_compete is registered in Phase 4
--- alongside the compete submit_swap branch + opponent-visibility RLS.
+-- The sibling-manifest pair: coop (shared board, lock-step) and
+-- compete (own board each, fewest-swaps winner).
 insert into common.gametypes (gametype) values
-  ('waffle_coop')
+  ('waffle_coop'),
+  ('waffle_compete')
 on conflict do nothing;
 
 -- ============================================================
@@ -480,6 +523,7 @@ declare
   current_play_state text;
   p_board            char(25);
   p_swaps            int;
+  p_solved           boolean;
   a1                 int;
   b1                 int;
   new_board          char(25);
@@ -487,6 +531,7 @@ declare
   did_solve          boolean;
   out_terminal       boolean := false;
   term_state         text;
+  winner_id          uuid;
   player_results     jsonb;
 begin
   caller_id := common.require_game_player(target_game);
@@ -515,9 +560,14 @@ begin
 
   -- The caller's working board (coop rows are identical; compete is
   -- the caller's own).
-  select board, swaps_used into p_board, p_swaps
+  select board, swaps_used, solved into p_board, p_swaps, p_solved
     from waffle.players
    where game_id = target_game and user_id = caller_id;
+  -- A solved player is locked (matters in compete, where the game
+  -- continues for others after one player solves).
+  if p_solved then
+    raise exception 'you have already solved this puzzle' using errcode = 'P0001';
+  end if;
   if p_swaps >= g_row.max_swaps then
     raise exception 'no swaps remaining' using errcode = 'P0001';
   end if;
@@ -562,9 +612,52 @@ begin
       );
     end if;
   else
-    -- Compete branch lands in Phase 4 (per-player terminal + winner).
-    raise exception 'compete mode is not yet implemented'
-      using errcode = 'P0001';
+    -- Compete: apply the swap to the caller's own row only.
+    update waffle.players
+       set board      = new_board,
+           swaps_used = new_swaps,
+           solved     = did_solve,
+           solved_at  = case when did_solve then now() else solved_at end
+     where game_id = target_game and user_id = caller_id;
+
+    -- The game ends when EVERY player is done — solved, or out of
+    -- swaps. The finite budget guarantees this happens (no stall).
+    if not exists (
+      select 1 from waffle.players
+       where game_id = target_game
+         and not solved
+         and swaps_used < g_row.max_swaps
+    ) then
+      out_terminal := true;
+      -- Winner = solved with the FEWEST swaps; tie-break the earliest
+      -- solved_at (least time). NULL if nobody solved.
+      select user_id into winner_id
+        from waffle.players
+       where game_id = target_game and solved
+       order by swaps_used asc, solved_at asc
+       limit 1;
+
+      select jsonb_object_agg(
+               user_id::text,
+               jsonb_build_object(
+                 'won',    coalesce(user_id = winner_id, false),
+                 'solved', solved,
+                 'swaps',  swaps_used
+               )
+             )
+        into player_results
+        from waffle.players
+       where game_id = target_game;
+
+      term_state := case when winner_id is not null
+                         then 'won_compete' else 'lost_compete' end;
+      perform common.end_game(
+        target_game, term_state,
+        jsonb_build_object('mode', 'compete',
+                           'winner', winner_id),
+        player_results
+      );
+    end if;
   end if;
 
   return jsonb_build_object(
