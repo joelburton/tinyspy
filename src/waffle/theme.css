@@ -1,0 +1,12 @@
+/*
+ * SyrupSwap (codename `waffle`) theme tokens — the per-tile feedback
+ * palette, kept here so the grid + any future swatch share one source.
+ * Wordle-ish greens/yellows/grays, plus a selection ring. Imported by
+ * the PlayArea (which mounts the grid).
+ */
+:root {
+  --waffle-green: #6aaa64;
+  --waffle-yellow: #c9b458;
+  --waffle-gray: #787c7e;
+  --waffle-select-ring: rgba(120, 90, 40, 0.35);
+}

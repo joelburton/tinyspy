@@ -1,0 +1,70 @@
+/* The 5×5 lattice. Fixed-size square tiles in a centered grid. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, var(--tile, 3.5rem));
+  grid-template-rows: repeat(5, var(--tile, 3.5rem));
+  gap: 0.4rem;
+  justify-content: center;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.disabled {
+  opacity: 0.85;
+}
+
+/* A hole — an interior cell in no word. Just empty space. */
+.hole {
+  width: var(--tile, 3.5rem);
+  height: var(--tile, 3.5rem);
+}
+
+.tile {
+  width: var(--tile, 3.5rem);
+  height: var(--tile, 3.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.06s ease, box-shadow 0.1s ease;
+  /* override the global button hover/accent treatment */
+  background: var(--waffle-gray);
+}
+
+.tile:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
+/* Feedback colors (Wordle-ish). Tokens live in theme.css. */
+.green {
+  background: var(--waffle-green);
+}
+.yellow {
+  background: var(--waffle-yellow);
+}
+.gray {
+  background: var(--waffle-gray);
+}
+/* Pre-load / no color yet — neutral. */
+.blank {
+  background: var(--color-surface-2, #d3d6da);
+  color: var(--color-text, #1a1a1b);
+}
+
+/* Picked-up tile, waiting for its swap partner. */
+.selected {
+  border-color: var(--color-text, #1a1a1b);
+  box-shadow: 0 0 0 3px var(--waffle-select-ring, rgba(0, 0, 0, 0.25));
+  transform: translateY(-2px);
+}

@@ -17,7 +17,9 @@ import { CELLS, FILLED, HOLE, isHole, WORDS } from './waffle'
  * no-op when they agree — which they must.
  */
 export function assembleSolution(words: readonly string[]): string {
-  const cells = Array.from({ length: CELLS }, (_, i) => (isHole(i) ? HOLE : ''))
+  const cells: string[] = Array.from({ length: CELLS }, (_, i) =>
+    isHole(i) ? HOLE : '',
+  )
   WORDS.forEach((cellIdxs, wi) => {
     const word = words[wi]
     cellIdxs.forEach((cell, k) => {

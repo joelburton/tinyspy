@@ -1,0 +1,28 @@
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+}
+
+.boardArea {
+  display: flex;
+  justify-content: center;
+}
+
+.rightCol {
+  min-width: 14rem;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.gameOver {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
