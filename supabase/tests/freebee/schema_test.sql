@@ -11,8 +11,8 @@
 --
 -- What this file covers:
 --   1. The gametype is registered in common.gametypes.
---   2. Public reference tables (dictionary, pangrams) are
---      readable by `authenticated`.
+--   2. The freebee.pangrams reference table is readable by
+--      `authenticated` (the word list itself is now common.words).
 --   3. The column-level grant on freebee.games blocks direct
 --      SELECT of scoring_words / legal_words for the
 --      `authenticated` role.
@@ -32,7 +32,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(11);
+select plan(10);
 
 \ir ../_shared/setup.psql
 
@@ -55,22 +55,16 @@ select is(
 -- These are reference data — public SELECT, no RLS, no club
 -- gating. The import script writes them; everyone reads them.
 
--- Seed a sentinel row in each table as postgres so we have
--- something to read. (The actual data lands via the import
--- script in normal use; here we just confirm the read path.)
+-- Seed a sentinel row as postgres so we have something to read.
+-- (The actual data lands via the import script in normal use; here
+-- we just confirm the read path.) The word reference itself now
+-- lives in common.words, not freebee — only the freebee-specific
+-- pangram seed pool is checked here.
 reset role;
-insert into freebee.dictionary (word, letter_mask, in_scoring, in_legal)
-values ('test', 0::bigint, true, true);
 insert into freebee.pangrams (mask, scoring_words, has_rare_letters)
 values (1::bigint, 30, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-
-select is(
-  (select count(*) from freebee.dictionary where word = 'test'),
-  1::bigint,
-  'authenticated can SELECT from freebee.dictionary'
-);
 
 select is(
   (select count(*) from freebee.pangrams where mask = 1::bigint),

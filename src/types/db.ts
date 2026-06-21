@@ -434,27 +434,6 @@ export type Database = {
   }
   freebee: {
     Tables: {
-      dictionary: {
-        Row: {
-          in_legal: boolean
-          in_scoring: boolean
-          letter_mask: number
-          word: string
-        }
-        Insert: {
-          in_legal: boolean
-          in_scoring: boolean
-          letter_mask: number
-          word: string
-        }
-        Update: {
-          in_legal?: boolean
-          in_scoring?: boolean
-          letter_mask?: number
-          word?: string
-        }
-        Relationships: []
-      }
       found_words: {
         Row: {
           found_at: string

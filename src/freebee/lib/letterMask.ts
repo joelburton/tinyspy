@@ -1,9 +1,10 @@
 /**
  * 26-bit letter mask helpers for freebee.
  *
- * Same encoding the edge function uses (and freebee.dictionary
- * stores) — bit `n` of a number is set iff letter `'a' + n` is
- * present in the source. Storing the alphabet as a bitmask lets
+ * Same encoding the edge function uses (and the generated
+ * common.words.letter_mask column stores) — bit `n` of a number is
+ * set iff letter `'a' + n` is present in the source. Storing the
+ * alphabet as a bitmask lets
  * us answer "does this word use only puzzle letters?" with a
  * single bitwise op instead of a per-character scan:
  *

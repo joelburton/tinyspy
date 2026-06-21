@@ -3,11 +3,11 @@
  * freebee puzzle and creates the game in one round-trip.
  *
  * Why edge (not PL/pgSQL): the diverse-builder strategy needs
- * weighted random sampling over the ~3.5k pangram seeds, two
- * filter passes (previous-letters overlap cap + ING dampening),
- * and a subset-mask join against the ~46k dictionary. All of
- * this is much easier to express + maintain in TypeScript than
- * in plpgsql.
+ * weighted random sampling over the pangram seeds, two filter
+ * passes (previous-letters overlap cap + ING dampening), and a
+ * subset-mask join against the word list (common.words, via the
+ * candidate_words RPC). All of this is much easier to express +
+ * maintain in TypeScript than in plpgsql.
  *
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
@@ -26,10 +26,10 @@
  *           j/q/x/z/k/v/w/y/b/f/h get fair representation
  *           against the long tail of common-letter pangrams.
  *   4. Pick the center letter from the 7 in the mask (uniform).
- *   5. As the caller, query freebee.dictionary for every word
- *      whose mask is a subset of the puzzle mask AND uses the
- *      center letter. Compute points per scoring word (length
- *      score + 10 if pangram).
+ *   5. As the caller, query common.words (via the candidate_words
+ *      RPC) for every word whose mask is a subset of the puzzle
+ *      mask AND uses the center letter. Compute points per scoring
+ *      word (length score + 10 if pangram).
  *   6. Call freebee.create_game(target_club, setup,
  *      player_user_ids, board) over PostgREST — the RPC
  *      validates everything end-to-end and returns the new id.
@@ -40,8 +40,8 @@
  *   - SUPABASE_ANON_KEY  auto-injected
  *
  * The caller's JWT carries every authorization signal we need:
- *   - freebee.pangrams + freebee.dictionary are
- *     authenticated-readable (RLS off, public SELECT).
+ *   - freebee.pangrams + common.words are authenticated-readable
+ *     (RLS off, public SELECT).
  *   - freebee.games is RLS-gated on club membership, so the
  *     previous-board fetch only returns rows for clubs the
  *     caller belongs to.
@@ -99,7 +99,7 @@ type PangramRow = {
   has_rare_letters: boolean
 }
 
-type DictionaryRow = {
+type CandidateRow = {
   word: string
   letter_mask: string
   in_scoring: boolean
@@ -262,7 +262,7 @@ function lengthScore(word: string): number {
 function buildBoard(
   outerLetters: string,
   centerLetter: string,
-  candidateWords: DictionaryRow[],
+  candidateWords: CandidateRow[],
 ): Board {
   const puzzleMask = letterMask(outerLetters + centerLetter)
   const scoring: Board['scoring_words'] = []
@@ -344,21 +344,22 @@ async function fetchPreviousMask(
   return letterMask(data.outer_letters + data.center_letter)
 }
 
-/** Fetches every dictionary word that uses only puzzle letters
- *  AND contains the center letter. The bitmask intersection
- *  runs server-side via `freebee.candidate_words(puzzle_mask,
- *  center_bit)`, so the response is only the matching ~hundreds
- *  of rows (well under max_rows). One round-trip per board.
+/** Fetches every legal word that uses only puzzle letters AND
+ *  contains the center letter. The bitmask intersection (and
+ *  freebee's difficulty/dialect/length slice of common.words) runs
+ *  server-side via `freebee.candidate_words(puzzle_mask,
+ *  center_bit)`, so the response is only the matching ~hundreds of
+ *  rows (well under max_rows). One round-trip per board.
  *
- *  Earlier shape pulled the full dictionary and filtered in JS;
- *  that ran into PostgREST's max_rows = 1000 cap (silent
- *  truncation to the alphabetically-first 1000 words). The RPC
- *  pattern fixes the truncation without bumping the global cap. */
+ *  Earlier shape pulled the full word list and filtered in JS; that
+ *  ran into PostgREST's max_rows = 1000 cap (silent truncation to
+ *  the alphabetically-first 1000 words). The RPC pattern fixes the
+ *  truncation without bumping the global cap. */
 async function fetchCandidateWords(
   supabase: SupabaseClient,
   puzzleMask: bigint,
   centerBit: bigint,
-): Promise<DictionaryRow[]> {
+): Promise<CandidateRow[]> {
   const { data, error } = await supabase
     .schema('freebee')
     .rpc('candidate_words', {

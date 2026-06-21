@@ -32,7 +32,7 @@ function escapeCell(v: Cell): string {
  * previous contents intact.
  *
  * @param dbUrl   Postgres connection string (psql connects as is).
- * @param table   schema-qualified table name, e.g. 'freebee.dictionary'.
+ * @param table   schema-qualified table name, e.g. 'freebee.pangrams'.
  * @param columns column names matching each row's cell order.
  * @param rows    the data.
  */

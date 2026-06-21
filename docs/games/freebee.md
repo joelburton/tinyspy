@@ -23,7 +23,7 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
   - 4-letter word: **1 point**.
   - 5+-letter word: **points = word length**.
   - Pangram: **+10 bonus** on top of the length score (a 7-letter pangram is 7 + 10 = 17). Pangram-ness is determined at submit time by the WORD's distinct-letter count (= 7), not by a precomputed flag — so a *bonus* word with 7 distinct letters earns the +10 too.
-- **Bonus words:** the dictionary has two tiers — a smaller *scoring set* (SCOWL-50) and a larger *legal set* (SCOWL-80). A word in the legal set but NOT in the scoring set is accepted as **bonus** and **scores the same way as a scoring word** (length-based + pangram bonus). The difference is purely about what the player saw before they found it: bonus words are NOT counted in `total_words` and NOT included in the puzzle-quality gate (`≥30 scoring words`) or the rank-threshold *denominator* (`total_score`). So a player who finds a bonus pangram (rare-word knowledge!) can legitimately rocket past the displayed "max" score and even past the Genius rank. The `Words: X/Y` display lets `X` overshoot `Y` when bonus words are found, signaling the extra credit. Bonus contribution to score + rank is *intentional* — the design call is "we don't want players to feel bad for missing obscure words, but reward them if they find them." Matches `~/freebee-ws/server/sessions.js:988-990`.
+- **Bonus words:** freebee slices the shared `common.words` list into two tiers — a smaller *scoring set* (difficulty ≤ 50, no slurs) and a larger *legal set* (difficulty ≤ 70). A word in the legal set but NOT in the scoring set is accepted as **bonus** and **scores the same way as a scoring word** (length-based + pangram bonus). The difference is purely about what the player saw before they found it: bonus words are NOT counted in `total_words` and NOT included in the puzzle-quality gate (`≥30 scoring words`) or the rank-threshold *denominator* (`total_score`). So a player who finds a bonus pangram (rare-word knowledge!) can legitimately rocket past the displayed "max" score and even past the Genius rank. The `Words: X/Y` display lets `X` overshoot `Y` when bonus words are found, signaling the extra credit. Bonus contribution to score + rank is *intentional* — the design call is "we don't want players to feel bad for missing obscure words, but reward them if they find them." Matches `~/freebee-ws/server/sessions.js:988-990`.
 - **Rank ladder:** as score climbs vs. the puzzle's maximum-possible score, the player passes through **Start → Good → Solid → Nice → Great → Amazing → Genius**. Genius unlocks at **70%** of the maximum. The ladder is mirrored on the FE in [`src/freebee/lib/ranks.ts`](../../src/freebee/lib/ranks.ts) and on the SQL side in `freebee._rank_idx` — both compute from the same constants, and a Vitest assertion checks they agree numerically across every score-vs-total combination.
 - **Lifecycle:**
   - *Coop*: ends when (a) the countdown timer expires (`timer.kind = 'countdown'` only) or (b) any player chooses the **End game** menu item. **There's no auto-end on 100%-found** — players who exhaust the scoring set keep going, finding bonus words past the displayed `Y / total_words` and pushing the score past `total_score` (the rank clamps at Genius). Untimed and count-up games end only via (b). Matches `~/freebee-ws/server/sessions.js`'s `submitWord` (no terminal check past acceptance).
@@ -50,12 +50,12 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | term | meaning |
 |---|---|
 | **board** | The 7 letters of one puzzle: 6 outer + 1 center. Determines which words are legal. |
-| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the scoring dictionary). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
-| **scoring word** | A word in the smaller, higher-quality dictionary (`scowl-50`). Earns points and contributes to rank. |
-| **legal word** | A word in the larger dictionary (`scowl-80`) but NOT in the scoring set. Accepted as **bonus** — 0 points, no rank progress, but recorded. |
+| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the scoring slice of `common.words`). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
+| **scoring word** | A word in freebee's scoring tier of `common.words` (difficulty ≤ 50, not a slur). Earns points and contributes to rank. |
+| **legal word** | A word in freebee's legal tier (difficulty ≤ 70) but NOT in the scoring set. Accepted as **bonus** — 0 points, no rank progress, but recorded. |
 | **bonus word** | Synonym for legal-not-scoring. Accepted by `submit_word` as `'bonus'`; **scores normally** (length-based + pangram bonus per the same rules as a scoring word), but does NOT count toward `total_words` and doesn't affect the rank-threshold *denominator*. Recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. Because score climbs without the max climbing, finding bonus words can push you past the displayed-max score and even past Genius / past compete's target rank. |
 | **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `score / total_score` via `currentRankIndex`. Genius unlocks at 70% (`GENIUS_AT`). Same word `wordknit` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
-| **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the importer): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
+| **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the generated `common.words.letter_mask` column): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
 | **outcome** | The `status.outcome` enum value for terminal freebee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`), `'lost_compete'` (compete: timer / manual end with no winner — but actually this port writes `'timeout'`/`'manual'` with `mode='compete'` in the status to distinguish). The corresponding `play_state` is `'ended'` for everything except `'won_compete'` which uses `play_state='won_compete'`. |
 
 ## Scope: v1 vs. deferred
@@ -139,12 +139,11 @@ The edge function `freebee-build-board` accepts `mode` as a top-level body field
 
 ## Schema: `freebee.*`
 
-### Tables
+The word list itself is **not** a freebee table — it's the shared `common.words` master list (see [common.md → The word list](../common.md#the-word-list-commonwords)). freebee filters it on the fly in `candidate_words`. The only freebee-owned reference table is the pangram seed pool:
 
 | table | purpose |
 |---|---|
-| `dictionary` | Global word-lookup table. ~46k rows (after normalization: lowercase ASCII, ≥4 chars, no `s`). One row per word with `letter_mask` (26-bit), `in_scoring` (counts toward score/rank), `in_legal` (accepted as bonus). Populated by `npm run freebee:import`. Public-readable to `authenticated`; only `service_role` has INSERT. |
-| `pangrams` | Precomputed seed pool. ~3.5k rows: one per unique 7-letter mask drawn from the scoring set that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Each row carries `scoring_words` (count of scoring words that fit; ≥30 gate at sample time) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. See [Why a seeds table?](#why-a-seeds-table) below. |
+| `pangrams` | Precomputed seed pool. ~3.6k rows: one per unique 7-letter mask drawn from the scoring slice of `common.words` that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Each row carries `scoring_words` (count of scoring words that fit; ≥30 gate at sample time) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. Rebuilt by `npm run freebee:import` (after `words:import`). See [Why a seeds table?](#why-a-seeds-table) below. |
 | `games` | One row per playthrough. `id` is FK to `common.games(id)`. Holds `mode` (`'coop'`/`'compete'`, denormalized from the gametype string for RLS branching), `outer_letters` (6 chars), `center_letter` (1 char), `total_score` and `total_words` (cached at create-game time), plus the **hidden** wordlist columns `scoring_words` (jsonb array of `{word, points, is_pangram}`) and `legal_words` (text[] bonus-only). Hidden via column-level grant; exposed conditionally via `games_state`. The column grant explicitly includes `mode` so the security_invoker view + the mode-aware found_words RLS policy can read it. |
 | `found_words` | One row per `(player, word)`. Includes `points` (length-based + `+10` if pangram; bonus rows score normally too), `is_pangram` (true when the word's distinct-letter count = 7), `is_bonus` (true when the word came from `legal_words` rather than `scoring_words`). PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
 
@@ -161,7 +160,7 @@ The FE only ever reads from `games_state`, never from `games` directly.
 
 ### Why a seeds table?
 
-A valid FreeBee board needs at least one pangram (the 7-distinct-letter word). Random 7-letter sets mostly *don't* contain a pangram, so generating "pick 7 random letters and check" wastes thousands of attempts. The flip: **start from known pangrams**. Scan the scoring dictionary for every 7-distinct-letter word, dedupe by letter mask, store the masks. That gives ~3.5k seeds, each guaranteed to admit at least one pangram.
+A valid FreeBee board needs at least one pangram (the 7-distinct-letter word). Random 7-letter sets mostly *don't* contain a pangram, so generating "pick 7 random letters and check" wastes thousands of attempts. The flip: **start from known pangrams**. Scan the scoring slice of `common.words` for every 7-distinct-letter word, dedupe by letter mask, store the masks. That gives ~3.6k seeds, each guaranteed to admit at least one pangram.
 
 To build a board, the edge function:
 1. Samples one row (weighted by `has_rare_letters` ×3 to even out the natural skew toward `e`, `a`, `i`).
@@ -171,9 +170,9 @@ To build a board, the edge function:
 
 ### Why a SQL helper for `candidate_words`?
 
-[`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260617000000_freebee.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every dictionary row whose mask is a subset of `puzzle_mask` and contains `center_bit`.
+[`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260617000000_freebee.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every `common.words` row in freebee's legal tier (difficulty ≤ 70, american OR british, len ≥ 4) whose mask is a subset of `puzzle_mask` and contains `center_bit`. `in_scoring` (= difficulty ≤ 50 AND NOT slur) is computed in the SELECT — this is the single place freebee's slice of the shared list is defined.
 
-It exists because the obvious-looking pattern — "fetch all in_legal words, filter the bitmask in JS" — silently truncates against PostgREST's `max_rows = 1000` cap. The dictionary has 46k rows; the alphabetical first 1000 mostly start with `a` and don't represent the puzzle's candidate space at all, so `total_words` ends up below the ≥30 gate and the function returns 500. Pushing the filter into Postgres returns only the ~hundreds of actual candidates in one round-trip, well under any cap.
+It exists because the obvious-looking pattern — "fetch all legal words, filter the bitmask in JS" — silently truncates against PostgREST's `max_rows = 1000` cap. `common.words` has ~283k rows; the alphabetical first 1000 mostly start with `a` and don't represent the puzzle's candidate space at all, so `total_words` ends up below the ≥30 gate and the function returns 500. Pushing the filter into Postgres returns only the ~hundreds of actual candidates in one round-trip, well under any cap. (At freebee's selectivity it's a seq-scan-with-filter, ~15 ms — no index, the bitwise subset test isn't sargable anyway.)
 
 ### Play states
 
@@ -265,25 +264,19 @@ The Realtime-touch pattern repeats — see `submit_timeout` above. Tested via th
 
 The function logs one line per step in dev (`console.log` lands in `supabase functions serve` output), so when a board build fails the cause is on screen.
 
-## Dictionary import: `npm run freebee:import`
+## Pangram seed import: `npm run freebee:import`
 
-[`supabase/scripts/import-freebee-dictionary.ts`](../../supabase/scripts/import-freebee-dictionary.ts), mirroring [`import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts).
-
-**Inputs (vendored, committed to repo):**
-- `supabase/data/scowl-50.txt` — the scoring word list (~40k entries pre-filter).
-- `supabase/data/scowl-80.txt` — the legal word list (~100k entries pre-filter).
-
-Both are [SCOWL](http://wordlist.aspell.net/) (Spell Checker Oriented Word Lists). Copied verbatim from `~/freebee-ws/data/`.
+[`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts). It rebuilds `freebee.pangrams` from the scoring slice of `common.words`. The word list itself is loaded separately by `npm run words:import` (see [common.md → The word list](../common.md#the-word-list-commonwords)) — **run that first**; this script reads what's already in the table.
 
 **Script flow:**
-1. Read both vendored files.
-2. Normalize each word: trim, lowercase, ASCII-only, drop length<4, drop any word containing `s`.
-3. Compute the 26-bit `letter_mask` per word.
-4. Union the two sets; rows with `(word, mask, in_scoring, in_legal)`.
-5. Build the pangrams from the dictionary rows: aggregate `letter_mask` where `popcount(letter_mask) = 7` and `isValidPuzzleMask(mask)` (q→u when q is set, ≥2 vowels), with the `scoring_words` count per mask.
-6. **Bulk-load both tables via psql `COPY`** — `TRUNCATE` then insert, using [`lib/copyLoad.ts`](../../supabase/scripts/lib/copyLoad.ts). The TS still does the mask/pangram computation; only the *load* is psql.
+1. Query `common.words` for the scoring set's `letter_mask`s: `difficulty ≤ 50 AND NOT slur AND (american OR british) AND len ≥ 4 AND no 's'`. (`letter_mask` is the table's generated column, so there's nothing to recompute.)
+2. Candidate seeds = distinct masks with exactly 7 distinct letters (`popcount(mask) = 7`) that satisfy `isValidPuzzleMask` (q→u when q is set, ≥2 vowels).
+3. For each seed, count scoring words whose mask is a subset (`wordMask & ~seedMask = 0`); keep seeds with ≥30. Tag `has_rare_letters`.
+4. **Bulk-load `freebee.pangrams` via psql `COPY`** — `TRUNCATE` then insert, using [`lib/copyLoad.ts`](../../supabase/scripts/lib/copyLoad.ts). The TS does the mask/count computation; only the *load* is psql.
 
-**Reseed, not upsert.** Both tables are fully derived from the vendored files, so each run TRUNCATEs and reloads from scratch — there's nothing to preserve. (`definitions` loads the same way; see [common.md → Word definitions](../common.md#word-definitions-click-to-define--lookup).)
+This currently yields ~3.6k seed rows.
+
+**Reseed, not upsert.** The pangram pool is fully derived from `common.words`, so each run TRUNCATEs and reloads from scratch — there's nothing to preserve.
 
 **Why COPY, not the REST API.** The loader connects directly to Postgres as the superuser and streams rows over one connection. This is what makes bulk loading to a *hosted* project fast (~1s) and reliable: the earlier supabase-js batch-upsert path choked on `TypeError: fetch failed` mid-import when the hosted API gateway closed reused keep-alive connections between batches.
 
@@ -484,7 +477,8 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | Everything server-side — schema, column grants, RLS, the `games_state` view, hidden-wordlist helpers (`_scoring_words_for` / `_legal_words_for` / `candidate_words`), the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `freebee_coop`/`freebee_compete` gametype rows | [`supabase/migrations/20260617000000_freebee.sql`](../../supabase/migrations/20260617000000_freebee.sql) |
 | Compete-specific FE rendering (OpponentRanksStrip, mode-aware buildOver) | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
 | Target-rank picker in the setup dialog | [`src/freebee/components/SetupForm.tsx`](../../src/freebee/components/SetupForm.tsx) |
-| How the dictionary is populated | [`supabase/scripts/import-freebee-dictionary.ts`](../../supabase/scripts/import-freebee-dictionary.ts); SCOWL data in `supabase/data/` |
+| How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (`supabase/data/words.tsv.gz`) — see [common.md](../common.md#the-word-list-commonwords) |
+| How the pangram seed pool is built | [`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts) (derives `freebee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/freebee-build-board/index.ts`](../../supabase/functions/freebee-build-board/index.ts) |
 | The play surface | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from freebee-ws) | [`src/freebee/components/Letters.module.css`](../../src/freebee/components/Letters.module.css) |

@@ -469,16 +469,35 @@ On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username t
 
 [`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
 
+## The word list (`common.words`)
+
+The master playable-word list, shared by every word game (freebee today; Boggle, MonkeyGram board-validation, crosswords later). One row per playable word — a single categorized source each game filters to its own taste, instead of vendoring a per-game list. ~283k rows.
+
+**Why `common`, not per-game.** Most upcoming games are word games, and the removability invariant forbids one game owning data another reads. A shared list in `common` is the natural home — `freebee` reads it, nothing in `common` reads back.
+
+**The categorization columns are the filtering knobs:**
+- `difficulty` (35–90) — bundles "how common is it" + "how odd is the spelling" into one number (`octopus`=35, `octopi`=70). A single threshold controls how hard the playable set is. This is what will back a future per-game "small vs large word list" user choice.
+- `american` / `british` / `canadian` / `australian` — dialect validity. Mostly a *spelling* filter (`colour`/`color`); a word like `lorry` is `american=true` too. Default play is `american OR british`.
+- `slur` — a serious slur with no innocent sense. Playable (it's a legal word) but **never** put on a required / must-find list. The golden rule: slurs are legal, never required.
+- `len` — char length, so per-game length floors (freebee ≥4, Boggle ≥3, MonkeyGram ≥2) filter cheaply.
+- `root_word` — lemma of an inflected form (`cats`→`cat`), for "see also" grouping.
+- `definition` / `definition_source` — the click-to-define payload (see [Word definitions](#word-definitions-click-to-define--lookup) below).
+- `letter_mask` — a **generated** column: the 26-bit set of distinct letters in the word (bit 0 = `a`), via `common.word_letter_mask`. Powers the "find every word whose letters fit this puzzle" subset query (`letter_mask & ~puzzle_mask = 0`) that freebee's board builder runs.
+
+**How a game uses it.** freebee defines its slice in `freebee.candidate_words`: legal = `difficulty ≤ 70`, scoring = `difficulty ≤ 50 AND NOT slur`, dialect = `american OR british`, `len ≥ 4`. The thresholds are the locked defaults; they become a per-game user choice later.
+
+**Seed + import.** Public reference data — `grant select` to `authenticated`, no RLS. Seeded from the vendored gzipped TSV `supabase/data/words.tsv.gz` (283k rows, ~3 MB) via `npm run words:import` (psql `COPY`, TRUNCATE + insert; `letter_mask` fills itself as a generated column). Same direct-Postgres load the other reference tables use (fast + reliable for the hosted load; see [freebee.md → Pangram seed import](games/freebee.md#pangram-seed-import-npm-run-freebeeimport) for why `COPY` beats batched HTTP upserts).
+
 ## Word definitions (click-to-define + lookup)
 
 A shared definition lookup, available to every word game (freebee today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover, and a per-game **shortcut key** (`~` in freebee) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen.
 
 **Why it lives in `common`.** Definitions aren't game-specific, and the removability invariant forbids one game owning data another reads. So the def store is decoupled from any game's dictionary:
 
-- **`common.definitions`** `(word pk, def, source check(scrabble|wiktionary), fetched_at)` — the word→def cache + superset store. A NULL `def` is a *negative-cache tombstone* ("looked up, found nothing") so the free-form box doesn't re-hit the API on repeated typos. It relates to `freebee.dictionary` only by `word`, and the hot paths never join (lookups want `def`; gameplay wants the `in_scoring`/`in_legal` flags).
+- **`common.definitions`** `(word pk, def, source check(scrabble|wiktionary), fetched_at)` — the word→def cache + superset store. A NULL `def` is a *negative-cache tombstone* ("looked up, found nothing") so the free-form box doesn't re-hit the API on repeated typos. It relates to `common.words` only by `word`, and the hot paths never join (lookups want `def`; gameplay wants the categorization columns). _(These two are being folded together — `common.words` already carries `definition` columns; the define feature migrates onto it next.)_
 - **`common.cache_definition(word, def, source)`** — SECURITY DEFINER, service_role-only write path. Conditional upsert (`where def is null`) so a real definition — notably a seeded Scrabble gloss — is **never** clobbered by a later API write.
 
-**Seed + growth.** Seeded from the vendored Scrabble dictionary (`supabase/data/scrabble-defs.tsv`, 192k terse glosses, ~21 MB in PG). `npm run defs:import` bulk-loads it via psql `COPY` — `TRUNCATE` + insert, a full reseed (no upsert), straight to Postgres over a direct connection rather than the REST API (fast + reliable for the hosted load; see [freebee.md → Dictionary import](games/freebee.md#dictionary-import-npm-run-freebeeimport) for why COPY beats batched HTTP upserts). It then grows lazily: the **`define` Edge Function** is a read-through cache — reads `common.definitions` as the caller, and on a miss (or a stale tombstone) fetches **Wiktionary** (`freedictionaryapi.com`, CC BY-SA) and caches the result via `cache_definition`. Wiktionary won the bake-off over `api.dictionaryapi.dev` (~93% vs ~30% coverage on obscure bonus words, and no aggressive rate-limiting); a transient API failure surfaces an error *without* writing a tombstone, so only definitive empty answers are negatively cached.
+**Seed + growth.** Seeded from the vendored Scrabble dictionary (`supabase/data/scrabble-defs.tsv`, 192k terse glosses, ~21 MB in PG). `npm run defs:import` bulk-loads it via psql `COPY` — `TRUNCATE` + insert, a full reseed (no upsert), straight to Postgres over a direct connection rather than the REST API (fast + reliable for the hosted load; see [freebee.md → Pangram seed import](games/freebee.md#pangram-seed-import-npm-run-freebeeimport) for why COPY beats batched HTTP upserts). It then grows lazily: the **`define` Edge Function** is a read-through cache — reads `common.definitions` as the caller, and on a miss (or a stale tombstone) fetches **Wiktionary** (`freedictionaryapi.com`, CC BY-SA) and caches the result via `cache_definition`. Wiktionary won the bake-off over `api.dictionaryapi.dev` (~93% vs ~30% coverage on obscure bonus words, and no aggressive rate-limiting); a transient API failure surfaces an error *without* writing a tombstone, so only definitive empty answers are negatively cached.
 
 **Frontend.** All in `common/`, so freebee is just the first consumer:
 - `hooks/useDefinition(word)` — declarative lookup over `supabase.functions.invoke('define')`; cancels in-flight results so fast cross-ref chasing never flashes stale text.

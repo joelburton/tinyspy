@@ -1619,15 +1619,16 @@ grant execute on function common.claim_username(text) to authenticated;
 -- Function fetches Wiktionary (freedictionaryapi.com, CC BY-SA)
 -- and caches the result back here via `cache_definition` below.
 --
--- It is deliberately decoupled from `freebee.dictionary`:
---   - freebee.dictionary = gameplay legality (letter_mask,
---     in_scoring, in_legal) for ~102k SCOWL words.
+-- It is (for now) decoupled from `common.words`:
+--   - common.words = gameplay categorization (difficulty, dialect,
+--     slur, letter_mask) for the ~283k playable words.
 --   - common.definitions = the def text for *any* word, including
---     the ~90k Scrabble words that aren't SCOWL-legal and the
---     novel words a player looks up. No in_scoring/in_legal here —
---     "is it playable" is each game's question, not the
---     dictionary's. The two relate only by `word`, and the hot
---     paths never join (lookups want def; gameplay wants flags).
+--     novel words a player looks up that aren't playable. "Is it
+--     playable" is each game's question, not the cache's. The two
+--     relate only by `word`, and the hot paths never join (lookups
+--     want def; gameplay wants the categorization columns).
+-- (These two will be folded into one — definition columns already
+-- live on common.words; the define feature migrates onto it next.)
 --
 -- A NULL `def` is a *negative-cache tombstone*: "we asked and the
 -- source had nothing." It exists so the free-form lookup box

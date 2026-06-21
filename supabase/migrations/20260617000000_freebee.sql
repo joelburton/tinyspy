@@ -4,9 +4,11 @@
 --
 -- A honeycomb of 7 distinct letters (1 center + 6 outer); players
 -- form words from those letters; each word must include the
--- center. Pangrams (words using all 7) earn a +10 bonus. The
--- shared dictionary is split into a smaller scoring set and a
--- larger legal-only set (bonus words).
+-- center. Pangrams (words using all 7) earn a +10 bonus. The word
+-- list is common.words (the categorized master list shared across
+-- games); freebee filters it into a smaller scoring set (required,
+-- difficulty <= 50, no slurs) and a larger legal-only set (bonus
+-- words, difficulty <= 70).
 --
 -- "freebee" is the codename. User-facing copy is "freebee"; SQL /
 -- TypeScript / folder names are all `freebee`. Ported from the
@@ -38,83 +40,51 @@
 create schema if not exists freebee;
 grant usage on schema freebee to authenticated;
 
--- The import script (supabase/scripts/import-freebee-
--- dictionary.ts) connects as service_role and needs USAGE on
--- the schema + INSERT on `dictionary` + `pangrams`.
+-- The pangram import (supabase/scripts/import-freebee-pangrams.ts)
+-- connects as the superuser (bypasses grants), so service_role only
+-- needs schema USAGE for any incidental PostgREST access.
 grant usage on schema freebee to service_role;
 
 -- ============================================================
--- freebee.dictionary — the global word reference
+-- The word reference lives in common.words
 -- ============================================================
--- ~150k rows (after normalization: lowercase ASCII, ≥4 chars,
--- no 's'). One row per word, with two booleans capturing which
--- dictionary tier the word lives in:
+-- freebee's word reference is the shared common.words master list,
+-- not a freebee table — every word game filters the same
+-- categorized source. freebee's slice is computed on the fly in
+-- freebee.candidate_words (below): legal = difficulty <= 70, scoring
+-- = difficulty <= 50 AND NOT slur, dialect = american OR british,
+-- len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
+-- test (every letter of the word is in the puzzle) reads the
+-- generated common.words.letter_mask column — same bit convention.
 --
---   in_scoring  Word is in the smaller, higher-quality SCOWL-50
---               set. Earns points and contributes to rank.
---   in_legal    Word is in the larger SCOWL-80 set (a superset
---               of scoring). Words with in_legal=true and
---               in_scoring=false are "bonus" words: accepted by
---               submit_word but worth 0 points and don't move
---               rank. The FE shows them with a `bonus` marker.
---
--- The `letter_mask` column is a 26-bit set: bit `n` is on iff
--- letter `'a' + n` appears in the word. Encoded once at import
--- time so submit_word and the edge function don't have to scan
--- each character. The expression
---
---     dictionary.letter_mask & ~puzzle_mask = 0
---
--- is true iff every letter of the word is in the puzzle — the
--- exact "uses only puzzle letters" test that scoring needs.
---
--- ───────────────────────────────────────────────────────────
--- Why not store words containing 's'? freebee's puzzle generator
--- never produces a board that contains 's' (the rule from the
--- original NYT game — 's' makes pluralization too easy and
--- inflates word counts). So no s-containing word can ever be a
--- legal submission. Filtering at import time saves storage and
--- speeds up every lookup. See `isValidPuzzleMask` in
--- ~/freebee-ws/server/game.js for the upstream rule's history.
-
-create table freebee.dictionary (
-  word         text primary key,        -- lowercase ASCII, ≥4 chars, no 's'
-  letter_mask  bigint not null,         -- 26-bit set of letters used in `word`
-  in_scoring   boolean not null,        -- in SCOWL-50: counts for score+rank
-  in_legal     boolean not null         -- in SCOWL-80: accepted as bonus if not scoring
-);
-
--- The hot lookup path is "given a puzzle mask, find every word
--- whose mask is a subset of it." The mask-only index supports a
--- pre-filter by bit-pattern (we still verify with `& ~mask = 0`
--- in the predicate, but the index narrows the candidate rows).
--- WHERE in_legal because in_legal=false rows never matter — a
--- non-legal word is not in the dictionary at all from the
--- game's POV.
-create index freebee_dictionary_mask_idx
-  on freebee.dictionary (letter_mask)
-  where in_legal;
+-- No freebee-specific index on common.words: the candidate_words
+-- filter (difficulty/dialect/len) selects ~a third of the table, a
+-- selectivity at which Postgres prefers a seq-scan-with-filter over
+-- a btree anyway (the bitwise subset test isn't sargable). It runs
+-- in tens of ms, a handful of times per board build. See
+-- candidate_words for the measured rationale.
 
 -- ============================================================
 -- freebee.pangrams — the board-seed pool
 -- ============================================================
 -- A valid freebee board needs to contain at least one pangram
 -- (a word using all 7 distinct letters of the board). Random
--- 7-letter sets MOSTLY don't have a pangram in the dictionary —
+-- 7-letter sets MOSTLY don't have a pangram in the word list —
 -- so generating boards by "pick 7 random letters and check"
 -- wastes thousands of attempts.
 --
--- The flip: start from known pangrams. Scan the scoring
--- dictionary for every 7-distinct-letter word, dedupe by
--- letter-mask, store the resulting masks here. Each row is a
--- guaranteed-valid board seed: at least one pangram exists
--- (we found it during the scan), and we precompute the count
--- of scoring words that fit the mask for the ≥30-words gate.
+-- The flip: start from known pangrams. Scan the scoring slice of
+-- common.words (difficulty <= 50) for every 7-distinct-letter
+-- word, dedupe by letter-mask, store the resulting masks here.
+-- Each row is a guaranteed-valid board seed: at least one pangram
+-- exists (we found it during the scan), and we precompute the
+-- count of scoring words that fit the mask for the ≥30-words gate.
 --
--- The edge function samples from this table — one short query,
--- no rejection loops over the full dictionary on each board
--- build. See docs/games/freebee.md → "Why a seeds table?" for
--- the longer explanation.
+-- The edge function samples from this table — one short query, no
+-- rejection loops over the whole word list on each board build.
+-- See docs/games/freebee.md → "Why a seeds table?" for the longer
+-- explanation. Rebuilt by import-freebee-pangrams.ts (after
+-- words:import has loaded common.words).
 --
 -- has_rare_letters drives the "diverse" builder's weighting:
 -- masks containing any of {j, q, x, z} (very rare) or
@@ -130,16 +100,11 @@ create table freebee.pangrams (
   has_rare_letters  boolean not null       -- weighting tier for the diverse builder
 );
 
--- Both reference tables: public reference data, no RLS, but
--- only `service_role` gets INSERT.
-grant select on freebee.dictionary to authenticated;
-grant select on freebee.pangrams   to authenticated;
--- service_role needs SELECT alongside INSERT — PostgREST inspects
--- the table catalog during request handling, and an upsert with
--- a missing select grant fails even when the request body doesn't
--- ask for returned rows. Matches the wordknit.puzzles grant shape.
-grant insert, select on freebee.dictionary to service_role;
-grant insert, select on freebee.pangrams   to service_role;
+-- freebee.pangrams: public reference data, no RLS. The edge
+-- function samples seeds as the caller (authenticated SELECT). The
+-- pangram import connects as the superuser and bypasses grants, so
+-- no service_role INSERT is needed.
+grant select on freebee.pangrams to authenticated;
 
 -- ============================================================
 -- freebee.games — one row per playthrough
@@ -195,7 +160,7 @@ create table freebee.games (
   center_letter char(1) not null,
   -- Cached at create-game time from the wordlists. Pure
   -- function of the puzzle so we could recompute, but caching
-  -- means submit_word doesn't need to scan the dictionary on
+  -- means submit_word doesn't need to scan the word list on
   -- every guess to recompute "the max."
   total_score int not null,
   total_words int not null,             -- count of scoring words
@@ -203,7 +168,8 @@ create table freebee.games (
   -- scoring_words shape: jsonb array of
   --     { "word": text, "points": int, "is_pangram": bool }
   -- legal_words: text[] of bonus-only words (legal but not
-  -- scoring). Both populated by create_game from the dictionary.
+  -- scoring). Both built by the edge function (via
+  -- candidate_words over common.words) and handed to create_game.
   scoring_words jsonb not null,
   legal_words text[] not null,
   created_at timestamptz not null default now(),
@@ -471,26 +437,37 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 -- ============================================================
 --
 -- Reason this exists: the edge function's "given a puzzle,
--- return every dictionary word that fits" query was being
--- silently truncated by PostgREST's `max_rows = 1000` cap. The
--- dictionary has ~46k rows; even after the `in_legal=true`
--- filter PostgREST applied to the table-side query, paginating
--- in batches of 1000 across the full set is a lot of round-trips
--- for a once-per-game-creation operation.
+-- return every legal word that fits" query was being silently
+-- truncated by PostgREST's `max_rows = 1000` cap when run against
+-- the table directly. The fix: push the bitmask intersection into
+-- Postgres via this small SQL function. It does the filter
+-- server-side and returns only the candidate rows (typically a few
+-- hundred, well under max_rows); the edge function reads back
+-- through supabase.rpc(...) in one round-trip.
 --
--- The fix: push the bitmask intersection into Postgres via a
--- small SQL function. The function does the filter server-side
--- and returns only the candidate rows (typically a few hundred,
--- well under max_rows). The edge function reads back through
--- supabase.rpc(...) in one round-trip.
+-- This is also where freebee's slice of the shared common.words
+-- list is defined:
+--   - legal      difficulty <= 70  (returned at all = enterable)
+--   - scoring     difficulty <= 50 AND NOT slur  (the in_scoring
+--                 flag; earns points + rank). Slurs are legal but
+--                 never scoring — the golden rule. difficulty 51-70
+--                 words and slurs come back as bonus (in_scoring
+--                 false), worth 0 points.
+--   - dialect    american OR british  (Joel's default; canadian /
+--                 australian off). Mostly a spelling filter.
+--   - length     len >= 4  (the Spelling-Bee minimum)
+-- These thresholds become a per-game user choice later; for now
+-- they're the locked defaults (see docs/games/freebee.md).
+--
+-- `s`-words need no explicit filter: a board never contains 's', so
+-- the 's' bit is never in puzzle_mask and any 's'-word fails the
+-- subset test below for free.
 --
 -- The function is `security invoker` + `stable`:
---   - invoker so RLS on freebee.dictionary applies as the
---     caller. Dictionary has RLS off (public reference data),
---     but principle-of-least-surprise: the function inherits
---     whatever access the caller has, no privilege escalation.
---   - stable so a single SELECT can call it once per row of
---     its enclosing query without repeated re-execution.
+--   - invoker so it runs with the caller's access to common.words
+--     (public reference data, RLS off) — no privilege escalation.
+--   - stable so a single SELECT can call it once per row of its
+--     enclosing query without repeated re-execution.
 
 create function freebee.candidate_words(
   puzzle_mask bigint,
@@ -500,20 +477,22 @@ returns table(word text, letter_mask bigint, in_scoring boolean)
 language sql
 stable
 security invoker
-set search_path = freebee, public, extensions
+set search_path = freebee, common, public, extensions
 as $$
-  select word, letter_mask, in_scoring
-    from freebee.dictionary
-   where in_legal
+  select w.word,
+         w.letter_mask,
+         (w.difficulty <= 50 and not w.slur) as in_scoring
+    from common.words w
+   where w.len >= 4
+     and w.difficulty <= 70
+     and (w.american or w.british)
      -- Subset of puzzle: every letter bit of the word must be
-     -- present in the puzzle's bitmask. Uses the partial
-     -- index `freebee_dictionary_mask_idx` on letter_mask
-     -- where in_legal — Postgres won't push the bitwise
-     -- predicate into the index, but the index narrows the
-     -- candidate row set first.
-     and (letter_mask & ~puzzle_mask) = 0
+     -- present in the puzzle's bitmask (reads the generated
+     -- common.words.letter_mask). Not sargable, so this is a
+     -- seq-scan-with-filter — fine at a few calls per board build.
+     and (w.letter_mask & ~puzzle_mask) = 0
      -- Must contain the center letter — the freebee rule.
-     and (letter_mask & center_bit) <> 0;
+     and (w.letter_mask & center_bit) <> 0;
 $$;
 
 revoke execute on function freebee.candidate_words(bigint, bigint) from public;
@@ -552,10 +531,10 @@ grant execute on function freebee.candidate_words(bigint, bigint) to authenticat
 --   }
 --
 -- The board's wordlists are taken at face value: they were
--- computed by the edge function from the freebee.dictionary
--- table (which the edge function reads via the caller's JWT,
--- so the RLS / grant gates still applied). The RPC just sanity-
--- checks structure, not content.
+-- computed by the edge function from common.words (via the
+-- candidate_words RPC, read under the caller's JWT, so the grant
+-- gates still applied). The RPC just sanity-checks structure, not
+-- content.
 --
 -- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·CABDNO".
 -- The center letter, dot, then the 6 outer letters alphabetized.
