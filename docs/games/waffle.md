@@ -123,7 +123,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 
 | table | purpose |
 |---|---|
-| `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`. The 6 words + a title derive from `solution` via geometry — nothing extra to store. |
+| `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (35/50/60 — the vocab tier; `create_game` picks by it), `title` ("Difficulty N", the game-listing label). The 6 words derive from `solution` via geometry. |
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`). |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 
@@ -149,9 +149,10 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 
 - **`create_game(target_club, setup, player_user_ids, mode)`** — sibling-manifest
   signature. Validates `require_club_member`, `require_player_count_max`,
-  `validate_timer`; validates `setup.extra_swaps` (bounded, default 5); picks a
-  `waffle.puzzles` row the club hasn't played (subquery against `waffle.games`,
-  fallback to any random); copies solution/scramble onto `waffle.games`; sets
+  `validate_timer`; validates `setup.extra_swaps` (0..15, default 5) and
+  `setup.difficulty` (35/50/60); picks a `waffle.puzzles` row of that difficulty
+  the club hasn't played (subquery against `waffle.games`, fallback to any of
+  that tier); copies solution/scramble onto `waffle.games`; sets
   `max_swaps = par_swaps + setup.extra_swaps`; seeds one `waffle.players` row per
   player with `board = scramble`.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
@@ -194,9 +195,11 @@ set is reviewable + stable in git. ~5k puzzles ≈ 300 KB raw / ~100 KB gzipped.
 
 ### `scripts/generate-waffle-puzzles.ts` (dev tool)
 
-1. Read `supabase/data/words.tsv.gz` directly (gunzip + filter — no DB). Candidate
-   set = `len == 5 AND difficulty ≤ ~55 AND (american OR british) AND NOT slur`
-   (no `s`-exclusion — that's freebee-only). ~thousands of words.
+1. Read `supabase/data/words.tsv.gz` directly (gunzip + filter — no DB). For each
+   tier N, the candidate set = `len == 5 AND difficulty ≤ N AND (american OR
+   british) AND NOT slur` (no `s`-exclusion — that's freebee-only), and a puzzle
+   is kept only if its hardest word is **exactly** N (so the tier is meaningful).
+   ~thousands of words per tier.
 2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes the
    3 *down* words' intersection letters. Precompute an index
    `(char@0, char@2, char@4) → [words]`; loop/sample `a0,a2,a4`, then the down
@@ -210,8 +213,11 @@ set is reviewable + stable in git. ~5k puzzles ≈ 300 KB raw / ~100 KB gzipped.
    scrambles whose par lands in a band (≈ 9–11).
 4. **Quality filters** (light): reject a down word equal to an across word; cap
    total letter repetition so colors stay informative.
-5. Emit `solution, scramble, par_swaps` rows → `supabase/data/waffle-puzzles.tsv.gz`
-   (committed). `npm run waffle:generate`.
+5. Emit `solution, scramble, par_swaps, difficulty, title` rows →
+   `supabase/data/waffle-puzzles.tsv.gz` (committed). `npm run waffle:generate [N]`
+   makes N puzzles per tier (default 100) at 35/50/60. **A tier-N puzzle's hardest
+   word is exactly N** (`tierGenerator` requires `max(word difficulties) === N`),
+   so a tier-50 puzzle genuinely *uses* a 50-level word, not merely allows one.
 
 Two pieces to build test-first: the **par computation** (cycle-maximizing
 assignment with duplicates — if it's off by 1 it only nudges the star rating, not
@@ -219,8 +225,9 @@ solvability, since the budget is generous) and the quality filters.
 
 ### `scripts/import-waffle-puzzles.ts`
 
-`npm run waffle:import` — copyLoad `waffle-puzzles.tsv.gz` into `waffle.puzzles`.
-Add it to `import-to-hosted.sh` (step 8, after the word list).
+`npm run waffle:import` — psql `\copy` (TRUNCATE + reseed) of
+`waffle-puzzles.tsv.gz` into `waffle.puzzles`, same transport as `words:import`.
+Wired into `import-to-hosted.sh` (step 8d, after wordknit).
 
 ## Frontend (`src/waffle/`)
 

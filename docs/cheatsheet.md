@@ -17,6 +17,9 @@
 | `npm run wordknit:import` | populate `wordknit.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
 | `npm run words:import` | populate `common.words` (the shared master word list) from `supabase/data/words.tsv.gz`. Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
 | `npm run freebee:import` | rebuild `freebee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
+| `npm run waffle:generate [N]` | generate the SyrupSwap puzzle library (N/tier at 35/50/60, default 100) → committed `supabase/data/waffle-puzzles.tsv.gz`. Reads `words.tsv.gz`; no DB |
+| `npm run waffle:import` | load `waffle.puzzles` from the committed library. psql `COPY` reseed; needs `psql` |
+| `npm run waffle:sample [N]` | render N/tier puzzles in the waffle shape → `waffle-samples.txt` (a preview; gitignored) |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 
 ## `supabase …`

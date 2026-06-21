@@ -37,6 +37,10 @@ This is the field downstream code reads to ask "what family does this gametype b
 
 See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the wider write-up.
 
+### codename vs brand name
+
+Most games use one word for both the user-facing **brand** and the **codename** (the gametype/folder/schema): TinySpy, WordKnit, FreeBee, PsychicNum, MonkeyGram are each both. **SyrupSwap** is the first to split them: the brand is **SyrupSwap** (the manifest `name`/`title` and any end-user copy), but the codename — and therefore the schema, the `src/waffle/` folder, the `waffle_coop` / `waffle_compete` gametype strings, table/column/variable names, and the test files — is **`waffle`**. The codename stays short and keeps the link to the original game obvious in the source; the brand is just a display string. When they diverge, *code* always uses the codename.
+
 ### mode
 
 The *interaction axis* a gametype declares — `'coop'` (cooperative; players share an outcome) or `'compete'` (competitive; players race for individual outcomes). Locked at the gametype level, NOT a per-game setup choice. Read off `manifest.mode` and (where the SQL needs it) off `<baseGametype>.games.mode` denormalized from the gametype string.
