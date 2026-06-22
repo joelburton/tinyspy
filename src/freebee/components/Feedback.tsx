@@ -1,13 +1,21 @@
 import { cls } from '../../common/lib/cls'
 import styles from './Feedback.module.css'
 
-export type FeedbackTone = 'success' | 'warning' | 'error'
+/**
+ * Tone palette for the in-body word-result pill. Deliberately NOT the
+ * common `FeedbackTone` (success/error/neutral/info): this pill has a
+ * `warning` tone (too-short / not-a-word) the header palette lacks, and
+ * it's a different surface — the header slot reports peer/opponent
+ * events, this reports the player's own submission. Distinct name so
+ * the two never get conflated. See docs/games/freebee.md → Feedback.
+ */
+export type WordResultTone = 'success' | 'warning' | 'error'
 
 type Props = {
   /** Empty string → no pill rendered. Lets the caller clear by
    *  passing `''` rather than swapping the whole element in/out. */
   message: string
-  tone: FeedbackTone
+  tone: WordResultTone
 }
 
 /**

@@ -316,8 +316,11 @@ src/freebee/
 
   components/
     PlayArea.tsx          Two-column composition (input column left, side panel right).
-                          Owns the typed word, the shuffle seed, the feedback pill timer,
-                          the submit_word dispatch, and the End-game menu item registration.
+                          Owns the typed word, the shuffle seed, the in-body feedback pill
+                          timer (own word result), the submit_word dispatch, and the
+                          End-game menu item registration. Wires usePeerFeedback to the
+                          common header slot for peer/opponent events (aliased as
+                          `headerFeedback` so it doesn't clash with the local pill state).
                           Compete-only: renders the OpponentRanksStrip between RankBar
                           and Stats (reading from ctx.status.leaderboard). buildOver
                           branches mode → terminal verdict copy. Mounts GameOverModal
@@ -338,9 +341,12 @@ src/freebee/
                           locked (so the player can fidget post-end). Hover rotates only
                           the ⟲ glyph (via an inner <span> + .iconGlyph transform), not
                           the button.
-    Feedback.tsx          Submission-result pill: success / warning / error. role="status"
-                          aria-live="polite". The caller (PlayArea) drives the
-                          show-and-clear timer.
+    Feedback.tsx          The IN-BODY pill, near the input: the player's OWN word result
+                          (success / warning / error — tone type `WordResultTone`, NOT the
+                          common FeedbackTone; it has a `warning` value the header lacks).
+                          role="status" aria-live="polite". PlayArea drives the
+                          show-and-clear timer. Peer/opponent events go to the HEADER slot
+                          instead — see usePeerFeedback. Two distinct surfaces by design.
     RankBar.tsx           7 dots from Start to Genius, filled up to the current rank.
                           Per-dot hover tooltip with rank name + points threshold.
     Stats.tsx             3-cell grid: Score / Words / Time. Tabular-nums so the digits
@@ -376,6 +382,12 @@ src/freebee/
                           new arrival stays "recent" for 5 seconds, then drops out via
                           per-word setTimeouts in a ref (NOT effect cleanup — see the
                           inline note about double-update timer cancellation).
+    usePeerFeedback.ts    Fires HEADER feedback pills for other players' activity — the
+                          complement to the in-body pill. coop: a peer found a good/pangram
+                          word (found_words is club-wide). compete: an opponent climbed a
+                          rank (their words are RLS-hidden, but rank rides
+                          status.leaderboard). Both bootstrap on the first loaded render so
+                          a reconnect doesn't replay a backlog; self-activity is excluded.
 
   lib/
     setup.ts              FreeBeeSetup type (timer / target_rank? / custom_letters? /
@@ -391,6 +403,9 @@ src/freebee/
     pangram.ts            isPangram (popcount26(letterMask(w)) === 7). UI cue only;
                           authority on "real" scoring pangrams is the server's
                           scoring_words.is_pangram flag.
+    leaderboard.ts        LeaderboardEntry type + readLeaderboard(status): the compete
+                          rank payload off common.games.status. Shared by the
+                          OpponentRanksStrip and usePeerFeedback.
 ```
 
 ### Routes & shell

@@ -8,10 +8,12 @@ import { formatTimerSeconds } from '../../common/hooks/useGameTimer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../hooks/useGlobalKeyHandler'
+import { usePeerFeedback } from '../hooks/usePeerFeedback'
+import { readLeaderboard, type LeaderboardEntry } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { FreeBeeSetup } from '../lib/setup'
 import { Actions } from './Actions'
-import type { FeedbackTone } from './Feedback'
+import type { WordResultTone } from './Feedback'
 import { Feedback } from './Feedback'
 import { Letters } from './Letters'
 import { RankBar } from './RankBar'
@@ -29,7 +31,7 @@ const FEEDBACK_TIMEOUT_MS = 2500
  * Maps each `submit_word` result-enum value to the visual tone
  * the feedback pill renders. See the RPC for the full enum.
  */
-const RESULT_TONE: Record<string, FeedbackTone> = {
+const RESULT_TONE: Record<string, WordResultTone> = {
   accepted: 'success',
   bonus: 'success',
   pangram: 'success',
@@ -71,19 +73,6 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 /**
- * One row from the compete-mode leaderboard payload on
- * `common.games.status`. The RPC writes the full array on every
- * submission; the FE reads it from `ctx.status.leaderboard` for
- * the OpponentRanksStrip.
- */
-type LeaderboardEntry = {
-  user_id: string
-  score: number
-  rank_idx: number
-  words_found: number
-}
-
-/**
  * freebee's play surface — shared between the coop and compete
  * manifests. Mode is read off `game.mode` (denormalized at
  * create_game time, surfaced on `freebee.games_state`).
@@ -108,6 +97,11 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, menu, playState, players, session, status, timer,
     setup, goToClub,
+    // The COMMON header feedback slot. Aliased so it doesn't clash with the
+    // local in-body `feedback` state below — the two are different surfaces:
+    // `headerFeedback` carries peer/opponent events (usePeerFeedback), the
+    // local pill carries the player's own word result.
+    feedback: headerFeedback,
   } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
@@ -208,12 +202,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── Feedback + auto-clear ─────────────────────────────
   const [feedback, setFeedback] = useState<{
     message: string
-    tone: FeedbackTone
+    tone: WordResultTone
   }>({ message: '', tone: 'success' })
 
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const showFeedback = useCallback((message: string, tone: FeedbackTone) => {
+  const showFeedback = useCallback((message: string, tone: WordResultTone) => {
     setFeedback({ message, tone })
     if (clearTimerRef.current !== null) {
       clearTimeout(clearTimerRef.current)
@@ -356,6 +350,21 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameItems([])
   }, [handleEndGame, isTerminal, menu])
 
+  // Peer/opponent activity → header feedback pills (coop: a peer found a
+  // word; compete: an opponent climbed a rank). Self-activity is excluded —
+  // it's reported by the in-body pill / RankBar. Called unconditionally,
+  // before the early returns, and reads `game?.mode` (null while loading; the
+  // hook no-ops until loaded + bootstrapped).
+  usePeerFeedback({
+    loading,
+    mode: game?.mode,
+    selfUserId: session.user.id,
+    players,
+    foundWords,
+    status,
+    feedback: headerFeedback,
+  })
+
   // Called UNCONDITIONALLY here, before any early returns —
   // React forbids conditional hook calls.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
@@ -482,19 +491,6 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
     </div>
   )
-}
-
-/** Type-narrow read for status.leaderboard. Returns an empty
- *  array if the field is missing or malformed (defensive — the
- *  server writes it on every submit but pre-first-submission
- *  it's `[]`). */
-function readLeaderboard(
-  status: Record<string, unknown> | null,
-): LeaderboardEntry[] {
-  if (!status) return []
-  const raw = status.leaderboard
-  if (!Array.isArray(raw)) return []
-  return raw as LeaderboardEntry[]
 }
 
 /**

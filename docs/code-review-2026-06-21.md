@@ -66,7 +66,7 @@ Two cross-agent contradictions were resolved by hand:
 | 1.7 | ~~monkeygram `dump` can remove a *placed* tile (board/holdings desync)~~ — **resolved**: mis-framed; board→dump is a legal move, now implemented in the FE with consistent board-clearing | ~~Medium~~ Resolved | Correctness |
 | 1.8 | ~~Compete + non-countdown timer + idle player = game never terminates~~ — **fixed**: every gametype now has a manual `end_game` (uniform pattern, documented in common.md) | ~~Medium~~ Resolved | Correctness |
 | 4.1 | Opponent/progress strip — 4 names, 4 structures, 1 concept | High | Consistency |
-| 4.3 | freebee parallel feedback system + colliding `FeedbackTone` type | High | Consistency |
+| 4.3 | ~~freebee parallel feedback system + colliding `FeedbackTone` type~~ — **resolved**: two surfaces are intentional (in-body = own word, header = peer/opponent via new `usePeerFeedback`); type renamed `WordResultTone` | ~~High~~ Resolved | Consistency |
 | 3.* | Stale "v1/declare_done/slice-2/10-min-timer" archaeology | Medium | Docs |
 | 2.* | Doc drift: wrong RPC sigs, phantom tables, undocumented shipped features | Medium-High | Docs |
 
@@ -395,7 +395,23 @@ identical logic, three carry the same verbatim comment (a paste tell).
 Extract `common/lib/peers.ts → orderSelfFirst(players, selfId)`; the
 shared strip from §4.1 would own it.
 
-### 4.3 freebee runs a second feedback system + a colliding `FeedbackTone` type — High
+### 4.3 freebee feedback system + colliding `FeedbackTone` — RESOLVED
+
+**Resolution (2026-06-21):** Resolved, but the diagnosis evolved: the two
+feedback surfaces are *intentional*, not redundant. freebee keeps the
+in-body pill for the player's **own** word result (its placement near the
+input is the point), and now also uses the **common header slot** for
+peer/opponent events — the previously-unused `ctx.feedback`. New
+[`usePeerFeedback`](../src/freebee/hooks/usePeerFeedback.ts) fires header
+pills for: coop — a peer found a good/pangram word (found_words is
+club-wide); compete — an opponent climbed a rank (their words are
+RLS-hidden, but rank rides `status.leaderboard`); both bootstrap on the
+first loaded render so a reconnect doesn't replay a backlog, and
+self-activity is excluded. The leaderboard parse was extracted to
+[`lib/leaderboard.ts`](../src/freebee/lib/leaderboard.ts) (shared by the
+strip + the hook). The name collision is gone: freebee's local type is
+renamed `WordResultTone` (it legitimately carries a `warning` tone the
+common palette lacks). Original finding below.
 
 Every other game routes transient feedback through the common header slot
 (`ctx.feedback.show({ tone, text, dismiss })`,
