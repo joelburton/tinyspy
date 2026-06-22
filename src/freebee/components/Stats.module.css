@@ -1,14 +1,15 @@
-/* The 3-cell stat grid: Score / Words / Time. Sits between
- * the RankBar and the WordList. Each cell shows a small
- * uppercase label + a large number, freebee-ws idiom.
+/* The 2-cell stat grid: Score / Words. Sits between the RankBar
+ * and the WordList. Each cell shows a small uppercase label + a
+ * large number, freebee-ws idiom. (The timer lives in the GamePage
+ * header, so it isn't repeated here.)
  *
- * Grid template: 3 equal columns. Tightly packed so the score
- * + words + time read at a glance.
+ * Grid template: 2 equal columns. Tightly packed so the score +
+ * words read at a glance.
  */
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0;
   border-top: 1px solid var(--color-border, #d4d4d4);
   border-bottom: 1px solid var(--color-border, #d4d4d4);

@@ -4,7 +4,6 @@ import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import { formatTimerSeconds } from '../../common/hooks/useGameTimer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../hooks/useGlobalKeyHandler'
@@ -95,7 +94,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, menu, playState, players, session, status, timer,
+    gameId, isTerminal, menu, playState, players, session, status,
     setup, goToClub,
     // The COMMON header feedback slot. Aliased so it doesn't clash with the
     // local in-body `feedback` state below — the two are different surfaces:
@@ -378,11 +377,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const isCompete = game.mode === 'compete'
 
-  const timerDisplay =
-    freebeeSetup.timer?.kind === 'none'
-      ? '—'
-      : formatTimerSeconds(timer.displaySeconds)
-
   // Caller's current rank in the local ladder. For compete this
   // is the value the OpponentStrip surfaces for the "You:
   // <rank>" entry. For coop it's the team rank (same number, same
@@ -480,7 +474,6 @@ export function PlayArea(ctx: GamePageCtx) {
           requiredWordsScore={game.required_words_score}
           foundWordsCount={foundWordsCount}
           requiredWordsCount={game.required_words_count}
-          timerDisplay={timerDisplay}
         />
         <WordList
           foundWords={foundWords}

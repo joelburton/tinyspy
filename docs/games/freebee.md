@@ -365,8 +365,9 @@ src/freebee/
                           instead — see usePeerFeedback. Two distinct surfaces by design.
     RankBar.tsx           7 dots from Start to Genius, filled up to the current rank.
                           Per-dot hover tooltip with rank name + points threshold.
-    Stats.tsx             3-cell grid: Score / Words / Time. Tabular-nums so the digits
-                          don't shift width as the score climbs.
+    Stats.tsx             2-cell grid: Score / Words. Tabular-nums so the digits
+                          don't shift width as the score climbs. (Timer lives in
+                          the GamePage header, not here.)
     WordList.tsx          Alphabetical 2-column flow. Per-finder color via
                           memberColor.colorVarFor. Pangram = font-weight: 700; bonus =
                           trailing dot via ::after; recently-found = underline (5s via
