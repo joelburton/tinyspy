@@ -222,6 +222,7 @@ create table waffle.games (
   -- row to exist.
   puzzle_id   uuid not null,
   scramble    char(25) not null,   -- starting board, holes '.'
+  par_swaps   int not null,        -- minimum swaps to solve (copied from puzzle)
   max_swaps   int not null,        -- par + extra (the swap budget)
   solution    char(25) not null,   -- HIDDEN answer key
   created_at  timestamptz not null default now()
@@ -234,7 +235,7 @@ create index waffle_games_club_handle_idx on waffle.games (club_handle);
 -- "only granted columns," so we enumerate the safe ones. games_state
 -- exposes the solution conditionally via a SECURITY DEFINER helper.
 grant select
-  (id, club_handle, mode, puzzle_id, scramble, max_swaps, created_at)
+  (id, club_handle, mode, puzzle_id, scramble, par_swaps, max_swaps, created_at)
   on waffle.games to authenticated;
 
 alter table waffle.games enable row level security;
@@ -371,6 +372,7 @@ create view waffle.games_state with (security_invoker = true) as
          wg.mode,
          wg.puzzle_id,
          wg.scramble,
+         wg.par_swaps,
          wg.max_swaps,
          wg.created_at,
          waffle._solution_for(wg.id) as solution   -- NULL until terminal
@@ -487,10 +489,10 @@ begin
   );
 
   insert into waffle.games
-    (id, club_handle, mode, puzzle_id, scramble, max_swaps, solution)
+    (id, club_handle, mode, puzzle_id, scramble, par_swaps, max_swaps, solution)
   values
-    (new_id, target_club, mode, puzzle.id, puzzle.scramble, budget,
-     puzzle.solution);
+    (new_id, target_club, mode, puzzle.id, puzzle.scramble, puzzle.par_swaps,
+     budget, puzzle.solution);
 
   insert into waffle.players (game_id, user_id, board)
   select new_id, uid, puzzle.scramble

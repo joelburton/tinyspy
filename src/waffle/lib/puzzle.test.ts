@@ -39,6 +39,34 @@ describe('minSwaps (par)', () => {
     const scr = 'bacdef.g.hijklmn.o.pqrstu'
     expect(minSwaps(scr, sol)).toBe(1)
   })
+
+  it('maximises cycles instead of greedily merging them', () => {
+    // 'cab' → 'abc' is one 3-cycle (2 swaps). But duplicate letters let
+    // the same edges split into two independent 2-cycles, which a
+    // left-to-right greedy misses. Two disjoint transpositions:
+    expect(minSwaps('badc', 'abcd')).toBe(2)
+    // Real regression: the SyrupSwap board Joel solved in ~6 swaps was
+    // mislabelled par 10 by the old greedy. True minimum is 6.
+    const scramble = 'rpekse.v.ciruyse.n.esassr'
+    const solution = 'reekse.v.icressu.n.sraspy'
+    expect(minSwaps(scramble, solution)).toBe(6)
+  })
+
+  it('never exceeds an explicit swap sequence (upper bound)', () => {
+    // Apply 5 random-ish transpositions to a board; the true minimum
+    // can only be ≤ the number of swaps that produced it.
+    const sol = 'abcdef.g.hijklmn.o.pqrstu'
+    const swaps: [number, number][] = [
+      [0, 2],
+      [1, 9],
+      [3, 14],
+      [0, 19],
+      [5, 22],
+    ]
+    const arr = sol.split('')
+    for (const [i, j] of swaps) [arr[i], arr[j]] = [arr[j], arr[i]]
+    expect(minSwaps(arr.join(''), sol)).toBeLessThanOrEqual(swaps.length)
+  })
 })
 
 describe('maxLetterFrequency', () => {

@@ -12,8 +12,9 @@ import '../theme.css'
 
 /**
  * SyrupSwap's play surface, shared by the coop and compete manifests.
- * Renders the caller's board with live color feedback, a swap counter,
- * (compete) an opponent-progress strip, and the terminal verdict +
+ * Renders the caller's board with live color feedback, a swap counter
+ * (used/budget/remaining + the puzzle's par), (compete) an
+ * opponent-progress strip, and the terminal verdict +
  * solution reveal. Mode is read from `game.mode`.
  *
  * Moves go through `waffle.submit_swap`; board/colors update via the
@@ -160,10 +161,16 @@ export function PlayArea({
               />
             )}
             {isPlayer ? (
-              <p className="muted">
-                Tap two tiles to swap them. <strong>{remaining}</strong>{' '}
-                {remaining === 1 ? 'swap' : 'swaps'} left.
-              </p>
+              <div className="muted">
+                <p>Tap two tiles to swap them.</p>
+                <p>
+                  Swaps: <strong>{swapsUsed}/{game.max_swaps}</strong> (
+                  {remaining} remaining)
+                </p>
+                <p>
+                  Par: <strong>{game.par_swaps}</strong>
+                </p>
+              </div>
             ) : (
               <p className="muted">Watching — you're not in this game.</p>
             )}

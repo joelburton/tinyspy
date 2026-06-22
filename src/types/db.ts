@@ -1129,6 +1129,7 @@ export type Database = {
           id: string
           max_swaps: number
           mode: string
+          par_swaps: number
           puzzle_id: string
           scramble: string
           solution: string
@@ -1139,6 +1140,7 @@ export type Database = {
           id: string
           max_swaps: number
           mode: string
+          par_swaps: number
           puzzle_id: string
           scramble: string
           solution: string
@@ -1149,6 +1151,7 @@ export type Database = {
           id?: string
           max_swaps?: number
           mode?: string
+          par_swaps?: number
           puzzle_id?: string
           scramble?: string
           solution?: string
@@ -1233,6 +1236,7 @@ export type Database = {
           id: string | null
           max_swaps: number | null
           mode: string | null
+          par_swaps: number | null
           puzzle_id: string | null
           scramble: string | null
           solution: string | null
@@ -1243,6 +1247,7 @@ export type Database = {
           id?: string | null
           max_swaps?: number | null
           mode?: string | null
+          par_swaps?: number | null
           puzzle_id?: string | null
           scramble?: string | null
           solution?: never
@@ -1253,6 +1258,7 @@ export type Database = {
           id?: string | null
           max_swaps?: number | null
           mode?: string | null
+          par_swaps?: number | null
           puzzle_id?: string | null
           scramble?: string | null
           solution?: never

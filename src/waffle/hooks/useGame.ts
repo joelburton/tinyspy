@@ -30,6 +30,7 @@ export type WaffleGame = {
   id: string
   mode: 'coop' | 'compete'
   scramble: string
+  par_swaps: number
   max_swaps: number
   solution: string | null
 }
@@ -63,7 +64,7 @@ export function useGame(gameId: string): {
       const [gameRes, playersRes] = await Promise.all([
         db
           .from('games_state')
-          .select('id, mode, scramble, max_swaps, solution')
+          .select('id, mode, scramble, par_swaps, max_swaps, solution')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -84,6 +85,7 @@ export function useGame(gameId: string): {
         id: gameRes.data.id as string,
         mode: gameRes.data.mode as 'coop' | 'compete',
         scramble: gameRes.data.scramble as string,
+        par_swaps: gameRes.data.par_swaps as number,
         max_swaps: gameRes.data.max_swaps as number,
         solution: (gameRes.data.solution as string | null) ?? null,
       })

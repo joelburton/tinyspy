@@ -124,12 +124,12 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 | table | purpose |
 |---|---|
 | `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (35/50/60 — the vocab tier; `create_game` picks by it), `title` ("Difficulty N", the game-listing label). The 6 words derive from `solution` via geometry. |
-| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`). |
+| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble/par are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`) — the game holds its own info; the puzzle is just the source. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 
 ### Views (`security_invoker`)
 
-- **`waffle.games_state`** — `mode`, `scramble`, `max_swaps`; `solution` only
+- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution` only
   when `common.games.is_terminal` (via a `SECURITY DEFINER` helper, exactly the
   freebee `_scoring_words_for` shape).
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
