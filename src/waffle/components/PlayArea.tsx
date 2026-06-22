@@ -1,3 +1,4 @@
+import { useCallback, useEffect } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -30,9 +31,49 @@ export function PlayArea({
   status,
   feedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, loading } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
+
+  // ─── End-game action (per-game menu item) ──────────────
+  // Available in both modes. A manual end terminates the game
+  // neutrally — everyone {won:false}, status.outcome='manual' —
+  // which the server records as play_state='ended'. In compete this
+  // is "the friends agreed to stop the race", not a "you lose".
+  //
+  // These hooks are declared BEFORE the `if (loading)` / `if (!game)`
+  // early returns below: React forbids conditional hook calls, so the
+  // useCallback + useEffect must run unconditionally on every render.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({
+        tone: 'error',
+        text: error.message,
+        dismiss: { kind: 'closeable' },
+      })
+    }
+    // On success the Realtime touch in waffle.end_game wakes useGame,
+    // which refetches games_state and reveals the solution.
+  }, [gameId, isTerminal, feedback])
+
+  useEffect(
+    function syncMenuItems() {
+      menu.setGameItems([
+        {
+          id: 'end-game',
+          label: 'End game',
+          onClick: () => void handleEndGame(),
+          disabled: isTerminal,
+        },
+      ])
+      return () => menu.setGameItems([])
+    },
+    [handleEndGame, isTerminal, menu],
+  )
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -142,6 +183,18 @@ function buildOver({
   timerExpired: boolean
   selfWon: boolean
 }): { outcome: 'won' | 'lost'; verdict: string; status: string } {
+  // Manual end (waffle.end_game) → 'ended' in either mode. Neutral
+  // result: nobody won or lost. We reuse GameOverModal's 'won'
+  // outcome purely for its green styling — the verdict copy makes
+  // clear there's no winner. Handled before the win/lose branches so
+  // an 'ended' game never falls through to a loss verdict.
+  if (playState === 'ended') {
+    return {
+      outcome: 'won',
+      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
+      status: 'ended',
+    }
+  }
   if (mode === 'coop') {
     if (playState === 'won') {
       return { outcome: 'won', verdict: 'Solved it! 🧇', status: 'solved' }

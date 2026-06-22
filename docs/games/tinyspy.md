@@ -113,8 +113,9 @@ There's no `tinyspy.game_players` table. The "who played this game" record lives
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
 - **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-server-authoritative-ticks) below.
+- **ended** — the friends manually stopped an in-progress game via the **End game** menu item (`tinyspy.end_game`). Terminal, but *neutral* — not a loss. See the [`end_game`](#tinyspyend_gametarget_game-uuid--void) RPC below.
 
-The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
+The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*` / `ended`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
 
 There is **no `lobby` state** — under the club model, both members are seated at game-creation time and the game starts directly in `playing`.
 
@@ -192,6 +193,16 @@ Fires when the FE's count-down timer expires. Calls `common.end_game` with `play
 Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 
 Reject reasons: not authenticated; not a game player; game not found; already terminal.
+
+### `tinyspy.end_game(target_game uuid) → void`
+
+The friends' explicit "we're done" button — fired by the **End game** menu item (per-game, declared by tinyspy's PlayArea via `ctx.menu.setGameItems`; click → `window.confirm()` → `db.rpc('end_game', ...)`, disabled when terminal). tinyspy has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
+
+Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
+
+The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns `outcome:'won'` (the non-red `GameOverModal` coloring) with the verdict "Game ended.", and `manifest.STATUS_LABEL.ended = 'ended'`.
+
+**Realtime touch at the tail**: `update tinyspy.games set turn_number = turn_number where id = target_game`. `common.end_game` writes only to `common.games`, but the FE's `useGame` subscribes to the `tinyspy` schema — without a write on `tinyspy.games` it would never wake up to refetch and flip into review mode. The self-set is a semantic no-op that produces a WAL entry Realtime picks up (the same trick `submit_timeout`'s `current_clue_giver = null` write incidentally provides). Tested in `tests/tinyspy/end_game_test.sql`.
 
 ### `tinyspy.get_clue_context(target_game uuid) → jsonb`
 
@@ -362,6 +373,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-speci
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
 | `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
+| `tests/tinyspy/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.outcome='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
 | `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
 | `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 

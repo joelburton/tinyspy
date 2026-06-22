@@ -210,7 +210,13 @@ Fires when the countdown timer expires. Mode-aware terminal:
 
 Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 
-Terminal transitions in both `submit_guess` and `submit_timeout` write `common.games.play_state` + `is_terminal=true` + the `status` jsonb via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
+### `wordknit.end_game(target_game uuid) → void`
+
+The "End game" menu item fires this — the manual, **neutral** stop available in both modes. Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders the green "Game ended" `GameOverModal` (outcome `'won'` with neutral copy), not the red loss modal; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
+
+Same shape as `submit_timeout` but with one extra wrinkle: a **Realtime touch** at the tail (`update wordknit.games set club_handle = club_handle where id = target_game`). `submit_guess`/`submit_timeout` each also write a `wordknit` table on their way to `common.end_game`, so the FE's `useGame` subscription (postgres_changes on `wordknit.{games,guesses,players}`) wakes naturally. `end_game` writes *only* `common.games` via `common.end_game`, so without the self-set WAL entry the FE would never refetch and the modal would never pop until a reload. Same trick `freebee.end_game`/`freebee.submit_timeout` use. Idempotent — a second call raises `P0001 "game is not in progress"`, which the FE swallows.
+
+Terminal transitions in `submit_guess`, `submit_timeout`, and `end_game` write `common.games.play_state` + `is_terminal=true` + the `status` jsonb via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
 
 ## Row-level security
 

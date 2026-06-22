@@ -30,11 +30,8 @@ export type WordKnitSetup = {
  * evaluated at module-load time, before any puzzles are
  * fetched, so the real id can't be filled in until the form
  * body mounts. The SetupForm auto-picks today's puzzle (or the
- * most-recent available) on mount.
- *
- * A 10-minute count-down is a reasonable default — solvable but
- * with a real sense of clock. Players who want no clock or
- * count-up can switch in the setup dialog.
+ * most-recent available) on mount. The timer starts off; players
+ * choose a clock (or not) in the setup dialog.
  */
 export const DEFAULT_WORDKNIT_SETUP: WordKnitSetup = {
   puzzleId: '',

@@ -125,12 +125,24 @@ grant select on freebee.pangrams to authenticated;
 -- Same shape as psychicnum.games.mode and wordknit.games.mode.
 --
 -- ───────────────────────────────────────────────────────────
--- The "hidden wordlists" trick
+-- The "terminal-gated wordlists" pattern
 -- ───────────────────────────────────────────────────────────
--- `scoring_words` and `legal_words` ARE the answer keys. They
--- must be hidden during play (otherwise devtools = puzzle
--- solved) but revealed post-terminal for the FE's end-of-game
--- "here are the words you missed" display.
+-- `scoring_words` and `legal_words` ARE the answer keys. The
+-- normal play data path (the games_state view the FE reads)
+-- returns them as NULL during play and the real lists post-
+-- terminal, so the end-of-game "here are the words you missed"
+-- display works without the FE ever holding the answer mid-game.
+--
+-- This is NOT an anti-cheat boundary. A determined friend can
+-- still recover the answer key — e.g. by calling the
+-- candidate_words RPC from devtools with their own board's masks
+-- (it's granted to `authenticated` so the edge-function board
+-- builder can use it under the caller's JWT). Per
+-- CLAUDE.md → Trust model, we don't try to stop that: the goal
+-- is a clean single source of truth where the *default* data
+-- path doesn't carry the secret, not a guarantee that the secret
+-- is unreachable. Keeping it off the normal path is what makes
+-- the post-terminal reveal a deliberate, auditable transition.
 --
 -- Two layers, same pattern as psychicnum.games.target:
 --   (1) Column-level grant on this base table omits both columns

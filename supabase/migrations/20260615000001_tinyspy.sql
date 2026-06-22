@@ -873,6 +873,97 @@ revoke execute on function tinyspy.submit_timeout(uuid) from public;
 grant execute on function tinyspy.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
+-- tinyspy.end_game — manual stop
+-- ============================================================
+--
+-- The friends' explicit "we're done here" button. tinyspy has
+-- plenty of *automatic* terminals (won / lost_assassin / lost_clock
+-- / lost_timeout), so unlike freebee's coop mode there's always a
+-- rules-driven way for a game to end on its own — but the friends
+-- may still want to abandon an in-progress game early (a clue went
+-- sideways, someone has to leave the Zoom call). This RPC is that
+-- escape hatch.
+--
+-- The FE's GamePage menu has an "End game" item (per-game, declared
+-- by tinyspy's PlayArea via ctx.menu.setGameItems) that fires this.
+-- Distinct from suspend (which leaves play_state untouched and is the
+-- path "back to club" + start-a-new-game takes): end_game writes a
+-- terminal play_state='ended' with status.outcome='manual', so the
+-- game lands in the club's "completed" section forever after and the
+-- GameOverModal pops with a neutral "Game ended." (not a "you lost").
+--
+-- Modeled on submit_timeout above — same lock / auth / active-state
+-- gate / cooperative-loss player_results / Realtime-touch shape. Two
+-- differences: it writes play_state='ended' + outcome='manual' (vs
+-- 'lost_timeout'), and it's fired by a player's deliberate click
+-- rather than the FE's timer.
+--
+-- Idempotency: the active-state guard means a second click (or a
+-- click racing a timer/assassin terminal) raises P0001, which the FE
+-- swallows the same way it does for submit_timeout's "already
+-- terminal" race.
+
+create function tinyspy.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = tinyspy, common, public, extensions
+as $$
+declare
+  g_row tinyspy.games%rowtype;
+  current_play_state text;
+  player_results jsonb;
+begin
+  select * into g_row from tinyspy.games
+   where tinyspy.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  -- Auth + game-player gate. See common.require_game_player.
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  -- Both tinyspy active states qualify — the friends can bail out
+  -- mid-clue-loop or mid-sudden-death alike.
+  if current_play_state not in ('playing', 'sudden_death') then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Cooperative game: nobody "wins" a manually-stopped game. Every
+  -- player gets {won: false} — agreeing to stop is a valid outcome,
+  -- not a "you lose" punishment. Same shape as submit_timeout.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game,
+    'ended',
+    jsonb_build_object('outcome', 'manual'),
+    player_results
+  );
+
+  -- Realtime touch — same trick as submit_timeout. common.end_game
+  -- writes to common.games, but the FE's useGame subscription listens
+  -- on the `tinyspy` schema (tinyspy.games), so without a write here
+  -- it would never wake up to refetch and flip into review mode. The
+  -- self-set (turn_number = turn_number) is a semantic no-op but
+  -- produces a WAL entry Realtime picks up.
+  update tinyspy.games
+     set turn_number = turn_number
+   where id = target_game;
+end;
+$$;
+
+revoke execute on function tinyspy.end_game(uuid) from public;
+grant execute on function tinyspy.end_game(uuid) to authenticated;
+
+-- ============================================================
 -- tinyspy.pass_turn
 -- ============================================================
 -- The guesser ends the turn without taking any more guesses,

@@ -285,10 +285,11 @@ select is(
   'compete: initial play_state is playing'
 );
 
--- (18) Title is the target as text (intentional leak — psychicnum is a toy)
+-- (18) Title is a random short numeric id (#NNNNNN) — NOT the target,
+-- so the secret never lands in the club-wide-readable common.games.title.
 select ok(
-  (select title ~ '^[0-9]+$' from common.games where id = (select id from compete_game)),
-  'title is a number string'
+  (select title ~ '^#[0-9]{6}$' from common.games where id = (select id from compete_game)),
+  'title is a random #NNNNNN id, not the target'
 );
 
 -- (19) common.game_players seeded with both players, result=null mid-game

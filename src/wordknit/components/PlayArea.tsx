@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
@@ -101,10 +101,52 @@ export function PlayArea({
     return () => clearTimeout(t)
   }, [shakingTiles])
 
-  // Register the per-game menu items. Today there's one: "Hints,"
-  // which opens the HintModal. Disabled when the game is over OR
-  // (in compete) when the caller is eliminated — hints don't help
-  // a player who can't submit anymore.
+  // Local helper: every wordknit feedback today is `closeable`.
+  //
+  // NOTE the arg order is (tone, text) — the OPPOSITE of freebee's
+  // showFeedback(text, tone). Don't copy a freebee call site verbatim.
+  //
+  // Defined here (above the menu-sync effect) because handleEndGame
+  // below closes over it, and that closure is in turn referenced by
+  // the syncMenuItems effect. Keeping the declaration order
+  // feedback-helper → handleEndGame → effect avoids any
+  // temporal-dead-zone / hooks-order problem.
+  // Memoized (like freebee's showFeedback) so handleEndGame's dep
+  // array stays stable across renders — an un-memoized function here
+  // would make the useCallback below rebuild every render.
+  const showFeedback = useCallback(
+    (tone: FeedbackTone, text: string) => {
+      feedback.show({ tone, text, dismiss: { kind: 'closeable' } })
+    },
+    [feedback],
+  )
+
+  // ─── End-game action (per-game menu item) ──────────────
+  // Available in both modes. Manual end terminates the game with
+  // everyone {won:false} and a NEUTRAL green "Game ended" modal —
+  // friends agreeing to stop is a valid outcome, not a "you lose"
+  // punishment. Mirrors freebee.handleEndGame; the only difference
+  // is showFeedback's (tone, text) arg order (see note above).
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm('End the game now? You can\'t undo this.')) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      showFeedback('error', `End game failed: ${error.message}`)
+    }
+  }, [gameId, isTerminal, showFeedback])
+
+  // Register the per-game menu items: "Hints" (opens the HintModal)
+  // and "End game" (this is the only place that fires end_game).
+  //
+  // setGameItems REPLACES the whole per-game list, so both items
+  // must be registered in this single effect — a second effect
+  // would clobber the first.
+  //
+  // Hints is disabled when the game is over OR (in compete) when the
+  // caller is eliminated — hints don't help a player who can't submit
+  // anymore. End game is disabled once the game is terminal (nothing
+  // left to end).
   useEffect(function syncMenuItems() {
     menu.setGameItems([
       {
@@ -113,19 +155,20 @@ export function PlayArea({
         onClick: () => setHintsOpen(true),
         disabled: isTerminal || isEliminated,
       },
+      {
+        id: 'end-game',
+        label: 'End game',
+        onClick: () => void handleEndGame(),
+        disabled: isTerminal,
+      },
     ])
     return () => menu.setGameItems([])
-  }, [menu, isTerminal, isEliminated])
+  }, [menu, isTerminal, isEliminated, handleEndGame])
 
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
-
-  // Local helper: every wordknit feedback today is `closeable`.
-  function showFeedback(tone: FeedbackTone, text: string) {
-    feedback.show({ tone, text, dismiss: { kind: 'closeable' } })
-  }
 
   async function handleSubmit() {
     if (submitting) return
@@ -416,6 +459,18 @@ function buildOver({
   verdict: string
   status: string
 } {
+  // Manual end (wordknit.end_game) — NEUTRAL terminal in BOTH modes.
+  // play_state='ended' means the friends chose to stop: nobody won,
+  // nobody lost. We render the green "won"-style modal (outcome:'won')
+  // with neutral copy, NOT the red loss modal. This branch must come
+  // first because 'ended' is mode-independent.
+  if (playState === 'ended') {
+    return {
+      outcome: 'won',
+      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
+      status: 'ended',
+    }
+  }
   if (mode === 'coop') {
     if (playState === 'solved') {
       return { outcome: 'won', verdict: 'You win!', status: 'won' }

@@ -163,6 +163,16 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   - Returns `{ colors, swaps_used, solved, terminal }`.
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   freebee "realtime touch" pattern so the FE wakes up on expiry.
+- **`end_game(game)`** — the manual "End game" menu item (both modes). A
+  *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
+  intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
+  `status = {outcome:'manual', mode}`. Any game player can call it; idempotent
+  (a second call raises `P0001 'game is not in progress'`, swallowed by the FE).
+  Same "realtime touch" tail as `submit_timeout` so the FE refetches and reveals
+  the solution. The FE renders a neutral green "Game ended" card (it reuses
+  `GameOverModal` `outcome:'won'` purely for the green styling — the verdict copy
+  says there's no winner). `buildOver` / `labelFor` both branch on `'ended'`
+  before their win/lose branches. Modeled exactly on `freebee.end_game`.
 
 ### Terminal logic
 
@@ -256,7 +266,9 @@ defer.
   `create_game_test`, `swap_test` (coop lock-step + compete independence),
   `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
   `rls_test` (opponent board hidden mid-game, revealed post-terminal),
-  `schema_test`.
+  `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
+  `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
+  idempotency, non-player rejected), `schema_test`.
 - **Vitest:** `waffle.ts` geometry, `colors.ts` render, `manifest`, and the
   generator's par computation.
 

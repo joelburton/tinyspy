@@ -77,6 +77,9 @@ export const monkeygramGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `won — ${name} finished first`
     }
+    // Manual stop (end_game): terminal with no winner. Without this the
+    // ClubPage would show the raw enum 'ended'.
+    if (row.play_state === 'ended') return 'game ended'
     return row.play_state
   },
 

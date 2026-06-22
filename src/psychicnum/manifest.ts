@@ -136,6 +136,8 @@ export const psychicnumCoopGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `coop · won — ${name} guessed it`
     }
+    // 'ended' is the neutral manual-stop terminal (end_game).
+    if (row.play_state === 'ended') return 'coop · ended'
     return 'coop · lost'
   },
 
@@ -178,6 +180,8 @@ export const psychicnumCompeteGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `compete · ${name} won the race`
     }
+    // 'ended' is the neutral manual-stop terminal (end_game).
+    if (row.play_state === 'ended') return 'compete · ended'
     return 'compete · time/budget out — no winner'
   },
 

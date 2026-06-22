@@ -675,3 +675,79 @@ $$;
 
 revoke execute on function monkeygram.dump(uuid, text) from public;
 grant execute on function monkeygram.dump(uuid, text) to authenticated;
+-- ============================================================
+-- monkeygram.end_game — manual stop
+-- ============================================================
+--
+-- MonkeyGram's ONLY intrinsic terminal is the win inside `peel`
+-- (a player goes out when the bunch can't refill the table). There
+-- is no "you lost" state and — unlike timed games — no countdown to
+-- expire (v1 is always `timer: { kind: 'none' }`; the manifest stubs
+-- submitTimeout). So if the friends want to quit a race that's gone
+-- stale before anyone goes out, they need an explicit stop. This is
+-- that stop, modeled on `freebee.end_game`'s COMPETE branch.
+--
+-- Shape vs. the `peel` win:
+--   - play_state 'ended' (not 'won') — nobody went out
+--   - status.outcome 'manual' (not 'won'); NO winner_username, so
+--     the FE must NOT try to compute a winner from it (see PlayArea)
+--   - EVERY player's result is `{"won": false}` — agreeing to stop is
+--     a valid outcome, not a loss for anyone
+--
+-- Any game player can fire it (the friends decide together; the
+-- server just needs the caller to be in the game). Idempotent: a
+-- second call (or a click racing a real peel-win) raises P0001, which
+-- the FE swallows the same way it does any "already terminal" race.
+create function monkeygram.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = monkeygram, common, public, extensions
+as $$
+declare
+  current_play_state text;
+  player_results jsonb;
+begin
+  -- Lock the gametype row so a manual end and a concurrent peel-win
+  -- serialize — only one of them gets to write the terminal state.
+  perform 1 from monkeygram.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- All players {"won": false} — no winner. MonkeyGram's per-player
+  -- result is bare {"won": bool} (no score; unlike freebee there's no
+  -- running point total to report).
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'ended',
+    jsonb_build_object('outcome', 'manual'),
+    player_results
+  );
+
+  -- Realtime touch — same trick as freebee.end_game / submit_timeout.
+  -- `common.end_game` writes to common.games, which wakes the terminal
+  -- modal via useCommonGame's common.games subscription. But the FE's
+  -- monkeygram channels subscribe to monkeygram.player_boards (useGame)
+  -- and monkeygram.progress (useProgress) — neither sees that write. A
+  -- self-set on progress's `unplaced` is a semantic no-op that still
+  -- produces a WAL entry, nudging those subscribers belt-and-suspenders.
+  update monkeygram.progress
+     set unplaced = unplaced
+   where game_id = target_game;
+end;
+$$;
+
+revoke execute on function monkeygram.end_game(uuid) from public;
+grant execute on function monkeygram.end_game(uuid) to authenticated;

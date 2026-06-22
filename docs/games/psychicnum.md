@@ -104,7 +104,7 @@ The shape that's the same in both modes:
 - The `psychicnum.guesses` table (rows look the same; RLS hides them differently).
 - The setup blob (`{ guesses, timer }`) — same fields, same defaults.
 - The hidden-target mechanic — both modes reveal the target post-terminal via `games_state`.
-- `common.games.title` formula (target as text).
+- `common.games.title` formula (a random `#NNNNNN` id — see [Title formula](#title-formula)).
 - `common.game_players.result` shape (`{ won: bool }`).
 - `common.update_state` mid-game listing-label payload structure.
 
@@ -121,6 +121,9 @@ The shape that's the same in both modes:
 - **playing** — guesses being submitted. Default.
 - **won_compete** — a player guessed correctly. Terminal. That player's `common.game_players.result = {won: true}`; everyone else's `= {won: false}`.
 - **lost_compete** — all players exhausted their budgets OR timer expired with nobody having won. Terminal. Everyone's `result = {won: false}`.
+
+**Both modes:**
+- **ended** — a player chose the **End game** menu item (`psychicnum.end_game`, `outcome='manual'`). Terminal, neutral: nobody won, nobody lost, everyone's `result = {won: false}`. Deliberately the *uniform* value the other games use for manual stops (not `'lost'`/`'lost_compete'`) so the cross-game terminal vocabulary stays consistent; the FE has explicit `'ended'` branches that render it green ("Game ended") rather than as a loss.
 
 The mode-specific suffixes mirror what freebee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
 
@@ -204,7 +207,7 @@ Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`
 
 ### Title formula
 
-The target number as text (`"7"`). Putting the secret target directly in the title leaks it — by design. Psychic-num is a toy game in this repo and won't survive into beta. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) stays as the educational example of the column-grant pattern, even though in practice the title makes it moot. When a real game gets the column-grant treatment for keeping a secret hidden, its title formula will reference something non-revealing.
+A random short numeric id, formatted `#NNNNNN` (six zero-padded digits, e.g. `#042317`). The title is purely a human-readable label for the game row in club lists — it must **not** reference the target, because `common.games.title` is club-wide readable and would put the secret in plain sight. The column-level grant on `psychicnum.games.target` (described in [The hidden-target mechanic](#the-hidden-target-mechanic)) is the canonical "true server-side secret" — and unlike the earlier title-as-target formula, nothing now undercuts it. (We don't care about friends peeking via devtools — see [CLAUDE.md → Trust model](../../CLAUDE.md) — but the secret shouldn't sit in a label-shaped column that exists for a different purpose.)
 
 ### `psychicnum.submit_guess(target_game uuid, guess int) → text`
 
@@ -248,6 +251,16 @@ Fires when the FE's count-down timer expires. Calls `common.end_game` with:
 Either way, **everyone loses** — `common.game_players.result = {won: false}` for every player. Compete-mode players were racing; the clock running out before anyone won is a collective loss.
 
 Idempotent on the terminal-state guard: a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
+
+Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
+
+### `psychicnum.end_game(target_game uuid)`
+
+The **End game** menu item (per-game item declared by `PlayArea` via `ctx.menu.setGameItems`, both modes) fires this. It's the explicit manual stop — any current game player can decide the group is done.
+
+Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
+
+Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** (`update psychicnum.games set club_handle = club_handle …`) — same trick as `submit_timeout`: `common.end_game` only writes `common.games`, so the no-op self-set produces the WAL entry that wakes the FE's `psychicnum.games` subscription to refetch and reveal the target.
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 

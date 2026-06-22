@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { FeedbackApi, FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
+import { db } from '../db'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { ClueRow } from '../hooks/useClues'
@@ -80,6 +81,13 @@ function buildOver(
       verdict: 'You lost: out of turns',
       status: 'out of turns',
     }
+  }
+  if (playState === 'ended') {
+    // Manual end (tinyspy.end_game): the friends stopped the game on
+    // purpose. Neutral, not a loss — outcome:'won' gives the modal
+    // green/neutral coloring (GameOverModal only supports 'won'|'lost',
+    // and 'won' is the non-red one). No "you lost" framing.
+    return { outcome: 'won', verdict: 'Game ended.', status: 'ended' }
   }
   // lost_timeout (and any future terminal state that doesn't match
   // above — falls back to a generic timer-out message rather than
@@ -163,6 +171,7 @@ export function PlayArea({
   isTerminal,
   setup,
   feedback,
+  menu,
   goToClub,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to tinyspy's
@@ -186,6 +195,40 @@ export function PlayArea({
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss. See common/hooks/useTerminalModal.ts.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
+
+  // ─── End-game action (per-game menu item) ──────────────
+  // The friends' explicit "we're done" button. tinyspy has automatic
+  // terminals (won / lost_*), but this lets them abandon an
+  // in-progress game early — fires tinyspy.end_game, which writes a
+  // neutral terminal (play_state='ended', everyone {won:false}).
+  // Declared here as a hook (before the early return) so its
+  // dependencies stay stable across renders.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({
+        tone: 'error',
+        text: `End game failed: ${error.message}`,
+        dismiss: { kind: 'timed', ms: 6000 },
+      })
+    }
+  }, [gameId, isTerminal, feedback])
+
+  // Register the single per-game menu item, clearing it on unmount.
+  // Disabled once the game is terminal (nothing left to end).
+  useEffect(function syncMenuItems() {
+    menu.setGameItems([
+      {
+        id: 'end-game',
+        label: 'End game',
+        onClick: () => void handleEndGame(),
+        disabled: isTerminal,
+      },
+    ])
+    return () => menu.setGameItems([])
+  }, [handleEndGame, isTerminal, menu])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called

@@ -37,9 +37,9 @@ export type FreeBeeSetup = {
 }
 
 /**
- * Initial setup for the coop manifest. 10-minute countdown matches
- * wordknit + psychicnum defaults — a reasonable "you have to
- * actually play" length without being punishing.
+ * Initial setup for the coop manifest — no `target_rank` (coop
+ * has no win-rank to race to; see the type's field notes). The
+ * timer starts off; players pick a clock in the setup dialog.
  */
 export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
   timer: { kind: 'none' },

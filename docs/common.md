@@ -133,6 +133,30 @@ The transitions that move a row between buckets:
 - `common.end_game` — sets `ended_at = now()`, writes `play_state` (terminal value), `is_terminal = true`, and the listing-label `status` jsonb. **Does NOT touch `is_current_view`** — a terminal game stays in the current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
 - `common.update_state(target_game, play_state, status)` — mid-game state writes (non-terminal). Each gametype's submit_* RPC calls this on every state-affecting move so the listing label rendered by `manifest.labelFor` is always current.
 
+### Manual end — every gametype's `end_game(target_game)`
+
+**Every gametype exposes a player-callable `<schema>.end_game(target_game uuid)` RPC.** It's the "we've played as much as we want — stop the game now" action: in FreeBee you've found the words you care about; in WordKnit/Waffle the group agrees to call it; in MonkeyGram nobody's going to go out. It is a first-class part of the game lifecycle, **not** a per-game extra, so the behaviour is uniform across the roster. [`freebee.end_game`](../supabase/migrations/20260617000000_freebee.sql) is the reference implementation.
+
+Three terminal transitions, deliberately distinct — don't conflate them:
+
+| transition | who fires it | outcome |
+|---|---|---|
+| `submit_timeout` | the FE timer-expiry effect, only on a `countdown` clock hitting 0 | a **loss** (`play_state` = `lost`/`lost_timeout`/…) |
+| `end_game` | any player, any time, from the GamePage menu | **neutral** — nobody won, nobody lost |
+| suspend (leave-the-page) | last viewer leaving a non-terminal game | not terminal at all — game stays `playing`, just drops out of the current slot |
+
+The uniform `end_game` contract (mirror this when adding a gametype):
+
+1. `select … from <schema>.games where id = target_game for update;` (P0002 if missing).
+2. `perform common.require_game_player(target_game);` — playership gates the action.
+3. Guard non-terminal: if `common.games.play_state` isn't the game's active state(s) → raise `P0001 'game is not in progress'`. This makes a double-click (or a click racing a timeout) idempotent.
+4. Build `player_results` = **every** player `{"won": false}` (no winner — friends agreed to stop, it's not a punishment).
+5. `perform common.end_game(target_game, 'ended', jsonb_build_object('outcome', 'manual', …), player_results);` — the **uniform terminal `play_state` is `'ended'`** and the **status carries `outcome: 'manual'`**, across all gametypes.
+6. **Realtime touch.** `common.end_game` writes only `common.games`. A game whose FE `useGame` subscribes to `<schema>.*` tables (most of them) won't see that write, so `end_game` must also do a no-op self-write on a subscribed `<schema>` row (e.g. `update <schema>.games set club_handle = club_handle where id = target_game;`) to produce a WAL entry the subscription wakes on. The terminal *modal* itself rides `useCommonGame`'s `common.games` subscription regardless, but board/progress refetches (and post-terminal reveals like Waffle's solution) need the touch.
+7. `revoke execute … from public; grant execute … to authenticated;`
+
+**FE side.** Each game's PlayArea registers an `{ id: 'end-game', label: 'End game', disabled: isTerminal }` item via [`menu.setGameItems`](../src/common/lib/games.ts) (the per-game GamePage menu section); the handler `window.confirm`s then calls `db.rpc('end_game', { target_game: gameId })`. The terminal rendering (`buildOver` + `manifest.labelFor`) must treat `play_state === 'ended'` / `status.outcome === 'manual'` as a **neutral** result — green "Game ended" copy via `GameOverModal`'s `outcome: 'won'` styling, never the red "you lost" branch. (GameOverModal only has won/lost coloring today; manual end reuses the green one with neutral copy.)
+
 ### Solo clubs
 
 Every user gets a solo club at first sign-in, materialized by the `common.claim_username` RPC the user calls themselves on the ClaimHandleScreen (see [Username claim flow](#username-claim-flow) below). The solo club's `handle` is `=<username>` — the `=` prefix lives in a slug-space user-typed names can't reach, because `slugify_club_name` strips `=` along with other non-alphanumerics.

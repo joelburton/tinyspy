@@ -773,3 +773,82 @@ $$;
 
 revoke execute on function waffle.submit_timeout(uuid) from public;
 grant execute on function waffle.submit_timeout(uuid) to authenticated;
+
+-- ============================================================
+-- waffle.end_game — manual stop
+-- ============================================================
+--
+-- The friends' explicit "we're done" button, available in BOTH
+-- modes. waffle already has intrinsic terminals — coop 'won' /
+-- 'lost', compete 'won_compete' / 'lost_compete' (see submit_swap
+-- and submit_timeout). This RPC is a *different* thing: a neutral
+-- stop that nobody wins or loses. It writes the UNIFORM terminal
+-- play_state 'ended' (the same value freebee/tinyspy/etc. use for
+-- a manual end), NOT one of waffle's intrinsic verdicts — so the
+-- FE renders the neutral green "Game ended" card rather than a
+-- win/lose result.
+--
+-- Distinct from suspend: suspend leaves play_state='playing' and is
+-- the "back to club, start a new game" path. end_game is terminal,
+-- so the game lands in the club's completed section and the
+-- GameOverModal pops.
+--
+-- Shape mirrors submit_timeout, with three deliberate differences:
+--   - play_state is always 'ended' (no mode/solver branching)
+--   - every player gets {"won": false} — there is no winner
+--   - status.outcome = 'manual'
+-- Any game player may fire it (it's a user-driven menu action, not
+-- a timer race), and it's idempotent on the play_state check the
+-- same way submit_timeout is: a second click raises P0001, which
+-- the manifest swallows.
+create function waffle.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  g_row              waffle.games%rowtype;
+  current_play_state text;
+  player_results     jsonb;
+begin
+  select * into g_row from waffle.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    -- Idempotency: a second click (or a click racing the countdown
+    -- timer's submit_timeout) raises this; the FE swallows it.
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Nobody won — the friends agreed to stop. Same {"won": false}
+  -- for every player regardless of mode.
+  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'ended',
+    jsonb_build_object('outcome', 'manual', 'mode', g_row.mode),
+    player_results
+  );
+
+  -- Realtime touch: same trick as submit_timeout. common.end_game
+  -- writes common.games, not waffle.*, so the FE's useGame
+  -- subscription (on waffle.{games,players}) would never wake. A
+  -- no-op self-update produces a WAL entry it picks up, refetching
+  -- games_state — which now reveals the solution (and, in compete,
+  -- opponents' boards) because common.end_game set is_terminal=true.
+  update waffle.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function waffle.end_game(uuid) from public;
+grant execute on function waffle.end_game(uuid) to authenticated;

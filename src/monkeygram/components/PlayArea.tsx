@@ -35,7 +35,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const progress = useProgress(ctx.gameId)
   const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
-  const { gameId, feedback } = ctx
+  const { gameId, feedback, menu, isTerminal } = ctx
   const peel = useCallback(async () => {
     const { error } = await db.rpc('peel', { target_game: gameId })
     // On success there's nothing to do — a continuing peel grows `tiles` (the
@@ -93,17 +93,63 @@ export function PlayArea(ctx: GamePageCtx) {
     seenTilesLen.current = tiles.length
   }, [tiles, loading, feedback])
 
+  // ─── End-game action (per-game menu item) ──────────────
+  // MonkeyGram's only intrinsic terminal is a peel-win; if the friends
+  // want to quit before anyone goes out, this is the explicit stop. It
+  // ends the game for EVERYONE with nobody as the winner (status.outcome
+  // 'manual') — agreeing to stop is a valid outcome, not a loss. Mirrors
+  // freebee's PlayArea: confirm, fire the RPC, surface only failures.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+    }
+  }, [gameId, isTerminal, feedback])
+
+  // Register the single per-game menu item on the GamePage menu. Disabled
+  // once the game is terminal (a post-terminal click would just raise the
+  // P0001 race anyway). Cleanup on unmount restores the empty section.
+  useEffect(
+    function syncMenuItems() {
+      menu.setGameItems([
+        {
+          id: 'end-game',
+          label: 'End game',
+          onClick: () => void handleEndGame(),
+          disabled: isTerminal,
+        },
+      ])
+      return () => menu.setGameItems([])
+    },
+    [handleEndGame, isTerminal, menu],
+  )
+
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
+  // Terminal verdict. Two terminal shapes reach here:
+  //   - a peel-win → status.winner_username is set; "did I win?" comes
+  //     from comparing it to my username (winner green, others red)
+  //   - a manual end (end_game) → status.outcome 'manual', NO winner.
+  // The manual case MUST be checked first: with no winner_username,
+  // the win path below would fall through to `winnerName = 'someone'`
+  // and show everyone the red "someone went out — Bananas!" verdict —
+  // wrong for a no-winner stop. Manual ends show a neutral green
+  // "Game ended." (GameOverModal renders outcome:'won' as green).
   const selfUsername = ctx.players.find((p) => p.user_id === ctx.session.user.id)?.username
   const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
   const selfWon = !!selfUsername && winnerName === selfUsername
-  const over = ctx.isTerminal
-    ? {
-        outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
-        verdict: selfWon ? '🍌 Bananas! You went out first.' : `${winnerName} went out — Bananas!`,
-      }
-    : null
+  const over = !ctx.isTerminal
+    ? null
+    : ctx.status?.outcome === 'manual'
+      ? { outcome: 'won' as const, verdict: '🍌 Game ended.' }
+      : {
+          outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
+          verdict: selfWon
+            ? '🍌 Bananas! You went out first.'
+            : `${winnerName} went out — Bananas!`,
+        }
 
   const bunchCount = ctx.status?.pool_remaining as number | undefined
 

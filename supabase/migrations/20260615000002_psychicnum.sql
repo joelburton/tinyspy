@@ -307,6 +307,7 @@ declare
   new_id uuid;
   s_guesses int;
   s_target int;
+  game_title text;
   effective_gametype text;
 begin
   -- ─── Validate mode + player-count ───────────────────
@@ -344,12 +345,16 @@ begin
 
   perform common.validate_timer(setup->'timer');
 
-  -- Pick the random target. NOTE: this LEAKS the target via
-  -- common.games.title (psychicnum is a toy; title carries no
-  -- anti-cheat expectation). The column-level grant on
-  -- psychicnum.games.target stays the canonical "true server-
-  -- side secret" example.
   s_target := 1 + floor(random() * 10)::int;
+
+  -- The title is purely a human-readable label for the game row;
+  -- it must NOT carry the target (that would put the secret in the
+  -- club-wide-readable common.games.title). Use a random short
+  -- numeric id so games are distinguishable in lists without
+  -- leaking anything. The column-level grant on
+  -- psychicnum.games.target stays the canonical "true server-side
+  -- secret" — title is just a label.
+  game_title := '#' || lpad((floor(random() * 1000000))::int::text, 6, '0');
 
   effective_gametype := 'psychicnum_' || mode;
 
@@ -359,7 +364,7 @@ begin
   -- return canonical id).
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids,
-    s_target::text,
+    game_title,
     setup,
     setup
   );
@@ -664,6 +669,93 @@ $$;
 
 revoke execute on function psychicnum.submit_timeout(uuid) from public;
 grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
+
+-- ============================================================
+-- psychicnum.end_game — manual stop
+-- ============================================================
+--
+-- psychicnum is a deliberately minimal toy, but it carries the
+-- same manual "End game" affordance every other game has, for
+-- consistency: any friend in the game can decide the group is
+-- done and stop it. (The Zoom-call answer to "we're bored, let's
+-- move on" — see CLAUDE.md's audience note.)
+--
+-- Unlike submit_timeout, which uses the per-mode terminal vocab
+-- ('lost' / 'lost_compete') because timing out genuinely is a
+-- loss, a *manual* stop is neither a win nor a loss — the friends
+-- simply agreed to stop. So this writes the UNIFORM terminal
+-- play_state 'ended' (the same value freebee/the other games use
+-- for their manual stops) with status.outcome='manual'. The FE
+-- has explicit 'ended' branches that render this neutrally (green
+-- "Game ended", not the red "you lost" treatment).
+--
+-- Per-player result is the bare `{"won": false}` for everyone —
+-- psychicnum tracks no per-player score or rank, so there's
+-- nothing richer to record. Nobody won; nobody is singled out.
+--
+-- The same shape across both modes; only g.mode is echoed into
+-- status so the labelFor / modal can stay mode-aware if it wants.
+--
+-- The Realtime touch at the end is the same trick documented in
+-- the other games' end_game: common.end_game writes to
+-- common.games, but the FE's useGame subscribes to
+-- psychicnum.games (filtered id=eq.gameId). A no-op self-set on
+-- psychicnum.games produces a WAL entry Realtime picks up, so the
+-- FE refetches and the post-terminal number reveal updates.
+
+create function psychicnum.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  g_row psychicnum.games%rowtype;
+  current_play_state text;
+  player_results jsonb;
+begin
+  select * into g_row from psychicnum.games
+   where psychicnum.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
+    -- Idempotency: a second click (or a concurrent click + a
+    -- timer expiry / winning guess in another tab) raises this;
+    -- the FE swallows it the same way it does for submit_timeout's
+    -- "already terminal" race.
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Manual stop has no winner — every player gets {won:false}.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game,
+    'ended',
+    jsonb_build_object('outcome', 'manual', 'mode', g_row.mode),
+    player_results
+  );
+
+  -- Realtime touch — wake the psychicnum.games subscription.
+  update psychicnum.games
+     set club_handle = club_handle
+   where id = target_game;
+end;
+$$;
+
+revoke execute on function psychicnum.end_game(uuid) from public;
+grant execute on function psychicnum.end_game(uuid) to authenticated;
 
 -- ============================================================
 -- Register psychicnum with common.gametypes — both modes

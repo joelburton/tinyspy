@@ -147,9 +147,11 @@ The word list itself is **not** a freebee table — it's the shared `common.word
 | `games` | One row per playthrough. `id` is FK to `common.games(id)`. Holds `mode` (`'coop'`/`'compete'`, denormalized from the gametype string for RLS branching), `outer_letters` (6 chars), `center_letter` (1 char), `total_score` and `total_words` (cached at create-game time), plus the **hidden** wordlist columns `scoring_words` (jsonb array of `{word, points, is_pangram}`) and `legal_words` (text[] bonus-only). Hidden via column-level grant; exposed conditionally via `games_state`. The column grant explicitly includes `mode` so the security_invoker view + the mode-aware found_words RLS policy can read it. |
 | `found_words` | One row per `(player, word)`. Includes `points` (length-based + `+10` if pangram; bonus rows score normally too), `is_pangram` (true when the word's distinct-letter count = 7), `is_bonus` (true when the word came from `legal_words` rather than `scoring_words`). PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
 
-### The hidden-wordlist pattern
+### The terminal-gated wordlist pattern
 
-`freebee.games.scoring_words` and `freebee.games.legal_words` are the answer keys for the puzzle. They must be hidden during play (otherwise devtools reveals the puzzle) but revealed post-terminal for the end-of-game wordlist display.
+`freebee.games.scoring_words` and `freebee.games.legal_words` are the answer keys for the puzzle. The normal play data path keeps them out of the FE's hands during play and reveals them post-terminal for the end-of-game wordlist display.
+
+This is **not an anti-cheat boundary** — per [CLAUDE.md → Trust model](../../CLAUDE.md), we don't try to stop a friend from peeking. A determined player can still recover the answer key (e.g. by calling `candidate_words` from devtools with their own board's masks — it's granted to `authenticated` so the edge-function builder can use it; see [Why a SQL helper](#why-a-sql-helper-for-candidate_words)). The point of the pattern is a clean single source of truth where the *default* data path doesn't carry the secret, which is what makes the post-terminal reveal a deliberate, auditable transition rather than a flag the FE flips.
 
 Same two-layer pattern as `psychicnum.games.target` (see [`psychicnum.md` → The hidden-target mechanic](psychicnum.md#the-hidden-target-mechanic)):
 

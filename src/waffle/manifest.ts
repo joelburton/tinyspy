@@ -76,6 +76,9 @@ function labelFor(modeLabel: string) {
         return `${modeLabel} · out of swaps`
       case 'lost_compete':
         return `${modeLabel} · no winner`
+      case 'ended':
+        // Manual end (waffle.end_game): neutral terminal, no winner.
+        return `${modeLabel} · ended`
       default:
         return `${modeLabel} · ${modeLabel === 'compete' ? 'racing' : 'solving'}…`
     }

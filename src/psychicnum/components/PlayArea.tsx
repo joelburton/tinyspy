@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GuessHistory } from './GuessHistory'
@@ -38,6 +39,7 @@ export function PlayArea({
   timer,
   feedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
 
@@ -60,6 +62,35 @@ export function PlayArea({
       dismiss: { kind: 'closeable' },
     })
   }, [guesses, feedback])
+
+  // ─── End-game action (per-game menu item) ──────────────
+  // Available in both modes. A manual end isn't a "you lose"
+  // punishment — it's the friends agreeing they're done. The RPC
+  // writes the neutral 'ended' terminal with everyone {won:false}.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm('End the game now? You can\'t undo this.')) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({
+        tone: 'error',
+        text: `End game failed: ${error.message}`,
+        dismiss: { kind: 'closeable' },
+      })
+    }
+  }, [gameId, isTerminal, feedback])
+
+  useEffect(function syncMenuItems() {
+    menu.setGameItems([
+      {
+        id: 'end-game',
+        label: 'End game',
+        onClick: () => void handleEndGame(),
+        disabled: isTerminal,
+      },
+    ])
+    return () => menu.setGameItems([])
+  }, [handleEndGame, isTerminal, menu])
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
@@ -221,6 +252,16 @@ function buildOver({
   verdict: string
   status: string
 } {
+  // Manual end ('ended', written by psychicnum.end_game) is the
+  // uniform neutral terminal shared with the other games: nobody
+  // won, nobody lost — the friends just stopped. We render it with
+  // outcome:'won' so GameOverModal uses its green treatment (the
+  // modal only knows 'won'/'lost'); the verdict copy stays neutral.
+  if (playState === 'ended') {
+    return mode === 'coop'
+      ? { outcome: 'won', verdict: 'Game ended.', status: 'ended' }
+      : { outcome: 'won', verdict: 'Game ended — no winner.', status: 'ended' }
+  }
   if (mode === 'coop') {
     if (playState === 'won') {
       return { outcome: 'won', verdict: 'You win!', status: 'won' }

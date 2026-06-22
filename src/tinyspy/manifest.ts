@@ -119,4 +119,7 @@ const STATUS_LABEL: Record<string, string> = {
   lost_assassin: 'lost (assassin)',
   lost_clock: 'lost (ran out of tokens)',
   lost_timeout: 'lost (ran out of time)',
+  // Manual end (tinyspy.end_game): the friends stopped on purpose.
+  // Neutral phrasing — not a loss.
+  ended: 'ended',
 }

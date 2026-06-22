@@ -86,8 +86,9 @@ type Props = {
    *  everyone, or — if the bunch can't refill the table — wins the game (the
    *  win/terminal modal is driven from above by realtime). */
   onPeel?: () => void | Promise<void>
-  /** Dump a hand tile (calls `dump`): swap it for DUMP_COUNT from the bunch.
-   *  Fired by dropping a hand tile on the dump slot. */
+  /** Dump a tile (calls `dump`): swap it for DUMP_COUNT from the bunch.
+   *  Fired by dropping a tile on the dump slot — from the hand, or off the
+   *  board (the caller clears the board cell so holdings stay consistent). */
   onDump?: (letter: string) => void | Promise<void>
   /** Tiles left in the shared bunch (from status.pool_remaining), or undefined
    *  before it's known. Shown next to Peel so players sense the endgame. */
@@ -122,11 +123,13 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const boardRef = useRef(board)
   const tilesRef = useRef(tiles)
   const cursorRef = useRef(cursor)
+  const declaringRef = useRef(declaring) // lets the peel shortcut see an in-flight peel
   useEffect(() => {
     boardRef.current = board
     tilesRef.current = tiles
     cursorRef.current = cursor
-  }, [board, tiles, cursor])
+    declaringRef.current = declaring
+  }, [board, tiles, cursor, declaring])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -268,11 +271,19 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         else if (g.source.kind === 'board') boardToBoard(g.source.row, g.source.col, target.row, target.col)
         return
       }
-      // Drop a HAND tile on the dump slot → dump it (server swaps it for
+      // Drop a tile on the dump slot → dump it (server swaps it for
       // DUMP_COUNT; the live `tiles` update re-derives the hand). Snap back if
       // the bunch is too low to cover the draw — the slot shows that state.
+      // A tile dragged off the BOARD is dumpable too (it's a legal move): clear
+      // its cell first so `board` loses the letter in lock-step with the
+      // server removing it from `tiles`. Without the clear, the dumped letter
+      // would still sit on the board while `tiles` dropped it — the exact
+      // board/holdings desync we want to avoid. (The derived hand briefly
+      // regains the letter between the clear and the server's `tiles` update,
+      // ending one-instance-lighter just like dumping a hand tile.)
       const canDump = bunchCount === undefined || bunchCount >= DUMP_COUNT
-      if (overDumpAtPoint(x, y) && g.source.kind === 'hand' && g.letter && canDump) {
+      if (overDumpAtPoint(x, y) && g.letter && canDump) {
+        if (g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
         onDump?.(g.letter)
         return
       }
@@ -295,8 +306,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     if (g.started && g.letter) {
       setDrag({ letter: g.letter, source: g.source, x: e.clientX, y: e.clientY })
       setHover(cellAtPoint(e.clientX, e.clientY))
-      // Only HAND tiles dump; light the slot when one hovers it.
-      setDumpHot(g.source.kind === 'hand' && overDumpAtPoint(e.clientX, e.clientY))
+      // Any dragged tile (hand or board) can be dumped; light the slot
+      // when one hovers it.
+      setDumpHot(overDumpAtPoint(e.clientX, e.clientY))
     }
   }, [])
 
@@ -362,15 +374,47 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     })
   }, [])
 
+  // Peel as a callable action (the button and the keyboard shortcut share it).
+  // Guarded to exactly the button's enabled condition — every held tile placed
+  // (derived hand empty), game live, no peel already in flight — read from live
+  // refs so the keyboard path can't act on stale state. Flushes the board first
+  // so the server's `placed == tiles` check sees the latest placements.
+  const doPeel = useCallback(async () => {
+    if (!onPeel || isTerminal || declaringRef.current) return
+    if (deriveHand(tilesRef.current, boardRef.current).length !== 0) return
+    setDeclaring(true)
+    try {
+      await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
+      await onPeel()
+    } finally {
+      setDeclaring(false)
+    }
+  }, [onPeel, isTerminal, gameId])
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      const cur = cursorRef.current
-      if (!cur) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const k = e.key
 
-      if (k === 'Escape' || k === 'Enter') {
+      // Enter / Space → peel (when legal), with or without an active board
+      // cursor — "my hand's empty, draw again" is the move you reach for most,
+      // so it shouldn't require a click. Skip when a <button> is focused so we
+      // don't double-fire alongside its native Space/Enter activation; doPeel
+      // itself no-ops when a peel isn't legal right now.
+      if (k === 'Enter' || k === ' ') {
+        if (t && t.tagName === 'BUTTON') return
+        e.preventDefault()
+        void doPeel()
+        return
+      }
+
+      const cur = cursorRef.current
+      if (!cur) return
+
+      // Escape clears the board cursor. (Enter used to do this too; it now
+      // peels — see above.)
+      if (k === 'Escape') {
         e.preventDefault()
         setCursor(null)
         return
@@ -415,7 +459,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         advance(cur)
       }
     },
-    [advance, flashError, boardToHand, handToBoard],
+    [advance, flashError, boardToHand, handToBoard, doPeel],
   )
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown)
@@ -570,8 +614,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           ))}
           {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
         </div>
-        {/* Dump slot: drop a hand tile here to swap it for DUMP_COUNT. Lights up
-         *  while a hand tile is dragged; dims when the bunch can't cover it. */}
+        {/* Dump slot: drop a tile here (from the hand OR the board) to swap it
+         *  for DUMP_COUNT. Lights up while any tile is dragged; dims when the
+         *  bunch can't cover the draw. */}
         {onDump && !isTerminal && (() => {
           const tooLow = bunchCount !== undefined && bunchCount < DUMP_COUNT
           return (
@@ -579,7 +624,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
               data-zone="dump"
               className={
                 styles.dump +
-                (drag?.source.kind === 'hand' && !tooLow ? ' ' + styles.dumpArmed : '') +
+                (drag && !tooLow ? ' ' + styles.dumpArmed : '') +
                 (dumpHot ? ' ' + styles.dumpHot : '') +
                 (tooLow ? ' ' + styles.dumpDisabled : '')
               }
@@ -598,18 +643,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
               type="button"
               className={styles.doneBtn}
               disabled={derivedHand.length !== 0 || isTerminal || declaring}
-              onClick={async () => {
-                setDeclaring(true)
-                try {
-                  await db.rpc('save_player_board', {
-                    target_game: gameId,
-                    board: boardRef.current,
-                  })
-                  await onPeel()
-                } finally {
-                  setDeclaring(false)
-                }
-              }}
+              onClick={() => void doPeel()}
             >
               {isTerminal
                 ? 'Game over'

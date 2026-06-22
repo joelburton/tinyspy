@@ -167,6 +167,10 @@ export const wordknitCoopGame: GameManifest = {
     if (row.play_state === 'solved') {
       return `solved · ${mistakes} mistakes`
     }
+    // Manual end (wordknit.end_game) — neutral, no win/loss framing.
+    if (row.play_state === 'ended') {
+      return `${matched}/4 categories · ended`
+    }
     return `lost · ${matched}/4 matched`
   },
 
@@ -212,6 +216,8 @@ export const wordknitCompeteGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `compete · ${name} won the race`
     }
+    // Manual end (wordknit.end_game) — neutral, no winner.
+    if (row.play_state === 'ended') return 'compete · ended'
     return 'compete · time out — no winner'
   },
 

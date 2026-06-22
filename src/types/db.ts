@@ -377,7 +377,9 @@ export type Database = {
       }
       default_gametypes_for_club: {
         Args: { target_handle: string }
-        Returns: string[]
+        Returns: {
+          gametype: string
+        }[]
       }
       delete_game: { Args: { target_game: string }; Returns: undefined }
       end_game: {
@@ -736,6 +738,7 @@ export type Database = {
         }[]
       }
       dump: { Args: { target_game: string; tile: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       peel: { Args: { target_game: string }; Returns: undefined }
       save_player_board: {
         Args: { board: string; target_game: string }
@@ -890,6 +893,7 @@ export type Database = {
           id: string
         }[]
       }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: { guess: number; target_game: string }
         Returns: string
@@ -1096,6 +1100,7 @@ export type Database = {
           id: string
         }[]
       }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
@@ -1338,6 +1343,7 @@ export type Database = {
           id: string
         }[]
       }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json
@@ -1512,6 +1518,7 @@ export type Database = {
           id: string
         }[]
       }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: {
           matched_category_rank?: number

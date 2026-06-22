@@ -1015,6 +1015,122 @@ $$;
 revoke execute on function wordknit.submit_timeout(uuid) from public;
 grant execute on function wordknit.submit_timeout(uuid) to authenticated;
 
+-- ============================================================
+-- wordknit.end_game — manual stop
+-- ============================================================
+--
+-- The intrinsic wordknit terminals are all "decided" outcomes:
+-- coop solves/loses (4 matches / 4 mistakes / timeout), compete
+-- has a winner (first to 4 matches) or a no-winner timeout. There
+-- is no built-in "the friends just want to quit" path — so this
+-- RPC is that explicit stop, fired from the per-game menu's "End
+-- game" item.
+--
+-- Unlike submit_timeout (which writes a "you lost" terminal),
+-- end_game is deliberately NEUTRAL: nobody won, nobody lost — the
+-- group agreed to stop. We encode that as:
+--   - play_state = 'ended' (a terminal state the FE/labelFor learn
+--     to render in green, distinct from coop's 'lost' /
+--     compete's 'lost_compete')
+--   - status = {outcome:'manual', mode:<coop|compete>}
+--   - every player's result = {"won": false}  (no winner — but the
+--     FE shows the green "Game ended" modal regardless, because
+--     "ended" is a neutral terminal, not a defeat)
+--
+-- Distinct from suspend (which leaves play_state='playing' and is
+-- the "back to club, start something else later" path): end_game
+-- writes a real terminal, so the game lands in the club's
+-- completed section forever and the GameOverModal pops.
+--
+-- Same shape as submit_timeout with three differences:
+--   - one branch for both modes (the per-player result is the bare
+--     {"won": false}, identical coop and compete — there's no
+--     mistake_count/matched_count snapshot to take because nothing
+--     was "achieved", the friends just stopped)
+--   - status.outcome = 'manual' (vs submit_timeout's 'lost_timeout'
+--     / 'lost_compete_timeout')
+--   - an EXPLICIT Realtime touch at the tail — see the long
+--     comment there; this is the one wrinkle that submit_timeout
+--     doesn't need but end_game does.
+create function wordknit.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordknit, common, public, extensions
+as $$
+declare
+  g_row wordknit.games%rowtype;
+  current_play_state text;
+  player_results jsonb;
+begin
+  select * into g_row from wordknit.games
+   where wordknit.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  -- Auth + game-player gate. Same as submit_timeout: any current
+  -- game player can end the game (it's a group decision, not an
+  -- owner-only action), but a club outsider can't.
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
+    -- Idempotency: a second click (or a click racing a timeout /
+    -- a solve) raises this and the FE swallows it the same way it
+    -- does for submit_timeout's "already terminal" race.
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Every player gets the bare {"won": false}. Identical in coop
+  -- and compete — manual end has no winner in either mode. The
+  -- neutral-vs-loss distinction lives entirely in play_state
+  -- ('ended', not 'lost'/'lost_compete') + status.outcome
+  -- ('manual'), which is what the FE branches on for the green
+  -- terminal.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game,
+    'ended',
+    jsonb_build_object(
+      'outcome', 'manual',
+      'mode', g_row.mode
+    ),
+    player_results
+  );
+
+  -- Realtime touch — REQUIRED here, and the one place wordknit's
+  -- termination path differs from submit_guess/submit_timeout.
+  --
+  -- submit_guess and submit_timeout each also write a wordknit
+  -- table (guesses / players) on their way to common.end_game, so
+  -- the FE's useGame subscription (postgres_changes on
+  -- wordknit.{games,guesses,players}) wakes up naturally. end_game
+  -- writes ONLY common.games via common.end_game — no wordknit-
+  -- schema write — so without this touch the FE would never
+  -- refetch and the GameOverModal would never pop until a reload.
+  --
+  -- The self-set (club_handle = club_handle, a real not-null
+  -- column on wordknit.games) is a semantic no-op but produces a
+  -- WAL entry on wordknit.games that Realtime delivers to the
+  -- games-table subscription. Same trick freebee.end_game /
+  -- freebee.submit_timeout use; see those for the bug history.
+  update wordknit.games
+     set club_handle = club_handle
+   where id = target_game;
+end;
+$$;
+
+revoke execute on function wordknit.end_game(uuid) from public;
+grant execute on function wordknit.end_game(uuid) to authenticated;
+
 -- Terminal-transition cleanup happens inline: submit_guess and
 -- submit_timeout call common.end_game explicitly at the moment
 -- the game is decided over. Single write path keeps all the

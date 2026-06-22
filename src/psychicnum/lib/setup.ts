@@ -35,9 +35,9 @@ export type PsychicNumSetup = {
 /**
  * Initial setup the manifest hands the SetupGameDialog wrapper
  * as `defaults`. Guesses=7 keeps parity with the previous
- * hardcoded value; timer defaults to a 10-minute count-down —
- * a sensible "casual game with stakes" baseline that players can
- * dial up or down (or turn off entirely) before starting.
+ * hardcoded value; the timer defaults to a count-down — a
+ * "casual game with stakes" baseline that players can dial up or
+ * down (or turn off entirely) before starting.
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicNumSetup = {
   guesses: 7,
