@@ -1,6 +1,4 @@
 .reveal {
-  /* Compact tiles for the answer grid (the playable one uses 3.5rem). */
-  --tile: 2.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -9,10 +7,6 @@
 
 .label {
   font-weight: 600;
-}
-
-.gridWrap {
-  align-self: center;
 }
 
 .wordCols {

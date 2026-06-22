@@ -1,23 +1,35 @@
+/* Two-pane play surface that fills the viewport (per docs/ui.md →
+ * "Page-height fits the viewport"): the board grows to fill the left
+ * pane, the controls + swap log sit in a fixed-width right pane. The
+ * chrome-height offset is the shared token (body padding + GamePage
+ * header + gap). */
 .layout {
+  height: calc(100vh - var(--game-chrome-height));
   display: flex;
-  flex-wrap: wrap;
   gap: 2rem;
-  align-items: flex-start;
-  justify-content: center;
+  align-items: stretch;
   padding: 1.5rem 1rem;
 }
 
+/* Left pane. `container-type: size` exposes its width/height as cqw/cqh
+ * so the WaffleGrid can size itself to the largest square that fits.
+ * flex: 1 + min-* let it take (and give back) space freely. */
 .boardArea {
-  display: flex;
-  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
 }
 
 .rightCol {
-  min-width: 14rem;
-  max-width: 22rem;
+  flex: 0 0 20rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .gameOver {

@@ -1,21 +1,18 @@
 import { useState } from 'react'
 import { DefinitionPopover } from '../../common/components/DefinitionPopover'
 import { boardWords } from '../lib/waffle'
-import { WaffleGrid } from './WaffleGrid'
 import styles from './SolutionReveal.module.css'
 
 /**
- * End-of-game answer panel: the solved board (all green) plus the six
- * words grouped across / down, each click-to-define via the shared
- * `DefinitionPopover` — the same lookup freebee's WordList uses (the
- * define Edge Function reads common.words, where these words live).
- * Shown on the right at terminal while the player's final board stays
- * on the left.
+ * End-of-game answer panel: the six solution words grouped across /
+ * down, each click-to-define via the shared `DefinitionPopover` — the
+ * same lookup freebee's WordList uses (the define Edge Function reads
+ * common.words, where these words live). The words alone fully reveal
+ * the solution, so there's no separate solved-board grid (it just ate
+ * space); the player's final board stays on the left.
  */
 export function SolutionReveal({ solution }: { solution: string }) {
   const [a0, a2, a4, d0, d2, d4] = boardWords(solution)
-  // Every filled cell is correct in the solution → all green.
-  const colors = solution.replace(/[^.]/g, 'g')
 
   const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(
     null,
@@ -27,9 +24,6 @@ export function SolutionReveal({ solution }: { solution: string }) {
   return (
     <div className={styles.reveal}>
       <div className={styles.label}>The answer</div>
-      <div className={styles.gridWrap}>
-        <WaffleGrid board={solution} colors={colors} disabled onSwap={() => {}} />
-      </div>
 
       <div className={styles.wordCols}>
         <WordGroup heading="Across" words={[a0, a2, a4]} onDefine={define} />
