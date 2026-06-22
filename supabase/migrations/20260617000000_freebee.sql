@@ -75,12 +75,17 @@ grant usage on schema freebee to service_role;
 -- so generating boards by "pick 7 random letters and check"
 -- wastes thousands of attempts.
 --
--- The flip: start from known pangrams. Scan the required slice of
--- common.words (difficulty <= 50) for every 7-distinct-letter
--- word, dedupe by letter-mask, store the resulting masks here.
--- Each row is a guaranteed-valid board seed: at least one pangram
--- exists (we found it during the scan), and we precompute the
--- count of required words that fit the mask for the ≥30-words gate.
+-- The flip: start from known pangrams. Scan the FLOOR slice of
+-- common.words (difficulty <= 35 — the lowest difficulty freebee
+-- offers) for every 7-distinct-letter word, dedupe by letter-mask,
+-- store the resulting masks here. Qualifying at the floor (Option B)
+-- guarantees every board has a COMMON, findable pangram and >= 30
+-- words even for the most basic player; because the difficulty lists
+-- are nested, a floor-good seed is good at every higher level too.
+-- So `required_words_count` is the floor count — a deliberately
+-- pessimistic lower bound vs. the in-play thresholds (required <= 50
+-- / legal <= 70, in candidate_words). See docs/games/freebee.md →
+-- "Planned: per-player difficulty" and import-freebee-pangrams.ts.
 --
 -- The edge function samples from this table — one short query, no
 -- rejection loops over the whole word list on each board build.

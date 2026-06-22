@@ -50,7 +50,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | term | meaning |
 |---|---|
 | **board** | The 7 letters of one puzzle: 6 outer + 1 center. Determines which words are legal. |
-| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the required slice of `common.words`). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
+| **pangram** | A word that uses all 7 distinct letters of the board. Every board has at least one (the seeds table is built from pangrams in the floor slice of `common.words`, so it's always a *common* word). Pangrams earn the +10 bonus on top of the length score and render bold in the found-words list. |
 | **required word** | A word in freebee's smaller tier of `common.words` (difficulty ≤ 50, not a slur). These are the goal shown to players — they earn points and contribute to rank, and their count/score are the "X / Y" denominators (`required_words_count` / `required_words_score`). |
 | **legal word** | A word in freebee's larger tier (difficulty ≤ 70). This is the *superset* — it includes every required word plus the bonus ones. "Legal" is the acceptance bar (`submit_word` accepts a word iff it's legal); it's a concept, not a stored column. |
 | **bonus word** | A word that's legal but not required (`bonus = legal − required`: difficulty 51–70, plus ≤ 50 slurs). Accepted by `submit_word` as `'bonus'`; **scores normally** (length-based + pangram bonus, same as a required word), but does NOT count toward the required goal. Recorded in `found_words` with `is_bonus = true` and shown with a trailing dot in the WordList. Because the found score climbs without the required max climbing, finding bonus words can push you past the displayed-max score and even past Genius / past compete's target rank. |
@@ -144,7 +144,7 @@ The word list itself is **not** a freebee table — it's the shared `common.word
 
 | table | purpose |
 |---|---|
-| `pangrams` | Precomputed seed pool. ~3.6k rows: one per unique 7-letter mask drawn from the required slice of `common.words` that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Each row carries `required_words_count` (count of required words that fit; ≥30 gate at sample time) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. Rebuilt by `npm run freebee:import` (after `words:import`). See [Why a seeds table?](#why-a-seeds-table) below. |
+| `pangrams` | Precomputed seed pool. ~2.4k rows: one per unique 7-letter mask drawn from the **floor slice** (difficulty ≤ 35) of `common.words` that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Each row carries `required_words_count` (count of floor words that fit; ≥30 gate at sample time) and `has_rare_letters` (the diverse-builder weighting tier). Floor qualification (Option B) guarantees a common pangram + ≥30 words at any difficulty — see [Per-player difficulty](#per-player-difficulty-and-why-seeds-qualify-at-the-floor-option-b). The edge function samples from this table to seed a new board. Rebuilt by `npm run freebee:import` (after `words:import`). |
 | `games` | One row per playthrough. `id` is FK to `common.games(id)`. Holds `mode` (`'coop'`/`'compete'`, denormalized from the gametype string for RLS branching), `outer_letters` (6 chars), `center_letter` (1 char), `required_words_score` and `required_words_count` (cached at create-game time), plus the **hidden** wordlist columns `required_words` (jsonb array of `{word, points, is_pangram}` — the answer key, revealed post-terminal) and `bonus_words` (text[]; the bonus set, used only server-side for validation, never revealed). Hidden via column-level grant; `required_words` exposed conditionally via `games_state`. The column grant explicitly includes `mode` so the security_invoker view + the mode-aware found_words RLS policy can read it. |
 | `found_words` | One row per `(player, word)`. Includes `points` (length-based + `+10` if pangram; bonus rows score normally too), `is_pangram` (true when the word's distinct-letter count = 7), `is_bonus` (true when the word is a bonus word — legal but not required). PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
 
@@ -163,7 +163,7 @@ The FE only ever reads from `games_state`, never from `games` directly.
 
 ### Why a seeds table?
 
-A valid FreeBee board needs at least one pangram (the 7-distinct-letter word). Random 7-letter sets mostly *don't* contain a pangram, so generating "pick 7 random letters and check" wastes thousands of attempts. The flip: **start from known pangrams**. Scan the required slice of `common.words` for every 7-distinct-letter word, dedupe by letter mask, store the masks. That gives ~3.6k seeds, each guaranteed to admit at least one pangram.
+A valid FreeBee board needs at least one pangram (the 7-distinct-letter word). Random 7-letter sets mostly *don't* contain a pangram, so generating "pick 7 random letters and check" wastes thousands of attempts. The flip: **start from known pangrams**. Scan the floor slice (difficulty ≤ 35) of `common.words` for every 7-distinct-letter word, dedupe by letter mask, store the masks. That gives ~2.4k seeds, each guaranteed to admit at least one *common* pangram.
 
 To build a board, the edge function:
 1. Samples one row (weighted by `has_rare_letters` ×3 to even out the natural skew toward `e`, `a`, `i`).
@@ -171,11 +171,11 @@ To build a board, the edge function:
 3. Reads candidate words via `freebee.candidate_words(puzzle_mask, center_bit)` — a small SQL helper that pushes the bitmask intersection server-side (see [Why a SQL helper for candidate_words?](#why-a-sql-helper-for-candidate_words) below).
 4. Optionally rejects if it shares >4 letters with the club's previous board (the diverse-builder overlap cap).
 
-### Planned: per-player difficulty, and why seeds qualify at the floor (Option B)
+### Per-player difficulty, and why seeds qualify at the floor (Option B)
 
-**Decided, not yet built.** Today the required/legal difficulty thresholds are locked (50 / 70). A planned feature lets players choose them per game — a basic player might pick 35 / 50, an advanced player 70 / 85 (smaller list / larger list).
+**Seed side built; player-facing selection still planned.** The in-play thresholds are locked today (required ≤ 50 / legal ≤ 70, in `candidate_words`). A planned feature lets players choose them per game — a basic player might pick 35 / 50, an advanced player 70 / 85 (smaller list / larger list). The **seed pool is already ready for it**: `import-freebee-pangrams.ts` qualifies every seed at the floor, so no seed work is needed when selection ships.
 
-The decision for how the seed pool copes with that: **qualify every seed at the lowest difficulty we offer (currently 35), and never per-level.** A seed earns a row in `pangrams` only if, evaluated at difficulty ≤ 35, it has (1) **at least one pangram** and (2) **≥ 30 required words**.
+The rule: **qualify every seed at the lowest difficulty we offer (`FLOOR_DIFFICULTY` = 35), and never per-level.** A seed earns a row in `pangrams` only if, evaluated at difficulty ≤ 35, it has (1) **at least one pangram** and (2) **≥ 30 words**.
 
 This works because the difficulty lists are **nested** — a higher threshold only ever *adds* words. So a seed that clears both gates at the floor clears them at every higher level automatically (word counts only rise; the floor's pangram is still present). One row per seed covers every player.
 
@@ -185,7 +185,7 @@ Two payoffs, both deliberate:
 
 What this costs: seeds whose *only* pangram is above the floor are excluded. That's intentional — those are exactly the obscure-pangram boards we don't want to serve. The seed's letters aren't made "easy" by floor-qualifying; an advanced player on a floor-safe seed still gets every harder word their larger list admits, layered on top.
 
-So the `pangrams` table **stays one row per seed**; its stored `required_words_count` is the *floor* (≤ 35) count, used only as the seed-selection gate. It is a deliberately pessimistic prediction: when a player picks a harder list, the real board (recounted at build time against their chosen levels) will have **at least** that many required words and pangrams. The only change this implies whenever it's built is the qualifier moving from "pangram can be anything, count at 50" to "pangram exists at ≤ 35, ≥ 30 words at ≤ 35" — structurally the table is unchanged.
+So the `pangrams` table **stays one row per seed**; its stored `required_words_count` is the *floor* (≤ 35) count, used only as the seed-selection gate. It is a deliberately pessimistic prediction: when a player picks a harder list, the real board (recounted at build time against their chosen levels via `candidate_words`) will have **at least** that many words and pangrams. The qualifier is "pangram exists at ≤ 35, ≥ 30 words at ≤ 35"; structurally the table is unchanged from before — only the difficulty it's evaluated at moved (from 50 down to the floor). The floor pool is ~2.4k seeds.
 
 ### Why a SQL helper for `candidate_words`?
 
@@ -285,15 +285,15 @@ The function logs one line per step in dev (`console.log` lands in `supabase fun
 
 ## Pangram seed import: `npm run freebee:import`
 
-[`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts). It rebuilds `freebee.pangrams` from the required slice of `common.words`. The word list itself is loaded separately by `npm run words:import` (see [common.md → The word list](../common.md#the-word-list-commonwords)) — **run that first**; this script reads what's already in the table.
+[`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts). It rebuilds `freebee.pangrams` from the **floor slice** (difficulty ≤ `FLOOR_DIFFICULTY` = 35) of `common.words`. The word list itself is loaded separately by `npm run words:import` (see [common.md → The word list](../common.md#the-word-list-commonwords)) — **run that first**; this script reads what's already in the table.
 
 **Script flow:**
-1. Query `common.words` for the required set's `letter_mask`s: `difficulty ≤ 50 AND NOT slur AND (american OR british) AND len ≥ 4 AND no 's'`. (`letter_mask` is the table's generated column, so there's nothing to recompute.)
-2. Candidate seeds = distinct masks with exactly 7 distinct letters (`popcount(mask) = 7`) that satisfy `isValidPuzzleMask` (q→u when q is set, ≥2 vowels).
-3. For each seed, count required words whose mask is a subset (`wordMask & ~seedMask = 0`); keep seeds with ≥30. Tag `has_rare_letters`.
+1. Query `common.words` for the floor slice's `letter_mask`s: `difficulty ≤ 35 AND NOT slur AND (american OR british) AND len ≥ 4 AND no 's'`. (`letter_mask` is the table's generated column, so there's nothing to recompute.)
+2. Candidate seeds = distinct masks with exactly 7 distinct letters (`popcount(mask) = 7`) that satisfy `isValidPuzzleMask` (q→u when q is set, ≥2 vowels). Sourcing seeds from the *floor* slice is what guarantees each board has a common pangram (Option B).
+3. For each seed, count floor words whose mask is a subset (`wordMask & ~seedMask = 0`); keep seeds with ≥30. Tag `has_rare_letters`.
 4. **Bulk-load `freebee.pangrams` via psql `COPY`** — `TRUNCATE` then insert, using [`lib/copyLoad.ts`](../../supabase/scripts/lib/copyLoad.ts). The TS does the mask/count computation; only the *load* is psql.
 
-This currently yields ~3.6k seed rows.
+This currently yields ~2.4k seed rows. The ≤35 floor is stricter than the in-play ≤50 required threshold, so it deliberately excludes seeds whose only pangram is obscure — exactly the boards we don't want to serve.
 
 **Reseed, not upsert.** The pangram pool is fully derived from `common.words`, so each run TRUNCATEs and reloads from scratch — there's nothing to preserve.
 

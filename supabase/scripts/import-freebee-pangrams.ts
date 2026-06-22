@@ -1,23 +1,45 @@
 #!/usr/bin/env -S npx tsx
 /**
  * Rebuild `freebee.pangrams` — the board-seed pool — from the
- * required slice of `common.words`.
+ * **floor slice** of `common.words` (difficulty <= FLOOR_DIFFICULTY).
  *
  * A freebee board must contain a pangram (a word using all 7 of its
  * distinct letters). Rather than pick 7 random letters and hope, we
- * start from known pangrams: every required word with exactly 7
- * distinct letters is a guaranteed-valid board seed. This script
- * finds them, dedupes by letter-mask, and for each seed precomputes
- * the count of required words that fit (the ≥30-words gate) plus the
- * has_rare_letters weighting flag the edge function's diverse
- * builder uses.
+ * start from known pangrams: every word at the floor difficulty with
+ * exactly 7 distinct letters is a board seed. This script finds them,
+ * dedupes by letter-mask, and for each seed precomputes the count of
+ * floor-difficulty words that fit (the ≥30-words gate) plus the
+ * has_rare_letters weighting flag the edge function's diverse builder
+ * uses.
+ *
+ * ## Why qualify at the floor (Option B)
+ *
+ * freebee's difficulty thresholds (required <= 50 / legal <= 70) are
+ * slated to become a per-game player choice — a basic player might
+ * pick 35/50, an advanced player 70/85. The seed pool copes by
+ * qualifying every seed at the LOWEST difficulty we offer
+ * (FLOOR_DIFFICULTY), so a single row per seed is valid for everyone:
+ *
+ *   1. The seed has a pangram at <= floor → every board carries a
+ *      *common*, findable pangram (no obscure-only pangrams like
+ *      CALDRON), at any chosen difficulty.
+ *   2. The seed has >= 30 words at <= floor → no thin boards, even at
+ *      the easiest level.
+ *
+ * Because the difficulty lists are nested (a higher threshold only
+ * ever ADDS words), a seed that clears both gates at the floor clears
+ * them at every higher level automatically. The stored
+ * `required_words_count` is therefore the floor count — a deliberately
+ * pessimistic lower bound; the real board (recounted at build time
+ * against the player's chosen levels) will have at least that many.
+ * See docs/games/freebee.md → "Planned: per-player difficulty".
  *
  * Source: `common.words`, the shared master list (loaded by
- * `npm run words:import`). The required set is freebee's smaller
- * tier — difficulty <= 50, not a slur, valid in american OR british,
- * len >= 4, and (defensively) no 's' (a board never contains 's', so
- * an s-word can't seed or fit one). This MUST be run AFTER
- * words:import; it reads what's already in the table.
+ * `npm run words:import`). The floor slice is: difficulty <=
+ * FLOOR_DIFFICULTY, not a slur, valid in american OR british, len >=
+ * 4, and (defensively) no 's' (a board never contains 's', so an
+ * s-word can't seed or fit one). This MUST be run AFTER words:import;
+ * it reads what's already in the table.
  *
  * (Before the common.words merge this script also built
  * freebee.dictionary from vendored SCOWL files; that table is gone —
@@ -40,6 +62,19 @@ import { copyLoad } from './lib/copyLoad'
 const DB_URL =
   process.env.SUPABASE_DB_URL ??
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+
+/** The lowest difficulty freebee offers. Seeds qualify here (Option B):
+ *  a seed needs a pangram AND >= 30 words at <= this difficulty, which
+ *  by list-nesting makes it valid at every higher difficulty too. The
+ *  in-play thresholds (required <= 50 / legal <= 70, in
+ *  freebee.candidate_words) are SEPARATE and higher; this floor only
+ *  governs seed selection. */
+const FLOOR_DIFFICULTY = 35
+
+/** Puzzle-quality gate: a seed must admit at least this many words at
+ *  the floor difficulty. Agrees with the same gate in the edge
+ *  function (MIN_REQUIRED_WORDS_COUNT) and freebee.create_game. */
+const MIN_REQUIRED_WORDS_COUNT = 30
 
 /** Vowels for the ≥2-vowels puzzle rule. 'y' is NOT counted as a
  *  vowel here — matches ~/freebee-ws/server/game.js. */
@@ -68,7 +103,7 @@ function popcount26(mask: bigint): number {
 
 /** Decides whether a 7-letter mask could be a valid freebee puzzle
  *  seed. Mirrors `isValidPuzzleMask` in ~/freebee-ws/server/game.js.
- *  The required set is already 's'-free, but the CHECK stays here for
+ *  The floor slice is already 's'-free, but the CHECK stays here for
  *  documentation + defense in depth. */
 function isValidPuzzleMask(mask: bigint): boolean {
   // No 's'. 's' is bit 18 ('s'.charCodeAt(0) - 97 = 18).
@@ -101,15 +136,15 @@ type PangramRow = {
   has_rare_letters: boolean
 }
 
-/** Pull the required set out of common.words as (word, letter_mask)
- *  pairs. letter_mask is the generated column — already the 26-bit
- *  set we need, no recomputation. psql -At gives tab-separated rows;
+/** Pull the floor slice out of common.words as `letter_mask`s.
+ *  letter_mask is the generated column — already the 26-bit set we
+ *  need, no recomputation. psql -At gives tab-separated rows;
  *  letter_mask arrives as a decimal string we parse to BigInt. */
-function loadRequiredMasks(): bigint[] {
+function loadFloorMasks(): bigint[] {
   const query = `
     select letter_mask
       from common.words
-     where difficulty <= 50
+     where difficulty <= ${FLOOR_DIFFICULTY}
        and not slur
        and (american or british)
        and len >= 4
@@ -132,38 +167,40 @@ function loadRequiredMasks(): bigint[] {
 }
 
 function main() {
-  console.log('Loading required set from common.words...')
-  const requiredMasks = loadRequiredMasks()
-  console.log(`  ${requiredMasks.length} required words.`)
-  if (requiredMasks.length === 0) {
+  console.log(`Loading floor slice (difficulty <= ${FLOOR_DIFFICULTY}) from common.words...`)
+  const floorMasks = loadFloorMasks()
+  console.log(`  ${floorMasks.length} floor-difficulty words.`)
+  if (floorMasks.length === 0) {
     console.error(
-      'No required words found — did you run `npm run words:import` first?',
+      'No floor words found — did you run `npm run words:import` first?',
     )
     process.exit(1)
   }
 
-  // Candidate seeds: distinct masks of required words that have
-  // exactly 7 distinct letters AND form a valid puzzle.
+  // Candidate seeds: distinct masks of FLOOR words with exactly 7
+  // distinct letters AND a valid puzzle shape. Sourcing seeds from the
+  // floor slice is what guarantees every board has a common pangram
+  // (Option B, rule 1).
   console.log('Finding pangram seed masks...')
   const pangramCandidates = new Set<bigint>()
-  for (const mask of requiredMasks) {
+  for (const mask of floorMasks) {
     if (popcount26(mask) === 7 && isValidPuzzleMask(mask)) {
       pangramCandidates.add(mask)
     }
   }
   console.log(`  ${pangramCandidates.size} candidate pangram masks.`)
 
-  // For each seed, count required words whose mask is a subset of it
-  // (`wordMask & ~seedMask = 0`). Keep seeds with ≥30 — a seed that
-  // can never satisfy the runtime gate is dead weight.
-  console.log('Counting required words per seed...')
+  // For each seed, count FLOOR words whose mask is a subset of it
+  // (`wordMask & ~seedMask = 0`). Keep seeds with >= the gate — a seed
+  // too thin even at the floor is dead weight (Option B, rule 2).
+  console.log('Counting floor words per seed...')
   const pangramRows: PangramRow[] = []
   for (const seedMask of pangramCandidates) {
     let count = 0
-    for (const wordMask of requiredMasks) {
+    for (const wordMask of floorMasks) {
       if ((wordMask & ~seedMask) === 0n) count++
     }
-    if (count >= 30) {
+    if (count >= MIN_REQUIRED_WORDS_COUNT) {
       pangramRows.push({
         mask: seedMask.toString(),
         required_words_count: count,
@@ -171,7 +208,10 @@ function main() {
       })
     }
   }
-  console.log(`Prepared ${pangramRows.length} pangram seed rows (≥30 words each).`)
+  console.log(
+    `Prepared ${pangramRows.length} pangram seed rows`
+    + ` (>= ${MIN_REQUIRED_WORDS_COUNT} words each at the floor).`,
+  )
 
   console.log(`Loading ${pangramRows.length} pangram rows via COPY...`)
   copyLoad(
