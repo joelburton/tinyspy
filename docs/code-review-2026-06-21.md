@@ -8,6 +8,49 @@ before write-up (see [§0 Verification notes](#0-verification-notes)).
 This run covers all six games (tinyspy, psychicnum, wordknit, freebee,
 monkeygram, waffle) plus `src/common/`.
 
+## Resolution summary — what shipped (2026-06-21)
+
+The review was worked end-to-end in the same session. **Every substantive
+finding is resolved**; each section below carries an inline resolution
+note, and the triage table strikes through what's done. Current state
+after the work: **666 pgTAP + 259 Vitest green**, `tsc --noEmit` clean,
+eslint clean apart from 5 pre-existing intentional items in untouched
+files. What shipped, by theme:
+
+- **Correctness (§1) — all resolved.** psychicnum compete target moved out
+  of `common.games.title` into a random `#NNNNNN` id (§1.2); waffle added
+  to `EXPOSED_SCHEMAS` so prod exposes the schema (§1.3); ClubPage no
+  longer auto-navs members into a *terminal* game (§1.6); monkeygram
+  board→dump made a legal move with consistent board-clearing (§1.7).
+  §1.1 (freebee answer-key RPC) and §1.4 (`submit_timeout` on
+  non-countdown) were **reclassified as non-issues** under the trust model
+  — the fix there was correcting the docs/comments that overstated them.
+- **New feature that fell out of §1.8:** a uniform manual **`end_game`**
+  across every gametype (was freebee-only), documented as an architectural
+  pattern in [`common.md`](common.md), with a per-game `end_game_test.sql`
+  (+50 pgTAP).
+- **Consistency (§4.1–4.3) — all resolved.** Extracted the shared
+  [`OpponentStrip`](../src/common/components/OpponentStrip.tsx) +
+  [`orderSelfFirst`](../src/common/lib/peers.ts) (four games unified; §4.1
+  + §4.2); freebee's feedback split into own-word (in-body) vs
+  peer/opponent (header `usePeerFeedback`), killing the `FeedbackTone`
+  collision (§4.3).
+- **Docs drift (§2) + archaeology (§3) — all resolved.** Wrong RPC
+  signatures, the phantom `freebee.dictionary` table, the monkeygram PK,
+  the `declare_done` / `Root.tsx` / slice-2 / `*_baseline.sql` ghosts, and
+  assorted stale path/field references all corrected to current reality.
+
+**Deliberately not done:** the **§4.4 Low** cosmetic nits (the `labelFor`
+idiom spread, redundant Help "Got it" buttons, an optional `OptionRadioRow`
+extraction) — genuine "align someday" polish, not bugs or inaccuracies,
+left recorded for whenever convenient. The **§5 test-coverage** and **§6
+dead-code** findings remain as written (a few were addressed incidentally —
+e.g. waffle/monkeygram gained `end_game` tests — but the gaps they name,
+like monkeygram's missing RLS test, still stand).
+
+Everything below is the **original review as written** (point-in-time),
+now annotated with resolutions.
+
 ## Headline
 
 The tree is in good shape. All 616 pgTAP + 259 Vitest tests pass; `tsc
