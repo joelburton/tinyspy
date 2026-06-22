@@ -62,7 +62,7 @@ Two cross-agent contradictions were resolved by hand:
 | 1.3 | ~~waffle absent from `EXPOSED_SCHEMAS` (PostgREST won't expose it in prod)~~ — **fixed**: added `waffle` to the list | ~~High~~ Resolved | Deploy |
 | 1.4 | ~~`submit_timeout` callable on non-countdown games (4 games)~~ — **dismissed**: only reachable via a manual devtools RPC call (trust-model case we don't defend); FE never fires it without a countdown. Manual end-game uses a separate `end_game` RPC | ~~Medium~~ Not a concern | Correctness |
 | 1.5 | monkeygram stuck on "Dealing tiles…" when board row absent | Medium | Correctness |
-| 1.6 | ClubPage auto-navs members into terminal current games on stray UPDATE | Medium | Correctness |
+| 1.6 | ~~ClubPage auto-navs members into terminal current games on stray UPDATE~~ — **fixed**: skip-terminal guard on the auto-nav | ~~Medium~~ Resolved | Correctness |
 | 1.7 | ~~monkeygram `dump` can remove a *placed* tile (board/holdings desync)~~ — **resolved**: mis-framed; board→dump is a legal move, now implemented in the FE with consistent board-clearing | ~~Medium~~ Resolved | Correctness |
 | 1.8 | ~~Compete + non-countdown timer + idle player = game never terminates~~ — **fixed**: every gametype now has a manual `end_game` (uniform pattern, documented in common.md) | ~~Medium~~ Resolved | Correctness |
 | 4.1 | Opponent/progress strip — 4 names, 4 structures, 1 concept | High | Consistency |
@@ -180,7 +180,17 @@ mid-session) leaves PlayArea stuck on `<p>Dealing tiles…</p>` forever.
 Every other game's `useGame` handles not-found explicitly. Fix: set a
 distinct "loaded/not-found" state instead of relying on `initialBoard`.
 
-### 1.6 ClubPage auto-navs members into a *terminal* current game on a stray UPDATE — Medium
+### 1.6 ClubPage auto-navs members into a *terminal* current game on a stray UPDATE — FIXED
+
+**Resolution (2026-06-21):** Fixed with the skip-terminal guard — the
+auto-nav now bails on `!row.is_current_view || row.is_terminal`
+([`ClubPage.tsx`](../src/common/components/ClubPage.tsx)), so auto-follow
+applies only to *active* play; reviewing a finished game stays opt-in. The
+two real stray-UPDATE sources were: the `end_game` terminal transition
+(flips `is_terminal` but leaves `is_current_view = true`), and
+`set_current_view` re-asserting current-view when a peer re-opens a
+finished game to review. `is_terminal` was added to the `GameRow` Pick (the
+realtime payload already carries every column). Original finding below.
 
 [`ClubPage.tsx:464-474`](../src/common/components/ClubPage.tsx). The
 `subscribeToClubGames` handler navigates **every** club-page member into a

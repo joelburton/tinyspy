@@ -37,7 +37,7 @@ type ClubRow = Pick<
 // the Pick anchors the field set to the schema.
 type GameRow = Pick<
   Database['common']['Tables']['games']['Row'],
-  'id' | 'club_handle' | 'gametype' | 'is_current_view'
+  'id' | 'club_handle' | 'gametype' | 'is_current_view' | 'is_terminal'
 >
 import type { Member } from '../lib/games'
 
@@ -447,6 +447,17 @@ export function ClubPage({ handle, session }: Props) {
     // game-over screen; players on the club page just see the
     // game move out of the Current section in the list.
     //
+    // BUT auto-nav is for *active* play only — we never drag anyone
+    // into a TERMINAL game. A finished game keeps is_current_view=true
+    // while someone reviews it, so several writes still carry
+    // is_current_view=true on a terminal row: the end_game UPDATE
+    // itself (it flips is_terminal but leaves is_current_view alone),
+    // and set_current_view re-asserting it when a peer re-opens the
+    // finished game to review. Without the is_terminal guard, those
+    // would yank a member off the club page back into a done game.
+    // Reviewing a finished game is opt-in (click it in the list), not
+    // something the club gets pulled into.
+    //
     // The "already there" guard prevents the player who started
     // the game (and was already navigated by SetupGameDialog's
     // onStarted) from getting a duplicate history entry when the
@@ -465,7 +476,7 @@ export function ClubPage({ handle, session }: Props) {
           loadGames()
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const row = payload.new as GameRow
-            if (!row.is_current_view) return
+            if (!row.is_current_view || row.is_terminal) return
             const target = `/g/${row.gametype}/${row.id}`
             if (window.location.pathname !== target) {
               navigate(target)
