@@ -51,7 +51,7 @@ export function rankPoints(i: number, total: number): number {
 /** Highest rank index whose threshold is reached at this score.
  *  Returns 0 (Start) when total is 0 or score is 0; clamps to
  *  the top of RANKS for scores beyond Genius (a full clear of
- *  the scoring set produces ~143% of GENIUS_AT, since GENIUS_AT
+ *  the required set produces ~143% of GENIUS_AT, since GENIUS_AT
  *  is the 70% mark — clamping is what keeps the bar at Genius). */
 export function currentRankIndex(score: number, total: number): number {
   if (!total) return 0

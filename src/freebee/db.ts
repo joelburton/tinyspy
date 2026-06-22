@@ -7,10 +7,10 @@ import { supabase } from '../common/lib/supabase'
  * applied uniformly without each call site repeating it.
  *
  * Note that `freebee.games_state` is a VIEW that conditionally
- * exposes the hidden scoring_words / legal_words columns based
- * on common.games.is_terminal. The base `freebee.games` table
- * has a column-level grant that blocks the wordlists for the
- * `authenticated` role; the view is the only path to them. The
- * FE never queries `freebee.games` directly.
+ * exposes the hidden `required_words` answer key based on
+ * common.games.is_terminal. The base `freebee.games` table has a
+ * column-level grant that blocks it for the `authenticated` role;
+ * the view is the only path to it. The FE never queries
+ * `freebee.games` directly.
  */
 export const db = supabase.schema('freebee')

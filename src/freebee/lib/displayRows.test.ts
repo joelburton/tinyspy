@@ -51,7 +51,7 @@ describe('buildDisplayRows', () => {
     expect(rows[0].kind).toBe('found')
   })
 
-  it('includes unfound scoring words as cat-B unfound rows', () => {
+  it('includes unfound required words as cat-B unfound rows', () => {
     const rows = buildDisplayRows(
       [],
       [{ word: 'zzzz', points: 1, is_pangram: true }],

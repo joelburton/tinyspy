@@ -13,7 +13,7 @@
 --   - Per-player duplicate rule: bea finding a word ada already
 --     found is fresh-for-bea (not 'alreadyFound').
 --   - Mid-game status carries the leaderboard with per-player
---     score + rank_idx + words_found.
+--     score + rank_idx + found_words_count.
 --   - submit_timeout in compete: everyone {won: false}, status
 --     outcome='timeout'.
 --   - end_game in compete: everyone {won: false}, outcome='manual'.
@@ -100,11 +100,11 @@ select is(
   'compete mid-game: leaderboard has one entry per player (ada, bea, cade)'
 );
 
--- Ada's leaderboard entry reflects her one accepted scoring word
+-- Ada's leaderboard entry reflects her one accepted required word
 -- (bead = 1pt, rank 0 — 1/50 is well below the rank 1 threshold).
 select is(
   (
-    select (entry->>'score')::int
+    select (entry->>'found_words_score')::int
       from common.games cg,
            jsonb_array_elements(cg.status->'leaderboard') entry
      where cg.id = (select id from g)

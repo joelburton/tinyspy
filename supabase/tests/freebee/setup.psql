@@ -9,7 +9,7 @@
 --   pg_temp.freebee_board()       — Builds a valid `board` jsonb
 --                                   (the shape freebee.create_game
 --                                   accepts) suitable for tests.
---                                   30 scoring entries + 2 bonus
+--                                   30 required entries + 3 bonus
 --                                   entries; all words use only
 --                                   letters from the test puzzle
 --                                   {a,b,c,d,e,f,g} with center 'e'.
@@ -26,10 +26,10 @@
 --   - 1 seven-letter pangram (5+10=17pt; synthetic — "abcdefg"
 --     isn't an English word, but the create_game RPC doesn't
 --     dictionary-check the wordlist content, just the structure).
---   - 2 bonus (legal-only) entries.
--- Total scoring: 28 + 5 + 17 = 50 points across 30 words.
+--   - 3 bonus entries (legal − required).
+-- Total required: 28 + 5 + 17 = 50 points across 30 words.
 --
--- Rank thresholds for total_score=50:
+-- Rank thresholds for required_words_score=50:
 --   Good   ≥ 6
 --   Solid  ≥ 12
 --   Nice   ≥ 18
@@ -43,20 +43,20 @@
 -- are real English (bead, beef, face, …), some are synthetic
 -- (abce, acef, …). The synthetic ones earn the same points as
 -- their length suggests — submit_word reads `points` directly
--- from the scoring_words entry, not from the dictionary.
+-- from the required_words entry, not from the dictionary.
 
 create function pg_temp.freebee_board()
 returns jsonb
 language plpgsql
 as $$
 declare
-  scoring jsonb := '[]'::jsonb;
-  -- legal_words holds bonus-only entries (in the large dictionary
-  -- but not the scoring one). 'gfedcba' is a synthetic 7-distinct-
-  -- letter word covering the bonus-pangram path — verifies that
-  -- a bonus word with 7 distinct letters earns the +10 pangram
+  required jsonb := '[]'::jsonb;
+  -- bonus holds the bonus set (legal − required: in the large
+  -- dictionary but not the required one). 'gfedcba' is a synthetic
+  -- 7-distinct-letter word covering the bonus-pangram path — verifies
+  -- that a bonus word with 7 distinct letters earns the +10 pangram
   -- bonus per freebee-ws scoring (sessions.js:988-989).
-  legal jsonb := jsonb_build_array('bcdfge', 'abcdef', 'gfedcba');
+  bonus jsonb := jsonb_build_array('bcdfge', 'abcdef', 'gfedcba');
   -- 28 four-letter + 1 five-letter + 1 seven-letter, in that order.
   syn_words text[] := array[
     'bead','beef','face','fade','cage','cafe','deaf','aged',
@@ -78,18 +78,18 @@ begin
             when is_pang then length(w) + 10  -- 7 + 10 pangram bonus
             else length(w)                    -- 5+: length-based
           end;
-    scoring := scoring || jsonb_build_array(
+    required := required || jsonb_build_array(
       jsonb_build_object('word', w, 'points', pt, 'is_pangram', is_pang)
     );
     total := total + pt;
   end loop;
   return jsonb_build_object(
-    'outer_letters', 'abcdfg',
-    'center_letter', 'e',
-    'total_score',   total,
-    'total_words',   jsonb_array_length(scoring),
-    'scoring_words', scoring,
-    'legal_words',   legal
+    'outer_letters',        'abcdfg',
+    'center_letter',        'e',
+    'required_words_score', total,
+    'required_words_count', jsonb_array_length(required),
+    'required_words',       required,
+    'bonus_words',          bonus
   );
 end;
 $$;

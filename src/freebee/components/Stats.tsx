@@ -1,10 +1,10 @@
 import styles from './Stats.module.css'
 
 type Props = {
-  score: number
-  totalScore: number
-  wordsFound: number
-  totalWords: number
+  foundWordsScore: number
+  requiredWordsScore: number
+  foundWordsCount: number
+  requiredWordsCount: number
   /** Display string for the timer cell, e.g. "9:34" or "—". */
   timerDisplay: string
 }
@@ -19,14 +19,15 @@ type Props = {
  * `none`.
  *
  * Pure presentation — no derivation, no state. The parent
- * (PlayArea) wires in the values from `status.score` /
- * `status.words_found` / `ctx.timer`.
+ * (PlayArea) wires in the found vs required figures (found counts
+ * include bonus words, so each numerator can overshoot its
+ * required denominator).
  */
 export function Stats({
-  score,
-  totalScore,
-  wordsFound,
-  totalWords,
+  foundWordsScore,
+  requiredWordsScore,
+  foundWordsCount,
+  requiredWordsCount,
   timerDisplay,
 }: Props) {
   return (
@@ -34,15 +35,15 @@ export function Stats({
       <div className={styles.cell}>
         <span className={styles.label}>Score</span>
         <span className={styles.value}>
-          {score}
-          <span className={styles.muted}> / {totalScore}</span>
+          {foundWordsScore}
+          <span className={styles.muted}> / {requiredWordsScore}</span>
         </span>
       </div>
       <div className={styles.cell}>
         <span className={styles.label}>Words</span>
         <span className={styles.value}>
-          {wordsFound}
-          <span className={styles.muted}> / {totalWords}</span>
+          {foundWordsCount}
+          <span className={styles.muted}> / {requiredWordsCount}</span>
         </span>
       </div>
       <div className={styles.cell}>

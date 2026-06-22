@@ -28,7 +28,7 @@
  *   4. Pick the center letter from the 7 in the mask (uniform).
  *   5. As the caller, query common.words (via the candidate_words
  *      RPC) for every word whose mask is a subset of the puzzle
- *      mask AND uses the center letter. Compute points per scoring
+ *      mask AND uses the center letter. Compute points per required
  *      word (length score + 10 if pangram).
  *   6. Call freebee.create_game(target_club, setup,
  *      player_user_ids, board) over PostgREST — the RPC
@@ -81,23 +81,36 @@ type Mode = 'coop' | 'compete'
 type Board = {
   outer_letters: string
   center_letter: string
-  total_score: number
-  total_words: number
-  scoring_words: Array<{ word: string; points: number; is_pangram: boolean }>
-  legal_words: string[]
+  required_words_score: number
+  required_words_count: number
+  /** The required set: words in the smaller list (the displayed goal). */
+  required_words: Array<{ word: string; points: number; is_pangram: boolean }>
+  /** The bonus set (legal − required): accepted + scored, not the goal. */
+  bonus_words: string[]
 }
 
 type PangramRow = {
   mask: string                // bigint comes through PostgREST as string
-  scoring_words: number
+  /** How many required words fit this 7-letter seed — the ≥30 gate. */
+  required_words_count: number
+  /**
+   * Whether the seed's 7 letters include a rare one — {j, q, x, z}
+   * (very rare) or {k, v, w, y} (somewhat rare). The diverse builder
+   * gives these masks a ×RARE_LETTER_WEIGHT sampling boost so boards
+   * aren't dominated by common-letter seeds (e, a, i, r, t, …).
+   * Precomputed at import time.
+   */
   has_rare_letters: boolean
 }
 
 type CandidateRow = {
   word: string
   letter_mask: string
-  in_scoring: boolean
-  in_legal: boolean
+  /** In the required set (difficulty ≤ 50, not a slur) — counts toward the goal. */
+  is_required: boolean
+  /** In the legal set (difficulty ≤ 70) — enterable. Always true here
+   *  (candidate_words already pre-filters to legal). */
+  is_legal: boolean
 }
 
 // ───────────────────────────────────────────────────────────
@@ -118,7 +131,7 @@ const RARE_LETTER_WEIGHT = 3
 /** Accept rate for masks containing all of {i, n, g}. */
 const ING_ACCEPT_RATE = 1 / 3
 /** Sanity gate that must agree with the RPC's same gate. */
-const MIN_SCORING_WORDS = 30
+const MIN_REQUIRED_WORDS_COUNT = 30
 /** How many random retries before we give up — extremely
  *  unlikely to hit, but protects against pathological inputs
  *  (e.g. previous board with all-rare letters). */
@@ -217,7 +230,7 @@ function shouldKeepForIng(mask: bigint): boolean {
 }
 
 /** Sample a pangram mask. Retries until a candidate survives
- *  the ING-dampening rejection AND the MIN_SCORING_WORDS gate.
+ *  the ING-dampening rejection AND the MIN_REQUIRED_WORDS_COUNT gate.
  *  Throws when the pool is empty (e.g. previous-board cap
  *  excluded everything — but the cap should leave thousands of
  *  candidates in practice). */
@@ -229,19 +242,19 @@ function sampleMask(weighted: PangramRow[]): PangramRow {
     const row = weighted[Math.floor(Math.random() * weighted.length)]
     const mask = BigInt(row.mask)
     if (!shouldKeepForIng(mask)) continue
-    if (row.scoring_words < MIN_SCORING_WORDS) continue
+    if (row.required_words_count < MIN_REQUIRED_WORDS_COUNT) continue
     return row
   }
   // After MAX_SAMPLE_ATTEMPTS the ING-rejection has cumulative
   // probability (2/3)^50 ≈ 1.6e-9 of being the cause. The
   // realistic failure mode is no row in the weighted pool
-  // passing MIN_SCORING_WORDS — but those rows were filtered at
+  // passing MIN_REQUIRED_WORDS_COUNT — but those rows were filtered at
   // import time, so this branch is essentially unreachable.
   throw new Error('failed to sample a valid pangram mask after retries')
 }
 
 // ───────────────────────────────────────────────────────────
-// Word enumeration + scoring
+// Word enumeration + scoring (required + bonus)
 // ───────────────────────────────────────────────────────────
 
 /** Length-based score: 1pt for 4-letter, length-pt for ≥5.
@@ -252,39 +265,40 @@ function lengthScore(word: string): number {
 }
 
 /** Given the puzzle mask + center, partition the candidate words
- *  into scoring + legal-only (bonus) and tally the totals. */
+ *  into the required set + the bonus set (legal − required) and tally
+ *  the required totals. */
 function buildBoard(
   outerLetters: string,
   centerLetter: string,
   candidateWords: CandidateRow[],
 ): Board {
   const puzzleMask = letterMask(outerLetters + centerLetter)
-  const scoring: Board['scoring_words'] = []
-  const legal: string[] = []
-  let totalScore = 0
-  let totalWords = 0
+  const required: Board['required_words'] = []
+  const bonus: string[] = []
+  let requiredWordsScore = 0
+  let requiredWordsCount = 0
 
   for (const row of candidateWords) {
     const wMask = BigInt(row.letter_mask)
-    if (row.in_scoring) {
+    if (row.is_required) {
       const isPangram = wMask === puzzleMask
       const points = lengthScore(row.word) + (isPangram ? 10 : 0)
-      scoring.push({ word: row.word, points, is_pangram: isPangram })
-      totalScore += points
-      totalWords++
+      required.push({ word: row.word, points, is_pangram: isPangram })
+      requiredWordsScore += points
+      requiredWordsCount++
     } else {
-      // in_legal && !in_scoring: bonus-only
-      legal.push(row.word)
+      // legal but not required → bonus
+      bonus.push(row.word)
     }
   }
 
   return {
     outer_letters: outerLetters,
     center_letter: centerLetter,
-    total_score: totalScore,
-    total_words: totalWords,
-    scoring_words: scoring,
-    legal_words: legal,
+    required_words_score: requiredWordsScore,
+    required_words_count: requiredWordsCount,
+    required_words: required,
+    bonus_words: bonus,
   }
 }
 
@@ -307,7 +321,7 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
     const { data, error } = await supabase
       .schema('freebee')
       .from('pangrams')
-      .select('mask, scoring_words, has_rare_letters')
+      .select('mask, required_words_count, has_rare_letters')
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`fetchPangrams page ${from}: ${error.message}`)
     const page = (data ?? []) as PangramRow[]
@@ -363,18 +377,18 @@ async function fetchCandidateWords(
       center_bit: centerBit.toString(),
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
-  // The RPC returns (word, letter_mask, in_scoring) — note that
-  // in_legal isn't on the row because the function pre-filters
-  // on it. We synthesize in_legal=true for the consumer.
+  // The RPC returns (word, letter_mask, is_required) — note that
+  // is_legal isn't on the row because the function pre-filters
+  // on it. We synthesize is_legal=true for the consumer.
   return ((data ?? []) as Array<{
     word: string
     letter_mask: string | number
-    in_scoring: boolean
+    is_required: boolean
   }>).map((row) => ({
     word: row.word,
     letter_mask: String(row.letter_mask),
-    in_scoring: row.in_scoring,
-    in_legal: true,
+    is_required: row.is_required,
+    is_legal: true,
   }))
 }
 
@@ -456,7 +470,7 @@ serve(async (req) => {
     const weighted = buildWeightedPool(eligible)
 
     // ─── 3-4. Sample a seed AND a center that clears the word gate ─────────
-    // A seed's stored `scoring_words` is over its whole 7-letter SET, but the
+    // A seed's stored `required_words_count` is over its whole 7-letter SET, but the
     // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
     // center can land a real board below the ≥30 gate even though the set is
     // fine — which the old "pick center uniformly, then reject if short" path
@@ -476,27 +490,27 @@ serve(async (req) => {
         const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
         const candidates = await fetchCandidateWords(supabase, mask, centerBit)
         const cand = buildBoard(letters.replace(center, ''), center, candidates)
-        if (cand.total_words >= MIN_SCORING_WORDS) {
+        if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
           board = cand
           break
         }
         console.log(
-          `seed ${letters} center '${center}': ${cand.total_words} words`
-          + ` (< ${MIN_SCORING_WORDS}) — trying another center`,
+          `seed ${letters} center '${center}': ${cand.required_words_count} words`
+          + ` (< ${MIN_REQUIRED_WORDS_COUNT}) — trying another center`,
         )
       }
     }
 
     if (board === null) {
-      console.log(`reject: no seed/center cleared the ${MIN_SCORING_WORDS}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
+      console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
       return json(
-        { error: `could not build a board with ≥${MIN_SCORING_WORDS} scoring words` },
+        { error: `could not build a board with ≥${MIN_REQUIRED_WORDS_COUNT} required words` },
         500,
       )
     }
     console.log(
       `board: outer=${board.outer_letters} center=${board.center_letter}`
-      + ` total_score=${board.total_score} total_words=${board.total_words}`,
+      + ` required_words_score=${board.required_words_score} required_words_count=${board.required_words_count}`,
     )
 
     // ─── 5. Create the game ───────────────────────────────

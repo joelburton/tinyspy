@@ -6,9 +6,11 @@
 -- form words from those letters; each word must include the
 -- center. Pangrams (words using all 7) earn a +10 bonus. The word
 -- list is common.words (the categorized master list shared across
--- games); freebee filters it into a smaller scoring set (required,
--- difficulty <= 50, no slurs) and a larger legal-only set (bonus
--- words, difficulty <= 70).
+-- games); freebee filters it into a smaller REQUIRED set (the goal
+-- shown to players: difficulty <= 50, no slurs) and a larger LEGAL
+-- set (difficulty <= 70, the acceptance bar). Words in legal but
+-- not required are BONUS: accepted and scored, but not part of the
+-- displayed goal.
 --
 -- "freebee" is the codename. User-facing copy is "freebee"; SQL /
 -- TypeScript / folder names are all `freebee`. Ported from the
@@ -51,9 +53,9 @@ grant usage on schema freebee to service_role;
 -- freebee's word reference is the shared common.words master list,
 -- not a freebee table — every word game filters the same
 -- categorized source. freebee's slice is computed on the fly in
--- freebee.candidate_words (below): legal = difficulty <= 70, scoring
--- = difficulty <= 50 AND NOT slur, dialect = american OR british,
--- len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
+-- freebee.candidate_words (below): legal = difficulty <= 70,
+-- required = difficulty <= 50 AND NOT slur, dialect = american OR
+-- british, len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
 -- test (every letter of the word is in the puzzle) reads the
 -- generated common.words.letter_mask column — same bit convention.
 --
@@ -73,12 +75,12 @@ grant usage on schema freebee to service_role;
 -- so generating boards by "pick 7 random letters and check"
 -- wastes thousands of attempts.
 --
--- The flip: start from known pangrams. Scan the scoring slice of
+-- The flip: start from known pangrams. Scan the required slice of
 -- common.words (difficulty <= 50) for every 7-distinct-letter
 -- word, dedupe by letter-mask, store the resulting masks here.
 -- Each row is a guaranteed-valid board seed: at least one pangram
 -- exists (we found it during the scan), and we precompute the
--- count of scoring words that fit the mask for the ≥30-words gate.
+-- count of required words that fit the mask for the ≥30-words gate.
 --
 -- The edge function samples from this table — one short query, no
 -- rejection loops over the whole word list on each board build.
@@ -95,9 +97,9 @@ grant usage on schema freebee to service_role;
 -- import time.
 
 create table freebee.pangrams (
-  mask              bigint primary key,    -- 7 bits set; a valid board seed
-  scoring_words     int not null,          -- count of scoring words that fit this mask
-  has_rare_letters  boolean not null       -- weighting tier for the diverse builder
+  mask                 bigint primary key,    -- 7 bits set; a valid board seed
+  required_words_count int not null,          -- count of required words that fit this mask
+  has_rare_letters     boolean not null       -- weighting tier for the diverse builder
 );
 
 -- freebee.pangrams: public reference data, no RLS. The edge
@@ -127,11 +129,13 @@ grant select on freebee.pangrams to authenticated;
 -- ───────────────────────────────────────────────────────────
 -- The "terminal-gated wordlists" pattern
 -- ───────────────────────────────────────────────────────────
--- `scoring_words` and `legal_words` ARE the answer keys. The
+-- `required_words` and `bonus_words` ARE the answer keys. The
 -- normal play data path (the games_state view the FE reads)
--- returns them as NULL during play and the real lists post-
--- terminal, so the end-of-game "here are the words you missed"
--- display works without the FE ever holding the answer mid-game.
+-- returns `required_words` as NULL during play and the real list
+-- post-terminal, so the end-of-game "here are the words you
+-- missed" display works without the FE ever holding the answer
+-- mid-game. (`bonus_words` is only read server-side, for
+-- validation — see the games_state view below.)
 --
 -- This is NOT an anti-cheat boundary. A determined friend can
 -- still recover the answer key — e.g. by calling the
@@ -147,8 +151,8 @@ grant select on freebee.pangrams to authenticated;
 -- Two layers, same pattern as psychicnum.games.target:
 --   (1) Column-level grant on this base table omits both columns
 --       from the `authenticated` role's SELECT. A direct
---       `SELECT scoring_words FROM freebee.games` returns
---       42501 permission denied for column scoring_words.
+--       `SELECT required_words FROM freebee.games` returns
+--       42501 permission denied for column required_words.
 --   (2) `freebee.games_state` view (below) calls SECURITY
 --       DEFINER helpers that bypass the column grant and apply
 --       a CASE on common.games.is_terminal. Pre-terminal:
@@ -174,16 +178,17 @@ create table freebee.games (
   -- function of the puzzle so we could recompute, but caching
   -- means submit_word doesn't need to scan the word list on
   -- every guess to recompute "the max."
-  total_score int not null,
-  total_words int not null,             -- count of scoring words
+  required_words_score int not null,
+  required_words_count int not null,             -- count of required words
   -- ─── Hidden columns (see "hidden wordlists" above) ───────
-  -- scoring_words shape: jsonb array of
+  -- required_words shape: jsonb array of
   --     { "word": text, "points": int, "is_pangram": bool }
-  -- legal_words: text[] of bonus-only words (legal but not
-  -- scoring). Both built by the edge function (via
-  -- candidate_words over common.words) and handed to create_game.
-  scoring_words jsonb not null,
-  legal_words text[] not null,
+  -- bonus_words: text[] of the bonus set (legal − required) —
+  -- accepted and scored, but not part of the required goal.
+  -- Both built by the edge function (via candidate_words over
+  -- common.words) and handed to create_game.
+  required_words jsonb not null,
+  bonus_words text[] not null,
   created_at timestamptz not null default now(),
   -- Sibling-manifest mode axis. CHECK constrains it to the two
   -- valid values; the gametype string ('freebee_coop' /
@@ -206,7 +211,7 @@ create index freebee_games_club_handle_idx on freebee.games (club_handle);
 -- lists are the convention anyway.
 grant select
   (id, club_handle, mode, outer_letters, center_letter,
-   total_score, total_words, created_at)
+   required_words_score, required_words_count, created_at)
   on freebee.games to authenticated;
 
 -- ============================================================
@@ -236,9 +241,9 @@ create table freebee.found_words (
   user_id    uuid not null
     references common.profiles(user_id) on delete cascade,
   word       text not null,
-  points     int not null,               -- 0 if is_bonus, else word-length-based
+  points     int not null,               -- length-based (+10 pangram); bonus words score too
   is_pangram boolean not null,
-  is_bonus   boolean not null,           -- legal-but-not-scoring: 0 points
+  is_bonus   boolean not null,           -- in the bonus set (legal − required); shown with a dot
   found_at   timestamptz not null default now(),
   primary key (game_id, user_id, word)
 );
@@ -300,67 +305,54 @@ create policy found_words_select on freebee.found_words
 -- security-definer RPCs below.
 
 -- ============================================================
--- Hidden-wordlist helpers + games_state view
+-- Hidden-wordlist helper + games_state view
 -- ============================================================
--- Two SECURITY DEFINER helpers, one per hidden column. Each
--- reads the column directly (running as `postgres` bypasses
--- the column grant) and applies the same CASE on
+-- One SECURITY DEFINER helper for the hidden `required_words`
+-- answer key. It reads the column directly (running as `postgres`
+-- bypasses the column grant) and applies a CASE on
 -- common.games.is_terminal: pre-terminal returns NULL; post-
--- terminal returns the actual value.
+-- terminal returns the actual list — the end-of-game reveal.
 --
--- Both helpers are revoked from `public` and granted nothing
--- to `authenticated` — they're callable only from within the
--- view (which itself runs as `authenticated` and chains into
--- the helper's `postgres` identity via SECURITY DEFINER).
+-- `bonus_words` is NOT revealed: unfound bonus words are never
+-- shown to players, so the view doesn't expose it. The column
+-- exists only for server-side validation in submit_word.
+--
+-- The helper is revoked from `public` and granted only to
+-- `authenticated` so the games_state view (which runs with the
+-- caller's identity under security_invoker=true) can call it.
 -- See docs/code-conventions.md → "SECURITY DEFINER helper +
 -- security_invoker view" for the recipe.
 
-create function freebee._scoring_words_for(g uuid)
+create function freebee._required_words_for(g uuid)
 returns jsonb
 language sql
 security definer
 stable
 set search_path = freebee, common, public, extensions
 as $$
-  select case when c.is_terminal then p.scoring_words end
+  select case when c.is_terminal then p.required_words end
     from freebee.games p
     join common.games c on c.id = p.id
    where p.id = g;
 $$;
 
-create function freebee._legal_words_for(g uuid)
-returns text[]
-language sql
-security definer
-stable
-set search_path = freebee, common, public, extensions
-as $$
-  select case when c.is_terminal then p.legal_words end
-    from freebee.games p
-    join common.games c on c.id = p.id
-   where p.id = g;
-$$;
-
-revoke execute on function freebee._scoring_words_for(uuid) from public;
-revoke execute on function freebee._legal_words_for(uuid)   from public;
+revoke execute on function freebee._required_words_for(uuid) from public;
 -- Grant EXECUTE to authenticated so the games_state view (which
 -- runs with the caller's identity under security_invoker=true)
--- can call into these helpers. The helpers' SECURITY DEFINER
--- property switches identity to postgres *inside* the call —
--- that's the bit that lets them read the column-grant-blocked
--- scoring_words / legal_words columns.
-grant execute on function freebee._scoring_words_for(uuid) to authenticated;
-grant execute on function freebee._legal_words_for(uuid)   to authenticated;
+-- can call into the helper. Its SECURITY DEFINER property switches
+-- identity to postgres *inside* the call — that's the bit that
+-- lets it read the column-grant-blocked `required_words` column.
+grant execute on function freebee._required_words_for(uuid) to authenticated;
 
 -- The view. `security_invoker = true` means RLS on the base
 -- table evaluates as the caller (so games_select still gates
 -- row visibility). Column exposure is gated by the helper's
 -- CASE. Net effect: a single FE query returns the game row
 -- (including `mode` for the FE's coop/compete rendering) with
--- `scoring_words` and `legal_words` populated post-terminal,
--- NULL during play. This view is the FE's only read path on
--- freebee games — the base table's column grant blocks the
--- hidden wordlists for `authenticated`.
+-- `required_words` populated post-terminal, NULL during play.
+-- This view is the FE's only read path on freebee games — the
+-- base table's column grant blocks the hidden answer key for
+-- `authenticated`.
 
 create view freebee.games_state with (security_invoker = true) as
 select
@@ -369,11 +361,10 @@ select
   g.mode,
   g.outer_letters,
   g.center_letter,
-  g.total_score,
-  g.total_words,
+  g.required_words_score,
+  g.required_words_count,
   g.created_at,
-  freebee._scoring_words_for(g.id) as scoring_words,
-  freebee._legal_words_for(g.id)   as legal_words
+  freebee._required_words_for(g.id) as required_words
   from freebee.games g;
 
 grant select on freebee.games_state to authenticated;
@@ -384,7 +375,7 @@ grant select on freebee.games_state to authenticated;
 -- found_words is the high-traffic table: every accepted
 -- submission appends a row that every connected peer's
 -- useGame hook refetches on. games is published because the
--- terminal flip — when scoring_words materializes through the
+-- terminal flip — when required_words materializes through the
 -- view — is something the FE wants to react to (refetch
 -- games_state to pick up the reveal). The flip itself happens
 -- on common.games (already published), but useGame
@@ -460,13 +451,16 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 -- This is also where freebee's slice of the shared common.words
 -- list is defined:
 --   - legal      difficulty <= 70  (returned at all = enterable)
---   - scoring     difficulty <= 50 AND NOT slur  (the in_scoring
---                 flag; earns points + rank). Slurs are legal but
---                 never scoring — the golden rule. difficulty 51-70
---                 words and slurs come back as bonus (in_scoring
---                 false), worth 0 points.
+--   - required   difficulty <= 50 AND NOT slur  (the is_required
+--                flag; counts toward the displayed goal + rank
+--                denominator). Slurs are legal but never required
+--                — the golden rule. difficulty 51-70 words and
+--                slurs come back as BONUS (is_required false):
+--                legal − required. Bonus words still SCORE (length
+--                + pangram bonus); they just don't count toward the
+--                required goal.
 --   - dialect    american OR british  (Joel's default; canadian /
---                 australian off). Mostly a spelling filter.
+--                australian off). Mostly a spelling filter.
 --   - length     len >= 4  (the Spelling-Bee minimum)
 -- These thresholds become a per-game user choice later; for now
 -- they're the locked defaults (see docs/games/freebee.md).
@@ -485,7 +479,7 @@ create function freebee.candidate_words(
   puzzle_mask bigint,
   center_bit bigint
 )
-returns table(word text, letter_mask bigint, in_scoring boolean)
+returns table(word text, letter_mask bigint, is_required boolean)
 language sql
 stable
 security invoker
@@ -493,7 +487,7 @@ set search_path = freebee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= 50 and not w.slur) as in_scoring
+         (w.difficulty <= 50 and not w.slur) as is_required
     from common.words w
    where w.len >= 4
      and w.difficulty <= 70
@@ -533,13 +527,13 @@ grant execute on function freebee.candidate_words(bigint, bigint) to authenticat
 --   {
 --     "outer_letters": "abcdef",            -- 6 distinct lowercase
 --     "center_letter": "g",                 -- 1 lowercase
---     "total_score":   int,
---     "total_words":   int,
---     "scoring_words": [
+--     "required_words_score":   int,
+--     "required_words_count":   int,
+--     "required_words": [
 --       { "word": text, "points": int, "is_pangram": bool },
 --       …
 --     ],
---     "legal_words":   [text, …]            -- bonus-only words
+--     "bonus_words":   [text, …]            -- the bonus set (legal − required)
 --   }
 --
 -- The board's wordlists are taken at face value: they were
@@ -566,10 +560,10 @@ grant execute on function freebee.candidate_words(bigint, bigint) to authenticat
 --     letters (not 's')
 --   - board.center_letter must be 1 lowercase ASCII letter
 --     (not 's', and not present among outer_letters)
---   - board.total_words must be ≥ 30 (the puzzle-quality gate
+--   - board.required_words_count must be ≥ 30 (the puzzle-quality gate
 --     the edge function already applies; recheck here so a
 --     misbehaving builder can't sneak a degenerate puzzle past)
---   - board.scoring_words / board.legal_words must be arrays
+--   - board.required_words / board.bonus_words must be arrays
 
 create function freebee.create_game(
   target_club text,
@@ -588,8 +582,8 @@ declare
   s_target_rank int;
   b_outer text;
   b_center text;
-  b_total_score int;
-  b_total_words int;
+  b_required_words_score int;
+  b_required_words_count int;
   game_title text;
   effective_gametype text;
 begin
@@ -688,20 +682,20 @@ begin
       using errcode = 'P0001';
   end if;
 
-  b_total_score := (board->>'total_score')::int;
-  b_total_words := (board->>'total_words')::int;
-  if b_total_words < 30 then
-    raise exception 'board.total_words must be ≥ 30 (got %); the edge function''s ≥30 gate must agree',
-                    b_total_words
+  b_required_words_score := (board->>'required_words_score')::int;
+  b_required_words_count := (board->>'required_words_count')::int;
+  if b_required_words_count < 30 then
+    raise exception 'board.required_words_count must be ≥ 30 (got %); the edge function''s ≥30 gate must agree',
+                    b_required_words_count
       using errcode = 'P0001';
   end if;
 
-  if jsonb_typeof(board->'scoring_words') <> 'array' then
-    raise exception 'board.scoring_words must be an array'
+  if jsonb_typeof(board->'required_words') <> 'array' then
+    raise exception 'board.required_words must be an array'
       using errcode = 'P0001';
   end if;
-  if jsonb_typeof(board->'legal_words') <> 'array' then
-    raise exception 'board.legal_words must be an array'
+  if jsonb_typeof(board->'bonus_words') <> 'array' then
+    raise exception 'board.bonus_words must be an array'
       using errcode = 'P0001';
   end if;
 
@@ -732,7 +726,7 @@ begin
   -- ─── Insert the per-gametype row, now with mode ──────────
   insert into freebee.games (
     id, club_handle, mode, outer_letters, center_letter,
-    total_score, total_words, scoring_words, legal_words
+    required_words_score, required_words_count, required_words, bonus_words
   )
   values (
     new_id,
@@ -740,34 +734,35 @@ begin
     mode,
     b_outer,
     b_center,
-    b_total_score,
-    b_total_words,
-    board->'scoring_words',
+    b_required_words_score,
+    b_required_words_count,
+    board->'required_words',
     -- jsonb-array → text[] coercion: extract each element as
     -- text, aggregate to array. NULL safety: empty arrays
     -- still produce text[] of length 0 (not null), so the
     -- column's NOT NULL constraint is satisfied.
     coalesce(
-      array(select jsonb_array_elements_text(board->'legal_words')),
+      array(select jsonb_array_elements_text(board->'bonus_words')),
       array[]::text[]
     )
   );
 
   -- ─── Seed common.games.status for the club-page label ────
-  -- Coop label needs score / total_score / rank_idx / words_found
-  -- / total_words. Compete label only needs target_rank +
-  -- total_words (the leaderboard is built on first submission).
+  -- Coop label needs found_words_score / required_words_score /
+  -- rank_idx / found_words_count / required_words_count. Compete
+  -- label only needs target_rank + required_words_count (the
+  -- leaderboard is built on first submission).
   if mode = 'coop' then
     perform common.update_state(
       new_id,
       'playing',
       jsonb_build_object(
         'mode', 'coop',
-        'score', 0,
-        'total_score', b_total_score,
+        'found_words_score', 0,
+        'required_words_score', b_required_words_score,
         'rank_idx', 0,
-        'words_found', 0,
-        'total_words', b_total_words
+        'found_words_count', 0,
+        'required_words_count', b_required_words_count
       )
     );
   else
@@ -777,8 +772,8 @@ begin
       jsonb_build_object(
         'mode', 'compete',
         'target_rank', s_target_rank,
-        'total_score', b_total_score,
-        'total_words', b_total_words,
+        'required_words_score', b_required_words_score,
+        'required_words_count', b_required_words_count,
         'leaderboard', '[]'::jsonb
       )
     );
@@ -801,7 +796,7 @@ grant execute on function freebee.create_game(text, jsonb, uuid[], text, jsonb) 
 --   1. tooShort         length < 4
 --   2. badLetters       uses a letter that isn't on the board
 --   3. missingCenter    doesn't include the center letter
---   4. notAWord         not in scoring_words and not in legal_words
+--   4. notAWord         not in required_words and not in bonus_words (i.e. not legal)
 --   5. alreadyFound     per mode rule (see below)
 --   6. accepted / bonus / pangram
 --
@@ -820,11 +815,11 @@ grant execute on function freebee.create_game(text, jsonb, uuid[], text, jsonb) 
 --
 -- Returns jsonb `{ result, points }` rather than a bare result enum,
 -- so the FE can show points earned (and call out a pangram) in the
--- entry feedback WITHOUT re-deriving the scoring/pangram rules on the
--- client. The `result` vocabulary gains `'pangram'` (a scoring OR
+-- entry feedback WITHOUT re-deriving the point/pangram rules on the
+-- client. The `result` vocabulary gains `'pangram'` (a required OR
 -- bonus word using all 7 letters; takes precedence over the
 -- accepted/bonus distinction, which the FE doesn't surface anyway).
--- Non-scoring results carry `points: 0`.
+-- Rejected results (notAWord, tooShort, …) carry `points: 0`.
 --
 -- Throws (hard rejections):
 --   42501 not authenticated, not a game player
@@ -859,17 +854,17 @@ declare
   puzzle_mask bigint;
   center_bit bigint;
   i int;
-  scoring_entry jsonb;
+  required_entry jsonb;
   word_points int;
   word_is_pangram boolean;
   word_is_bonus boolean;
   duplicate_count int;
 
   team_score int;
-  team_words_found int;     -- count of ALL rows; for the status display
+  team_found_words_count int;     -- count of ALL rows; for the status display
   team_rank_idx int;
   caller_score int;
-  caller_words_found int;   -- caller's all-rows count (display + leaderboard)
+  caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
   caller_rank_idx int;
   player_results jsonb;
 begin
@@ -938,35 +933,34 @@ begin
     return jsonb_build_object('result', 'missingCenter', 'points', 0);
   end if;
 
-  -- (4) notAWord — look up in cached lists. Scoring lookup gives
-  -- us back points + is_pangram for the insert.
+  -- (4) notAWord — look up in cached lists. The required-words
+  -- lookup gives us back points + is_pangram for the insert.
   word_is_bonus := false;
   word_points := 0;
   word_is_pangram := false;
 
-  select sw into scoring_entry
-    from jsonb_array_elements(g_row.scoring_words) sw
-   where sw->>'word' = w_lower
+  select rw into required_entry
+    from jsonb_array_elements(g_row.required_words) rw
+   where rw->>'word' = w_lower
    limit 1;
 
   if found then
-    word_points := (scoring_entry->>'points')::int;
-    word_is_pangram := (scoring_entry->>'is_pangram')::boolean;
-  elsif w_lower = any(g_row.legal_words) then
-    -- Bonus words score the SAME as scoring words: length-based
-    -- (1 pt for 4-letter, length pts for ≥5), plus the +10
-    -- pangram bonus when distinct(letters) = 7. This matches
-    -- freebee-ws's `scoreWord(w)` semantics (server/game.js:4-8)
-    -- — bonus words are "the rare ones we didn't surface in the
-    -- scoring set" but they earn points the same way. The
-    -- count toward `words_found` differs (only scoring contribute
-    -- to the "X/Y words" display denominator), but the score
-    -- climb is identical.
+    word_points := (required_entry->>'points')::int;
+    word_is_pangram := (required_entry->>'is_pangram')::boolean;
+  elsif w_lower = any(g_row.bonus_words) then
+    -- Bonus words score the SAME as required words: length-based
+    -- (1 pt for 4-letter, length pts for ≥5), plus the +10 pangram
+    -- bonus when distinct(letters) = 7. This matches freebee-ws's
+    -- `scoreWord(w)` semantics (server/game.js:4-8). A bonus word
+    -- is legal but not in the required set; it still counts toward
+    -- found_words_count and found_words_score (so the "X / Y words"
+    -- numerator can overshoot Y), it just doesn't move the required
+    -- goal (required_words_count / required_words_score).
     --
-    -- Pangram detection by the word's OWN mask popcount, not the
-    -- precomputed scoring-entry flag — bonus entries have no
-    -- precomputed flag and freebee-ws likewise reads it from the
-    -- word at submit time (sessions.js:989: `new Set(w).size===7`).
+    -- Pangram detection by the word's OWN mask popcount, not a
+    -- precomputed flag — bonus words have no required-words entry to
+    -- read it from, and freebee-ws likewise reads it from the word
+    -- at submit time (sessions.js:989: `new Set(w).size===7`).
     word_is_bonus := true;
     word_is_pangram := (
       select count(distinct c) = 7
@@ -1013,32 +1007,32 @@ begin
   -- ─── Recompute aggregates + status (no terminal in coop) ─
   -- Coop submissions never end the game — coop only ends via
   -- timer expiry or the manual End-game menu item. Players can
-  -- keep finding bonus words past the displayed `Y / total_words`
-  -- denominator and the score can overshoot `total_score` (the
+  -- keep finding bonus words past the displayed `Y / required_words_count`
+  -- denominator and the score can overshoot `required_words_score` (the
   -- freebee-ws design — see the bonus-scoring write-up above).
   if g_row.mode = 'coop' then
     select coalesce(sum(points), 0),
            count(*)
-      into team_score, team_words_found
+      into team_score, team_found_words_count
       from freebee.found_words
      where game_id = target_game;
-    team_rank_idx := freebee._rank_idx(team_score, g_row.total_score);
+    team_rank_idx := freebee._rank_idx(team_score, g_row.required_words_score);
 
     perform common.update_state(
       target_game, 'playing',
       jsonb_build_object(
         'mode', 'coop',
-        'score', team_score,
-        'total_score', g_row.total_score,
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
         'rank_idx', team_rank_idx,
-        'words_found', team_words_found,
-        'total_words', g_row.total_words
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count
       )
     );
 
   else
-    -- compete: per-player aggregates. caller_words_found counts
-    -- ALL of caller's rows (scoring + bonus) — matches the
+    -- compete: per-player aggregates. caller_found_words_count counts
+    -- ALL of caller's rows (required + bonus) — matches the
     -- freebee-ws "found.length" stat. The target-rank check
     -- below uses caller_score (which already includes bonus
     -- points after the bonus-scoring fix in the validation
@@ -1047,10 +1041,10 @@ begin
     -- max score would suggest.
     select coalesce(sum(points), 0),
            count(*)
-      into caller_score, caller_words_found
+      into caller_score, caller_found_words_count
       from freebee.found_words
      where game_id = target_game and user_id = caller_id;
-    caller_rank_idx := freebee._rank_idx(caller_score, g_row.total_score);
+    caller_rank_idx := freebee._rank_idx(caller_score, g_row.required_words_score);
 
     if caller_rank_idx >= current_target_rank then
       -- Compete win: caller hit the target rank first. Freeze the
@@ -1058,20 +1052,20 @@ begin
       select jsonb_agg(
                jsonb_build_object(
                  'user_id', p.user_id,
-                 'score', coalesce(p.score, 0),
-                 'rank_idx', freebee._rank_idx(coalesce(p.score, 0), g_row.total_score),
-                 'words_found', coalesce(p.words_found, 0)
+                 'found_words_score', coalesce(p.found_words_score, 0),
+                 'rank_idx', freebee._rank_idx(coalesce(p.found_words_score, 0), g_row.required_words_score),
+                 'found_words_count', coalesce(p.found_words_count, 0)
                )
              )
         into player_results
         from (
           select gp.user_id,
-                 coalesce(sum(fw.points), 0)::int as score,
-                 -- All rows (scoring + bonus) to mirror freebee-ws's
+                 coalesce(sum(fw.points), 0)::int as found_words_score,
+                 -- All rows (required + bonus) to mirror freebee-ws's
                  -- found.length stat surfaced in the leaderboard
                  -- display. Scoring-only count would diverge from
                  -- what the player sees in their own Stats card.
-                 count(fw.word)::int as words_found
+                 count(fw.word)::int as found_words_count
             from common.game_players gp
             left join freebee.found_words fw
                    on fw.game_id = target_game and fw.user_id = gp.user_id
@@ -1094,7 +1088,7 @@ begin
                   (entry->>'user_id'),
                   jsonb_build_object(
                     'won', (entry->>'user_id')::uuid = caller_id,
-                    'score', (entry->>'score')::int,
+                    'found_words_score', (entry->>'found_words_score')::int,
                     'rank_idx', (entry->>'rank_idx')::int
                   )
                 )
@@ -1105,20 +1099,20 @@ begin
       select jsonb_agg(
                jsonb_build_object(
                  'user_id', p.user_id,
-                 'score', p.score,
-                 'rank_idx', freebee._rank_idx(p.score, g_row.total_score),
-                 'words_found', p.words_found
+                 'found_words_score', p.found_words_score,
+                 'rank_idx', freebee._rank_idx(p.found_words_score, g_row.required_words_score),
+                 'found_words_count', p.found_words_count
                )
              )
         into player_results
         from (
           select gp.user_id,
-                 coalesce(sum(fw.points), 0)::int as score,
-                 -- All rows (scoring + bonus) to mirror freebee-ws's
+                 coalesce(sum(fw.points), 0)::int as found_words_score,
+                 -- All rows (required + bonus) to mirror freebee-ws's
                  -- found.length stat surfaced in the leaderboard
                  -- display. Scoring-only count would diverge from
                  -- what the player sees in their own Stats card.
-                 count(fw.word)::int as words_found
+                 count(fw.word)::int as found_words_count
             from common.game_players gp
             left join freebee.found_words fw
                    on fw.game_id = target_game and fw.user_id = gp.user_id
@@ -1132,15 +1126,15 @@ begin
           'mode', 'compete',
           'target_rank', current_target_rank,
           'leaderboard', player_results,
-          'total_score', g_row.total_score,
-          'total_words', g_row.total_words
+          'required_words_score', g_row.required_words_score,
+          'required_words_count', g_row.required_words_count
         )
       );
     end if;
   end if;
 
-  -- A pangram (scoring OR bonus) reports as 'pangram' so the FE can call it
-  -- out; otherwise the scoring/bonus split (which the FE renders identically).
+  -- A pangram (required OR bonus) reports as 'pangram' so the FE can call it
+  -- out; otherwise the accepted/bonus split (which the FE renders identically).
   -- `points` is the authoritative value already stored on the row.
   return jsonb_build_object(
     'result',
@@ -1177,11 +1171,11 @@ grant execute on function freebee.submit_word(uuid, text) to authenticated;
 -- is_terminal=true. The FE's useCommonGame hook (subscribed to
 -- common.games) sees that and enters review mode. BUT the FE's
 -- per-gametype useGame hook subscribes to freebee.{games,
--- found_words} and reads from games_state for the scoring_words /
--- legal_words reveal. submit_timeout writes no found_words row
+-- found_words} and reads from games_state for the required_words
+-- reveal. submit_timeout writes no found_words row
 -- (no submission happened), so without a write to a freebee table
 -- no Realtime event fires on the freebee channel, useGame never
--- refetches, and game.scoringWords stays at its pre-terminal null.
+-- refetches, and game.requiredWords stays at its pre-terminal null.
 --
 -- Fix: a no-op UPDATE on freebee.games after the terminal flip.
 -- `set club_handle = club_handle` changes no column, but Postgres
@@ -1201,7 +1195,7 @@ declare
   g_row freebee.games%rowtype;
   current_play_state text;
   team_score int;
-  team_words_found int;
+  team_found_words_count int;
   player_results jsonb;
 begin
   select * into g_row from freebee.games
@@ -1226,7 +1220,7 @@ begin
     -- for the rationale).
     select coalesce(sum(points), 0),
            count(*)
-      into team_score, team_words_found
+      into team_score, team_found_words_count
       from freebee.found_words
      where game_id = target_game;
 
@@ -1236,7 +1230,7 @@ begin
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
-                 freebee._rank_idx(team_score, g_row.total_score)
+                 freebee._rank_idx(team_score, g_row.required_words_score)
              )
            )
       into player_results
@@ -1248,11 +1242,11 @@ begin
       jsonb_build_object(
         'outcome', 'timeout',
         'mode', 'coop',
-        'score', team_score,
-        'total_score', g_row.total_score,
-        'rank_idx', freebee._rank_idx(team_score, g_row.total_score),
-        'words_found', team_words_found,
-        'total_words', g_row.total_words
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
+        'rank_idx', freebee._rank_idx(team_score, g_row.required_words_score),
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count
       ),
       player_results
     );
@@ -1262,14 +1256,14 @@ begin
              p.user_id::text,
              jsonb_build_object(
                'won', false,                       -- timeout = no winner
-               'score', p.score,
-               'rank_idx', freebee._rank_idx(p.score, g_row.total_score)
+               'found_words_score', p.found_words_score,
+               'rank_idx', freebee._rank_idx(p.found_words_score, g_row.required_words_score)
              )
            )
       into player_results
       from (
         select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as score
+               coalesce(sum(fw.points), 0)::int as found_words_score
           from common.game_players gp
           left join freebee.found_words fw
                  on fw.game_id = target_game and fw.user_id = gp.user_id
@@ -1291,7 +1285,7 @@ begin
   -- explanation. The self-set is a no-op semantically but
   -- produces a WAL entry Realtime picks up, waking the FE's
   -- useGame subscription so it refetches games_state and sees
-  -- the now-revealed scoring_words / legal_words.
+  -- the now-revealed required_words.
   update freebee.games
      set club_handle = club_handle
    where id = target_game;
@@ -1342,7 +1336,7 @@ declare
   g_row freebee.games%rowtype;
   current_play_state text;
   team_score int;
-  team_words_found int;
+  team_found_words_count int;
   player_results jsonb;
 begin
   select * into g_row from freebee.games
@@ -1368,7 +1362,7 @@ begin
     -- All-rows count for display, matching freebee-ws.
     select coalesce(sum(points), 0),
            count(*)
-      into team_score, team_words_found
+      into team_score, team_found_words_count
       from freebee.found_words
      where game_id = target_game;
 
@@ -1378,7 +1372,7 @@ begin
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
-                 freebee._rank_idx(team_score, g_row.total_score)
+                 freebee._rank_idx(team_score, g_row.required_words_score)
              )
            )
       into player_results
@@ -1390,11 +1384,11 @@ begin
       jsonb_build_object(
         'outcome', 'manual',
         'mode', 'coop',
-        'score', team_score,
-        'total_score', g_row.total_score,
-        'rank_idx', freebee._rank_idx(team_score, g_row.total_score),
-        'words_found', team_words_found,
-        'total_words', g_row.total_words
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
+        'rank_idx', freebee._rank_idx(team_score, g_row.required_words_score),
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count
       ),
       player_results
     );
@@ -1406,14 +1400,14 @@ begin
              p.user_id::text,
              jsonb_build_object(
                'won', false,
-               'score', p.score,
-               'rank_idx', freebee._rank_idx(p.score, g_row.total_score)
+               'found_words_score', p.found_words_score,
+               'rank_idx', freebee._rank_idx(p.found_words_score, g_row.required_words_score)
              )
            )
       into player_results
       from (
         select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as score
+               coalesce(sum(fw.points), 0)::int as found_words_score
           from common.game_players gp
           left join freebee.found_words fw
                  on fw.game_id = target_game and fw.user_id = gp.user_id

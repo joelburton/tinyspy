@@ -9,7 +9,7 @@
 --
 --   cat A — words *I* (the viewer) found.
 --   cat B — everything else, merged: words found by *other*
---           players + the non-bonus scoring words nobody found.
+--           players + the non-bonus required words nobody found.
 --
 -- That render is only correct if the DB hands each player, at
 -- game end, exactly the rows it needs to compute the split:
@@ -17,7 +17,7 @@
 --   1. Their OWN found_words (cat A source).
 --   2. Their PEERS' found_words (cat B "found by others" source) —
 --      which RLS hides mid-game and opens only once is_terminal.
---   3. games_state.scoring_words (cat B "nobody found" source) —
+--   3. games_state.required_words (cat B "nobody found" source) —
 --      the answer key, gated to terminal by the same reveal as
 --      coop.
 --
@@ -90,7 +90,7 @@ select freebee.submit_word((select id from g), 'beef');
 -- ============================================================
 -- This is the precondition for the FE's "game over?" signal: the
 -- WordList flips to the cat-A/cat-B model precisely when
--- games_state.scoring_words stops being NULL. Mid-game it must be
+-- games_state.required_words stops being NULL. Mid-game it must be
 -- NULL, and bea must see only her own rows (branch b of the RLS
 -- policy) — so cat B genuinely has nothing in it during play.
 
@@ -112,9 +112,9 @@ select is(
 );
 
 select ok(
-  (select scoring_words from freebee.games_state
+  (select required_words from freebee.games_state
     where id = (select id from g)) is null,
-  'compete mid-game / bea: games_state.scoring_words is NULL — reveal gated, FE stays in per-finder mode'
+  'compete mid-game / bea: games_state.required_words is NULL — reveal gated, FE stays in per-finder mode'
 );
 
 -- ============================================================
@@ -182,17 +182,17 @@ select ok(
 );
 
 -- ============================================================
--- (9) Post-terminal, as bea: the scoring answer key materializes
+-- (9) Post-terminal, as bea: the required answer key materializes
 -- ============================================================
 -- The other half of cat B — "non-bonus words nobody found" — is
--- computed FE-side as (scoring_words − found_words). That requires
--- the full scoring list, which the games_state reveal now exposes.
+-- computed FE-side as (required_words − found_words). That requires
+-- the full required list, which the games_state reveal now exposes.
 
 select is(
-  (select jsonb_array_length(scoring_words) from freebee.games_state
+  (select jsonb_array_length(required_words) from freebee.games_state
     where id = (select id from g)),
   30,
-  'compete post-terminal / bea: games_state.scoring_words materializes (30 entries) — cat B "nobody found" source'
+  'compete post-terminal / bea: games_state.required_words materializes (30 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================

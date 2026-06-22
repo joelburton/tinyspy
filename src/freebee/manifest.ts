@@ -163,27 +163,27 @@ export const freebeeCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    const score = (s.score as number | undefined) ?? 0
-    const totalScore = (s.total_score as number | undefined) ?? 0
-    const wordsFound = (s.words_found as number | undefined) ?? 0
-    const totalWords = (s.total_words as number | undefined) ?? 0
+    const foundScore = (s.found_words_score as number | undefined) ?? 0
+    const requiredScore = (s.required_words_score as number | undefined) ?? 0
+    const foundCount = (s.found_words_count as number | undefined) ?? 0
+    const requiredCount = (s.required_words_count as number | undefined) ?? 0
 
     if (row.play_state === 'playing') {
-      return `${score}/${totalScore} pts · ${wordsFound}/${totalWords} words`
+      return `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
     }
     // Terminal coop outcomes: only 'timeout' (countdown ran out)
     // or 'manual' (someone hit End game). There's no auto-end
     // at 100%-found in freebee — players keep going past the
     // displayed denominator (bonus words climb the score past
-    // total_score, the Words counter past total_words).
+    // required_words_score, the Words counter past required_words_count).
     const outcome = s.outcome as string | undefined
     if (outcome === 'timeout') {
-      return `time up · ${score}/${totalScore} pts · ${wordsFound}/${totalWords} words`
+      return `time up · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
     }
     if (outcome === 'manual') {
-      return `done · ${score}/${totalScore} pts · ${wordsFound}/${totalWords} words`
+      return `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
     }
-    return `done · ${score}/${totalScore} pts`
+    return `done · ${foundScore}/${requiredScore} pts`
   },
 
   submitTimeout,

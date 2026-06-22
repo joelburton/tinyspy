@@ -8,9 +8,9 @@
  */
 export type LeaderboardEntry = {
   user_id: string
-  score: number
+  found_words_score: number
   rank_idx: number
-  words_found: number
+  found_words_count: number
 }
 
 /** Type-narrow read for `status.leaderboard`. Returns an empty array if

@@ -17,7 +17,7 @@
 --      target_rank required iff compete; target_rank range.
 --   5. Board validation (unchanged from pre-split): outer_letters
 --      length / alphabet / no-s / distinctness; center; center-
---      not-in-outer; total_words ≥ 30 gate.
+--      not-in-outer; required_words_count ≥ 30 gate.
 --   6. Title formula: "<CENTER>·<OUTER-SORTED>".
 --   7. Player-count upper bound: 7+ entries rejected.
 --
@@ -104,19 +104,19 @@ select is(
 );
 
 select is(
-  (select (status->>'total_score')::int from common.games where id = (select id from g)),
+  (select (status->>'required_words_score')::int from common.games where id = (select id from g)),
   50,
-  'coop status.total_score = board.total_score'
+  'coop status.required_words_score = board.required_words_score'
 );
 
 select is(
-  (select (status->>'total_words')::int from common.games where id = (select id from g)),
+  (select (status->>'required_words_count')::int from common.games where id = (select id from g)),
   30,
-  'coop status.total_words = board.total_words'
+  'coop status.required_words_count = board.required_words_count'
 );
 
 select is(
-  (select (status->>'score')::int from common.games where id = (select id from g)),
+  (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
   0,
   'coop status.score = 0 at create time'
 );
@@ -344,12 +344,12 @@ select throws_ok(
     $$ select freebee.create_game(%L, pg_temp.freebee_setup(),
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    'coop',
-                                   pg_temp.freebee_board() || '{"total_words": 29}'::jsonb) $$,
+                                   pg_temp.freebee_board() || '{"required_words_count": 29}'::jsonb) $$,
     (select handle from club)
   ),
   'P0001',
   null,
-  'rejects board.total_words < 30 (puzzle-quality gate)'
+  'rejects board.required_words_count < 30 (puzzle-quality gate)'
 );
 
 -- ============================================================

@@ -9,7 +9,7 @@ import { letterMask, popcount26 } from './letterMask'
  * Used for the +10 bonus visualization in the found-words list
  * and for the typed-word preview when the user is about to
  * submit a pangram. (Authority on whether a submission IS a
- * scoring pangram is the server — this helper is purely a UI
+ * pangram that scores is the server — this helper is purely a UI
  * cue.)
  *
  * Examples (all evaluated against the 7-letter set):

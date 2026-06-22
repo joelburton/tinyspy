@@ -20,18 +20,17 @@ export type Player = Member
 /**
  * Shape exposed to the FE — projected from `freebee.games_state`.
  *
- * Most fields come straight off the view's columns; the two
- * jsonb-array ones materialize **only on game-terminal**:
+ * Most fields come straight off the view's columns; `requiredWords`
+ * materializes **only on game-terminal**: null while the game is in
+ * progress, then the full required-words list once `is_terminal`
+ * flips (the end-of-game reveal). The bonus set is never exposed —
+ * unfound bonus words aren't shown — so there's no `bonusWords`
+ * field here.
  *
- *   - `scoringWords` is null while the game is in progress and
- *     becomes the full scoring list once `is_terminal` flips.
- *   - `legalWords` is null while in progress and becomes the
- *     bonus-only list once terminal.
- *
- * The view's `_reveal_if_terminal` helpers enforce that gate
+ * The view's `_required_words_for` helper enforces that gate
  * server-side; the FE just reads the column and treats null as
- * "still hidden". See the phase-1 migration's "hidden wordlists"
- * section for the wider rationale.
+ * "still hidden". See the migration's "hidden wordlists" section
+ * for the wider rationale.
  */
 export type FreeBeeGame = {
   id: string
@@ -42,15 +41,16 @@ export type FreeBeeGame = {
   mode: 'coop' | 'compete'
   outer_letters: string
   center_letter: string
-  total_score: number
-  total_words: number
+  /** Score of the required set — the rank-ladder denominator. */
+  required_words_score: number
+  /** Count of required words — the "X / Y words" goal (Y). */
+  required_words_count: number
   created_at: string
-  /** Null during play, materialized on terminal. */
-  scoringWords:
+  /** The required-words answer key. Null during play, materialized
+   *  on terminal (the reveal). */
+  requiredWords:
     | Array<{ word: string; points: number; is_pangram: boolean }>
     | null
-  /** Null during play, materialized on terminal. */
-  legalWords: string[] | null
 }
 
 export type FoundWordRow = {
@@ -81,9 +81,8 @@ export type FoundWordRow = {
  *
  * The `load()` body reads from `freebee.games_state` (the view),
  * never from `freebee.games` directly — the base table's
- * column-grant blocks `scoring_words` / `legal_words` for
- * authenticated, and the view is what surfaces them
- * conditionally on terminal.
+ * column-grant blocks `required_words` for authenticated, and the
+ * view is what surfaces it conditionally on terminal.
  */
 export function useGame(gameId: string): {
   game: FreeBeeGame | null
@@ -113,7 +112,7 @@ export function useGame(gameId: string): {
         db
           .from('games_state')
           .select(
-            'id, club_handle, mode, outer_letters, center_letter, total_score, total_words, created_at, scoring_words, legal_words',
+            'id, club_handle, mode, outer_letters, center_letter, required_words_score, required_words_count, created_at, required_words',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -140,13 +139,11 @@ export function useGame(gameId: string): {
         mode: gameRes.data.mode as 'coop' | 'compete',
         outer_letters: gameRes.data.outer_letters as string,
         center_letter: gameRes.data.center_letter as string,
-        total_score: gameRes.data.total_score as number,
-        total_words: gameRes.data.total_words as number,
+        required_words_score: gameRes.data.required_words_score as number,
+        required_words_count: gameRes.data.required_words_count as number,
         created_at: gameRes.data.created_at as string,
-        scoringWords:
-          (gameRes.data.scoring_words as FreeBeeGame['scoringWords']) ?? null,
-        legalWords:
-          (gameRes.data.legal_words as FreeBeeGame['legalWords']) ?? null,
+        requiredWords:
+          (gameRes.data.required_words as FreeBeeGame['requiredWords']) ?? null,
       })
       setFoundWords((foundRes.data ?? []) as FoundWordRow[])
       setLoading(false)

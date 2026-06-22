@@ -9,7 +9,7 @@ import styles from './SetupForm.module.css'
  * 7-rank ladder is `RANKS[0..6]` (Start, Good, Solid, Nice,
  * Great, Amazing, Genius), but Start (0) is trivially won (every
  * player starts at it) and Good (1) typically lands on the first
- * scoring word — neither makes a meaningful race. We expose
+ * required word — neither makes a meaningful race. We expose
  * Solid..Genius (indices 2..6). Default lands on Amazing (5) per
  * the design conversation.
  */

@@ -14,11 +14,11 @@
 --   2. The freebee.pangrams reference table is readable by
 --      `authenticated` (the word list itself is now common.words).
 --   3. The column-level grant on freebee.games blocks direct
---      SELECT of scoring_words / legal_words for the
+--      SELECT of required_words / bonus_words for the
 --      `authenticated` role.
---   4. The games_state view exposes those columns conditionally
---      on common.games.is_terminal: NULL pre-terminal, the real
---      value post-terminal.
+--   4. The games_state view exposes the required_words answer key
+--      conditionally on common.games.is_terminal: NULL pre-terminal,
+--      the real value post-terminal. (bonus_words is never exposed.)
 --   5. found_words.user_id ≠ caller-only — schema lets us
 --      record a row attributed to ANY player.
 --
@@ -32,7 +32,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(10);
+select plan(8);
 
 \ir ../_shared/setup.psql
 
@@ -61,7 +61,7 @@ select is(
 -- lives in common.words, not freebee — only the freebee-specific
 -- pangram seed pool is checked here.
 reset role;
-insert into freebee.pangrams (mask, scoring_words, has_rare_letters)
+insert into freebee.pangrams (mask, required_words_count, has_rare_letters)
 values (1::bigint, 30, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -121,7 +121,7 @@ insert into common_g (id) select id from ins;
 -- common.games gametype above.
 insert into freebee.games
   (id, club_handle, mode, outer_letters, center_letter,
-   total_score, total_words, scoring_words, legal_words)
+   required_words_score, required_words_count, required_words, bonus_words)
 values (
   (select id from common_g),
   (select handle from club),
@@ -139,7 +139,7 @@ values (
 -- Column-level grant blocks direct SELECT of hidden columns
 -- ============================================================
 -- The grant on freebee.games to authenticated enumerates every
--- column EXCEPT scoring_words and legal_words. A direct
+-- column EXCEPT required_words and bonus_words. A direct
 -- SELECT of either column should raise 42501.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -151,22 +151,22 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 -- uses for its target-column denial test.
 select throws_ok(
   format(
-    $$ select scoring_words from freebee.games where id = %L::uuid $$,
+    $$ select required_words from freebee.games where id = %L::uuid $$,
     (select id from common_g)
   ),
   '42501',
   null,
-  'direct SELECT of freebee.games.scoring_words is denied (column-level grant blocks it)'
+  'direct SELECT of freebee.games.required_words is denied (column-level grant blocks it)'
 );
 
 select throws_ok(
   format(
-    $$ select legal_words from freebee.games where id = %L::uuid $$,
+    $$ select bonus_words from freebee.games where id = %L::uuid $$,
     (select id from common_g)
   ),
   '42501',
   null,
-  'direct SELECT of freebee.games.legal_words is denied (column-level grant blocks it)'
+  'direct SELECT of freebee.games.bonus_words is denied (column-level grant blocks it)'
 );
 
 -- The non-hidden columns ARE selectable — sanity check that
@@ -180,20 +180,14 @@ select is(
 -- ============================================================
 -- games_state view: pre-terminal exposure rules
 -- ============================================================
--- The view exposes scoring_words and legal_words THROUGH the
--- _reveal_if_terminal helpers. While common.games.is_terminal
--- is false, both should be NULL even for a club member.
+-- The view exposes required_words THROUGH the _required_words_for
+-- helper. While common.games.is_terminal is false, it should be
+-- NULL even for a club member. (bonus_words is never exposed.)
 
 select is(
-  (select scoring_words from freebee.games_state where id = (select id from common_g)),
+  (select required_words from freebee.games_state where id = (select id from common_g)),
   null::jsonb,
-  'games_state.scoring_words is NULL while is_terminal=false (member sees row but not the answers)'
-);
-
-select is(
-  (select legal_words from freebee.games_state where id = (select id from common_g)),
-  null::text[],
-  'games_state.legal_words is NULL while is_terminal=false'
+  'games_state.required_words is NULL while is_terminal=false (member sees row but not the answers)'
 );
 
 -- And the non-hidden columns DO surface via the view (sanity
@@ -209,7 +203,7 @@ select is(
 -- ============================================================
 -- Flip is_terminal to true (the terminal transition that
 -- common.end_game would do in production), then re-query the
--- view. Both wordlists should materialize.
+-- view. The required_words answer key should materialize.
 
 reset role;
 update common.games set is_terminal = true, play_state = 'ended'
@@ -218,16 +212,10 @@ update common.games set is_terminal = true, play_state = 'ended'
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select scoring_words from freebee.games_state where id = (select id from common_g)),
+  (select required_words from freebee.games_state where id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  'games_state.scoring_words surfaces post-terminal (helper CASE flips the gate)'
-);
-
-select is(
-  (select legal_words from freebee.games_state where id = (select id from common_g)),
-  array['oceaned']::text[],
-  'games_state.legal_words surfaces post-terminal'
+  'games_state.required_words surfaces post-terminal (helper CASE flips the gate)'
 );
 
 -- ============================================================

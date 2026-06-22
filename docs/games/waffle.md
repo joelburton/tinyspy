@@ -132,7 +132,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 
 - **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution` only
   when `common.games.is_terminal` (via a `SECURITY DEFINER` helper, exactly the
-  freebee `_scoring_words_for` shape).
+  freebee `_required_words_for` shape).
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`

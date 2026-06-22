@@ -110,7 +110,7 @@
  *               a styling hook for future emphasis (a left accent,
  *               weight, etc.) without touching the TSX.
  *
- *   .catOther — cat B: words found by *other* players OR scoring
+ *   .catOther — cat B: words found by *other* players OR required
  *               words nobody found. Deliberately merged into one
  *               muted style — "everything that isn't mine,"
  *               undifferentiated. No inline color is set on these

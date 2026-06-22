@@ -1,6 +1,6 @@
 import type { FoundWordRow } from '../hooks/useGame'
 
-/** A scoring-word reveal entry (from `games_state.scoring_words`,
+/** A required-word reveal entry (from `games_state.required_words`,
  *  materialized only post-terminal). */
 export type RevealWord = { word: string; points: number; is_pangram: boolean }
 
@@ -8,7 +8,7 @@ export type RevealWord = { word: string; points: number; is_pangram: boolean }
  * A merged-list row — either a found word (full FoundWordRow) or an
  * unfound reveal entry. `category` is the post-terminal stylable
  * bucket: 'a' = the viewing player found it; 'b' = everything else
- * (others' words + scoring words nobody found).
+ * (others' words + required words nobody found).
  */
 export type DisplayRow =
   | { kind: 'found'; row: FoundWordRow; category: 'a' | 'b' }
@@ -16,7 +16,7 @@ export type DisplayRow =
 
 /**
  * Build the alphabetized WordList rows from the found words + (post-
- * terminal) the scoring-word reveal. Each word renders **at most once**;
+ * terminal) the required-word reveal. Each word renders **at most once**;
  * two dedup rules:
  *
  *  1. **Found-vs-found.** In compete the post-terminal reveal exposes

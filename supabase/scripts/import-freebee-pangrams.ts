@@ -1,19 +1,19 @@
 #!/usr/bin/env -S npx tsx
 /**
  * Rebuild `freebee.pangrams` — the board-seed pool — from the
- * scoring slice of `common.words`.
+ * required slice of `common.words`.
  *
  * A freebee board must contain a pangram (a word using all 7 of its
  * distinct letters). Rather than pick 7 random letters and hope, we
- * start from known pangrams: every scoring word with exactly 7
+ * start from known pangrams: every required word with exactly 7
  * distinct letters is a guaranteed-valid board seed. This script
  * finds them, dedupes by letter-mask, and for each seed precomputes
- * the count of scoring words that fit (the ≥30-words gate) plus the
+ * the count of required words that fit (the ≥30-words gate) plus the
  * has_rare_letters weighting flag the edge function's diverse
  * builder uses.
  *
  * Source: `common.words`, the shared master list (loaded by
- * `npm run words:import`). The scoring set is freebee's required
+ * `npm run words:import`). The required set is freebee's smaller
  * tier — difficulty <= 50, not a slur, valid in american OR british,
  * len >= 4, and (defensively) no 's' (a board never contains 's', so
  * an s-word can't seed or fit one). This MUST be run AFTER
@@ -68,7 +68,7 @@ function popcount26(mask: bigint): number {
 
 /** Decides whether a 7-letter mask could be a valid freebee puzzle
  *  seed. Mirrors `isValidPuzzleMask` in ~/freebee-ws/server/game.js.
- *  The scoring set is already 's'-free, but the CHECK stays here for
+ *  The required set is already 's'-free, but the CHECK stays here for
  *  documentation + defense in depth. */
 function isValidPuzzleMask(mask: bigint): boolean {
   // No 's'. 's' is bit 18 ('s'.charCodeAt(0) - 97 = 18).
@@ -97,15 +97,15 @@ function maskHasRareLetters(mask: bigint): boolean {
 
 type PangramRow = {
   mask: string
-  scoring_words: number
+  required_words_count: number
   has_rare_letters: boolean
 }
 
-/** Pull the scoring set out of common.words as (word, letter_mask)
+/** Pull the required set out of common.words as (word, letter_mask)
  *  pairs. letter_mask is the generated column — already the 26-bit
  *  set we need, no recomputation. psql -At gives tab-separated rows;
  *  letter_mask arrives as a decimal string we parse to BigInt. */
-function loadScoringMasks(): bigint[] {
+function loadRequiredMasks(): bigint[] {
   const query = `
     select letter_mask
       from common.words
@@ -132,41 +132,41 @@ function loadScoringMasks(): bigint[] {
 }
 
 function main() {
-  console.log('Loading scoring set from common.words...')
-  const scoringMasks = loadScoringMasks()
-  console.log(`  ${scoringMasks.length} scoring words.`)
-  if (scoringMasks.length === 0) {
+  console.log('Loading required set from common.words...')
+  const requiredMasks = loadRequiredMasks()
+  console.log(`  ${requiredMasks.length} required words.`)
+  if (requiredMasks.length === 0) {
     console.error(
-      'No scoring words found — did you run `npm run words:import` first?',
+      'No required words found — did you run `npm run words:import` first?',
     )
     process.exit(1)
   }
 
-  // Candidate seeds: distinct masks of scoring words that have
+  // Candidate seeds: distinct masks of required words that have
   // exactly 7 distinct letters AND form a valid puzzle.
   console.log('Finding pangram seed masks...')
   const pangramCandidates = new Set<bigint>()
-  for (const mask of scoringMasks) {
+  for (const mask of requiredMasks) {
     if (popcount26(mask) === 7 && isValidPuzzleMask(mask)) {
       pangramCandidates.add(mask)
     }
   }
   console.log(`  ${pangramCandidates.size} candidate pangram masks.`)
 
-  // For each seed, count scoring words whose mask is a subset of it
+  // For each seed, count required words whose mask is a subset of it
   // (`wordMask & ~seedMask = 0`). Keep seeds with ≥30 — a seed that
   // can never satisfy the runtime gate is dead weight.
-  console.log('Counting scoring words per seed...')
+  console.log('Counting required words per seed...')
   const pangramRows: PangramRow[] = []
   for (const seedMask of pangramCandidates) {
     let count = 0
-    for (const wordMask of scoringMasks) {
+    for (const wordMask of requiredMasks) {
       if ((wordMask & ~seedMask) === 0n) count++
     }
     if (count >= 30) {
       pangramRows.push({
         mask: seedMask.toString(),
-        scoring_words: count,
+        required_words_count: count,
         has_rare_letters: maskHasRareLetters(seedMask),
       })
     }
@@ -177,8 +177,8 @@ function main() {
   copyLoad(
     DB_URL,
     'freebee.pangrams',
-    ['mask', 'scoring_words', 'has_rare_letters'],
-    pangramRows.map((r) => [r.mask, r.scoring_words, r.has_rare_letters]),
+    ['mask', 'required_words_count', 'has_rare_letters'],
+    pangramRows.map((r) => [r.mask, r.required_words_count, r.has_rare_letters]),
   )
 
   console.log('Done.')

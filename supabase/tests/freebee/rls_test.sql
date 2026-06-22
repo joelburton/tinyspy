@@ -65,7 +65,7 @@ insert into coop_game (id) select id from ins;
 
 insert into freebee.games
   (id, club_handle, mode, outer_letters, center_letter,
-   total_score, total_words, scoring_words, legal_words)
+   required_words_score, required_words_count, required_words, bonus_words)
 values (
   (select id from coop_game),
   (select handle from club),
@@ -157,7 +157,7 @@ select throws_ok(
   format(
     $$ insert into freebee.games
          (id, club_handle, outer_letters, center_letter,
-          total_score, total_words, scoring_words, legal_words)
+          required_words_score, required_words_count, required_words, bonus_words)
        values (gen_random_uuid(), %L,
                'aaaaaa', 'b', 1, 1, '[]'::jsonb, '{}'::text[]) $$,
     (select handle from club)
@@ -193,7 +193,7 @@ insert into compete_game (id) select id from ins;
 
 insert into freebee.games
   (id, club_handle, mode, outer_letters, center_letter,
-   total_score, total_words, scoring_words, legal_words)
+   required_words_score, required_words_count, required_words, bonus_words)
 values (
   (select id from compete_game),
   (select handle from club),

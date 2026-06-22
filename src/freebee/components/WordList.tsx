@@ -18,18 +18,19 @@ type Props = {
   /** The viewing player's user_id. Drives the post-terminal
    *  cat-A / cat-B split: a found word is cat A iff *I* found it. */
   selfUserId: string
-  /** Mid-game count of scoring (non-bonus) words found. Driven
-   *  by the parent so it can match the value the server uses
-   *  in status.words_found. */
-  scoringFoundCount: number
-  totalWords: number
+  /** Count of all words the viewer/team has found (required + bonus).
+   *  Driven by the parent so it matches the server's
+   *  status.found_words_count. Can exceed requiredWordsCount when
+   *  bonus words are found. */
+  foundWordsCount: number
+  requiredWordsCount: number
   /** Post-terminal reveal: when set, the list interleaves the
-   *  unfound scoring words alphabetically with the found words.
+   *  unfound required words alphabetically with the found words.
    *  Its mere presence is also the signal that the game is over,
    *  which flips the list from the mid-game per-finder-color model
    *  to the cat-A / cat-B review model (see the component doc).
-   *  Drawn from `games_state.scoring_words`, which materializes
-   *  only when `common.games.is_terminal` flips (Phase 1 migration). */
+   *  Drawn from `games_state.required_words`, which materializes
+   *  only when `common.games.is_terminal` flips. */
   revealWords?: Array<{ word: string; points: number; is_pangram: boolean }> | null
 }
 
@@ -52,7 +53,7 @@ type Props = {
  *     give way to a binary "how did *I* do" split:
  *       · **cat A** — words I found, kept in my own color.
  *       · **cat B** — everything else, undifferentiated and muted:
- *         words found by other players *plus* the scoring words
+ *         words found by other players *plus* the required words
  *         nobody found (the reveal). Merging "someone else got it"
  *         and "nobody got it" into one bucket is deliberate — see
  *         the freebee.md game-over spec.
@@ -64,9 +65,10 @@ type Props = {
  *   - **Pangram** — emphasized via font-weight so a glance shows
  *     "someone got the pangram!" (or, in cat B, "the pangram we
  *     missed was…").
- *   - **Bonus** — appended dot indicates a legal-but-not-scoring
- *     word. The word still renders in its category/finder color, but
- *     the trailing punctuation signals "0 points."
+ *   - **Bonus** — appended dot indicates a bonus word (legal −
+ *     required). The word still renders in its category/finder color;
+ *     the trailing dot signals it's outside the required goal (it
+ *     does still score the same).
  *   - **Recently found** — underline in the finder's color, fades
  *     after 5s (managed by useRecentlyFound). Suppressed post-terminal:
  *     the reveal refetch makes every peer row appear at once, which
@@ -87,8 +89,8 @@ export function WordList({
   foundWords,
   players,
   selfUserId,
-  scoringFoundCount,
-  totalWords,
+  foundWordsCount,
+  requiredWordsCount,
   revealWords,
 }: Props) {
   // Presence of the reveal list is our "game is over" signal, which
@@ -152,8 +154,8 @@ export function WordList({
     <div className={styles.wrapper}>
       <div className={styles.header}>
         {revealWords
-          ? `${scoringFoundCount} / ${totalWords} words — reveal`
-          : `${scoringFoundCount} / ${totalWords} words`}
+          ? `${foundWordsCount} / ${requiredWordsCount} words — reveal`
+          : `${foundWordsCount} / ${requiredWordsCount} words`}
       </div>
       <ul className={styles.list}>
         {displayRows.length === 0
@@ -162,7 +164,7 @@ export function WordList({
           )
           : (
             displayRows.map((entry) => {
-              // Unfound reveal entries are always cat B (a scoring
+              // Unfound reveal entries are always cat B (a required
               // word nobody got) and only ever render post-terminal.
               if (entry.kind === 'unfound') {
                 return (

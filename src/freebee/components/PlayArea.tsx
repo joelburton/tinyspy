@@ -46,7 +46,7 @@ const RESULT_TONE: Record<string, WordResultTone> = {
  *  word is prefixed at render time for context.
  *
  *  `bonus` reads identically to `accepted`: a bonus word scores the
- *  same points as a scoring word (submit_word computes length-based +
+ *  same points as a required word (submit_word computes length-based +
  *  pangram points for it — see the freebee migration), it just
  *  doesn't count toward the "X / Y words" denominator. That internal
  *  distinction isn't worth surfacing to the player, and the old
@@ -120,27 +120,27 @@ export function PlayArea(ctx: GamePageCtx) {
   // compete filters to the caller explicitly rather than leaning on
   // RLS, and stays correct across the terminal transition.
   //
-  // wordsFound counts ALL of the bucket's accepted submissions
-  // (scoring + bonus). Matches freebee-ws's "found.length" stat —
-  // the displayed "X / Y words" can legitimately overshoot Y when
-  // the player digs into the bonus list. The denominator
-  // (game.total_words) stays scoring-only. score sums every row's
-  // points, which include bonus-word points after the bonus-
-  // scoring fix in the freebee migration.
-  const scoringRows = useMemo(
+  // foundWordsCount counts ALL of the viewer's accepted submissions
+  // (required + bonus). Matches freebee-ws's "found.length" stat —
+  // the displayed "X / Y words" can legitimately overshoot Y (the
+  // required goal) when the player digs into the bonus list. The
+  // denominator (game.required_words_count) stays required-only.
+  // foundWordsScore sums every row's points, which include bonus-word
+  // points (bonus words score the same as required words).
+  const myFoundRows = useMemo(
     () =>
       game?.mode === 'compete'
         ? foundWords.filter((r) => r.user_id === session.user.id)
         : foundWords,
     [foundWords, game?.mode, session.user.id],
   )
-  const { score, wordsFound } = useMemo(() => {
+  const { foundWordsScore, foundWordsCount } = useMemo(() => {
     let s = 0
-    for (const row of scoringRows) {
+    for (const row of myFoundRows) {
       s += row.points
     }
-    return { score: s, wordsFound: scoringRows.length }
-  }, [scoringRows])
+    return { foundWordsScore: s, foundWordsCount: myFoundRows.length }
+  }, [myFoundRows])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -246,7 +246,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }
       // submit_word returns { result, points } — points lets us show the score
       // earned (and the result enum carries 'pangram') without re-deriving the
-      // scoring rules on the FE.
+      // point rules on the FE.
       const payload =
         (data as unknown as { result: string; points: number } | null)
         ?? { result: 'notAWord', points: 0 }
@@ -388,7 +388,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // <rank>" entry. For coop it's the team rank (same number, same
   // computation — the RLS-narrowed sum just happens to equal the
   // team sum in coop because everyone sees every row).
-  const selfRankIdx = currentRankIndex(score, game.total_score)
+  const selfRankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
 
   // Compete-only: pull the leaderboard payload off the live
   // status jsonb. Pre-first-submission the array is empty and
@@ -413,8 +413,8 @@ export function PlayArea(ctx: GamePageCtx) {
       playState,
       status,
       targetRankIdx,
-      score,
-      totalScore: game.total_score,
+      foundWordsScore,
+      requiredWordsScore: game.required_words_score,
       selfRankIdx,
       selfUserId: session.user.id,
       players,
@@ -449,7 +449,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </div>
       <div className={styles.sidePanel}>
-        <RankBar score={score} total={game.total_score} />
+        <RankBar score={foundWordsScore} total={game.required_words_score} />
         {isCompete && targetRankIdx !== null && (() => {
           // Index the leaderboard by user so the metric callback can
           // pull each opponent's rank by id. leaderboard is null until
@@ -476,22 +476,22 @@ export function PlayArea(ctx: GamePageCtx) {
           )
         })()}
         <Stats
-          score={score}
-          totalScore={game.total_score}
-          wordsFound={wordsFound}
-          totalWords={game.total_words}
+          foundWordsScore={foundWordsScore}
+          requiredWordsScore={game.required_words_score}
+          foundWordsCount={foundWordsCount}
+          requiredWordsCount={game.required_words_count}
           timerDisplay={timerDisplay}
         />
         <WordList
           foundWords={foundWords}
           players={players}
           selfUserId={session.user.id}
-          scoringFoundCount={wordsFound}
-          totalWords={game.total_words}
-          // Once terminal, games_state surfaces the full scoring
-          // list via the _reveal_if_terminal helpers. Pre-terminal
-          // game.scoringWords is null and WordList skips reveal.
-          revealWords={game.scoringWords}
+          foundWordsCount={foundWordsCount}
+          requiredWordsCount={game.required_words_count}
+          // Once terminal, games_state surfaces the full required-
+          // words list via _required_words_for. Pre-terminal
+          // game.requiredWords is null and WordList skips reveal.
+          revealWords={game.requiredWords}
         />
       </div>
       {showModal && over && (
@@ -538,8 +538,8 @@ function buildOver({
   playState,
   status,
   targetRankIdx,
-  score,
-  totalScore,
+  foundWordsScore,
+  requiredWordsScore,
   selfRankIdx,
   selfUserId,
   players,
@@ -549,8 +549,8 @@ function buildOver({
   status: Record<string, unknown> | null
   /** From `setup.target_rank` — null in coop, present in compete. */
   targetRankIdx: number | null
-  score: number
-  totalScore: number
+  foundWordsScore: number
+  requiredWordsScore: number
   selfRankIdx: number
   selfUserId: string
   players: Member[]
@@ -606,13 +606,13 @@ function buildOver({
   if (selfRankIdx >= 6) {
     return {
       outcome: 'won',
-      verdict: `Genius! ${score}/${totalScore} points.`,
-      indicator: `Genius! ${score}/${totalScore} points`,
+      verdict: `Genius! ${foundWordsScore}/${requiredWordsScore} points.`,
+      indicator: `Genius! ${foundWordsScore}/${requiredWordsScore} points`,
     }
   }
   return {
     outcome: 'won',
-    verdict: `Stopped at ${rankName} — ${score}/${totalScore} points.`,
+    verdict: `Stopped at ${rankName} — ${foundWordsScore}/${requiredWordsScore} points.`,
     indicator: `stopped at ${rankName}`,
   }
 }
