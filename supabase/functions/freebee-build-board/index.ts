@@ -57,12 +57,6 @@
  *     mode: 'coop' | 'compete' }
  *   → { id: uuid }  (200)
  *   → { error: string }  (400/401/403/500)
- *
- * Mode is a top-level field after the sibling-manifest split.
- * Before the split it was carried inside `setup.mode`; the RPC
- * now rejects `setup.mode` if present, so this function strips
- * it from the forwarded setup as a belt-and-braces against stale
- * FE deploys.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -409,19 +403,15 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const targetClub: string | undefined = body.target_club
-    const rawSetup: (Setup & { mode?: Mode }) | undefined = body.setup
+    const setup: Setup | undefined = body.setup
     const playerUserIds: string[] | undefined = body.player_user_ids
-    // Mode lifted to a top-level field after the sibling-manifest
-    // split; fall back to legacy setup.mode if a stale FE deploy
-    // is still sending it there. (The RPC rejects setup.mode, so
-    // we MUST strip it from the forwarded setup either way.)
-    const mode: Mode | undefined = body.mode ?? rawSetup?.mode
+    const mode: Mode | undefined = body.mode
 
     if (!targetClub || typeof targetClub !== 'string') {
       console.log('reject: missing target_club; body keys =', Object.keys(body))
       return json({ error: 'target_club (uuid string) required' }, 400)
     }
-    if (!rawSetup || typeof rawSetup !== 'object') {
+    if (!setup || typeof setup !== 'object') {
       console.log('reject: missing/invalid setup')
       return json({ error: 'setup (object) required' }, 400)
     }
@@ -433,12 +423,6 @@ serve(async (req) => {
       console.log('reject: missing player_user_ids')
       return json({ error: 'player_user_ids (non-empty uuid[]) required' }, 400)
     }
-
-    // Build the forwarded setup with `mode` stripped — the RPC
-    // rejects it post-migration. Destructure-and-discard is the
-    // type-safe way to do this in TS strict mode.
-    const { mode: _stripped, ...setup } = rawSetup
-    void _stripped
 
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
