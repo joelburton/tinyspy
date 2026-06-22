@@ -154,7 +154,7 @@ by "peers see counts, never boards":
 
 | table | columns (sketch) | RLS read | why |
 |---|---|---|---|
-| `monkeygram.games` | `game_id` (PK → `common.games`), `pool`, `hand_size` | club (`pool` column-hidden) | `pool` is the live bunch — the undealt remainder, mutated by peel/dump. Hidden because its contents are the upcoming draws; the FE learns only the count (via status). |
+| `monkeygram.games` | `id` (PK → `common.games`), `club_handle` (→ `common.clubs`, RLS-bearing), `pool`, `hand_size`, `created_at` | club (`pool` column-hidden) | `pool` is the live bunch — the undealt remainder, mutated by peel/dump. Hidden because its contents are the upcoming draws; the FE learns only the count (via status). |
 | `monkeygram.player_boards` | `game_id`, `user_id`, `board text`, `tiles text`, `updated_at` | **owner only** (`user_id = auth.uid()`) | The private player board. `board` = FE-owned placements; `tiles` = server-owned holdings. Owner-only RLS is the departure from our "every club member reads every game table" default, justified because peeking is a real competitive edge. |
 | `monkeygram.progress` | `game_id`, `user_id`, `unplaced`, `placed`, `done`, `finished_at` | club | The public projection peers read: unplaced count + done flag. The board/tiles stay hidden; only the count leaks. Drives the peer strip + winner surface. |
 

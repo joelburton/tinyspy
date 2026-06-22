@@ -133,9 +133,10 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
   when `common.games.is_terminal` (via a `SECURITY DEFINER` helper, exactly the
   freebee `_scoring_words_for` shape).
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
-  computed `colors`** (a `SECURITY DEFINER` helper `_colors_for(board, game_id)`
-  that reads the hidden `games.solution`). Colors are visible during play (they
-  *are* the gameplay); the full solution is not.
+  computed `colors`** (a `SECURITY DEFINER` helper
+  `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
+  and wraps the pure `compute_colors(board, solution)`). Colors are visible
+  during play (they *are* the gameplay); the full solution is not.
 
 ### RLS (mode-aware)
 
@@ -264,12 +265,11 @@ defer.
 ## Testing
 
 - **pgTAP:** `colors_test` (the duplicate-letter algorithm — *the* priority),
-  `create_game_test`, `swap_test` (coop lock-step + compete independence),
+  `create_game_test`, `gameplay_test` (coop lock-step + compete independence),
   `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
-  `rls_test` (opponent board hidden mid-game, revealed post-terminal),
   `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
   `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
-  idempotency, non-player rejected), `schema_test`.
+  idempotency, non-player rejected).
 - **Vitest:** `waffle.ts` geometry, `colors.ts` render, `manifest`, and the
   generator's par computation.
 

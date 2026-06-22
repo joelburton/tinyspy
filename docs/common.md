@@ -460,7 +460,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 |---|---|
 | `gametype` | URL-safe identifier; matches the Postgres schema name by convention. The `<gametype>` segment in `/g/<gametype>/<id>` looks this up. |
 | `schema` | Postgres schema where the game's tables and RPCs live. Same as `gametype` today, but kept as a separate field in case they ever diverge. |
-| `name`, `blurb` | Human-readable. Used in pickers and titles. |
+| `name`, `shortDescription` | Human-readable. `name` is shown in pickers and titles; `shortDescription` is the subtle second line on each Start button. |
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
 | `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. Per-game `theme.css` is imported from the game's `PlayArea.tsx` so it ships in that game's chunk. |
 | `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |

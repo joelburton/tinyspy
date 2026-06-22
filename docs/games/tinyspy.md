@@ -136,7 +136,7 @@ The fact that both views are RLS-readable by either player (`grant select on tin
 
 All `security definer`, granted only to `authenticated`, search_path pinned to `tinyspy, common, public, extensions`.
 
-### `tinyspy.create_game(target_club text) → table(id uuid)`
+### `tinyspy.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
 The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the tinyspy detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
@@ -218,7 +218,7 @@ TinySpy doesn't define its own `is_player_in_game` helper — authorization in t
 
 ## Row-level security
 
-Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `is_player_in_game(game_id)`. No INSERT/UPDATE/DELETE policies anywhere — writes go through the RPCs.
+Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `common.is_club_member(club_handle)` (via the game's `club_handle`, joined through `tinyspy.games` for the child tables) — history is **club-wide**: any club member can see every game in the club, whether or not they sat down at this specific one. "Is in this game" is a gameplay question handled by `common.require_game_player` at the RPC layer for *actions*, not a visibility question. No INSERT/UPDATE/DELETE policies anywhere — writes go through the RPCs.
 
 `word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 

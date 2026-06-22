@@ -72,12 +72,10 @@ type Props = {
  *     the reveal refetch makes every peer row appear at once, which
  *     would otherwise flash the whole list.
  *
- * No definition popover in Phase 4 — that's the common
- * dictionary-lookup feature, deferred (see
- * `~/.claude/projects/-Users-joel-src-codenames/memory/
- * project_common_dictionary_lookup.md`). When that lands the
- * row's onClick can wire up the popover; today rows are
- * non-interactive.
+ * Rows are interactive: clicking (or Enter/Space on) a word opens
+ * the common `DefinitionPopover` anchored to that row, via the
+ * shared dictionary-lookup feature (backed by the `define` edge
+ * function). See `rowActivation` below for the click/keyboard wiring.
  *
  * No pagination either — for v1 we let the panel scroll
  * vertically. The freebee-ws version measures column layout

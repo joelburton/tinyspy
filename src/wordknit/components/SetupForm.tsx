@@ -159,7 +159,7 @@ export function SetupForm({ clubHandle, mode, value, onChange }: SetupBodyProps)
     return (
       <div className={styles.setup}>
         <p className="error">
-          No puzzles imported yet. Run <code>npm run puzzles:import</code> from
+          No puzzles imported yet. Run <code>npm run wordknit:import</code> from
           the project root.
         </p>
       </div>

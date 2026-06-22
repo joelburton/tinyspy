@@ -77,7 +77,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_freebee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
-| **Click-to-define popover** | **deferred (→ common)** | Common feature, not freebee-specific. See `~/.claude/projects/-Users-joel-src-codenames/memory/project_common_dictionary_lookup.md`. |
+| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not freebee-specific. Clicking a `WordList` row opens `common/components/DefinitionPopover` anchored to that row; the `~` key opens `common/components/WordLookupDialog` to define any word. Both are backed by the `supabase/functions/define` edge function. |
 | **Sounds** | out of scope | freebee-ws doesn't have them either. |
 | **Mid-session "new board" affordance** | out of scope | Pupgames path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
 
@@ -288,8 +288,7 @@ This currently yields ~3.6k seed rows.
 
 | table | SELECT policy | INSERT/UPDATE/DELETE |
 |---|---|---|
-| `dictionary` | RLS off (public reference data) | INSERT only via `service_role` (the import script) |
-| `pangrams` | RLS off | Same |
+| `pangrams` | RLS off (public reference data) | INSERT only via the import script (`npm run freebee:import`) |
 | `games` | `common.is_club_member(club_handle)` | None — writes go through `freebee.create_game` |
 | `found_words` | Mode-aware via the denormalized `freebee.games.mode`: club-membership AND (`fg.mode='coop'` OR `found_words.user_id=auth.uid()` OR `cg.is_terminal`). Coop hits branch (a); compete mid-game hits branch (b); compete post-terminal opens via branch (c). | None — writes go through `freebee.submit_word` |
 
@@ -508,5 +507,4 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 Tracked in [`deferred.md`](../deferred.md) → FreeBee. Today's open items:
 
 - **Custom-letters puzzle** — edge-function parameter unused; setup-form field absent.
-- **Click-to-define popover** — common feature (not freebee-specific); see the memory note at `~/.claude/projects/-Users-joel-src-codenames/memory/project_common_dictionary_lookup.md`.
 - **Per-player attribution in the post-terminal reveal** — the WordList now surfaces peers' finds post-terminal, but merges them with the never-found scoring words into one muted **cat B** bucket ("everything that isn't mine"). A future expansion could re-split cat B — recolor each peer-found word with its finder's color, or add a per-player leaderboard panel — now that the rows are already on the client. (The merge itself is deliberate, not a gap; this is only open if we later want finer attribution.)

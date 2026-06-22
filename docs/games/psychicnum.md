@@ -17,7 +17,7 @@ PsychicNum exports two manifest entries from one folder:
 | `name`               | `PsychicNum (coop)`       | `PsychicNum (compete)`        |
 | `numberOfPlayers`    | `[1, 6]`                  | `[2, 6]`                      |
 
-Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`). The DB inserts **two rows in `common.gametypes`** but a **single set of psychicnum tables** — the `psychicnum.games.mode` column is denormalized for RLS branching, and one `psychicnum.create_game(target_club, setup, players, mode)` RPC routes both manifests' Start clicks.
+Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`). The DB inserts **two rows in `common.gametypes`** but a **single set of psychicnum tables** — the `psychicnum.games.mode` column is denormalized for RLS branching, and one `psychicnum.create_game(target_club, setup, player_user_ids, mode)` RPC routes both manifests' Start clicks.
 
 `baseGametype: 'psychicnum'` is the family key — anywhere code wants "treat these as siblings" (docs lookup, future ClubPage side-by-side rendering), it filters on this field. See [`src/common/lib/games.ts`](../../src/common/lib/games.ts) → `GameManifest.baseGametype` + `mode`.
 
@@ -368,7 +368,7 @@ A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `go
 
 Reads from `psychicnum.games_state` (the view that exposes `target` conditionally on terminal status — see [The hidden-target mechanic](#the-hidden-target-mechanic)). `game.target: number | null` comes back directly: `null` while active, the actual number once terminal. No separate reveal effect.
 
-Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory with a two-table subscription on `psychicnum.{games, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
+Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
 The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 

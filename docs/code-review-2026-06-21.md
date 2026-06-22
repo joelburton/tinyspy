@@ -287,6 +287,18 @@ action, or require compete to carry a countdown.
 
 ## 2. Docs ↔ code drift
 
+> **RESOLVED (2026-06-21).** Every drift listed below was verified against
+> current code and fixed: tinyspy `create_game` signature + RLS predicate,
+> monkeygram games PK (`id`) + `club_handle`/`created_at` columns, the
+> phantom `freebee.dictionary` table, freebee click-to-define documented as
+> shipped (+ the self-contradicting `WordList.tsx` docstring), psychicnum
+> three-table subscription + `player_user_ids` param, wordknit hint-dialog
+> reveal behavior + folder-layout omissions, waffle pgTAP test list +
+> `_player_colors_for` helper name, `common.md` `shortDescription` (was
+> `blurb`), naming.md gametype examples (+ monkeygram/waffle and the
+> wordknit/freebee `_coop`/`_compete` split), and the `wordknit:import`
+> FE string. Findings retained below as the record.
+
 Both prior reviews ([06-14](code-review-2026-06-14.md),
 [06-16](code-review-2026-06-16.md)) were **verified genuinely resolved** —
 no "claimed-fixed-but-not" cases. New drift below; highest severity first.

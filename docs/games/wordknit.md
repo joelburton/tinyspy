@@ -65,7 +65,7 @@ In scope today:
 - Compete OpponentStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
-- Hint dialog (modal listing each category's first word; opened from the GamePage menu)
+- Hint dialog (reveal-on-demand modal: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; opened from the GamePage menu)
 - Pause-on-disconnect overlay via Presence
 - Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
 
@@ -291,26 +291,44 @@ src/wordknit/
   db.ts                   export const db = supabase.schema('wordknit')
   theme.css               NYT rank palette (yellow/green/blue/purple = --wordknit-rank-0..3).
                           Imported by PlayArea.tsx so it loads with the chunk.
+  logo.svg                wordknit's game-tile / launcher icon, referenced from the manifest.
 
   components/
     PlayArea.tsx          Shared between the two manifests. Branches on game.mode for the
-                          OpponentStrip (compete-only) and the eliminated-spectator
-                          state. Loads via useGame, derives remaining-tiles and ownerByTile,
-                          mounts the pieces, owns the submit/clear handlers. Mounted by
-                          <GamePage> as its render-prop child.
+                          shared <OpponentStrip> (common/components/OpponentStrip, compete-only)
+                          and the eliminated-spectator state. Loads via useGame, derives
+                          remaining-tiles and ownerByTile, mounts the pieces, owns the
+                          submit/clear handlers. Mounted by <GamePage> as its render-prop child.
     PlayArea.module.css
     CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
                           unmatched-revealed bands rendered on game-over loss OR on compete
-                          per-player elimination). Owns the RANK_TOKEN rank → CSS-variable
-                          map.
+                          per-player elimination). Pulls the RANK_TOKEN rank → CSS-variable
+                          map from lib/rankColors.
     TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isPeer attribution.
                           Pure render — degenerate to "all mine, no peers" in compete because
                           useGame's broadcast send is suppressed there (the selections map
                           only ever contains the caller).
+    MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
+                          mistake, filled for remaining and dimmed for used (default budget 4).
+    MistakeDots.module.css
+    GuessHistory.tsx      The append-only log of this game's guesses, rendered beside the
+                          board. Stateless/presentational; mirrors psychicnum's <GuessHistory>.
+    GuessHistory.module.css
+    HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
+                          a "Reveal" button that surfaces that category's first tile. Purely
+                          client-side per-player state (a Set of revealed ranks) — never
+                          broadcast or persisted. Uses the shared <FloatingPanel> shell.
+    HintModal.module.css
     SetupForm.tsx         Puzzle date picker + timer-mode field. Fetches the puzzle list +
                           (mode-scoped) club_game_status for the calendar overlay. Defaults
                           to today's puzzle if available, else the most recent.
     SetupForm.module.css
+    Calendar.tsx          The month-grid date picker used by SetupForm. Colors each day square
+                          by the club's outcome for that date (won / lost / in-progress) and
+                          gates clickability to dates with an imported puzzle.
+    Calendar.module.css
+    Help.tsx              wordknit's help / rules modal (placeholder content), opened from the
+                          GamePage menu — implements the manifest's `help` contract.
 
   hooks/
     useGame.ts            Owns postgres-changes (games / guesses / players) on a stable
@@ -326,6 +344,18 @@ src/wordknit/
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
     setup.ts              WordKnitSetup type (puzzleId + timer) + defaults.
+    rankColors.ts         RANK_TOKEN: rank 0..3 → `--wordknit-rank-N` CSS-variable lookup.
+                          Standalone file so components can import it without tripping Vite
+                          Fast Refresh's "components-only file" rule. Consumed by CategoryBands
+                          and HintModal.
+    localOrder.ts         Per-player local-shuffle ordering helpers (Fisher–Yates shuffle +
+                          reset). Purely view-local — no broadcast, no server write; losing
+                          the order on pause is fine.
+    localOrder.test.ts    Unit tests for the shuffle/reset helpers.
+    monthGrid.ts          Pure month-grid layout helper extracted from Calendar (so the
+                          component file holds only React). Returns the 7-wide cell array
+                          with leading-blank / trailing-pad nulls for a given year+month.
+    monthGrid.test.ts     Unit tests for the grid-layout edge cases.
 ```
 
 ### Realtime: two channels
