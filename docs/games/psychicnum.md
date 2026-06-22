@@ -322,8 +322,9 @@ src/psychicnum/
                           <GameLogo gametype="psychicnum" />. Imported via ?url in manifest.ts.
 
   components/
-    PlayArea.tsx          Two-column composition (board placeholder on the left;
+    PlayArea.tsx          Two-column composition (NumberBoard on the left;
                           action slot + guess history on the right):
+                            NumberBoard (prompt text + 1–10 tile grid, guessed dimmed)
                             GuessForm (input + submit_guess RPC) — during play
                             "Game over: <status> [Back to club]" indicator — terminal
                             GuessHistory (chronological guess log, auto-scroll)
@@ -362,7 +363,7 @@ src/psychicnum/
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Guess the number (1–10). N guesses left." status line; on terminal, renders a "Game over: `<status>` [Back to club]" indicator in the same slot. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You win!" / "You lost: out of time" / "You lost: out of guesses." Each wrong guess fires a closeable feedback pill in the header via `ctx.feedback.show`. The board placeholder reveals the secret number once the game is over. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Guess the number (1–10). N guesses left." status line; on terminal, renders a "Game over: `<status>` [Back to club]" indicator in the same slot. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You win!" / "You lost: out of time" / "You lost: out of guesses." Each wrong guess fires a closeable feedback pill in the header via `ctx.feedback.show`. The NumberBoard's heading reveals the secret number ("The number was N") once the game is over, while its tiles dim the numbers already guessed. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 

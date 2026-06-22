@@ -1,0 +1,55 @@
+/* psychicnum's board surface: prompt text stacked above a 1–10 tile
+ * grid. Fills the left column (the boardArea wrapper stretches it to
+ * the right column's height), so the page reads as a real game surface
+ * rather than a thin form-with-a-list. */
+.board {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  min-height: 16rem;
+  padding: 2rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+/* 5×2 grid of number tiles. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+/* Spent tile: a number that's already been guessed. Dimmed and
+ * flattened so it reads as a disabled/used-up slot, matching the
+ * disabled-control look elsewhere. */
+.spent {
+  opacity: 0.4;
+  color: var(--color-muted);
+  background: var(--color-surface);
+}

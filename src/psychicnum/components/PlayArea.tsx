@@ -7,6 +7,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GuessHistory } from './GuessHistory'
+import { NumberBoard } from './NumberBoard'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
@@ -111,16 +112,18 @@ export function PlayArea({
     selfWon: didSelfWin(guesses, session.user.id, game.mode),
   }) : null
 
-  const boardPlaceholderText = isTerminal && game.target !== null
+  const boardHeading = isTerminal && game.target !== null
     ? `The number was ${game.target}`
     : "What's your guess?"
+
+  // Numbers already tried — their board tiles render spent. In compete
+  // RLS scopes `guesses` to the caller, so this is the viewer's own.
+  const guessedNumbers = new Set(guesses.map((g) => g.number))
 
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
-        <div className={styles.boardPlaceholder}>
-          {boardPlaceholderText}
-        </div>
+        <NumberBoard heading={boardHeading} guessed={guessedNumbers} />
       </div>
       <div className={styles.rightCol}>
         <div className={styles.actionSlot}>
