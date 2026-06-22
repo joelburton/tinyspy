@@ -10,13 +10,12 @@ import logoUrl from './logo.svg?url'
  * strings). A Waffle-style swap-to-solve deduction puzzle — see
  * docs/games/waffle.md.
  *
- * **Slice 1 ships coop only.** The compete manifest (own board each,
- * fewest-swaps winner) + opponent strip land in slice 2; the server
- * already supports both modes.
- *
- * Both modes share the `waffle` schema, the `src/waffle/` folder, and
- * the PlayArea / SetupForm / Help. They differ on gametype string,
- * name, mode, and numberOfPlayers.
+ * Ships as a coop / compete sibling pair: `waffleCoopGame` (solve one
+ * board together) and `waffleCompeteGame` (own board each, fewest-swaps
+ * winner). Both share the `waffle` schema, the `src/waffle/` folder, and
+ * the PlayArea / SetupForm / Help; they differ on gametype string, name,
+ * mode, and numberOfPlayers. The per-game setup includes an optional
+ * countdown timer, ended server-side via `submitTimeout`.
  */
 
 const helpLoader = lazy(() =>

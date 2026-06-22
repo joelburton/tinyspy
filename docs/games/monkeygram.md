@@ -4,7 +4,7 @@
 > interactive player board + snapshot persistence, live peer counts) plus v2:
 > the hand is now **derived** (`board` + `tiles` split — see below), the ⟲
 > **shuffle** is a shared common control, **peel** draws a round or goes out
-> (→ Bananas!, replacing the old `declare_done`), and **dump** swaps one tile
+> (→ Bananas!), and **dump** swaps one tile
 > for three. The only thing the real Bananagrams has that we don't: word/board
 > **validation** (we trust players — any placement, even gibberish, counts). The
 > throwaway UX prototype in `monkeygram-ui/` (gitignored) is where the board
@@ -166,7 +166,7 @@ table comment in the baseline migration.)
 
 - `monkeygram.create_game(target_club, setup, player_user_ids)` — calls `common.create_game` (header), shuffles the 144-tile bag, deals each player a `hand_size` slice as their starting `tiles`, materializes the leftover as `games.pool` (the bunch), and seeds one `player_boards` row (`board` = 625 dots, `tiles` = "<letters>") + one `progress` row (`unplaced = hand_size`) per player. Compete-only, so no `mode` param. Gated by `require_club_member`.
 - `monkeygram.save_player_board(target_game, board)` — the snapshot endpoint. `require_game_player`; writes the caller's own `player_boards.board` (only — `tiles` is server-owned) and recomputes their `progress` (`placed = filled cells`, `unplaced = length(tiles) − placed`). Length guard (board must be 625 chars). Called **debounced during play and on player-board unmount** (the pause / navigate / shelve safety net). No-op once the game is terminal.
-- `monkeygram.peel(target_game)` *(v2; replaced `declare_done`)* — the draw/endgame. `require_game_player`; rejects unless the hand is empty (`placed == length(tiles)`, no word/connectivity validation). Then: if the bunch can't refill the whole table (`length(pool) < players × peel_count`), the peeler **goes out and wins** (`end_game('won', {winner_username, pool_remaining}, …)`); otherwise **every player draws `peel_count`** from the front of the pool (their `tiles` grows), the pool advances, and `status.pool_remaining` updates. `peel_count` from setup (default 1). Locks the gametype row up front so concurrent peels serialize; a peel on a non-`playing` game is rejected (`game is not active`).
+- `monkeygram.peel(target_game)` — the draw/endgame, and the game's only intrinsic terminal. `require_game_player`; rejects unless the hand is empty (`placed == length(tiles)`, no word/connectivity validation). Then: if the bunch can't refill the whole table (`length(pool) < players × peel_count`), the peeler **goes out and wins** (`end_game('won', {winner_username, pool_remaining}, …)`); otherwise **every player draws `peel_count`** from the front of the pool (their `tiles` grows), the pool advances, and `status.pool_remaining` updates. `peel_count` from setup (default 1). Locks the gametype row up front so concurrent peels serialize; a peel on a non-`playing` game is rejected (`game is not active`).
 - `monkeygram.dump(target_game, tile)` *(v2)* — swap one held tile for `dump_count` (setup, default 3) from the bunch. `require_game_player`; rejects if the game's over, if `length(pool) < dump_count`, or if the caller doesn't hold `tile`. Draws `dump_count` from the FRONT of the pool and returns the dumped tile to the BACK (so you can't redraw the same tile — same *letter* is possible), nets `tiles` +`(dump_count − 1)` and `pool` −`(dump_count − 1)`, updates `progress.unplaced` + `status.pool_remaining`. Locks the gametype row (serializes against peel on the shared pool).
 - `monkeygram.end_game(target_game)` — **manual stop** (modeled on `freebee.end_game`). MonkeyGram's only *intrinsic* terminal is the peel-win; this lets the friends quit a stale race before anyone goes out. `require_game_player` — **any** game player can fire it (the friends decide together, no empty-hand gate). Writes `play_state='ended'`, `status={outcome:'manual'}` (NO `winner_username`), and **every** player's result `{"won": false}` — agreeing to stop is a valid outcome, not a loss. Locks the gametype row (serializes against a concurrent peel-win); rejects a non-`playing` game with `P0001 'game is not in progress'` (idempotency — a click racing a real peel-win is swallowed the same way). Realtime touch: a no-op self-set on `progress.unplaced` so `useProgress`/`useGame` subscribers wake (same trick as freebee's `freebee.games` touch; `common.end_game` writes only `common.games`). pgTAP: `end_game_test.sql`.
 
@@ -184,7 +184,7 @@ table comment in the baseline migration.)
 1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_monkeygram.sql`, `src/monkeygram/`, pgTAP `tests/monkeygram/create_game_test.sql`).
 2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260623000000_monkeygram.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/monkeygram.e2e.ts`).
 3. **`progress` realtime + PeersStrip** — watch a peer's count drop. **✓ DONE** (`hooks/useGame.ts` → `useProgress` subscribes to `monkeygram.progress`; `components/PeersStrip.tsx` renders opponents' tiles-left; e2e covers the live update).
-4. **`declare_done` + terminal** — hand-empty win; result modal. **✓ DONE** *(v1; replaced by `peel` in v2)*
+4. **Terminal + result modal** — the hand-empty win, surfaced by the `peel` step below (the win is detected inside `peel`). **✓ DONE**
 
 **v2 build order:**
 1. **Standard ⟲ ShuffleButton** (common; adopted in FreeBee + WordKnit). **✓ DONE** (`common/components/ShuffleButton`).
@@ -203,7 +203,7 @@ planned; two predictions were revised once peel/dump were real:
 | fixed 25×25 board as a char array | **held** — a future validator is still just a scan / flood-fill over the array |
 | `progress.unplaced` peer signal already live | **held** — peel/dump just recompute it; the strip needed no change |
 | `seed` stored, "peel reads the next letter via a draw cursor" | **revised** — dump *returns* tiles to the bunch, which a fixed seed can't describe, so v2 materializes an explicit (hidden, mutable) `pool` instead |
-| hand stored as a string, "peel appends to it" | **revised** — peel must grow *every* player's hand at once without colliding with live FE placement, so the hand became **derived** (`board`/`tiles` split); `declare_done`'s hand-empty gate carried straight over to `peel` |
+| hand stored as a string, "peel appends to it" | **revised** — peel must grow *every* player's hand at once without colliding with live FE placement, so the hand became **derived** (`board`/`tiles` split); the hand-empty win gate now lives inside `peel` |
 
 ## Resolved decisions
 

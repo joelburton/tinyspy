@@ -1,22 +1,29 @@
 -- ============================================================
--- monkeygram schema — baseline (v1)
+-- monkeygram schema — baseline (squashed)
 -- ============================================================
 --
 -- MonkeyGram is a Bananagrams clone: a real-time, competitive
 -- word-tile race. Each player builds their own **player board**
--- (a private crossword) from a hand of letter tiles. v1 is the
--- full game minus the bank loop and the validator:
+-- (a private crossword) from a hand of letter tiles, drawing more
+-- from a shared bank as they go:
 --
---   - Each player is dealt a fixed STARTER HAND at game start.
---     No bank draw during play (no peel/dump yet).
+--   - Each player is dealt a STARTER HAND at game start; the
+--     leftover bag is the shared "bunch" (games.pool, hidden).
 --   - Players build privately; peers see only an unplaced-tile
 --     COUNT, never each other's boards.
---   - First to place all their tiles and hit "Done" wins — the
---     server checks only "hand empty", with NO word/connectivity
---     validation in v1.
+--   - When your hand empties you PEEL: everyone draws a round, or
+--     — if the bunch can't refill the table — you go out and win.
+--     DUMP swaps one awkward tile for three from the bunch. There
+--     is NO word/connectivity validation (we trust the friends).
+--
+-- All RPCs live INLINE in this one squashed baseline file —
+-- create_game, save_player_board, peel, dump, end_game (this is
+-- an alpha repo, so baselines are edited in place rather than
+-- accreting per-RPC migrations; see CLAUDE.md). The intrinsic
+-- win is detected inside `peel`; `end_game` is the manual stop.
 --
 -- See docs/games/monkeygram.md for the full plan, the keyboard
--- rules, and what v1 sets up for the full game.
+-- rules, and the bank loop.
 --
 -- The state split is the design's spine — three visibility
 -- classes, three handlings:
@@ -32,9 +39,10 @@
 --
 -- The board is NOT mutated per drag through an RPC; it's FE scratch
 -- state snapshotted to player_boards.board (save_player_board).
--- This baseline deals the starter hands, materializes the bunch, and
--- stands up the schema; the snapshot, peel, dump, and declare_done
--- RPCs land in their own migrations.
+-- This single file stands up the schema and ALL its RPCs: create_game
+-- deals the starter hands and materializes the bunch; save_player_board
+-- snapshots the board; peel draws a round / goes out to win; dump swaps
+-- a tile; end_game is the manual stop.
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- gametypes, is_club_member, create_game). Per the removability
@@ -137,8 +145,8 @@ create table monkeygram.player_boards (
 -- hidden on player_boards.
 --
 -- `unplaced` is the race signal (count ticking toward zero).
--- save_player_board (Phase 2) recomputes these on every snapshot;
--- declare_done (Phase 4) sets done + finished_at on the winner.
+-- save_player_board recomputes these on every snapshot; the win
+-- inside peel sets done + finished_at on the winner.
 --
 -- In the realtime publication so a peer's count updates live.
 
@@ -452,8 +460,9 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 --     not just the peeler; that's the threshold's shape.)
 --   - Not enough: the peeler goes out and WINS — the Bananagrams endgame.
 --
--- v1's declare_done is gone: "place your last tile and the bunch is dry" IS
--- the win condition now, so peel subsumes it.
+-- This is the game's only intrinsic terminal: "place your last tile and the
+-- bunch is dry" IS the win condition, detected right here in peel (there is no
+-- separate "declare done" move — only the manual end_game stop below).
 --
 -- peel_count comes from setup (default 1) — a future setup option can make it
 -- 2 without touching this logic. There is NO board/word validation in v2; the

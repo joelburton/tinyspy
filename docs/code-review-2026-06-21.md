@@ -349,6 +349,19 @@ no "claimed-fixed-but-not" cases. New drift below; highest severity first.
 
 ## 3. Stale / archaeological comments (CLAUDE.md says: don't want these)
 
+> **RESOLVED (2026-06-21).** All listed archaeology was verified against
+> current code and rewritten to describe the *current* design (not deleted
+> wholesale — teaching value preserved): monkeygram's `declare_done` →
+> `peel`/`end_game` (in code, the squashed-migration header, manifest, the
+> "v1 Done button" Help copy, and the doc); waffle's "slice-2 / timer lands
+> later" framing (both shipped); tinyspy's phantom `Root.tsx`/`TinySpyRoot`
+> + non-existent migration filenames + the `game_players.key_card` pointer
+> (real: `tinyspy.games.key_card_a/_b`); wordknit's `*_wordknit_baseline.sql`
+> + `docs/wordknit.md` path pointers; plus the two `theme.css` "imported
+> from Root.tsx" notes and three `common/` `docs/wordknit.md` path refs
+> caught in the sweep. The "10-minute timer" docstrings were already
+> resolved earlier. Findings retained below as the record.
+
 CLAUDE.md's Educational-priority section explicitly rejects "how it used
 to work" commentary. The biggest concentration in the tree:
 

@@ -1,6 +1,6 @@
 /* wordknit's color tokens. Loaded with this game's chunk
- * (imported from Root.tsx) so they only ship when wordknit is
- * being played.
+ * (imported from components/PlayArea.tsx) so they only ship when
+ * wordknit is being played.
  *
  * The rank palette matches the NYT Connections convention:
  * yellow / green / blue / purple, mapped to category rank 0..3.

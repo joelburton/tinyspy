@@ -23,9 +23,9 @@ export type WaffleSetup = {
    */
   extra_swaps: number
   /**
-   * Browser-side timer. `none` / `countup` are informational; a
-   * `countdown` ending the game is a slice-2 feature (needs
-   * waffle.submit_timeout), so the default is `none`.
+   * Timer mode. `none` / `countup` are purely informational; a
+   * `countdown` ends the game when it expires, via the shared
+   * `waffle.submit_timeout` RPC.
    */
   timer: TimerMode
 }

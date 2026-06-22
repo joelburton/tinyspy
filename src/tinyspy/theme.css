@@ -15,7 +15,7 @@
  * lands as a user option, this file gets a sibling [data-theme]
  * block — the names stay the same, the values shift.
  *
- * Loaded with the tinyspy chunk (imported from src/tinyspy/Root.tsx).
+ * Loaded with the tinyspy chunk (imported from src/tinyspy/components/PlayArea.tsx).
  * When Boggle / Crosswords / etc. land, they bring their own
  * theme.css with whatever palette makes sense for their gameplay
  * surface — no cross-game token bleed.

@@ -4,8 +4,8 @@
  * The whole board (categories answer key + shuffled tile order)
  * is publicly readable in the v1 deployment — see the
  * "FE-knows-the-answer" note in
- * supabase/migrations/*_wordknit_baseline.sql and
- * docs/wordknit.md for the architectural rationale.
+ * supabase/migrations/20260615000003_wordknit.sql and
+ * docs/games/wordknit.md for the architectural rationale.
  *
  * Lives in lib/ so both the evaluator and the manifest /
  * components can import it without dragging in the wider

@@ -66,10 +66,11 @@ export const monkeygramGame: GameManifest = {
   },
 
   // Per-row label for the ClubPage games list. Pure + synchronous.
-  // v1 doesn't write a mid-game status to common.games (progress
-  // lives on monkeygram.progress), so "in progress" is the live
-  // label; the terminal label reads the winner from status (written
-  // by declare_done).
+  // We don't write a mid-game status to common.games (progress lives
+  // on monkeygram.progress), so "in progress" is the live label; the
+  // 'won' label reads the winner from status, which is written when a
+  // player goes out — that terminal is detected inside `peel`, not by
+  // a dedicated RPC. The 'ended' label covers the manual end_game stop.
   labelFor: (row) => {
     if (row.play_state === 'playing') return 'in progress'
     if (row.play_state === 'won') {

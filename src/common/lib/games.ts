@@ -405,7 +405,7 @@ export type CommonGameListRow = {
  *     `submitTimeout` fires; the game flips to a terminal
  *     play_state.
  *
- * See docs/wordknit.md → "Timer" for the browser-side / no-
+ * See docs/games/wordknit.md → "Timer" for the browser-side / no-
  * server-sync choice.
  */
 export type TimerMode =

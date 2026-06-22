@@ -7,7 +7,9 @@
  *   - 'A' assassin (game over if revealed)
  *
  * Each key view (one per seat) is a length-25 array of these letters, indexed
- * by board position 0..24. See `game_players.key_card` in the schema.
+ * by board position 0..24. The two views are stored as the `key_card_a` and
+ * `key_card_b` jsonb columns on `tinyspy.games` (see
+ * supabase/migrations/20260615000001_tinyspy.sql).
  */
 
 export type KeyLabel = 'G' | 'N' | 'A'

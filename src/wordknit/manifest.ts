@@ -42,7 +42,7 @@ import logoUrl from './logo.svg?url'
  *
  * The single shared `startGameInClub` factory builds the RPC
  * payload with the per-manifest mode injected — `wordknit.create_game`
- * routes on it server-side. See docs/wordknit.md for the rules,
+ * routes on it server-side. See docs/games/wordknit.md for the rules,
  * architectural decisions (FE-knows-the-answer, Presence +
  * Broadcast for shared selection, pause-on-disconnect), and the
  * deferred features list.

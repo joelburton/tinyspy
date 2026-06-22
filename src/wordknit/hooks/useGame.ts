@@ -299,7 +299,7 @@ export function useGame(
     [applySelection, channel, game?.mode],
   )
 
-  // Toggle handler — see docs/wordknit.md → "Peer selection".
+  // Toggle handler — see docs/games/wordknit.md → "Peer selection".
   const toggleTile = useCallback(
     (tile: string) => {
       let alreadySelected = false

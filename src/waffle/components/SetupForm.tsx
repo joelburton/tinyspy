@@ -9,10 +9,14 @@ import styles from './SetupForm.module.css'
 
 /**
  * SyrupSwap's setup form, rendered inside the common SetupGameDialog.
- * One choice plus the timer:
+ * Two choices plus the timer:
  *
+ *   - **Word difficulty** — which vocabulary tier the six words are
+ *     drawn from (sets `difficulty`).
  *   - **Swap budget** — how many *extra* swaps beyond the puzzle's
  *     par you get. Fewer = harder. `max_swaps = par + extra_swaps`.
+ *
+ * Plus the shared `TimerField`.
  *
  * Controlled component (state lives in the wrapper); the single
  * `value as WaffleSetup` cast is the boundary between the manifest's

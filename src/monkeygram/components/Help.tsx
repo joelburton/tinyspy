@@ -8,18 +8,15 @@ type Props = {
  * MonkeyGram's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the common `help: ComponentType<{ onClose }>`
  * contract on `GameManifest`.
- *
- * v1 copy: the bank loop (peel/dump) and word validation aren't in yet,
- * so the rules are simply "place all your starter tiles first."
  */
 export function Help({ onClose }: Props) {
   return (
     <FloatingPanel
       title="How to play MonkeyGram"
       onClose={onClose}
-      defaultSize={{ width: 440, height: 320 }}
+      defaultSize={{ width: 460, height: 420 }}
       minWidth={300}
-      minHeight={220}
+      minHeight={260}
     >
       <p>
         <strong>Race to lay out all your tiles in a crossword.</strong> You
@@ -35,9 +32,23 @@ export function Help({ onClose }: Props) {
       </p>
 
       <p>
-        <strong>First to place every tile and hit “Done” wins.</strong> (This
-        early version doesn’t check that your words are real — that comes later,
-        along with drawing more tiles.)
+        <strong>Peel! 🍌</strong> — when your hand is empty, hit{' '}
+        <strong>Peel!</strong> Everyone draws another tile from the shared bunch
+        and the race keeps going. If the bunch is too low to refill everyone,
+        the peeler <strong>goes out and wins</strong> — Bananas!
+      </p>
+
+      <p>
+        <strong>Stuck with an awkward tile?</strong> Drag it to the{' '}
+        <strong>dump slot</strong> to trade it for three from the bunch (the cost
+        of getting unstuck). Use <strong>⟲ Shuffle hand</strong> any time to
+        reorder your hand for a fresh look.
+      </p>
+
+      <p>
+        Your words don’t have to be real — placement isn’t checked, so anything
+        that fills your board counts. (No timer; the friends can also end a
+        stalled game from the menu.)
       </p>
 
       <div style={{ marginTop: '1rem', textAlign: 'right' }}>

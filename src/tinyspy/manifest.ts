@@ -13,16 +13,17 @@ import logoUrl from './logo.svg?url'
  * Nothing enforces that today; the type just keeps them as separate
  * fields so we don't conflate two roles into one string.
  *
- * `Root` is lazy-loaded so that Vite emits tinyspy's code into its
- * own chunk. The main bundle ships only the shell + common + this
- * manifest (a tiny constant); the actual game code arrives the first
- * time a user navigates into tinyspy in a session. App.tsx wraps the
- * mount in `<Suspense>` so the brief between-chunk-fetch render is
- * handled cleanly.
+ * The game's components (`PlayArea`, `Help`, `SetupForm`) are
+ * lazy-loaded so that Vite emits tinyspy's code into its own chunk.
+ * The main bundle ships only the shell + common + this manifest (a
+ * tiny constant); the actual game code arrives the first time a user
+ * navigates into tinyspy in a session. App.tsx wraps the mount in
+ * `<Suspense>` so the brief between-chunk-fetch render is handled
+ * cleanly.
  *
- * The `.then(m => ({ default: m.TinySpyRoot }))` shim re-exports the
+ * The `.then(m => ({ default: m.PlayArea }))` shim re-exports the
  * named export as a default, since React.lazy expects a module with
- * a default export. We keep `TinySpyRoot` a named export in Root.tsx
+ * a default export. We keep `PlayArea` (and friends) named exports
  * for symmetry with everything else.
  */
 export const tinyspyGame: GameManifest = {
@@ -42,8 +43,8 @@ export const tinyspyGame: GameManifest = {
   ),
 
   // Codenames Duet is intrinsically 2-player. Must agree with
-  // the `member_count <> 2` check in tinyspy.create_game (in
-  // supabase/migrations/*_tinyspy_setup_config.sql). See
+  // the player-count check in tinyspy.create_game (in
+  // supabase/migrations/20260615000001_tinyspy.sql). See
   // docs/code-conventions.md → "Per-game player counts" for the
   // cross-reference convention.
   numberOfPlayers: [2, 2],
@@ -67,8 +68,8 @@ export const tinyspyGame: GameManifest = {
   // Called by SetupGameDialog when the player clicks Start. The
   // RPC validates the setup shape server-side and uses it to
   // initialize the game (turns_remaining from s.turns; seat A
-  // assigned to s.firstClueGiverUserId). See the
-  // 20260614000002_tinyspy_setup migration.
+  // assigned to s.firstClueGiverUserId). See
+  // supabase/migrations/20260615000001_tinyspy.sql.
   //
   // The `unknown` → TinySpySetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
