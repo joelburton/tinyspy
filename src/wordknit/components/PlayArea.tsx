@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
-import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
+import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
@@ -26,7 +27,7 @@ import '../theme.css'  // wordknit-specific color tokens (lazy with this chunk)
  *     local (every tile reads as "mine" because the broadcast
  *     send is suppressed in useGame).
  *   - **Mistakes**: coop shows a single shared dot row; compete
- *     shows an OpponentMistakesStrip with everyone's per-player
+ *     shows an OpponentStrip with everyone's per-player
  *     counts.
  *   - **Eliminated state** (compete only, non-terminal): caller's
  *     mistake_count >= 4 → render the unmatched categories
@@ -294,11 +295,20 @@ export function PlayArea({
               Hidden in coop where the single shared dot row covers
               everything. */}
           {game.mode === 'compete' && (
-            <OpponentMistakesStrip
+            <OpponentStrip
               players={players}
               selfId={session.user.id}
-              selfMistakes={mistakeCount}
-              opponentMistakes={opponentMistakes}
+              metricFor={(p, isSelf) => {
+                const mistakes = isSelf
+                  ? mistakeCount
+                  : (opponentMistakes.get(p.user_id) ?? 0)
+                return (
+                  <>
+                    <MistakeDots used={mistakes} />
+                    {mistakes >= 4 && <span className="muted"> out</span>}
+                  </>
+                )
+              }}
             />
           )}
 
@@ -330,7 +340,7 @@ export function PlayArea({
           ) : (
             <div className={styles.actions}>
               {/* Coop: shared mistakes dots. In compete the
-                  OpponentMistakesStrip above carries the caller's
+                  OpponentStrip above carries the caller's
                   count alongside opponents', so this slot stays
                   blank for visual focus on the buttons. */}
               <div className={styles.actionsLeft}>
@@ -385,56 +395,6 @@ export function PlayArea({
         />
       )}
     </div>
-  )
-}
-
-/**
- * Per-player mistakes strip for compete mode. Renders
- * "You: ●○○○ · Bea: ●●○○ · Cade: ●●●● out", with each name in
- * their profile color so the strip matches the rest of the
- * multiplayer chrome.
- *
- * The strip is the entire "opponent visibility" surface in
- * compete mode — you see mistake counts but never their guesses,
- * matched-category counts, or which categories they've matched.
- * Server-side RLS on `wordknit.guesses` enforces the latter;
- * this just renders what we're allowed to know.
- */
-function OpponentMistakesStrip({
-  players,
-  selfId,
-  selfMistakes,
-  opponentMistakes,
-}: {
-  players: { user_id: string; username: string; color: string }[]
-  selfId: string
-  selfMistakes: number
-  opponentMistakes: ReadonlyMap<string, number>
-}) {
-  // Sort: self first, then peers by username for stable order.
-  const ordered = [...players].sort((a, b) => {
-    if (a.user_id === selfId) return -1
-    if (b.user_id === selfId) return 1
-    return a.username.localeCompare(b.username)
-  })
-  return (
-    <p className={styles.opponentStrip}>
-      {ordered.map((p, i) => {
-        const mistakes = p.user_id === selfId
-          ? selfMistakes
-          : (opponentMistakes.get(p.user_id) ?? 0)
-        const label = p.user_id === selfId ? 'You' : p.username
-        const eliminated = mistakes >= 4
-        return (
-          <span key={p.user_id} className={styles.opponentEntry}>
-            {i > 0 && <span className={styles.opponentSep}>·</span>}
-            <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>:{' '}
-            <MistakeDots used={mistakes} />
-            {eliminated && <span className="muted"> out</span>}
-          </span>
-        )
-      })}
-    </p>
   )
 }
 

@@ -62,7 +62,7 @@ In scope today:
 - Same-date-same-mode opens the existing club game (no replay path — picking a date the club already has in this mode reopens that game rather than creating a new one)
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). In compete, individual-elimination triggers a personal reveal while the game keeps going for survivors
-- Compete OpponentMistakesStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
+- Compete OpponentStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
 - Hint dialog (modal listing each category's first word; opened from the GamePage menu)
@@ -141,7 +141,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`submit_guess` mistake terminal**        | First row's mistake_count hits 4 → `play_state='lost'`, all `{won: false}` | MIN(mistake_count) across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}` |
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
-| **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentMistakesStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
+| **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
 | **FE GuessHistory**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
 | **GameOverModal verdict**                  | "You win!" / "You lost: out of mistakes/time" (team)        | "You won the race!" / "Beaten to the punch." / "Everyone eliminated — nobody won." |
 
@@ -294,7 +294,7 @@ src/wordknit/
 
   components/
     PlayArea.tsx          Shared between the two manifests. Branches on game.mode for the
-                          OpponentMistakesStrip (compete-only) and the eliminated-spectator
+                          OpponentStrip (compete-only) and the eliminated-spectator
                           state. Loads via useGame, derives remaining-tiles and ownerByTile,
                           mounts the pieces, owns the submit/clear handlers. Mounted by
                           <GamePage> as its render-prop child.
@@ -446,7 +446,7 @@ Tracked in [`deferred.md`](../deferred.md). The wordknit-specific ones today:
 |---|---|
 | What does the create_game / submit_guess RPC do | [`supabase/migrations/20260615000003_wordknit.sql`](../../supabase/migrations/20260615000003_wordknit.sql) — the full schema + RPCs, both modes |
 | What does compete mode look like at the schema level | Same file — `mode` columns, the `players` table, mode-aware partial indexes + RLS, the RPCs' per-mode branches, and the `wordknit_coop`/`wordknit_compete` gametype rows |
-| How does the FE branch on mode | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (OpponentMistakesStrip + buildOver + eliminated state) and [`src/wordknit/hooks/useGame.ts`](../../src/wordknit/hooks/useGame.ts) (mistakeCount / opponentMistakes / isEliminated projections + broadcast short-circuit) |
+| How does the FE branch on mode | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (OpponentStrip + buildOver + eliminated state) and [`src/wordknit/hooks/useGame.ts`](../../src/wordknit/hooks/useGame.ts) (mistakeCount / opponentMistakes / isEliminated projections + broadcast short-circuit) |
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-wordknit-puzzles.ts`](../../supabase/scripts/import-wordknit-puzzles.ts) — run via `npm run wordknit:import` |
 | What does the play surface look like | [`src/wordknit/components/PlayArea.tsx`](../../src/wordknit/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |

@@ -364,7 +364,22 @@ to work" commentary. The biggest concentration in the tree:
 
 ## 4. Cross-game consistency (the headline refactor area)
 
-### 4.1 The "opponent / progress strip" — one concept, four implementations — High
+### 4.1 The "opponent / progress strip" — one concept, four implementations — RESOLVED
+
+**Resolution (2026-06-21):** Extracted
+[`common/components/OpponentStrip.tsx`](../src/common/components/OpponentStrip.tsx)
+— the inline strip now shared by **four** games (waffle, wordknit,
+freebee, and psychicnum's budget strip, which the review's table missed).
+It owns ordering, the colored You/username label, the `·` separators, and
+the CSS; each game passes a `metricFor(player, isSelf) => ReactNode` for
+the one cell that differs (swaps+✓/✗ · mistake dots · rank · budget), plus
+an optional `leading` slot (freebee's "target:" row). The four bespoke
+strips and their duplicated CSS are deleted. **monkeygram's `PeersStrip`
+was deliberately left** — its vertical dot-list sorted by who's closest to
+done is a genuinely different shape (closer to `PlayersStrip`), and forcing
+it through the shared component would have meant `layout`/`order`/`marker`
+config-soup. Behavior-preserving; `tsc`/eslint/Vitest green. Original
+finding below.
 
 A horizontal strip showing each player with a per-player progress metric
 appears in four games, each built differently:
@@ -385,7 +400,12 @@ non-negotiable." **Recommendation:** extract
 renderMetric, order }`, where each game supplies only the metric cell
 (MistakeDots / rank name / swap count / tiles-left) via a render prop.
 
-### 4.2 The "self-first, then peers by username" sort is copy-pasted 4× — High (folds into 4.1)
+### 4.2 The "self-first, then peers by username" sort is copy-pasted 4× — RESOLVED (with 4.1)
+
+**Resolution (2026-06-21):** Extracted to
+[`common/lib/peers.ts → orderSelfFirst`](../src/common/lib/peers.ts), which
+the shared `OpponentStrip` (§4.1) now owns — the four copies are gone.
+Original finding below.
 
 [`waffle/OpponentStrip.tsx:19`](../src/waffle/components/OpponentStrip.tsx),
 [`wordknit/PlayArea.tsx:372`](../src/wordknit/components/PlayArea.tsx),

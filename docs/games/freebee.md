@@ -75,7 +75,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Reveal scoring + bonus wordlists on game end** | shipped | Via `freebee.games_state` view's conditional-on-terminal column exposure |
 | **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or "Stopped at <rank>" (rank < 6 — covers both timeout and manual) |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
-| **Compete mode** (per-player found list, target-rank race, OpponentRanksStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_freebee.sql`. See [Compete mode](#compete-mode). |
+| **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_freebee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
 | **Click-to-define popover** | **deferred (→ common)** | Common feature, not freebee-specific. See `~/.claude/projects/-Users-joel-src-codenames/memory/project_common_dictionary_lookup.md`. |
 | **Sounds** | out of scope | freebee-ws doesn't have them either. |
@@ -105,7 +105,7 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 - **Per-player score + word list**: each player's `submit_word` calls write into `freebee.found_words` with `user_id` set to caller. RLS hides peers' rows mid-game (caller sees only their own); the WordList renders just the caller's finds until the game ends (post-terminal it opens up — see the reveal bullet below).
 - **First-to-target wins**: when caller's `_rank_idx(caller_score, total_score) >= target_rank`, `submit_word` flips `play_state` to `won_compete`, writes `status.winner_user_id = caller`, sets caller's `common.game_players.result = {won: true}` and every opponent's `= {won: false}`. The race ends for everyone instantly — opponents with sub-target ranks can no longer submit. **Bonus words count toward the rank** — a player who hits bonus pangrams can reach target faster than the displayed max-score implies (see [Rules → Bonus words](#rules)).
 - **Timeout / manual end → no winner**: if the countdown timer fires or any player ends the game manually before any player hits target, terminal `play_state='ended'` with `outcome='timeout'` (or `'manual'`) and every player's `result = {won: false}`. Friends-agreed-to-stop is a valid outcome, not a "you lose" punishment.
-- **Opponent visibility = rank only**: the `OpponentRanksStrip` rendered between the RankBar and the Stats card shows each player's current rank (and the target). The exact score, words-found count, and guesses stay private. The strip reads from `common.games.status.leaderboard` (RLS-permissive — it's on the cross-cutting common row, not the per-game found_words).
+- **Opponent visibility = rank only**: the `OpponentStrip` rendered between the RankBar and the Stats card shows each player's current rank (and the target). The exact score, words-found count, and guesses stay private. The strip reads from `common.games.status.leaderboard` (RLS-permissive — it's on the cross-cutting common row, not the per-game found_words).
 - **Post-terminal reveal**: the FE WordList switches from per-finder colors to a **cat-A / cat-B review** (see [Frontend → WordList](#frontend)). Cat A = the words the viewer found; cat B = everything else, merged into one muted bucket — words *other* players found (now visible via the RLS policy's `is_terminal` branch) plus the scoring words nobody found. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
 - **FE-knows trade preserved**: the `scoring_words` / `legal_words` answer keys stay hidden via the column-grant + `games_state` view pattern, just like coop.
 
@@ -188,10 +188,10 @@ It exists because the obvious-looking pattern — "fetch all legal words, filter
 
 ### `status` jsonb
 
-Drives `manifest.labelFor` for the club page's game-list label and (in compete) drives the live `OpponentRanksStrip` via `GamePageCtx.status`.
+Drives `manifest.labelFor` for the club page's game-list label and (in compete) drives the live `OpponentStrip` via `GamePageCtx.status`.
 
 - **Coop:** `{ mode: 'coop', outcome?, score, total_score, rank_idx, words_found, total_words }`. `outcome` is absent mid-game and present at terminal (`'timeout'` or `'manual'`). `words_found` counts ALL submissions (scoring + bonus); `score` includes bonus points. The displayed `Y / total_words` can overshoot, and `score / total_score` can climb past 1.0 (rank_idx clamps at 6).
-- **Compete:** `{ mode: 'compete', target_rank, leaderboard: [{user_id, score, rank_idx, words_found}, …], total_score, total_words, winner_user_id?, outcome? }`. The leaderboard array drives the FE's `OpponentRanksStrip` — opponent visibility is rank-only by design (score + words_found are in the payload but the FE intentionally surfaces only `rank_idx`). At terminal: `winner_user_id` set on `won_compete`; `outcome` set on `'timeout'`/`'manual'`.
+- **Compete:** `{ mode: 'compete', target_rank, leaderboard: [{user_id, score, rank_idx, words_found}, …], total_score, total_words, winner_user_id?, outcome? }`. The leaderboard array drives the FE's `OpponentStrip` — opponent visibility is rank-only by design (score + words_found are in the payload but the FE intentionally surfaces only `rank_idx`). At terminal: `winner_user_id` set on `won_compete`; `outcome` set on `'timeout'`/`'manual'`.
 
 ### Title formula
 
@@ -321,7 +321,7 @@ src/freebee/
                           End-game menu item registration. Wires usePeerFeedback to the
                           common header slot for peer/opponent events (aliased as
                           `headerFeedback` so it doesn't clash with the local pill state).
-                          Compete-only: renders the OpponentRanksStrip between RankBar
+                          Compete-only: renders the OpponentStrip between RankBar
                           and Stats (reading from ctx.status.leaderboard). buildOver
                           branches mode → terminal verdict copy. Mounts GameOverModal
                           via useTerminalModal on the isTerminal flip.
@@ -405,7 +405,7 @@ src/freebee/
                           scoring_words.is_pangram flag.
     leaderboard.ts        LeaderboardEntry type + readLeaderboard(status): the compete
                           rank payload off common.games.status. Shared by the
-                          OpponentRanksStrip and usePeerFeedback.
+                          OpponentStrip and usePeerFeedback.
 ```
 
 ### Routes & shell
@@ -451,7 +451,7 @@ The verdict copy is computed by `buildOver({mode, playState, status, targetRankI
 
 | channel | who opens it | what rides on it |
 |---|---|---|
-| `game:${gameId}` (stable) | `useCommonGame` | Presence + manual-pause Broadcast + suspend Broadcast + postgres-changes on `common.games`. The compete OpponentRanksStrip rides this channel — `submit_word` writes the updated `status.leaderboard` to `common.games.status`, which propagates here, and `useCommonGame` surfaces it through `GamePageCtx.status` to the PlayArea. |
+| `game:${gameId}` (stable) | `useCommonGame` | Presence + manual-pause Broadcast + suspend Broadcast + postgres-changes on `common.games`. The compete OpponentStrip rides this channel — `submit_word` writes the updated `status.leaderboard` to `common.games.status`, which propagates here, and `useCommonGame` surfaces it through `GamePageCtx.status` to the PlayArea. |
 | `freebee:${gameId}:${uuid}` | `useRealtimeRefetch` inside `useGame` | postgres-changes on `freebee.{games, found_words}`. UUID-suffixed because there's no peer-coordination state here — each tab gets its own room. |
 
 See [`code-conventions.md` → Realtime data hooks](../code-conventions.md#realtime-data-hooks--two-patterns) for the pattern catalogue.
@@ -492,7 +492,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | asking… | look at… |
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, hidden-wordlist helpers (`_scoring_words_for` / `_legal_words_for` / `candidate_words`), the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `freebee_coop`/`freebee_compete` gametype rows | [`supabase/migrations/20260617000000_freebee.sql`](../../supabase/migrations/20260617000000_freebee.sql) |
-| Compete-specific FE rendering (OpponentRanksStrip, mode-aware buildOver) | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
+| Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
 | Target-rank picker in the setup dialog | [`src/freebee/components/SetupForm.tsx`](../../src/freebee/components/SetupForm.tsx) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (`supabase/data/words.tsv.gz`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts) (derives `freebee.pangrams` from `common.words`) |

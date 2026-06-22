@@ -51,7 +51,7 @@ export type GamePageCtx = {
    *  subscription — updates in place as RPCs land.
    *
    *  Today's primary consumer is freebee's compete-mode
-   *  OpponentRanksStrip, which reads `status.leaderboard` for
+   *  OpponentStrip, which reads `status.leaderboard` for
    *  the per-player rank summary. The same channel is open to
    *  any future game that wants a live status field surfaced
    *  to the play surface. */

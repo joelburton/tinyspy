@@ -192,30 +192,3 @@
   margin-top: 0.5rem;
   font-size: 0.95rem;
 }
-
-/* Compete-only: per-player mistake strip above the action row.
- * "You: ●●○○ · Bea: ●○○○ · Cade: ●●●● out" — opponent visibility
- * is mistakes-only per the trust model (matched-counts hidden).
- * Inline-flex so the entries flow naturally with their MistakeDots
- * inline; wraps when the player count + names push past the
- * column width. */
-.opponentStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.6rem;
-  align-items: center;
-  margin: 0.25rem 0;
-  color: var(--color-muted);
-  font-size: 0.9rem;
-}
-
-.opponentEntry {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.opponentSep {
-  margin-right: 0.25rem;
-  opacity: 0.5;
-}

@@ -253,8 +253,9 @@ Mirrors the other game folders:
 - `components/` — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
   drag-to-swap, colored tiles — reuse the TinySpy keycard color tokens),
   `SwapCounter`, `SetupForm` (timer + the extra-swaps difficulty knob), `Help`,
-  and `OpponentStrip` for compete (swaps-used + solved, à la freebee's
-  `OpponentRanksStrip`).
+  and the shared `common/components/OpponentStrip` for compete (a `metricFor`
+  returning swaps-used + a ✓/✗ mark — the same strip freebee/wordknit/psychicnum
+  use, differing only in the metric cell).
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (wordknit's peer-selection trick) is a nice-to-have —

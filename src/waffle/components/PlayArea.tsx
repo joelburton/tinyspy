@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { OpponentStrip } from './OpponentStrip'
 import { SolutionReveal } from './SolutionReveal'
 import { WaffleGrid } from './WaffleGrid'
 import styles from './PlayArea.module.css'
@@ -141,10 +141,22 @@ export function PlayArea({
           <>
             {isCompete && (
               <OpponentStrip
-                members={members}
-                playerStates={playerStates}
+                players={members}
                 selfId={session.user.id}
-                maxSwaps={game.max_swaps}
+                metricFor={(player) => {
+                  const ps = playerStates.find(
+                    (p) => p.user_id === player.user_id,
+                  )
+                  const swaps = ps?.swaps_used ?? 0
+                  const solved = ps?.solved ?? false
+                  const out = !solved && swaps >= game.max_swaps
+                  return (
+                    <>
+                      {swaps}
+                      {solved ? ' ✓' : out ? ' ✗' : ''}
+                    </>
+                  )
+                }}
               />
             )}
             {isPlayer ? (

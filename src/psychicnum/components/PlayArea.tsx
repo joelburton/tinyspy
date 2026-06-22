@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
@@ -146,11 +146,19 @@ export function PlayArea({
                   {selfBudget === 1 ? 'guess' : 'guesses'} left.
                 </p>
               ) : (
-                <BudgetStrip
-                  players={players}
-                  budgets={playerBudgets}
-                  selfId={session.user.id}
-                />
+                <>
+                  <p className="muted">
+                    Guess the number (1–10) — first one wins.
+                  </p>
+                  <OpponentStrip
+                    players={players}
+                    selfId={session.user.id}
+                    metricFor={(p) =>
+                      playerBudgets.find((b) => b.user_id === p.user_id)
+                        ?.guesses_remaining ?? 0
+                    }
+                  />
+                </>
               )}
               {selfBudget > 0 ? (
                 <GuessForm gameId={gameId} />
@@ -172,50 +180,6 @@ export function PlayArea({
         />
       )}
     </div>
-  )
-}
-
-/**
- * Per-player budget strip for compete mode. Renders "You: 3 ·
- * Bea: 2 · Cade: 0", with each name in their profile color so
- * the strip matches the rest of the multiplayer chrome.
- *
- * The strip is the entire "opponent visibility" surface in
- * compete mode — you see budgets but never their guesses or
- * results. Server-side RLS on `psychicnum.guesses` enforces the
- * latter; this just renders what we're allowed to know.
- */
-function BudgetStrip({
-  players,
-  budgets,
-  selfId,
-}: {
-  players: { user_id: string; username: string; color: string }[]
-  budgets: { user_id: string; guesses_remaining: number }[]
-  selfId: string
-}) {
-  // Sort: self first, then by username for stable peer order.
-  const ordered = [...players].sort((a, b) => {
-    if (a.user_id === selfId) return -1
-    if (b.user_id === selfId) return 1
-    return a.username.localeCompare(b.username)
-  })
-  return (
-    <p className="muted">
-      Guess the number (1–10) — first one wins.{' '}
-      {ordered.map((p, i) => {
-        const remaining =
-          budgets.find((b) => b.user_id === p.user_id)?.guesses_remaining ?? 0
-        const label = p.user_id === selfId ? 'You' : p.username
-        return (
-          <span key={p.user_id}>
-            {i > 0 && ' · '}
-            <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>:{' '}
-            {remaining}
-          </span>
-        )
-      })}
-    </p>
   )
 }
 

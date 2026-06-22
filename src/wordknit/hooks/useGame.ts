@@ -108,7 +108,7 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  *   - `mistakeCount` — caller's row's mistake_count. In coop,
  *     equals every other row's; in compete, the caller's own.
  *   - `opponentMistakes` — Map<user_id, count> excluding caller.
- *     Drives the compete OpponentMistakesStrip; empty in coop.
+ *     Drives the compete OpponentStrip; empty in coop.
  *   - `isEliminated` — caller's mistake_count >= 4. Compete-only
  *     meaningful (in coop the whole game would already be terminal
  *     once mistakes hit 4); always false in coop pre-game-over.
@@ -363,7 +363,7 @@ export function useGame(
   const mistakeCount = selfPlayer?.mistake_count ?? 0
 
   // Opponents' per-row mistake counts. Drives the compete
-  // OpponentMistakesStrip. Returns an empty Map in coop (every
+  // OpponentStrip. Returns an empty Map in coop (every
   // row equals the caller's, so listing peers separately would
   // just be noise).
   const opponentMistakes = new Map<string, number>()

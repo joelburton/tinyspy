@@ -1,0 +1,36 @@
+/* The inline per-player progress strip shared by waffle / wordknit /
+ * freebee / psychicnum. Muted, small, wraps on overflow. Consolidated
+ * from the near-identical per-game copies these games used to carry. */
+.strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.25rem 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* Optional row above the entries (e.g. freebee's "target: Amazing"). */
+.leading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.entries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+}
+
+.entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sep {
+  opacity: 0.5;
+  margin-right: 0.25rem;
+}

@@ -37,7 +37,7 @@ export type FreeBeeGame = {
   id: string
   club_handle: string
   /** Denormalized from `freebee.games.mode`. Drives FE branching
-   *  for the OpponentRanksStrip + win-vs-loss verdict copy in the
+   *  for the OpponentStrip + win-vs-loss verdict copy in the
    *  PlayArea. Set at create_game time, immutable afterward. */
   mode: 'coop' | 'compete'
   outer_letters: string

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import { colorVarFor } from '../../common/lib/memberColor'
 import { formatTimerSeconds } from '../../common/hooks/useGameTimer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../hooks/useGlobalKeyHandler'
 import { usePeerFeedback } from '../hooks/usePeerFeedback'
-import { readLeaderboard, type LeaderboardEntry } from '../lib/leaderboard'
+import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { FreeBeeSetup } from '../lib/setup'
 import { Actions } from './Actions'
@@ -83,7 +83,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  *     reaches Genius at 70% of total. Terminal verdict on
  *     `ended` is Genius (rank ≥ 6) vs Stopped (rank < 6).
  *   - **Compete**: caller-only score, caller-only WordList (RLS
- *     filters peer rows during play), OpponentRanksStrip in the
+ *     filters peer rows during play), OpponentStrip in the
  *     side panel showing each opponent's current rank — that's
  *     the entire "what opponents know about you" surface during
  *     play. Terminal verdict on `won_compete` is "You won the
@@ -384,7 +384,7 @@ export function PlayArea(ctx: GamePageCtx) {
       : formatTimerSeconds(timer.displaySeconds)
 
   // Caller's current rank in the local ladder. For compete this
-  // is the value the OpponentRanksStrip surfaces for the "You:
+  // is the value the OpponentStrip surfaces for the "You:
   // <rank>" entry. For coop it's the team rank (same number, same
   // computation — the RLS-narrowed sum just happens to equal the
   // team sum in coop because everyone sees every row).
@@ -450,15 +450,31 @@ export function PlayArea(ctx: GamePageCtx) {
       </div>
       <div className={styles.sidePanel}>
         <RankBar score={score} total={game.total_score} />
-        {isCompete && targetRankIdx !== null && (
-          <OpponentRanksStrip
-            players={players}
-            leaderboard={leaderboard ?? []}
-            selfUserId={session.user.id}
-            selfRankIdx={selfRankIdx}
-            targetRankIdx={targetRankIdx}
-          />
-        )}
+        {isCompete && targetRankIdx !== null && (() => {
+          // Index the leaderboard by user so the metric callback can
+          // pull each opponent's rank by id. leaderboard is null until
+          // the compete branch above populates it (and stays null in
+          // coop, which never reaches this guard), so default to [].
+          const byUserId = new Map(
+            leaderboard?.map((e) => [e.user_id, e]) ?? [],
+          )
+          return (
+            <OpponentStrip
+              players={players}
+              selfId={session.user.id}
+              leading={<>target: <strong>{RANKS[targetRankIdx]}</strong></>}
+              // Self reads its rank from the local FE computation
+              // (selfRankIdx) so "You" updates in lock step with the
+              // RankBar above; peers read from the leaderboard payload.
+              metricFor={(p, isSelf) => {
+                const rankIdx = isSelf
+                  ? selfRankIdx
+                  : (byUserId.get(p.user_id)?.rank_idx ?? 0)
+                return RANKS[rankIdx]
+              }}
+            />
+          )
+        })()}
         <Stats
           score={score}
           totalScore={game.total_score}
@@ -489,70 +505,6 @@ export function PlayArea(ctx: GamePageCtx) {
       {lookupOpen && (
         <WordLookupDialog onClose={() => setLookupOpen(false)} />
       )}
-    </div>
-  )
-}
-
-/**
- * Per-player rank strip for compete mode. Renders
- * "You: Great · Bea: Nice · Cade: Solid · target: Amazing", with
- * each name in their profile color so the strip matches the rest
- * of the multiplayer chrome.
- *
- * Per the design decision, opponents see RANK ONLY — no raw
- * score, no words-found count. The leaderboard payload carries
- * all three; the strip ignores the latter two. Matches wordknit's
- * OpponentMistakesStrip framing.
- *
- * Self's rank reads from the local FE computation (`selfRankIdx`,
- * derived from caller-narrowed `foundWords`) rather than from the
- * leaderboard entry; that way the strip's "You" updates in lock
- * step with the RankBar above it, without waiting for the round-
- * trip refresh of `common.games.status`.
- */
-function OpponentRanksStrip({
-  players,
-  leaderboard,
-  selfUserId,
-  selfRankIdx,
-  targetRankIdx,
-}: {
-  players: Member[]
-  leaderboard: LeaderboardEntry[]
-  selfUserId: string
-  selfRankIdx: number
-  targetRankIdx: number
-}) {
-  const byUserId = new Map<string, LeaderboardEntry>()
-  for (const entry of leaderboard) byUserId.set(entry.user_id, entry)
-
-  // Sort: self first, then peers by username for stable order.
-  const ordered = [...players].sort((a, b) => {
-    if (a.user_id === selfUserId) return -1
-    if (b.user_id === selfUserId) return 1
-    return a.username.localeCompare(b.username)
-  })
-
-  return (
-    <div className={styles.opponentStrip}>
-      <div className={styles.opponentTargetRow}>
-        target: <strong>{RANKS[targetRankIdx]}</strong>
-      </div>
-      <div className={styles.opponentEntries}>
-        {ordered.map((p, i) => {
-          const rankIdx = p.user_id === selfUserId
-            ? selfRankIdx
-            : (byUserId.get(p.user_id)?.rank_idx ?? 0)
-          const label = p.user_id === selfUserId ? 'You' : p.username
-          return (
-            <span key={p.user_id} className={styles.opponentEntry}>
-              {i > 0 && <span className={styles.opponentSep}>·</span>}
-              <strong style={{ color: colorVarFor(p.color) }}>{label}</strong>
-              : {RANKS[rankIdx]}
-            </span>
-          )
-        })}
-      </div>
     </div>
   )
 }

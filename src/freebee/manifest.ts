@@ -51,7 +51,7 @@ const helpLoader = lazy(() =>
 )
 
 // PlayArea is shared — branches on `game.mode` for the compete-
-// only OpponentRanksStrip + win-vs-loss verdict copy.
+// only OpponentStrip + win-vs-loss verdict copy.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
 )

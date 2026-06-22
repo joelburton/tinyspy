@@ -351,6 +351,13 @@ src/
       TimerField.tsx       The shared None / Up / Down radio + MM:SS input used by every
                            per-game setup form that surfaces a timer choice. Tokens in
                            TimerField.module.css.
+      OpponentStrip.tsx    The inline per-player progress strip ("You: 3 · Bea: 5") shared
+                           by waffle / wordknit / freebee / psychicnum. Owns ordering
+                           (orderSelfFirst), the colored You/username label, the `·`
+                           separators; each game passes a `metricFor` for the one cell that
+                           differs (swaps / mistake dots / rank / budget). NOT monkeygram —
+                           its peer display is a vertical dot-list (PeersStrip), a different
+                           shape closer to PlayersStrip.
       LoginScreen.tsx      Magic-link sign-in
       SetupGameDialog.tsx  Modal wrapper around per-game setup forms (one per gametype)
       PauseBoundary.tsx    Wraps a game's play area; conditionally renders children OR
@@ -397,6 +404,9 @@ src/
                            playerCountLabel helpers
       pause.ts             computePause helper — pure derivation of
                            { paused, missing } from presentUserIds + members
+      peers.ts             orderSelfFirst(players, selfId) — viewer-first, then peers by
+                           username. Used by OpponentStrip (and available to any per-game
+                           code that needs the same stable order).
       chatUnread.ts        Unread-chat store + pure computeUnread(messages, lastSeen, self,
                            members) → { count, color }. A per-club lastSeen timestamp lives in
                            localStorage (so unread survives reloads and a never-opened panel
