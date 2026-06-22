@@ -51,6 +51,17 @@ export const FILLED: readonly number[] = Array.from(
 ).filter(isFilled)
 
 /**
+ * Human-readable grid coordinate for a position, like a spreadsheet:
+ * columns A–E (left→right), rows 1–5 (top→bottom). Position 0 → "A1",
+ * the center (12) → "C3", position 24 → "E5". Used by the move log.
+ */
+export function coord(pos: number): string {
+  const col = pos % GRID
+  const row = Math.floor(pos / GRID)
+  return `${String.fromCharCode(65 + col)}${row + 1}`
+}
+
+/**
  * The 6 words as ordered cell-index tuples, in canonical order
  * (3 across, then 3 down). Mirrors the `words` array in
  * `waffle.compute_colors`.

@@ -1227,6 +1227,54 @@ export type Database = {
         }
         Relationships: []
       }
+      swaps: {
+        Row: {
+          created_at: string
+          game_id: string
+          letter_a: string
+          letter_b: string
+          pos_a: number
+          pos_b: number
+          swap_index: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          letter_a: string
+          letter_b: string
+          pos_a: number
+          pos_b: number
+          swap_index: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          letter_a?: string
+          letter_b?: string
+          pos_a?: number
+          pos_b?: number
+          swap_index?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swaps_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swaps_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       games_state: {

@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { boardWords, isValidBoard } from './waffle'
+import { boardWords, coord, isValidBoard } from './waffle'
 import { assembleSolution, maxLetterFrequency, minSwaps } from './puzzle'
+
+describe('coord', () => {
+  it('maps positions to spreadsheet-style A1..E5 coordinates', () => {
+    expect(coord(0)).toBe('A1') // top-left corner
+    expect(coord(4)).toBe('E1') // top-right corner
+    expect(coord(12)).toBe('C3') // center
+    expect(coord(20)).toBe('A5') // bottom-left corner
+    expect(coord(24)).toBe('E5') // bottom-right corner
+    expect(coord(7)).toBe('C2') // col 2, row 1
+  })
+})
 
 describe('assembleSolution', () => {
   it('places the 6 words into a valid board and round-trips', () => {

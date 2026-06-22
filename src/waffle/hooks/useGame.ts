@@ -36,6 +36,20 @@ export type WaffleGame = {
 }
 
 /**
+ * One entry in the coop move log (`waffle.swaps`). Only coop games
+ * write these, so the array is empty in compete. `letter_a`/`letter_b`
+ * are the letters that sat on `pos_a`/`pos_b` before the swap.
+ */
+export type WaffleSwap = {
+  user_id: string
+  swap_index: number
+  pos_a: number
+  pos_b: number
+  letter_a: string
+  letter_b: string
+}
+
+/**
  * SyrupSwap's per-gametype data hook — the refetch-only realtime
  * pattern (Pattern A). Every move flows through `waffle.submit_swap`,
  * which writes `waffle.players` rows (in coop, every player's row);
@@ -47,21 +61,24 @@ export type WaffleGame = {
 export function useGame(gameId: string): {
   game: WaffleGame | null
   players: WafflePlayerState[]
+  swaps: WaffleSwap[]
   loading: boolean
 } {
   const [game, setGame] = useState<WaffleGame | null>(null)
   const [players, setPlayers] = useState<WafflePlayerState[]>([])
+  const [swaps, setSwaps] = useState<WaffleSwap[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
     tables: [
       { schema: 'waffle', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'waffle', table: 'players', filter: `game_id=eq.${gameId}` },
+      { schema: 'waffle', table: 'swaps', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'waffle',
     id: gameId,
     load: async ({ mounted }) => {
-      const [gameRes, playersRes] = await Promise.all([
+      const [gameRes, playersRes, swapsRes] = await Promise.all([
         db
           .from('games_state')
           .select('id, mode, scramble, par_swaps, max_swaps, solution')
@@ -71,12 +88,20 @@ export function useGame(gameId: string): {
           .from('players_state')
           .select('user_id, board, swaps_used, solved, solved_at, colors')
           .eq('game_id', gameId),
+        // The move log (coop only; empty in compete). Read straight from
+        // the base table — it has no gated columns.
+        db
+          .from('swaps')
+          .select('user_id, swap_index, pos_a, pos_b, letter_a, letter_b')
+          .eq('game_id', gameId)
+          .order('swap_index', { ascending: true }),
       ])
       if (!mounted()) return
 
       if (!gameRes.data) {
         setGame(null)
         setPlayers([])
+        setSwaps([])
         setLoading(false)
         return
       }
@@ -90,9 +115,10 @@ export function useGame(gameId: string): {
         solution: (gameRes.data.solution as string | null) ?? null,
       })
       setPlayers((playersRes.data ?? []) as WafflePlayerState[])
+      setSwaps((swapsRes.data ?? []) as WaffleSwap[])
       setLoading(false)
     },
   })
 
-  return { game, players, loading }
+  return { game, players, swaps, loading }
 }

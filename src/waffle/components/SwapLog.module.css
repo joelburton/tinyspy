@@ -1,0 +1,85 @@
+/* The coop move log in the right column. Mirrors the GuessHistory
+ * card pattern from psychicnum / wordknit: a heading over a scrolling
+ * list of small cards, each a swap. The list scrolls internally so a
+ * long game doesn't push the column past a sensible height. */
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Scrolling sub-frame: cap the height so the log doesn't grow the
+   * page, and scroll within once swaps pile up. */
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.item {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-border);
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* "Swap #N" + the swapper's name. */
+.metaRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.index {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.user {
+  font-weight: 600;
+}
+
+/* The move itself: "A (A1) ↔ B (C2)". */
+.move {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+/* Swapped letters stand out — bigger, bolder, body color. */
+.letter {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text);
+}
+
+/* Coordinates recede — smaller and lighter so the letters lead. */
+.coord {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.arrow {
+  color: var(--color-muted);
+  margin: 0 0.15rem;
+}

@@ -9,7 +9,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(16);
+select plan(19);
 
 -- ── Game 1: validation + lock-step + win ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -87,6 +87,26 @@ select is(
   (select solution from waffle.games_state where id = (select id from g1))::text,
   'abcdef.g.hijklmn.o.pqrstu',
   'solution revealed once the game is terminal');
+
+-- ── Game 1: the move log ────────────────────────────────────
+-- Three swaps happened: ada (2,3), bea (2,3 undo), bea (0,1 solve).
+select is(
+  (select count(*) from waffle.swaps where game_id = (select id from g1)),
+  3::bigint,
+  'every coop swap is logged');
+-- First swap: ada exchanged cells 2,3, which held c,d in the scramble.
+select row_eq(
+  format($$ select user_id, swap_index, pos_a, pos_b, letter_a::text, letter_b::text
+              from waffle.swaps
+             where game_id = %L and swap_index = 1 $$, (select id from g1)),
+  row('ada11111-1111-1111-1111-111111111111'::uuid, 1, 2, 3, 'c'::text, 'd'::text),
+  'the log records swapper, ordinal, positions, and pre-swap letters');
+-- The solving swap (the third) was bea's.
+select is(
+  (select user_id from waffle.swaps
+    where game_id = (select id from g1) and swap_index = 3),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'the solving swap is attributed to the player who made it');
 
 -- ── Game 2: lose on a tight budget ──────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -126,6 +126,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 | `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (35/50/60 — the vocab tier; `create_game` picks by it), `title` ("Difficulty N", the game-listing label). The 6 words derive from `solution` via geometry. |
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble/par are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`) — the game holds its own info; the puzzle is just the source. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
+| `waffle.swaps` PK `(game_id, swap_index)` | The coop move log: one row per swap — `user_id`, `swap_index` (1-based, the shared coop count), `pos_a`/`pos_b`, and `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained). **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
 
 ### Views (`security_invoker`)
 
@@ -159,8 +160,10 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
   state, `require_game_player`, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
-  - **coop:** apply the swap to **all** players' rows (lock-step), `swaps_used++`.
-  - **compete:** apply to the caller's row only.
+  - **coop:** apply the swap to **all** players' rows (lock-step), `swaps_used++`,
+    and append a `waffle.swaps` log row (swapper, ordinal, positions, pre-swap
+    letters).
+  - **compete:** apply to the caller's row only (no log row).
   - Returns `{ colors, swaps_used, solved, terminal }`.
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   freebee "realtime touch" pattern so the FE wakes up on expiry.
@@ -253,16 +256,18 @@ Mirrors the other game folders:
 - `manifest.ts` — the `waffle_coop` + `waffle_compete` sibling pair (gametype
   strings stay codenamed; the manifest `title` is the brand **SyrupSwap**).
 - `db.ts` — `supabase.schema('waffle')`.
-- `hooks/useGame.ts` — projects `games_state` + `players_state`; two-table
-  realtime subscription on `waffle.{games, players}`.
-- `lib/waffle.ts` — geometry (shared); `lib/colors.ts` — render only (server is
-  authoritative for the actual colors).
+- `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
+  log; three-table realtime subscription on `waffle.{games, players, swaps}`.
+- `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`;
+  `lib/colors.ts` — render only (server is authoritative for the actual colors).
 - `components/` — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
   drag-to-swap, colored tiles — reuse the TinySpy keycard color tokens),
-  `SwapCounter`, `SetupForm` (timer + the extra-swaps difficulty knob), `Help`,
-  and the shared `common/components/OpponentStrip` for compete (a `metricFor`
-  returning swaps-used + a ✓/✗ mark — the same strip freebee/wordknit/psychicnum
-  use, differing only in the metric cell).
+  `SwapLog` (the coop move log, "Swap #N — name · A (A1) ↔ B (C2)", letters
+  prominent + coordinates small/light; coop only, shown during and after the
+  game), `SetupForm` (timer + the extra-swaps difficulty knob), `Help`, and the
+  shared `common/components/OpponentStrip` for compete (a `metricFor` returning
+  swaps-used + a ✓/✗ mark — the same strip freebee/wordknit/psychicnum use,
+  differing only in the metric cell).
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (wordknit's peer-selection trick) is a nice-to-have —

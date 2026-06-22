@@ -16,7 +16,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(14);
+select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -108,6 +108,14 @@ select is(
       and user_id = 'bea22222-2222-2222-2222-222222222222')::text,
   'abcdef.g.hijklmn.o.pqrstu',
   'post-terminal: the opponent board is revealed');
+
+-- Compete never writes the move log (it's coop-only; a swap sequence
+-- would leak an opponent's hidden board).
+reset role;
+select is(
+  (select count(*) from waffle.swaps where game_id = (select id from g)),
+  0::bigint,
+  'compete writes no swap-log rows (4 swaps happened, none logged)');
 
 select * from finish();
 rollback;

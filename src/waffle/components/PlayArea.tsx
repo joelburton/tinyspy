@@ -6,6 +6,7 @@ import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
+import { SwapLog } from './SwapLog'
 import { WaffleGrid } from './WaffleGrid'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -34,7 +35,7 @@ export function PlayArea({
   goToClub,
   menu,
 }: GamePageCtx) {
-  const { game, players: playerStates, loading } = useGame(gameId)
+  const { game, players: playerStates, swaps, loading } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   // ─── End-game action (per-game menu item) ──────────────
@@ -166,12 +167,12 @@ export function PlayArea({
                   const ps = playerStates.find(
                     (p) => p.user_id === player.user_id,
                   )
-                  const swaps = ps?.swaps_used ?? 0
+                  const used = ps?.swaps_used ?? 0
                   const solved = ps?.solved ?? false
-                  const out = !solved && swaps >= game.max_swaps
+                  const out = !solved && used >= game.max_swaps
                   return (
                     <>
-                      {swaps}
+                      {used}
                       {solved ? ' ✓' : out ? ' ✗' : ''}
                     </>
                   )
@@ -188,6 +189,11 @@ export function PlayArea({
             )}
           </>
         )}
+
+        {/* The shared move log — coop only (compete writes none, and a
+            swap sequence would leak an opponent's hidden board). Visible
+            both during play and after the game. */}
+        {!isCompete && <SwapLog swaps={swaps} players={members} />}
       </div>
 
       {showModal && over && (

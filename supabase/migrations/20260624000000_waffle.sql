@@ -288,10 +288,56 @@ create policy players_select on waffle.players
     )
   );
 
+-- ============================================================
+-- waffle.swaps — the per-swap move log (coop only)
+-- ============================================================
+-- One row per swap, the shared move history other games keep (cf.
+-- psychicnum.guesses, wordknit's guess log). Written ONLY in coop:
+-- there the board is shared and public, so the whole log is club-
+-- readable and the FE renders it during and after the game. Compete
+-- never writes here — an opponent's swap sequence would leak the
+-- deductions their hidden board is meant to protect — and the FE hides
+-- the log in compete anyway.
+--
+-- `swap_index` is the coop shared swap count after the move (1-based),
+-- which the games-row `for update` lock in submit_swap keeps sequential
+-- and collision-free. `letter_a` / `letter_b` are the letters that sat
+-- on `pos_a` / `pos_b` *before* the swap — stored (not derived) so the
+-- log is self-contained as the board moves on.
+create table waffle.swaps (
+  game_id    uuid not null references waffle.games(id) on delete cascade,
+  user_id    uuid not null references common.profiles(user_id) on delete cascade,
+  swap_index int  not null,          -- 1-based ordinal within the game
+  pos_a      int  not null,          -- 0..24
+  pos_b      int  not null,          -- 0..24
+  letter_a   char(1) not null,       -- letter on pos_a before the swap
+  letter_b   char(1) not null,       -- letter on pos_b before the swap
+  created_at timestamptz not null default now(),
+  primary key (game_id, swap_index)
+);
+
+create index waffle_swaps_game_id_idx on waffle.swaps (game_id);
+
+-- No hidden columns (coop board is shared), so the FE reads the table
+-- directly rather than through a security_invoker view.
+grant select on waffle.swaps to authenticated;
+
+alter table waffle.swaps enable row level security;
+create policy swaps_select on waffle.swaps
+  for select to authenticated
+  using (
+    exists (
+      select 1 from waffle.games g
+       where g.id = swaps.game_id
+         and common.is_club_member(g.club_handle)
+    )
+  );
+
 -- Realtime: coop sees the shared board update live; the in-game
--- subscription is on waffle.{games, players}.
+-- subscription is on waffle.{games, players, swaps}.
 alter publication supabase_realtime add table waffle.games;
 alter publication supabase_realtime add table waffle.players;
+alter publication supabase_realtime add table waffle.swaps;
 
 -- ============================================================
 -- Hidden-answer helpers (SECURITY DEFINER) + read views
@@ -609,6 +655,14 @@ begin
            solved     = did_solve,
            solved_at  = case when did_solve then now() else solved_at end
      where game_id = target_game;
+
+    -- Append to the shared move log. Coop only; the letters are read
+    -- from the PRE-swap board (p_board) so the entry is self-contained.
+    insert into waffle.swaps
+      (game_id, user_id, swap_index, pos_a, pos_b, letter_a, letter_b)
+    values
+      (target_game, caller_id, new_swaps, pos_a, pos_b,
+       substr(p_board, a1, 1), substr(p_board, b1, 1));
 
     if did_solve then
       term_state := 'won';
