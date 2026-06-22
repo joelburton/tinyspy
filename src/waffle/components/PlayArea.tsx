@@ -14,8 +14,8 @@ import '../theme.css'
 /**
  * SyrupSwap's play surface, shared by the coop and compete manifests.
  * Renders the caller's board with live color feedback, a swap counter
- * (used/budget/remaining + the puzzle's par), (compete) an
- * opponent-progress strip, and the terminal verdict +
+ * (used/budget/remaining + the puzzle's par), (coop) the shared swap
+ * log, (compete) an opponent-progress strip, and the terminal verdict +
  * solution reveal. Mode is read from `game.mode`.
  *
  * Moves go through `waffle.submit_swap`; board/colors update via the
