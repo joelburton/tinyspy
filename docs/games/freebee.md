@@ -170,6 +170,22 @@ To build a board, the edge function:
 3. Reads candidate words via `freebee.candidate_words(puzzle_mask, center_bit)` — a small SQL helper that pushes the bitmask intersection server-side (see [Why a SQL helper for candidate_words?](#why-a-sql-helper-for-candidate_words) below).
 4. Optionally rejects if it shares >4 letters with the club's previous board (the diverse-builder overlap cap).
 
+### Planned: per-player difficulty, and why seeds qualify at the floor (Option B)
+
+**Decided, not yet built.** Today the required/legal difficulty thresholds are locked (50 / 70). A planned feature lets players choose them per game — a basic player might pick 35 / 50, an advanced player 70 / 85 (smaller list / larger list).
+
+The decision for how the seed pool copes with that: **qualify every seed at the lowest difficulty we offer (currently 35), and never per-level.** A seed earns a row in `pangrams` only if, evaluated at difficulty ≤ 35, it has (1) **at least one pangram** and (2) **≥ 30 required words**.
+
+This works because the difficulty lists are **nested** — a higher threshold only ever *adds* words. So a seed that clears both gates at the floor clears them at every higher level automatically (word counts only rise; the floor's pangram is still present). One row per seed covers every player.
+
+Two payoffs, both deliberate:
+- **Every board has a common, findable pangram for everyone.** Anchoring the pangram at the floor avoids serving an obscure-only pangram (e.g. CALDRON) that even an advanced player would rather not have to dredge up — finding the pangram is core to the fun.
+- **No thin boards**, ever. The `≥ 30` is a baked-in quality floor, *not* a player knob — we never ask "how many words do you want," we just refuse a sparse board.
+
+What this costs: seeds whose *only* pangram is above the floor are excluded. That's intentional — those are exactly the obscure-pangram boards we don't want to serve. The seed's letters aren't made "easy" by floor-qualifying; an advanced player on a floor-safe seed still gets every harder word their larger list admits, layered on top.
+
+So the `pangrams` table **stays one row per seed**; its stored `required_words_count` is the *floor* (≤ 35) count, used only as the seed-selection gate. It is a deliberately pessimistic prediction: when a player picks a harder list, the real board (recounted at build time against their chosen levels) will have **at least** that many required words and pangrams. The only change this implies whenever it's built is the qualifier moving from "pangram can be anything, count at 50" to "pangram exists at ≤ 35, ≥ 30 words at ≤ 35" — structurally the table is unchanged.
+
 ### Why a SQL helper for `candidate_words`?
 
 [`freebee.candidate_words(puzzle_mask, center_bit)`](../../supabase/migrations/20260617000000_freebee.sql) is a tiny `stable` `security invoker` function returning `(word, letter_mask, in_scoring)` for every `common.words` row in freebee's legal tier (difficulty ≤ 70, american OR british, len ≥ 4) whose mask is a subset of `puzzle_mask` and contains `center_bit`. `in_scoring` (= difficulty ≤ 50 AND NOT slur) is computed in the SELECT — this is the single place freebee's slice of the shared list is defined.
