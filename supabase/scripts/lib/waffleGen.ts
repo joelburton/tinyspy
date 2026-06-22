@@ -20,7 +20,29 @@ export const PAR_MAX = 11
 /** Reject boards with any letter repeated more than this (keeps the
  *  color feedback crisp). */
 const MAX_LETTER_FREQ = 5
-const SCRAMBLE_TRIES = 400
+const SCRAMBLE_TRIES = 2000
+
+/**
+ * Cells locked green (already correct) in every starting board — the
+ * four corners and the center: cells 0, 4, 20, 24, and 12. This mirrors
+ * the real Waffle, whose daily boards always anchor exactly these five
+ * (per the arXiv analysis of 1000+ archived games). The anchors give a
+ * solver an immediate foothold; we keep them by simply never moving
+ * those tiles when scrambling.
+ */
+export const ANCHORS: readonly number[] = [0, 4, 12, 20, 24]
+
+/** The 16 filled cells we actually permute (everything but the anchors). */
+const SCRAMBLE_CELLS = FILLED.filter((c) => !ANCHORS.includes(c))
+
+/**
+ * Total green (already-correct) cells a starting board may show. The
+ * real Waffle keeps 5–8 greens so a board is "not too hard or easy."
+ * The 5 anchors are always green, so this caps the *incidental* greens
+ * among the scrambled cells at 3.
+ */
+export const GREENS_MIN = 5
+export const GREENS_MAX = 8
 
 export type WordRow = { word: string; difficulty: number }
 export type WafflePuzzle = {
@@ -60,14 +82,20 @@ export function makeScramble(
   for (let t = 0; t < SCRAMBLE_TRIES; t++) {
     const arr = solution.split('')
     const n = PAR_MIN + Math.floor(Math.random() * (PAR_MAX - PAR_MIN + 4))
+    // Only ever swap non-anchor cells, so the corners + center stay green.
     for (let s = 0; s < n; s++) {
-      const i = pick(FILLED)
-      let j = pick(FILLED)
-      while (j === i) j = pick(FILLED)
+      const i = pick(SCRAMBLE_CELLS)
+      let j = pick(SCRAMBLE_CELLS)
+      while (j === i) j = pick(SCRAMBLE_CELLS)
       ;[arr[i], arr[j]] = [arr[j], arr[i]]
     }
     const scramble = arr.join('')
     if (scramble === solution) continue
+    // Green = a cell already in its solved spot. Anchors are green by
+    // construction (never moved); enforce the 5–8 total convention,
+    // which here just caps the incidental greens among scrambled cells.
+    const greens = FILLED.filter((c) => scramble[c] === solution[c]).length
+    if (greens < GREENS_MIN || greens > GREENS_MAX) continue
     const par = minSwaps(scramble, solution)
     if (par >= PAR_MIN && par <= PAR_MAX) return { scramble, par }
   }

@@ -217,10 +217,16 @@ set is reviewable + stable in git. ~5k puzzles ≈ 300 KB raw / ~100 KB gzipped.
    words are three O(1) bucket lookups against patterns `a0[0]_a2[0]_a4[0]`,
    `a0[2]_a2[2]_a4[2]`, `a0[4]_a2[4]_a4[4]`. All three non-empty → a valid waffle.
    Dedupe by solution; require all 6 words distinct.
-3. **Scramble + par.** Permute the 21 solution letters into a mostly-wrong
-   arrangement; compute `par_swaps` = min transpositions to solve. With duplicate
-   letters this is "min swaps to sort with dupes" — pick the same-letter→position
-   assignment that **maximizes cycles** (`swaps = positions − cycles`). Keep only
+3. **Scramble + par.** Permute the solution letters into a mostly-wrong
+   arrangement, then compute `par_swaps` = min transpositions to solve. With
+   duplicate letters this is "min swaps to sort with dupes" — pick the
+   same-letter→position assignment that **maximizes cycles**
+   (`swaps = positions − cycles`); a left-to-right greedy over-counts here, so
+   `minSwaps` does the exact max-cycle decomposition. Two real-Waffle
+   conventions shape the scramble (see the arXiv analysis of 1000+ archived
+   boards): the **four corners + center are always left green** (cells
+   `0,4,20,24,12` — `ANCHORS`; we only ever swap the other 16), and the board
+   shows **5–8 total greens** (the 5 anchors plus ≤3 incidental). Keep only
    scrambles whose par lands in a band (≈ 9–11).
 4. **Quality filters** (light): reject a down word equal to an across word; cap
    total letter repetition so colors stay informative.
