@@ -116,6 +116,23 @@ export function PlayArea({
     ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
     : null
 
+  // Swaps-made / budget / remaining + par. Shown both mid-game and at
+  // game-over (where it's the final tally), so it lives in one place.
+  const swapStats = (
+    <>
+      <p>
+        Swaps:{' '}
+        <strong>
+          {swapsUsed}/{game.max_swaps}
+        </strong>{' '}
+        ({remaining} remaining)
+      </p>
+      <p>
+        Par: <strong>{game.par_swaps}</strong>
+      </p>
+    </>
+  )
+
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
@@ -133,6 +150,7 @@ export function PlayArea({
             <span>
               <span className="muted">Game over:</span> {over.status}
             </span>
+            {isPlayer && <div className="muted">{swapStats}</div>}
             {game.solution && <SolutionReveal solution={game.solution} />}
             <button type="button" className="secondary" onClick={goToClub}>
               Back to club
@@ -163,13 +181,7 @@ export function PlayArea({
             {isPlayer ? (
               <div className="muted">
                 <p>Tap two tiles to swap them.</p>
-                <p>
-                  Swaps: <strong>{swapsUsed}/{game.max_swaps}</strong> (
-                  {remaining} remaining)
-                </p>
-                <p>
-                  Par: <strong>{game.par_swaps}</strong>
-                </p>
+                {swapStats}
               </div>
             ) : (
               <p className="muted">Watching — you're not in this game.</p>
