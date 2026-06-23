@@ -80,12 +80,12 @@
   display: block;
   /* Auto-fit, same idea as .tileWord — `--len` is the name's char count
    * (set inline by CategoryBands), 100cqi is the band's inner width. */
-  font-size: clamp(1.3rem, calc(100cqi / (var(--len) * 0.62)), 2rem);
-  margin-bottom: 0.2rem;
+  font-size: clamp(1.15rem, calc(100cqi / (var(--len) * 0.72)), 1.7rem);
+  margin-bottom: 0.25rem;
 }
 
 .bandMembers {
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   letter-spacing: 0.02em;
 }
 
@@ -142,7 +142,7 @@
  * uppercase + letter-spacing. Clamped so short words don't get cartoonish
  * and long ones on a narrow window stay legible. */
 .tileWord {
-  font-size: clamp(1.2rem, calc(100cqi / (var(--len) * 0.8)), 2.3rem);
+  font-size: clamp(1rem, calc(100cqi / (var(--len) * 0.94)), 1.95rem);
   line-height: 1.1;
 }
 
