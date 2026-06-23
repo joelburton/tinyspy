@@ -47,9 +47,16 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, feedback])
 
-  // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). Flag it so the
-  // announcement reads it as a dump, not a peel — only the dumper's own tiles
-  // change (a peel changes everyone's), so this never races a real peel here.
+  // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so
+  // the announcement below reads the next growth as a dump rather than a peel.
+  // This is best-effort, NOT race-free: a peel deals a tile to *every* player,
+  // so if a peer peels in the window between this RPC firing and its `tiles`
+  // echo landing, the peel's growth trips the flag first and the dump/peel
+  // toasts get swapped. Accepted as cosmetic — a wrong 2.5s toast, never a
+  // state effect (the tile multiset is always correct) — under the friends-only
+  // trust model. A truly race-free version would need dump/peel (both `returns
+  // void` today) to return their draw counts so the FE announces from the RPC
+  // response instead of inferring from realtime `tiles` growth.
   const dumpPending = useRef(false)
   const dump = useCallback(
     async (tile: string) => {
