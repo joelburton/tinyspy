@@ -5,12 +5,13 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { channelDedupSuffix } from '../lib/channelDedup'
+import { useChatMenuShortcuts } from '../hooks/useChatMenuShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { EditClubDialog } from './EditClubDialog'
-import { Menu } from './Menu'
+import { Menu, type MenuHandle } from './Menu'
 import { PupgamesLogo } from './PupgamesLogo'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
@@ -100,6 +101,13 @@ export function ClubPage({ handle, session }: Props) {
   // pass `null` for our own location — we're in the club room, not a
   // game. Drives the member-strip dots + the abandoned-game heal.
   const presence = useClubPresence(handle, null, selfUserId)
+
+  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens the club
+  // menu. Same hook the GamePage uses. Declared above the loading early
+  // returns so the hook order stays stable.
+  const menuRef = useRef<MenuHandle>(null)
+  useChatMenuShortcuts(useCallback(() => menuRef.current?.open(), []))
+
   const presentUserIds = useMemo(
     () => new Set(presence.map((e) => e.userId)),
     [presence],
@@ -565,6 +573,7 @@ export function ClubPage({ handle, session }: Props) {
     <div className={styles.frame}>
       <header className={styles.header}>
         <Menu
+          ref={menuRef}
           trigger={<PupgamesLogo />}
           sections={menuSections}
           triggerLabel="Club menu"

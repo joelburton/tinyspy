@@ -126,6 +126,9 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
         <input
           ref={inputRef}
           type="text"
+          // Marks this as the chat box so the "/" shortcut can focus it.
+          // NOT data-game-input — typing "/" here inserts a literal slash.
+          data-chat-input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message and press Enter…"

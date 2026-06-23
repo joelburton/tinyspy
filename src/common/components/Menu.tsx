@@ -1,7 +1,9 @@
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type KeyboardEvent,
@@ -10,6 +12,11 @@ import {
 import { cls } from '../lib/cls'
 import type { MenuItem, MenuSection } from '../lib/games'
 import styles from './Menu.module.css'
+
+/** Imperative handle exposed via `ref` so an app-level shortcut (the
+ *  "?" key — see useChatMenuShortcuts) can open the menu without owning
+ *  its internal open state. */
+export type MenuHandle = { open: () => void }
 
 type Props = {
   /** The clickable element that opens the menu. Wrapped by
@@ -69,13 +76,13 @@ type Props = {
  * a menu click can open one; below the 10000-tier chat panel so
  * chat stays available for "what does this option do?" Q&A).
  */
-export function Menu({
+export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   trigger,
   sections,
   triggerLabel = 'Menu',
   triggerClassName,
   popoverAlign = 'left',
-}: Props) {
+}, ref) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -112,6 +119,11 @@ export function Menu({
     setFocusedIndex(Math.max(0, firstEnabled))
     setOpen(true)
   }, [flatItems])
+
+  // Let an app-level shortcut open the menu (the "?" key). Only `open`
+  // is exposed — closing stays owned by the menu (Esc, click-outside,
+  // item activation), matching how a user dismisses it.
+  useImperativeHandle(ref, () => ({ open: openMenu }), [openMenu])
 
   function activate(item: MenuItem) {
     if (item.disabled) return
@@ -257,7 +269,7 @@ export function Menu({
       )}
     </div>
   )
-}
+})
 
 /** Find the next enabled item in `direction` (1 = forward,
  *  -1 = backward), wrapping at the ends. Returns `current` if

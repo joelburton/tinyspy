@@ -17,6 +17,7 @@ import type {
   MenuItem,
   MenuSection,
 } from '../lib/games'
+import { useChatMenuShortcuts } from '../hooks/useChatMenuShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
@@ -24,7 +25,7 @@ import { navigate } from '../lib/router'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { GameLogo } from './GameLogo'
-import { Menu } from './Menu'
+import { Menu, type MenuHandle } from './Menu'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from './PauseButton'
 import { StatusSlot } from './StatusSlot'
@@ -183,6 +184,10 @@ export function GamePage({
     })
   }, [timer.expired, paused, commonGame, gameId, gametype])
 
+  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu.
+  const menuRef = useRef<MenuHandle>(null)
+  useChatMenuShortcuts(useCallback(() => menuRef.current?.open(), []))
+
   // Auto-clear `timed`-dismiss feedback after the configured
   // duration (default 2200ms). Sticky and closeable modes are
   // explicit no-ops at this layer.
@@ -281,6 +286,7 @@ export function GamePage({
       <header className={styles.header}>
         <div className={styles.left}>
           <Menu
+            ref={menuRef}
             trigger={<GameLogo gametype={gametype} />}
             sections={sections}
             triggerLabel="Game menu"

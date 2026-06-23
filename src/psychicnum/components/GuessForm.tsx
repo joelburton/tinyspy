@@ -78,6 +78,8 @@ export function GuessForm({ gameId }: Props) {
           max={10}
           value={entry}
           onChange={(e) => setEntry(e.target.value)}
+          // Game input: "/" and "?" still open chat / menu while typing here.
+          data-game-input
           autoFocus
           disabled={submitting}
         />

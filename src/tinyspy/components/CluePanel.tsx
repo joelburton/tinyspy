@@ -234,6 +234,8 @@ function ClueForm({
           disabled={eitherBusy}
           required
           className={styles.countInput}
+          // Game input: "/" and "?" still open chat / menu while typing here.
+          data-game-input
           autoFocus
         />
         <input
@@ -244,6 +246,7 @@ function ClueForm({
           disabled={eitherBusy}
           required
           className={styles.wordInput}
+          data-game-input
         />
         {/* Up-arrow (the same "peer" marker the board uses) — points toward the
             partner, reading as "send this to them." */}
