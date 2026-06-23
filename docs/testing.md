@@ -131,11 +131,11 @@ The four we use most:
 | `select plan(N)` | I expect to run N assertions. pgTAP reports a parse error if I run a different number — this catches dropped/extra assertions. |
 | `select is(actual, expected, description)` | `actual = expected` (with proper NULL handling). The everyday assertion. |
 | `select ok(boolean, description)` | The argument is true. Use when there's no obvious "expected value." |
-| `select throws_ok($$ <sql> $$, sqlstate, message_substring, description)` | The wrapped SQL raises an exception matching the SQLSTATE and (optionally) message substring. Use `null` for the message to match any. |
+| `select throws_ok($$ <sql> $$, sqlstate, message, description)` | The wrapped SQL raises an exception matching the SQLSTATE and (optionally) the message. Use `null` for the message to match any. **The message is matched EXACTLY**, not as a substring — pass the full string including any interpolated `(got X)` suffix, or use `null` to assert on the code alone. For partial matching use `throws_like` (SQL `LIKE` pattern) or `throws_matching` (regex). |
 | `select lives_ok($$ <sql> $$, description)` | The wrapped SQL doesn't raise. The "no error" partner of `throws_ok`. |
 | `select * from finish()` | Emit the closing TAP plan footer. Always at the end, just before `rollback`. |
 
-The pattern of `throws_ok($$ <sql> $$, 'P0001', 'must contain alphanumerics', '<test name>')` reads naturally: "running this SQL throws SQLSTATE P0001 with a message containing the substring."
+The pattern of `throws_ok($$ <sql> $$, 'P0001', 'guess must be 5 letters', '<test name>')` reads naturally: "running this SQL throws SQLSTATE P0001 with exactly that message." When the message carries an interpolated value you don't want to pin, drop to `null` (code-only) or `throws_like`.
 
 ### SQLSTATE conventions
 
@@ -147,7 +147,7 @@ Our RPCs raise three SQLSTATEs:
 | `P0001` | `raise_exception` (custom) | rule violation in the body — wrong phase, bad input, business-logic reject |
 | `P0002` | `no_data` | row not found (game doesn't exist, etc.) |
 
-Tests assert on the code, not the wording. The exact error string is described in `throws_ok`'s third parameter as a *substring match* so we can tighten it when we genuinely want to lock down the message and stay loose otherwise.
+Tests usually assert on the code, not the wording. When a test *does* pin the message (e.g. to prove which of several `P0001` branches fired — see `waffle/validation_test.sql`), remember the match is exact: pass the full string, or stay loose with `null` / `throws_like`.
 
 ## Per-gametype test setup (future)
 
