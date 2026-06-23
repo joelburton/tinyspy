@@ -20,11 +20,16 @@ import { wordleCoopGame, wordleCompeteGame } from './wordle/manifest'
  * The single source of truth for which games this monorepo includes.
  *
  * Adding a game = create `src/<game>/` and add its manifest import +
- * registry entry here. Removing a game = delete the folder, delete the
- * line(s) below, drop its Postgres schema. Nothing else in the
- * codebase names a specific game directly (the shell iterates this
- * list; common code stays generic; each game lives in its own folder
- * + schema).
+ * registry entry here. **Also add the game's schema to
+ * `supabase/config.toml`'s `[api] schemas`** (PostgREST only serves
+ * listed schemas; a missing one makes every request fail with
+ * `Invalid schema: <game>`) — and restart the stack so PostgREST
+ * re-reads it (`supabase stop && supabase start`; a `db reset` does
+ * NOT re-read `[api]`). `src/schemaExposure.e2e.test.ts` guards this.
+ * Removing a game = delete the folder, delete the line(s) below, drop
+ * its Postgres schema. Nothing else in the codebase names a specific
+ * game directly (the shell iterates this list; common code stays
+ * generic; each game lives in its own folder + schema).
  *
  * **Variants** — a single game folder/schema can export multiple
  * manifest entries (e.g. psychicnum exports both a coop and a compete
