@@ -31,19 +31,20 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       <fieldset className={styles.fieldset}>
         <legend>Word difficulty</legend>
         <p className="muted">Which vocabulary the puzzle's words come from.</p>
-        <div className={styles.radioRow}>
+        <select
+          className={styles.select}
+          name="difficulty"
+          value={s.difficulty}
+          onChange={(e) =>
+            onChange({ ...s, difficulty: Number(e.target.value) })
+          }
+        >
           {DIFFICULTY_OPTIONS.map((opt) => (
-            <label key={opt.value} className={styles.radio}>
-              <input
-                type="radio"
-                name="difficulty"
-                checked={s.difficulty === opt.value}
-                onChange={() => onChange({ ...s, difficulty: opt.value })}
-              />
-              {opt.label}
-            </label>
+            <option key={opt.value} value={opt.value}>
+              {opt.value}: {opt.label}
+            </option>
           ))}
-        </div>
+        </select>
       </fieldset>
       <fieldset className={styles.fieldset}>
         <legend>Swap budget</legend>
