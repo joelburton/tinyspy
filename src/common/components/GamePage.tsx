@@ -161,6 +161,13 @@ export function GamePage({
   const submittedTimeoutRef = useRef(false)
   useEffect(function fireTimeoutOnExpiry() {
     if (!timer.expired) return
+    // No moves while paused — including this one. In practice the timer
+    // freezes `ticks` on pause so `expired` can't flip true mid-pause,
+    // but gating here makes "the play surface accepts no moves while
+    // paused" hold for the timeout path too, without leaning on the
+    // timer hook's internals. A timeout that comes due exactly as a
+    // pause engages defers and resolves on resume (expired stays true).
+    if (paused) return
     if (submittedTimeoutRef.current) return
     if (!commonGame || commonGame.ended_at !== null) return
     submittedTimeoutRef.current = true
@@ -174,7 +181,7 @@ export function GamePage({
         console.error('submitTimeout failed', result.error)
       }
     })
-  }, [timer.expired, commonGame, gameId, gametype])
+  }, [timer.expired, paused, commonGame, gameId, gametype])
 
   // Auto-clear `timed`-dismiss feedback after the configured
   // duration (default 2200ms). Sticky and closeable modes are
