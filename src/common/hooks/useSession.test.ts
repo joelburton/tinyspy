@@ -200,6 +200,57 @@ describe('useSession', () => {
     warnSpy.mockRestore()
   })
 
+  it('signs out when getUser fails WITHOUT a clean 4xx status (the strand regression)', async () => {
+    // The real stale-session errors don't always carry a 4xx `status`:
+    // an expired token whose refresh fails surfaces as a session-missing
+    // / auth error, sometimes with `status` undefined. The previous
+    // 4xx-status-only check let those slip through to the permissive
+    // branch, stranding the user on ClaimHandleScreen with no recovery.
+    // Any non-transient getUser failure must now sign out.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: Object.assign(new Error('Auth session missing!'), {
+        name: 'AuthSessionMissingError',
+        // no `status` — the exact shape the old check mis-read as transient
+      }),
+    })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockSignOut).toHaveBeenCalledTimes(1)
+    expect(result.current.session).toBeNull()
+    expect(result.current.needsClaim).toBe(false)
+    expect(mockMaybeSingle).not.toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('still trusts the stored session on a retryable network error (no signOut)', async () => {
+    // A genuine connectivity blip — keep them signed in, don't boot on a
+    // hiccup. This is the one error class that stays permissive.
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: Object.assign(new Error('Failed to fetch'), {
+        name: 'AuthRetryableFetchError',
+      }),
+    })
+
+    const { result } = renderHook(() => useSession())
+    await act(async () => {
+      await authCb?.('INITIAL_SESSION', fakeSession)
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(mockSignOut).not.toHaveBeenCalled()
+    expect(result.current.session).toBe(fakeSession)
+    warnSpy.mockRestore()
+  })
+
   it('clears state on a SIGNED_OUT event without re-querying the profile', async () => {
     const { result } = renderHook(() => useSession())
 

@@ -149,6 +149,23 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
           {busy ? 'Claiming…' : 'Claim username'}
         </button>
       </form>
+
+      {/* Always-available escape. A user can land here on a stale session
+          (e.g. the DB was reset out from under them) and not want — or be
+          able — to claim anything; without a way out they're stuck on this
+          screen, since the rest of the app's chrome (UserMenu) isn't
+          mounted behind the needsClaim gate. Signing out drops them to
+          LoginScreen so they can authenticate fresh. */}
+      <p className="home-footer">
+        <button
+          type="button"
+          className="link-button"
+          disabled={busy}
+          onClick={() => void supabase.auth.signOut()}
+        >
+          Not you? Sign out
+        </button>
+      </p>
     </div>
   )
 }

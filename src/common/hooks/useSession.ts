@@ -30,12 +30,16 @@ import { db } from '../db'
  * is still in localStorage, OR a user was deleted from auth.users
  * in prod while their tab was open): handled upfront via
  * `supabase.auth.getUser()`, which makes a server round-trip that
- * validates the JWT against auth.users. A 4xx response means the
- * user is gone — we sign out so the next render falls back to
- * LoginScreen rather than routing to ClaimHandleScreen (the
- * previous behavior was "ask them to pick a username, fail with
- * 23503 on submit," which surfaces the orphan state as a
- * confusing error rather than a clean restart).
+ * validates the JWT against auth.users. Any non-transient failure
+ * (the user is gone, the token/refresh is invalid, the session is
+ * missing) means we sign out so the next render falls back to
+ * LoginScreen rather than routing to ClaimHandleScreen (the previous
+ * behavior was "ask them to pick a username, fail with 23503 on
+ * submit," which surfaces the orphan state as a confusing error
+ * rather than a clean restart). See the inline note on what counts as
+ * transient (and thus permissive). As a last-resort safety net,
+ * ClaimHandleScreen itself also offers a sign-out, so a user can
+ * never get fully stuck there.
  */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
@@ -75,12 +79,28 @@ export function useSession() {
       const { data: userRes, error: userErr } = await supabase.auth.getUser()
       if (!mountedRef.value) return
       if (userErr) {
+        // Default to SIGNING OUT on any getUser failure — only a
+        // genuinely transient error keeps us on the stored session.
+        // "Transient" = a retryable network error, or a 5xx (Supabase
+        // reachable but the response unusable); those get the permissive
+        // friends-alpha treatment so a hiccup doesn't boot everyone.
+        // EVERYTHING ELSE means the JWT is no good — expired, or the user
+        // was deleted by db:reset / admin — so we sign out and the app
+        // falls back to LoginScreen.
+        //
+        // This used to gate only on a clean 4xx STATUS, but the real
+        // errors don't always carry one: an expired token's failed
+        // refresh surfaces as AuthSessionMissingError, and other shapes
+        // arrive with `status` undefined — all of which slipped through
+        // to the permissive branch and stranded the user on
+        // ClaimHandleScreen. Inverting the default (sign out unless
+        // provably transient) closes that gap.
         const status = (userErr as { status?: number }).status
-        if (status !== undefined && status >= 400 && status < 500) {
-          console.warn(
-            'stored session refers to a missing user — signing out',
-            userErr,
-          )
+        const transient =
+          userErr.name === 'AuthRetryableFetchError' ||
+          (status !== undefined && status >= 500)
+        if (!transient) {
+          console.warn('stored session is invalid — signing out', userErr)
           await supabase.auth.signOut()
           if (!mountedRef.value) return
           setSession(null)
@@ -88,7 +108,7 @@ export function useSession() {
           setLoading(false)
           return
         }
-        // Transient (5xx / network). Log and proceed permissively.
+        // Transient (5xx / retryable network). Log and proceed permissively.
         console.warn('auth.getUser() failed transiently; trusting stored session', userErr)
       } else if (userRes.user === null) {
         // Defensive: 200 with `user: null` shouldn't happen per
