@@ -40,7 +40,7 @@
 .empty {
   padding: 48px 16px;
   text-align: center;
-  color: var(--color-muted, #888);
+  color: var(--color-muted);
   grid-column: 1 / -1;
 }
 

@@ -22,5 +22,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // cssTokens.test.ts is a node/filesystem meta-test — it's type-checked
+  // under tsconfig.node.json (which has node types) so the app project
+  // stays browser-only and app code still can't import `fs` by accident.
+  "exclude": ["src/cssTokens.test.ts"]
 }

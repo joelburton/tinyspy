@@ -38,7 +38,7 @@
   padding: 0.15rem 0.25rem;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--color-text, inherit);
+  color: var(--color-text);
 }
 
 .word:hover {

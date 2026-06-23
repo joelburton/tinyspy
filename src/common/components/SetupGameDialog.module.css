@@ -54,7 +54,7 @@
 .playerHint {
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
-  color: var(--color-danger, #c0392b);
+  color: var(--color-error);
 }
 
 /* The "(you)" marker on the creator's row — they can't deselect

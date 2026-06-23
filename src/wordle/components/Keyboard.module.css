@@ -23,8 +23,8 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--color-text, #1a1a1b);
-  background: var(--wordle-key-bg, #d3d6da);
+  color: var(--color-text);
+  background: var(--wordle-key-bg);
   /* Override the global button hover/accent treatment. */
   transition: filter 0.1s ease;
 }

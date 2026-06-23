@@ -30,7 +30,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-muted, #888);
+  color: var(--color-muted);
 }
 
 .value {
@@ -43,5 +43,5 @@
 .muted {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-muted, #888);
+  color: var(--color-muted);
 }

@@ -67,7 +67,7 @@
 }
 
 .dot:focus-visible {
-  outline: 2px solid var(--color-accent, #1e6df0);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 

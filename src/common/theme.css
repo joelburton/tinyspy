@@ -113,6 +113,7 @@
   --color-member-pink:   #c2185b;
 
   /* Radii. */
+  --radius-sm:                4px;   /* small chips, tiles, hint pills */
   --radius-md:                6px;   /* buttons, inputs, panels */
   --radius-lg:                8px;   /* cards, modals */
 

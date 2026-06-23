@@ -59,8 +59,8 @@
   background: var(--wordle-gray);
 }
 .blank {
-  background: var(--wordle-key-bg, #d3d6da);
-  color: var(--color-text, #1a1a1b);
+  background: var(--wordle-key-bg);
+  color: var(--color-text);
 }
 
 .who {

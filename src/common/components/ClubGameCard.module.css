@@ -84,7 +84,7 @@
 /* Active: this is the game the user is in right now. Bigger
  * title, accent border for prominence in the page. */
 .active {
-  border-color: var(--color-accent, var(--color-text));
+  border-color: var(--color-accent);
   border-width: 2px;
   padding: 1rem 1.25rem;
 }
