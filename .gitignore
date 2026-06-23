@@ -50,3 +50,8 @@ import-to-hosted.sh
 # not part of the real app and not committed (see docs/games/monkeygram.md).
 /monkeygram-ui/
 waffle-samples.txt
+
+# StackDown board-gen + UI prototype — standalone throwaway, kept on disk
+# but deliberately not committed. The real game (pre-generated board library
+# + the stackdown gametype) lands separately.
+/stackdown-proto/
