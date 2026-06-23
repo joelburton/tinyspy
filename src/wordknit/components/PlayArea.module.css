@@ -65,8 +65,10 @@
 .band {
   border-radius: var(--radius-md);
   /* Same height as a tile (see --wknit-tile-h); center the name + members
-   * in it now that the band is taller than its content. */
+   * in it now that the band is taller than its content. `container-type`
+   * so the name can auto-fit to the band width (see .band strong). */
   height: var(--wknit-tile-h);
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -76,12 +78,14 @@
 
 .band strong {
   display: block;
-  font-size: 0.95rem;
-  margin-bottom: 0.15rem;
+  /* Auto-fit, same idea as .tileWord — `--len` is the name's char count
+   * (set inline by CategoryBands), 100cqi is the band's inner width. */
+  font-size: clamp(1.3rem, calc(100cqi / (var(--len) * 0.62)), 2rem);
+  margin-bottom: 0.2rem;
 }
 
 .bandMembers {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   letter-spacing: 0.02em;
 }
 
@@ -114,20 +118,32 @@
   border: 1px solid var(--wordknit-tile-border);
   color: var(--wordknit-tile-text);
   border-radius: var(--radius-md);
-  /* The tile stretches to fill its (now taller) row; center the label
-   * in it. Light padding keeps text off the edges and gives a wrapped
-   * long word breathing room. Font grown to match the bigger tile. */
+  /* The tile stretches to fill its (now taller) row; center the label in
+   * it. Light padding keeps text off the edges. `container-type` makes the
+   * tile a query container so its label can auto-fit to the tile width
+   * (see .tileWord). */
+  container-type: inline-size;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 0.4rem 0.5rem;
   font-weight: 600;
-  font-size: 1.15rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background 0.1s ease;
+}
+
+/* Auto-fit heuristic: scale the label to roughly fill the tile width,
+ * shrinking for longer words so a 3-letter and an 8-letter word both read
+ * large without overflowing. `--len` is the word's char count (set inline
+ * by TileGrid); 100cqi is the tile's inner width; ~0.8 width-per-char for
+ * uppercase + letter-spacing. Clamped so short words don't get cartoonish
+ * and long ones on a narrow window stay legible. */
+.tileWord {
+  font-size: clamp(1.2rem, calc(100cqi / (var(--len) * 0.8)), 2.3rem);
+  line-height: 1.1;
 }
 
 .tile:hover:not(:disabled) {

@@ -90,7 +90,12 @@ export function TileGrid({
             }
             onClick={() => onToggle(tile)}
           >
-            {tile}
+            {/* --len drives the auto-fit font heuristic in CSS (.tileWord):
+                the label scales to fill the tile width, shrinking for
+                longer words. */}
+            <span className={styles.tileWord} style={{ ['--len' as string]: tile.length }}>
+              {tile}
+            </span>
           </button>
         )
       })}

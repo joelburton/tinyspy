@@ -47,7 +47,8 @@ export function CategoryBands({ matched, unmatched = [] }: Props) {
           <div
             key={mc.rank}
             className={styles.band}
-            style={{ background: RANK_TOKEN[mc.rank] }}
+            // --len drives the same auto-fit font heuristic the tiles use.
+            style={{ background: RANK_TOKEN[mc.rank], ['--len' as string]: mc.name.length }}
           >
             <strong>{mc.name}</strong>
             <div className={styles.bandMembers}>{mc.tiles.join(' · ')}</div>
@@ -58,7 +59,7 @@ export function CategoryBands({ matched, unmatched = [] }: Props) {
         <div
           key={c.rank}
           className={cls(styles.band, styles.bandRevealed)}
-          style={{ background: RANK_TOKEN[c.rank] }}
+          style={{ background: RANK_TOKEN[c.rank], ['--len' as string]: c.name.length }}
         >
           <strong>{c.name}</strong>
           <div className={styles.bandMembers}>{c.tiles.join(' · ')}</div>
