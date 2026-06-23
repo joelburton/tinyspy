@@ -207,11 +207,16 @@ The pattern is: **mock at the lowest layer that lets you write the test simply**
 
 A **deliberately narrow** Playwright suite (`e2e/`, `npm run test:e2e`) for the one surface Vitest and pgTAP structurally can't reach: **realtime presence / pause / multi-client behavior.** Those suites mock the Supabase client, so the realtime layer — exactly the part that has broken — is the part they never exercise. E2E runs two real browser contexts against the live local stack.
 
-**Scope boundary (intentional):** this is NOT for routine game logic — that stays in Vitest + pgTAP. E2E covers only the critical realtime areas, today three smoke tests:
+**Scope boundary (intentional):** this is NOT for routine game logic — that stays in Vitest + pgTAP. E2E covers only the surfaces that depend on the live stack — realtime/presence and the auth/session boot flow:
 
 - **member presence dots** — two clients in a club; a present member's dot fills, a leaving member's goes hollow.
 - **the abandoned-game heal** — a current game nobody's viewing gets its `is_current_view` cleared when the club page loads (the stuck-pointer bug).
 - **pause-on-disconnect** — two players in a game; one disconnects, the other's game pauses.
+- **the auth gate** — a stale/invalidated session lands on LoginScreen (not stranded on the username gate); a valid-but-unclaimed session gets the gate, with a working sign-out.
+
+(Plus a couple of game-specific realtime smokes — chat unread, monkeygram. The list is illustrative, not a contract; add to it only for the live-stack surfaces above.)
+
+**Reach for e2e EARLY when triaging an integration bug — not only as a regression guard after the fix.** When a bug lives in the live-stack layer (realtime, or the auth/session boot that depends on a real JWT in localStorage + `onAuthStateChange` + a real `getUser()` round-trip), a throwaway e2e that drives the *real* flow tells you what's actually broken faster than reasoning about it or reproducing in Node — where you're guessing at supabase-js internals and error shapes. Concretely: the "stuck on the username gate" bug ate an afternoon of Node repro scripts that kept showing the code *should* work; a 30-second e2e (sign in → delete the user → reload) would have shown immediately that the deleted-user path recovers fine, redirecting to the real cause (a valid session on the gate with no escape hatch). The fixtures already exist, so the cost of standing one up is low and the signal is the real thing, not a mock. Mocked unit tests are complementary — they can pin error shapes the real backend won't produce — but they're where a *clean* mock can quietly hide the messy reality (see `useSession.test.ts`).
 
 **How it works.** No magic-link flow: `e2e/helpers/fixtures.ts` creates confirmed users + claims usernames + builds clubs/games through the admin API and the same RPCs the app uses, then `e2e/helpers/session.ts` seeds each user's Supabase session into `localStorage` (key `sb-127-auth-token`, the local-URL default) *before* the app boots, so it loads already signed in. Two `browser.newContext()`s = two independent users in one test.
 
