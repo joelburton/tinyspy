@@ -59,10 +59,12 @@ type Props = {
  *     calls `setOpen(true)`. Users can close again immediately
  *     if they want; the next new `!` will reopen.
  *
- * Closing is intentionally explicit: only the header X button
- * closes the panel. ESC does NOT close it (`closeOnEsc=false`),
- * and there's no backdrop click semantics because there's no
- * backdrop.
+ * Closing: the header X button, or Escape (FloatingPanel's default
+ * `closeOnEsc`). There's no backdrop click semantics because there's
+ * no backdrop. Escape fires whether or not focus is in the chat input
+ * (it's a window-level listener); each open dismissible (chat, a help
+ * modal, a popover) closes on its own Escape — we don't arbitrate a
+ * single "topmost" dismiss, which is fine for the rare two-open case.
  *
  * Why z-index 10000: chat needs to sit above the four modals
  * (Setup / HowToPlay / Hint / SuspendConfirm at z-index 500) so
@@ -163,7 +165,6 @@ export function FloatingChat({
     <FloatingPanel
       title="Chat"
       onClose={() => setChatOpen(false)}
-      closeOnEsc={false}
       persistKey="pupgames:chat:rect"
       zIndex={10000}
       defaultPosition="center"
