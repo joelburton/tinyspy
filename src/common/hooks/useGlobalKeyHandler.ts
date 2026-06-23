@@ -23,6 +23,13 @@ import { useEffect, useRef } from 'react'
  * in the handler the caller passes; only the listen-once mechanism is
  * shared. The handler is responsible for its own gating (e.g. an early
  * `return` when input isn't currently accepted).
+ *
+ * One gate IS built in: keystrokes aimed at a focused text field (the
+ * chat box, a dialog input, a contenteditable) are never dispatched.
+ * A window-level game-key handler would otherwise also fire while the
+ * user types into chat — typing "hello" would spell it onto the board
+ * too, making chat unusable. When a field has focus, that field owns
+ * the key, full stop; the handler only ever sees board-level input.
  */
 export function useGlobalKeyHandler(handler: (e: KeyboardEvent) => void): void {
   const ref = useRef(handler)
@@ -39,6 +46,17 @@ export function useGlobalKeyHandler(handler: (e: KeyboardEvent) => void): void {
   // closure freshness comes for free.
   useEffect(function attachKeydownListener() {
     function dispatch(e: KeyboardEvent) {
+      // Let a focused text field keep its own keystrokes (see above).
+      const t = e.target as HTMLElement | null
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.tagName === 'SELECT' ||
+          t.isContentEditable)
+      ) {
+        return
+      }
       ref.current(e)
     }
     window.addEventListener('keydown', dispatch)

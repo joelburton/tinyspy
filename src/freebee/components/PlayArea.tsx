@@ -264,19 +264,13 @@ export function PlayArea(ctx: GamePageCtx) {
   useGlobalKeyHandler(
     useCallback(
       (e: KeyboardEvent) => {
-        const target = e.target as HTMLElement | null
-        if (
-          target
-          && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
-        ) {
-          return
-        }
+        // useGlobalKeyHandler already drops keystrokes aimed at a focused
+        // text field (chat, dialogs), so everything below only ever runs
+        // for board-level input — never while the user is typing in chat.
 
         // Tilde opens the "look up any word" dialog. Handled BEFORE the
         // loading/terminal guards so it works in every state — chasing
-        // a "see X" definition during the post-game reveal is a prime
-        // use. The INPUT/TEXTAREA guard above already lets `~` type
-        // literally when a text box (chat, this dialog) has focus.
+        // a "see X" definition during the post-game reveal is a prime use.
         if (e.key === '~') {
           e.preventDefault()
           setLookupOpen(true)
@@ -301,8 +295,8 @@ export function PlayArea(ctx: GamePageCtx) {
           return
         }
         // ArrowUp recalls the previously-submitted word into the input for
-        // editing — fast "add an S" entry. (The INPUT/TEXTAREA guard above
-        // means this only fires for word entry, never in chat.)
+        // editing — fast "add an S" entry. (The hook's field guard means
+        // this only fires for word entry, never in chat.)
         if (e.key === 'ArrowUp') {
           e.preventDefault()
           if (lastWord) setWord(lastWord)
