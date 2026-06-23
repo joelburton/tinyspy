@@ -83,6 +83,15 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  /* Tile height. Unlike the other games, the board is NOT grown to fill
+   * the viewport — a 4-row grid stretched to full height makes the tiles
+   * absurdly tall, and the row count shrinks as matched categories leave
+   * the grid (16 → 12 → 8 → 4), which would make the survivors balloon.
+   * Instead each tile gets a fixed height capped at ~1.75x the old
+   * content-sized height (~3.95rem). That spends the spare vertical room
+   * a laptop has and makes the black-on-color labels much easier to read
+   * without going overboard. `grid-auto-rows` so the count can vary. */
+  grid-auto-rows: 6.9rem;
   gap: 0.5rem;
   margin: 0.25rem 0;
 }
@@ -92,9 +101,16 @@
   border: 1px solid var(--wordknit-tile-border);
   color: var(--wordknit-tile-text);
   border-radius: var(--radius-md);
-  padding: 1.4rem 0.3rem;
+  /* The tile stretches to fill its (now taller) row; center the label
+   * in it. Light padding keeps text off the edges and gives a wrapped
+   * long word breathing room. Font grown to match the bigger tile. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.4rem 0.5rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 1.15rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
