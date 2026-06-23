@@ -1,0 +1,59 @@
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: min(100%, 30rem);
+  margin: 0 auto;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.key {
+  flex: 1 1 auto;
+  min-width: 1.8rem;
+  height: 3.2rem;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text, #1a1a1b);
+  background: var(--wordle-key-bg, #d3d6da);
+  /* Override the global button hover/accent treatment. */
+  transition: filter 0.1s ease;
+}
+
+.key:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.key:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Wide Enter / Backspace keys. */
+.wide {
+  flex: 1.5 1 auto;
+  font-size: 0.85rem;
+}
+
+/* Per-letter feedback tints (white text on color). */
+.green {
+  background: var(--wordle-green);
+  color: #fff;
+}
+.yellow {
+  background: var(--wordle-yellow);
+  color: #fff;
+}
+.gray {
+  background: var(--wordle-gray);
+  color: #fff;
+}

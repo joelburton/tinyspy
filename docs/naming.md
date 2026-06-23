@@ -39,7 +39,7 @@ See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifes
 
 ### codename vs brand name
 
-Most games use one word for both the user-facing **brand** and the **codename** (the gametype/folder/schema): TinySpy, WordKnit, FreeBee, PsychicNum, MonkeyGram are each both. **SyrupSwap** is the first to split them: the brand is **SyrupSwap** (the manifest `name`/`title` and any end-user copy), but the codename — and therefore the schema, the `src/waffle/` folder, the `waffle_coop` / `waffle_compete` gametype strings, table/column/variable names, and the test files — is **`waffle`**. The codename stays short and keeps the link to the original game obvious in the source; the brand is just a display string. When they diverge, *code* always uses the codename.
+Most games use one word for both the user-facing **brand** and the **codename** (the gametype/folder/schema): TinySpy, WordKnit, FreeBee, PsychicNum, MonkeyGram are each both. Two split them: **SyrupSwap** (codename **`waffle`**) and **WordNerd** (codename **`wordle`**). The brand is the manifest `name`/`title` and any end-user copy; the codename — and therefore the schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable names, and the test files — is the short word that keeps the link to the original game obvious in the source. When they diverge, *code* always uses the codename.
 
 ### mode
 

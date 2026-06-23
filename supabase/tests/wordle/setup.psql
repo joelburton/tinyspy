@@ -1,0 +1,26 @@
+-- ============================================================
+-- Per-test-file wordle fixtures
+-- ============================================================
+--
+-- Loaded by every wordle/*_test.sql via `\ir setup.psql` (after the
+-- shared persona setup).
+--
+-- wordle.create_game picks a RANDOM target from common.words, so tests
+-- read it back (as the superuser, bypassing the hidden-column grant)
+-- to craft a winning guess. This needs the real word list loaded; the
+-- test transaction rolls back, so it's untouched.
+--
+-- Provides pg_temp.wordle_setup(max_guesses) — the coop/compete setup
+-- jsonb (timer off).
+
+reset role;
+
+create function pg_temp.wordle_setup(max_guesses int default 6)
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'max_guesses', max_guesses,
+    'timer', jsonb_build_object('kind', 'none')
+  );
+$$;

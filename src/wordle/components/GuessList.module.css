@@ -1,0 +1,69 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.counter {
+  font-size: 1rem;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.counter strong {
+  font-size: 1.2rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.squares {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.sq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 3px;
+  background: var(--wordle-gray);
+}
+
+.green {
+  background: var(--wordle-green);
+}
+.yellow {
+  background: var(--wordle-yellow);
+}
+.gray {
+  background: var(--wordle-gray);
+}
+.blank {
+  background: var(--wordle-key-bg, #d3d6da);
+  color: var(--color-text, #1a1a1b);
+}
+
+.who {
+  font-weight: 600;
+  font-size: 0.85rem;
+}

@@ -1561,6 +1561,180 @@ export type Database = {
       [_ in never]: never
     }
   }
+  wordle: {
+    Tables: {
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          id: string
+          max_guesses: number
+          mode: string
+          target: string
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          id: string
+          max_guesses: number
+          mode: string
+          target: string
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          id?: string
+          max_guesses?: number
+          mode?: string
+          target?: string
+        }
+        Relationships: []
+      }
+      guesses: {
+        Row: {
+          colors: string
+          game_id: string
+          guess: string
+          guess_index: number
+          guessed_at: string
+          is_correct: boolean
+          user_id: string
+        }
+        Insert: {
+          colors: string
+          game_id: string
+          guess: string
+          guess_index: number
+          guessed_at?: string
+          is_correct: boolean
+          user_id: string
+        }
+        Update: {
+          colors?: string
+          game_id?: string
+          guess?: string
+          guess_index?: number
+          guessed_at?: string
+          is_correct?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          game_id: string
+          guesses_used: number
+          solved: boolean
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          guesses_used?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          guesses_used?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          max_guesses: number | null
+          mode: string | null
+          target: string | null
+        }
+        Insert: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          max_guesses?: number | null
+          mode?: string | null
+          target?: never
+        }
+        Update: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          max_guesses?: number | null
+          mode?: string | null
+          target?: never
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _target_for: { Args: { g_id: string }; Returns: string }
+      compute_colors: {
+        Args: { answer: string; guess: string }
+        Returns: string
+      }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_guess: {
+        Args: { guess: string; target_game: string }
+        Returns: Json
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -1706,6 +1880,9 @@ export const Constants = {
     Enums: {},
   },
   wordknit: {
+    Enums: {},
+  },
+  wordle: {
     Enums: {},
   },
 } as const

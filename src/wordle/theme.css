@@ -1,0 +1,14 @@
+/*
+ * WordNerd (codename `wordle`) theme tokens — the per-letter feedback
+ * palette (the classic Wordle greens/yellows/grays), shared by the
+ * board tiles and the on-screen keyboard. Imported by the PlayArea.
+ */
+:root {
+  --wordle-green: #6aaa64;
+  --wordle-yellow: #c9b458;
+  --wordle-gray: #787c7e;
+  /* The neutral key / empty-tile surface (the un-evaluated state). */
+  --wordle-key-bg: #d3d6da;
+  --wordle-tile-border: #d3d6da;
+  --wordle-tile-border-filled: #878a8c;
+}

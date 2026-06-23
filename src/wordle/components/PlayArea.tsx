@@ -1,0 +1,295 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { GamePageCtx } from '../../common/lib/games'
+import { GameOverModal } from '../../common/components/GameOverModal'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { db } from '../db'
+import { useGame } from '../hooks/useGame'
+import { colorRank, tileColor, type TileColor } from '../lib/colors'
+import { WordleGrid } from './WordleGrid'
+import { Keyboard } from './Keyboard'
+import { GuessList } from './GuessList'
+import styles from './PlayArea.module.css'
+import '../theme.css'
+
+/**
+ * WordNerd's play surface, shared by the coop and compete manifests.
+ * Two columns: the board + on-screen keyboard on the left, the
+ * guesses-used counter + guess list on the right. Mode is read from
+ * `game.mode`.
+ *
+ * Guesses go through `wordle.submit_guess`; the board/keyboard update
+ * via the realtime refetch in `useGame` (Pattern A). Soft rejects
+ * (notAWord / duplicate / invalid) keep the typed row and flash a timed
+ * pill; an accepted guess clears the input and arrives as a new row.
+ *
+ * Coop renders the SHARED guess list (everyone's), the budget is the
+ * team's. Compete renders only the caller's own guesses (RLS hides
+ * opponents) plus an OpponentStrip of their guess counts.
+ */
+export function PlayArea({
+  session,
+  gameId,
+  players: members,
+  playState,
+  isTerminal,
+  timer,
+  status,
+  feedback,
+  goToClub,
+  menu,
+}: GamePageCtx) {
+  const { game, players: playerStates, guesses, loading } = useGame(gameId)
+  const { showModal, closeModal } = useTerminalModal(isTerminal)
+  const [current, setCurrent] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // ─── Derived (null-safe; real values after the loading guard) ──
+  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const isCompete = game?.mode === 'compete'
+  const maxGuesses = game?.max_guesses ?? 6
+  const guessesUsed = self?.guesses_used ?? 0
+  const mySolved = self?.solved ?? false
+  // Coop: the shared board. Compete: my own guesses (RLS-filtered).
+  const myGuesses = isCompete
+    ? guesses.filter((g) => g.user_id === session.user.id)
+    : guesses
+  const canGuess =
+    !!self && !isTerminal && !mySolved && guessesUsed < maxGuesses && !submitting
+
+  // ─── Submit a guess (stable across keystrokes) ────────────────
+  const doSubmit = useCallback(
+    async (word: string) => {
+      if (word.length !== 5) {
+        feedback.show({ tone: 'info', text: 'Not enough letters', dismiss: { kind: 'timed', ms: 1200 } })
+        return
+      }
+      setSubmitting(true)
+      const { data, error } = await db.rpc('submit_guess', {
+        target_game: gameId,
+        guess: word,
+      })
+      setSubmitting(false)
+      if (error) {
+        feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+        return
+      }
+      const res = data as { result: string }
+      if (res.result === 'notAWord') {
+        feedback.show({ tone: 'error', text: 'Not in word list', dismiss: { kind: 'timed', ms: 1500 } })
+        return
+      }
+      if (res.result === 'duplicate') {
+        feedback.show({ tone: 'info', text: 'Already guessed', dismiss: { kind: 'timed', ms: 1500 } })
+        return
+      }
+      if (res.result === 'invalid') {
+        feedback.show({ tone: 'error', text: 'Not enough letters', dismiss: { kind: 'timed', ms: 1200 } })
+        return
+      }
+      // accepted (correct/incorrect): clear; the new row arrives via realtime.
+      setCurrent('')
+    },
+    [gameId, feedback],
+  )
+
+  // ─── Physical keyboard ────────────────────────────────────────
+  useEffect(
+    function bindKeyboard() {
+      if (!canGuess) return
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          void doSubmit(current)
+        } else if (e.key === 'Backspace') {
+          setCurrent((c) => c.slice(0, -1))
+        } else if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+          setCurrent((c) => (c.length < 5 ? c + e.key.toLowerCase() : c))
+        }
+      }
+      window.addEventListener('keydown', onKeyDown)
+      return () => window.removeEventListener('keydown', onKeyDown)
+    },
+    [canGuess, current, doSubmit],
+  )
+
+  // ─── End-game menu item (both modes) ──────────────────────────
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+    }
+  }, [gameId, isTerminal, feedback])
+
+  useEffect(
+    function syncMenuItems() {
+      menu.setGameItems([
+        {
+          id: 'end-game',
+          label: 'End game',
+          onClick: () => void handleEndGame(),
+          disabled: isTerminal,
+        },
+      ])
+      return () => menu.setGameItems([])
+    },
+    [handleEndGame, isTerminal, menu],
+  )
+
+  if (loading) return <p>Loading game…</p>
+  if (!game) return <p>Game not found.</p>
+
+  // Per-key feedback state — strongest color each letter has earned.
+  const keyStates = new Map<string, TileColor>()
+  for (const g of myGuesses) {
+    for (let i = 0; i < 5; i++) {
+      const ch = g.guess[i]
+      const col = tileColor(g.colors[i])
+      const prev = keyStates.get(ch)
+      if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
+    }
+  }
+
+  const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
+
+  const selfWon = (status?.winner as string | undefined) === session.user.id
+  const over = isTerminal
+    ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
+    : null
+
+  return (
+    <div className={styles.layout}>
+      <div
+        className={styles.boardArea}
+        style={{ ['--rows' as string]: game.max_guesses }}
+      >
+        <WordleGrid
+          rows={rows}
+          current={current}
+          maxGuesses={game.max_guesses}
+          active={canGuess}
+        />
+        <Keyboard
+          keyStates={keyStates}
+          onKey={(ch) => canGuess && setCurrent((c) => (c.length < 5 ? c + ch : c))}
+          onEnter={() => void doSubmit(current)}
+          onBackspace={() => setCurrent((c) => c.slice(0, -1))}
+          disabled={!canGuess}
+        />
+      </div>
+
+      <div className={styles.rightCol}>
+        {over ? (
+          <div className={styles.gameOver}>
+            <span>
+              <span className="muted">Game over:</span> {over.status}
+            </span>
+            {game.target && (
+              <span>
+                The answer was{' '}
+                <strong className={styles.answer}>
+                  {game.target.toUpperCase()}
+                </strong>
+              </span>
+            )}
+            <button type="button" className="secondary" onClick={goToClub}>
+              Back to club
+            </button>
+          </div>
+        ) : (
+          <>
+            {isCompete && (
+              <OpponentStrip
+                players={members}
+                selfId={session.user.id}
+                metricFor={(player) => {
+                  const ps = playerStates.find(
+                    (p) => p.user_id === player.user_id,
+                  )
+                  const used = ps?.guesses_used ?? 0
+                  const solved = ps?.solved ?? false
+                  const out = !solved && used >= game.max_guesses
+                  return (
+                    <>
+                      {used}
+                      {solved ? ' ✓' : out ? ' ✗' : ''}
+                    </>
+                  )
+                }}
+              />
+            )}
+            {!self && (
+              <p className="muted">Watching — you're not in this game.</p>
+            )}
+          </>
+        )}
+
+        <GuessList
+          guesses={myGuesses}
+          players={members}
+          guessesUsed={guessesUsed}
+          maxGuesses={game.max_guesses}
+          showWho={!isCompete}
+        />
+      </div>
+
+      {showModal && over && (
+        <GameOverModal
+          outcome={over.outcome}
+          verdict={over.verdict}
+          onClose={closeModal}
+          onBackToClub={goToClub}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Terminal verdict + status copy, mode- and (compete) self-aware. */
+function buildOver({
+  mode,
+  playState,
+  timerExpired,
+  selfWon,
+}: {
+  mode: 'coop' | 'compete'
+  playState: string
+  timerExpired: boolean
+  selfWon: boolean
+}): { outcome: 'won' | 'lost'; verdict: string; status: string } {
+  // Manual end (wordle.end_game) → neutral 'ended'. We reuse the modal's
+  // 'won' (green) treatment; the verdict copy makes clear there's no
+  // winner.
+  if (playState === 'ended') {
+    return {
+      outcome: 'won',
+      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
+      status: 'ended',
+    }
+  }
+  if (mode === 'coop') {
+    if (playState === 'won') {
+      return { outcome: 'won', verdict: 'Solved it! 🎉', status: 'solved' }
+    }
+    return {
+      outcome: 'lost',
+      verdict: timerExpired ? 'Out of time.' : 'Out of guesses.',
+      status: timerExpired ? 'out of time' : 'out of guesses',
+    }
+  }
+  // compete
+  if (playState === 'won_compete') {
+    return selfWon
+      ? { outcome: 'won', verdict: 'You won — fewest guesses!', status: 'you won' }
+      : { outcome: 'lost', verdict: 'Beaten on guesses.', status: 'opponent won' }
+  }
+  // lost_compete — nobody solved, or time ran out
+  return {
+    outcome: 'lost',
+    verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody solved it.',
+    status: timerExpired ? 'out of time' : 'no winner',
+  }
+}

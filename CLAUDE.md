@@ -18,7 +18,8 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/games/wordknit.md](docs/games/wordknit.md) | WordKnit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/games/freebee.md](docs/games/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
 | [docs/games/monkeygram.md](docs/games/monkeygram.md) | MonkeyGram (Bananagrams-style) rules + schema; the FE-owned `board` / server-owned `tiles` split + derived hand, the fixed 25×25 player-board arena, snapshot-on-unmount persistence, owner-only RLS, the peel/dump bank loop, the keyboard cursor |
-| [docs/games/waffle.md](docs/games/waffle.md) | SyrupSwap (codename `waffle`; brand ≠ codename) — Waffle-style swap-to-solve rules + schema; hidden-solution color feedback (column-grant + `security_invoker` views), coop/compete sibling pair, the self-generated puzzle library + difficulty tiers |
+| [docs/games/waffle.md](docs/games/waffle.md) | SyrupSwap (codename `waffle`; brand ≠ codename) — Waffle-style swap-to-solve rules + schema; hidden-solution color feedback (column-grant + `security_invoker` views), coop/compete sibling pair, on-demand board generation (`waffle-build-board` edge function), player-pickable difficulty band |
+| [docs/games/wordle.md](docs/games/wordle.md) | WordNerd (codename `wordle`; brand ≠ codename) — NYT-Wordle-style guess-the-word rules + schema; hidden-target color feedback + per-guess log with mode-aware RLS, on-screen keyboard, coop (shared board) / compete (fewest-guesses winner) sibling pair |
 
 
 ## Educational priority — clarity over brevity
@@ -85,7 +86,7 @@ React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, Postg
 
 ## Game roster — trajectory
 
-The rough target is ~7 games. Six live today (TinySpy, WordKnit, PsychicNum, FreeBee, MonkeyGram, SyrupSwap); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
+The rough target is ~7 games. Seven live today (TinySpy, WordKnit, PsychicNum, FreeBee, MonkeyGram, SyrupSwap, WordNerd); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
 
 **Most upcoming games are ports.** Joel has implementations of these games in other stacks (the rules / problem-space are well understood). The work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
 

@@ -1,0 +1,54 @@
+.grid {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 0.35rem;
+  /* Square-ish board sized to its column; caps so it doesn't get huge. */
+  width: min(100%, 20rem);
+  aspect-ratio: 5 / var(--rows, 6);
+  margin: 0 auto;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  border: 2px solid var(--wordle-tile-border, #d3d6da);
+  background: transparent;
+  border-radius: 4px;
+  user-select: none;
+}
+
+/* A typed-but-not-submitted tile: dark border, no fill, dark text. */
+.filled {
+  border-color: var(--wordle-tile-border-filled, #878a8c);
+  color: var(--color-text, #1a1a1b);
+}
+
+/* Server feedback colors — border matches fill so the tile reads solid. */
+.green {
+  background: var(--wordle-green);
+  border-color: var(--wordle-green);
+}
+.yellow {
+  background: var(--wordle-yellow);
+  border-color: var(--wordle-yellow);
+}
+.gray {
+  background: var(--wordle-gray);
+  border-color: var(--wordle-gray);
+}
+.blank {
+  /* empty tile — keep the light border, transparent fill */
+  background: transparent;
+}
