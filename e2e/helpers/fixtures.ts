@@ -106,6 +106,53 @@ export async function createSoloClub(name: string): Promise<E2EClub> {
 }
 
 /**
+ * Create a confirmed, signed-in user who has NOT claimed a username — so
+ * there's no `common.profiles` row. Loading the app with this session is the
+ * legitimate "fresh sign-in, needs to pick a handle" state that should route
+ * to ClaimHandleScreen. (createMembers always claims; this is the deliberate
+ * un-claimed variant.) Returns just the session — that's all the browser
+ * needs to inject.
+ */
+export async function createUnclaimedUser(name: string): Promise<{ session: Session }> {
+  const suffix = Date.now().toString(36).slice(-6)
+  const username = `e2e${name}${suffix}`.replace(/[^a-z0-9-]/g, '').slice(0, 30)
+  const email = `${username}@e2e.test`
+  const password = 'e2e-password-1234'
+
+  const created = await admin.auth.admin.createUser({ email, password, email_confirm: true })
+  if (created.error) throw new Error(`createUser(${username}): ${created.error.message}`)
+
+  const signedIn = await createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false },
+  }).auth.signInWithPassword({ email, password })
+  if (signedIn.error || !signedIn.data.session) {
+    throw new Error(`signIn(${username}): ${signedIn.error?.message}`)
+  }
+  return { session: signedIn.data.session }
+}
+
+/**
+ * Delete a user from auth.users (cascades to their profile + solo club).
+ * Simulates a `db:reset` or admin-delete that happens while a still-validly-
+ * signed JWT lingers in a browser's localStorage — the "stale session" state.
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  const res = await admin.auth.admin.deleteUser(userId)
+  if (res.error) throw new Error(`deleteUser(${userId}): ${res.error.message}`)
+}
+
+/**
+ * Return a copy of a session that supabase-js will treat as EXPIRED on load
+ * (past `expires_at`), so the app boots into the token-REFRESH path rather
+ * than using the access token directly. Paired with `deleteUser`, this
+ * exercises the refresh-fails-because-the-user-is-gone path — the one whose
+ * error doesn't carry a clean 4xx status and used to strand the user.
+ */
+export function expireSession(session: Session): Session {
+  return { ...session, expires_at: 1, expires_in: 0 }
+}
+
+/**
  * Start a psychicnum game (the minimal gametype) in the club, with all
  * members as players. `create_game` sets `is_current_view = true`.
  * Whether it's "abandoned" (the heal case) or actively viewed (the
