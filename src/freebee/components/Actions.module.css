@@ -23,8 +23,8 @@
   letter-spacing: 0.05em;
   padding: 10px 22px;
   border-radius: 999px;
-  border: 1px solid var(--color-border, #d4d4d4);
-  background: var(--color-card-bg, #fff);
+  border: 1px solid var(--color-surface-border);
+  background: var(--color-surface);
   color: var(--freebee-hex-text);
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;

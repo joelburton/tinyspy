@@ -11,13 +11,6 @@
 --
 -- See docs/games/waffle.md for the full design (schema, RPCs,
 -- coop/compete terminal logic, the on-demand board generation).
---
--- ─── BUILD STATUS ───────────────────────────────────────────
--- Phase 1: the schema + the per-tile COLOR-FEEDBACK algorithm only
--- (no tables / RPCs yet — those land in Phase 3). The color helpers
--- are pure functions of (board, solution); the game wires them into
--- a security_invoker view later so the FE gets colors without ever
--- seeing the hidden solution.
 
 create schema if not exists waffle;
 grant usage on schema waffle to authenticated;
@@ -213,7 +206,7 @@ create policy games_select on waffle.games
 -- starting equal to the scramble. In COOP every row is kept identical
 -- and updated in lock-step on each swap (mirrors wordknit.players);
 -- in COMPETE each row moves independently. `solved` / `solved_at`
--- drive the compete fewest-swaps + earliest-time tie-break (Phase 4).
+-- drive the compete fewest-swaps + earliest-time tie-break.
 create table waffle.players (
   game_id    uuid not null references waffle.games(id) on delete cascade,
   user_id    uuid not null references common.profiles(user_id) on delete cascade,

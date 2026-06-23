@@ -5,8 +5,8 @@
 }
 
 .fieldset {
-  border: 1px solid var(--color-border, #ccc);
-  border-radius: 8px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
 }
 
@@ -18,8 +18,8 @@
 .select {
   margin-top: 0.5rem;
   padding: 0.4rem 0.5rem;
-  border: 1px solid var(--color-border, #ccc);
-  border-radius: 6px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
   background: var(--color-surface, #fff);
   color: var(--color-text, inherit);
   font: inherit;

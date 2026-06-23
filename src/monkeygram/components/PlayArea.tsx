@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
 import { PlayerBoard } from './PlayerBoard'
@@ -99,32 +100,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // ends the game for EVERYONE with nobody as the winner (status.outcome
   // 'manual') — agreeing to stop is a valid outcome, not a loss. Mirrors
   // freebee's PlayArea: confirm, fire the RPC, surface only failures.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
-    }
-  }, [gameId, isTerminal, feedback])
-
-  // Register the single per-game menu item on the GamePage menu. Disabled
-  // once the game is terminal (a post-terminal click would just raise the
-  // P0001 race anyway). Cleanup on unmount restores the empty section.
-  useEffect(
-    function syncMenuItems() {
-      menu.setGameItems([
-        {
-          id: 'end-game',
-          label: 'End game',
-          onClick: () => void handleEndGame(),
-          disabled: isTerminal,
-        },
-      ])
-      return () => menu.setGameItems([])
-    },
-    [handleEndGame, isTerminal, menu],
-  )
+  useEndGameMenu({
+    isTerminal,
+    menu,
+    feedback,
+    endGame: () => db.rpc('end_game', { target_game: gameId }),
+  })
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 

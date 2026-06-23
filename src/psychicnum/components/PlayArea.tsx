@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
@@ -68,30 +69,12 @@ export function PlayArea({
   // Available in both modes. A manual end isn't a "you lose"
   // punishment — it's the friends agreeing they're done. The RPC
   // writes the neutral 'ended' terminal with everyone {won:false}.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm('End the game now? You can\'t undo this.')) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      feedback.show({
-        tone: 'error',
-        text: `End game failed: ${error.message}`,
-        dismiss: { kind: 'closeable' },
-      })
-    }
-  }, [gameId, isTerminal, feedback])
-
-  useEffect(function syncMenuItems() {
-    menu.setGameItems([
-      {
-        id: 'end-game',
-        label: 'End game',
-        onClick: () => void handleEndGame(),
-        disabled: isTerminal,
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [handleEndGame, isTerminal, menu])
+  useEndGameMenu({
+    isTerminal,
+    menu,
+    feedback,
+    endGame: () => db.rpc('end_game', { target_game: gameId }),
+  })
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 

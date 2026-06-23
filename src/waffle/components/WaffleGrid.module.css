@@ -68,7 +68,7 @@
 }
 /* Pre-load / no color yet — neutral. */
 .blank {
-  background: var(--color-surface-2, #d3d6da);
+  background: var(--waffle-blank);
   color: var(--color-text, #1a1a1b);
 }
 

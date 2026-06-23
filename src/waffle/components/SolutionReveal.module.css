@@ -25,11 +25,11 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-text-muted, #666);
+  color: var(--color-muted);
 }
 
 .word {
-  font-family: var(--font-mono, monospace);
+  font-family: monospace;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-align: left;
@@ -42,6 +42,6 @@
 }
 
 .word:hover {
-  background: var(--color-surface-2, #eee);
+  background: var(--color-surface-hover);
   text-decoration: underline;
 }

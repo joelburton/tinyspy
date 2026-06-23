@@ -1,19 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { colorRank, tileColor } from './colors'
+import { colorRank } from './colors'
 
-describe('tileColor', () => {
-  it('maps server color codes to class keys', () => {
-    expect(tileColor('g')).toBe('green')
-    expect(tileColor('y')).toBe('yellow')
-    expect(tileColor('x')).toBe('gray')
-  })
-
-  it('falls back to blank for anything else', () => {
-    expect(tileColor(undefined)).toBe('blank')
-    expect(tileColor('')).toBe('blank')
-    expect(tileColor('?')).toBe('blank')
-  })
-})
+// `tileColor` is the shared mapper, tested in common/lib/tileColor.test.ts.
+// This file covers only wordle's own color helpers.
 
 describe('colorRank', () => {
   it('orders green > yellow > gray > blank (for the keyboard merge)', () => {

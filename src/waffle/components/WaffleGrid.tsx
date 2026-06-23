@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
+import { tileColor } from '../../common/lib/tileColor'
 import { CELLS, isHole } from '../lib/waffle'
-import { tileColor } from '../lib/colors'
 import styles from './WaffleGrid.module.css'
 
 type Props = {

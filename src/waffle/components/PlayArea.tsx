@@ -1,8 +1,8 @@
-import { useCallback, useEffect } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
@@ -43,39 +43,14 @@ export function PlayArea({
   // neutrally — everyone {won:false}, status.outcome='manual' —
   // which the server records as play_state='ended'. In compete this
   // is "the friends agreed to stop the race", not a "you lose".
-  //
-  // These hooks are declared BEFORE the `if (loading)` / `if (!game)`
-  // early returns below: React forbids conditional hook calls, so the
-  // useCallback + useEffect must run unconditionally on every render.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      feedback.show({
-        tone: 'error',
-        text: error.message,
-        dismiss: { kind: 'closeable' },
-      })
-    }
-    // On success the Realtime touch in waffle.end_game wakes useGame,
-    // which refetches games_state and reveals the solution.
-  }, [gameId, isTerminal, feedback])
-
-  useEffect(
-    function syncMenuItems() {
-      menu.setGameItems([
-        {
-          id: 'end-game',
-          label: 'End game',
-          onClick: () => void handleEndGame(),
-          disabled: isTerminal,
-        },
-      ])
-      return () => menu.setGameItems([])
-    },
-    [handleEndGame, isTerminal, menu],
-  )
+  // (On success the Realtime touch in waffle.end_game wakes useGame,
+  // which refetches games_state and reveals the solution.)
+  useEndGameMenu({
+    isTerminal,
+    menu,
+    feedback,
+    endGame: () => db.rpc('end_game', { target_game: gameId }),
+  })
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>

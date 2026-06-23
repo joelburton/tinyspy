@@ -50,7 +50,7 @@
   right: 0;
   top: 50%;
   height: 2px;
-  background: var(--color-border, #d4d4d4);
+  background: var(--color-surface-border);
   transform: translateY(-50%);
   z-index: 0;
 }
@@ -61,8 +61,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--color-card-bg, #fff);
-  border: 2px solid var(--color-border, #d4d4d4);
+  background: var(--color-surface);
+  border: 2px solid var(--color-surface-border);
   cursor: default;
 }
 
@@ -83,7 +83,7 @@
   left: 50%;
   transform: translateX(-50%);
   background: var(--freebee-hex-text);
-  color: var(--color-card-bg, #fff);
+  color: var(--color-surface);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;

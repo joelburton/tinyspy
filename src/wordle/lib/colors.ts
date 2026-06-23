@@ -1,29 +1,11 @@
 /**
- * Render-only mapping from the server's per-letter color codes to CSS
- * class keys. The server (`wordle.compute_colors`) is the single source
- * of truth for the colors — the FE never recomputes them (it doesn't
- * hold the target). A guess row carries a 5-char string of:
- *
- *   'g' green  — right letter, right spot
- *   'y' yellow — in the word, wrong spot
- *   'x' gray   — not in the word
- *
- * plus 'blank' for an un-evaluated tile (the active typing row).
+ * wordle's color module = the shared code→class-key mapper (the server,
+ * `wordle.compute_colors`, is authoritative — the FE never recomputes,
+ * it doesn't hold the target) plus the two wordle-only helpers below
+ * that drive the reveal animation and the on-screen keyboard.
  */
-export type TileColor = 'green' | 'yellow' | 'gray' | 'blank'
-
-export function tileColor(code: string | undefined): TileColor {
-  switch (code) {
-    case 'g':
-      return 'green'
-    case 'y':
-      return 'yellow'
-    case 'x':
-      return 'gray'
-    default:
-      return 'blank'
-  }
-}
+export { tileColor, type TileColor } from '../../common/lib/tileColor'
+import type { TileColor } from '../../common/lib/tileColor'
 
 /**
  * The CSS custom-property reference for a feedback color, used to drive
