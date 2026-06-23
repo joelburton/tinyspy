@@ -106,9 +106,10 @@ type PangramRow = {
 type CandidateRow = {
   word: string
   letter_mask: string
-  /** In the required set (difficulty ≤ 50, not a slur) — counts toward the goal. */
+  /** In the required set (band ≤ 3, american, no slang, not a slur) —
+   *  counts toward the goal. */
   is_required: boolean
-  /** In the legal set (difficulty ≤ 70) — enterable. Always true here
+  /** In the legal set (band ≤ 5) — enterable. Always true here
    *  (candidate_words already pre-filters to legal). */
   is_legal: boolean
 }

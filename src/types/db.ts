@@ -316,8 +316,10 @@ export type Database = {
           len: number
           letter_mask: number | null
           root_word: string | null
+          slang: boolean
           slur: boolean
           word: string
+          wordle: boolean
         }
         Insert: {
           american: boolean
@@ -330,8 +332,10 @@ export type Database = {
           len: number
           letter_mask?: number | null
           root_word?: string | null
+          slang?: boolean
           slur?: boolean
           word: string
+          wordle?: boolean
         }
         Update: {
           american?: boolean
@@ -344,8 +348,10 @@ export type Database = {
           len?: number
           letter_mask?: number | null
           root_word?: string | null
+          slang?: boolean
           slur?: boolean
           word?: string
+          wordle?: boolean
         }
         Relationships: []
       }

@@ -39,11 +39,11 @@ insert into common.words
   (word, difficulty, american, british, canadian, australian, len,
    definition, definition_source)
 values
-  ('zzwordtestalpha', 50, true, true, true, true, 15,
+  ('zzwordtestalpha', 1, true, true, true, true, 15,
    'a synthetic gloss {ref=n} [n]', 's'),
-  ('zzwordtestbeta',  50, true, true, true, true, 14, null, null),
-  ('zzwordtestgamma', 50, true, true, true, true, 15, null, null),
-  ('zzwordtestupper', 50, true, true, true, true, 15, null, null);
+  ('zzwordtestbeta',  1, true, true, true, true, 14, null, null),
+  ('zzwordtestgamma', 1, true, true, true, true, 15, null, null),
+  ('zzwordtestupper', 1, true, true, true, true, 15, null, null);
 
 -- ============================================================
 -- Grants — what authenticated can and can't do
@@ -122,7 +122,7 @@ select throws_ok(
   $$ insert into common.words
        (word, difficulty, american, british, canadian, australian, len,
         definition_source)
-     values ('zzwordtestbad', 50, true, true, true, true, 13, 'x') $$,
+     values ('zzwordtestbad', 1, true, true, true, true, 13, 'x') $$,
   '23514',
   NULL,
   'definition_source CHECK rejects an unknown code'

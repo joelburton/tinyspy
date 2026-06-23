@@ -4,8 +4,8 @@
 scoping doc and the design below still holds; it's now implemented in migration
 `20260624000000_waffle.sql`, the `src/waffle/` frontend, and the pgTAP
 (`supabase/tests/waffle/`) + Vitest (`src/waffle/lib/*.test.ts`) suites.
-Remaining polish is minor (recently-swapped tile flash; a "real" non-difficulty
-puzzle library when we're past tier-trialling).
+Remaining polish is minor (recently-swapped tile flash; a larger puzzle library
+once the band tiers settle).
 
 **Brand name vs codename.** The user-facing brand is **SyrupSwap** — it's the
 manifest `title` and the wording in any end-user copy (game listing, help,
@@ -123,7 +123,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 
 | table | purpose |
 |---|---|
-| `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (35/50/60 — the vocab tier; `create_game` picks by it), `title` ("Difficulty N", the game-listing label). The 6 words derive from `solution` via geometry. |
+| `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (recognizability band **1–6** — the vocab tier; `create_game` picks by it), `title` (the band's label, e.g. "Common", the game-listing label). The 6 words derive from `solution` via geometry. |
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble/par are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`) — the game holds its own info; the puzzle is just the source. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 | `waffle.swaps` PK `(game_id, swap_index)` | The coop move log: one row per swap — `user_id`, `swap_index` (1-based, the shared coop count), `pos_a`/`pos_b`, and `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained). **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
@@ -152,9 +152,10 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **`create_game(target_club, setup, player_user_ids, mode)`** — sibling-manifest
   signature. Validates `require_club_member`, `require_player_count_max`,
   `validate_timer`; validates `setup.extra_swaps` (0..15, default 5) and
-  `setup.difficulty` (35/50/60); picks a `waffle.puzzles` row of that difficulty
-  the club hasn't played (subquery against `waffle.games`, fallback to any of
-  that tier); copies solution/scramble onto `waffle.games`; sets
+  `setup.difficulty` (band **1–6**, default 2 — the server accepts the full
+  range; the setup dialog offers 1–5, a FE/UI choice); picks a `waffle.puzzles`
+  row of that band the club hasn't played (subquery against `waffle.games`,
+  fallback to any of that band); copies solution/scramble onto `waffle.games`; sets
   `max_swaps = par_swaps + setup.extra_swaps`; seeds one `waffle.players` row per
   player with `board = scramble`.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
@@ -205,15 +206,16 @@ mirrors `common.words`:
 > (psql COPY) → `waffle.puzzles`**
 
 Deploys stay fast (a COPY, no constraint-solving in the hot path) and the puzzle
-set is reviewable + stable in git. ~5k puzzles ≈ 300 KB raw / ~100 KB gzipped.
+set is reviewable + stable in git. ~600 puzzles (100 per band 1–6) ≈ tens of KB gzipped.
 
 ### `scripts/generate-waffle-puzzles.ts` (dev tool)
 
 1. Read `supabase/data/words.tsv.gz` directly (gunzip + filter — no DB). For each
-   tier N, the candidate set = `len == 5 AND difficulty ≤ N AND (american OR
-   british) AND NOT slur` (no `s`-exclusion — that's freebee-only), and a puzzle
-   is kept only if its hardest word is **exactly** N (so the tier is meaningful).
-   ~thousands of words per tier.
+   band N (1–6), the candidate set = `len == 5 AND difficulty ≤ N AND american
+   AND NOT slur AND NOT slang`, and a puzzle is kept only if its hardest word is
+   **exactly** band N (so the tier is meaningful). ~thousands of words per band.
+   Every band is generated so the server can serve any difficulty even though
+   the setup UI offers a subset (1–5).
 2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes the
    3 *down* words' intersection letters. Precompute an index
    `(char@0, char@2, char@4) → [words]`; loop/sample `a0,a2,a4`, then the down
@@ -235,9 +237,9 @@ set is reviewable + stable in git. ~5k puzzles ≈ 300 KB raw / ~100 KB gzipped.
    total letter repetition so colors stay informative.
 5. Emit `solution, scramble, par_swaps, difficulty, title` rows →
    `supabase/data/waffle-puzzles.tsv.gz` (committed). `npm run waffle:generate [N]`
-   makes N puzzles per tier (default 100) at 35/50/60. **A tier-N puzzle's hardest
-   word is exactly N** (`tierGenerator` requires `max(word difficulties) === N`),
-   so a tier-50 puzzle genuinely *uses* a 50-level word, not merely allows one.
+   makes N puzzles per band (default 100) at bands 1–6. **A band-N puzzle's hardest
+   word is exactly band N** (`tierGenerator` requires `max(word difficulties) === N`),
+   so a band-3 puzzle genuinely *uses* a band-3 word, not merely allows one.
 
 Two pieces to build test-first: the **par computation** (cycle-maximizing
 assignment with duplicates — if it's off by 1 it only nudges the star rating, not

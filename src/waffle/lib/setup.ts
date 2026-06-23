@@ -10,10 +10,11 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type WaffleSetup = {
   /**
-   * Vocabulary tier — which difficulty band the six words are drawn
-   * from (35 everyday / 50 common / 60 tricky). While we're trialling
-   * tiers the server picks a puzzle whose `title` matches; valid
-   * values are 35, 50, 60.
+   * Vocabulary tier — the recognizability band the six words are drawn
+   * from: a tier-N puzzle uses words of band ≤ N with its hardest word
+   * at exactly N. The server picks a pre-generated puzzle of the chosen
+   * tier and accepts the full band range 1–6; the dialog offers a
+   * subset (see `DIFFICULTY_OPTIONS`).
    */
   difficulty: number
   /**
@@ -32,21 +33,24 @@ export type WaffleSetup = {
 
 /** Initial setup the manifest hands the dialog as `defaults`. */
 export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
-  difficulty: 50,
+  difficulty: 2,
   extra_swaps: 5,
   timer: { kind: 'none' },
 }
 
 /**
- * The vocab tiers the form offers. These match the `Difficulty N`
- * puzzle titles in the library. The difficulty ratings are a bit noisy
- * at the upper tiers (some "common" words are Scrabble-common, not
- * everyday), so the labels stay loose.
+ * The vocab tiers the form OFFERS — bands 1–5 (band 6, SOWPODS-only
+ * "expert", is left off as too obscure for a swap puzzle). This is a
+ * pure UI choice: the server accepts the full 1–6 range and the puzzle
+ * library has every band, so adding/removing a tier here needs no DB
+ * or data change. Labels follow the common.words band names.
  */
 export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
-  { value: 35, label: 'Everyday' },
-  { value: 50, label: 'Common' },
-  { value: 60, label: 'Tricky' },
+  { value: 1, label: 'Universal' },
+  { value: 2, label: 'Common' },
+  { value: 3, label: 'Familiar' },
+  { value: 4, label: 'Uncommon' },
+  { value: 5, label: 'Obscure' },
 ]
 
 /**

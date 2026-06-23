@@ -7,10 +7,10 @@
 -- center. Pangrams (words using all 7) earn a +10 bonus. The word
 -- list is common.words (the categorized master list shared across
 -- games); freebee filters it into a smaller REQUIRED set (the goal
--- shown to players: difficulty <= 50, no slurs) and a larger LEGAL
--- set (difficulty <= 70, the acceptance bar). Words in legal but
--- not required are BONUS: accepted and scored, but not part of the
--- displayed goal.
+-- shown to players: difficulty band <= 3, american, no slang, no
+-- slurs) and a larger LEGAL set (band <= 5, the acceptance bar, no
+-- other restriction). Words in legal but not required are BONUS:
+-- accepted and scored, but not part of the displayed goal.
 --
 -- "freebee" is the codename. User-facing copy is "freebee"; SQL /
 -- TypeScript / folder names are all `freebee`. Ported from the
@@ -53,9 +53,9 @@ grant usage on schema freebee to service_role;
 -- freebee's word reference is the shared common.words master list,
 -- not a freebee table — every word game filters the same
 -- categorized source. freebee's slice is computed on the fly in
--- freebee.candidate_words (below): legal = difficulty <= 70,
--- required = difficulty <= 50 AND NOT slur, dialect = american OR
--- british, len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
+-- freebee.candidate_words (below): legal = difficulty <= 5,
+-- required = difficulty <= 3 AND american AND NOT slang AND NOT slur,
+-- len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
 -- test (every letter of the word is in the puzzle) reads the
 -- generated common.words.letter_mask column — same bit convention.
 --
@@ -75,17 +75,15 @@ grant usage on schema freebee to service_role;
 -- so generating boards by "pick 7 random letters and check"
 -- wastes thousands of attempts.
 --
--- The flip: start from known pangrams. Scan the FLOOR slice of
--- common.words (difficulty <= 35 — the lowest difficulty freebee
--- offers) for every 7-distinct-letter word, dedupe by letter-mask,
--- store the resulting masks here. Qualifying at the floor (Option B)
--- guarantees every board has a COMMON, findable pangram and >= 30
--- words even for the most basic player; because the difficulty lists
--- are nested, a floor-good seed is good at every higher level too.
--- So `required_words_count` is the floor count — a deliberately
--- pessimistic lower bound vs. the in-play thresholds (required <= 50
--- / legal <= 70, in candidate_words). See docs/games/freebee.md →
--- "Planned: per-player difficulty" and import-freebee-pangrams.ts.
+-- The flip: start from known pangrams. Scan the band-1 (universal)
+-- slice of common.words for every 7-distinct-letter word, dedupe by
+-- letter-mask, store the resulting masks here. Drawing the seed from
+-- band 1 guarantees every board has a COMMON, findable pangram (the
+-- whole point — no obscure-only pangrams like CALDRON). For each seed
+-- we precompute `required_words_count` = how many REQUIRED words
+-- (band <= 3, american, no slang, no slur) fit it, and keep only
+-- seeds with >= 30 so no board is thin. See
+-- import-freebee-pangrams.ts and docs/games/freebee.md.
 --
 -- The edge function samples from this table — one short query, no
 -- rejection loops over the whole word list on each board build.
@@ -454,21 +452,22 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 -- through supabase.rpc(...) in one round-trip.
 --
 -- This is also where freebee's slice of the shared common.words
--- list is defined:
---   - legal      difficulty <= 70  (returned at all = enterable)
---   - required   difficulty <= 50 AND NOT slur  (the is_required
---                flag; counts toward the displayed goal + rank
---                denominator). Slurs are legal but never required
---                — the golden rule. difficulty 51-70 words and
---                slurs come back as BONUS (is_required false):
---                legal − required. Bonus words still SCORE (length
---                + pangram bonus); they just don't count toward the
---                required goal.
---   - dialect    american OR british  (Joel's default; canadian /
---                australian off). Mostly a spelling filter.
+-- list is defined, on the 1..6 recognizability bands:
+--   - legal      difficulty <= 5  (returned at all = enterable). No
+--                dialect / slang / slur restriction — anything up to
+--                band 5 counts if you play it.
+--   - required   difficulty <= 3 AND american AND NOT slang AND NOT
+--                slur  (the is_required flag; counts toward the
+--                displayed goal + rank denominator). Slurs are legal
+--                but never required — the golden rule. Words that are
+--                legal but not required (band 4-5, or band <=3 that's
+--                non-american / slang / a slur) come back as BONUS
+--                (is_required false): legal − required. Bonus words
+--                still SCORE (length + pangram bonus); they just don't
+--                count toward the required goal.
 --   - length     len >= 4  (the Spelling-Bee minimum)
--- These thresholds become a per-game user choice later; for now
--- they're the locked defaults (see docs/games/freebee.md).
+-- The required/legal bands become a per-game user choice later; for
+-- now they're the locked defaults (see docs/games/freebee.md).
 --
 -- `s`-words need no explicit filter: a board never contains 's', so
 -- the 's' bit is never in puzzle_mask and any 's'-word fails the
@@ -492,11 +491,11 @@ set search_path = freebee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= 50 and not w.slur) as is_required
+         (w.difficulty <= 3 and w.american and not w.slang and not w.slur)
+           as is_required
     from common.words w
    where w.len >= 4
-     and w.difficulty <= 70
-     and (w.american or w.british)
+     and w.difficulty <= 5
      -- Subset of puzzle: every letter bit of the word must be
      -- present in the puzzle's bitmask (reads the generated
      -- common.words.letter_mask). Not sargable, so this is a

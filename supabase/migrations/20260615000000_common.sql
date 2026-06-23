@@ -1711,14 +1711,16 @@ grant execute on function common.claim_username(text) to authenticated;
 -- abbreviations, contractions, hyphenated or multi-word entries.
 --
 -- The categorization columns are the knobs games filter on:
---   difficulty  — 35..90, bundles "how common is it" + "how odd is
---                 the spelling" into one number (octopus=35,
---                 octopi=70). A single threshold controls how hard
---                 the playable set is. Rough tiers: 35 everyday,
---                 50 common, 60 most literate adults, 70 less-common,
---                 80 word-game/Scrabble tail, 85 archaic/obscure,
---                 90 anything-goes. freebee uses two thresholds:
---                 required = difficulty <= 50, legal = <= 70.
+--   difficulty  — 1..6 recognizability band (1 = everyone knows it,
+--                 6 = expert-only); lower = more recognizable. It's
+--                 about whether a player would KNOW the word, not how
+--                 often it appears in text (igloo/snuck are easy;
+--                 ordure is hard). The 6 bands: 1 universal, 2 common,
+--                 3 familiar, 4 uncommon, 5 obscure, 6 expert
+--                 (SOWPODS-only). A single threshold controls how hard
+--                 the playable set is; games pick by player skill.
+--                 freebee uses two thresholds: required = <= 3 (not a
+--                 slur), legal = <= 5.
 --   american/british/canadian/australian — dialect validity. Mostly
 --                 a SPELLING filter (colour/color, -ise/-ize); a word
 --                 like `lorry` is american=true too. Default play is
@@ -1727,6 +1729,11 @@ grant execute on function common.claim_username(text) to authenticated;
 --                 (it's a legal word) but MUST never appear on a
 --                 required / must-find list. Golden rule: slurs are
 --                 legal, never required.
+--   slang       — chiefly slang (`dude`, `aggro`). Lets a game offer a
+--                 "no slang" filter; orthogonal to difficulty (slang
+--                 can be band 1 or band 6).
+--   wordle      — in the fixed NYT Wordle answer/guess list. A future
+--                 Wordle game would pull exactly `WHERE wordle`.
 --   len         — char length, stored so per-game length rules
 --                 (freebee >=4, Boggle >=3, MonkeyGram >=2) filter
 --                 cheaply without a function call.
@@ -1767,12 +1774,14 @@ $$;
 create table common.words (
   word              text primary key,        -- lowercase a-z, the playable form
   difficulty        smallint not null
-                      check (difficulty between 35 and 90),
+                      check (difficulty between 1 and 6),
   american          boolean not null,
   british           boolean not null,
   canadian          boolean not null,
   australian        boolean not null,
   slur              boolean not null default false,
+  slang             boolean not null default false,  -- chiefly slang; "no slang" filter
+  wordle            boolean not null default false,  -- in the fixed Wordle word list
   len               smallint not null,
   root_word         text,                     -- lemma of an inflected form, else NULL
   definition        text,                     -- gloss/def in freebee symbology, NULL if none yet

@@ -514,15 +514,17 @@ The master playable-word list, shared by every word game (freebee today; Boggle,
 **Why `common`, not per-game.** Most upcoming games are word games, and the removability invariant forbids one game owning data another reads. A shared list in `common` is the natural home — `freebee` reads it, nothing in `common` reads back.
 
 **The categorization columns are the filtering knobs:**
-- `difficulty` (35–90) — bundles "how common is it" + "how odd is the spelling" into one number (`octopus`=35, `octopi`=70). A single threshold controls how hard the playable set is. This is what will back a future per-game "small vs large word list" user choice.
+- `difficulty` (**1–6 recognizability band**: 1 universal, 2 common, 3 familiar, 4 uncommon, 5 obscure, 6 expert/SOWPODS-only) — "would a player *know* this word," not how often it appears in text (so `igloo`/`snuck` are easy, `ordure` hard). Lower = more recognizable; a single threshold controls how hard the playable set is. This backs the per-game difficulty choice (e.g. waffle's tier picker, freebee's required/legal bands). **Codebase convention: validation always allows the full 1–6 range; which bands a game *offers* is a FE/UI choice.**
 - `american` / `british` / `canadian` / `australian` — dialect validity. Mostly a *spelling* filter (`colour`/`color`); a word like `lorry` is `american=true` too. Default play is `american OR british`.
 - `slur` — a serious slur with no innocent sense. Playable (it's a legal word) but **never** put on a required / must-find list. The golden rule: slurs are legal, never required.
+- `slang` — chiefly slang (`dude`, `aggro`). Lets a game offer a "no slang" filter; **orthogonal to difficulty** (slang can be band 1 or band 6).
+- `wordle` — in the fixed NYT Wordle answer/guess list. A future Wordle game pulls exactly `WHERE wordle`.
 - `len` — char length, so per-game length floors (freebee ≥4, Boggle ≥3, MonkeyGram ≥2) filter cheaply.
 - `root_word` — lemma of an inflected form (`cats`→`cat`), for "see also" grouping.
 - `definition` / `definition_source` — the click-to-define payload (see [Word definitions](#word-definitions-click-to-define--lookup) below).
 - `letter_mask` — a **generated** column: the 26-bit set of distinct letters in the word (bit 0 = `a`), via `common.word_letter_mask`. Powers the "find every word whose letters fit this puzzle" subset query (`letter_mask & ~puzzle_mask = 0`) that freebee's board builder runs.
 
-**How a game uses it.** freebee defines its slice in `freebee.candidate_words`: legal = `difficulty ≤ 70`, scoring = `difficulty ≤ 50 AND NOT slur`, dialect = `american OR british`, `len ≥ 4`. The thresholds are the locked defaults; they become a per-game user choice later.
+**How a game uses it.** freebee defines its slice in `freebee.candidate_words`: legal = `difficulty ≤ 5`, required = `difficulty ≤ 3 AND american AND NOT slang AND NOT slur`, `len ≥ 4`. waffle picks a pre-generated puzzle whose hardest word is exactly the chosen band. Bands a game uses (or offers) are a per-game choice; the list itself holds every band.
 
 **Seed + import.** Public reference data — `grant select` to `authenticated`, no RLS. Seeded from the vendored gzipped TSV `supabase/data/words.tsv.gz` (283k rows, ~3 MB) via `npm run words:import` (psql `COPY`, TRUNCATE + insert; `letter_mask` fills itself as a generated column). Same direct-Postgres load the other reference tables use (fast + reliable for the hosted load; see [freebee.md → Pangram seed import](games/freebee.md#pangram-seed-import-npm-run-freebeeimport) for why `COPY` beats batched HTTP upserts).
 

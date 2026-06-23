@@ -177,22 +177,20 @@ $$;
 -- starting board with the same letters, and `par_swaps` (the minimum
 -- swaps to solve — the budget is par + extra, set at create_game).
 --
--- `title` is a short player-facing label. While we're trialling
--- difficulty tiers it carries the puzzle's vocabulary difficulty
--- ("Difficulty 50") so friends can pick a tier and feel the
--- difference; a later "real" library can title them however we like.
--- create_game (Phase 3) copies the chosen puzzle's solution/scramble
--- onto the game and derives the game title from this.
+-- `title` is a short player-facing label carrying the puzzle's
+-- vocabulary band ("Common", "Familiar", …) so friends can pick a tier
+-- and feel the difference. create_game copies the chosen puzzle's
+-- solution/scramble onto the game and derives the game title from this.
 create table waffle.puzzles (
   id         uuid primary key default gen_random_uuid(),
   solution   char(25) not null,   -- solved board, 25-char, holes '.'
   scramble   char(25) not null,   -- starting board, same letters scrambled
   par_swaps  int not null,        -- minimum swaps to solve
-  -- Vocabulary tier (35 / 50 / 60): the HARDEST word in the puzzle is
-  -- exactly this difficulty, so a tier-50 puzzle genuinely uses a
-  -- 50-level word (not merely allows one). create_game picks by it.
+  -- Vocabulary tier — recognizability band 1–5: the HARDEST word in the
+  -- puzzle is exactly this band, so a band-3 puzzle genuinely uses a
+  -- band-3 word (not merely allows one). create_game picks by it.
   difficulty smallint not null,
-  title      text not null        -- player-facing label (e.g. "Difficulty 50")
+  title      text not null        -- player-facing label (e.g. "Common")
 );
 
 -- Public reference data: no RLS. The bulk import connects as the
@@ -453,7 +451,7 @@ on conflict do nothing;
 -- waffle.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "difficulty": 35 | 50 | 60,                -- vocab tier
+--   { "difficulty": 1..6,                        -- vocab band (UI offers a subset)
 --     "extra_swaps": int (0..15, default 5),     -- budget = par + this
 --     "timer": (none | countup | countdown{seconds}) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
@@ -496,10 +494,14 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- ─── Validate setup.difficulty (the vocab tier) ──────────
-  s_difficulty := coalesce((setup->>'difficulty')::int, 50);
-  if s_difficulty not in (35, 50, 60) then
-    raise exception 'setup.difficulty must be 35, 50, or 60 (got %)', s_difficulty
+  -- ─── Validate setup.difficulty (the vocab band) ──────────
+  -- The server accepts the FULL band range 1..6 (all word-list levels
+  -- exist); which bands the setup dialog actually OFFERS is a FE/UI
+  -- choice (today 1..5 — see DIFFICULTY_OPTIONS), changeable without a
+  -- DB or puzzle-library change since every band is generated.
+  s_difficulty := coalesce((setup->>'difficulty')::int, 2);
+  if s_difficulty not between 1 and 6 then
+    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
       using errcode = 'P0001';
   end if;
 

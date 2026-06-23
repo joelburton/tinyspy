@@ -52,19 +52,21 @@ export type WafflePuzzle = {
   tier: number
 }
 
-/** Load 5-letter candidate words (+ their difficulty) from the
- *  committed `words.tsv.gz`: valid in american OR british, not a slur. */
+/** Load 5-letter candidate words (+ their difficulty band) from the
+ *  committed `words.tsv.gz`: american, not a slur, not slang. */
 export function loadWordRows(path: string): WordRow[] {
   const raw = gunzipSync(readFileSync(path)).toString('utf8')
   const out: WordRow[] = []
   for (const line of raw.split('\n')) {
     if (!line) continue
-    // columns: word difficulty american british canadian australian slur len …
+    // columns: word difficulty american british canadian australian
+    //          slur slang wordle len root_word definition def_source
     const c = line.split('\t')
     const word = c[0]
     if (word.length !== 5 || !/^[a-z]{5}$/.test(word)) continue
+    if (c[2] !== 't') continue // american
     if (c[6] === 't') continue // slur
-    if (c[2] !== 't' && c[3] !== 't') continue // american OR british
+    if (c[7] === 't') continue // slang
     out.push({ word, difficulty: Number(c[1]) })
   }
   return out
@@ -103,10 +105,10 @@ export function makeScramble(
 }
 
 /**
- * Build a generator for one discrete difficulty tier. A tier-N puzzle
- * uses only words with difficulty ≤ N AND has at least one word at
- * exactly N — so the tier is meaningful: a "50" puzzle genuinely
- * reaches the 50 band rather than accidentally being all-everyday.
+ * Build a generator for one discrete difficulty tier (a band 1–5). A
+ * tier-N puzzle uses only words with difficulty ≤ N AND has at least
+ * one word at exactly N — so the tier is meaningful: a band-3 puzzle
+ * genuinely reaches band 3 rather than accidentally being all band-1.
  *
  * Returns `{ candidateCount, next() }`; `next()` yields a fresh puzzle
  * (deduped within this generator) or null if it can't find one.
