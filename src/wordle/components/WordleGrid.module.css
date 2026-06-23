@@ -52,3 +52,62 @@
   /* empty tile — keep the light border, transparent fill */
   background: transparent;
 }
+
+/*
+ * Reveal flip — applied to the tiles of a freshly-submitted row. The
+ * tile rotates edge-on (rotateX -90°) at the midpoint, and ONLY then
+ * swaps to its feedback color (carried in `--reveal-bg`, set inline per
+ * tile). Per-tile `animation-delay` (set inline) staggers the row so the
+ * letters turn over left-to-right. `forwards` holds the final colored
+ * state after the animation ends.
+ */
+.reveal {
+  /* `both` (not just `forwards`) is load-bearing: each tile has a
+   * staggered `animation-delay`, and during that delay `both` holds the
+   * 0% keyframe — the dark-text "typed" look — so the letters stay
+   * visible until each tile's flip begins. With plain `forwards` a
+   * waiting tile falls back to the base `.tile` style (white text on a
+   * transparent fill = invisible), making the word blink out pre-flip. */
+  animation: tile-flip 0.55s ease both;
+  /* Rotate around the tile's own plane for a card-flip feel. */
+  backface-visibility: hidden;
+}
+
+@keyframes tile-flip {
+  /* First half: still the typed-but-unscored look (dark text, no fill). */
+  0% {
+    transform: rotateX(0deg);
+    background: transparent;
+    border-color: var(--wordle-tile-border-filled, #878a8c);
+    color: var(--color-text, #1a1a1b);
+  }
+  49.9% {
+    transform: rotateX(-90deg);
+    background: transparent;
+    border-color: var(--wordle-tile-border-filled, #878a8c);
+    color: var(--color-text, #1a1a1b);
+  }
+  /* Past edge-on: paint the feedback color, flip back into view. */
+  50% {
+    transform: rotateX(-90deg);
+    background: var(--reveal-bg);
+    border-color: var(--reveal-bg);
+    color: #fff;
+  }
+  100% {
+    transform: rotateX(0deg);
+    background: var(--reveal-bg);
+    border-color: var(--reveal-bg);
+    color: #fff;
+  }
+}
+
+/* Respect reduced-motion: skip the flip, just show the final color. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+    background: var(--reveal-bg);
+    border-color: var(--reveal-bg);
+    color: #fff;
+  }
+}

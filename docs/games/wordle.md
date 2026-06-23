@@ -62,7 +62,7 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus freebee's per-gu
 
 `manifest` (sibling pair; `startGameInClub` calls `create_game` directly), `db.ts`, `hooks/useGame` (games_state + players + guesses, refetch pattern), and components:
 
-- **WordleGrid** — `max_guesses × 5` colored-tile board (submitted rows colored by the server feedback; the active row shows in-progress typing).
+- **WordleGrid** — `max_guesses × 5` colored-tile board (submitted rows colored by the server feedback; the active row shows in-progress typing). A freshly-landed guess **flips its tiles over one at a time** (NYT-style), each painting its color at the midpoint of the flip; only rows that appear *after mount* animate (a mid-game refresh or revealed opponent history renders static), and `prefers-reduced-motion` skips the flip. The submitted letters stay on the board through the RPC round-trip — PlayArea passes them as a `pending` (uncolored) row that flips in place when the colored server row lands, so there's no blank flash between submit and reveal.
 - **Keyboard** — the on-screen QWERTY, each key tinted with the strongest feedback that letter has earned (green > yellow > gray); feeds the same input path as the physical keyboard.
 - **GuessList** (right column) — the `guesses-used / allowed` counter over the guess history (coop tags each guess with who entered it, in their member color).
 - **PlayArea** — two columns (board + keyboard left; counter + guess list right). Handles typing (physical + on-screen), submits via `submit_guess`, flashes a timed pill on soft rejects, and renders the terminal reveal ("The answer was …") + GameOverModal. Compete adds an OpponentStrip of guess counts.

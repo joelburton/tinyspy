@@ -43,6 +43,11 @@ export function PlayArea({
   const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
+  // from the moment we submit until its colored server row arrives via
+  // realtime, so the letters don't blink out during the round-trip. The
+  // row then flips in place. Cleared on soft-reject, or once it lands.
+  const [pending, setPending] = useState<string | null>(null)
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -54,8 +59,21 @@ export function PlayArea({
   const myGuesses = isCompete
     ? guesses.filter((g) => g.user_id === session.user.id)
     : guesses
+  // The pending word, shown until its colored server row actually lands.
+  // Once it's in myGuesses we stop showing it (the real row flips in its
+  // place) — `pending` state may linger stale, but `pendingWord` is the
+  // value everything reads, so that's harmless. Deriving it (vs. clearing
+  // `pending` in an effect) also dodges a one-frame double-render.
+  const pendingLanded =
+    pending != null && myGuesses.some((g) => g.guess === pending)
+  const pendingWord = pending && !pendingLanded ? pending : ''
   const canGuess =
-    !!self && !isTerminal && !mySolved && guessesUsed < maxGuesses && !submitting
+    !!self &&
+    !isTerminal &&
+    !mySolved &&
+    guessesUsed < maxGuesses &&
+    !submitting &&
+    !pendingWord
 
   // ─── Submit a guess (stable across keystrokes) ────────────────
   const doSubmit = useCallback(
@@ -65,29 +83,37 @@ export function PlayArea({
         return
       }
       setSubmitting(true)
+      // Optimistically keep the letters on the board through the round-trip
+      // so they don't blink out. Reverted on any soft-reject below.
+      setPending(word)
       const { data, error } = await db.rpc('submit_guess', {
         target_game: gameId,
         guess: word,
       })
       setSubmitting(false)
       if (error) {
+        setPending(null)
         feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
         return
       }
       const res = data as { result: string }
       if (res.result === 'notAWord') {
+        setPending(null)
         feedback.show({ tone: 'error', text: 'Not in word list', dismiss: { kind: 'timed', ms: 1500 } })
         return
       }
       if (res.result === 'duplicate') {
+        setPending(null)
         feedback.show({ tone: 'info', text: 'Already guessed', dismiss: { kind: 'timed', ms: 1500 } })
         return
       }
       if (res.result === 'invalid') {
+        setPending(null)
         feedback.show({ tone: 'error', text: 'Not enough letters', dismiss: { kind: 'timed', ms: 1200 } })
         return
       }
-      // accepted (correct/incorrect): clear; the new row arrives via realtime.
+      // accepted (correct/incorrect): clear the typing buffer. `pending`
+      // holds the word in place until its colored row lands (then flips).
       setCurrent('')
     },
     [gameId, feedback],
@@ -169,6 +195,7 @@ export function PlayArea({
         <WordleGrid
           rows={rows}
           current={current}
+          pending={pendingWord}
           maxGuesses={game.max_guesses}
           active={canGuess}
         />
