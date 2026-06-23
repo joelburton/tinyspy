@@ -1132,7 +1132,6 @@ export type Database = {
           max_swaps: number
           mode: string
           par_swaps: number
-          puzzle_id: string
           scramble: string
           solution: string
         }
@@ -1143,7 +1142,6 @@ export type Database = {
           max_swaps: number
           mode: string
           par_swaps: number
-          puzzle_id: string
           scramble: string
           solution: string
         }
@@ -1154,7 +1152,6 @@ export type Database = {
           max_swaps?: number
           mode?: string
           par_swaps?: number
-          puzzle_id?: string
           scramble?: string
           solution?: string
         }
@@ -1201,33 +1198,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      puzzles: {
-        Row: {
-          difficulty: number
-          id: string
-          par_swaps: number
-          scramble: string
-          solution: string
-          title: string
-        }
-        Insert: {
-          difficulty: number
-          id?: string
-          par_swaps: number
-          scramble: string
-          solution: string
-          title: string
-        }
-        Update: {
-          difficulty?: number
-          id?: string
-          par_swaps?: number
-          scramble?: string
-          solution?: string
-          title?: string
-        }
-        Relationships: []
       }
       swaps: {
         Row: {
@@ -1287,7 +1257,6 @@ export type Database = {
           max_swaps: number | null
           mode: string | null
           par_swaps: number | null
-          puzzle_id: string | null
           scramble: string | null
           solution: string | null
         }
@@ -1298,7 +1267,6 @@ export type Database = {
           max_swaps?: number | null
           mode?: string | null
           par_swaps?: number | null
-          puzzle_id?: string | null
           scramble?: string | null
           solution?: never
         }
@@ -1309,7 +1277,6 @@ export type Database = {
           max_swaps?: number | null
           mode?: string | null
           par_swaps?: number | null
-          puzzle_id?: string | null
           scramble?: string | null
           solution?: never
         }
@@ -1390,6 +1357,7 @@ export type Database = {
       }
       create_game: {
         Args: {
+          board: Json
           mode: string
           player_user_ids: string[]
           setup: Json

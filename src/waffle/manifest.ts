@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
+import { supabase } from '../common/lib/supabase'
 import { db } from './db'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -30,8 +31,14 @@ const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
-/** Shared start-game caller. `mode` is the per-manifest constant; the
- *  RPC routes on it to write the right gametype string. */
+/**
+ * Shared start-game caller. The board is generated on demand by the
+ * `waffle-build-board` edge function (running as the caller), which
+ * builds a board for the chosen band and calls
+ * `waffle.create_game(target_club, setup, players, mode, board)`. `mode`
+ * is the per-manifest constant, forwarded top-level. Returns `{ id }`
+ * or `{ error }` whose message the dialog surfaces verbatim.
+ */
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return async (
     clubHandle: string,
@@ -39,18 +46,42 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     playerUserIds: string[],
   ) => {
     const s = setup as WaffleSetup
-    const { data, error } = await db
-      .rpc('create_game', {
-        target_club: clubHandle,
-        setup: s,
-        player_user_ids: playerUserIds,
-        mode,
-      })
-      .single()
-    if (error || !data) {
-      return { error: error?.message ?? `failed to start SyrupSwap (${mode})` }
+    const { data, error } = await supabase.functions.invoke(
+      'waffle-build-board',
+      {
+        body: {
+          target_club: clubHandle,
+          setup: s,
+          player_user_ids: playerUserIds,
+          mode,
+        },
+      },
+    )
+    if (error) {
+      // `functions.invoke` returns a generic "non-2xx" message; the
+      // real server error sits on `error.context` (a Response). Read it
+      // so the dialog shows what the server actually objected to.
+      const ctx = (error as { context?: Response }).context
+      let serverMsg: string | null = null
+      if (ctx) {
+        try {
+          const parsed = (await ctx.json()) as { error?: string }
+          if (parsed && typeof parsed.error === 'string') {
+            serverMsg = parsed.error
+          }
+        } catch {
+          // body wasn't JSON; fall through to the generic message
+        }
+      }
+      return { error: serverMsg ?? error.message }
     }
-    return { id: data.id }
+    const payload = data as { id?: string; error?: string } | null
+    if (!payload || payload.error || !payload.id) {
+      return {
+        error: payload?.error ?? `failed to start SyrupSwap (${mode})`,
+      }
+    }
+    return { id: payload.id }
   }
 }
 

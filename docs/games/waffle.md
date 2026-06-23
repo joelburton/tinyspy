@@ -4,8 +4,7 @@
 scoping doc and the design below still holds; it's now implemented in migration
 `20260624000000_waffle.sql`, the `src/waffle/` frontend, and the pgTAP
 (`supabase/tests/waffle/`) + Vitest (`src/waffle/lib/*.test.ts`) suites.
-Remaining polish is minor (recently-swapped tile flash; a larger puzzle library
-once the band tiers settle).
+Remaining polish is minor (recently-swapped tile flash).
 
 **Brand name vs codename.** The user-facing brand is **SyrupSwap** — it's the
 manifest `title` and the wording in any end-user copy (game listing, help,
@@ -123,8 +122,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 
 | table | purpose |
 |---|---|
-| `waffle.puzzles` | The generated library (see below). `id`, `solution` (25-char), `scramble` (25-char), `par_swaps`, `difficulty` (recognizability band **1–6** — the vocab tier; `create_game` picks by it), `title` (the band's label, e.g. "Common", the game-listing label). The 6 words derive from `solution` via geometry. |
-| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `puzzle_id`, `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). Solution/scramble/par are copied from the puzzle so the game is self-contained (same reasoning as `wordknit.games.board`) — the game holds its own info; the puzzle is just the source. |
+| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 | `waffle.swaps` PK `(game_id, swap_index)` | The coop move log: one row per swap — `user_id`, `swap_index` (1-based, the shared coop count), `pos_a`/`pos_b`, and `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained). **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
 
@@ -149,15 +147,17 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 
 ## RPCs
 
-- **`create_game(target_club, setup, player_user_ids, mode)`** — sibling-manifest
-  signature. Validates `require_club_member`, `require_player_count_max`,
-  `validate_timer`; validates `setup.extra_swaps` (0..15, default 5) and
-  `setup.difficulty` (band **1–6**, default 2 — the server accepts the full
-  range; the setup dialog offers 1–5, a FE/UI choice); picks a `waffle.puzzles`
-  row of that band the club hasn't played (subquery against `waffle.games`,
-  fallback to any of that band); copies solution/scramble onto `waffle.games`; sets
-  `max_swaps = par_swaps + setup.extra_swaps`; seeds one `waffle.players` row per
-  player with `board = scramble`.
+- **`create_game(target_club, setup, player_user_ids, mode, board)`** —
+  sibling-manifest signature plus a `board` jsonb (`{solution, scramble,
+  par_swaps}`) built by the `waffle-build-board` edge function. Validates
+  `require_club_member`, `require_player_count_max`, `validate_timer`; validates
+  `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band **1–6**,
+  default 2 — server accepts the full range; the dialog offers 1–5, a FE/UI
+  choice); sanity-checks the board structure (25-char strings, holes at the four
+  interior cells, scramble is a rearrangement of the solution); stores it on
+  `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; titles the
+  game from the band; seeds one `waffle.players` row per player with
+  `board = scramble`.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
   state, `require_game_player`, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
@@ -196,60 +196,59 @@ Timer is optional (`none` / `countup` / `countdown`, via `common.validate_timer`
 A countdown is a pace/cap: on expiry, coop → `lost`; compete forces any
 not-yet-done player to "done" (failed) and computes the winner among solvers.
 
-## Puzzle generation
+## Board generation: `waffle-build-board` (edge function)
 
-**No external corpus** (unlike wordknit's found Connections collection) — we
-generate our own offline and ship them as a committed artifact. The pipeline
-mirrors `common.words`:
+**No external corpus** (unlike wordknit's found Connections collection) and **no
+pre-generated library** — a board is built fresh at game-start by the
+`waffle-build-board` edge function, the same on-demand pattern as
+`freebee-build-board`.
 
-> **generate (dev tool, no DB) → commit `waffle-puzzles.tsv.gz` → `waffle:import`
-> (psql COPY) → `waffle.puzzles`**
+**Why on demand, not pre-generated.** A pre-generated library bakes the word
+filters into each puzzle (you can't filter a board after the fact, only reject
+it), so every filter axis — band, dialect, slang, … — multiplies the library
+combinatorially. Generating on demand applies whatever filters the player chose
+for free, and is fast (a board builds in a few ms; the bottleneck is the one
+word-list fetch). It also means no committed artifact to regenerate when the
+word list changes, and no `waffle.puzzles` table or import step.
 
-Deploys stay fast (a COPY, no constraint-solving in the hot path) and the puzzle
-set is reviewable + stable in git. ~600 puzzles (100 per band 1–6) ≈ tens of KB gzipped.
+**Why an edge function, not the FE or plpgsql.** Building server-side keeps the
+solution off the creating client — for a solve-the-board puzzle, a creator who
+knew the answer would have no game. (plpgsql is a poor host for the fill +
+cycle-decomposition par; same reason freebee uses an edge function.)
 
-### `scripts/generate-waffle-puzzles.ts` (dev tool)
+The pure generation logic lives in
+[`supabase/functions/waffle-build-board/gen.ts`](../../supabase/functions/waffle-build-board/gen.ts)
+— geometry, the board fill, the anchored scramble, and `minSwaps`. It's the
+single home of that code now; the FE keeps its own copy of the *geometry*
+constants in `lib/waffle.ts` for rendering (invariant, so the small duplication
+can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 
-1. Read `supabase/data/words.tsv.gz` directly (gunzip + filter — no DB). For each
-   band N (1–6), the candidate set = `len == 5 AND difficulty ≤ N AND american
-   AND NOT slur AND NOT slang`, and a puzzle is kept only if its hardest word is
-   **exactly** band N (so the tier is meaningful). ~thousands of words per band.
-   Every band is generated so the server can serve any difficulty even though
-   the setup UI offers a subset (1–5).
+**The flow** (`index.ts`, running as the caller):
+
+1. Fetch the candidate 5-letter words from `common.words` for the band:
+   `len = 5 AND difficulty ≤ N AND american AND NOT slur AND NOT slang` (paged
+   to defeat PostgREST's `max_rows`). Returns `(word, difficulty)`.
 2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes the
-   3 *down* words' intersection letters. Precompute an index
-   `(char@0, char@2, char@4) → [words]`; loop/sample `a0,a2,a4`, then the down
-   words are three O(1) bucket lookups against patterns `a0[0]_a2[0]_a4[0]`,
-   `a0[2]_a2[2]_a4[2]`, `a0[4]_a2[4]_a4[4]`. All three non-empty → a valid waffle.
-   Dedupe by solution; require all 6 words distinct.
-3. **Scramble + par.** Permute the solution letters into a mostly-wrong
-   arrangement, then compute `par_swaps` = min transpositions to solve. With
-   duplicate letters this is "min swaps to sort with dupes" — pick the
-   same-letter→position assignment that **maximizes cycles**
-   (`swaps = positions − cycles`); a left-to-right greedy over-counts here, so
-   `minSwaps` does the exact max-cycle decomposition. Two real-Waffle
-   conventions shape the scramble (see the arXiv analysis of 1000+ archived
-   boards): the **four corners + center are always left green** (cells
-   `0,4,20,24,12` — `ANCHORS`; we only ever swap the other 16), and the board
-   shows **5–8 total greens** (the 5 anchors plus ≤3 incidental). Keep only
+   3 *down* words' intersection letters. Build an index
+   `(char@0, char@2, char@4) → [words]`; sample `a0,a2,a4`, then the down words
+   are three O(1) bucket lookups. All three non-empty + 6 distinct words + the
+   hardest word **exactly** band N → a valid waffle of that tier.
+3. **Scramble + par.** Permute the solution into a mostly-wrong arrangement, then
+   compute `par_swaps` = min transpositions to solve. With duplicate letters this
+   is "min swaps to sort with dupes" — pick the same-letter→position assignment
+   that **maximizes cycles** (`swaps = positions − cycles`); a left-to-right
+   greedy over-counts here, so `minSwaps` does the exact max-cycle decomposition.
+   Two real-Waffle conventions shape the scramble (per the arXiv analysis of
+   1000+ archived boards): the **four corners + center are always left green**
+   (cells `0,4,20,24,12` — `ANCHORS`; we only ever swap the other 16), and the
+   board shows **5–8 total greens** (the 5 anchors plus ≤3 incidental). Keep only
    scrambles whose par lands in a band (≈ 9–11).
-4. **Quality filters** (light): reject a down word equal to an across word; cap
-   total letter repetition so colors stay informative.
-5. Emit `solution, scramble, par_swaps, difficulty, title` rows →
-   `supabase/data/waffle-puzzles.tsv.gz` (committed). `npm run waffle:generate [N]`
-   makes N puzzles per band (default 100) at bands 1–6. **A band-N puzzle's hardest
-   word is exactly band N** (`tierGenerator` requires `max(word difficulties) === N`),
-   so a band-3 puzzle genuinely *uses* a band-3 word, not merely allows one.
-
-Two pieces to build test-first: the **par computation** (cycle-maximizing
-assignment with duplicates — if it's off by 1 it only nudges the star rating, not
-solvability, since the budget is generous) and the quality filters.
-
-### `scripts/import-waffle-puzzles.ts`
-
-`npm run waffle:import` — psql `\copy` (TRUNCATE + reseed) of
-`waffle-puzzles.tsv.gz` into `waffle.puzzles`, same transport as `words:import`.
-Wired into `import-to-hosted.sh` (step 8d, after wordknit).
+4. Call `waffle.create_game(target_club, setup, players, mode, board)` with
+   `board = { solution, scramble, par_swaps }`. The RPC sanity-checks structure
+   (25-char strings, holes at the four interior cells, scramble is a
+   rearrangement of the solution) but takes `par_swaps` at face value — it never
+   re-derives par in SQL (that's the whole reason for the edge function). The
+   game title is the band's label, derived from `setup.difficulty`.
 
 ## Frontend (`src/waffle/`)
 
@@ -283,8 +282,9 @@ defer.
   `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
   `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
   idempotency, non-player rejected).
-- **Vitest:** `waffle.ts` geometry, `colors.ts` render, `manifest`, and the
-  generator's par computation.
+- **Vitest:** `waffle.ts` geometry, `colors.ts` render, `manifest`. The
+  generator's `minSwaps` par lives in the edge function, covered by
+  `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 
 ## Phased build order
 
@@ -307,5 +307,7 @@ defer.
 - **`max_swaps`:** default `par + 5`, **configurable in `SetupForm`** (`extra_swaps`).
 - **Compete tie-break:** equal swap counts → earliest `solved_at` (least time)
   wins. The finite budget means the game always terminates, timer or not.
-- **Puzzles:** **vendored only** — we pre-generate a library and ship it; **no**
-  daily/live edge-function generator (we don't need fresh-per-day puzzles).
+- **Puzzles:** **generated on demand** by the `waffle-build-board` edge function
+  (see [Board generation](#board-generation-waffle-build-board-edge-function)).
+  This superseded the original vendored-library approach once player-selectable
+  word filters made a pre-generated set multiply combinatorially.

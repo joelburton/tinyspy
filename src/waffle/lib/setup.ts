@@ -12,9 +12,10 @@ export type WaffleSetup = {
   /**
    * Vocabulary tier — the recognizability band the six words are drawn
    * from: a tier-N puzzle uses words of band ≤ N with its hardest word
-   * at exactly N. The server picks a pre-generated puzzle of the chosen
-   * tier and accepts the full band range 1–6; the dialog offers a
-   * subset (see `DIFFICULTY_OPTIONS`).
+   * at exactly N. The board is generated on demand for the chosen band
+   * (the `waffle-build-board` edge function); the server accepts the
+   * full band range 1–6, the dialog offers a subset (see
+   * `DIFFICULTY_OPTIONS`).
    */
   difficulty: number
   /**
@@ -41,9 +42,9 @@ export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
 /**
  * The vocab tiers the form OFFERS — bands 1–5 (band 6, SOWPODS-only
  * "expert", is left off as too obscure for a swap puzzle). This is a
- * pure UI choice: the server accepts the full 1–6 range and the puzzle
- * library has every band, so adding/removing a tier here needs no DB
- * or data change. Labels follow the common.words band names.
+ * pure UI choice: the server accepts the full 1–6 range and generates a
+ * board for any band on demand, so adding/removing a tier here needs no
+ * DB or data change. Labels follow the common.words band names.
  */
 export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
   { value: 1, label: 'Universal' },

@@ -1,10 +1,11 @@
 /**
  * Waffle board geometry — the fixed 5×5 lattice that every part of
- * the game agrees on: the puzzle generator (offline), the server
- * (mirrored as constants in the `waffle` migration), and the FE
- * render. Keep this the single TS source of truth; if the lattice
- * ever changes, the SQL `waffle.compute_colors` word arrays change
- * with it.
+ * the game agrees on: the FE render (here), the board generator
+ * (mirrored in the `waffle-build-board` edge function's gen.ts), and
+ * the server (mirrored as constants in the `waffle` migration). These
+ * are invariant constants (the board's shape); if the lattice ever
+ * changed, all three would change together, along with the SQL
+ * `waffle.compute_colors` word arrays.
  *
  * Layout (row-major positions 0–24). Words run on rows 0/2/4 (across)
  * and columns 0/2/4 (down); the 4 interior cells where both row and

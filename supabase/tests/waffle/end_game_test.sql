@@ -27,7 +27,8 @@ select * from waffle.create_game(
   (select handle from club1), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
+  'coop',
+  pg_temp.waffle_board()
 );
 
 select waffle.end_game((select id from g1));
@@ -67,7 +68,8 @@ select * from waffle.create_game(
   (select handle from club2), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
+  'compete',
+  pg_temp.waffle_board()
 );
 
 select waffle.end_game((select id from g2));
@@ -110,7 +112,8 @@ select * from waffle.create_game(
   (select handle from club3), pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
+  'coop',
+  pg_temp.waffle_board()
 );
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

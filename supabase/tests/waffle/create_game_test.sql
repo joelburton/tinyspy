@@ -1,9 +1,9 @@
 -- ============================================================
 -- Test: waffle.create_game (coop)
 -- ============================================================
--- create_game picks a puzzle, copies its boards onto the game, sets
--- the swap budget (par + extra), seeds one players row per player at
--- the scramble, and flips the game to 'playing'.
+-- create_game takes the freshly-built board, stores it on the game,
+-- sets the swap budget (par + extra), seeds one players row per player
+-- at the scramble, and flips the game to 'playing'.
 
 begin;
 
@@ -25,7 +25,8 @@ select * from waffle.create_game(
   pg_temp.waffle_setup(5),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'coop'
+  'coop',
+  pg_temp.waffle_board()
 );
 
 reset role;
@@ -45,7 +46,7 @@ select is(
 select is(
   (select scramble from waffle.games where id = (select id from g))::text,
   'bacdef.g.hijklmn.o.pqrstu',
-  'scramble copied from the puzzle'
+  'scramble stored from the board'
 );
 
 select is(

@@ -53,8 +53,6 @@ See [`freebee.md → Open / deferred`](games/freebee.md#open--deferred) for cont
 ## SyrupSwap (waffle)
 
 - **Recently-swapped tile flash.** A cosmetic cue: briefly pulse/highlight the two tiles a swap just moved, so the eye tracks the change (like freebee's fade-underline on a freshly-found word). Today the only change-signal is the updated color. Small `WaffleGrid` addition (diff prev vs. next board to find the two moved cells, animate them).
-- **`title` vs `difficulty` redundancy on `waffle.puzzles`.** Each puzzle carries both `difficulty` (the band 1–6 — `create_game` picks by it) and `title` (the band's label, e.g. "Common", the game-listing label). The title is just the band name today; consider deriving the game title from the band in `create_game` and dropping the column, or giving puzzles real titles.
-- **A larger puzzle library.** The current library is 100 puzzles per band 1–6. Once the band tiers settle, regenerate a larger set.
 
 ## Tooling
 

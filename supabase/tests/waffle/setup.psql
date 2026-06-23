@@ -6,33 +6,33 @@
 -- shared persona setup).
 --
 -- Provides:
---   - one deterministic test puzzle in waffle.puzzles, whose scramble
---     is exactly ONE swap (cells 0 and 1) away from solved — so a test
---     can solve it with submit_swap(game, 0, 1). The solution uses 21
---     distinct letters (a..u) so there's no color/duplicate ambiguity.
---     create_game has only this puzzle to pick, so games are
---     deterministic.
+--   - pg_temp.waffle_board() — a deterministic `board` jsonb in the
+--     shape waffle.create_game accepts. The scramble is exactly ONE
+--     swap (cells 0 and 1) away from solved, so a test can solve it
+--     with submit_swap(game, 0, 1). The solution uses 21 distinct
+--     letters (a..u) so there's no color/duplicate ambiguity, and its
+--     holes sit at the four interior cells (it passes create_game's
+--     structural checks). par_swaps = 1.
 --   - pg_temp.waffle_setup(extra) — the coop setup jsonb. `extra` is
 --     the swap-budget slack (max_swaps = par + extra); par is 1 here,
 --     so extra=0 gives a 1-swap budget (handy for the lose path).
+--
+-- Boards are normally built on demand by the waffle-build-board edge
+-- function; the tests pass this fixed board straight to create_game so
+-- the RPC is exercised deterministically without the generator.
 
 reset role;
 
--- Clear any imported library so create_game deterministically picks
--- OUR test puzzle (the whole test runs in a transaction that rolls
--- back, so the real library is untouched).
-delete from waffle.puzzles;
-
--- Band-2 (Common) tier so create_game (which picks by the `difficulty`
--- column) finds it when waffle_setup sends difficulty 2.
-insert into waffle.puzzles (solution, scramble, par_swaps, difficulty, title)
-values (
-  'abcdef.g.hijklmn.o.pqrstu',   -- solved
-  'bacdef.g.hijklmn.o.pqrstu',   -- cells 0,1 swapped → 1 swap from solved
-  1,
-  2,
-  'Common'
-);
+create function pg_temp.waffle_board()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'solution',  'abcdef.g.hijklmn.o.pqrstu',  -- solved
+    'scramble',  'bacdef.g.hijklmn.o.pqrstu',  -- cells 0,1 swapped → 1 swap away
+    'par_swaps', 1
+  );
+$$;
 
 create function pg_temp.waffle_setup(extra int default 5)
 returns jsonb

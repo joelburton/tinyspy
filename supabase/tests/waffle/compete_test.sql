@@ -26,7 +26,8 @@ select * from waffle.create_game(
   (select handle from club), pg_temp.waffle_setup(5),   -- max_swaps = par(1)+5 = 6
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
-  'compete'
+  'compete',
+  pg_temp.waffle_board()
 );
 
 -- ── ada solves in 1 swap ────────────────────────────────────

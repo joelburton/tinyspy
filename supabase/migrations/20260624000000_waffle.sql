@@ -10,7 +10,7 @@
 -- title + end-user copy only).
 --
 -- See docs/games/waffle.md for the full design (schema, RPCs,
--- coop/compete terminal logic, the vendored puzzle pipeline).
+-- coop/compete terminal logic, the on-demand board generation).
 --
 -- ─── BUILD STATUS ───────────────────────────────────────────
 -- Phase 1: the schema + the per-tile COLOR-FEEDBACK algorithm only
@@ -168,59 +168,22 @@ end;
 $$;
 
 -- ============================================================
--- waffle.puzzles — the generated puzzle library
--- ============================================================
--- Waffle has no external puzzle corpus, so we generate our own
--- offline and ship them as a committed artifact
--- (supabase/data/waffle-puzzles.tsv.gz, loaded by `waffle:import`).
--- Each row is one solvable puzzle: the solved board, a scrambled
--- starting board with the same letters, and `par_swaps` (the minimum
--- swaps to solve — the budget is par + extra, set at create_game).
---
--- `title` is a short player-facing label carrying the puzzle's
--- vocabulary band ("Common", "Familiar", …) so friends can pick a tier
--- and feel the difference. create_game copies the chosen puzzle's
--- solution/scramble onto the game and derives the game title from this.
-create table waffle.puzzles (
-  id         uuid primary key default gen_random_uuid(),
-  solution   char(25) not null,   -- solved board, 25-char, holes '.'
-  scramble   char(25) not null,   -- starting board, same letters scrambled
-  par_swaps  int not null,        -- minimum swaps to solve
-  -- Vocabulary tier — recognizability band 1–5: the HARDEST word in the
-  -- puzzle is exactly this band, so a band-3 puzzle genuinely uses a
-  -- band-3 word (not merely allows one). create_game picks by it.
-  difficulty smallint not null,
-  title      text not null        -- player-facing label (e.g. "Common")
-);
-
--- Public reference data: no RLS. The bulk import connects as the
--- superuser (bypasses grants); create_game reads it as SECURITY
--- DEFINER. authenticated gets SELECT for parity with the other
--- reference tables (wordknit.puzzles, freebee.pangrams).
-grant select on waffle.puzzles to authenticated;
-
--- ============================================================
 -- waffle.games — one row per playthrough
 -- ============================================================
--- The puzzle, copied onto the game so it's self-contained (a later
--- puzzle-library refresh never disturbs in-flight games). `solution`
--- is the answer key — HIDDEN via a column-level grant and revealed
--- only post-terminal through games_state (the freebee/psychicnum
--- hidden-answer pattern). `scramble` is the starting board (public).
+-- Boards are generated on demand by the `waffle-build-board` edge
+-- function (no pre-generated puzzle library) and stored here, so the
+-- game is self-contained. `solution` is the answer key — HIDDEN via a
+-- column-level grant and revealed only post-terminal through
+-- games_state (the freebee/psychicnum hidden-answer pattern).
+-- `scramble` is the starting board (public).
 create table waffle.games (
   id          uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   -- Sibling-manifest mode axis; agrees with the gametype string
   -- ('waffle_coop' / 'waffle_compete') by construction in create_game.
   mode        text not null check (mode in ('coop', 'compete')),
-  -- Informational back-reference to the source puzzle. NOT a FK: the
-  -- library is reseeded with TRUNCATE (which regenerates ids), so a FK
-  -- here would either block the reseed or orphan existing games. The
-  -- game copies solution/scramble below, so it never needs the puzzle
-  -- row to exist.
-  puzzle_id   uuid not null,
   scramble    char(25) not null,   -- starting board, holes '.'
-  par_swaps   int not null,        -- minimum swaps to solve (copied from puzzle)
+  par_swaps   int not null,        -- minimum swaps to solve (from the build)
   max_swaps   int not null,        -- par + extra (the swap budget)
   solution    char(25) not null,   -- HIDDEN answer key
   created_at  timestamptz not null default now()
@@ -233,7 +196,7 @@ create index waffle_games_club_handle_idx on waffle.games (club_handle);
 -- "only granted columns," so we enumerate the safe ones. games_state
 -- exposes the solution conditionally via a SECURITY DEFINER helper.
 grant select
-  (id, club_handle, mode, puzzle_id, scramble, par_swaps, max_swaps, created_at)
+  (id, club_handle, mode, scramble, par_swaps, max_swaps, created_at)
   on waffle.games to authenticated;
 
 alter table waffle.games enable row level security;
@@ -414,7 +377,6 @@ create view waffle.games_state with (security_invoker = true) as
   select wg.id,
          wg.club_handle,
          wg.mode,
-         wg.puzzle_id,
          wg.scramble,
          wg.par_swaps,
          wg.max_swaps,
@@ -455,16 +417,20 @@ on conflict do nothing;
 --     "extra_swaps": int (0..15, default 5),     -- budget = par + this
 --     "timer": (none | countup | countdown{seconds}) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
--- working-state semantics. Picks a puzzle of the chosen vocab tier the
--- club hasn't played yet (fallback: any of that tier), copies its
--- boards onto the game, and seeds one players row per player (board =
--- scramble). The game title is the puzzle's title (its difficulty
--- label).
+-- working-state semantics. `board` is the freshly-built puzzle from the
+-- waffle-build-board edge function:
+--   { "solution": 25-char, "scramble": 25-char, "par_swaps": int }
+-- We store it (the game is self-contained) and seed one players row per
+-- player (board = scramble). Board CONTENT is taken at face value (we
+-- don't re-derive par in SQL — that's why generation is an edge
+-- function); we sanity-check structure. The game title is the band's
+-- label, derived from setup.difficulty.
 create function waffle.create_game(
   target_club     text,
   setup           jsonb,
   player_user_ids uuid[],
-  mode            text
+  mode            text,
+  board           jsonb
 )
 returns table(id uuid)
 language plpgsql
@@ -475,8 +441,11 @@ declare
   new_id       uuid;
   s_extra      int;
   s_difficulty int;
-  puzzle       waffle.puzzles%rowtype;
+  b_solution   text;
+  b_scramble   text;
+  b_par        int;
   budget       int;
+  game_title   text;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
@@ -498,7 +467,7 @@ begin
   -- The server accepts the FULL band range 1..6 (all word-list levels
   -- exist); which bands the setup dialog actually OFFERS is a FE/UI
   -- choice (today 1..5 — see DIFFICULTY_OPTIONS), changeable without a
-  -- DB or puzzle-library change since every band is generated.
+  -- DB change since boards are generated on demand per band.
   s_difficulty := coalesce((setup->>'difficulty')::int, 2);
   if s_difficulty not between 1 and 6 then
     raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
@@ -507,43 +476,55 @@ begin
 
   perform common.validate_timer(setup->'timer');
 
-  -- ─── Pick a puzzle of the chosen tier the club hasn't played ──
-  -- Alias the table: RETURNS TABLE(id …) puts `id` in scope, so an
-  -- unqualified `id` here would be ambiguous with the OUT param.
-  select * into puzzle
-    from waffle.puzzles p
-   where p.difficulty = s_difficulty
-     and p.id not in (
-       select puzzle_id from waffle.games where club_handle = target_club
-     )
-   order by random()
-   limit 1;
-  if not found then
-    -- Club has played every puzzle of this tier — let them replay.
-    select * into puzzle from waffle.puzzles p
-     where p.difficulty = s_difficulty
-     order by random() limit 1;
+  -- ─── Validate the passed board (structure, not content) ──────
+  b_solution := board->>'solution';
+  b_scramble := board->>'scramble';
+  b_par      := (board->>'par_swaps')::int;
+  if b_solution is null or length(b_solution) <> 25
+     or b_scramble is null or length(b_scramble) <> 25 then
+    raise exception 'board.solution / board.scramble must be 25-char strings'
+      using errcode = 'P0001';
   end if;
-  if not found then
-    raise exception 'no waffle puzzles for difficulty % — run waffle:import',
-                    s_difficulty using errcode = 'P0002';
+  if b_par is null or b_par < 1 then
+    raise exception 'board.par_swaps must be a positive int (got %)', b_par
+      using errcode = 'P0001';
+  end if;
+  -- Holes ('.') at the four interior cells (1-based 7, 9, 17, 19).
+  if substr(b_solution, 7, 1) <> '.' or substr(b_solution, 9, 1) <> '.'
+     or substr(b_solution, 17, 1) <> '.' or substr(b_solution, 19, 1) <> '.' then
+    raise exception 'board.solution holes must be at cells 7/9/17/19'
+      using errcode = 'P0001';
+  end if;
+  -- Integrity: the scramble is a rearrangement of the solution (same
+  -- letters), so it's solvable by swaps alone.
+  if (select array_agg(c order by c)
+        from regexp_split_to_table(b_solution, '') c)
+     is distinct from
+     (select array_agg(c order by c)
+        from regexp_split_to_table(b_scramble, '') c) then
+    raise exception 'board.scramble must be a rearrangement of board.solution'
+      using errcode = 'P0001';
   end if;
 
-  budget := puzzle.par_swaps + s_extra;
+  budget := b_par + s_extra;
+
+  -- Game title = the band's label (the difficulty the player picked).
+  game_title := case s_difficulty
+    when 1 then 'Universal' when 2 then 'Common' when 3 then 'Familiar'
+    when 4 then 'Uncommon' when 5 then 'Obscure' else 'Expert' end;
 
   new_id := common.create_game(
-    target_club, 'waffle_' || mode, player_user_ids, puzzle.title, setup,
+    target_club, 'waffle_' || mode, player_user_ids, game_title, setup,
     setup
   );
 
   insert into waffle.games
-    (id, club_handle, mode, puzzle_id, scramble, par_swaps, max_swaps, solution)
+    (id, club_handle, mode, scramble, par_swaps, max_swaps, solution)
   values
-    (new_id, target_club, mode, puzzle.id, puzzle.scramble, puzzle.par_swaps,
-     budget, puzzle.solution);
+    (new_id, target_club, mode, b_scramble, b_par, budget, b_solution);
 
   insert into waffle.players (game_id, user_id, board)
-  select new_id, uid, puzzle.scramble
+  select new_id, uid, b_scramble
     from unnest(player_user_ids) uid;
 
   perform common.update_state(
@@ -561,8 +542,8 @@ begin
 end;
 $$;
 
-revoke execute on function waffle.create_game(text, jsonb, uuid[], text) from public;
-grant execute on function waffle.create_game(text, jsonb, uuid[], text) to authenticated;
+revoke execute on function waffle.create_game(text, jsonb, uuid[], text, jsonb) from public;
+grant execute on function waffle.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
 -- ============================================================
 -- waffle.submit_swap — the core move
