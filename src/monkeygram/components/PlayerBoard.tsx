@@ -46,6 +46,11 @@ const DUMP_COUNT = 3 // tiles drawn per dump (server default; mirrored for the F
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
+
+// The board cursor is always present during play (you can type the
+// moment the board loads). It starts dead center — Bananagrams builds
+// outward from the middle — and is reset there after a recenter.
+const CENTER_CURSOR: Cursor = { row: Math.floor(GRID / 2), col: Math.floor(GRID / 2), dir: 'h' }
 type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; row: number; col: number }
 type Drag = { letter: string; source: DragSource; x: number; y: number }
 type Gesture = {
@@ -103,7 +108,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const [handOrder, setHandOrder] = useState<string | null>(null)
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
   const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
-  const [cursor, setCursor] = useState<Cursor | null>(null)
+  const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [hover, setHover] = useState<Cell | null>(null)
   const [dumpHot, setDumpHot] = useState(false) // a hand tile is hovering the dump slot
@@ -213,7 +218,6 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
 
   // Keep the keyboard cursor in view (just scrolls — the grid never moves).
   useLayoutEffect(() => {
-    if (!cursor) return
     const c = scrollRef.current
     if (!c) return
     const m = cell
@@ -224,7 +228,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     if (y - m < c.scrollTop) c.scrollTop = y - m
     else if (y + cell + m > c.scrollTop + c.clientHeight) c.scrollTop = y + cell + m - c.clientHeight
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursor?.row, cursor?.col])
+  }, [cursor.row, cursor.col])
 
   // --- Error flash ------------------------------------------------------
   const flashError = useCallback(() => {
@@ -410,15 +414,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       }
 
       const cur = cursorRef.current
-      if (!cur) return
 
-      // Escape clears the board cursor. (Enter used to do this too; it now
-      // peels — see above.)
-      if (k === 'Escape') {
-        e.preventDefault()
-        setCursor(null)
-        return
-      }
       if (k === 'Backspace') {
         e.preventDefault()
         if (boardRef.current[idx(cur.row, cur.col)] !== '.') boardToHand(cur.row, cur.col)
@@ -496,7 +492,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         }
       return nb.join('')
     })
-    setCursor(null)
+    // Tiles just moved under the cursor; reset it to center rather than
+    // leave it pointing at a now-stale cell.
+    setCursor(CENTER_CURSOR)
 
     const usedW = Math.min(GRID, w + 2 * FIT_MARGIN)
     const usedH = Math.min(GRID, h + 2 * FIT_MARGIN)
@@ -523,7 +521,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         drag && drag.source.kind === 'board' && drag.source.row === r && drag.source.col === c
       const blocked = isHover && ch !== '.' && !lifting
       const dropOk = isHover && !blocked
-      const cursorHere = cursor && cursor.row === r && cursor.col === c
+      const cursorHere = cursor.row === r && cursor.col === c
       cells.push(
         <div
           key={r * GRID + c}
