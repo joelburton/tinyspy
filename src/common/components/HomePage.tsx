@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../lib/Link'
 import { db as commonDb } from '../db'
 import { useProfile } from '../hooks/useProfile'
+import { useRealtimeRefetch } from '../hooks/useRealtimeRefetch'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -43,28 +44,37 @@ export function HomePage({ session }: Props) {
   const username = useProfile(session)?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
 
-  // Load every club the caller is a member of, including their
-  // solo club. Sort newest-first; the render layer partitions
-  // solo vs regular and renders solo on top of regulars
-  // regardless of timestamp.
-  useEffect(function loadClubs() {
-    let mounted = true
-    commonDb
-      .from('clubs')
-      .select('handle, name')
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!mounted) return
-        if (error) {
-          console.error('failed to load clubs', error)
-          return
-        }
-        setClubs(data ?? [])
-      })
-    return () => {
-      mounted = false
-    }
-  }, [session.user.id])
+  // Load every club the caller is a member of (incl. their solo club),
+  // newest-first; the render layer partitions solo vs regular and puts
+  // solo on top regardless of timestamp.
+  //
+  // Subscribed to MY clubs_members rows so the list stays live: when a
+  // friend accepts an invite and I add them — or when I'm added to /
+  // removed from a club — the INSERT/DELETE on my membership refetches
+  // the list, no manual page refresh. (The removal DELETE reaches me via
+  // the `user_id = auth.uid()` arm of clubs_members_select; see that
+  // policy.) SUBSCRIBED-refetch also heals any events missed offline.
+  useRealtimeRefetch({
+    tables: {
+      schema: 'common',
+      table: 'clubs_members',
+      filter: `user_id=eq.${session.user.id}`,
+    },
+    channelPrefix: 'home-clubs',
+    id: session.user.id,
+    load: async ({ mounted }) => {
+      const { data, error } = await commonDb
+        .from('clubs')
+        .select('handle, name')
+        .order('created_at', { ascending: false })
+      if (!mounted()) return
+      if (error) {
+        console.error('failed to load clubs', error)
+        return
+      }
+      setClubs(data ?? [])
+    },
+  })
 
   // Partition: solo clubs (handle prefix '=') vs regular. The
   // prefix is the only reliable signal — handles are slugified

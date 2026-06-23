@@ -552,9 +552,19 @@ create policy clubs_select on common.clubs
   for select to authenticated
   using (common.is_club_member(handle));
 
+-- `user_id = auth.uid()` covers your OWN membership rows in addition to
+-- the club-wide roster. It's mostly redundant with is_club_member (your
+-- row is in a club you're in) — except for the one case that matters for
+-- the HomePage live clubs list: when you're REMOVED from a club, Realtime
+-- evaluates this policy against the DELETE event as the now-ex-member, so
+-- is_club_member(club_handle) is already false and you'd never see your
+-- own removal. Matching on your user_id (carried in the PK / replica
+-- identity) lets the DELETE through so the list updates without a refresh.
+-- Seeing your own membership facts is never a leak. is_club_member is
+-- SECURITY DEFINER (bypasses this policy) so there's no recursion.
 create policy clubs_members_select on common.clubs_members
   for select to authenticated
-  using (common.is_club_member(club_handle));
+  using (user_id = auth.uid() or common.is_club_member(club_handle));
 
 create policy messages_select on common.messages
   for select to authenticated
