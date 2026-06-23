@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
@@ -121,25 +122,21 @@ export function PlayArea({
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
-  useEffect(
-    function bindKeyboard() {
-      if (!canGuess) return
-      const onKeyDown = (e: KeyboardEvent) => {
-        if (e.metaKey || e.ctrlKey || e.altKey) return
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          void doSubmit(current)
-        } else if (e.key === 'Backspace') {
-          setCurrent((c) => c.slice(0, -1))
-        } else if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-          setCurrent((c) => (c.length < 5 ? c + e.key.toLowerCase() : c))
-        }
-      }
-      window.addEventListener('keydown', onKeyDown)
-      return () => window.removeEventListener('keydown', onKeyDown)
-    },
-    [canGuess, current, doSubmit],
-  )
+  // Mirrors the on-screen <Keyboard>. The handler reads canGuess /
+  // current / doSubmit fresh through useGlobalKeyHandler's ref, so the
+  // window listener registers once rather than re-binding per keystroke.
+  useGlobalKeyHandler((e) => {
+    if (!canGuess) return
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      void doSubmit(current)
+    } else if (e.key === 'Backspace') {
+      setCurrent((c) => c.slice(0, -1))
+    } else if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+      setCurrent((c) => (c.length < 5 ? c + e.key.toLowerCase() : c))
+    }
+  })
 
   // ─── End-game menu item (both modes) ──────────────────────────
   useEndGameMenu({
