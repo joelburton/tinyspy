@@ -50,7 +50,7 @@ export function PlayArea({
     appendTile,
     retractTo,
     clearWord,
-    markAccepted,
+    commitWord,
     loading,
   } = useGame(session, gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
@@ -83,16 +83,16 @@ export function PlayArea({
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
       if (res.result === 'accepted') {
-        // Hold the tiles removed optimistically so they don't flash back
-        // on-board before the valid submission arrives via realtime.
-        markAccepted(tileIds)
-        clearWord()
+        // Empty the word and hold its tiles removed optimistically — on
+        // THIS client and every coop peer — so no grid flashes the tiles
+        // back on before the valid submission arrives via realtime.
+        commitWord(tileIds)
       } else {
         clearWord() // invalid → the tiles return to the board
         feedback.show({ tone: 'error', text: `Not a word: ${res.word}`, dismiss: { kind: 'timed', ms: 1500 } })
       }
     },
-    [gameId, feedback, clearWord, markAccepted],
+    [gameId, feedback, clearWord, commitWord],
   )
 
   // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──

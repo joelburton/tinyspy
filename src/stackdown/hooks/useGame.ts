@@ -58,12 +58,21 @@ type StateRow = Pick<
  *   - append  — a tile was picked up onto the end of the word.
  *   - retract — a tile in the word was clicked, returning it AND every
  *     tile after it to the board (slice to `index`).
- *   - clear   — the word was emptied (after a submit, valid or not).
+ *   - clear   — the word was emptied, tiles RETURNED to the board (an
+ *     invalid submit, or an abandoned word).
+ *   - commit  — an ACCEPTED word: the word is emptied but its tiles
+ *     STAY off the board. Carries the tile ids so every peer can hold
+ *     them removed optimistically (their own `pendingRemoved`) until the
+ *     valid submission arrives via realtime — without this a peer would
+ *     briefly flash the tiles back onto the grid between the `clear` and
+ *     the refetch. `clear` and `commit` look identical on the wire
+ *     otherwise, so they must be distinct events.
  */
 type WordEvent =
   | { type: 'append'; tileId: number }
   | { type: 'retract'; index: number }
   | { type: 'clear' }
+  | { type: 'commit'; tileIds: number[] }
 
 /**
  * StackDown's per-gametype data hook — the broadcast-coupled realtime
@@ -102,7 +111,7 @@ export function useGame(
   appendTile: (tileId: number) => number[] | null
   retractTo: (index: number) => void
   clearWord: () => void
-  markAccepted: (tileIds: number[]) => void
+  commitWord: (tileIds: number[]) => void
   loading: boolean
 } {
   const [game, setGame] = useState<StackdownGame | null>(null)
@@ -121,8 +130,17 @@ export function useGame(
 
   // Apply a word event to local state. Idempotent so the echo of our own
   // broadcast (and any reorder) is harmless: append skips a tile already
-  // in the word, retract/clear are slice/empty (stable under replay).
+  // in the word, retract/clear are slice/empty, commit's pendingRemoved
+  // is deduped into a Set downstream (all stable under replay).
   const applyWordEvent = useCallback((event: WordEvent) => {
+    if (event.type === 'commit') {
+      // Accepted word: hold its tiles removed optimistically (same as the
+      // submitter does) AND empty the word. The realtime refetch later
+      // prunes pendingRemoved once the valid submission confirms them.
+      setPendingRemoved((prev) => [...prev, ...event.tileIds])
+      setCurrentWord((prev) => (prev.length === 0 ? prev : []))
+      return
+    }
     setCurrentWord((prev) => {
       if (event.type === 'clear') return prev.length === 0 ? prev : []
       if (event.type === 'retract') {
@@ -261,11 +279,15 @@ export function useGame(
 
   const clearWord = useCallback(() => broadcast({ type: 'clear' }), [broadcast])
 
-  // Optimistically mark an accepted word's tiles removed, before its
-  // valid submission lands via realtime (see pendingRemoved).
-  const markAccepted = useCallback((tileIds: number[]) => {
-    setPendingRemoved((prev) => [...prev, ...tileIds])
-  }, [])
+  // Commit an ACCEPTED word: empty it and hold its tiles removed
+  // optimistically — locally AND on every coop peer (via the broadcast),
+  // so nobody's grid flashes the tiles back on between the word clearing
+  // and the valid submission arriving via realtime. The hold is pruned in
+  // load() once the submission confirms it.
+  const commitWord = useCallback(
+    (tileIds: number[]) => broadcast({ type: 'commit', tileIds }),
+    [broadcast],
+  )
 
   // The durably-removed set: tiles of every valid submission visible to
   // this caller (coop = all, compete = own via RLS) plus the optimistic
@@ -284,7 +306,7 @@ export function useGame(
     appendTile,
     retractTo,
     clearWord,
-    markAccepted,
+    commitWord,
     loading,
   }
 }
