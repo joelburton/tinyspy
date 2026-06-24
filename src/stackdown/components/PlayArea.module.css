@@ -14,9 +14,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  flex: 0 1 auto;
+  gap: 0.75rem;
+  /* Grow to take the leftover row width (the canvas inside caps itself),
+   * so the board uses the space when there's room. */
+  flex: 1 1 26rem;
   min-width: 18rem;
+  max-width: 640px;
 }
 
 .rightCol {

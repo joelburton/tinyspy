@@ -62,11 +62,16 @@ export function Board({
 
   const maxX = Math.max(0, ...tiles.map((t) => t.x))
   const maxY = Math.max(0, ...tiles.map((t) => t.y))
-  const width = PAD * 2 + maxX * STEP + TILE
-  const height = PAD * 2 + maxY * STEP + TILE
+  // Natural square side in the prototype's px units. Tiles are positioned
+  // as PERCENTAGES of it, so the canvas can be sized responsively (see
+  // Board.module.css) and the whole stack scales with it — bigger on a
+  // roomy viewport, still on-screen on a small one. The geometry is square
+  // (maxX === maxY); take the max so a non-square layout would still fit.
+  const natural = PAD * 2 + Math.max(maxX, maxY) * STEP + TILE
+  const pct = (px: number) => `${(px / natural) * 100}%`
 
   return (
-    <div className={styles.canvas} style={{ width, height }}>
+    <div className={styles.canvas}>
       {present.map((t) => {
         const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)
@@ -78,8 +83,10 @@ export function Board({
             disabled={!isExp || !active}
             onClick={() => onTileClick(t.id)}
             style={{
-              left: PAD + t.x * STEP,
-              top: PAD + t.y * STEP,
+              left: pct(PAD + t.x * STEP),
+              top: pct(PAD + t.y * STEP),
+              width: pct(TILE),
+              height: pct(TILE),
               zIndex: t.z,
               background: depthColor(depths.get(t.id) ?? 0, maxDepth),
               cursor: isExp && active ? 'pointer' : 'default',

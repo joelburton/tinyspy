@@ -4,8 +4,10 @@ import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
+import { exposedIds } from '../lib/board'
 import { useGame } from '../hooks/useGame'
 import { Board } from './Board'
 import { WordEntry } from './WordEntry'
@@ -154,6 +156,48 @@ export function PlayArea({
     },
     [canPlay, appendTile, submit],
   )
+
+  // ─── Physical keyboard ────────────────────────────────────────
+  // Backspace returns the most recent tile; a letter key plays the
+  // matching tile — but ONLY if exactly one exposed tile bears it (the
+  // word is the selection order, so an ambiguous letter can't pick for
+  // you). 0 or >1 matches just flash feedback. useGlobalKeyHandler reads
+  // this closure fresh each render and ignores keys aimed at chat / inputs.
+  useGlobalKeyHandler((e) => {
+    if (!game || !canPlay) return
+    if (e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.key === 'Backspace') {
+      e.preventDefault()
+      if (currentWord.length > 0) retractTo(currentWord.length - 1)
+      return
+    }
+    if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+      const letter = e.key.toUpperCase()
+      // Exposed tiles still on the board (offBoard already excludes the
+      // tiles picked into the word + the words removed so far).
+      const off = new Set(removedTileIds)
+      for (const id of currentWord) off.add(id)
+      const exposed = exposedIds(game.tiles, off)
+      const matches = game.tiles.filter(
+        (t) => exposed.has(t.id) && t.letter === letter,
+      )
+      if (matches.length === 1) {
+        onTileClick(matches[0].id)
+      } else if (matches.length === 0) {
+        feedback.show({
+          tone: 'info',
+          text: `No “${letter}” tile is on top`,
+          dismiss: { kind: 'timed', ms: 1200 },
+        })
+      } else {
+        feedback.show({
+          tone: 'info',
+          text: `${matches.length} “${letter}” tiles are on top — click one`,
+          dismiss: { kind: 'timed', ms: 1500 },
+        })
+      }
+    }
+  })
 
   // ─── End-game menu item (both modes) ──────────────────────────
   useEndGameMenu({

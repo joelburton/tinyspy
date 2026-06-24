@@ -255,12 +255,20 @@ per-schema subscription.
   client that places the fifth tile submits — remote peers just apply the
   broadcast — so a coop word isn't double-submitted.
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
-  exposed tiles clickable), `WordEntry` (the five-slot word under the board;
-  clicking a slot returns that tile and every tile after it), `FoundWords` (the
-  right-column submission log — valid words listed, invalid attempts struck
-  through and tagged), `PlayArea` (two-column compose: board + entry on the left,
-  OpponentStrip [compete] + log on the right; owns the submit + game-over),
-  `SetupForm` (just the timer — the board is dealt at random), `Help`.
+  exposed tiles clickable; tiles are percentage-positioned in a responsive square
+  canvas — `container-type` + `cqi` typography — so the board grows to fill a
+  roomy viewport and stays on-screen on a small one), `WordEntry` (the five-slot
+  word under the board; clicking a slot returns that tile and every tile after
+  it), `FoundWords` (the right-column submission log — valid words listed,
+  clickable to define; invalid attempts struck through and tagged), `PlayArea`
+  (two-column compose: board + entry on the left, OpponentStrip [compete] + log
+  on the right; owns the submit + game-over), `SetupForm` (just the timer — the
+  board is dealt at random), `Help`.
+- **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
+  Backspace returns the most recent tile; a letter key plays the matching tile —
+  but only when exactly one exposed tile bears it (the word is the selection
+  order, so an ambiguous letter can't pick for you; 0 or >1 matches just flash
+  feedback). The handler ignores keys aimed at chat / inputs.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 

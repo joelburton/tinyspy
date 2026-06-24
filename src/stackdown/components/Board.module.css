@@ -1,7 +1,15 @@
-/* The stacked-tile arena. Tiles are absolutely positioned within it (the
- * Board component computes left/top/z from grid coordinates). */
+/* The stacked-tile arena. Tiles are absolutely positioned within it as
+ * PERCENTAGES (the Board component computes left/top/size from grid
+ * coordinates), so the whole board scales with this box. The box is a
+ * responsive square: it fills the column width but is capped by viewport
+ * height (so it stays on-screen) and a hard max (so it doesn't get silly
+ * on a huge monitor). `container-type` makes `cqi` inside resolve against
+ * the canvas width, so tile typography scales with the board. */
 .canvas {
   position: relative;
+  width: min(100%, 72vh, 620px);
+  aspect-ratio: 1;
+  container-type: inline-size;
   background: var(--stackdown-felt);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
@@ -9,19 +17,19 @@
 
 /* One lettered tile. Opaque (so the stack reads as depth), with the
  * letter tucked into a free corner via inline justify/align from the
- * component. Background color is set inline (depth shading). */
+ * component. Size + position are set inline (percentages of the canvas);
+ * everything here scales with the board via `cqi` so it looks the same at
+ * any board size. 6cqi ≈ the prototype's 1.35rem at the natural size. */
 .tile {
   position: absolute;
-  width: 55px;
-  height: 55px;
   display: flex;
-  font-size: 1.35rem;
+  font-size: clamp(0.7rem, 6cqi, 1.8rem);
   font-weight: 700;
   color: var(--stackdown-tile-ink);
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
-  padding: 5px 8px;
+  border: max(1.5px, 0.4cqi) solid rgba(0, 0, 0, 0.2);
+  border-radius: 2.2cqi;
+  box-shadow: 0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+  padding: 1.4cqi;
   line-height: 1;
 }
 
