@@ -159,7 +159,7 @@ Future targets:
 
 ## Theme: one global theme today
 
-The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Per-game theme files (currently just [`tinyspy/theme.css`](../src/tinyspy/theme.css)) declare additional tokens scoped to that game's gameplay surface.
+The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`tinyspy/theme.css`](../src/tinyspy/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
 
 ### Tokens are semantic, not literal
 

@@ -199,6 +199,7 @@ For hooks that need to **send and receive Broadcast events between peers** (sele
 Canonical examples:
 - [`common/useCommonGame`](../src/common/hooks/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
 - [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) — stable `wordknit:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `wordknit.{games, guesses}`.
+- [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts) — stable `stackdown:${gameId}` channel carrying the shared in-progress-word Broadcast (`append` / `retract` / `clear` / `commit` — the last kept distinct so peers hold an accepted word's tiles removed without a flash) AND postgres-changes on `stackdown.{games, players, submissions}`. Coop only — compete suppresses the sends (each player's word is private), like wordknit.
 - [`common/useClubPresence`](../src/common/hooks/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
@@ -282,7 +283,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinySpyPlayArea`, `WordKnitSetupForm`) — the folder already says which game.
 
-The reason both rules matter: this codebase is shaped to host ~7 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+The reason both rules matter: this codebase is shaped to host ~7–8 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
 #### Per-game `useGame` shape — pick the right template
 

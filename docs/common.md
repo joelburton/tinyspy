@@ -352,10 +352,11 @@ src/
                            per-game setup form that surfaces a timer choice. Tokens in
                            TimerField.module.css.
       OpponentStrip.tsx    The inline per-player progress strip ("You: 3 · Bea: 5") shared
-                           by waffle / wordknit / freebee / psychicnum. Owns ordering
-                           (orderSelfFirst), the colored You/username label, the `·`
+                           by waffle / wordknit / freebee / psychicnum / stackdown. Owns
+                           ordering (orderSelfFirst), the colored You/username label, the `·`
                            separators; each game passes a `metricFor` for the one cell that
-                           differs (swaps / mistake dots / rank / budget). NOT monkeygram —
+                           differs (swaps / mistake dots / rank / budget / words found). NOT
+                           monkeygram —
                            its peer display is a vertical dot-list (PeersStrip), a different
                            shape closer to PlayersStrip.
       LoginScreen.tsx      Magic-link sign-in
@@ -530,7 +531,7 @@ The master playable-word list, shared by every word game (freebee today; Boggle,
 
 ## Word definitions (click-to-define + lookup)
 
-A shared definition lookup, available to every word game (freebee today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover, and a per-game **shortcut key** (`~` in freebee) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen.
+A shared definition lookup, available to every word game (freebee + stackdown today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover (freebee's `WordList`, stackdown's `FoundWords` rows), and a per-game **shortcut key** (`~` in freebee) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen. (Click-to-define is the common one; the `~` free-form dialog is freebee-only so far.)
 
 **Where the data lives.** Definitions are columns on [`common.words`](#the-word-list-commonwords) — `definition` + `definition_source` — not a separate table. The word list is already the shared, game-agnostic universe of words, so it's the natural home: we only ever define words that are *in* the list (a lookup of anything else returns "Unknown word" and is never stored).
 
@@ -539,7 +540,7 @@ A shared definition lookup, available to every word game (freebee today; boggle/
 
 **Seed + growth.** The seeded glosses ship in the word list itself (`supabase/data/words.tsv.gz`, loaded by `npm run words:import` — see [The word list](#the-word-list-commonwords)). It then grows lazily: the **`define` Edge Function** is a read-through cache — reads `common.words` as the caller, and for an in-list word with no definition yet (source NULL) fetches **Wiktionary** (`freedictionaryapi.com`, CC BY-SA) and writes it back via `cache_definition`. Wiktionary won the bake-off over `api.dictionaryapi.dev` (~93% vs ~30% coverage on obscure bonus words, and no aggressive rate-limiting); a transient API failure surfaces an error *without* writing a tombstone, so only definitive empty answers are negatively cached.
 
-**Frontend.** All in `common/`, so freebee is just the first consumer:
+**Frontend.** All in `common/`, so a game wires it in a few lines (freebee was the first consumer; stackdown the second — both just render `DefinitionPopover` from clickable word rows):
 - `hooks/useDefinition(word)` — declarative lookup over `supabase.functions.invoke('define')`; cancels in-flight results so fast cross-ref chasing never flashes stale text.
 - `lib/parseDefinition` — turns a raw def into renderable parts. The stored def text is authoritative and shown **in full**; the parser only *adds* markup — the custom format's `<word=pos>` / `{word=pos}` cross-refs become clickable `ref` parts (for seeded `s`/`e`/`m` defs). Live Wiktionary text (`source === 'w'`) is plain prose, returned verbatim. Everything else (`[…]` inflection tags like `[n SUPPRESSIONS]`, `/` sense separators, `(YEAR)`) passes through verbatim, so an inflection-only stub still displays its text rather than rendering blank.
 - `components/DefinitionView` — the shared body (heading + parsed def + clickable refs + CC BY-SA attribution when `source === 'w'`); shows "Unknown word." for a word not in the list, "No definition found." for an in-list word Wiktionary had nothing for. A ref click calls `onNavigate` to re-point the lookup in place.

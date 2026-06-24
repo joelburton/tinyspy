@@ -140,10 +140,12 @@ spec's deferred hard problem, made harder by strict validation, and the most
 complex code in the project. The benefit over a big static library is ~nil, so
 it isn't worth that complexity.
 
-Generation throughput is fine for offline use: ~10 s/board under strict
-validation (the strict check lowered the accept rate vs. the old weak one). An
-overnight or lunch-hour run produces a year's worth. The generator is an import
-script (like `words:import` / `wordknit:import`) that fills `stackdown.boards`.
+Generation throughput is fine for offline use: a few seconds per board under
+strict validation (the strict check lowered the accept rate vs. the old weak
+one; the occasional pathological word-set is skipped at a 30s budget). An
+overnight or lunch-hour run produces a year's worth. The generator is a `gen`
+script that writes a committed file; a separate cheap `import` step loads it —
+see §5.4.
 
 ---
 
@@ -228,10 +230,13 @@ creation, so it's self-contained; `board_id` is provenance only.
   all six are gone), defeating the hidden-solution invariant on purpose. It exists
   to verify generated boards are solvable in order (and as a playtest hint), and
   may be removed once boards are trusted. Gated like a move (game player,
-  in-progress only). The FE surfaces it as a "Reveal next word" button in the
-  right column during play, shown in the header feedback slot. Because strict
-  validity forces clearing in solution order, the count of cleared words is
-  exactly the index of the next one.
+  in-progress only). Because strict validity forces clearing in solution order,
+  the count of cleared words is exactly the index of the next one. The FE
+  surfaces it two ways in the right column during play, both writing to the
+  header feedback slot: a **Reveal word** button (the word itself) and a
+  **Reveal hint** button that runs the next word through the common `define`
+  lookup (read-through cache → Wiktionary, the same path click-to-define uses)
+  and shows ONLY its definition, not the word.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
@@ -250,10 +255,14 @@ per-schema subscription.
   player sees is `game.tiles` minus `removedTileIds` (valid-submission tiles, plus
   a brief optimistic hold so an accepted word doesn't flash back during the
   realtime round-trip) minus `currentWord` (the tiles picked up into the word
-  being built). In coop the in-progress word is shared peer-to-peer (append /
-  retract / clear events); in compete it's local (senders short-circuit). Only the
-  client that places the fifth tile submits — remote peers just apply the
-  broadcast — so a coop word isn't double-submitted.
+  being built). In coop the in-progress word is shared peer-to-peer; the
+  Broadcast carries `append` / `retract` / `clear` plus a `commit` event (an
+  accepted word — kept distinct from `clear` so peers hold its tiles removed
+  optimistically too; without it a peer's grid would flash the tiles back on
+  between the word clearing and the realtime refetch). In compete the word is
+  local (senders short-circuit). Only the client that places the fifth tile
+  submits — remote peers just apply the broadcast — so a coop word isn't
+  double-submitted.
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
@@ -267,13 +276,16 @@ per-schema subscription.
 - **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
-  order, so an ambiguous letter can't pick for you; 0 or >1 matches just flash
-  feedback). The handler ignores keys aimed at chat / inputs.
+  order, so an ambiguous letter can't pick for you). No match flashes feedback;
+  more than one flashes feedback AND briefly outlines the candidate tiles in red
+  (a `highlight` set passed to `Board`). The handler ignores keys aimed at chat /
+  inputs.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 
-Generation is ~10s/board (the strict validation), too slow to re-run on every
-`db:reset`. So it's split, mirroring `words:import`'s vendored-file pattern:
+Generation is a few seconds per board (the strict validation), too slow to
+re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
+`words:import`'s vendored-file pattern:
 
 - **`npm run stackdown:gen -- [count] [baseSeed]`** (`generate-stackdown-boards.ts`)
   — the SLOW half, run rarely. Loads the 5-letter Wordle lexicon from
@@ -281,7 +293,11 @@ Generation is ~10s/board (the strict validation), too slow to re-run on every
   geometry, and **appends** them to `supabase/data/stackdown-boards.jsonl` (one
   JSON board per line — a committed, human-readable library that grows across
   runs; duplicate six-word sets are skipped). Reproducible: board *i* uses
-  `baseSeed + i`. Does NOT touch the `stackdown` tables.
+  `baseSeed + i`. Does NOT touch the `stackdown` tables. Each board is bounded by
+  a wall-clock budget (default 30s, `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological
+  word-set whose strict-validation search blows up is skipped rather than hanging
+  the run. (Validation is also kept fast by pruning the `reachableWords` DFS to
+  letter-prefixes of real words and precomputing the covering relation once.)
 - **`npm run stackdown:import`** (`import-stackdown-boards.ts`) — the CHEAP half.
   Reads the JSONL file and replaces `stackdown.boards` with it (delete-all +
   insert, one transaction). **Run after every `db:reset`** — a reset wipes the
