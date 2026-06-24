@@ -313,6 +313,7 @@ export type Database = {
           definition: string | null
           definition_source: string | null
           difficulty: number
+          hint: string | null
           len: number
           letter_mask: number | null
           root_word: string | null
@@ -329,6 +330,7 @@ export type Database = {
           definition?: string | null
           definition_source?: string | null
           difficulty: number
+          hint?: string | null
           len: number
           letter_mask?: number | null
           root_word?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           definition?: string | null
           definition_source?: string | null
           difficulty?: number
+          hint?: string | null
           len?: number
           letter_mask?: number | null
           root_word?: string | null
@@ -1127,6 +1130,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      reveal_next_hint: { Args: { target_game: string }; Returns: string }
       reveal_next_word: { Args: { target_game: string }; Returns: string }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {

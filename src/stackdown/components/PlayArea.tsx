@@ -5,7 +5,6 @@ import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
-import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
 import { exposedIds } from '../lib/board'
 import { useGame } from '../hooks/useGame'
@@ -134,33 +133,21 @@ export function PlayArea({
     })
   }, [gameId, feedback])
 
-  // ─── Reveal hint (CHEAT — the next word's DEFINITION, not the word) ──
-  // A softer reveal: find the next word (same RPC), then run it through
-  // the common `define` lookup (read-through cache → Wiktionary, the same
-  // path click-to-define uses) and surface ONLY the definition. Some
-  // glosses name the word fairly directly — that's accepted for now.
+  // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
+  // A softer reveal than "Reveal word": shows the curated hint for the
+  // next solution word (common.words.hint, a clue that hides the word).
+  // The word never reaches the client — reveal_next_hint returns only the
+  // hint text. Every StackDown word is in the hint set, so no fallback.
   const revealHint = useCallback(async () => {
-    const { data: word, error } = await db.rpc('reveal_next_word', { target_game: gameId })
+    const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
       feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 1500 } })
       return
     }
-    if (!word) {
-      feedback.show({ tone: 'info', text: 'All words cleared', dismiss: { kind: 'closeable' } })
-      return
-    }
-    feedback.show({ tone: 'info', text: 'Looking up a hint…', dismiss: { kind: 'timed', ms: 2000 } })
-    const { data, error: defErr } = await supabase.functions.invoke('define', {
-      body: { word },
-    })
-    if (defErr) {
-      feedback.show({ tone: 'error', text: 'Definition lookup failed', dismiss: { kind: 'timed', ms: 1500 } })
-      return
-    }
-    const def = (data as { def: string | null }).def
+    const hint = data as string | null
     feedback.show({
       tone: 'info',
-      text: def ? `Hint: ${def}` : 'Hint: no definition found for the next word',
+      text: hint ? `Hint: ${hint}` : 'All words cleared',
       dismiss: { kind: 'closeable' },
     })
   }, [gameId, feedback])

@@ -501,6 +501,58 @@ revoke execute on function stackdown.reveal_next_word(uuid) from public;
 grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
 
 -- ============================================================
+-- stackdown.reveal_next_hint — the "give it a nudge" helper
+-- ============================================================
+-- Returns the HINT for the next solution word the caller still has to
+-- clear (NULL once all six are gone) — a clue that points at the word
+-- without naming it (see common.words.hint). Unlike reveal_next_word it
+-- doesn't leak the word itself: only the hint text crosses the wire.
+--
+-- Every word StackDown uses is a 5-letter Wordle word, which is inside
+-- common.words' hint set (len=5 AND (wordle OR difficulty=1)), so the
+-- hint is always present — no fallback needed. Same gating + next-word
+-- math as reveal_next_word.
+create function stackdown.reveal_next_hint(target_game uuid)
+returns text
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g_row     stackdown.games%rowtype;
+  cur_state text;
+  cleared   int;
+  next_word text;
+begin
+  caller_id := common.require_game_player(target_game);
+
+  select * into g_row from stackdown.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select play_state into cur_state from common.games where id = target_game;
+  if cur_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  select count(*) into cleared
+    from stackdown.submissions s
+   where s.game_id = target_game and s.valid
+     and (g_row.mode = 'coop' or s.user_id = caller_id);
+
+  next_word := g_row.solution[cleared + 1];          -- NULL once all cleared
+  if next_word is null then
+    return null;
+  end if;
+  return (select hint from common.words where word = lower(next_word));
+end;
+$$;
+revoke execute on function stackdown.reveal_next_hint(uuid) from public;
+grant execute on function stackdown.reveal_next_hint(uuid) to authenticated;
+
+-- ============================================================
 -- stackdown.submit_timeout — countdown-timer expiry
 -- ============================================================
 -- The FE fires this when a countdown hits 0. Coop: the shared board wasn't

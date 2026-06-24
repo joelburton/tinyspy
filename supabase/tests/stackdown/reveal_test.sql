@@ -11,7 +11,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(6);
+select plan(8);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -27,6 +27,16 @@ select * from stackdown.create_game(
 select is(
   (select stackdown.reveal_next_word((select id from g))),
   'TWIXT', 'reveal at the start → the first word (TWIXT)');
+
+-- reveal_next_hint returns the next word's HINT (not the word). Every
+-- StackDown word is in common.words' hint set, so the hint is present.
+select is(
+  (select stackdown.reveal_next_hint((select id from g))),
+  (select hint from common.words where word = 'twixt'),
+  'reveal_next_hint → the next word''s hint (TWIXT''s)');
+select ok(
+  (select stackdown.reveal_next_hint((select id from g))) is not null,
+  'the hint is present (StackDown words are all in the hint set)');
 
 -- ── A non-player can't peek ─────────────────────────────────────────
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');

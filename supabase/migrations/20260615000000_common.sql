@@ -1758,6 +1758,11 @@ grant execute on function common.claim_username(text) to authenticated;
 --                 live lookup; source='w' with definition still NULL
 --                 is the negative-cache tombstone (looked up, nothing
 --                 found — don't refetch). See common.cache_definition.
+--   hint        — a guessing-game clue that HIDES the word (the inverse
+--                 of definition): a category / near-synonym nudge. Set
+--                 for the 5-letter hint set (len=5 AND (wordle OR
+--                 difficulty=1)), NULL elsewhere. Drives StackDown's
+--                 "Reveal hint".
 --
 -- letter_mask is a GENERATED column: the 26-bit set of distinct
 -- letters in the word (bit 0 = 'a'). It powers the "find every word
@@ -1799,6 +1804,12 @@ create table common.words (
   -- word that's never been looked up has a NULL source.
   definition_source char(1)
                       check (definition_source in ('s', 'e', 'w', 'm')),
+  -- Guessing-game clue that HIDES the word (the opposite of definition):
+  -- a category/near-synonym nudge ("A hooded snake" → cobra). Present for
+  -- every word in the hint set (len = 5 AND (wordle OR difficulty = 1));
+  -- NULL elsewhere. Drives StackDown's "Reveal hint". See the upstream
+  -- gamelist AI.md → Hints.
+  hint              text,
   -- Distinct-letter bitmask, derived from `word`. See above.
   letter_mask       bigint
                       generated always as (common.word_letter_mask(word)) stored

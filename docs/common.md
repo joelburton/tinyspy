@@ -523,6 +523,7 @@ The master playable-word list, shared by every word game (freebee today; Boggle,
 - `len` — char length, so per-game length floors (freebee ≥4, Boggle ≥3, MonkeyGram ≥2) filter cheaply.
 - `root_word` — lemma of an inflected form (`cats`→`cat`), for "see also" grouping.
 - `definition` / `definition_source` — the click-to-define payload (see [Word definitions](#word-definitions-click-to-define--lookup) below).
+- `hint` — a guessing-game clue that **hides** the word (the inverse of `definition`): a category / near-synonym nudge ("A hooded snake" → cobra). Present for the **hint set** (`len = 5 AND (wordle OR difficulty = 1)`), NULL elsewhere — the upstream build guarantees completeness for that set. Drives StackDown's "Reveal hint" (`reveal_next_hint`).
 - `letter_mask` — a **generated** column: the 26-bit set of distinct letters in the word (bit 0 = `a`), via `common.word_letter_mask`. Powers the "find every word whose letters fit this puzzle" subset query (`letter_mask & ~puzzle_mask = 0`) that freebee's board builder runs.
 
 **How a game uses it.** freebee defines its slice in `freebee.candidate_words`: legal = `difficulty ≤ 5`, required = `difficulty ≤ 3 AND american AND NOT slang AND NOT slur`, `len ≥ 4`. waffle picks a pre-generated puzzle whose hardest word is exactly the chosen band. Bands a game uses (or offers) are a per-game choice; the list itself holds every band.

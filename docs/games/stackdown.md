@@ -231,12 +231,16 @@ creation, so it's self-contained; `board_id` is provenance only.
   to verify generated boards are solvable in order (and as a playtest hint), and
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
-  the count of cleared words is exactly the index of the next one. The FE
-  surfaces it two ways in the right column during play, both writing to the
-  header feedback slot: a **Reveal word** button (the word itself) and a
-  **Reveal hint** button that runs the next word through the common `define`
-  lookup (read-through cache → Wiktionary, the same path click-to-define uses)
-  and shows ONLY its definition, not the word.
+  the count of cleared words is exactly the index of the next one. The FE surfaces
+  it as a **Reveal word** button in the right column during play (writing to the
+  header feedback slot).
+- **`reveal_next_hint(target_game) → text`** — the softer sibling: returns the
+  next word's **hint** (`common.words.hint` — a curated clue that points at the
+  word without naming it), NULL once all six are cleared. Same gating + next-word
+  math as `reveal_next_word`, but the word never reaches the client — only the
+  hint text crosses the wire. Every StackDown word is a 5-letter Wordle word, so
+  it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
+  button shows it in the header feedback slot.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
