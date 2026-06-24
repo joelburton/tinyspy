@@ -54,6 +54,11 @@ const DB_URL =
 
 const COUNT = Number(process.argv[2] ?? 8)
 const BASE_SEED = Number(process.argv[3] ?? 1000)
+// Per-board wall-clock budget. A board that can't be generated + validated
+// within this is skipped (the search for SOME word-sets is exponential).
+// Override with STACKDOWN_BOARD_TIMEOUT_MS; default 30s — typical boards
+// take a few seconds, so this only trips on the pathological ones.
+const PER_BOARD_TIMEOUT_MS = Number(process.env.STACKDOWN_BOARD_TIMEOUT_MS ?? 30_000)
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BOARDS_FILE = resolve(__dirname, '../data/stackdown-boards.jsonl')
@@ -80,23 +85,62 @@ function exposed(tiles: Tile[], removed: Set<number>): number[] {
     .map((t) => t.id)
 }
 
+/**
+ * A faster `exposed` for the validation DFS. The tile set is fixed across
+ * a whole DFS, so precompute each tile's coverers ONCE (O(n²) once), then
+ * a tile is exposed iff it isn't removed and every tile that covers it
+ * IS removed — O(n·coverers) per query instead of O(n²). This is the hot
+ * path: `reachableWords` calls it at every node of a deep, wide search,
+ * so the precompute is what keeps a pathological board from exploding.
+ */
+function exposedFn(tiles: Tile[]): (removed: Set<number>) => number[] {
+  const coverers = new Map<number, number[]>(
+    tiles.map((b) => [
+      b.id,
+      tiles.filter((a) => a.id !== b.id && covers(a, b)).map((a) => a.id),
+    ]),
+  )
+  return (removed) =>
+    tiles
+      .filter(
+        (t) => !removed.has(t.id) && coverers.get(t.id)!.every((c) => removed.has(c)),
+      )
+      .map((t) => t.id)
+}
+
+// ── Per-board time budget ──────────────────────────────────────────
+// The iteration caps (word-sets × attempts) bound the COUNT of tries,
+// but a single pathological word-set can make one strictValidate /
+// reachableWords run for minutes (the DFS is exponential in the worst
+// case). Without a wall-clock bound the script can appear to hang. So
+// every board gets a deadline; the DFS checks it cheaply (every 8192
+// nodes) and throws DeadlineError, which generateAnyBoard catches to give
+// up on that board and move on.
+class DeadlineError extends Error {}
+type Deadline = { at: number; n: number }
+function tick(d: Deadline): void {
+  if ((++d.n & 8191) === 0 && Date.now() > d.at) throw new DeadlineError()
+}
+
 // ── Sequence-aware validation ──────────────────────────────────────
 // A word is the ORDER tiles are picked; a tile may sit at position k only
 // if exposed after the first k removals. Read the word off the SEQUENCE,
 // never the multiset (anagrams share letters but differ in legal order).
 
 /** All legal lexicon-words completable as a valid ordered selection. */
-function reachableWords(tiles: Tile[], lexicon: Set<string>): Set<string> {
+function reachableWords(tiles: Tile[], lexicon: Set<string>, deadline: Deadline): Set<string> {
   const byId = new Map(tiles.map((t) => [t.id, t]))
+  const exposedAfter = exposedFn(tiles)
   const found = new Set<string>()
   const seen = new Set<string>()
   const dfs = (seq: number[], removed: Set<number>): void => {
+    tick(deadline)
     if (seq.length === 5) {
       const w = seq.map((i) => byId.get(i)!.letter).join('')
       if (lexicon.has(w)) found.add(w)
       return
     }
-    for (const id of exposed(tiles, removed)) {
+    for (const id of exposedAfter(removed)) {
       const key = [...seq, id].join(',')
       if (seen.has(key)) continue
       seen.add(key)
@@ -110,16 +154,18 @@ function reachableWords(tiles: Tile[], lexicon: Set<string>): Set<string> {
 }
 
 /** One legal ordered tile-sequence spelling `word`, or null. */
-function findSequenceForWord(tiles: Tile[], word: string): number[] | null {
+function findSequenceForWord(tiles: Tile[], word: string, deadline: Deadline): number[] | null {
   const byId = new Map(tiles.map((t) => [t.id, t]))
+  const exposedAfter = exposedFn(tiles)
   let result: number[] | null = null
   const dfs = (seq: number[], removed: Set<number>): void => {
     if (result) return
+    tick(deadline)
     if (seq.length === 5) {
       if (seq.map((i) => byId.get(i)!.letter).join('') === word) result = [...seq]
       return
     }
-    for (const id of exposed(tiles, removed)) {
+    for (const id of exposedAfter(removed)) {
       if (byId.get(id)!.letter !== word[seq.length]) continue
       removed.add(id)
       dfs([...seq, id], removed)
@@ -131,15 +177,17 @@ function findSequenceForWord(tiles: Tile[], word: string): number[] | null {
 }
 
 /** Every reveal-respecting tile-sequence that spells `word`. */
-function allSequencesForWord(tiles: Tile[], word: string): number[][] {
+function allSequencesForWord(tiles: Tile[], word: string, deadline: Deadline): number[][] {
   const byId = new Map(tiles.map((t) => [t.id, t]))
+  const exposedAfter = exposedFn(tiles)
   const out: number[][] = []
   const dfs = (seq: number[], removed: Set<number>): void => {
+    tick(deadline)
     if (seq.length === word.length) {
       if (seq.map((i) => byId.get(i)!.letter).join('') === word) out.push([...seq])
       return
     }
-    for (const id of exposed(tiles, removed)) {
+    for (const id of exposedAfter(removed)) {
       if (byId.get(id)!.letter !== word[seq.length]) continue
       removed.add(id)
       dfs([...seq, id], removed)
@@ -163,6 +211,7 @@ function strictValidate(
   tiles: Tile[],
   words: string[],
   lexicon: Set<string>,
+  deadline: Deadline,
   memo: Map<string, boolean> = new Map(),
 ): boolean {
   if (words.length === 0) return tiles.length === 0
@@ -172,15 +221,15 @@ function strictValidate(
   if (cached !== undefined) return cached
 
   let ok = true
-  const reach = reachableWords(tiles, lexicon)
+  const reach = reachableWords(tiles, lexicon, deadline)
   if (reach.size !== 1 || !reach.has(words[0])) ok = false
   if (ok) {
-    const seqs = allSequencesForWord(tiles, words[0])
+    const seqs = allSequencesForWord(tiles, words[0], deadline)
     if (seqs.length === 0) ok = false
     for (const seq of seqs) {
       if (!ok) break
       const rm = new Set(seq)
-      if (!strictValidate(tiles.filter((t) => !rm.has(t.id)), words.slice(1), lexicon, memo)) {
+      if (!strictValidate(tiles.filter((t) => !rm.has(t.id)), words.slice(1), lexicon, deadline, memo)) {
         ok = false
       }
     }
@@ -277,6 +326,7 @@ function assignWordToGroup(
   groupIds: number[],
   word: string,
   baseLetters: Map<number, string>,
+  deadline: Deadline,
 ): Map<number, string> | null {
   for (const perm of permutations(word.split(''))) {
     const trial = new Map(baseLetters)
@@ -284,7 +334,7 @@ function assignWordToGroup(
     const tiles: Tile[] = positions
       .filter((p) => presentIds.has(p.id))
       .map((p) => ({ ...p, letter: trial.get(p.id) ?? '?' }))
-    if (findSequenceForWord(tiles, word)) return trial
+    if (findSequenceForWord(tiles, word, deadline)) return trial
   }
   return null
 }
@@ -296,11 +346,13 @@ function generateBoard(
   positions: Pos[],
   words: string[],
   lexicon: Set<string>,
+  deadline: Deadline,
   opts: { maxAttempts?: number; seed?: number } = {},
 ): GenResult | null {
   const maxAttempts = opts.maxAttempts ?? 2000
   const rng = mulberry32(opts.seed ?? 12345)
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    tick(deadline)
     const order = randomTopoOrder(positions, rng)
     const groups: number[][] = []
     for (let i = 0; i < 6; i++) groups.push(order.slice(i * 5, i * 5 + 5))
@@ -309,7 +361,7 @@ function generateBoard(
     const presentIds = new Set(positions.map((p) => p.id))
     let ok = true
     for (let i = 0; i < 6; i++) {
-      const got = assignWordToGroup(positions, presentIds, groups[i], words[i], letters)
+      const got = assignWordToGroup(positions, presentIds, groups[i], words[i], letters, deadline)
       if (!got) {
         ok = false
         break
@@ -320,17 +372,22 @@ function generateBoard(
     if (!ok) continue
 
     const tiles: Tile[] = positions.map((p) => ({ ...p, letter: letters.get(p.id)! }))
-    if (strictValidate(tiles, words, lexicon)) return { tiles, words, attempts: attempt }
+    if (strictValidate(tiles, words, lexicon, deadline)) return { tiles, words, attempts: attempt }
   }
   return null
 }
 
-/** Auto-pick six words and build a board, moving to a fresh six-word
- *  set if one doesn't pan out within `perSetAttempts`. */
+/**
+ * Auto-pick six words and build a board, moving to a fresh six-word set
+ * if one doesn't pan out within `perSetAttempts`. Bounded by a wall-clock
+ * `deadlineMs`: if the whole search blows past it (a pathological word-set
+ * whose validation is exponential), abort and return null so the caller
+ * skips this board and tries the next seed instead of hanging.
+ */
 function generateAnyBoard(
   positions: Pos[],
   lexicon: Set<string>,
-  opts: { seed?: number; maxWordSets?: number; perSetAttempts?: number } = {},
+  opts: { seed?: number; maxWordSets?: number; perSetAttempts?: number; deadlineMs?: number } = {},
 ): (GenResult & { wordSetsTried: number }) | null {
   const rng = mulberry32(opts.seed ?? 1)
   const words = [...lexicon]
@@ -340,13 +397,19 @@ function generateAnyBoard(
     return [...s]
   }
   const maxWordSets = opts.maxWordSets ?? 40
-  for (let set = 1; set <= maxWordSets; set++) {
-    const six = pick6()
-    const g = generateBoard(positions, six, lexicon, {
-      maxAttempts: opts.perSetAttempts ?? 1500,
-      seed: ((opts.seed ?? 1) * 7919 + set) | 0,
-    })
-    if (g) return { ...g, wordSetsTried: set }
+  const deadline: Deadline = { at: Date.now() + (opts.deadlineMs ?? 30_000), n: 0 }
+  try {
+    for (let set = 1; set <= maxWordSets; set++) {
+      const six = pick6()
+      const g = generateBoard(positions, six, lexicon, deadline, {
+        maxAttempts: opts.perSetAttempts ?? 1500,
+        seed: ((opts.seed ?? 1) * 7919 + set) | 0,
+      })
+      if (g) return { ...g, wordSetsTried: set }
+    }
+  } catch (e) {
+    if (!(e instanceof DeadlineError)) throw e
+    // Time budget exhausted for this board — caller moves to the next.
   }
   return null
 }
@@ -391,9 +454,14 @@ console.log(`Lexicon: ${lexicon.size} words`)
 
 const fresh: BoardLine[] = []
 for (let i = 0; i < COUNT; i++) {
-  const g = generateAnyBoard(FIXED_POSITIONS, lexicon, { seed: BASE_SEED + i })
+  const g = generateAnyBoard(FIXED_POSITIONS, lexicon, {
+    seed: BASE_SEED + i,
+    deadlineMs: PER_BOARD_TIMEOUT_MS,
+  })
   if (!g) {
-    console.warn(`  board ${i + 1}/${COUNT}: gave up (no board in the word-set budget)`)
+    console.warn(
+      `  board ${i + 1}/${COUNT}: gave up (word-set budget or ${PER_BOARD_TIMEOUT_MS}ms time budget exhausted)`,
+    )
     continue
   }
   if (seen.has(wordSig(g.words))) {
