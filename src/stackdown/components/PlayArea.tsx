@@ -227,6 +227,15 @@ export function PlayArea({
     ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
     : null
 
+  // The submission log. Compete RLS opens every player's submissions once
+  // the game is terminal, but the log should keep showing just the caller's
+  // own — the same list as during play — so it doesn't swap to an
+  // everyone's-words view at game over (mirrors wordle's guess list). Coop
+  // is the shared board, so it shows everyone's throughout.
+  const logWords = isCompete
+    ? submissions.filter((s) => s.user_id === session.user.id)
+    : submissions
+
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
@@ -304,7 +313,7 @@ export function PlayArea({
         )}
 
         <FoundWords
-          submissions={submissions}
+          submissions={logWords}
           players={members}
           showWho={!isCompete}
         />
