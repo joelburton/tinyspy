@@ -41,11 +41,14 @@ export function Board({
   tiles,
   offBoard,
   active,
+  highlight,
   onTileClick,
 }: {
   tiles: Tile[]
   offBoard: Set<number>
   active: boolean
+  /** Tile ids to outline in red (a typed letter matched more than one). */
+  highlight: ReadonlySet<number>
   onTileClick: (tileId: number) => void
 }) {
   const present = useMemo(
@@ -79,7 +82,9 @@ export function Board({
           <button
             type="button"
             key={t.id}
-            className={styles.tile}
+            className={
+              highlight.has(t.id) ? `${styles.tile} ${styles.flash}` : styles.tile
+            }
             disabled={!isExp || !active}
             onClick={() => onTileClick(t.id)}
             style={{

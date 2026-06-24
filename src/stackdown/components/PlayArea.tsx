@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
@@ -57,6 +57,24 @@ export function PlayArea({
   } = useGame(session, gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [submitting, setSubmitting] = useState(false)
+  // Tiles to briefly outline in red — set when a typed letter is
+  // ambiguous (more than one exposed tile bears it), cleared after a beat.
+  const [flashIds, setFlashIds] = useState<readonly number[]>([])
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flashTiles = useCallback((ids: number[]) => {
+    setFlashIds(ids)
+    if (flashTimer.current) clearTimeout(flashTimer.current)
+    flashTimer.current = setTimeout(() => {
+      setFlashIds([])
+      flashTimer.current = null
+    }, 900)
+  }, [])
+  useEffect(
+    () => () => {
+      if (flashTimer.current) clearTimeout(flashTimer.current)
+    },
+    [],
+  )
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -190,6 +208,8 @@ export function PlayArea({
           dismiss: { kind: 'timed', ms: 1200 },
         })
       } else {
+        // Ambiguous — point out the candidates with a brief red outline.
+        flashTiles(matches.map((m) => m.id))
         feedback.show({
           tone: 'info',
           text: `${matches.length} “${letter}” tiles are on top — click one`,
@@ -227,6 +247,7 @@ export function PlayArea({
           tiles={game.tiles}
           offBoard={offBoard}
           active={canPlay}
+          highlight={new Set(flashIds)}
           onTileClick={onTileClick}
         />
         <WordEntry

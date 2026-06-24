@@ -33,6 +33,17 @@
   line-height: 1;
 }
 
+/* Brief red outline shown when a typed letter is ambiguous (more than one
+ * exposed tile bears it) — PlayArea adds this class for ~0.9s to point out
+ * the candidates. The red ring (box-shadow) is the always-visible signal;
+ * the red border is a bonus (hover may recolor it, but the ring stays). */
+.flash {
+  border-color: var(--color-error);
+  box-shadow:
+    0 0 0 0.5cqi var(--color-error),
+    0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+}
+
 /* Covered (disabled) tiles fade back so the clickable frontier reads as
  * the bright layer. */
 .tile:disabled {
