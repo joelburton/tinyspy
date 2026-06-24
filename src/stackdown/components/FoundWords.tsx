@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { DefinitionPopover } from '../../common/components/DefinitionPopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
@@ -29,8 +30,20 @@ export function FoundWords({
   players: Member[]
   showWho: boolean
 }) {
-  const nameOf = (userId: string) =>
-    players.find((p) => p.user_id === userId)?.username ?? 'someone'
+  // The submitter, rendered in their player color (matching the rest of
+  // the app's "who did this" treatment). Falls back to muted "someone"
+  // when the player isn't in the roster.
+  const renderWho = (userId: string) => {
+    const p = players.find((p) => p.user_id === userId)
+    return (
+      <span
+        className={styles.who}
+        style={p ? { color: colorVarFor(p.color) } : undefined}
+      >
+        {p?.username ?? 'someone'}
+      </span>
+    )
+  }
 
   // The word currently being defined + the element it anchors under.
   const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(
@@ -72,11 +85,11 @@ export function FoundWords({
             // word" (shown to point out — gently — that someone asked).
             if (s.kind === 'hint' || s.kind === 'reveal') {
               return (
-                <li key={`${s.user_id}-${s.seq}`} className={styles.request}>
-                  <span>
+                <li key={`${s.user_id}-${s.seq}`}>
+                  <span className={styles.requestLabel}>
                     Requested {s.kind === 'hint' ? 'hint' : 'word'}
                   </span>
-                  {showWho && <span className={styles.who}>{nameOf(s.user_id)}</span>}
+                  {showWho && renderWho(s.user_id)}
                 </li>
               )
             }
@@ -98,9 +111,7 @@ export function FoundWords({
                   <span className={styles.word}>{s.word}</span>
                 )}
                 {!s.valid && <span className={styles.tag}>not a word</span>}
-                {showWho && s.valid && (
-                  <span className={styles.who}>{nameOf(s.user_id)}</span>
-                )}
+                {showWho && renderWho(s.user_id)}
               </li>
             )
           })}

@@ -71,12 +71,14 @@
   color: var(--color-error);
 }
 
-/* A logged cheat request ("Requested hint" / "Requested word") — muted +
- * italic so it reads as an aside, distinct from played words. */
-.request {
-  color: var(--color-muted);
+/* A logged cheat request ("Requested hint" / "Requested word"). The row
+ * itself is normal size like a played word; only the label is set apart
+ * — italic + the same red as the "not a word" tag — so it reads as an
+ * aside without shrinking the line. The submitter name beside it keeps
+ * the normal player-color treatment. */
+.requestLabel {
   font-style: italic;
-  font-size: 0.85rem;
+  color: var(--color-error);
 }
 
 .who {
