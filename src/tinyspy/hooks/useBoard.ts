@@ -3,6 +3,7 @@ import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { KeyLabel } from '../lib/labels'
+import { agentsAllContacted } from '../lib/agents'
 import type { Seat } from '../lib/phase'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
@@ -54,6 +55,15 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
+  // "Has this seat found all its agents?" for BOTH seats — drives the
+  // finished-player banners. The main load already pulls both key
+  // columns (to pick the caller's), so the partner's flag is free to
+  // derive here. We return two booleans rather than the peer key not
+  // for secrecy (the trust model doesn't care — see CLAUDE.md) but
+  // because `peerKey` has a dedicated terminal-gated role feeding the
+  // board's post-game reveal; the banner just needs "are they done?".
+  const [myAgentsDone, setMyAgentsDone] = useState(false)
+  const [peerAgentsDone, setPeerAgentsDone] = useState(false)
   // The peer key is fetched into `fetchedPeerKey` and tagged with the
   // gameId+userId it was fetched for. The publicly-returned `peerKey`
   // (derived below) is null unless the caller currently wants the peer
@@ -114,13 +124,23 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       if (g) {
         // key_card_X is `jsonb` in the schema and typed as `Json` here;
         // create_game guarantees it's a length-25 array of KeyLabels.
-        const myKeyJson =
-          userId === g.user_a_id ? g.key_card_a
-          : userId === g.user_b_id ? g.key_card_b
-          : null
+        const iAmA = userId === g.user_a_id
+        const iAmB = userId === g.user_b_id
+        const myKeyJson = iAmA ? g.key_card_a : iAmB ? g.key_card_b : null
+        const peerKeyJson = iAmA ? g.key_card_b : iAmB ? g.key_card_a : null
         if (myKeyJson) {
           setMyKey(myKeyJson as unknown as KeyLabel[])
         }
+        // Recomputed on every refetch (the realtime word reveals flow
+        // through here), so both flags stay live as agents are found.
+        setMyAgentsDone(
+          !!myKeyJson &&
+            agentsAllContacted(myKeyJson as unknown as KeyLabel[], wordRows),
+        )
+        setPeerAgentsDone(
+          !!peerKeyJson &&
+            agentsAllContacted(peerKeyJson as unknown as KeyLabel[], wordRows),
+        )
       }
       setLoading(false)
     },
@@ -155,5 +175,5 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     }
   }, [gameId, userId, revealPeer])
 
-  return { words, guesses, myKey, peerKey, loading }
+  return { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading }
 }

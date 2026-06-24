@@ -120,6 +120,20 @@
   color: var(--tinyspy-agent-text);
 }
 
+/* The mirror banner for the OTHER player — "your partner is done, you
+ * give all the clues now." Informational rather than celebratory, so
+ * it's painted in the calm neutral (bystander tan) tones instead of the
+ * agent green, keeping the two notes visually distinct. */
+.peerDoneNote {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.7rem;
+  border-radius: 6px;
+  background: var(--tinyspy-neutral-soft-bright);
+  color: var(--tinyspy-neutral-text);
+}
+
 /* Terminal-state indicator inside the action slot. Sits where
  * the CluePanel sat during play — "Game over: <status>" on the
  * left, Back-to-club button on the right. Once the GameOverModal

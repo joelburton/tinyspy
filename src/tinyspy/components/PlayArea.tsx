@@ -186,11 +186,8 @@ export function PlayArea({
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
   // for the phase derivation and the GameOverModal copy.
   const gameOver = isTerminal
-  const { words, guesses, myKey, peerKey, loading } = useBoard(
-    gameId,
-    session.user.id,
-    gameOver,
-  )
+  const { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading } =
+    useBoard(gameId, session.user.id, gameOver)
   const { clues } = useClues(gameId)
 
   // Shared terminal-modal scaffold: open on mount if already-
@@ -252,22 +249,19 @@ export function PlayArea({
   // Modal / indicator copy is derived once.
   const over = gameOver ? buildOver(playState) : null
 
-  // Duet's finished-player rule, surfaced for the viewer: once all of
-  // your own agents are contacted you give no more clues — your partner
-  // takes every remaining turn (enforced server-side in `_end_turn`).
-  // Without a banner the finished player is left wondering why they
-  // never get a clue turn again, so we say it out loud. Computable from
-  // the viewer's OWN key alone (no peer key needed, keeping the
-  // don't-ask-don't-see convention): an agent is one of my 'G' cells,
-  // "contacted" is the global `revealed_as = 'G'`. Only meaningful in
-  // normal play — not sudden death (nobody clues then) or once over.
-  const contactedGreens = new Set(
-    words.filter((w) => w.revealed_as === 'G').map((w) => w.position),
-  )
-  const viewerFinished =
-    !gameOver &&
-    !inSuddenDeath &&
-    myKey.every((label, pos) => label !== 'G' || contactedGreens.has(pos))
+  // Duet's finished-player rule, surfaced to BOTH players so neither
+  // reads the lopsided turn flow as a bug (enforced server-side in
+  // `_end_turn`): once a seat's agents are all contacted it gives no
+  // more clues and its partner takes every remaining turn. The flags
+  // come from `useBoard`. Only meaningful in normal play — not sudden
+  // death (nobody clues then) nor once the game is over.
+  //   - viewerFinished: I'm done → my partner now gives every clue.
+  //   - peerFinished:   my partner's done → I now give every clue
+  //     (so I'm always the clue-giver — without this banner, "why does
+  //     the clue never come back to me to guess?" looks broken).
+  const bannerEligible = !gameOver && !inSuddenDeath
+  const viewerFinished = bannerEligible && myAgentsDone
+  const peerFinished = bannerEligible && peerAgentsDone
 
   return (
     <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
@@ -321,6 +315,19 @@ export function PlayArea({
                     'your partner'
                   )}{' '}
                   gives every remaining clue — keep guessing to find theirs.
+                </div>
+              )}
+              {peerFinished && (
+                <div className={styles.peerDoneNote}>
+                  {peer ? (
+                    <strong style={{ color: colorVarFor(peer.color) }}>
+                      {peer.username}
+                    </strong>
+                  ) : (
+                    'Your partner'
+                  )}{' '}
+                  has found all their agents — you give every remaining clue
+                  now, and they do the guessing.
                 </div>
               )}
               <CluePanel

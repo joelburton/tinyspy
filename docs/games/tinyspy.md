@@ -59,7 +59,12 @@ The clue-giver does **not** strictly alternate. From the rulebook: *"If all 9 wo
 
 At turn end this means: hand the clue to the alternation candidate only if that seat still has an unfound agent; otherwise the current giver keeps it. "Both seats finished" never arises at turn end — a turn ends on a neutral or a voluntary pass, never on the 15th green (which wins first), so at least one seat always has an agent left.
 
-The FE surfaces this so the finished player isn't left wondering why they never get a clue turn again: `PlayArea` shows a green "all your agents have been found — `<peer>` gives every remaining clue" banner in the action slot. It's computed from the viewer's **own** key alone (an agent is one of my `'G'` cells; "contacted" is the global `revealed_as = 'G'`), so it needs no peer-key fetch and keeps the don't-ask-don't-see convention. Shown only in normal play (not sudden death, where nobody clues, nor once terminal).
+The FE surfaces this to **both** players in the action slot so neither reads the lopsided turn flow as a bug:
+
+- the **finished** player gets a green "all your agents have been found — `<peer>` gives every remaining clue" banner (without it: "why don't I ever get a clue turn?");
+- the **partner** gets a neutral "`<peer>` has found all their agents — you give every remaining clue now" banner (without it: "why does the clue never come back to me to guess?").
+
+Both ride two booleans from `useBoard` — `myAgentsDone` / `peerAgentsDone` — computed by the pure [`agentsAllContacted`](../../src/tinyspy/lib/agents.ts) helper (an agent is a `'G'` on that seat's key; "contacted" is the global `revealed_as = 'G'`). The partner flag uses the peer's key column, which the board fetch already pulls; we return the boolean rather than the key only because `peerKey` has a dedicated terminal-gated role feeding the post-game reveal — not for secrecy (the [trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't care). Both banners show only in normal play (not sudden death, where nobody clues, nor once terminal).
 
 #### Neutrals are per-direction (the timer-token rule)
 
@@ -333,6 +338,9 @@ src/tinyspy/
   lib/
     phase.ts              Pure derivation: from (game state, caller seat) → 'clue' | 'guess' | 'over' | 'wait'.
     phase.test.ts         Pure unit test of the above.
+    agents.ts             Pure `agentsAllContacted(key, words)` — has a seat found all its 'G's?
+                          Powers useBoard's myAgentsDone / peerAgentsDone (finished-player banners).
+    agents.test.ts        Pure unit test of the above.
     labels.ts             KeyLabel type ('G' | 'N' | 'A') — single-letter agent /
                           neutral / assassin role.
     setup.ts              TinySpySetup type + DEFAULT_TINYSPY_SETUP. PlayArea
