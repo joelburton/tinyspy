@@ -450,6 +450,57 @@ revoke execute on function stackdown.submit_word(uuid, int[]) from public;
 grant execute on function stackdown.submit_word(uuid, int[]) to authenticated;
 
 -- ============================================================
+-- stackdown.reveal_next_word — a CHEAT (peek at the next word)
+-- ============================================================
+-- Returns the next solution word the caller still has to clear, or NULL
+-- if they've cleared all six. This deliberately defeats the hidden-
+-- solution invariant — it exists to verify generated boards are
+-- solvable in order (and as a hint while playtesting). It may be removed
+-- once boards are trusted; until then it's gated like any move (game
+-- player, in-progress only).
+--
+-- "Next word" = solution[words-cleared + 1]. Strict board validity means
+-- words can only be cleared in solution order, so the count of cleared
+-- words IS the index of the next one. Cleared count mirrors submit_word's
+-- removed-set rule: coop = every valid submission on the shared board,
+-- compete = the caller's own.
+create function stackdown.reveal_next_word(target_game uuid)
+returns text
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g_row     stackdown.games%rowtype;
+  cur_state text;
+  cleared   int;
+begin
+  caller_id := common.require_game_player(target_game);
+
+  select * into g_row from stackdown.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select play_state into cur_state from common.games where id = target_game;
+  if cur_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  select count(*) into cleared
+    from stackdown.submissions s
+   where s.game_id = target_game and s.valid
+     and (g_row.mode = 'coop' or s.user_id = caller_id);
+
+  -- Postgres arrays are 1-indexed; out-of-range (all six cleared) is NULL.
+  return g_row.solution[cleared + 1];
+end;
+$$;
+revoke execute on function stackdown.reveal_next_word(uuid) from public;
+grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
+
+-- ============================================================
 -- stackdown.submit_timeout — countdown-timer expiry
 -- ============================================================
 -- The FE fires this when a countdown hits 0. Coop: the shared board wasn't

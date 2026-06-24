@@ -1,0 +1,36 @@
+/* The stacked-tile arena. Tiles are absolutely positioned within it (the
+ * Board component computes left/top/z from grid coordinates). */
+.canvas {
+  position: relative;
+  background: var(--stackdown-felt);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+}
+
+/* One lettered tile. Opaque (so the stack reads as depth), with the
+ * letter tucked into a free corner via inline justify/align from the
+ * component. Background color is set inline (depth shading). */
+.tile {
+  position: absolute;
+  width: 55px;
+  height: 55px;
+  display: flex;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--stackdown-tile-ink);
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
+  padding: 5px 8px;
+  line-height: 1;
+}
+
+/* Covered (disabled) tiles fade back so the clickable frontier reads as
+ * the bright layer. */
+.tile:disabled {
+  opacity: 0.92;
+}
+
+.tile:not(:disabled):hover {
+  border-color: var(--color-accent);
+}

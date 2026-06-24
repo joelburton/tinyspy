@@ -1,0 +1,34 @@
+/* The five-slot word-entry row under the board. */
+.row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* One slot. Empty slots are a faint dashed placeholder; filled slots
+ * carry the picked-up letter and are clickable to return the tile. */
+.slot {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border: 2px dashed var(--color-surface-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.filled {
+  border-style: solid;
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.filled:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}

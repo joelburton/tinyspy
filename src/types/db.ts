@@ -1127,6 +1127,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      reveal_next_word: { Args: { target_game: string }; Returns: string }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: { target_game: string; tile_ids: number[] }

@@ -182,8 +182,116 @@ git in `stackdown-proto/` (gitignored, like `monkeygram-ui/`).
 
 ## 5. Schema / RPCs / FE
 
-*(Pending — see the build plan. This section will be filled in like the other
-game docs once the design is approved: the `stackdown` schema with the board
-library + per-game/per-player tables, the `submit_word` / `submit_timeout` /
-`end_game` RPCs, the FE PlayArea + board/word-entry/found-words components, and
-the pgTAP + Vitest tests.)*
+Built as the standard sibling-manifest pair (`stackdown_coop`, `stackdown_compete`)
+on a per-gametype `stackdown` schema. Migration: `supabase/migrations/20260626000000_stackdown.sql`.
+
+### 5.1 Tables
+
+| table | what it holds | visibility |
+|---|---|---|
+| `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `wordlist int` (0 = Wordle list) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
+| `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `wordlist`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
+| `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
+| `stackdown.submissions` | the durable word log, `(game_id, user_id, seq)` → `word`, `tile_ids int[]`, `valid` | coop: all; compete: own (until terminal) |
+
+The hidden-solution pattern is the same as the other answer-hiding games (waffle,
+wordle): a column-grant excludes `solution`, and the `games_state`
+`security_invoker` view exposes it via `_solution_for(id)`, which returns NULL
+until `common.games.is_terminal`. The FE reads `games_state`, never the base
+table, so it can read one shape and only ever sees the words once the game ends.
+
+`board_id` is `on delete set null` — **retiring a board does not delete games
+built from it**. A game copies the board's `tiles` / `words` / `wordlist` at
+creation, so it's self-contained; `board_id` is provenance only.
+
+### 5.2 RPCs (all `security definer`)
+
+- **`create_game(target_club, setup, player_user_ids, mode)`** — club-member +
+  player-count (≤6) + timer checks, then claims a random board (`order by
+  random() limit 1`, raising if the library is empty), copies its tiles/words/
+  wordlist onto a new `stackdown.games`, seeds one `players` row each, flips to
+  `playing`.
+- **`submit_word(target_game, tile_ids int[]) → jsonb`** — the core move. Locks
+  the games row (`for update`); computes the already-removed set (coop = every
+  valid submission, compete = the caller's); validates the five tiles are
+  distinct, unremoved, and **reachable in the given order** (replaying
+  `_is_exposed` tile-by-tile — the server is the authority on legality, not the
+  FE); logs the submission (valid OR invalid — both are durable rows); on a valid
+  word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
+  compete → `won_compete` with `winner = caller`). Returns
+  `{result: 'accepted'|'invalid', word, terminal}`.
+- **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
+  `lost_compete` (a race, so no winner if it gets here).
+- **`end_game(target_game)`** — manual neutral stop → `ended`.
+- **`reveal_next_word(target_game) → text`** — a **cheat**: returns the next
+  solution word the caller still has to clear (`solution[cleared + 1]`; NULL once
+  all six are gone), defeating the hidden-solution invariant on purpose. It exists
+  to verify generated boards are solvable in order (and as a playtest hint), and
+  may be removed once boards are trusted. Gated like a move (game player,
+  in-progress only). The FE surfaces it as a "Reveal next word" button in the
+  right column during play, shown in the header feedback slot. Because strict
+  validity forces clearing in solution order, the count of cleared words is
+  exactly the index of the next one.
+
+`submit_timeout` / `end_game` go through `common.end_game` (which writes
+`common.games`, not `stackdown.*`), so each does a realtime "touch"
+(`update stackdown.games set club_handle = club_handle`) to wake the FE's
+per-schema subscription.
+
+### 5.3 Frontend (`src/stackdown/`)
+
+- **`lib/board.ts`** — the display half of the board logic, ported from the
+  prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
+  depth shading), `letterCorner` (tuck a covered tile's letter into a free
+  quadrant). Pure; Vitest in `board.test.ts`.
+- **`hooks/useGame.ts`** — the broadcast-coupled realtime hook (the wordknit
+  pattern): one stable-name channel carrying postgres-changes on `games_state` /
+  `players` / `submissions` **and** the coop shared-word Broadcast. The board the
+  player sees is `game.tiles` minus `removedTileIds` (valid-submission tiles, plus
+  a brief optimistic hold so an accepted word doesn't flash back during the
+  realtime round-trip) minus `currentWord` (the tiles picked up into the word
+  being built). In coop the in-progress word is shared peer-to-peer (append /
+  retract / clear events); in compete it's local (senders short-circuit). Only the
+  client that places the fifth tile submits — remote peers just apply the
+  broadcast — so a coop word isn't double-submitted.
+- **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
+  exposed tiles clickable), `WordEntry` (the five-slot word under the board;
+  clicking a slot returns that tile and every tile after it), `FoundWords` (the
+  right-column submission log — valid words listed, invalid attempts struck
+  through and tagged), `PlayArea` (two-column compose: board + entry on the left,
+  OpponentStrip [compete] + log on the right; owns the submit + game-over),
+  `SetupForm` (just the timer — the board is dealt at random), `Help`.
+
+### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
+
+Generation is ~10s/board (the strict validation), too slow to re-run on every
+`db:reset`. So it's split, mirroring `words:import`'s vendored-file pattern:
+
+- **`npm run stackdown:gen -- [count] [baseSeed]`** (`generate-stackdown-boards.ts`)
+  — the SLOW half, run rarely. Loads the 5-letter Wordle lexicon from
+  `common.words` (read-only), generates N strictly-valid boards on the fixed
+  geometry, and **appends** them to `supabase/data/stackdown-boards.jsonl` (one
+  JSON board per line — a committed, human-readable library that grows across
+  runs; duplicate six-word sets are skipped). Reproducible: board *i* uses
+  `baseSeed + i`. Does NOT touch the `stackdown` tables.
+- **`npm run stackdown:import`** (`import-stackdown-boards.ts`) — the CHEAP half.
+  Reads the JSONL file and replaces `stackdown.boards` with it (delete-all +
+  insert, one transaction). **Run after every `db:reset`** — a reset wipes the
+  table (plain table, not seeded by migrations), and `create_game` raises if the
+  library is empty.
+
+(Heads-up: `db:reset` also wipes `common.words`, which `stackdown:gen` reads — so
+the usual post-reset sequence is `words:import` then `stackdown:import`. You only
+re-run `stackdown:gen` when you actually want NEW boards.)
+
+### 5.5 Tests
+
+pgTAP under `supabase/tests/stackdown/`: `create_game` (board claim + hidden
+solution + board-deletion survival), `gameplay` (a full coop solve), `compete`
+(the race + per-player tally), `end_game` (manual stop), `reveal` (the cheat
+tracks solution order + is player/in-progress gated). A shared fixture board
+lives in `setup.psql` — which **deletes any library boards first** so
+`create_game`'s `order by random()` can only pick the fixture (otherwise a
+database that has run `stackdown:import` would have real boards in scope and the
+fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
+Vitest above.

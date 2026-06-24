@@ -1,0 +1,67 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.word {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* A valid, accepted word. */
+.valid .word {
+  color: var(--color-text);
+}
+
+/* An invalid attempt — struck through and dimmed, with a "not a word"
+ * tag. Still a real, durable log row. */
+.invalid {
+  color: var(--color-muted);
+}
+.invalid .word {
+  text-decoration: line-through;
+  color: var(--color-muted);
+}
+
+.tag {
+  font-size: 0.75rem;
+  color: var(--color-error);
+}
+
+.who {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
