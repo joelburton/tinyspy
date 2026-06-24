@@ -98,11 +98,13 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Each mode's labelFor handles its own play_state set; the
 // shared helper below covers what's identical between them.
 type StatusBlob = Record<string, unknown>
-function labelMidGame(row: { status: StatusBlob | null }, modeLabel: string) {
+// Mode is no longer prefixed (the card's <ModePill> shows it); this is
+// just the bare mid-game progress.
+function labelMidGame(row: { status: StatusBlob | null }) {
   const s = (row.status ?? {}) as StatusBlob
   const remaining = (s.guesses_remaining as number | undefined) ?? 0
   const word = remaining === 1 ? 'guess' : 'guesses'
-  return `${modeLabel} · ${remaining} ${word} left`
+  return `${remaining} ${word} left`
 }
 
 export const psychicnumCoopGame: GameManifest = {
@@ -131,14 +133,14 @@ export const psychicnumCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return labelMidGame(row, 'coop')
+    if (row.play_state === 'playing') return labelMidGame(row)
     if (row.play_state === 'won') {
       const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `coop · won — ${name} guessed it`
+      return `won — ${name} guessed it`
     }
     // 'ended' is the neutral manual-stop terminal (end_game).
-    if (row.play_state === 'ended') return 'coop · ended'
-    return 'coop · lost'
+    if (row.play_state === 'ended') return 'ended'
+    return 'lost'
   },
 
   submitTimeout: async (gameId) => {
@@ -175,14 +177,14 @@ export const psychicnumCompeteGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return labelMidGame(row, 'compete')
+    if (row.play_state === 'playing') return labelMidGame(row)
     if (row.play_state === 'won_compete') {
       const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `compete · ${name} won the race`
+      return `${name} won the race`
     }
     // 'ended' is the neutral manual-stop terminal (end_game).
-    if (row.play_state === 'ended') return 'compete · ended'
-    return 'compete · time/budget out — no winner'
+    if (row.play_state === 'ended') return 'ended'
+    return 'time/budget out — no winner'
   },
 
   submitTimeout: async (gameId) => {

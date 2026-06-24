@@ -366,11 +366,11 @@ A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **n
 Rules:
 
 - **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
-- **Color.** Co-op = teal, Compete = purple (`--color-mode-*` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
-- **Solo clubs.** In a solo club (handle starts with `=`, one player) the **Co-op pill is suppressed** — "co-op" is noise when there's nobody to cooperate with. Pass `soloClub` to `<ModePill>`; it returns `null` for `mode === 'coop'` there. The compete pill is unaffected (solo clubs can't host compete games anyway).
-- **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The editor **always** shows the pill (even for solo clubs) because it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (same solo suppression).
+- **Look.** An outlined chip — transparent background, with the border and text both in the mode color: co-op = teal, compete = purple (`--color-mode-*-text` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
+- **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders at all** — neither "Co-op" (no one to cooperate with) nor "Compete" (a solo member may have *enabled* a 2-player game like MonkeyGram, but "Compete" is meaningless with one player). Pass `soloClub` to `<ModePill>`; it returns `null`.
+- **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
 
-Not yet de-duplicated: several games' `labelFor` status strings still lead with `coop ·` / `compete ·` (e.g. `coop · won`), which now repeats the pill. Tracked in [deferred.md](deferred.md).
+Because the pill carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.
 
 ## Explicitly deferred
 

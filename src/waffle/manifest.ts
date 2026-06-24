@@ -94,23 +94,25 @@ async function submitTimeout(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-/** One-line label for the ClubPage games list — pure + synchronous. */
+/** One-line label for the ClubPage games list — pure + synchronous.
+ *  The coop/compete mode is shown by the card's <ModePill>, so it's no
+ *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 function labelFor(modeLabel: string) {
   return (row: CommonGameListRow): string => {
     switch (row.play_state) {
       case 'won':
-        return `${modeLabel} · solved`
+        return 'solved'
       case 'won_compete':
-        return `${modeLabel} · winner decided`
+        return 'winner decided'
       case 'lost':
-        return `${modeLabel} · out of swaps`
+        return 'out of swaps'
       case 'lost_compete':
-        return `${modeLabel} · no winner`
+        return 'no winner'
       case 'ended':
         // Manual end (waffle.end_game): neutral terminal, no winner.
-        return `${modeLabel} · ended`
+        return 'ended'
       default:
-        return `${modeLabel} · ${modeLabel === 'compete' ? 'racing' : 'solving'}…`
+        return `${modeLabel === 'compete' ? 'racing' : 'solving'}…`
     }
   }
 }

@@ -208,17 +208,17 @@ export const wordknitCompeteGame: GameManifest = {
   // per-player matched_count anywhere in the club view either.
   // Terminal copy carries the winner's name (frozen onto status
   // at submit_guess time) so post-game review reads as
-  // "compete · ada won the race."
+  // "ada won the race." Mode itself is shown by the card's <ModePill>.
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return 'compete · in progress'
+    if (row.play_state === 'playing') return 'in progress'
     if (row.play_state === 'solved_compete') {
       const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `compete · ${name} won the race`
+      return `${name} won the race`
     }
     // Manual end (wordknit.end_game) — neutral, no winner.
-    if (row.play_state === 'ended') return 'compete · ended'
-    return 'compete · time out — no winner'
+    if (row.play_state === 'ended') return 'ended'
+    return 'time out — no winner'
   },
 
   submitTimeout,

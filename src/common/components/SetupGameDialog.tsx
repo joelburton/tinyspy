@@ -171,10 +171,11 @@ export function SetupGameDialog({
   }
 
   // Confirm the chosen mode in the title (the Start buttons no longer
-  // carry it in the name). Dropped for a solo club's coop game, matching
-  // the ModePill suppression there.
-  const showMode = !(clubHandle.startsWith('=') && manifest.mode === 'coop')
-  const modeSuffix = showMode ? ` · ${MODE_LABEL[manifest.mode]}` : ''
+  // carry it in the name). Dropped entirely in a solo club, matching
+  // ModePill's suppression there — mode is noise with one player.
+  const modeSuffix = clubHandle.startsWith('=')
+    ? ''
+    : ` · ${MODE_LABEL[manifest.mode]}`
 
   return (
     <FloatingPanel

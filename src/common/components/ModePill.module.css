@@ -1,23 +1,24 @@
-/* Small mode chip — see ModePill.tsx. Sized to sit inline beside a
- * gametype name without dominating it: smaller, bold, a soft same-hue
- * fill. The two color pairs come from theme.css (--color-mode-*). */
+/* Small mode chip — see ModePill.tsx. An outlined pill: transparent
+ * background, with the border + text both in the mode color (via
+ * currentColor), so it reads as a subtle tag beside the gametype name
+ * rather than a filled chip. Colors from theme.css (--color-mode-*-text);
+ * .coop / .compete set `color`, and the border inherits it. */
 .pill {
   display: inline-block;
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.4;
   padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
   border-radius: var(--radius-sm);
   vertical-align: middle;
   white-space: nowrap;
 }
 
 .coop {
-  background: var(--color-mode-coop-bg);
   color: var(--color-mode-coop-text);
 }
 
 .compete {
-  background: var(--color-mode-compete-bg);
   color: var(--color-mode-compete-text);
 }

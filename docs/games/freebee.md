@@ -317,9 +317,10 @@ src/freebee/
                           differences are the gametype string, name, numberOfPlayers,
                           startGameInClub's forwarded mode arg, setupForm.defaults
                           (compete seeds target_rank=5), and labelFor's vocabulary
-                          (coop: "X/Y pts · Z/W words"; compete: "compete · race to
-                          Amazing" / "compete · winner at Amazing" / "compete · time
-                          up · no winner at Amazing"). submitTimeout shared.
+                          (coop: "X/Y pts · Z/W words"; compete: "race to Amazing" /
+                          "winner at Amazing" / "time up · no winner at Amazing" —
+                          mode itself shown by the card's <ModePill>, not prefixed).
+                          submitTimeout shared.
   db.ts                   export const db = supabase.schema('freebee')
   theme.css               --freebee-hex / --freebee-accent / feedback colors. Loaded
                           with this gametype's chunk via the PlayArea.tsx import.

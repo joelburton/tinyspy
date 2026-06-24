@@ -226,17 +226,17 @@ export const freebeeCompeteGame: GameManifest = {
     const targetRankName = RANKS[targetRank] ?? '?'
 
     if (row.play_state === 'playing') {
-      return `compete · race to ${targetRankName}`
+      return `race to ${targetRankName}`
     }
     if (row.play_state === 'won_compete') {
-      return `compete · winner at ${targetRankName}`
+      return `winner at ${targetRankName}`
     }
     // 'ended' (timeout or manual end) without a winner.
     const outcome = s.outcome as string | undefined
     if (outcome === 'timeout') {
-      return `compete · time up · no winner at ${targetRankName}`
+      return `time up · no winner at ${targetRankName}`
     }
-    return `compete · ended · no winner at ${targetRankName}`
+    return `ended · no winner at ${targetRankName}`
   },
 
   submitTimeout,
