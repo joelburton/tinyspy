@@ -71,6 +71,14 @@
   color: var(--color-error);
 }
 
+/* A logged cheat request ("Requested hint" / "Requested word") — muted +
+ * italic so it reads as an aside, distinct from played words. */
+.request {
+  color: var(--color-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
 .who {
   margin-left: auto;
   font-size: 0.8rem;

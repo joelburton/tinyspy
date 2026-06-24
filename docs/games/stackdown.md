@@ -194,7 +194,7 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 | `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `wordlist int` (0 = Wordle list) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
 | `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `wordlist`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
-| `stackdown.submissions` | the durable word log, `(game_id, user_id, seq)` → `word`, `tile_ids int[]`, `valid` | coop: all; compete: own (until terminal) |
+| `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, no word). | coop: all; compete: own (until terminal) |
 
 The hidden-solution pattern is the same as the other answer-hiding games (waffle,
 wordle): a column-grant excludes `solution`, and the `games_state`
@@ -233,14 +233,19 @@ creation, so it's self-contained; `board_id` is provenance only.
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE surfaces
   it as a **Reveal word** button in the right column during play (writing to the
-  header feedback slot).
+  header feedback slot). It also **logs the request** — a `kind='reveal'`
+  submission row ("Requested word") so the ask persists in the game log; deduped
+  per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
+  the games-row `for update` lock (for a collision-free `seq`).
 - **`reveal_next_hint(target_game) → text`** — the softer sibling: returns the
   next word's **hint** (`common.words.hint` — a curated clue that points at the
   word without naming it), NULL once all six are cleared. Same gating + next-word
   math as `reveal_next_word`, but the word never reaches the client — only the
   hint text crosses the wire. Every StackDown word is a 5-letter Wordle word, so
   it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
-  button shows it in the header feedback slot.
+  button shows it in the header feedback slot. Logs a `kind='hint'` request row
+  ("Requested hint") the same way. Both requests ride the submissions RLS, so a
+  coop request shows to everyone and a compete one only to the requester.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
@@ -272,11 +277,13 @@ per-schema subscription.
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
   roomy viewport and stays on-screen on a small one), `WordEntry` (the five-slot
   word under the board; clicking a slot returns that tile and every tile after
-  it), `FoundWords` (the right-column submission log — valid words listed,
-  clickable to define; invalid attempts struck through and tagged), `PlayArea`
-  (two-column compose: board + entry on the left, OpponentStrip [compete] + log
-  on the right; owns the submit + game-over), `SetupForm` (just the timer — the
-  board is dealt at random), `Help`.
+  it), `FoundWords` (the right-column game log — valid words listed, clickable to
+  define; invalid attempts struck through and tagged; and the muted "Requested
+  hint" / "Requested word" cheat-request rows), `PlayArea` (two-column compose:
+  board + entry on the left, OpponentStrip [compete] + log on the right; owns the
+  submit + game-over; in compete it filters the log to the caller's own so it
+  doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the
+  timer — the board is dealt at random), `Help`.
 - **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection

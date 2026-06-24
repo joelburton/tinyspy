@@ -22,9 +22,12 @@ export type PlayerRow = {
 export type SubmissionRow = {
   user_id: string
   seq: number
-  word: string
-  tile_ids: number[]
-  valid: boolean
+  /** 'word' = a played word; 'hint' / 'reveal' = a logged cheat request
+   *  ("Requested hint" / "Requested word"). Requests carry no word/tiles. */
+  kind: 'word' | 'hint' | 'reveal'
+  word: string | null
+  tile_ids: number[] | null
+  valid: boolean | null
   submitted_at: string
 }
 
@@ -174,7 +177,7 @@ export function useGame(
           .eq('game_id', gameId),
         db
           .from('submissions')
-          .select('user_id, seq, word, tile_ids, valid, submitted_at')
+          .select('user_id, seq, kind, word, tile_ids, valid, submitted_at')
           .eq('game_id', gameId)
           .order('submitted_at', { ascending: true }),
       ])
@@ -200,7 +203,7 @@ export function useGame(
       // that shows up in a valid submission is durably removed, so it no
       // longer needs the local hold.
       const confirmed = new Set<number>()
-      for (const s of subs) if (s.valid) for (const id of s.tile_ids) confirmed.add(id)
+      for (const s of subs) if (s.valid && s.tile_ids) for (const id of s.tile_ids) confirmed.add(id)
       setPendingRemoved((prev) => prev.filter((id) => !confirmed.has(id)))
 
       setLoading(false)
@@ -294,7 +297,7 @@ export function useGame(
   // holds not yet confirmed.
   const removedTileIds = new Set<number>(pendingRemoved)
   for (const s of submissions) {
-    if (s.valid) for (const id of s.tile_ids) removedTileIds.add(id)
+    if (s.valid && s.tile_ids) for (const id of s.tile_ids) removedTileIds.add(id)
   }
 
   return {

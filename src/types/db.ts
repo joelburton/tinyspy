@@ -1037,31 +1037,37 @@ export type Database = {
       }
       submissions: {
         Row: {
+          for_word_index: number | null
           game_id: string
+          kind: string
           seq: number
           submitted_at: string
-          tile_ids: number[]
+          tile_ids: number[] | null
           user_id: string
-          valid: boolean
-          word: string
+          valid: boolean | null
+          word: string | null
         }
         Insert: {
+          for_word_index?: number | null
           game_id: string
+          kind?: string
           seq: number
           submitted_at?: string
-          tile_ids: number[]
+          tile_ids?: number[] | null
           user_id: string
-          valid: boolean
-          word: string
+          valid?: boolean | null
+          word?: string | null
         }
         Update: {
+          for_word_index?: number | null
           game_id?: string
+          kind?: string
           seq?: number
           submitted_at?: string
-          tile_ids?: number[]
+          tile_ids?: number[] | null
           user_id?: string
-          valid?: boolean
-          word?: string
+          valid?: boolean | null
+          word?: string | null
         }
         Relationships: [
           {

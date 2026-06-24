@@ -117,25 +117,41 @@ create policy players_select on stackdown.players
   );
 
 -- ============================================================
--- stackdown.submissions — the submission log (valid AND invalid)
+-- stackdown.submissions — the game log (played words AND cheat requests)
 -- ============================================================
--- Every completed 5-letter entry lands here (the right-panel game log
--- reads from it). `valid` = accepted (its tiles are gone from the board)
--- vs invalid (tiles returned to the grid). Mid-word RETRACTIONS are not
--- here — those are ephemeral + broadcast (coop). The board's removed set =
--- union of `tile_ids` over the VALID rows.
+-- Every entry the right-panel log shows lands here. `kind`:
+--   'word'   — a completed 5-letter entry. `valid` = accepted (its tiles
+--              are gone from the board) vs invalid (tiles returned). The
+--              board's removed set = union of `tile_ids` over VALID rows.
+--   'hint'   — the player asked for the next word's hint ("Requested hint").
+--   'reveal' — the player asked for the next word itself ("Requested word").
+-- Cheat requests are SEPARATE rows from the word (so the log can show
+-- "moth asked for a hint, later joel found the word"); they carry no word/
+-- tiles. `for_word_index` is the solution-word index the request was about,
+-- which doubles as a dedup key: at most one hint + one reveal request per
+-- (player, word), so repeated clicks don't spam the log. Visibility rides
+-- the same RLS as word rows (coop → all; compete → requester).
 --
--- `seq` is the submitter's 1-based ordinal (incl. invalids); the games-row
--- `for update` lock in submit_word keeps it collision-free.
+-- Mid-word RETRACTIONS are NOT here — those are ephemeral + broadcast (coop).
+--
+-- `seq` is the submitter's 1-based ordinal; the games-row `for update` lock
+-- (submit_word + the reveal RPCs) keeps it collision-free.
 create table stackdown.submissions (
   game_id      uuid not null references stackdown.games(id) on delete cascade,
   user_id      uuid not null references common.profiles(user_id) on delete cascade,
   seq          int  not null,          -- submitter's ordinal
-  word         text not null,          -- the 5 letters, spelling order (uppercase)
-  tile_ids     int[] not null,         -- the 5 tiles (only valid rows count as removed)
-  valid        boolean not null,
+  kind         text not null default 'word'
+                 check (kind in ('word', 'hint', 'reveal')),
+  word         text,                   -- the 5 letters, spelling order (uppercase); word rows only
+  tile_ids     int[],                  -- the 5 tiles (only valid rows count as removed); word rows only
+  valid        boolean,                -- accepted? word rows only
+  for_word_index int,                  -- which solution word a request was about (hint/reveal rows)
   submitted_at timestamptz not null default now(),
-  primary key (game_id, user_id, seq)
+  primary key (game_id, user_id, seq),
+  -- A played word is fully specified; a request carries none of that.
+  constraint submissions_word_shape check (
+    kind <> 'word' or (word is not null and tile_ids is not null and valid is not null)
+  )
 );
 create index stackdown_submissions_game_id_idx on stackdown.submissions (game_id);
 
@@ -475,10 +491,14 @@ declare
   g_row     stackdown.games%rowtype;
   cur_state text;
   cleared   int;
+  next_word text;
+  next_seq  int;
 begin
   caller_id := common.require_game_player(target_game);
 
-  select * into g_row from stackdown.games where id = target_game;
+  -- `for update` serializes the request-logging insert below (its `seq`)
+  -- against concurrent submits / reveals on this game.
+  select * into g_row from stackdown.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -493,8 +513,25 @@ begin
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
-  -- Postgres arrays are 1-indexed; out-of-range (all six cleared) is NULL.
-  return g_row.solution[cleared + 1];
+  next_word := g_row.solution[cleared + 1];   -- NULL once all six cleared
+  if next_word is null then
+    return null;
+  end if;
+
+  -- Log a "Requested word" entry, once per (player, word) so repeated
+  -- clicks don't spam the log. Visibility rides the submissions RLS.
+  if not exists (
+    select 1 from stackdown.submissions
+     where game_id = target_game and user_id = caller_id
+       and kind = 'reveal' and for_word_index = cleared
+  ) then
+    select coalesce(max(seq), 0) + 1 into next_seq
+      from stackdown.submissions where game_id = target_game and user_id = caller_id;
+    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index)
+    values (target_game, caller_id, next_seq, 'reveal', cleared);
+  end if;
+
+  return next_word;
 end;
 $$;
 revoke execute on function stackdown.reveal_next_word(uuid) from public;
@@ -524,10 +561,13 @@ declare
   cur_state text;
   cleared   int;
   next_word text;
+  next_seq  int;
 begin
   caller_id := common.require_game_player(target_game);
 
-  select * into g_row from stackdown.games where id = target_game;
+  -- `for update` serializes the request-logging insert below (see
+  -- reveal_next_word).
+  select * into g_row from stackdown.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -546,6 +586,20 @@ begin
   if next_word is null then
     return null;
   end if;
+
+  -- Log a "Requested hint" entry, once per (player, word). Visibility
+  -- rides the submissions RLS (coop → all; compete → requester).
+  if not exists (
+    select 1 from stackdown.submissions
+     where game_id = target_game and user_id = caller_id
+       and kind = 'hint' and for_word_index = cleared
+  ) then
+    select coalesce(max(seq), 0) + 1 into next_seq
+      from stackdown.submissions where game_id = target_game and user_id = caller_id;
+    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index)
+    values (target_game, caller_id, next_seq, 'hint', cleared);
+  end if;
+
   return (select hint from common.words where word = lower(next_word));
 end;
 $$;

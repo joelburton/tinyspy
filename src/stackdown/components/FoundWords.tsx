@@ -67,27 +67,43 @@ export function FoundWords({
         <p className="muted">No words yet.</p>
       ) : (
         <ol className={styles.list}>
-          {submissions.map((s) => (
-            <li
-              key={`${s.user_id}-${s.seq}`}
-              className={s.valid ? styles.valid : styles.invalid}
-            >
-              {s.valid ? (
-                <span
-                  className={`${styles.word} ${styles.clickable}`}
-                  {...defineActivation(s.word)}
-                >
-                  {s.word}
-                </span>
-              ) : (
-                <span className={styles.word}>{s.word}</span>
-              )}
-              {!s.valid && <span className={styles.tag}>not a word</span>}
-              {showWho && s.valid && (
-                <span className={styles.who}>{nameOf(s.user_id)}</span>
-              )}
-            </li>
-          ))}
+          {submissions.map((s) => {
+            // Cheat-request rows: a logged "Requested hint" / "Requested
+            // word" (shown to point out — gently — that someone asked).
+            if (s.kind === 'hint' || s.kind === 'reveal') {
+              return (
+                <li key={`${s.user_id}-${s.seq}`} className={styles.request}>
+                  <span>
+                    Requested {s.kind === 'hint' ? 'hint' : 'word'}
+                  </span>
+                  {showWho && <span className={styles.who}>{nameOf(s.user_id)}</span>}
+                </li>
+              )
+            }
+            // Played-word rows: valid → clickable to define; invalid →
+            // struck through + tagged.
+            return (
+              <li
+                key={`${s.user_id}-${s.seq}`}
+                className={s.valid ? styles.valid : styles.invalid}
+              >
+                {s.valid && s.word ? (
+                  <span
+                    className={`${styles.word} ${styles.clickable}`}
+                    {...defineActivation(s.word)}
+                  >
+                    {s.word}
+                  </span>
+                ) : (
+                  <span className={styles.word}>{s.word}</span>
+                )}
+                {!s.valid && <span className={styles.tag}>not a word</span>}
+                {showWho && s.valid && (
+                  <span className={styles.who}>{nameOf(s.user_id)}</span>
+                )}
+              </li>
+            )
+          })}
         </ol>
       )}
 

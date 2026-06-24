@@ -11,7 +11,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(8);
+select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -37,6 +37,36 @@ select is(
 select ok(
   (select stackdown.reveal_next_hint((select id from g))) is not null,
   'the hint is present (StackDown words are all in the hint set)');
+
+-- ── Requesting logs a persistent row (deduped per word) ─────────────
+-- Above, ada called reveal_next_word once + reveal_next_hint twice, all
+-- for word 0 — so she should have exactly one 'reveal' and one 'hint'
+-- request row (the repeated hint call deduped).
+reset role;
+select is(
+  (select count(*)::int from stackdown.submissions
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
+  1, 'reveal_next_hint logs ONE "Requested hint" row (deduped on repeat clicks)');
+select is(
+  (select count(*)::int from stackdown.submissions
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'reveal'),
+  1, 'reveal_next_word logs a "Requested word" row');
+select ok(
+  (select word is null and valid is null and for_word_index = 0
+     from stackdown.submissions
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
+  'a request row carries no word/valid and is tagged with the word index');
+
+-- Coop: a peer can see the requesting player's request row (shown to all).
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  (select count(*)::int from stackdown.submissions
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
+  1, 'coop: a peer can see another player''s request row');
 
 -- ── A non-player can't peek ─────────────────────────────────────────
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
