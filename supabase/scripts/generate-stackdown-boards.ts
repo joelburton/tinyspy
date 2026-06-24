@@ -71,8 +71,10 @@ const BOARDS_FILE = resolve(__dirname, '../data/stackdown-boards.jsonl')
 type Tile = { id: number; x: number; y: number; z: number; letter: string }
 type Pos = { id: number; x: number; y: number; z: number }
 
-/** A covers B iff A is higher AND within one cell in both axes. */
-function covers(a: Tile, b: Tile): boolean {
+/** A covers B iff A is higher AND within one cell in both axes. Typed on
+ *  Pos (positions only) because the rule ignores letters — which lets us
+ *  reuse it to precompute COVERERS straight from the fixed geometry. */
+function covers(a: Pos, b: Pos): boolean {
   return a.z > b.z && Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1
 }
 
@@ -86,24 +88,23 @@ function exposed(tiles: Tile[], removed: Set<number>): number[] {
 }
 
 /**
- * A faster `exposed` for the validation DFS. The tile set is fixed across
- * a whole DFS, so precompute each tile's coverers ONCE (O(n²) once), then
- * a tile is exposed iff it isn't removed and every tile that covers it
- * IS removed — O(n·coverers) per query instead of O(n²). This is the hot
- * path: `reachableWords` calls it at every node of a deep, wide search,
- * so the precompute is what keeps a pathological board from exploding.
+ * A faster `exposed` for the validation DFS. A tile is exposed iff it
+ * isn't removed and every tile that covers it IS removed — O(n·coverers)
+ * per query instead of O(n²). The covering relation depends only on
+ * positions, so it's precomputed ONCE for the whole geometry (`COVERERS`,
+ * below) and reused across every board and every DFS call; here we just
+ * restrict it to the present subset (a coverer already removed in an
+ * earlier word is gone, so it no longer counts). This is the hot path —
+ * `reachableWords` calls it at every node of a deep, wide search.
  */
 function exposedFn(tiles: Tile[]): (removed: Set<number>) => number[] {
-  const coverers = new Map<number, number[]>(
-    tiles.map((b) => [
-      b.id,
-      tiles.filter((a) => a.id !== b.id && covers(a, b)).map((a) => a.id),
-    ]),
-  )
+  const present = new Set(tiles.map((t) => t.id))
   return (removed) =>
     tiles
       .filter(
-        (t) => !removed.has(t.id) && coverers.get(t.id)!.every((c) => removed.has(c)),
+        (t) =>
+          !removed.has(t.id) &&
+          COVERERS.get(t.id)!.every((c) => !present.has(c) || removed.has(c)),
       )
       .map((t) => t.id)
 }
@@ -127,29 +128,47 @@ function tick(d: Deadline): void {
 // if exposed after the first k removals. Read the word off the SEQUENCE,
 // never the multiset (anagrams share letters but differ in legal order).
 
+// All 1..4-letter prefixes of the lexicon, memoized on the lexicon Set's
+// identity (so it's built once per run, not per reachableWords call).
+// reachableWords uses it to prune dead branches.
+let prefixCacheKey: Set<string> | null = null
+let prefixCache: Set<string> = new Set()
+function lexiconPrefixes(lexicon: Set<string>): Set<string> {
+  if (prefixCacheKey === lexicon) return prefixCache
+  const p = new Set<string>()
+  for (const w of lexicon) for (let k = 1; k < w.length; k++) p.add(w.slice(0, k))
+  prefixCacheKey = lexicon
+  prefixCache = p
+  return p
+}
+
 /** All legal lexicon-words completable as a valid ordered selection. */
 function reachableWords(tiles: Tile[], lexicon: Set<string>, deadline: Deadline): Set<string> {
   const byId = new Map(tiles.map((t) => [t.id, t]))
   const exposedAfter = exposedFn(tiles)
+  const prefixes = lexiconPrefixes(lexicon)
   const found = new Set<string>()
-  const seen = new Set<string>()
-  const dfs = (seq: number[], removed: Set<number>): void => {
+  // dfs carries the accumulated letter-prefix so we can prune any branch
+  // whose prefix can't extend to a real word (the Boggle-solver trick).
+  // Random tile prefixes almost never spell word-prefixes, so this is what
+  // keeps a letter-heavy board's search from exploding. No visited-set is
+  // needed: every ordered tile-sequence is reached by exactly one path,
+  // and `found` is a Set so a repeated word is a harmless no-op anyway.
+  const dfs = (seq: number[], letters: string, removed: Set<number>): void => {
     tick(deadline)
     if (seq.length === 5) {
-      const w = seq.map((i) => byId.get(i)!.letter).join('')
-      if (lexicon.has(w)) found.add(w)
+      if (lexicon.has(letters)) found.add(letters)
       return
     }
     for (const id of exposedAfter(removed)) {
-      const key = [...seq, id].join(',')
-      if (seen.has(key)) continue
-      seen.add(key)
+      const next = letters + byId.get(id)!.letter
+      if (next.length < 5 && !prefixes.has(next)) continue
       removed.add(id)
-      dfs([...seq, id], removed)
+      dfs([...seq, id], next, removed)
       removed.delete(id)
     }
   }
-  dfs([], new Set())
+  dfs([], '', new Set())
   return found
 }
 
@@ -280,6 +299,17 @@ const FIXED_POSITIONS: Pos[] = REFERENCE_RAW.trim()
     const [z, y, x] = line.trim().split(/\s+/)
     return { id, z: +z, y: +y, x: +x }
   })
+
+// Coverers per tile id, precomputed ONCE from the fixed geometry. The
+// covering relation depends only on positions (never letters) and the
+// geometry never changes across boards, so this O(n²) build happens a
+// single time and exposedFn reuses it for every board and every DFS node.
+const COVERERS: Map<number, number[]> = new Map(
+  FIXED_POSITIONS.map((b) => [
+    b.id,
+    FIXED_POSITIONS.filter((a) => a.id !== b.id && covers(a, b)).map((a) => a.id),
+  ]),
+)
 
 // ── Generator (reverse construction + brute-force assignment) ──────
 function mulberry32(seed: number): () => number {
