@@ -16,7 +16,7 @@ A game is **current** iff at least one club member is viewing its GamePage right
 
 **Why we mark this:** the club page can show a "Currently being viewed: <game>" affordance so a member typing the club URL can jump straight back to where the group is. And it enforces the one-game-at-a-time invariant structurally.
 
-**Concurrency:** if two members on the club page simultaneously open different non-current games, the partial unique index serializes the two writes. Last-click wins: the second to commit clears the first's flag and sets its own. The losing member auto-snaps to the winning game via the existing realtime auto-nav. The race is vanishingly rare in practice (clubs coordinate over chat: "wanna pick up crossword A or B?"), and the resolution is harmless.
+**Concurrency:** if two members on the club page simultaneously open different non-current games, the partial unique index serializes the two writes. Last-click wins: the second to commit clears the first's flag and sets its own. Each member is in the game they opened; the club's current-game *pointer* just ends up on the winner's, and the games list reflects that on the next realtime refresh (nobody is auto-snapped anywhere — auto-nav is gone). The race is vanishingly rare in practice (clubs coordinate over chat: "wanna pick up crossword A or B?"), and the resolution is harmless.
 
 ### paused
 

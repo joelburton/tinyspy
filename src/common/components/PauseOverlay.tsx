@@ -22,7 +22,8 @@ type Props = {
  * its copy from the two possible pause sources:
  *
  *   - **presence-only** (missing[].length > 0, !manuallyPausedBy):
- *     "Waiting for Bea to reconnect…"
+ *     "Waiting for Bea…" — covers a player who disconnected AND one
+ *     who's been invited but hasn't joined the game yet.
  *   - **manual-only** (!missing[].length, manuallyPausedBy set):
  *     "Bea paused the game" + Resume button
  *   - **both** (both populated): stack both messages; Resume
@@ -53,9 +54,7 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
       <div className={styles.banner}>
-        {missing.length > 0 && (
-          <strong>Waiting for {missingList} to reconnect…</strong>
-        )}
+        {missing.length > 0 && <strong>Waiting for {missingList}…</strong>}
         {manuallyPausedBy && (
           <strong>
             <span style={{ color: colorVarFor(manuallyPausedBy.color) }}>
@@ -65,8 +64,8 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
           </strong>
         )}
         <p className="muted">
-          The game pauses while anyone's offline, and any player can pause it.
-          Your in-progress selections reset on every pause.
+          The game waits until everyone's joined and connected, and any player
+          can pause it. Your in-progress selections reset on every pause.
         </p>
         {onResume && manuallyPausedBy && (
           <div className={styles.actions}>

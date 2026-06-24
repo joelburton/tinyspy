@@ -101,7 +101,7 @@ Two things to keep in mind:
 
 2. **The view-state flip is presence-driven.** First-viewer-mounts fires `common.set_current_view(target_game)` from `useCommonGame`'s `SUBSCRIBED` handler; last-viewer-leaves fires `common.unset_current_view(target_game)` from cleanup-on-unmount when the local tab's last-known presence was just-me. `common.create_game` ALSO sets `is_current_view=true` on the new row + clears whichever row currently holds the slot (mid-game create-from-club-page would otherwise race against the FE's mount-time write). The replaced row's `is_current_view` flips to false; its `play_state` / `is_terminal` stay as they were. "Suspended" is the club-level state derived from `is_current_view = false AND is_terminal = false`.
 
-The flip is felt on the FE side via realtime: when `common.games` changes for this club, every member's UI subscribes and navigates them into the new current-view game (if the new row has `is_current_view = true`). See [`ClubPage`](#frontend) for the auto-nav handler.
+The flip is the club's durable "current game" pointer: it drives the ClubPage's current-game card (and the abandoned-pointer heal). It does NOT pull anyone into the game — being added to a game pops a join invitation instead (see [Joining a game — the invitation popup](#joining-a-game--the-invitation-popup)).
 
 `paused` is the second view-state column. Today it's not used directly (the pause overlay is computed client-side from `useCommonGame`'s presence-pause and manual-pause broadcasts); the column exists for future presence-pause durability. Only meaningful when `is_current_view = true` — pause has no semantics for a game nobody's viewing.
 
@@ -236,7 +236,7 @@ These exist so per-game `create_game` / `submit_*` RPCs stay focused on game-spe
 |---|---|
 | `common.require_club_member(target_club text) → uuid` | Combined auth + membership gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not a member of this club'` if the caller isn't in `clubs_members`. Returns the caller's `user_id` — most RPCs need it for downstream inserts. Use at the top of every `create_game` and in mid-game RPCs (after the row lookup for the case where the club_handle comes off the game row, e.g. `submit_guess`). |
 | `common.validate_timer(timer_obj jsonb) → void` | Canonical timer-shape validation. Argument is the timer *subobject* (typically `setup->'timer'`), not the full setup blob, so the helper doesn't assume a specific nesting. Raises `P0001` with `setup.timer.*`-prefixed messages: `is required` (null), `kind is required` (missing kind), `kind must be none, countup, or countdown (got X)`, `seconds is required for countdown`, `seconds must be 1..3600 (got X)`. Use in every gametype's `create_game` that exposes a timer setup option. |
-| `common.create_game(target_club text, gametype text, player_user_ids uuid[], title text, setup jsonb) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, vacates the prior current-view game for this club (UPDATE is_current_view=false), inserts the new `common.games` row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, the passed `title` and `setup`, seeds the game's `common.timers` row at `ticks = 0`, and inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
+| `common.create_game(target_club text, gametype text, player_user_ids uuid[], title text, setup jsonb) → uuid` | The common (header) half of starting a new game. Auth + caller club-membership check, validates every uid in `player_user_ids` is in `clubs_members`, vacates the prior current-view game for this club (UPDATE is_current_view=false), inserts the new `common.games` row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, `created_by = auth.uid()` (the starter — drives the join-invite attribution), the passed `title` and `setup`, seeds the game's `common.timers` row at `ticks = 0`, and inserts one `common.game_players` row per uid. Returns the new game id. Each gametype's `<gametype>.create_game` builds its title per the formulas above, calls this, then inserts its detail row using the returned id. |
 | `common.require_game_player(target_game uuid) → uuid` | Auth + game-player gate. Raises `42501 'must be authenticated'` if `auth.uid()` is null, or `42501 'not playing this game'` if the caller isn't in `common.game_players` for the target game. Returns the caller's `user_id`. Use in mid-game RPCs (submit_guess, submit_clue, etc.) where the question is "is this caller actually playing this game" — finer than just club-membership. |
 | `common.update_state(target_game uuid, play_state text, status jsonb) → void` | Mid-game state-write helper for the duplicate-write discipline. Each gametype's submit_* RPC calls this on every state-affecting move (after writing its own per-gametype counters) so `common.games.play_state` + `status` stay current for the club-page listing label. `is_terminal` is forced to false; use `common.end_game` for terminal transitions. |
 | `common.end_game(target_game uuid, play_state text, status jsonb, player_results jsonb) → void` | The terminal-transition counterpart. Sets `ended_at = coalesce(ended_at, now())`, writes the terminal `play_state` + `is_terminal = true` + `status` jsonb on `common.games`, and writes each player's `result` jsonb from `player_results` (keyed by user_id). Use at the moment a gametype's RPC decides the game is over (4 mistakes in wordknit, assassin in tinyspy, etc.). Does NOT clear `is_current_view` — see the view-state section above. |
@@ -309,7 +309,7 @@ Four club tables are in `supabase_realtime`:
 
 - `clubs` — new club, rename
 - `clubs_members` — roster changes (deferred to v2, but free)
-- `games` — new games (INSERT with `is_current_view=true`), `common.set_current_view` (UPDATE flipping current-view to a different game), and the suspend-broadcast cascade (UPDATE flipping current-view to false) drive the "every member follows the current game" auto-nav. Also: `status` jsonb writes from each gametype's `common.update_state` calls refresh the club's games list labels.
+- `games` — new games + `is_current_view` flips (set/unset_current_view, the suspend-broadcast cascade) keep the ClubPage games list fresh; `status` jsonb writes from each gametype's `common.update_state` refresh the list labels. (This drove the old auto-nav; that's gone — joining is now via the invitation popup, and `game_players` INSERTs are what the global `useGameInvitations` watches.)
 - `messages` — chat
 
 Profiles is deliberately NOT in the publication — usernames don't change during a session and the realtime traffic isn't worth it.
@@ -366,8 +366,11 @@ src/
                            pause — no visibility-hidden). Mounted by GamePage. See the
                            "should this survive a pause?" rule below.
       PauseOverlay.tsx     The dim-overlay UI when a game is paused. Adapts copy to
-                           presence-pause / manual-pause / both. Includes the Resume
-                           button for the manual-pause case.
+                           presence-pause ("Waiting for Bea…") / manual-pause / both.
+                           Includes the Resume button for the manual-pause case.
+      GameInvitations.tsx  The join-invitation popups, mounted once in App.tsx (sibling
+                           to UserMenu, after the claim gate). Renders useGameInvitations'
+                           pending invites. See "Joining a game — the invitation popup".
     hooks/
       useSession.ts        Auth session subscription
       useClubChat.ts       Subscribes to a club's chat log
@@ -383,6 +386,10 @@ src/
                            a server-stamped startedAt, ticks locally via
                            useSyncExternalStore, observes a paused flag. See
                            docs/wordknit.md → "Timer" for the design rationale.
+      useGameInvitations.ts  Global watcher (mounted once in App.tsx): watches
+                           common.game_players INSERTs for the caller + rescans on
+                           reconnect, surfacing "join this game" invites. Pure filter +
+                           seen-set in lib/gameInvites.ts.
       useCommonGame.ts     The cross-cutting per-game hook every gametype uses. Owns the
                            common.games row, common.game_players + profile usernames
                            (`members`), presence + manual-pause broadcasts (`paused`,
@@ -408,6 +415,8 @@ src/
       peers.ts             orderSelfFirst(players, selfId) — viewer-first, then peers by
                            username. Used by OpponentStrip (and available to any per-game
                            code that needs the same stable order).
+      gameInvites.ts       Game-invitation types + pure newInviteCandidates() filter +
+                           the localStorage "seen" set. Logic for useGameInvitations.
       chatUnread.ts        Unread-chat store + pure computeUnread(messages, lastSeen, self,
                            members) → { count, color }. A per-club lastSeen timestamp lives in
                            localStorage (so unread survives reloads and a never-opened panel
@@ -474,13 +483,15 @@ Adding a game is one line in `src/games.ts` plus the new folder. Removing a game
 
 ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.config.js) for the `no-restricted-imports` configuration. `GAMETYPES` in that file is the source of truth for which folders count as games.
 
-### ClubPage's auto-nav
+### Joining a game — the invitation popup
 
-The most interesting piece of common-side game state is in [`ClubPage.tsx`](../src/common/components/ClubPage.tsx)'s realtime subscription on `common.games` filtered by club_handle. When a row INSERTs or UPDATEs with `is_current_view = true` (a member started a game, switched the current one via `set_current_view`, or `common.create_game` set the slot), every member subscribed to the club is automatically navigated to the new current game's URL.
+Games seat every player at creation (a `common.game_players` row each), but nobody is dragged into the game. Being added to a game instead pops a **join invitation** — "*Moth* added you to a new *FreeBee* game" + a Join button — wherever the player is in the app. The logic is one global hook, [`useGameInvitations`](../src/common/hooks/useGameInvitations.ts), mounted once in `App.tsx` *after* the claim-handle gate (so it's on every real page, never the login/claim screens); [`<GameInvitations>`](../src/common/components/GameInvitations.tsx) renders the popups.
 
-This is the FE-side enforcement of the club invariant **"all members play together"**. When the club's current game changes, every member's UI follows.
+It watches `common.game_players` for INSERTs of the caller's own rows (instant popup while online) and **re-scans on (re)connect** for non-terminal games the caller is a player in — recovering invites sent while they were offline (rare, but the realtime INSERT alone would miss them). A localStorage **"seen" set** keeps one invite from re-popping; a dismissed invite is recovered via the club page, which still lists the game as the current game. The game the player is currently viewing is filtered out (you're never invited to the game you're in).
 
-`is_current_view=false` UPDATEs (suspend broadcast, last-leaver clears, end_game does NOT do this — see the view-state section) do NOT navigate anyone — players already in the game stay on the game-over screen; players on the club page see the game move out of the Current slot and into the Other games list. The `if (window.location.pathname !== target)` guard prevents the member who initiated the change (and was already navigated by `startGameInClub`) from getting a duplicate history entry when their own INSERT echoes back over realtime.
+**The game waits for invitees.** Presence-pause counts every `game_players` row as an expected player (`computePause`), so a freshly-created game is *paused* — "Waiting for Bea…" — until each invited player joins. That's the point: the old auto-nav could "start" a game for someone who wasn't even at their computer; now the game genuinely waits for everyone to be present. Friends always join eventually, so there's no decline path. Attribution comes from `common.games.created_by` (the player who clicked Start), recorded by `common.create_game`.
+
+This **replaces the previous ClubPage auto-nav** (a club-games subscription that navigated every member into any non-terminal `is_current_view` game). ClubPage's subscription now only refreshes its games list; `is_current_view` stays the club's durable "current game" pointer (the card + the abandoned-pointer heal) — it just no longer yanks anyone in. Joining a game while mid-play in another simply leaves the first (which pauses for the others).
 
 ## Theme & styling
 

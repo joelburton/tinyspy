@@ -33,13 +33,6 @@ type ClubRow = Pick<
   Database['common']['Tables']['clubs']['Row'],
   'handle' | 'name'
 >
-// The realtime payload's `.new` field for common.games. We only
-// read the fields needed to drive auto-nav + current-view tracking;
-// the Pick anchors the field set to the schema.
-type GameRow = Pick<
-  Database['common']['Tables']['games']['Row'],
-  'id' | 'club_handle' | 'gametype' | 'is_current_view' | 'is_terminal'
->
 import type { Member } from '../lib/games'
 
 /**
@@ -436,40 +429,18 @@ export function ClubPage({ handle, session }: Props) {
 
     loadGames()
 
-    // Subscribe to common.games changes for this club. New-game
-    // start (INSERT with is_current_view=true), set_current_view
-    // (UPDATE on a different row), and unset_current_view /
-    // create_game's auto-vacate (UPDATE flipping is_current_view
-    // to false) all surface here. end_game does NOT touch
-    // is_current_view — a terminal game stays current-view until
-    // the last viewer leaves (review-the-final-state is a
-    // legitimate use of the current slot).
+    // Subscribe to common.games changes for this club purely to keep the
+    // games list fresh: a new-game start, a set/unset_current_view pointer
+    // flip, create_game's auto-vacate of the prior current game, an
+    // end_game terminal — all surface here and trigger a list reload.
     //
-    // On INSERT or UPDATE whose new row has is_current_view=true —
-    // the club picked a new current game — auto-navigate every
-    // member into it. This is a club-level invariant: when a
-    // club is playing, the whole club is in the same game; no
-    // "I'll catch up later." (Solo clubs trivially satisfy this —
-    // single member.) is_current_view=false UPDATEs do NOT
-    // navigate anyone — players already in the game stay on the
-    // game-over screen; players on the club page just see the
-    // game move out of the Current section in the list.
-    //
-    // BUT auto-nav is for *active* play only — we never drag anyone
-    // into a TERMINAL game. A finished game keeps is_current_view=true
-    // while someone reviews it, so several writes still carry
-    // is_current_view=true on a terminal row: the end_game UPDATE
-    // itself (it flips is_terminal but leaves is_current_view alone),
-    // and set_current_view re-asserting it when a peer re-opens the
-    // finished game to review. Without the is_terminal guard, those
-    // would yank a member off the club page back into a done game.
-    // Reviewing a finished game is opt-in (click it in the list), not
-    // something the club gets pulled into.
-    //
-    // The "already there" guard prevents the player who started
-    // the game (and was already navigated by SetupGameDialog's
-    // onStarted) from getting a duplicate history entry when the
-    // realtime echo of their own INSERT arrives.
+    // We DON'T auto-navigate anyone into a newly-started game anymore.
+    // Being added to a game pops a join invitation *globally* (see
+    // `useGameInvitations` mounted in App.tsx), so a player joins on their
+    // own terms wherever they are — no more being yanked off the club
+    // page (or out of whatever they were doing) the instant a game starts.
+    // A member here just sees the new game appear in the Current section
+    // and gets the invite popup; the game waits (paused) until they join.
     const channel = supabase
       .channel(`club-games:${clubHandle}:${channelDedupSuffix()}`)
       .on(
@@ -480,17 +451,7 @@ export function ClubPage({ handle, session }: Props) {
           table: 'games',
           filter: `club_handle=eq.${clubHandle}`,
         },
-        (payload) => {
-          loadGames()
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const row = payload.new as GameRow
-            if (!row.is_current_view || row.is_terminal) return
-            const target = `/g/${row.gametype}/${row.id}`
-            if (window.location.pathname !== target) {
-              navigate(target)
-            }
-          }
-        },
+        () => loadGames(),
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') loadGames()

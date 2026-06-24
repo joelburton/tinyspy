@@ -146,6 +146,7 @@ export type Database = {
       games: {
         Row: {
           club_handle: string
+          created_by: string | null
           ended_at: string | null
           gametype: string
           id: string
@@ -160,6 +161,7 @@ export type Database = {
         }
         Insert: {
           club_handle: string
+          created_by?: string | null
           ended_at?: string | null
           gametype: string
           id?: string
@@ -174,6 +176,7 @@ export type Database = {
         }
         Update: {
           club_handle?: string
+          created_by?: string | null
           ended_at?: string | null
           gametype?: string
           id?: string
@@ -193,6 +196,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clubs"
             referencedColumns: ["handle"]
+          },
+          {
+            foreignKeyName: "games_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "games_gametype_fkey"

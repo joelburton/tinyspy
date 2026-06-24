@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(43);
+select plan(44);
 
 \ir ../_shared/setup.psql
 
@@ -103,6 +103,12 @@ select is(
   (select club_handle from common.games where id = current_setting('test.created_game_id')::uuid),
   (select handle from club),
   'create_game: common.games row has the right club_handle'
+);
+
+select is(
+  (select created_by from common.games where id = current_setting('test.created_game_id')::uuid),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'create_game: records the caller as created_by (drives the join-invite "X added you")'
 );
 
 select is(

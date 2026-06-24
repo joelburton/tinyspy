@@ -333,6 +333,10 @@ create table common.games (
   id uuid primary key default gen_random_uuid(),
   club_handle text not null references common.clubs(handle) on delete cascade,
   gametype text not null references common.gametypes(gametype) on delete cascade,
+  -- Who started the game (the player who clicked Start). Drives the
+  -- "<name> added you to a new <game>" join-invitation popup. Nullable +
+  -- ON DELETE SET NULL so a departed creator doesn't cascade the game.
+  created_by uuid references common.profiles(user_id) on delete set null,
   title text not null check (length(trim(title)) > 0),
   setup jsonb not null,
   is_current_view boolean not null default false,
@@ -974,8 +978,8 @@ begin
   -- on the right of VALUES resolves to the function parameter,
   -- not the column on the left — PostgreSQL knows column-list
   -- positions from value-list positions.)
-  insert into common.games (club_handle, gametype, title, setup, is_current_view)
-  values (target_club, gametype, title, setup, true)
+  insert into common.games (club_handle, gametype, created_by, title, setup, is_current_view)
+  values (target_club, gametype, auth.uid(), title, setup, true)
   returning id into new_id;
 
   -- Seed the additive game clock at zero. last_tick = now() so the

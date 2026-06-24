@@ -65,7 +65,7 @@ npm run dev                # http://localhost:5173
 
 Local credentials are picked up automatically from `supabase status`; `.env.local` already points at the local API URL. Magic-link emails land in Mailpit at <http://localhost:54324> in dev — open it, click the link, and you're signed in.
 
-For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. To play TinySpy, create a club with both of you as members from `/c/new`, then click "Start TinySpy" on the club page. The other tab auto-navigates into the game.
+For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. To play TinySpy, create a club with both of you as members from `/c/new`, then click "Start TinySpy" on the club page. The other tab gets a "join this game" popup — click Join (the game waits, paused, until everyone's joined).
 
 ## npm scripts
 

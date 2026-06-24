@@ -7,6 +7,7 @@ import { CreateClubPage } from './common/components/CreateClubPage'
 import { GamePage } from './common/components/GamePage'
 import { HomePage } from './common/components/HomePage'
 import { UserMenu } from './common/components/UserMenu'
+import { GameInvitations } from './common/components/GameInvitations'
 import { usePath } from './common/lib/router'
 import { games } from './games'
 
@@ -128,6 +129,9 @@ export default function App() {
     <>
       {page}
       <UserMenu session={session} />
+      {/* Mounted after the auth + claim-handle gates, so invitations
+          pop on every real page but never the login / claim screens. */}
+      <GameInvitations session={session} />
     </>
   )
 }
