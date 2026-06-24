@@ -45,13 +45,19 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 
 ### A turn
 
-1. **Clue-giver** (alternates each turn, A first) gives one word + a number. The clue must relate to words that are green from their own view.
+1. **Clue-giver** (A gives the first clue; normally alternates — but a seat whose agents are all found is skipped, see [below](#a-finished-player-stops-giving-clues)) gives one word + a number. The clue must relate to words that are green from their own view.
 2. **Guesser** points to words one at a time. Each guess is resolved against the *clue-giver's* key view:
    - **Green** → place an agent marker. Guesser may continue (unlimited).
    - **Neutral** → place a neutral marker. Turn ends; spend a timer token.
    - **Assassin** → game lost immediately.
 3. The guesser may stop voluntarily at any time. Doing so ends the turn and spends a timer token.
 4. Reveal markers go on the **guesser's** side of the board, but the label comes from the clue-giver's key.
+
+#### A finished player stops giving clues
+
+The clue-giver does **not** strictly alternate. From the rulebook: *"If all 9 words that you see as green have been covered by agent cards, tell your partner that he or she has no words left to guess. Your partner will be the one who gives clues on all remaining turns."* So once a seat's agents are all contacted, it gives no more clues — the partner takes every remaining turn. ([UltraBoardGames summary](https://www.ultraboardgames.com/codenames/codenames-duet.php) quotes the same line.)
+
+At turn end this means: hand the clue to the alternation candidate only if that seat still has an unfound agent; otherwise the current giver keeps it. "Both seats finished" never arises at turn end — a turn ends on a neutral or a voluntary pass, never on the 15th green (which wins first), so at least one seat always has an agent left.
 
 #### Neutrals are per-direction (the timer-token rule)
 
@@ -76,7 +82,7 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | rule | code |
 |---|---|
 | 9 starting tokens, decrements only on neutral / voluntary stop | `games.turns_remaining` (default 9), decremented by `_end_turn` |
-| Turn alternates clue-giver | `games.current_clue_giver` flips in `_end_turn` |
+| Turn alternates clue-giver, but a finished seat is skipped | `_end_turn` sets `games.current_clue_giver` to the alternation candidate only if that seat still has an unfound `'G'` on its key; otherwise the current giver keeps it |
 | Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
 | Neutral is per-direction (partner can still guess) | `submit_guess` sets `words.neutral_a` / `neutral_b` for the *guesser's* seat (not global `revealed_as`); the "already resolved" check blocks only that seat |
 | Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE greys it for both) |
@@ -212,7 +218,7 @@ Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-cl
 
 | function | role |
 |---|---|
-| `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, swaps `current_clue_giver`, calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
+| `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
 
 TinySpy doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
 
@@ -369,6 +375,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-speci
 |---|---|
 | `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in wordknit's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
+| `tests/tinyspy/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
 | `tests/tinyspy/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |

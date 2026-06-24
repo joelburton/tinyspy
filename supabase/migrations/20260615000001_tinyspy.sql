@@ -242,6 +242,20 @@ alter publication supabase_realtime add table tinyspy.guesses;
 -- the "last timer token spent → sudden death" transition. Called
 -- by submit_guess (after a non-green-non-assassin reveal) and
 -- pass_turn (after a clue was given but no guesses taken).
+--
+-- The clue-giver doesn't always strictly alternate. Per the Duet
+-- rulebook: "If all 9 words that you see as green have been covered
+-- by agent cards, tell your partner that he or she has no words left
+-- to guess. Your partner will be the one who gives clues on all
+-- remaining turns." So once a seat's agents are all contacted it gives
+-- no more clues — we hand the turn to the partner only if the partner
+-- still has an agent to clue, otherwise the current giver keeps it.
+--
+-- "Both seats done" never reaches here: _end_turn runs on a neutral or
+-- a voluntary pass (never the 15th green, which wins inside
+-- submit_guess before this is called), so at least one seat always
+-- still has an unfound agent. The else-branch giver is therefore always
+-- a seat with agents left.
 
 create function tinyspy._end_turn(target_game uuid)
 returns void
@@ -252,11 +266,31 @@ as $$
 declare
   remaining int;
   giver text;
+  key_a jsonb;
+  key_b jsonb;
+  candidate text;
+  partner_has_agents boolean;
+  next_giver text;
   new_turn_number int;
 begin
-  select turns_remaining, current_clue_giver
-    into remaining, giver
+  select turns_remaining, current_clue_giver, key_card_a, key_card_b
+    into remaining, giver, key_a, key_b
     from tinyspy.games where id = target_game for update;
+
+  -- Who would normally pick up the clue (strict alternation)…
+  candidate := case giver when 'A' then 'B' else 'A' end;
+  -- …but only if that seat still has a green agent the partner hasn't
+  -- contacted yet. A seat's agents are the 'G' cells on its own key
+  -- view; "contacted" is the global revealed_as = 'G' (green reveals
+  -- are global — true for both seats the moment they happen).
+  select exists (
+    select 1
+    from tinyspy.words w
+    where w.game_id = target_game
+      and ((case candidate when 'A' then key_a else key_b end) ->> w.position) = 'G'
+      and w.revealed_as is distinct from 'G'
+  ) into partner_has_agents;
+  next_giver := case when partner_has_agents then candidate else giver end;
 
   if remaining <= 1 then
     -- Last token spent. Transition to sudden_death on common.games
@@ -265,7 +299,7 @@ begin
     update tinyspy.games
       set turns_remaining = 0,
           turn_number = turn_number + 1,
-          current_clue_giver = case giver when 'A' then 'B' else 'A' end
+          current_clue_giver = next_giver
       where id = target_game
       returning turn_number into new_turn_number;
     perform common.update_state(
@@ -280,7 +314,7 @@ begin
     update tinyspy.games
       set turns_remaining = remaining - 1,
           turn_number = turn_number + 1,
-          current_clue_giver = case giver when 'A' then 'B' else 'A' end
+          current_clue_giver = next_giver
       where id = target_game
       returning turn_number into new_turn_number;
     perform common.update_state(
