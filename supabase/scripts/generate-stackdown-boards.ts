@@ -15,9 +15,10 @@
  * is cleared.
  *
  * What it does:
- *   1. Loads the lexicon — the 5-letter Wordle answers — from
- *      `common.words` over a direct psql connection (read-only; same word
- *      source the rest of the word games share; `wordlist = 0`).
+ *   1. Loads the lexicon — the StackDown standard set (`difficulty = 1 AND
+ *      american AND NOT slur AND len = 5`; wordlist 0) — from `common.words`
+ *      over a direct psql connection (read-only). MUST stay in sync with
+ *      stackdown._is_word's level-0 definition.
  *   2. Generates N boards on the FIXED tile geometry (positions + the
  *      covering DAG are constant across puzzles; only the letters
  *      change). Each board is six real words arranged so the stack is
@@ -460,17 +461,24 @@ console.log(
     `lexicon from ${safeTarget}; ${existing.length} already in the file.`,
 )
 
-// Load the lexicon: the 5-letter Wordle answers (wordlist 0).
+// Load the lexicon: the StackDown standard set (wordlist 0) — common,
+// 5-letter, american, non-slur words (plurals included). MUST match
+// stackdown._is_word's level-0 definition, or generated boards won't be
+// solvable / fork-free at play time.
 const raw = execFileSync(
   'psql',
-  [DB_URL, '-tAc', 'select word from common.words where wordle and len = 5'],
+  [
+    DB_URL,
+    '-tAc',
+    'select word from common.words where not slur and american and difficulty = 1 and len = 5',
+  ],
   { encoding: 'utf8' },
 )
 const lexicon = new Set(
   raw.trim().split('\n').map((w) => w.trim().toUpperCase()).filter(Boolean),
 )
 if (lexicon.size === 0) {
-  console.error('No 5-letter Wordle words found — run `npm run words:import` first.')
+  console.error('No words found — run `npm run words:import` first.')
   process.exit(1)
 }
 console.log(`Lexicon: ${lexicon.size} words`)

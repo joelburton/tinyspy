@@ -44,10 +44,11 @@ create table stackdown.boards (
   id         uuid primary key default gen_random_uuid(),
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
-  -- The wordlist level the board was generated against (0 = the Wordle
-  -- answer list; 1..6 = common.words.difficulty bands). Today every board
-  -- is 0; recorded so the generator can ship other levels later, and so
-  -- runtime word-acceptance pins to the same list (see _is_word).
+  -- The wordlist level the board was generated against (0 = the StackDown
+  -- standard set: common, 5-letter, american, non-slur words —
+  -- `difficulty = 1 AND american AND NOT slur AND len = 5`; 1..6 = wider
+  -- common.words.difficulty bands, a forward hook). Today every board is 0;
+  -- recorded so runtime word-acceptance pins to the same list (see _is_word).
   wordlist   int not null default 0 check (wordlist between 0 and 6),
   created_at timestamptz not null default now()
 );
@@ -218,9 +219,10 @@ $$;
 
 -- Is `w` an accepted word for the given wordlist level? Pins runtime
 -- validation to the SAME list the board was generated against (§2.5 — using
--- a different list reintroduces forks). Level 0 = the Wordle answer list
--- (common.words.wordle); levels 1..6 use the difficulty bands — a forward
--- placeholder, since today every board is level 0.
+-- a different list reintroduces forks). Level 0 = the StackDown standard set
+-- (`difficulty = 1 AND american AND NOT slur AND len = 5` — common 5-letter
+-- words, plurals included); levels 1..6 use the wider difficulty bands — a
+-- forward placeholder, since today every board is level 0.
 create function stackdown._is_word(w text, wordlist int)
 returns boolean
 language sql
@@ -228,7 +230,9 @@ stable
 as $$
   select case
     when wordlist = 0 then exists (
-      select 1 from common.words where word = lower(w) and wordle and len = 5)
+      select 1 from common.words
+       where word = lower(w)
+         and not slur and american and difficulty = 1 and len = 5)
     else exists (
       select 1 from common.words where word = lower(w) and len = 5 and difficulty <= wordlist)
   end;
@@ -545,10 +549,10 @@ grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
 -- without naming it (see common.words.hint). Unlike reveal_next_word it
 -- doesn't leak the word itself: only the hint text crosses the wire.
 --
--- Every word StackDown uses is a 5-letter Wordle word, which is inside
--- common.words' hint set (len=5 AND (wordle OR difficulty=1)), so the
--- hint is always present — no fallback needed. Same gating + next-word
--- math as reveal_next_word.
+-- Every StackDown word is a 5-letter difficulty-1 word (the level-0 set),
+-- which sits inside common.words' hint set (len=5 AND (wordle OR
+-- difficulty=1)), so the hint is always present — no fallback needed.
+-- Same gating + next-word math as reveal_next_word.
 create function stackdown.reveal_next_hint(target_game uuid)
 returns text
 language plpgsql

@@ -23,7 +23,7 @@ select * from stackdown.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop');
 
--- ── Unreachable tiles (BROOK can't be reached at the start) ─────────
+-- ── Unreachable tiles (tile 21 is covered at the start) ─────────────
 select throws_ok(
   format($$ select stackdown.submit_word(%L, array[21,4,11,6,2]) $$, (select id from g)),
   'P0001', 'tiles are not reachable in that order',
@@ -33,7 +33,7 @@ select throws_ok(
 create temp table inv on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_invalid()) as res;
 select is((select res->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
-select is((select res->>'word' from inv), 'TAOOK', 'invalid submission echoes the word');
+select is((select res->>'word' from inv), 'VEUVD', 'invalid submission echoes the word');
 
 reset role;
 select is(
@@ -50,7 +50,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
-  'accepted', 'TWIXT → accepted');
+  'accepted', 'VULVA → accepted');
 
 -- ── Play out the remaining five; the sixth ends the game ─────────────
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(2));
