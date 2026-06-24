@@ -1,8 +1,8 @@
 import { useState, type SubmitEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
-import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
+import styles from './CreateClubPage.module.css'
 
 type Props = {
   session: Session
@@ -13,9 +13,10 @@ type Props = {
  *
  * Mirrors `common.slugify_club_name` in the SQL baseline — same
  * shape (lowercase → strip non-alphanumeric → collapse to single
- * hyphens → trim ends → cap at 40 chars). Used for the live
- * preview as the user types; the server runs the canonical
- * version before insert, so this is purely for UX feedback.
+ * hyphens → trim ends → cap at 40 chars). Used to pre-validate the
+ * derived handle on the FE (see `handleError`) and to name the handle
+ * in the "name is taken" message; the server runs the canonical
+ * version before insert.
  *
  * Keep in sync with `common.slugify_club_name` in
  * 20260615000000_common.sql.
@@ -27,6 +28,21 @@ function slugify(name: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40)
+}
+
+/**
+ * Validate the handle a name would slugify to, against `common.clubs`'
+ * CHECK (`^=?[a-z][a-z0-9-]{2,29}$`): start with a letter, then 2–29
+ * more url-safe chars (3–30 total). Returns a friendly message, or null
+ * if the handle is valid. Without this, a too-short name (e.g. "Jo")
+ * surfaces the raw Postgres constraint name instead of guidance.
+ */
+function handleError(slug: string): string | null {
+  if (/^[a-z][a-z0-9-]{2,29}$/.test(slug)) return null
+  if (!slug) return 'Please use at least one letter or number in the name.'
+  if (!/^[a-z]/.test(slug)) return 'Club name must start with a letter.'
+  if (slug.length < 3) return 'Club name is a bit short — please use at least 3 characters.'
+  return 'Club name is too long — please shorten it.'
 }
 
 /**
@@ -66,14 +82,22 @@ export function CreateClubPage({ session: _session }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const previewSlug = slugify(name)
-
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
-    if (!name.trim()) {
+    const trimmed = name.trim()
+    if (!trimmed) {
       setError('Please give the club a name.')
+      return
+    }
+    // Validate the derived handle before hitting the server so a
+    // too-short / non-letter-leading name gets guidance, not the raw
+    // clubs_handle CHECK violation.
+    const slug = slugify(trimmed)
+    const slugErr = handleError(slug)
+    if (slugErr) {
+      setError(slugErr)
       return
     }
     const usernames = usernamesInput
@@ -86,21 +110,26 @@ export function CreateClubPage({ session: _session }: Props) {
     // gives us a string in `data` after the schema regen.
     const { data, error } = await commonDb
       .rpc('create_club', {
-        club_name: name.trim(),
+        club_name: trimmed,
         member_usernames: usernames,
       })
       .single()
     setBusy(false)
 
     if (error || !data) {
-      // 23505 = unique_violation on the clubs.handle PK. Surface
-      // it as a friendly "name is taken" instead of the raw
-      // "duplicate key value violates unique constraint" text.
       const code = (error as { code?: string } | null)?.code
+      // 23505 = unique_violation on the clubs.handle PK. Surface it as
+      // a friendly "name is taken" instead of the raw "duplicate key"
+      // text.
       if (code === '23505') {
         setError(
-          `That name is taken (handle "${previewSlug}" exists in this database). Pick a different name.`,
+          `That name is taken (handle "${slug}" exists in this database). Pick a different name.`,
         )
+      } else if (code === '23514') {
+        // check_violation — the handle CHECK (or similar). handleError
+        // catches the common cases above, but this is the backstop so a
+        // raw constraint name never reaches the user.
+        setError('That club name can’t be used — please try a different one.')
       } else {
         setError(error?.message ?? 'Could not create the club.')
       }
@@ -119,8 +148,8 @@ export function CreateClubPage({ session: _session }: Props) {
         in this club will be visible to all members.
       </p>
 
-      <form onSubmit={onSubmit} className="actions">
-        <label>
+      <form onSubmit={onSubmit} className={styles.form}>
+        <label className={styles.field}>
           Club name
           <input
             type="text"
@@ -131,29 +160,17 @@ export function CreateClubPage({ session: _session }: Props) {
             autoFocus
             required
           />
-          {/* Live preview of the URL handle. The handle is also
-              the PK — immutable — so this is the URL forever. The
-              friends can edit the name above to fine-tune it
-              before submitting. */}
-          {previewSlug ? (
-            <span className="muted">
-              URL: <code>/c/{previewSlug}</code>
-            </span>
-          ) : (
-            <span className="muted">
-              The URL will be derived from this name.
-            </span>
-          )}
         </label>
 
-        <label>
+        <label className={styles.field}>
           Other members' usernames
-          <input
-            type="text"
+          <textarea
+            className={styles.textarea}
             value={usernamesInput}
             onChange={(e) => setUsernamesInput(e.target.value)}
             disabled={busy}
             placeholder="alice, bob"
+            rows={2}
           />
           <span className="muted">
             Comma or space separated. You're added automatically.
@@ -162,13 +179,18 @@ export function CreateClubPage({ session: _session }: Props) {
 
         {error && <p className="error">{error}</p>}
 
-        <div className="actions">
+        <div className={styles.buttonRow}>
           <button type="submit" disabled={busy}>
             {busy ? 'Creating…' : 'Create club'}
           </button>
-          <Link to="/" className="link-button">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => navigate('/')}
+            disabled={busy}
+          >
             Cancel
-          </Link>
+          </button>
         </div>
       </form>
     </div>

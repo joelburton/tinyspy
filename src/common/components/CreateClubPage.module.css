@@ -1,0 +1,39 @@
+/* Create-club form layout. The fields stack label-over-control (rather
+ * than the browser-default inline flow) so the inputs get the card's
+ * full width and the usernames textarea has room to grow. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+/* One field: label text on its own line, control below, optional muted
+ * helper under that. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+}
+
+/* Multi-line members input — vertical resize only (horizontal resize
+ * would break out of the card). */
+.textarea {
+  resize: vertical;
+  min-height: 3.5rem;
+  line-height: 1.4;
+}
+
+/* Primary + Cancel share one row (Cancel is a real button now, not a
+ * link). align-items so the two button heights line up. */
+.buttonRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
