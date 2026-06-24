@@ -121,6 +121,10 @@ The FloatingPanel title bar is always `"Game over"`. The `verdict` is the center
 
 The per-game PlayArea picks the right verdict per status (play_state + timer.expired + game data) and passes it down.
 
+### Dialog buttons
+
+macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its single Resume button centers.
+
 ### Existing offenders to retrofit
 
 Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:

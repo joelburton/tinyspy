@@ -180,9 +180,6 @@ export function CreateClubPage({ session: _session }: Props) {
         {error && <p className="error">{error}</p>}
 
         <div className={styles.buttonRow}>
-          <button type="submit" disabled={busy}>
-            {busy ? 'Creating…' : 'Create club'}
-          </button>
           <button
             type="button"
             className="secondary"
@@ -190,6 +187,9 @@ export function CreateClubPage({ session: _session }: Props) {
             disabled={busy}
           >
             Cancel
+          </button>
+          <button type="submit" disabled={busy}>
+            {busy ? 'Creating…' : 'Create club'}
           </button>
         </div>
       </form>

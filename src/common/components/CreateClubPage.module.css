@@ -30,10 +30,17 @@
 }
 
 /* Primary + Cancel share one row (Cancel is a real button now, not a
- * link). align-items so the two button heights line up. */
+ * link). macOS convention (matches the app's other dialogs): right-
+ * justified, with the default action rightmost — so Cancel comes first
+ * in the DOM, Create club last. */
 .buttonRow {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  justify-content: flex-end;
   margin-top: 0.5rem;
+}
+
+.buttonRow button {
+  min-width: 6rem;
 }
