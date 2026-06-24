@@ -468,6 +468,7 @@ console.log(
 const raw = execFileSync(
   'psql',
   [
+    '-X', // skip ~/.psqlrc — its echoed settings would leak in as junk "words"
     DB_URL,
     '-tAc',
     'select word from common.words where slur = 0 and crude = 0 and american and difficulty = 1 and len = 5',
