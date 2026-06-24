@@ -12,7 +12,7 @@
  *     like CALDRON).
  *   - **Count = required (band <= 3).** For each seed we precompute
  *     `required_words_count` = how many REQUIRED words fit it (band
- *     <= 3, american, no slang, no slur), and keep only seeds with
+ *     <= 3, american, no slang, clean: slur 0 + crude 0), and keep only seeds with
  *     >= 30 so no board is thin. That matches the in-play required
  *     threshold the edge function + candidate_words use.
  *
@@ -21,7 +21,7 @@
  *
  * Source: `common.words`, the shared master list (loaded by
  * `npm run words:import`). The required pool is: difficulty <=
- * REQUIRED_BAND, american, not slang, not a slur, len >= 4, and
+ * REQUIRED_BAND, american, not slang, clean (slur 0 + crude 0), len >= 4, and
  * (defensively) no 's' (a board never contains 's', so an s-word can't
  * seed or fit one). Seeds are the band-1 subset of that pool. This
  * MUST be run AFTER words:import; it reads what's already in the table.
@@ -133,7 +133,8 @@ function loadRequiredPool(): { mask: bigint; difficulty: number }[] {
      where difficulty <= ${REQUIRED_BAND}
        and american
        and not slang
-       and not slur
+       and slur = 0
+       and crude = 0
        and len >= 4
        and (letter_mask & (1::bigint << 18)) = 0   -- no 's'
   `

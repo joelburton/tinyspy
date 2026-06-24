@@ -226,7 +226,7 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 **The flow** (`index.ts`, running as the caller):
 
 1. Fetch the candidate 5-letter words from `common.words` for the band:
-   `len = 5 AND difficulty ≤ N AND american AND NOT slur AND NOT slang` (paged
+   `len = 5 AND difficulty ≤ N AND american AND slur = 0 AND crude = 0 AND NOT slang` (paged
    to defeat PostgREST's `max_rows`). Returns `(word, difficulty)`.
 2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes the
    3 *down* words' intersection letters. Build an index

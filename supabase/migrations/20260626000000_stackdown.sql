@@ -45,10 +45,10 @@ create table stackdown.boards (
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
   -- The wordlist level the board was generated against (0 = the StackDown
-  -- standard set: common, 5-letter, american, non-slur words —
-  -- `difficulty = 1 AND american AND NOT slur AND len = 5`; 1..6 = wider
-  -- common.words.difficulty bands, a forward hook). Today every board is 0;
-  -- recorded so runtime word-acceptance pins to the same list (see _is_word).
+  -- standard set: common, clean, 5-letter american words —
+  -- `difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5`;
+  -- 1..6 = wider common.words.difficulty bands, a forward hook). Today every
+  -- board is 0; runtime word-acceptance pins to the same list (see _is_word).
   wordlist   int not null default 0 check (wordlist between 0 and 6),
   created_at timestamptz not null default now()
 );
@@ -220,9 +220,9 @@ $$;
 -- Is `w` an accepted word for the given wordlist level? Pins runtime
 -- validation to the SAME list the board was generated against (§2.5 — using
 -- a different list reintroduces forks). Level 0 = the StackDown standard set
--- (`difficulty = 1 AND american AND NOT slur AND len = 5` — common 5-letter
--- words, plurals included); levels 1..6 use the wider difficulty bands — a
--- forward placeholder, since today every board is level 0.
+-- (`difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5` —
+-- common, clean 5-letter words, plurals included); levels 1..6 use the wider
+-- difficulty bands — a forward placeholder, since today every board is 0.
 create function stackdown._is_word(w text, wordlist int)
 returns boolean
 language sql
@@ -232,7 +232,8 @@ as $$
     when wordlist = 0 then exists (
       select 1 from common.words
        where word = lower(w)
-         and not slur and american and difficulty = 1 and len = 5)
+         and slur = 0 and crude = 0
+         and american and difficulty = 1 and len = 5)
     else exists (
       select 1 from common.words where word = lower(w) and len = 5 and difficulty <= wordlist)
   end;

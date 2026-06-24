@@ -6,7 +6,7 @@
  *
  * The TSV is one row per playable word with the columns, in order:
  *
- *   word  difficulty  american british canadian australian  slur
+ *   word  difficulty  american british canadian australian  crude slur
  *   slang  wordle  len  root_word  definition  definition_source  hint
  *
  * tab-separated, `\N` for NULLs, `t`/`f` for booleans — exactly the
@@ -58,7 +58,7 @@ const sql = `
 \\set ON_ERROR_STOP on
 begin;
 truncate common.words;
-\\copy common.words (word, difficulty, american, british, canadian, australian, slur, slang, wordle, len, root_word, definition, definition_source, hint) from program 'gzip -dc ''${WORDS_PATH}''' with (format text, null '\\N')
+\\copy common.words (word, difficulty, american, british, canadian, australian, crude, slur, slang, wordle, len, root_word, definition, definition_source, hint) from program 'gzip -dc ''${WORDS_PATH}''' with (format text, null '\\N')
 commit;
 select count(*) || ' words loaded' as result from common.words;
 `

@@ -316,12 +316,11 @@ begin
   perform common.validate_timer(setup->'timer');
 
   -- ─── Pick a random target from the Wordle answer list ────
-  -- The list is curated 5-letter words; we drop the lone slur-flagged
-  -- entry (a slur as the secret answer lands worse than allowing it as
-  -- a guess).
+  -- The list is the curated 5-letter NYT answers; any crude/slur level is
+  -- allowed (WordNerd stays permissive, like the original).
   select word into v_target
     from common.words
-   where wordle and not slur
+   where wordle
    order by random()
    limit 1;
   if v_target is null then

@@ -18,7 +18,7 @@
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
  *   2. As the caller, fetch the candidate 5-letter words from
- *      common.words (band ≤ difficulty, american, no slang, no slur).
+ *      common.words (band ≤ difficulty, american, no slang, clean = slur 0 + crude 0).
  *   3. Build a board of exactly that band (fill 6 interlocking words +
  *      anchored scramble + exact-minSwaps par) — see gen.ts.
  *   4. Call waffle.create_game(target_club, setup, players, mode, board)
@@ -62,7 +62,7 @@ const DEFAULT_BAND = 2
 
 /**
  * Fetch the candidate 5-letter words for a band: the same filter the
- * board fill uses (band ≤ N, american, not slang, not a slur). Paged to
+ * board fill uses (band ≤ N, american, not slang, clean = slur 0 + crude 0). Paged to
  * defeat the max_rows cap (band 6 has ~12k candidates). Returns
  * `(word, difficulty)` — difficulty drives the "hardest word == band"
  * tier check in the fill.
@@ -79,7 +79,8 @@ async function fetchCandidateWords(
       .select('word, difficulty')
       .eq('len', 5)
       .eq('american', true)
-      .eq('slur', false)
+      .eq('slur', 0)
+      .eq('crude', 0)
       .eq('slang', false)
       .lte('difficulty', band)
       .range(from, from + PAGE_SIZE - 1)

@@ -16,7 +16,7 @@
  *
  * What it does:
  *   1. Loads the lexicon — the StackDown standard set (`difficulty = 1 AND
- *      american AND NOT slur AND len = 5`; wordlist 0) — from `common.words`
+ *      american AND slur = 0 AND crude = 0 AND len = 5`; wordlist 0) — from `common.words`
  *      over a direct psql connection (read-only). MUST stay in sync with
  *      stackdown._is_word's level-0 definition.
  *   2. Generates N boards on the FIXED tile geometry (positions + the
@@ -462,7 +462,7 @@ console.log(
 )
 
 // Load the lexicon: the StackDown standard set (wordlist 0) — common,
-// 5-letter, american, non-slur words (plurals included). MUST match
+// clean, 5-letter american words (plurals included). MUST match
 // stackdown._is_word's level-0 definition, or generated boards won't be
 // solvable / fork-free at play time.
 const raw = execFileSync(
@@ -470,7 +470,7 @@ const raw = execFileSync(
   [
     DB_URL,
     '-tAc',
-    'select word from common.words where not slur and american and difficulty = 1 and len = 5',
+    'select word from common.words where slur = 0 and crude = 0 and american and difficulty = 1 and len = 5',
   ],
   { encoding: 'utf8' },
 )

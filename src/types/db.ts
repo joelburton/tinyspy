@@ -320,6 +320,7 @@ export type Database = {
           australian: boolean
           british: boolean
           canadian: boolean
+          crude: number
           definition: string | null
           definition_source: string | null
           difficulty: number
@@ -328,7 +329,7 @@ export type Database = {
           letter_mask: number | null
           root_word: string | null
           slang: boolean
-          slur: boolean
+          slur: number
           word: string
           wordle: boolean
         }
@@ -337,6 +338,7 @@ export type Database = {
           australian: boolean
           british: boolean
           canadian: boolean
+          crude?: number
           definition?: string | null
           definition_source?: string | null
           difficulty: number
@@ -345,7 +347,7 @@ export type Database = {
           letter_mask?: number | null
           root_word?: string | null
           slang?: boolean
-          slur?: boolean
+          slur?: number
           word: string
           wordle?: boolean
         }
@@ -354,6 +356,7 @@ export type Database = {
           australian?: boolean
           british?: boolean
           canadian?: boolean
+          crude?: number
           definition?: string | null
           definition_source?: string | null
           difficulty?: number
@@ -362,7 +365,7 @@ export type Database = {
           letter_mask?: number | null
           root_word?: string | null
           slang?: boolean
-          slur?: boolean
+          slur?: number
           word?: string
           wordle?: boolean
         }

@@ -1733,16 +1733,19 @@ grant execute on function common.claim_username(text) to authenticated;
 --                 3 familiar, 4 uncommon, 5 obscure, 6 expert
 --                 (SOWPODS-only). A single threshold controls how hard
 --                 the playable set is; games pick by player skill.
---                 freebee uses two thresholds: required = <= 3 (not a
---                 slur), legal = <= 5.
+--                 freebee uses two thresholds: required = <= 3 (clean),
+--                 legal = <= 5.
 --   american/british/canadian/australian — dialect validity. Mostly
 --                 a SPELLING filter (colour/color, -ise/-ize); a word
 --                 like `lorry` is american=true too. Default play is
 --                 `american AND british`.
---   slur        — a serious slur with no innocent sense. Playable
---                 (it's a legal word) but MUST never appear on a
---                 required / must-find list. Golden rule: slurs are
---                 legal, never required.
+--   crude       — profanity level: 0 none, 1 mild (`damn`), 2 strong
+--                 (`shit`). Smallint so games can tune tolerance.
+--   slur        — identity-slur level: 0 none, 1 mild (`fatty`), 2
+--                 strong. The "clean" filter most games want is
+--                 `crude = 0 AND slur = 0`. Playable words can be any
+--                 level (legal), but the clean set is what required /
+--                 board / answer words draw from.
 --   slang       — chiefly slang (`dude`, `aggro`). Lets a game offer a
 --                 "no slang" filter; orthogonal to difficulty (slang
 --                 can be band 1 or band 6).
@@ -1798,7 +1801,12 @@ create table common.words (
   british           boolean not null,
   canadian          boolean not null,
   australian        boolean not null,
-  slur              boolean not null default false,
+  -- Profanity / identity-slur LEVELS (0 none, 1 mild, 2 strong). Smallint,
+  -- not boolean: a game's "clean" filter is `crude = 0 AND slur = 0`, and a
+  -- game can be more permissive on mild (e.g. allow crude=1). Column order
+  -- matches the import TSV: crude before slur.
+  crude             smallint not null default 0 check (crude between 0 and 2),
+  slur              smallint not null default 0 check (slur  between 0 and 2),
   slang             boolean not null default false,  -- chiefly slang; "no slang" filter
   wordle            boolean not null default false,  -- in the fixed Wordle word list
   len               smallint not null,

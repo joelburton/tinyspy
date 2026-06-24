@@ -54,8 +54,8 @@ grant usage on schema freebee to service_role;
 -- not a freebee table — every word game filters the same
 -- categorized source. freebee's slice is computed on the fly in
 -- freebee.candidate_words (below): legal = difficulty <= 5,
--- required = difficulty <= 3 AND american AND NOT slang AND NOT slur,
--- len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
+-- required = difficulty <= 3 AND american AND NOT slang AND clean
+-- (slur = 0 AND crude = 0), len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
 -- test (every letter of the word is in the puzzle) reads the
 -- generated common.words.letter_mask column — same bit convention.
 --
@@ -81,7 +81,7 @@ grant usage on schema freebee to service_role;
 -- band 1 guarantees every board has a COMMON, findable pangram (the
 -- whole point — no obscure-only pangrams like CALDRON). For each seed
 -- we precompute `required_words_count` = how many REQUIRED words
--- (band <= 3, american, no slang, no slur) fit it, and keep only
+-- (band <= 3, american, no slang, clean: slur 0 + crude 0) fit it, and keep only
 -- seeds with >= 30 so no board is thin. See
 -- import-freebee-pangrams.ts and docs/games/freebee.md.
 --
@@ -454,14 +454,14 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 -- This is also where freebee's slice of the shared common.words
 -- list is defined, on the 1..6 recognizability bands:
 --   - legal      difficulty <= 5  (returned at all = enterable). No
---                dialect / slang / slur restriction — anything up to
---                band 5 counts if you play it.
---   - required   difficulty <= 3 AND american AND NOT slang AND NOT
---                slur  (the is_required flag; counts toward the
---                displayed goal + rank denominator). Slurs are legal
---                but never required — the golden rule. Words that are
---                legal but not required (band 4-5, or band <=3 that's
---                non-american / slang / a slur) come back as BONUS
+--                dialect / slang / crude / slur restriction — anything up
+--                to band 5 counts if you play it.
+--   - required   difficulty <= 3 AND american AND NOT slang AND clean
+--                (slur = 0 AND crude = 0) — the is_required flag; counts
+--                toward the displayed goal + rank denominator. Crude/slur
+--                words are legal but never required. Words that are legal
+--                but not required (band 4-5, or band <=3 that's
+--                non-american / slang / crude / a slur) come back as BONUS
 --                (is_required false): legal − required. Bonus words
 --                still SCORE (length + pangram bonus); they just don't
 --                count toward the required goal.
@@ -491,7 +491,8 @@ set search_path = freebee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= 3 and w.american and not w.slang and not w.slur)
+         (w.difficulty <= 3 and w.american and not w.slang
+            and w.slur = 0 and w.crude = 0)
            as is_required
     from common.words w
    where w.len >= 4

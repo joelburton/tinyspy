@@ -19,8 +19,8 @@ with the standard duplicate-letter accounting (a letter only earns a yellow if t
 ### Rules
 
 - **Guess budget:** 5–8 (set at create-game; **6** is classic). Coop: shared by the team. Compete: each player's own.
-- **A guess must be a real word** — `len = 5 AND difficulty ≤ 4` in `common.words` (no dialect/slang/slur filter; Wordle is permissive on guesses). A guess that's malformed, not a word, or already on the board is **soft-rejected and does NOT cost a guess** (classic Wordle "not in word list").
-- **The target** is a random word from the curated Wordle answer list (`common.words.wordle`, minus the lone slur-flagged entry — a slur as the secret answer is worse than allowing it as a guess). Every answer is `len = 5, difficulty ≤ 4`, so it's always typeable.
+- **A guess must be a real word** — `len = 5 AND difficulty ≤ 4` in `common.words` (no dialect/slang/crude/slur filter; Wordle is permissive on guesses). A guess that's malformed, not a word, or already on the board is **soft-rejected and does NOT cost a guess** (classic Wordle "not in word list").
+- **The target** is a random word from the curated Wordle answer list (`common.words.wordle`, any crude/slur level — WordNerd stays permissive like the original). Every answer is `len = 5, difficulty ≤ 4`, so it's always typeable.
 - **Lifecycle.** Win = guess the word. Lose = exhaust the budget. A countdown timer (optional) ends the game on expiry; either player may hit **End game** for a neutral stop.
 
 ### Coop vs compete
@@ -54,7 +54,7 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus freebee's per-gu
 
 ## RPCs (all SECURITY DEFINER; **no edge function** — picking a random target is one SQL line)
 
-- **`create_game(club, setup, players, mode)`** — validate (`max_guesses` 5..8, timer, mode); pick `target` = random `where wordle and not slur`; store; seed players; `update_state 'playing'`.
+- **`create_game(club, setup, players, mode)`** — validate (`max_guesses` 5..8, timer, mode); pick `target` = random `where wordle`; store; seed players; `update_state 'playing'`.
 - **`submit_guess(game, guess) → jsonb`** — `FOR UPDATE` lock (coop serialization). Soft rejects (no burn, no row): `invalid` (not 5 a–z), `notAWord` (not in `len=5, difficulty≤4`), `duplicate`. A valid fresh word → compute colors, log it, `guesses_used++` (coop: all rows; compete: caller), set `solved`. Terminal: coop → `won`/`lost`; compete → when every player is done, winner = fewest guesses (tie earliest) → `won_compete`/`lost_compete`. Returns `{ result, colors, guesses_used, solved, terminal }`; `result ∈ correct | incorrect | notAWord | duplicate | invalid`.
 - **`submit_timeout`** / **`end_game`** — mirror waffle's (countdown loss / race-resolve; manual neutral `ended`). Both fire a realtime "touch" on `wordle.games` so the FE refetches the now-revealed target.
 

@@ -10,7 +10,7 @@
 -- are deliberately ULTRA-common — EAGLE TABLE PLANS APPLE JUICE LEMON —
 -- drawn from a curated pool, not a random difficulty-1 pick, so the fixture
 -- survives the upstream re-banding of borderline words. All six are in
--- `common.words` at `difficulty = 1 AND american AND NOT slur AND len = 5`
+-- `common.words` at `difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5`
 -- (exactly what stackdown._is_word level 0 accepts), and the board is
 -- fork-free against that full set.
 --
