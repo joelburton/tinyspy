@@ -926,6 +926,213 @@ export type Database = {
       [_ in never]: never
     }
   }
+  stackdown: {
+    Tables: {
+      boards: {
+        Row: {
+          created_at: string
+          id: string
+          tiles: Json
+          words: string[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tiles: Json
+          words: string[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tiles?: Json
+          words?: string[]
+        }
+        Relationships: []
+      }
+      games: {
+        Row: {
+          board_id: string | null
+          club_handle: string
+          created_at: string
+          id: string
+          mode: string
+          solution: string[]
+          tiles: Json
+        }
+        Insert: {
+          board_id?: string | null
+          club_handle: string
+          created_at?: string
+          id: string
+          mode: string
+          solution: string[]
+          tiles: Json
+        }
+        Update: {
+          board_id?: string | null
+          club_handle?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          solution?: string[]
+          tiles?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          found_count: number
+          game_id: string
+          solved: boolean
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          found_count?: number
+          game_id: string
+          solved?: boolean
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          found_count?: number
+          game_id?: string
+          solved?: boolean
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          game_id: string
+          seq: number
+          submitted_at: string
+          tile_ids: number[]
+          user_id: string
+          valid: boolean
+          word: string
+        }
+        Insert: {
+          game_id: string
+          seq: number
+          submitted_at?: string
+          tile_ids: number[]
+          user_id: string
+          valid: boolean
+          word: string
+        }
+        Update: {
+          game_id?: string
+          seq?: number
+          submitted_at?: string
+          tile_ids?: number[]
+          user_id?: string
+          valid?: boolean
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          mode: string | null
+          solution: string[] | null
+          tiles: Json | null
+        }
+        Insert: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          solution?: never
+          tiles?: Json | null
+        }
+        Update: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          solution?: never
+          tiles?: Json | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _is_exposed: {
+        Args: { gone: number[]; tid: number; tiles: Json }
+        Returns: boolean
+      }
+      _solution_for: { Args: { g_id: string }; Returns: string[] }
+      _word: { Args: { ids: number[]; tiles: Json }; Returns: string }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: { target_game: string; tile_ids: number[] }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   tinyspy: {
     Tables: {
       clues: {
@@ -1871,6 +2078,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
+    Enums: {},
+  },
+  stackdown: {
     Enums: {},
   },
   tinyspy: {

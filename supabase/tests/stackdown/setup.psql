@@ -1,0 +1,39 @@
+-- ============================================================
+-- Per-test-file stackdown fixtures
+-- ============================================================
+-- Loaded by every stackdown/*_test.sql via `\ir setup.psql` (after the
+-- shared persona setup).
+--
+-- Inserts ONE known board into the library so create_game claims it
+-- deterministically (the real game fills stackdown.boards via the offline
+-- import; tests don't run that). This is the trap-free board the proto
+-- generated — TWIXT QUASH GRACE BROOK LOUSE WARTY — whose six words are all
+-- in the Wordle lexicon (common.words, wordle column).
+--
+-- Helpers:
+--   pg_temp.sd_seq(n)  — the tile-id sequence (spelling order) that spells
+--                        word n (1..6) on this board; tests play it out.
+--   pg_temp.sd_invalid() — a reachable 5-tile sequence that spells a
+--                        NON-word ("TAOOK"), for the invalid-word path.
+
+reset role;
+
+insert into stackdown.boards (tiles, words) values (
+  '[{"id":0,"x":2,"y":0,"z":0,"letter":"S"},{"id":1,"x":6,"y":0,"z":0,"letter":"T"},{"id":2,"x":3,"y":1,"z":1,"letter":"K"},{"id":3,"x":5,"y":1,"z":1,"letter":"W"},{"id":4,"x":0,"y":2,"z":0,"letter":"R"},{"id":5,"x":2,"y":2,"z":2,"letter":"A"},{"id":6,"x":4,"y":2,"z":2,"letter":"O"},{"id":7,"x":6,"y":2,"z":2,"letter":"O"},{"id":8,"x":8,"y":2,"z":0,"letter":"Y"},{"id":9,"x":1,"y":3,"z":1,"letter":"C"},{"id":10,"x":3,"y":3,"z":3,"letter":"T"},{"id":11,"x":5,"y":3,"z":3,"letter":"O"},{"id":12,"x":7,"y":3,"z":1,"letter":"A"},{"id":13,"x":0,"y":4,"z":0,"letter":"E"},{"id":14,"x":2,"y":4,"z":2,"letter":"H"},{"id":15,"x":6,"y":4,"z":2,"letter":"L"},{"id":16,"x":8,"y":4,"z":0,"letter":"R"},{"id":17,"x":1,"y":5,"z":1,"letter":"G"},{"id":18,"x":3,"y":5,"z":3,"letter":"W"},{"id":19,"x":5,"y":5,"z":3,"letter":"X"},{"id":20,"x":7,"y":5,"z":1,"letter":"U"},{"id":21,"x":0,"y":6,"z":0,"letter":"B"},{"id":22,"x":2,"y":6,"z":2,"letter":"I"},{"id":23,"x":4,"y":6,"z":2,"letter":"Q"},{"id":24,"x":6,"y":6,"z":2,"letter":"T"},{"id":25,"x":8,"y":6,"z":0,"letter":"E"},{"id":26,"x":3,"y":7,"z":1,"letter":"U"},{"id":27,"x":5,"y":7,"z":1,"letter":"A"},{"id":28,"x":2,"y":8,"z":0,"letter":"R"},{"id":29,"x":6,"y":8,"z":0,"letter":"S"}]'::jsonb,
+  array['TWIXT','QUASH','GRACE','BROOK','LOUSE','WARTY']
+);
+
+create function pg_temp.sd_seq(n int) returns int[] language sql as $$
+  select case n
+    when 1 then array[10,18,22,19,24]  -- TWIXT
+    when 2 then array[23,26,27,29,14]  -- QUASH
+    when 3 then array[17,28,5,9,13]    -- GRACE
+    when 4 then array[21,4,11,6,2]     -- BROOK
+    when 5 then array[15,7,20,0,25]    -- LOUSE
+    when 6 then array[3,12,16,1,8]     -- WARTY
+  end;
+$$;
+
+create function pg_temp.sd_invalid() returns int[] language sql as $$
+  select array[10,5,11,6,2];           -- reachable at start, spells TAOOK (not a word)
+$$;
