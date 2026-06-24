@@ -78,24 +78,16 @@ function covers(a: Pos, b: Pos): boolean {
   return a.z > b.z && Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1
 }
 
-/** IDs of tiles exposed (selectable) given the already-removed set.
- *  Array form (the generator indexes/counts it). */
-function exposed(tiles: Tile[], removed: Set<number>): number[] {
-  const rem = tiles.filter((t) => !removed.has(t.id))
-  return rem
-    .filter((t) => !rem.some((a) => a.id !== t.id && covers(a, t)))
-    .map((t) => t.id)
-}
-
 /**
- * A faster `exposed` for the validation DFS. A tile is exposed iff it
- * isn't removed and every tile that covers it IS removed — O(n·coverers)
- * per query instead of O(n²). The covering relation depends only on
- * positions, so it's precomputed ONCE for the whole geometry (`COVERERS`,
- * below) and reused across every board and every DFS call; here we just
- * restrict it to the present subset (a coverer already removed in an
- * earlier word is gone, so it no longer counts). This is the hot path —
- * `reachableWords` calls it at every node of a deep, wide search.
+ * Returns a fast "which tiles are exposed" query bound to a fixed tile
+ * set. A tile is exposed iff it isn't removed and every tile that covers
+ * it IS removed — O(n·coverers) per query instead of O(n²). The covering
+ * relation depends only on positions, so it's precomputed ONCE for the
+ * whole geometry (`COVERERS`, below) and reused across every board and
+ * every call; here we just restrict it to the present subset (a coverer
+ * already removed in an earlier word is gone, so it no longer counts).
+ * This is the hot path — the validation DFS and the topo-order each call
+ * the returned closure at every step.
  */
 function exposedFn(tiles: Tile[]): (removed: Set<number>) => number[] {
   const present = new Set(tiles.map((t) => t.id))
@@ -326,10 +318,11 @@ function mulberry32(seed: number): () => number {
 /** A random legal full removal order (topological wrt covering). */
 function randomTopoOrder(positions: Pos[], rng: () => number): number[] {
   const tiles: Tile[] = positions.map((p) => ({ ...p, letter: '?' }))
+  const exposedAfter = exposedFn(tiles)
   const order: number[] = []
   const removed = new Set<number>()
   while (order.length < tiles.length) {
-    const exp = exposed(tiles, removed)
+    const exp = exposedAfter(removed)
     if (exp.length === 0) throw new Error('DAG has no exposed tile — bad geometry')
     const pick = exp[Math.floor(rng() * exp.length)]
     order.push(pick)
