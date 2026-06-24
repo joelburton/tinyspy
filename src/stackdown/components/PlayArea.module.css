@@ -37,3 +37,10 @@
 .reveal {
   letter-spacing: 0.04em;
 }
+
+/* The two cheat buttons (reveal hint / reveal word), side by side. */
+.cheats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

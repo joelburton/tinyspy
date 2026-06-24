@@ -4,6 +4,7 @@ import { GameOverModal } from '../../common/components/GameOverModal'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
+import { supabase } from '../../common/lib/supabase'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { Board } from './Board'
@@ -113,6 +114,37 @@ export function PlayArea({
     })
   }, [gameId, feedback])
 
+  // ─── Reveal hint (CHEAT — the next word's DEFINITION, not the word) ──
+  // A softer reveal: find the next word (same RPC), then run it through
+  // the common `define` lookup (read-through cache → Wiktionary, the same
+  // path click-to-define uses) and surface ONLY the definition. Some
+  // glosses name the word fairly directly — that's accepted for now.
+  const revealHint = useCallback(async () => {
+    const { data: word, error } = await db.rpc('reveal_next_word', { target_game: gameId })
+    if (error) {
+      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 1500 } })
+      return
+    }
+    if (!word) {
+      feedback.show({ tone: 'info', text: 'All words cleared', dismiss: { kind: 'closeable' } })
+      return
+    }
+    feedback.show({ tone: 'info', text: 'Looking up a hint…', dismiss: { kind: 'timed', ms: 2000 } })
+    const { data, error: defErr } = await supabase.functions.invoke('define', {
+      body: { word },
+    })
+    if (defErr) {
+      feedback.show({ tone: 'error', text: 'Definition lookup failed', dismiss: { kind: 'timed', ms: 1500 } })
+      return
+    }
+    const def = (data as { def: string | null }).def
+    feedback.show({
+      tone: 'info',
+      text: def ? `Hint: ${def}` : 'Hint: no definition found for the next word',
+      dismiss: { kind: 'closeable' },
+    })
+  }, [gameId, feedback])
+
   // ─── Tile click → extend the word, submit on the fifth ────────
   const onTileClick = useCallback(
     (tileId: number) => {
@@ -197,14 +229,24 @@ export function PlayArea({
             )}
             {!self && <p className="muted">Watching — you're not in this game.</p>}
             {self && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => void revealNext()}
-                title="Cheat: peek at the next word (for verifying boards)"
-              >
-                Reveal next word
-              </button>
+              <div className={styles.cheats}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => void revealHint()}
+                  title="Cheat: show the next word's definition (not the word)"
+                >
+                  Reveal hint
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => void revealNext()}
+                  title="Cheat: peek at the next word (for verifying boards)"
+                >
+                  Reveal word
+                </button>
+              </div>
             )}
           </>
         )}

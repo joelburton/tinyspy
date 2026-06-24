@@ -40,6 +40,17 @@
   letter-spacing: 0.06em;
 }
 
+/* A clickable (definable) word — subtle underline-on-hover affordance. */
+.clickable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.clickable:hover,
+.clickable:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
 /* A valid, accepted word. */
 .valid .word {
   color: var(--color-text);
