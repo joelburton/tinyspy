@@ -91,8 +91,15 @@ export function StartGameButtons({
               </span>
               <span className={styles.meta}>
                 {g.shortDescription}
-                {' · '}
-                {playerCountShort(g.numberOfPlayers)}
+                {/* Player count is noise in a solo club — every game
+                    there is played by the one member. Still shown for
+                    friend clubs, where it's load-bearing. */}
+                {!soloClub && (
+                  <>
+                    {' · '}
+                    {playerCountShort(g.numberOfPlayers)}
+                  </>
+                )}
               </span>
             </span>
           </button>
