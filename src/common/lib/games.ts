@@ -2,6 +2,19 @@ import type { Session } from '@supabase/supabase-js'
 import type { ComponentType } from 'react'
 
 /**
+ * FE-facing labels for a gametype's interaction `mode`. The DB, code,
+ * and gametype strings all spell it `coop`; the UI says "Co-op".
+ * Compete reads the same either way. Lives here (not in ModePill) so
+ * non-component callers — e.g. SetupGameDialog's title — can use the
+ * words without importing a component, and so `react-refresh` stays
+ * happy about ModePill exporting only its component.
+ */
+export const MODE_LABEL: Record<'coop' | 'compete', string> = {
+  coop: 'Co-op',
+  compete: 'Compete',
+}
+
+/**
  * What `<GamePage>` exposes to each game's PlayArea via its
  * render-prop children:
  *

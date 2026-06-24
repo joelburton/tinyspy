@@ -89,6 +89,18 @@
   --color-outcome-current-bg:    #ffe0b2;   /* orange 100 */
   --color-outcome-current-border: #fb8c00;  /* orange 600 */
 
+  /* Game-mode pills — "Co-op" vs "Compete", shown next to a
+     gametype's name in start buttons / the games list / the club
+     editor (see ModePill). Deliberately OUTSIDE the won/lost/active
+     outcome vocabulary above (green/red/yellow/amber/orange) so a
+     mode pill never reads as a result: co-op = teal (collaborative),
+     compete = purple (rivalry). Soft 100-level fills with a dark
+     same-hue text for AA contrast. */
+  --color-mode-coop-bg:      #b2dfdb;   /* teal 100 */
+  --color-mode-coop-text:    #00695c;   /* teal 800 */
+  --color-mode-compete-bg:   #e1bee7;   /* purple 100 */
+  --color-mode-compete-text: #6a1b9a;   /* purple 800 */
+
   /* Per-member identity palette — one token per name in
      common.profiles.color. The DB stores a NAME (not a hex),
      and the FE resolves it via the colorVarFor helper to one of

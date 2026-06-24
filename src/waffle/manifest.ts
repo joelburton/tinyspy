@@ -120,7 +120,7 @@ export const waffleCoopGame: GameManifest = {
   schema: 'waffle',
   baseGametype: 'waffle',
   mode: 'coop',
-  name: 'SyrupSwap (coop)',
+  name: 'SyrupSwap',
   shortDescription: 'Unscramble the waffle together',
   logoUrl,
 
@@ -149,7 +149,7 @@ export const waffleCompeteGame: GameManifest = {
   schema: 'waffle',
   baseGametype: 'waffle',
   mode: 'compete',
-  name: 'SyrupSwap (compete)',
+  name: 'SyrupSwap',
   shortDescription: 'Race to unscramble the waffle',
   logoUrl,
 

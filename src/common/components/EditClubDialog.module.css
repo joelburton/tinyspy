@@ -51,13 +51,6 @@
   font-weight: 600;
 }
 
-/* The "(coop)" / "(compete)" tag after the game name. */
-.gameMode {
-  font-weight: 400;
-  color: var(--color-muted);
-  font-size: 0.85em;
-}
-
 .gameDesc {
   font-size: 0.85rem;
   color: var(--color-muted);

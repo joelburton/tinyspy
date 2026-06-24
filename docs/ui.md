@@ -359,6 +359,19 @@ Same principle, applied to components.
 
 **Game-end UI** — `common/components/GameOverModal.tsx` is the shared component all three games render at terminal. Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
 
+## Mode pills
+
+A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `WordNerd`), distinguished by the pill.
+
+Rules:
+
+- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
+- **Color.** Co-op = teal, Compete = purple (`--color-mode-*` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
+- **Solo clubs.** In a solo club (handle starts with `=`, one player) the **Co-op pill is suppressed** — "co-op" is noise when there's nobody to cooperate with. Pass `soloClub` to `<ModePill>`; it returns `null` for `mode === 'coop'` there. The compete pill is unaffected (solo clubs can't host compete games anyway).
+- **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The editor **always** shows the pill (even for solo clubs) because it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (same solo suppression).
+
+Not yet de-duplicated: several games' `labelFor` status strings still lead with `coop ·` / `compete ·` (e.g. `coop · won`), which now repeats the pill. Tracked in [deferred.md](deferred.md).
+
 ## Explicitly deferred
 
 - **Responsive mobile layouts** beyond graceful degradation.

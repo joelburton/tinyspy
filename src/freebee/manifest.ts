@@ -141,7 +141,7 @@ export const freebeeCoopGame: GameManifest = {
   schema: 'freebee',
   baseGametype: 'freebee',
   mode: 'coop',
-  name: 'FreeBee (coop)',
+  name: 'FreeBee',
   shortDescription: 'Find words on a 7-letter honeycomb',
   logoUrl,
 
@@ -194,7 +194,7 @@ export const freebeeCompeteGame: GameManifest = {
   schema: 'freebee',
   baseGametype: 'freebee',
   mode: 'compete',
-  name: 'FreeBee (compete)',
+  name: 'FreeBee',
   shortDescription: 'Race to your chosen rank',
   logoUrl,
 

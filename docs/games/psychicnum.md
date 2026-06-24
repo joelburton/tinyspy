@@ -14,8 +14,10 @@ PsychicNum exports two manifest entries from one folder:
 | `schema`             | `psychicnum`              | `psychicnum`                  |
 | `baseGametype`       | `psychicnum`              | `psychicnum`                  |
 | `mode`               | `'coop'`                  | `'compete'`                   |
-| `name`               | `PsychicNum (coop)`       | `PsychicNum (compete)`        |
+| `name`               | `PsychicNum`              | `PsychicNum`                  |
 | `numberOfPlayers`    | `[1, 6]`                  | `[2, 6]`                      |
+
+The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModePill>` (read from `mode`), not baked into the name string. See [ui.md → Mode pills](../ui.md#mode-pills).
 
 Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`). The DB inserts **two rows in `common.gametypes`** but a **single set of psychicnum tables** — the `psychicnum.games.mode` column is denormalized for RLS branching, and one `psychicnum.create_game(target_club, setup, player_user_ids, mode)` RPC routes both manifests' Start clicks.
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { db as commonDb } from '../db'
 import { games } from '../../games'
 import { FloatingPanel } from './FloatingPanel'
+import { ModePill } from './ModePill'
 import styles from './EditClubDialog.module.css'
 
 type Props = {
@@ -105,8 +106,7 @@ export function EditClubDialog({
             />
             <span className={styles.gameText}>
               <span className={styles.gameName}>
-                {g.name}
-                <span className={styles.gameMode}> ({g.mode})</span>
+                {g.name} <ModePill mode={g.mode} />
               </span>
               <span className={styles.gameDesc}>{g.shortDescription}</span>
             </span>

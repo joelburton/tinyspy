@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react'
-import type { GameManifest, Member } from '../lib/games'
+import { MODE_LABEL, type GameManifest, type Member } from '../lib/games'
 import { colorVarFor } from '../lib/memberColor'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './SetupGameDialog.module.css'
@@ -170,9 +170,15 @@ export function SetupGameDialog({
     onStarted(result.id)
   }
 
+  // Confirm the chosen mode in the title (the Start buttons no longer
+  // carry it in the name). Dropped for a solo club's coop game, matching
+  // the ModePill suppression there.
+  const showMode = !(clubHandle.startsWith('=') && manifest.mode === 'coop')
+  const modeSuffix = showMode ? ` · ${MODE_LABEL[manifest.mode]}` : ''
+
   return (
     <FloatingPanel
-      title={`Start ${manifest.name}`}
+      title={`Start ${manifest.name}${modeSuffix}`}
       onClose={onCancel}
       backdrop
       resizable={false}

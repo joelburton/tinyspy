@@ -43,6 +43,13 @@
   border-color: var(--color-text);
 }
 
+/* Gametype label + mode pill on one row, above the title. */
+.gametypeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 /* Gametype label — small, uppercase, muted. Sits above the
  * title so the eye sees category first. */
 .gametype {

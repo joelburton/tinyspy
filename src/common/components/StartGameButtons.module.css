@@ -81,6 +81,14 @@
   cursor: not-allowed;
 }
 
+/* Name + mode pill on one row above the meta line. */
+.titleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .title {
   font-weight: 600;
   font-size: 1rem;

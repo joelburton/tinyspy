@@ -137,7 +137,7 @@ export const wordknitCoopGame: GameManifest = {
   schema: 'wordknit',
   baseGametype: 'wordknit',
   mode: 'coop',
-  name: 'WordKnit (coop)',
+  name: 'WordKnit',
   shortDescription: 'Find categories, like Connections',
   logoUrl,
 
@@ -182,7 +182,7 @@ export const wordknitCompeteGame: GameManifest = {
   schema: 'wordknit',
   baseGametype: 'wordknit',
   mode: 'compete',
-  name: 'WordKnit (compete)',
+  name: 'WordKnit',
   shortDescription: 'Race to solve, NYT Connections',
   logoUrl,
 

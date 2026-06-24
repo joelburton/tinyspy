@@ -94,7 +94,7 @@ Freebee's compete mode is a per-player race to a setup-configured target rank. S
 | `schema` | `freebee` | `freebee` |
 | `baseGametype` | `freebee` | `freebee` |
 | `mode` | `'coop'` | `'compete'` |
-| `name` | `FreeBee (coop)` | `FreeBee (compete)` |
+| `name` | `FreeBee` | `FreeBee` |
 | `numberOfPlayers` | `[1, 6]` (solo OK) | `[2, 6]` (needs ≥1 opponent) |
 | `setupForm.defaults` | `{ timer: countdown 10m }` | `{ timer: countdown 10m, target_rank: 5 }` |
 

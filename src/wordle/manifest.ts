@@ -88,7 +88,7 @@ export const wordleCoopGame: GameManifest = {
   schema: 'wordle',
   baseGametype: 'wordle',
   mode: 'coop',
-  name: 'WordNerd (coop)',
+  name: 'WordNerd',
   shortDescription: 'Guess the word together',
   logoUrl,
 
@@ -116,7 +116,7 @@ export const wordleCompeteGame: GameManifest = {
   schema: 'wordle',
   baseGametype: 'wordle',
   mode: 'compete',
-  name: 'WordNerd (compete)',
+  name: 'WordNerd',
   shortDescription: 'Race to guess the word',
   logoUrl,
 

@@ -3,6 +3,7 @@ import { games } from '../../games'
 import { Link } from '../lib/Link'
 import { cls } from '../lib/cls'
 import { friendlyDate } from '../lib/friendlyDate'
+import { ModePill } from './ModePill'
 import styles from './ClubGameCard.module.css'
 
 type State = 'active' | 'suspended' | 'completed'
@@ -36,6 +37,9 @@ type Props = {
    *  omitted, the delete button doesn't render at all (the card
    *  stays read-only). */
   onDelete?: () => Promise<void> | void
+  /** Whether this card's club is a solo club (handle starts with '=').
+   *  Forwarded to <ModePill> so the "Co-op" pill is suppressed there. */
+  soloClub: boolean
 }
 
 /**
@@ -86,9 +90,10 @@ export function ClubGameCard({
   startedAt,
   state,
   onDelete,
+  soloClub,
 }: Props) {
-  const gameTypeName =
-    games.find((g) => g.gametype === gametype)?.name ?? gametype
+  const manifest = games.find((g) => g.gametype === gametype)
+  const gameTypeName = manifest?.name ?? gametype
   // Friendly relative date — see friendlyDate.ts. Doesn't tick;
   // re-renders when ClubPage refetches via realtime, which is
   // frequent enough for a glance-at game list.
@@ -155,7 +160,12 @@ export function ClubGameCard({
               aria-hidden="true"
             />
           )}
-          <div className={styles.gametype}>{gameTypeName}</div>
+          <div className={styles.gametypeRow}>
+            <span className={styles.gametype}>{gameTypeName}</span>
+            {manifest && (
+              <ModePill mode={manifest.mode} soloClub={soloClub} />
+            )}
+          </div>
           {title && <div className={styles.title}>{title}</div>}
           <div className={styles.statusRow}>
             <span className={styles.status}>{statusLabel}</span>

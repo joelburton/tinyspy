@@ -110,7 +110,7 @@ export const psychicnumCoopGame: GameManifest = {
   schema: 'psychicnum',
   baseGametype: 'psychicnum',
   mode: 'coop',
-  name: 'PsychicNum (coop)',
+  name: 'PsychicNum',
   shortDescription: 'Guess the secret number together',
   logoUrl,
 
@@ -153,7 +153,7 @@ export const psychicnumCompeteGame: GameManifest = {
   schema: 'psychicnum',
   baseGametype: 'psychicnum',
   mode: 'compete',
-  name: 'PsychicNum (compete)',
+  name: 'PsychicNum',
   shortDescription: 'Race to guess the secret number',
   logoUrl,
 

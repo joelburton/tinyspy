@@ -5,6 +5,7 @@ import {
   playerCountShort,
 } from '../lib/games'
 import { GameLogo } from './GameLogo'
+import { ModePill } from './ModePill'
 import styles from './StartGameButtons.module.css'
 
 type Props = {
@@ -31,6 +32,10 @@ type Props = {
    * See docs/naming.md → "start" for the convention.
    */
   onStartSetup: (gametype: string) => void
+  /** Whether this is a solo club (handle starts with '='). Forwarded
+   *  to <ModePill> so the "Co-op" pill is suppressed — mode is noise
+   *  when there's only one player. */
+  soloClub: boolean
 }
 
 /**
@@ -59,6 +64,7 @@ export function StartGameButtons({
   games,
   memberCount,
   onStartSetup,
+  soloClub,
 }: Props) {
   return (
     <div className={styles.list}>
@@ -79,7 +85,10 @@ export function StartGameButtons({
           >
             <GameLogo gametype={g.gametype} />
             <span className={styles.content}>
-              <span className={styles.title}>{g.name}</span>
+              <span className={styles.titleRow}>
+                <span className={styles.title}>{g.name}</span>
+                <ModePill mode={g.mode} soloClub={soloClub} />
+              </span>
               <span className={styles.meta}>
                 {g.shortDescription}
                 {' · '}

@@ -87,7 +87,7 @@ export const stackdownCoopGame: GameManifest = {
   schema: 'stackdown',
   baseGametype: 'stackdown',
   mode: 'coop',
-  name: 'StackDown (coop)',
+  name: 'StackDown',
   shortDescription: 'Clear the tile stack together',
   logoUrl,
 
@@ -115,7 +115,7 @@ export const stackdownCompeteGame: GameManifest = {
   schema: 'stackdown',
   baseGametype: 'stackdown',
   mode: 'compete',
-  name: 'StackDown (compete)',
+  name: 'StackDown',
   shortDescription: 'Race to clear the tile stack',
   logoUrl,
 

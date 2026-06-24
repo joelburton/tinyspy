@@ -82,6 +82,9 @@ type Props = {
  */
 export function ClubPage({ handle, session }: Props) {
   const selfUserId = session.user.id
+  // Solo club = handle prefixed with '=' (one player). Suppresses the
+  // "Co-op" mode pill on this page's cards/buttons — see ModePill.
+  const soloClub = handle.startsWith('=')
   const [club, setClub] = useState<ClubRow | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [allGames, setAllGames] = useState<ListedGame[]>([])
@@ -575,6 +578,7 @@ export function ClubPage({ handle, session }: Props) {
                 statusLabel={activeGame.statusLabel}
                 startedAt={activeGame.startedAt}
                 state="active"
+                soloClub={soloClub}
                 onDelete={() => handleDelete(activeGame.gameId, true)}
               />
             </div>
@@ -593,6 +597,7 @@ export function ClubPage({ handle, session }: Props) {
               games={games.filter((g) => allowedGametypes.has(g.gametype))}
               memberCount={members.length}
               onStartSetup={handleStartSetup}
+              soloClub={soloClub}
             />
             {activeGame && (
               <p className="muted">
@@ -625,6 +630,7 @@ export function ClubPage({ handle, session }: Props) {
                   statusLabel={g.statusLabel}
                   startedAt={g.startedAt}
                   state={g.isTerminal ? 'completed' : 'suspended'}
+                  soloClub={soloClub}
                   onDelete={() => handleDelete(g.gameId, false)}
                 />
               ))
