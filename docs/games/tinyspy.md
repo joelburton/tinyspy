@@ -59,6 +59,8 @@ The clue-giver does **not** strictly alternate. From the rulebook: *"If all 9 wo
 
 At turn end this means: hand the clue to the alternation candidate only if that seat still has an unfound agent; otherwise the current giver keeps it. "Both seats finished" never arises at turn end — a turn ends on a neutral or a voluntary pass, never on the 15th green (which wins first), so at least one seat always has an agent left.
 
+The FE surfaces this so the finished player isn't left wondering why they never get a clue turn again: `PlayArea` shows a green "all your agents have been found — `<peer>` gives every remaining clue" banner in the action slot. It's computed from the viewer's **own** key alone (an agent is one of my `'G'` cells; "contacted" is the global `revealed_as = 'G'`), so it needs no peer-key fetch and keeps the don't-ask-don't-see convention. Shown only in normal play (not sudden death, where nobody clues, nor once terminal).
+
 #### Neutrals are per-direction (the timer-token rule)
 
 A neutral is only neutral *on the clue-giver's key*. The same word may be the **other player's agent**, so a neutral locks it for the guesser's direction only — the partner can still contact it. From the rulebook: *"A word marked by a timer token might need to be guessed by the other player."* When that partner guesses it, it resolves on *their* clue-giver's key (agent → contacted, neutral → a second token, assassin → loss). Only when **both** players have hit a word as a neutral is it dead for both ("the timer tokens cover the word").

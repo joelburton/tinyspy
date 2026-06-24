@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { FeedbackApi, FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -251,6 +252,23 @@ export function PlayArea({
   // Modal / indicator copy is derived once.
   const over = gameOver ? buildOver(playState) : null
 
+  // Duet's finished-player rule, surfaced for the viewer: once all of
+  // your own agents are contacted you give no more clues — your partner
+  // takes every remaining turn (enforced server-side in `_end_turn`).
+  // Without a banner the finished player is left wondering why they
+  // never get a clue turn again, so we say it out loud. Computable from
+  // the viewer's OWN key alone (no peer key needed, keeping the
+  // don't-ask-don't-see convention): an agent is one of my 'G' cells,
+  // "contacted" is the global `revealed_as = 'G'`. Only meaningful in
+  // normal play — not sudden death (nobody clues then) or once over.
+  const contactedGreens = new Set(
+    words.filter((w) => w.revealed_as === 'G').map((w) => w.position),
+  )
+  const viewerFinished =
+    !gameOver &&
+    !inSuddenDeath &&
+    myKey.every((label, pos) => label !== 'G' || contactedGreens.has(pos))
+
   return (
     <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
       <div className={styles.boardCol}>
@@ -291,14 +309,29 @@ export function PlayArea({
               </button>
             </div>
           ) : (
-            <CluePanel
-              gameId={gameId}
-              isClueGiver={isClueGiver}
-              isGuessPhase={isGuessPhase}
-              currentClue={currentTurnClue}
-              inSuddenDeath={inSuddenDeath}
-              peer={peer}
-            />
+            <>
+              {viewerFinished && (
+                <div className={styles.finishedNote}>
+                  All your agents have been found! From here{' '}
+                  {peer ? (
+                    <strong style={{ color: colorVarFor(peer.color) }}>
+                      {peer.username}
+                    </strong>
+                  ) : (
+                    'your partner'
+                  )}{' '}
+                  gives every remaining clue — keep guessing to find theirs.
+                </div>
+              )}
+              <CluePanel
+                gameId={gameId}
+                isClueGiver={isClueGiver}
+                isGuessPhase={isGuessPhase}
+                currentClue={currentTurnClue}
+                inSuddenDeath={inSuddenDeath}
+                peer={peer}
+              />
+            </>
           )}
         </div>
 

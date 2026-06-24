@@ -104,6 +104,22 @@
   flex-direction: column;
 }
 
+/* Finished-player banner inside the action slot. Shown to a player
+ * whose agents are all contacted, explaining that their partner gives
+ * every remaining clue (Duet's finished-player rule). Painted in the
+ * "agent" green soft-banner fill so it reads as an accomplishment
+ * ("you're done!"), not a warning. Sits above the CluePanel; the slot
+ * grows to fit since this only appears late in a game. */
+.finishedNote {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.7rem;
+  border-radius: 6px;
+  background: var(--tinyspy-agent-soft-banner);
+  color: var(--tinyspy-agent-text);
+}
+
 /* Terminal-state indicator inside the action slot. Sits where
  * the CluePanel sat during play — "Game over: <status>" on the
  * left, Back-to-club button on the right. Once the GameOverModal
