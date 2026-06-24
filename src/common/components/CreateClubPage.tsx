@@ -40,9 +40,13 @@ function slugify(name: string): string {
 function handleError(slug: string): string | null {
   if (/^[a-z][a-z0-9-]{2,29}$/.test(slug)) return null
   if (!slug) return 'Please use at least one letter or number in the name.'
-  if (!/^[a-z]/.test(slug)) return 'Club name must start with a letter.'
-  if (slug.length < 3) return 'Club name is a bit short — please use at least 3 characters.'
-  return 'Club name is too long — please shorten it.'
+  if (!/^[a-z]/.test(slug)) {
+    return `That makes the handle “${slug}”, which must start with a letter — try a name beginning with a letter.`
+  }
+  if (slug.length < 3) {
+    return `That makes the handle “${slug}”, which is too short — the handle needs at least 3 characters.`
+  }
+  return `That makes the handle “${slug}”, which is too long — please shorten the name.`
 }
 
 /**
@@ -82,6 +86,12 @@ export function CreateClubPage({ session: _session }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // The handle the current name would slugify to. Shown discreetly in
+  // the "Club name" label so the validation (which is really about the
+  // handle, not the name) makes sense — e.g. "JB!" → handle "jb", too
+  // short. slugify already trims, so this matches slugify(name.trim()).
+  const previewSlug = slugify(name)
+
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -94,8 +104,7 @@ export function CreateClubPage({ session: _session }: Props) {
     // Validate the derived handle before hitting the server so a
     // too-short / non-letter-leading name gets guidance, not the raw
     // clubs_handle CHECK violation.
-    const slug = slugify(trimmed)
-    const slugErr = handleError(slug)
+    const slugErr = handleError(previewSlug)
     if (slugErr) {
       setError(slugErr)
       return
@@ -123,7 +132,7 @@ export function CreateClubPage({ session: _session }: Props) {
       // text.
       if (code === '23505') {
         setError(
-          `That name is taken (handle "${slug}" exists in this database). Pick a different name.`,
+          `That name is taken (handle "${previewSlug}" exists in this database). Pick a different name.`,
         )
       } else if (code === '23514') {
         // check_violation — the handle CHECK (or similar). handleError
@@ -150,7 +159,18 @@ export function CreateClubPage({ session: _session }: Props) {
 
       <form onSubmit={onSubmit} className={styles.form}>
         <label className={styles.field}>
-          Club name
+          <span className={styles.labelRow}>
+            Club name
+            {/* Discreet preview of the derived URL handle, so the
+                handle-based validation reads sensibly ("JB!" → "jb").
+                Hidden when the name is blank; "(empty)" when the name
+                has no slug-able characters at all (e.g. "!!!"). */}
+            {name.trim() && (
+              <span className={styles.handleHint}>
+                {previewSlug ? `(becomes handle: ${previewSlug})` : '(empty)'}
+              </span>
+            )}
+          </span>
           <input
             type="text"
             value={name}

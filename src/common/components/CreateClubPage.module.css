@@ -21,6 +21,22 @@
   width: 100%;
 }
 
+/* The label text + its discreet handle hint share one line, sitting
+ * above the control. */
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* "(becomes handle: jb)" — muted, lighter, smaller than the label. */
+.handleHint {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
 /* Multi-line members input — vertical resize only (horizontal resize
  * would break out of the card). */
 .textarea {
