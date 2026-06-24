@@ -1,4 +1,5 @@
 import { cls } from '../lib/cls'
+import { BackToClubButton } from './BackToClubButton'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './GameOverModal.module.css'
 
@@ -71,9 +72,7 @@ export function GameOverModal({
         {verdict}
       </div>
       <div className={styles.actions}>
-        <button type="button" autoFocus onClick={onBackToClub}>
-          Back to club
-        </button>
+        <BackToClubButton variant="primary" autoFocus onClick={onBackToClub} />
       </div>
     </FloatingPanel>
   )

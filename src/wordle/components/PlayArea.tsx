@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
@@ -232,9 +233,7 @@ export function PlayArea({
                 </strong>
               </span>
             )}
-            <button type="button" className="secondary" onClick={goToClub}>
-              Back to club
-            </button>
+            <BackToClubButton onClick={goToClub} />
           </div>
         )}
         {!self && <p className="muted">Watching — you're not in this game.</p>}

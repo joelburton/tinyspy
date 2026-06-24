@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -417,9 +418,7 @@ export function PlayArea(ctx: GamePageCtx) {
           ? (
             <div className={styles.terminalIndicator}>
               <span>Game over — {over.indicator}</span>
-              <button type="button" onClick={goToClub}>
-                Back to club
-              </button>
+              <BackToClubButton onClick={goToClub} />
             </div>
           )
           : <Feedback message={feedback.message} tone={feedback.tone} />}

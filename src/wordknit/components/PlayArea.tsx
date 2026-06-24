@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -317,13 +318,7 @@ export function PlayArea({
               <span>
                 <span className="muted">Game over:</span> {over.status}
               </span>
-              <button
-                type="button"
-                className="secondary"
-                onClick={goToClub}
-              >
-                Back to club
-              </button>
+              <BackToClubButton onClick={goToClub} />
             </div>
           ) : isEliminated ? (
             // Compete spectator state: caller's out, others race on.

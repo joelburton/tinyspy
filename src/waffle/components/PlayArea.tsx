@@ -1,5 +1,6 @@
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
@@ -128,9 +129,7 @@ export function PlayArea({
             </span>
             {isPlayer && <div className="muted">{swapStats}</div>}
             {game.solution && <SolutionReveal solution={game.solution} />}
-            <button type="button" className="secondary" onClick={goToClub}>
-              Back to club
-            </button>
+            <BackToClubButton onClick={goToClub} />
           </div>
         ) : (
           <>

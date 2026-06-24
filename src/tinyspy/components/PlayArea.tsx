@@ -4,6 +4,7 @@ import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import type { ClueRow } from '../hooks/useClues'
@@ -294,13 +295,7 @@ export function PlayArea({
               <span>
                 <span className="muted">Game over:</span> {over.status}
               </span>
-              <button
-                type="button"
-                className="secondary"
-                onClick={goToClub}
-              >
-                Back to club
-              </button>
+              <BackToClubButton onClick={goToClub} />
             </div>
           ) : (
             <>

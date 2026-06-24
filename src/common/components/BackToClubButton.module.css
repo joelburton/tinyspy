@@ -1,0 +1,6 @@
+/* The chevron (U+2039) before the label. JSX collapses the whitespace
+ * between the span and the text, so the gap comes from this margin —
+ * keeping spacing identical regardless of the surrounding font. */
+.chevron {
+  margin-right: 0.35em;
+}
