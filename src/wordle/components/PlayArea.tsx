@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
@@ -11,6 +10,7 @@ import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
 import { GuessList } from './GuessList'
+import { CompetePlayers } from './CompetePlayers'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -162,9 +162,38 @@ export function PlayArea({
 
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
 
-  const selfWon = (status?.winner as string | undefined) === session.user.id
+  const winnerId = status?.winner as string | undefined
+  const selfWon = winnerId === session.user.id
+  // Tie-break inference (no backend flag needed): the server picks the
+  // winner by fewest guesses, then earliest solved_at. So if any OTHER
+  // solver used the same guess count as the winner, the clock broke the
+  // tie — say "same guesses, but faster" rather than "fewest guesses".
+  const winnerState = playerStates.find((p) => p.user_id === winnerId)
+  const wonByClock =
+    !!winnerState &&
+    playerStates.some(
+      (p) =>
+        p.user_id !== winnerId &&
+        p.solved &&
+        p.guesses_used === winnerState.guesses_used,
+    )
+  // Did the viewer lose specifically on the clock (tied the winner's
+  // guess count but solved later)?
+  const selfTiedWinner =
+    !selfWon &&
+    !!self &&
+    self.solved &&
+    !!winnerState &&
+    self.guesses_used === winnerState.guesses_used
   const over = isTerminal
-    ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
+    ? buildOver({
+        mode: game.mode,
+        playState,
+        timerExpired: timer.expired,
+        selfWon,
+        wonByClock,
+        selfTiedWinner,
+      })
     : null
 
   return (
@@ -190,7 +219,7 @@ export function PlayArea({
       </div>
 
       <div className={styles.rightCol}>
-        {over ? (
+        {over && (
           <div className={styles.gameOver}>
             <span>
               <span className="muted">Game over:</span> {over.status}
@@ -207,41 +236,31 @@ export function PlayArea({
               Back to club
             </button>
           </div>
-        ) : (
-          <>
-            {isCompete && (
-              <OpponentStrip
-                players={members}
-                selfId={session.user.id}
-                metricFor={(player) => {
-                  const ps = playerStates.find(
-                    (p) => p.user_id === player.user_id,
-                  )
-                  const used = ps?.guesses_used ?? 0
-                  const solved = ps?.solved ?? false
-                  const out = !solved && used >= game.max_guesses
-                  return (
-                    <>
-                      {used}
-                      {solved ? ' ✓' : out ? ' ✗' : ''}
-                    </>
-                  )
-                }}
-              />
-            )}
-            {!self && (
-              <p className="muted">Watching — you're not in this game.</p>
-            )}
-          </>
         )}
+        {!self && <p className="muted">Watching — you're not in this game.</p>}
 
-        <GuessList
-          guesses={myGuesses}
-          players={members}
-          guessesUsed={guessesUsed}
-          maxGuesses={game.max_guesses}
-          showWho={!isCompete}
-        />
+        {isCompete ? (
+          // One block per player: header (dot + name + used/max + ✓) over
+          // a mini guess grid. The viewer's own grid always shows; the
+          // opponents' open up once the game is terminal (RLS reveal).
+          <CompetePlayers
+            members={members}
+            playerStates={playerStates}
+            guesses={guesses}
+            selfId={session.user.id}
+            maxGuesses={game.max_guesses}
+            revealAll={isTerminal}
+          />
+        ) : (
+          // Coop: the single shared guess list (everyone's), team budget.
+          <GuessList
+            guesses={myGuesses}
+            players={members}
+            guessesUsed={guessesUsed}
+            maxGuesses={game.max_guesses}
+            showWho
+          />
+        )}
       </div>
 
       {showModal && over && (
@@ -262,11 +281,17 @@ function buildOver({
   playState,
   timerExpired,
   selfWon,
+  wonByClock,
+  selfTiedWinner,
 }: {
   mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
   selfWon: boolean
+  /** The winner tied another solver on guesses → the clock decided it. */
+  wonByClock: boolean
+  /** The viewer lost specifically on the clock (tied the winner's count). */
+  selfTiedWinner: boolean
 }): { outcome: 'won' | 'lost'; verdict: string; status: string } {
   // Manual end (wordle.end_game) → neutral 'ended'. We reuse the modal's
   // 'won' (green) treatment; the verdict copy makes clear there's no
@@ -288,10 +313,16 @@ function buildOver({
       status: timerExpired ? 'out of time' : 'out of guesses',
     }
   }
-  // compete
+  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the
+  // copy distinguishes "fewest guesses" from "same guesses, but faster".
   if (playState === 'won_compete') {
-    return selfWon
-      ? { outcome: 'won', verdict: 'You won — fewest guesses!', status: 'you won' }
+    if (selfWon) {
+      return wonByClock
+        ? { outcome: 'won', verdict: 'You won — same guesses, but faster! ⏱️', status: 'you won (faster)' }
+        : { outcome: 'won', verdict: 'You won — fewest guesses!', status: 'you won' }
+    }
+    return selfTiedWinner
+      ? { outcome: 'lost', verdict: 'Beaten on the clock — same guesses, just slower.', status: 'opponent won (faster)' }
       : { outcome: 'lost', verdict: 'Beaten on guesses.', status: 'opponent won' }
   }
   // lost_compete — nobody solved, or time ran out
