@@ -933,18 +933,21 @@ export type Database = {
           created_at: string
           id: string
           tiles: Json
+          wordlist: number
           words: string[]
         }
         Insert: {
           created_at?: string
           id?: string
           tiles: Json
+          wordlist?: number
           words: string[]
         }
         Update: {
           created_at?: string
           id?: string
           tiles?: Json
+          wordlist?: number
           words?: string[]
         }
         Relationships: []
@@ -958,6 +961,7 @@ export type Database = {
           mode: string
           solution: string[]
           tiles: Json
+          wordlist: number
         }
         Insert: {
           board_id?: string | null
@@ -967,6 +971,7 @@ export type Database = {
           mode: string
           solution: string[]
           tiles: Json
+          wordlist: number
         }
         Update: {
           board_id?: string | null
@@ -976,6 +981,7 @@ export type Database = {
           mode?: string
           solution?: string[]
           tiles?: Json
+          wordlist?: number
         }
         Relationships: [
           {
@@ -1106,6 +1112,7 @@ export type Database = {
         Args: { gone: number[]; tid: number; tiles: Json }
         Returns: boolean
       }
+      _is_word: { Args: { w: string; wordlist: number }; Returns: boolean }
       _solution_for: { Args: { g_id: string }; Returns: string[] }
       _word: { Args: { ids: number[]; tiles: Json }; Returns: string }
       create_game: {

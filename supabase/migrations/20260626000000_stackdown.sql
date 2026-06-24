@@ -44,6 +44,11 @@ create table stackdown.boards (
   id         uuid primary key default gen_random_uuid(),
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
+  -- The wordlist level the board was generated against (0 = the Wordle
+  -- answer list; 1..6 = common.words.difficulty bands). Today every board
+  -- is 0; recorded so the generator can ship other levels later, and so
+  -- runtime word-acceptance pins to the same list (see _is_word).
+  wordlist   int not null default 0 check (wordlist between 0 and 6),
   created_at timestamptz not null default now()
 );
 -- (intentionally no grants to authenticated — definer-only access)
@@ -60,14 +65,18 @@ create table stackdown.games (
   mode        text not null check (mode in ('coop', 'compete')),
   tiles       jsonb not null,          -- the board (public)
   solution    text[] not null,         -- the 6 words (HIDDEN until terminal)
-  board_id    uuid references stackdown.boards(id),  -- provenance
+  wordlist    int not null,            -- copied from the board (see boards.wordlist)
+  -- Provenance only. tiles/solution/wordlist are COPIED above, so a board
+  -- can be deleted to retire it without affecting games built from it —
+  -- hence ON DELETE SET NULL (the game survives, just loses the back-link).
+  board_id    uuid references stackdown.boards(id) on delete set null,
   created_at  timestamptz not null default now()
 );
 create index stackdown_games_club_handle_idx on stackdown.games (club_handle);
 
 -- Column grant: everything EXCEPT `solution` (its presence flips the table
 -- to "only granted columns"). games_state reveals the solution post-terminal.
-grant select (id, club_handle, mode, tiles, board_id, created_at)
+grant select (id, club_handle, mode, tiles, wordlist, board_id, created_at)
   on stackdown.games to authenticated;
 
 alter table stackdown.games enable row level security;
@@ -191,6 +200,24 @@ as $$
       on t.id = u.tid;
 $$;
 
+-- Is `w` an accepted word for the given wordlist level? Pins runtime
+-- validation to the SAME list the board was generated against (§2.5 — using
+-- a different list reintroduces forks). Level 0 = the Wordle answer list
+-- (common.words.wordle); levels 1..6 use the difficulty bands — a forward
+-- placeholder, since today every board is level 0.
+create function stackdown._is_word(w text, wordlist int)
+returns boolean
+language sql
+stable
+as $$
+  select case
+    when wordlist = 0 then exists (
+      select 1 from common.words where word = lower(w) and wordle and len = 5)
+    else exists (
+      select 1 from common.words where word = lower(w) and len = 5 and difficulty <= wordlist)
+  end;
+$$;
+
 -- Reveal the solution only once the game is terminal (the end reveal).
 create function stackdown._solution_for(g_id uuid)
 returns text[]
@@ -267,8 +294,8 @@ begin
     target_club, 'stackdown_' || mode, player_user_ids, 'StackDown', setup, setup
   );
 
-  insert into stackdown.games (id, club_handle, mode, tiles, solution, board_id)
-  values (new_id, target_club, mode, b.tiles, b.words, b.id);
+  insert into stackdown.games (id, club_handle, mode, tiles, solution, wordlist, board_id)
+  values (new_id, target_club, mode, b.tiles, b.words, b.wordlist, b.id);
 
   insert into stackdown.players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) uid;
@@ -364,9 +391,7 @@ begin
 
   -- ─── Word + lexicon check ──────────────────────────────────
   w := upper(stackdown._word(g_row.tiles, tile_ids));
-  is_word := exists (
-    select 1 from common.words where word = lower(w) and wordle and len = 5
-  );
+  is_word := stackdown._is_word(w, g_row.wordlist);
 
   -- Log the submission (valid or not).
   select coalesce(max(seq), 0) + 1 into next_seq
