@@ -6,16 +6,19 @@
 --
 -- Inserts ONE known board into the library so create_game claims it
 -- deterministically (the real game fills stackdown.boards via the offline
--- import; tests don't run that). A trap-free board generated against the
--- StackDown standard set — VULVA DOLED URNED YOKED BOOBY GRIPT — whose six
--- words are all in `common.words` at `difficulty = 1 AND american AND NOT
--- slur AND len = 5` (exactly what stackdown._is_word level 0 accepts).
+-- import; tests don't run that). A trap-free board whose six solution words
+-- are deliberately ULTRA-common — EAGLE TABLE PLANS APPLE JUICE LEMON —
+-- drawn from a curated pool, not a random difficulty-1 pick, so the fixture
+-- survives the upstream re-banding of borderline words. All six are in
+-- `common.words` at `difficulty = 1 AND american AND NOT slur AND len = 5`
+-- (exactly what stackdown._is_word level 0 accepts), and the board is
+-- fork-free against that full set.
 --
 -- Helpers:
 --   pg_temp.sd_seq(n)  — the tile-id sequence (spelling order) that spells
 --                        word n (1..6) on this board; tests play it out.
 --   pg_temp.sd_invalid() — a reachable 5-tile sequence that spells a
---                        NON-word ("VEUVD"), for the invalid-word path.
+--                        NON-word ("EBATL"), for the invalid-word path.
 
 reset role;
 
@@ -29,21 +32,21 @@ reset role;
 delete from stackdown.boards;
 
 insert into stackdown.boards (tiles, words) values (
-  '[{"id":0,"z":0,"y":0,"x":2,"letter":"E"},{"id":1,"z":0,"y":0,"x":6,"letter":"D"},{"id":2,"z":1,"y":1,"x":3,"letter":"D"},{"id":3,"z":1,"y":1,"x":5,"letter":"A"},{"id":4,"z":0,"y":2,"x":0,"letter":"N"},{"id":5,"z":2,"y":2,"x":2,"letter":"E"},{"id":6,"z":2,"y":2,"x":4,"letter":"V"},{"id":7,"z":2,"y":2,"x":6,"letter":"L"},{"id":8,"z":0,"y":2,"x":8,"letter":"T"},{"id":9,"z":1,"y":3,"x":1,"letter":"R"},{"id":10,"z":3,"y":3,"x":3,"letter":"V"},{"id":11,"z":3,"y":3,"x":5,"letter":"U"},{"id":12,"z":1,"y":3,"x":7,"letter":"I"},{"id":13,"z":0,"y":4,"x":0,"letter":"B"},{"id":14,"z":2,"y":4,"x":2,"letter":"U"},{"id":15,"z":2,"y":4,"x":6,"letter":"Y"},{"id":16,"z":0,"y":4,"x":8,"letter":"P"},{"id":17,"z":1,"y":5,"x":1,"letter":"D"},{"id":18,"z":3,"y":5,"x":3,"letter":"O"},{"id":19,"z":3,"y":5,"x":5,"letter":"O"},{"id":20,"z":1,"y":5,"x":7,"letter":"G"},{"id":21,"z":0,"y":6,"x":0,"letter":"Y"},{"id":22,"z":2,"y":6,"x":2,"letter":"L"},{"id":23,"z":2,"y":6,"x":4,"letter":"K"},{"id":24,"z":2,"y":6,"x":6,"letter":"D"},{"id":25,"z":0,"y":6,"x":8,"letter":"R"},{"id":26,"z":1,"y":7,"x":3,"letter":"E"},{"id":27,"z":1,"y":7,"x":5,"letter":"B"},{"id":28,"z":0,"y":8,"x":2,"letter":"O"},{"id":29,"z":0,"y":8,"x":6,"letter":"O"}]'::jsonb,
-  array['VULVA','DOLED','URNED','YOKED','BOOBY','GRIPT']
+  '[{"id":0,"z":0,"y":0,"x":2,"letter":"E"},{"id":1,"z":0,"y":0,"x":6,"letter":"A"},{"id":2,"z":1,"y":1,"x":3,"letter":"L"},{"id":3,"z":1,"y":1,"x":5,"letter":"N"},{"id":4,"z":0,"y":2,"x":0,"letter":"C"},{"id":5,"z":2,"y":2,"x":2,"letter":"B"},{"id":6,"z":2,"y":2,"x":4,"letter":"T"},{"id":7,"z":2,"y":2,"x":6,"letter":"P"},{"id":8,"z":0,"y":2,"x":8,"letter":"S"},{"id":9,"z":1,"y":3,"x":1,"letter":"E"},{"id":10,"z":3,"y":3,"x":3,"letter":"E"},{"id":11,"z":3,"y":3,"x":5,"letter":"A"},{"id":12,"z":1,"y":3,"x":7,"letter":"L"},{"id":13,"z":0,"y":4,"x":0,"letter":"N"},{"id":14,"z":2,"y":4,"x":2,"letter":"L"},{"id":15,"z":2,"y":4,"x":6,"letter":"G"},{"id":16,"z":0,"y":4,"x":8,"letter":"A"},{"id":17,"z":1,"y":5,"x":1,"letter":"L"},{"id":18,"z":3,"y":5,"x":3,"letter":"P"},{"id":19,"z":3,"y":5,"x":5,"letter":"E"},{"id":20,"z":1,"y":5,"x":7,"letter":"A"},{"id":21,"z":0,"y":6,"x":0,"letter":"E"},{"id":22,"z":2,"y":6,"x":2,"letter":"U"},{"id":23,"z":2,"y":6,"x":4,"letter":"J"},{"id":24,"z":2,"y":6,"x":6,"letter":"L"},{"id":25,"z":0,"y":6,"x":8,"letter":"P"},{"id":26,"z":1,"y":7,"x":3,"letter":"I"},{"id":27,"z":1,"y":7,"x":5,"letter":"M"},{"id":28,"z":0,"y":8,"x":2,"letter":"E"},{"id":29,"z":0,"y":8,"x":6,"letter":"O"}]'::jsonb,
+  array['EAGLE','TABLE','PLANS','APPLE','JUICE','LEMON']
 );
 
 create function pg_temp.sd_seq(n int) returns int[] language sql as $$
   select case n
-    when 1 then array[10,11,7,6,3]     -- VULVA
-    when 2 then array[1,18,22,5,2]     -- DOLED
-    when 3 then array[14,9,4,0,17]     -- URNED
-    when 4 then array[21,19,23,26,24]  -- YOKED
-    when 5 then array[27,28,29,13,15]  -- BOOBY
-    when 6 then array[20,25,12,16,8]   -- GRIPT
+    when 1 then array[19,11,15,24,10]  -- EAGLE
+    when 2 then array[6,20,5,2,0]      -- TABLE
+    when 3 then array[7,12,16,3,8]     -- PLANS
+    when 4 then array[1,18,25,14,9]    -- APPLE
+    when 5 then array[23,22,26,4,28]   -- JUICE
+    when 6 then array[17,21,27,29,13]  -- LEMON
   end;
 $$;
 
 create function pg_temp.sd_invalid() returns int[] language sql as $$
-  select array[10,5,11,6,2];           -- reachable at start, spells VEUVD (not a word)
+  select array[10,5,11,6,2];           -- reachable at start, spells EBATL (not a word)
 $$;

@@ -26,14 +26,14 @@ select * from stackdown.create_game(
 -- ── At the start, the next word is the first solution word ──────────
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'VULVA', 'reveal at the start → the first word (VULVA)');
+  'EAGLE', 'reveal at the start → the first word (EAGLE)');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- StackDown word is in common.words' hint set, so the hint is present.
 select is(
   (select stackdown.reveal_next_hint((select id from g))),
-  (select hint from common.words where word = 'vulva'),
-  'reveal_next_hint → the next word''s hint (VULVA''s)');
+  (select hint from common.words where word = 'eagle'),
+  'reveal_next_hint → the next word''s hint (EAGLE''s)');
 select ok(
   (select stackdown.reveal_next_hint((select id from g))) is not null,
   'the hint is present (StackDown words are all in the hint set)');
@@ -77,16 +77,16 @@ select throws_ok(
 
 -- ── After clearing the first word, reveal advances ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)); -- VULVA
+select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)); -- EAGLE
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'DOLED', 'after VULVA → the next word is DOLED');
+  'TABLE', 'after EAGLE → the next word is TABLE');
 
 -- Coop is shared: bea's reveal sees the same advanced position.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'DOLED', 'coop: the other player sees the same next word');
+  'TABLE', 'coop: the other player sees the same next word');
 
 -- ── Clear the rest; once all six are gone, reveal is NULL ───────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -106,7 +106,7 @@ select throws_ok(
 -- And the solution is now openly revealed via games_state.
 select is(
   (select solution[6] from stackdown.games_state where id = (select id from g)),
-  'GRIPT', 'post-terminal: the full solution is readable via games_state');
+  'LEMON', 'post-terminal: the full solution is readable via games_state');
 
 select * from finish();
 rollback;

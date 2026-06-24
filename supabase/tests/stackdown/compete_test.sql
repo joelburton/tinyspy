@@ -26,7 +26,7 @@ select * from stackdown.create_game(
 -- ── ada finds her first word ────────────────────────────────────────
 select is(
   (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
-  'accepted', 'ada: VULVA → accepted');
+  'accepted', 'ada: EAGLE → accepted');
 
 -- ── Mid-game visibility as bea ──────────────────────────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

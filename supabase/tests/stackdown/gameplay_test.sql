@@ -33,7 +33,7 @@ select throws_ok(
 create temp table inv on commit drop as
 select stackdown.submit_word((select id from g), pg_temp.sd_invalid()) as res;
 select is((select res->>'result' from inv), 'invalid', 'a reachable non-word → invalid');
-select is((select res->>'word' from inv), 'VEUVD', 'invalid submission echoes the word');
+select is((select res->>'word' from inv), 'EBATL', 'invalid submission echoes the word');
 
 reset role;
 select is(
@@ -50,7 +50,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
-  'accepted', 'VULVA → accepted');
+  'accepted', 'EAGLE → accepted');
 
 -- ── Play out the remaining five; the sixth ends the game ─────────────
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(2));
