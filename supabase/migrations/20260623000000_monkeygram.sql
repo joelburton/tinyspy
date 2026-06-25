@@ -92,6 +92,12 @@ create table monkeygram.games (
   -- `pool` is the live "bunch": every tile not currently held by a player.
   -- Starts as the undealt suffix of `bag` and MUTATES during play.
   pool text not null,
+  -- `box` is the OUT-OF-PLAY reserve, only used when setup.dump_to_box is on:
+  -- a dumped tile goes here instead of back into the bunch, so the bunch
+  -- depletes (the game ends sooner). It isn't fully lost, though — a dump
+  -- whose draw the bunch can't cover dips into the box. Empty otherwise.
+  -- Hidden like pool (its order would leak future draws).
+  box text not null default '',
   hand_size int not null check (hand_size between 1 and 30),
   created_at timestamptz not null default now()
 );
@@ -204,10 +210,11 @@ create policy progress_select on monkeygram.progress
   );
 
 -- ============================================================
--- Grants — `pool` and `bag` are column-excluded
+-- Grants — `pool`, `bag`, and `box` are column-excluded
 -- ============================================================
--- The whitelist omits both `pool` (live bunch) and `bag` (the initial
--- shuffled sequence) — either would let a player predict upcoming peels.
+-- The whitelist omits `pool` (live bunch), `bag` (the initial shuffled
+-- sequence), and `box` (the out-of-play reserve) — any would let a player
+-- predict upcoming draws. The FE learns their COUNTS via status instead.
 
 grant select
   (id, club_handle, hand_size, created_at)
@@ -391,11 +398,11 @@ begin
   select new_id, uid, s_hand_size, 0, false
     from unnest(player_user_ids) as uid;
 
-  -- Surface the bunch COUNT to the FE: `pool` itself is hidden, so the count
-  -- rides on common.games.status (which the FE already reads live). peel/dump
-  -- keep it current as the bunch shrinks.
+  -- Surface the bunch + box COUNTS to the FE: `pool`/`box` themselves are
+  -- hidden, so the counts ride on common.games.status (which the FE already
+  -- reads live). peel/dump keep them current. The box starts empty.
   perform common.update_state(new_id, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool)));
+    jsonb_build_object('pool_remaining', length(s_pool), 'box_remaining', 0));
 
   return query select new_id;
 end;
@@ -634,6 +641,7 @@ declare
   n_placed int;
   s_peel_count int;
   s_pool text;
+  s_box text;
   player_count int;
   needed int;
   winner_name text;
@@ -669,7 +677,10 @@ begin
   end if;
 
   s_peel_count := greatest(coalesce((s_setup->>'peel_count')::int, 1), 1);
-  select pool into s_pool from monkeygram.games where id = target_game;
+  -- Read box too: peel doesn't change it, but update_state replaces the whole
+  -- status blob, so the dealt-status below must re-emit box_remaining or the
+  -- FE's box count would vanish after a peel.
+  select pool, box into s_pool, s_box from monkeygram.games where id = target_game;
   select count(*)::int into player_count
     from common.game_players where game_id = target_game;
   needed := player_count * s_peel_count;
@@ -738,9 +749,10 @@ begin
      set pool = substr(s_pool, needed + 1)
    where id = target_game;
 
-  -- Keep the FE's bunch count current.
+  -- Keep the FE's bunch count current (box is unchanged by a peel).
   perform common.update_state(target_game, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool) - needed));
+    jsonb_build_object('pool_remaining', length(s_pool) - needed,
+                       'box_remaining', length(s_box)));
 
   return jsonb_build_object('result', 'dealt', 'invalid_cells', '[]'::jsonb);
 end;
@@ -759,17 +771,22 @@ grant execute on function monkeygram.peel(uuid) to authenticated;
 -- What happens to the DUMPED tile depends on setup.dump_to_box:
 --   - default (false) — return-to-bag: it goes back into the bunch (the BACK
 --     of the pool) and may be drawn again later. Tile count is conserved.
---   - true — to-the-box: it's set aside, OUT OF PLAY. The game shrinks by one
---     tile per dump (the bunch runs dry sooner, ending the game earlier).
+--   - true — to-the-box: it goes to the `box` reserve instead, so the BUNCH
+--     depletes (the game ends sooner). The box isn't dead, though — see below.
 -- Either way the player still draws dump_count.
 --
+-- The draw: dump_count tiles from the FRONT of the bunch; if the bunch is
+-- short (only possible in to-box mode, once the box holds tiles), the rest
+-- comes from the FRONT of the box. So you can dump as long as the bunch AND
+-- box together cover the draw.
+--
 -- Two guarantees from the rules:
---   - You can't dump if the bunch can't cover the draw (length(pool) <
---     dump_count). In return-to-bag the dumped tile is appended only AFTER the
---     draw, so it can never refill its own swap.
---   - You won't draw back the SAME tile: we draw from the FRONT of the pool;
---     return-to-bag appends to the BACK, to-the-box discards. (You might draw
---     the same LETTER if another copy was near the front — that's allowed.)
+--   - You can't dump unless bunch + box can cover the draw. The dumped tile is
+--     placed only AFTER the draw, so it can never refill its own swap.
+--   - You won't draw back the SAME tile: the dumped tile lands at the BACK
+--     (of the bunch for return-to-bag, of the box for to-box), behind anything
+--     drawn. (You might draw the same LETTER if another copy was near a front —
+--     that's allowed.)
 --
 -- dump_count comes from setup (default 3) — a future setup option can change it
 -- without touching this logic. No board/word validation (v2 trust model); the
@@ -791,6 +808,11 @@ declare
   s_dump_count int;
   s_dump_to_box boolean;
   s_pool text;
+  s_box text;
+  from_pool int;
+  from_box int;
+  new_pool text;
+  new_box text;
   caller_tiles text;
   drawn text;
   pos int;
@@ -817,9 +839,12 @@ begin
   s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
   s_dump_to_box := coalesce((s_setup->>'dump_to_box')::boolean, false);
 
-  select pool into s_pool from monkeygram.games where id = target_game;
-  if length(s_pool) < s_dump_count then
-    raise exception 'not enough tiles in the bunch to dump' using errcode = 'P0001';
+  select pool, box into s_pool, s_box from monkeygram.games where id = target_game;
+  -- You need dump_count tiles to draw. Normally that's just the bunch, but in
+  -- to-box mode the box can top up a draw the bunch can't cover (return-to-bag
+  -- keeps the box empty, so this reduces to "bunch < dump_count" there).
+  if length(s_pool) + length(s_box) < s_dump_count then
+    raise exception 'not enough tiles to dump' using errcode = 'P0001';
   end if;
 
   -- The caller must hold the tile they're dumping.
@@ -831,9 +856,23 @@ begin
     raise exception 'you do not hold that tile' using errcode = 'P0001';
   end if;
 
-  -- Draw dump_count from the FRONT; the dumped tile then returns to the BACK
-  -- (return-to-bag) or is discarded out of play (to-the-box).
-  drawn := substr(s_pool, 1, s_dump_count);
+  -- Draw dump_count from the FRONT of the bunch first, then top up from the
+  -- FRONT of the box if the bunch is short (only possible in to-box mode).
+  from_pool := least(length(s_pool), s_dump_count);
+  from_box  := s_dump_count - from_pool;
+  drawn := substr(s_pool, 1, from_pool) || substr(s_box, 1, from_box);
+
+  -- Where the dumped tile lands: the BACK of the bunch (return-to-bag) or the
+  -- BACK of the box (to-box) — always after the draw, so it can't refill its
+  -- own swap.
+  if s_dump_to_box then
+    new_pool := substr(s_pool, from_pool + 1);
+    new_box  := substr(s_box, from_box + 1) || tile;
+  else
+    -- return-to-bag: box is empty, so from_box is 0 and the box is untouched.
+    new_pool := substr(s_pool, from_pool + 1) || tile;
+    new_box  := s_box;
+  end if;
 
   update monkeygram.player_boards
      set tiles = overlay(caller_tiles placing '' from pos for 1) || drawn,
@@ -841,8 +880,7 @@ begin
    where game_id = target_game and user_id = caller_id;
 
   update monkeygram.games
-     set pool = substr(s_pool, s_dump_count + 1)
-                || case when s_dump_to_box then '' else tile end
+     set pool = new_pool, box = new_box
    where id = target_game;
 
   -- The caller's hand math is identical either way (−1 dumped, +dump_count
@@ -851,10 +889,9 @@ begin
      set unplaced = unplaced + (s_dump_count - 1)
    where game_id = target_game and user_id = caller_id;
 
-  -- Pool net change: −dump_count drawn, +1 returned (bag) or +0 (box).
   perform common.update_state(target_game, 'playing',
-    jsonb_build_object('pool_remaining',
-      length(s_pool) - s_dump_count + case when s_dump_to_box then 0 else 1 end));
+    jsonb_build_object('pool_remaining', length(new_pool),
+                       'box_remaining', length(new_box)));
 end;
 $$;
 

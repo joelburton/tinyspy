@@ -153,6 +153,7 @@ export function PlayArea(ctx: GamePageCtx) {
           }
 
   const bunchCount = ctx.status?.pool_remaining as number | undefined
+  const boxCount = ctx.status?.box_remaining as number | undefined
 
   return (
     <>
@@ -164,6 +165,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onPeel={peel}
         onDump={dump}
         bunchCount={bunchCount}
+        boxCount={boxCount}
         peers={
           <PeersStrip players={ctx.players} progress={progress} selfUserId={ctx.session.user.id} />
         }

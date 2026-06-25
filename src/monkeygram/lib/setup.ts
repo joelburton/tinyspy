@@ -35,9 +35,9 @@ export type MonkeyGramSetup = {
    *  = more obscure words allowed. Only meaningful when `check_words` is on. */
   dictionary: number
   /** Where a dumped tile goes. `false` (default) = back into the bag (it may
-   *  be drawn again; tile count conserved). `true` = out of play ("the box"),
-   *  shrinking the game by one tile per dump — the bunch runs dry sooner. The
-   *  player still draws `dump_count` either way. */
+   *  be drawn again). `true` = to the out-of-play "box", so the bunch depletes
+   *  (the game ends sooner) — though a dump can top up from the box when the
+   *  bunch is short. The player still draws `dump_count` either way. */
   dump_to_box: boolean
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone

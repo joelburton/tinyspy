@@ -92,9 +92,9 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           Return dumped tiles to the box (out of play)
         </label>
         <p className="muted">
-          By default a dumped tile goes back in the bag and can be drawn again.
-          To the box, it's gone for good — shrinking the game by one tile each
-          dump (you still draw three).
+          By default a dumped tile goes back in the bag. To the box, it leaves
+          the bunch (so the game ends sooner) — though a dump can pull from the
+          box if the bunch runs low. You still draw three either way.
         </p>
       </fieldset>
 

@@ -663,6 +663,7 @@ export type Database = {
       games: {
         Row: {
           bag: string
+          box: string
           club_handle: string
           created_at: string
           hand_size: number
@@ -671,6 +672,7 @@ export type Database = {
         }
         Insert: {
           bag: string
+          box?: string
           club_handle: string
           created_at?: string
           hand_size: number
@@ -679,6 +681,7 @@ export type Database = {
         }
         Update: {
           bag?: string
+          box?: string
           club_handle?: string
           created_at?: string
           hand_size?: number

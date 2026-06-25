@@ -285,6 +285,17 @@
   font-size: 0.8rem;
   color: var(--color-muted);
 }
+/* The bunch number itself — bolder + a touch larger than the muted label
+ * around it, so the count reads at a glance. */
+.bunchNum {
+  font-weight: 700;
+  font-size: 1.15em;
+  color: var(--color-text);
+}
+/* The out-of-play box count, kept quiet next to the bunch. */
+.box {
+  color: var(--color-muted);
+}
 
 /* The draw/win move. Disabled — muted and un-clickable — until the hand is
  * empty. */

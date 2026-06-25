@@ -5,18 +5,20 @@
 --   1. Happy path (return-to-bag, default): tiles −1 +3 (net +2); pool −3 +1;
 --      the dumped tile lands at the BACK of the pool (so it can't be the tile
 --      just drawn); progress.unplaced + status.pool_remaining track it
---   2. dump_to_box on: same hand math, but the dumped tile is OUT OF PLAY
---      (pool nets −3, not −2) — the game shrinks by one tile
---   3. Can't dump a tile you don't hold
---   4. Can't dump when the bunch is too small (< dump_count)
---   5. Non-players rejected
+--   2. dump_to_box on: same hand math, but the dumped tile goes to the BOX
+--      (bunch nets −3; box +1)
+--   3. dump_to_box + short bunch: the draw tops up from the box front, dumped
+--      tile to the box back
+--   4. Can't dump a tile you don't hold
+--   5. Can't dump when bunch + box is too small (< dump_count)
+--   6. Non-players rejected
 -- ============================================================
 
 begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(11);
+select plan(15);
 
 \ir ../_shared/setup.psql
 
@@ -79,9 +81,10 @@ select is(
   'status.pool_remaining tracks the bunch'
 );
 
--- ─── dump_to_box: the dumped tile leaves play ───
+-- ─── dump_to_box: the dumped tile goes to the box ───
 -- A fresh game with dump_to_box on. The hand math is unchanged (−1 +3), but
--- the bunch loses a full 3 (nothing returned) — the game is one tile smaller.
+-- the dumped tile goes to the BOX instead of back to the bunch — so the bunch
+-- nets −3 (not −2) and the box grows by one.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from monkeygram.create_game(
@@ -107,12 +110,56 @@ select is(
 select is(
   (select length(pool) from monkeygram.games where id = (select id from g2)),
   99,
-  'dump_to_box: the bunch nets −3 (drew 3, returned 0: 102 → 99) — one tile out of play'
+  'dump_to_box: the bunch nets −3 (drew 3 from it, returned 0: 102 → 99)'
 );
 select is(
-  (select (status->>'pool_remaining')::int from common.games where id = (select id from g2)),
-  99,
-  'dump_to_box: status.pool_remaining reflects the shrunk bunch'
+  (select length(box) from monkeygram.games where id = (select id from g2)),
+  1,
+  'dump_to_box: the dumped tile lands in the box (box 0 → 1)'
+);
+select is(
+  (select (status->>'box_remaining')::int from common.games where id = (select id from g2)),
+  1,
+  'dump_to_box: status.box_remaining surfaces the box count to the FE'
+);
+
+-- ─── dump_to_box: a short bunch tops up from the box ───
+-- With the bunch nearly empty but the box stocked, a dump draws what's left of
+-- the bunch then the rest from the FRONT of the box; the dumped tile goes to
+-- the BACK of the box. Crafted state: pool='A' (1), box='XYZ' (3), ada holds Q.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select * from monkeygram.create_game(
+  (select handle from club),
+  '{"hand_size": 21, "bag_size": 144, "dump_to_box": true, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid]
+);
+reset role;
+select set_config('request.jwt.claims', '', true);
+update monkeygram.games set pool = 'A', box = 'XYZ' where id = (select id from g3);
+update monkeygram.player_boards set tiles = 'Q'
+ where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111';
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select monkeygram.dump((select id from g3), 'Q');
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select length(pool) from monkeygram.games where id = (select id from g3)),
+  0,
+  'short-bunch dump drains the bunch (1 → 0)'
+);
+select is(
+  (select box from monkeygram.games where id = (select id from g3)),
+  'ZQ',
+  'it drew XY off the box front (Z left) and appended the dumped Q to the back → ZQ'
+);
+select is(
+  (select (status->>'box_remaining')::int from common.games where id = (select id from g3)),
+  2,
+  'status.box_remaining tracks the box (3 − 2 drawn + 1 dumped = 2)'
 );
 
 -- ─── Can't dump a tile you don't hold ───
@@ -140,7 +187,8 @@ select throws_ok(
   'a non-player cannot dump'
 );
 
--- ─── Bunch too small to dump ───
+-- ─── Bunch (+ box) too small to dump ───
+-- g1 is return-to-bag, so its box is empty: bunch+box = 2 < dump_count 3.
 reset role;
 select set_config('request.jwt.claims', '', true);
 update monkeygram.games set pool = 'AB' where id = (select id from g1); -- 2 < dump_count 3
@@ -149,8 +197,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select monkeygram.dump(%L, 'A') $$, (select id from g1)),
   'P0001',
-  'not enough tiles in the bunch to dump',
-  'cannot dump when the bunch is smaller than dump_count'
+  'not enough tiles to dump',
+  'cannot dump when bunch + box is smaller than dump_count'
 );
 
 select * from finish();

@@ -107,9 +107,13 @@ type Props = {
   /** Tiles left in the shared bunch (from status.pool_remaining), or undefined
    *  before it's known. Shown next to Peel so players sense the endgame. */
   bunchCount?: number
+  /** Tiles in the out-of-play box (status.box_remaining) — only nonzero in
+   *  dump-to-box games. Shown muted next to the bunch count, and counts toward
+   *  what a dump can draw (the bunch tops up from the box when it's short). */
+  boxCount?: number
 }
 
-export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, onDump, bunchCount }: Props) {
+export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, onDump, bunchCount, boxCount }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
   // derived order. Reconciled against the live hand each render, so it survives
@@ -306,7 +310,10 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       // board/holdings desync we want to avoid. (The derived hand briefly
       // regains the letter between the clear and the server's `tiles` update,
       // ending one-instance-lighter just like dumping a hand tile.)
-      const canDump = bunchCount === undefined || bunchCount >= DUMP_COUNT
+      // A dump draws from the bunch, topping up from the box when short — so
+      // what it can draw is bunch + box.
+      const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
+      const canDump = drawable === undefined || drawable >= DUMP_COUNT
       if (overDumpAtPoint(x, y) && g.letter && canDump) {
         if (g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
         onDump?.(g.letter)
@@ -314,7 +321,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       }
       if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
     },
-    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount],
+    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, boxCount],
   )
 
   const onGestureMove = useCallback((e: PointerEvent) => {
@@ -668,7 +675,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
          *  for DUMP_COUNT. Lights up while any tile is dragged; dims when the
          *  bunch can't cover the draw. */}
         {onDump && !isTerminal && (() => {
-          const tooLow = bunchCount !== undefined && bunchCount < DUMP_COUNT
+          // A dump draws from the bunch + box together (see finishDrag).
+          const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
+          const tooLow = drawable !== undefined && drawable < DUMP_COUNT
           return (
             <div
               data-zone="dump"
@@ -703,7 +712,10 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
             </button>
             {bunchCount !== undefined && !isTerminal && (
               <span className={styles.bunch} title="Tiles left in the bunch">
-                🍌 {bunchCount} in bunch
+                🍌 <span className={styles.bunchNum}>{bunchCount}</span> in bunch
+                {boxCount !== undefined && boxCount > 0 && (
+                  <span className={styles.box}> ({boxCount} in box)</span>
+                )}
               </span>
             )}
           </div>
