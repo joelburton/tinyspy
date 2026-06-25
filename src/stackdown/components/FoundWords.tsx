@@ -105,10 +105,10 @@ export function FoundWords({
                     className={`${styles.word} ${styles.clickable}`}
                     {...defineActivation(s.word)}
                   >
-                    {s.word}
+                    {s.word.toUpperCase()}
                   </span>
                 ) : (
-                  <span className={styles.word}>{s.word}</span>
+                  <span className={styles.word}>{s.word?.toUpperCase()}</span>
                 )}
                 {!s.valid && <span className={styles.tag}>not a word</span>}
                 {showWho && renderWho(s.user_id)}

@@ -1134,7 +1134,6 @@ export type Database = {
         Args: { gone: number[]; tid: number; tiles: Json }
         Returns: boolean
       }
-      _is_word: { Args: { w: string; wordlist: number }; Returns: boolean }
       _solution_for: { Args: { g_id: string }; Returns: string[] }
       _word: { Args: { ids: number[]; tiles: Json }; Returns: string }
       create_game: {

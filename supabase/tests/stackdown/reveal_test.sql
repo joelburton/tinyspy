@@ -26,7 +26,7 @@ select * from stackdown.create_game(
 -- ── At the start, the next word is the first solution word ──────────
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'EAGLE', 'reveal at the start → the first word (EAGLE)');
+  'eagle', 'reveal at the start → the first word (eagle, stored lowercase)');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
 -- StackDown word is in common.words' hint set, so the hint is present.
@@ -80,13 +80,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(1)); -- EAGLE
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'TABLE', 'after EAGLE → the next word is TABLE');
+  'table', 'after EAGLE → the next word is TABLE');
 
 -- Coop is shared: bea's reveal sees the same advanced position.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   (select stackdown.reveal_next_word((select id from g))),
-  'TABLE', 'coop: the other player sees the same next word');
+  'table', 'coop: the other player sees the same next word');
 
 -- ── Clear the rest; once all six are gone, reveal is NULL ───────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -106,7 +106,7 @@ select throws_ok(
 -- And the solution is now openly revealed via games_state.
 select is(
   (select solution[6] from stackdown.games_state where id = (select id from g)),
-  'LEMON', 'post-terminal: the full solution is readable via games_state');
+  'lemon', 'post-terminal: the full solution is readable via games_state');
 
 select * from finish();
 rollback;

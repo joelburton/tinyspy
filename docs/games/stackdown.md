@@ -32,9 +32,11 @@ games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
   coverers are gone, the order tiles can be reached constrains which words are
   spellable — even among anagrams (you can spell `BROAD` but not `BOARD` if the
   `A` only frees up after its covering `R` is removed). See §2.3.
-- When five clicked tiles spell a word **in the lexicon**, the word is accepted:
-  those five tiles are removed **permanently** and the word is logged. Play
-  continues with the next word.
+- When five clicked tiles spell a real word, the word is accepted: those five
+  tiles are removed **permanently** and the word is logged. Play continues with
+  the next word. (The board only ever exposes the six solution words, so "a real
+  word" and "the next solution word" coincide — the server checks the latter, no
+  dictionary needed; see §2.5.)
 - A five-letter sequence that is **not** in the lexicon is rejected — the tiles
   **return to their original board positions** and "invalid word" is logged. You
   can try again.
@@ -114,15 +116,30 @@ This is checked by enumerating every spelling of `Wi` and recursing (memoized on
 the remaining-tile set). The lesson worth carrying: **uniqueness-of-word ≠
 no-traps**; validate against *all* completions, not one.
 
-### 2.5 One lexicon, pinned
+### 2.5 The lexicon is a *generation-time* concern only
 
-A single word list serves as both the solution dictionary and the set of
-accepted words — currently the **Wordle answer list (~2,314 words)** (this may
-become configurable later; no UI for that now). The same list must be used for
-**generation and runtime validation**: validating against a larger list reports
-phantom forks (rejects good boards), a smaller one misses real forks. So the
-runtime word-acceptance check and the generator's lexicon are the same pinned
-set (`common.words`, the Wordle-answer slice).
+A single word list — the **StackDown standard set** (`difficulty = 1 AND
+american AND slur = 0 AND crude = 0 AND len = 5` in `common.words`; this may
+become configurable via `wordlist` later, no UI for that now) — is what the
+generator validates boards against: the no-trap check enumerates completions
+against exactly this set, so a board is solvable and fork-free *with respect to
+it*.
+
+**Runtime does not consult a lexicon at all.** Because the strict invariant
+(§2.4) guarantees the only completable word at each round is the solution word
+`Wi`, `submit_word` simply checks the submission against the next solution word
+(`solution[cleared + 1]`, the same cleared-count math as `reveal_next_word`).
+Even if a stray board ever slipped a non-solution legal word past the generator,
+we'd never want to accept it — so there's nothing to gain from a dictionary
+lookup, and the old "pin runtime to the same list or get phantom forks" coupling
+is simply gone. (`_is_word` was removed.)
+
+**Word case.** Words are stored **lowercase** everywhere — `boards.words`,
+`games.solution`, and the logged `submissions.word` — matching `common.words`
+and the app's "store lowercase, display uppercase" convention; the FE uppercases
+for display. Tile `letter`s stay **uppercase** (they're board glyphs, rendered
+as-is), so `submit_word` lowercases the letters it reads off the tiles before
+comparing to the (lowercase) solution.
 
 ---
 

@@ -109,7 +109,7 @@ export function PlayArea({
         commitWord(tileIds)
       } else {
         clearWord() // invalid → the tiles return to the board
-        feedback.show({ tone: 'error', text: `Not a word: ${res.word}`, dismiss: { kind: 'timed', ms: 1500 } })
+        feedback.show({ tone: 'error', text: `Not a word: ${res.word.toUpperCase()}`, dismiss: { kind: 'timed', ms: 1500 } })
       }
     },
     [gameId, feedback, clearWord, commitWord],
@@ -129,7 +129,7 @@ export function PlayArea({
     const word = data as string | null
     feedback.show({
       tone: 'info',
-      text: word ? `Next word: ${word}` : 'All words cleared',
+      text: word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
       dismiss: { kind: 'closeable' },
     })
   }, [gameId, feedback])
@@ -264,7 +264,9 @@ export function PlayArea({
             {game.solution && (
               <span className={styles.reveal}>
                 The words were{' '}
-                <strong>{game.solution.join(' · ')}</strong>
+                <strong>
+                  {game.solution.map((w) => w.toUpperCase()).join(' · ')}
+                </strong>
               </span>
             )}
             <BackToClubButton onClick={goToClub} />

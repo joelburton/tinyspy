@@ -17,8 +17,9 @@
  * What it does:
  *   1. Loads the lexicon — the StackDown standard set (`difficulty = 1 AND
  *      american AND slur = 0 AND crude = 0 AND len = 5`; wordlist 0) — from `common.words`
- *      over a direct psql connection (read-only). MUST stay in sync with
- *      stackdown._is_word's level-0 definition.
+ *      over a direct psql connection (read-only). This IS the set the
+ *      no-trap validation runs against — boards come out solvable and
+ *      fork-free with respect to exactly these words.
  *   2. Generates N boards on the FIXED tile geometry (positions + the
  *      covering DAG are constant across puzzles; only the letters
  *      change). Each board is six real words arranged so the stack is
@@ -462,9 +463,10 @@ console.log(
 )
 
 // Load the lexicon: the StackDown standard set (wordlist 0) — common,
-// clean, 5-letter american words (plurals included). MUST match
-// stackdown._is_word's level-0 definition, or generated boards won't be
-// solvable / fork-free at play time.
+// clean, 5-letter american words (plurals included). This is the set the
+// no-trap validation runs against, so generated boards are solvable and
+// fork-free with respect to exactly these words. (Runtime no longer
+// consults a lexicon — submit_word accepts only the next solution word.)
 const raw = execFileSync(
   'psql',
   [

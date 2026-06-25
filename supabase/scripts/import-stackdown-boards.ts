@@ -56,10 +56,14 @@ if (boards.length === 0) {
 
 // Build the INSERT VALUES list. Letters/words are A–Z so no escaping is
 // needed beyond doubling single quotes in the (quote-free) tiles JSON.
+// Solution words are stored LOWERCASE to match common.words (and the
+// rest of the app's "store lowercase, display uppercase" convention) —
+// normalized here so the generated file's case doesn't matter. Tile
+// letters stay uppercase (they're board glyphs, rendered as-is).
 const values = boards
   .map((b) => {
     const tilesJson = JSON.stringify(b.tiles).replace(/'/g, "''")
-    const wordsArr = `array[${b.words.map((w) => `'${w}'`).join(',')}]`
+    const wordsArr = `array[${b.words.map((w) => `'${w.toLowerCase()}'`).join(',')}]`
     return `('${tilesJson}'::jsonb, ${wordsArr}, ${b.wordlist ?? 0})`
   })
   .join(',\n')

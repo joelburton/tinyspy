@@ -48,7 +48,8 @@ create table stackdown.boards (
   -- standard set: common, clean, 5-letter american words —
   -- `difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5`;
   -- 1..6 = wider common.words.difficulty bands, a forward hook). Today every
-  -- board is 0; runtime word-acceptance pins to the same list (see _is_word).
+  -- board is 0. Provenance only: runtime no longer consults a lexicon — a
+  -- submission is accepted iff it's the next solution word (see submit_word).
   wordlist   int not null default 0 check (wordlist between 0 and 6),
   created_at timestamptz not null default now()
 );
@@ -217,28 +218,6 @@ as $$
       on t.id = u.tid;
 $$;
 
--- Is `w` an accepted word for the given wordlist level? Pins runtime
--- validation to the SAME list the board was generated against (§2.5 — using
--- a different list reintroduces forks). Level 0 = the StackDown standard set
--- (`difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5` —
--- common, clean 5-letter words, plurals included); levels 1..6 use the wider
--- difficulty bands — a forward placeholder, since today every board is 0.
-create function stackdown._is_word(w text, wordlist int)
-returns boolean
-language sql
-stable
-as $$
-  select case
-    when wordlist = 0 then exists (
-      select 1 from common.words
-       where word = lower(w)
-         and slur = 0 and crude = 0
-         and american and difficulty = 1 and len = 5)
-    else exists (
-      select 1 from common.words where word = lower(w) and len = 5 and difficulty <= wordlist)
-  end;
-$$;
-
 -- Reveal the solution only once the game is terminal (the end reveal).
 create function stackdown._solution_for(g_id uuid)
 returns text[]
@@ -338,7 +317,8 @@ grant execute on function stackdown.create_game(text, jsonb, uuid[], text) to au
 -- Submit a 5-tile ordered selection. The server validates that the tiles
 -- are present and REVEAL-RESPECTING (each exposed when selected) — an FE
 -- that submits otherwise is rejected hard — then reads the word off the
--- order and checks the lexicon. EVERY submission is logged (valid or not);
+-- order and checks it against the next solution word (no dictionary: the
+-- board only exposes the six solution words). EVERY submission is logged;
 -- an invalid one is a soft reject (the FE returns the tiles + logs "invalid
 -- word"), a valid one removes the tiles and advances. The sixth valid word
 -- ends the game (coop: won; compete: the caller wins the race).
@@ -359,6 +339,7 @@ declare
   gone           int[];
   tid            int;
   w              text;
+  cleared        int;
   is_word        boolean;
   next_seq       int;
   new_found      int;
@@ -410,9 +391,20 @@ begin
     gone := gone || tid;
   end loop;
 
-  -- ─── Word + lexicon check ──────────────────────────────────
-  w := upper(stackdown._word(g_row.tiles, tile_ids));
-  is_word := stackdown._is_word(w, g_row.wordlist);
+  -- ─── Word check — is it the next solution word? ────────────
+  -- No dictionary lookup: the board only ever exposes the six solution
+  -- words (the generator's strict no-trap invariant), and we'd never want
+  -- to accept a non-solution word anyway. Words clear in solution order
+  -- (strict validity guarantees it), so the count of already-cleared words
+  -- IS the index of the next one — same math as reveal_next_word. The word
+  -- is stored lowercase to match common.words (the FE uppercases for
+  -- display); coalesce guards the (unreachable here) all-cleared NULL.
+  w := lower(stackdown._word(g_row.tiles, tile_ids));
+  select count(*) into cleared
+    from stackdown.submissions s
+   where s.game_id = target_game and s.valid
+     and (g_row.mode = 'coop' or s.user_id = caller_id);
+  is_word := coalesce(w = g_row.solution[cleared + 1], false);
 
   -- Log the submission (valid or not).
   select coalesce(max(seq), 0) + 1 into next_seq
