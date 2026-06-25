@@ -80,18 +80,20 @@
   font-weight: 700;
 }
 
-/* Bonus indicator — a bullet after the word, in the resting muted
- * color. Bigger than the old hair-thin middle dot so "this one's a
- * bonus" reads at a glance. The word itself otherwise renders normally. */
+/* Bonus indicator — a solid dot after the word. A real inline-block
+ * circle (not a font bullet) so its size and vertical position are
+ * exact and don't depend on the font's glyph metrics. Sized to read at a
+ * glance and nudged up so it sits centered on the (uppercase) word
+ * rather than down on the baseline. */
 .bonus::after {
-  content: '•';
-  margin-left: 5px;
-  font-size: 1.6em;
-  line-height: 0;
-  /* Center the bullet on the word rather than sitting it on the
-   * baseline (where the big glyph hangs low). */
-  vertical-align: middle;
-  color: var(--color-muted);
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--color-muted);
+  vertical-align: 0.18em;
 }
 
 /* Recently-found underline. Uses currentColor so the underline
