@@ -271,7 +271,7 @@ function ClueForm({
 /**
  * Voluntarily end the turn without making (another) guess. Rule-
  * legal at any point during the guess phase — even before the
- * first guess. Costs one timer token like any other turn end.
+ * first guess. Costs one turn like any other turn end.
  */
 function PassButton({ gameId }: { gameId: string }) {
   const [busy, setBusy] = useState(false)

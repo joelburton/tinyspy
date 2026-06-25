@@ -100,7 +100,7 @@ export const tinyspyGame: GameManifest = {
 
   // Called by common's GamePage when its countdown timer hits 0.
   // The RPC flips tinyspy.games.status to 'lost_timeout' (distinct
-  // from 'lost_clock', which is the Duet rulebook's timer-tokens-
+  // from 'lost_clock', which is the Duet rulebook's turns-
   // exhausted ending) and writes common.games.status.outcome=
   // 'lost_timeout'. Idempotent on the terminal-state check, so
   // peers racing to fire is fine.

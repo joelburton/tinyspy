@@ -72,12 +72,12 @@ select is(
 select is(
   (select turn_number from games where id = (select id from g1)),
   2,
-  'the turn still advances (a token was spent, the turn ended)'
+  'the turn still advances (a turn was spent, the turn ended)'
 );
 select is(
   (select turns_remaining from games where id = (select id from g1)),
   8,
-  'pass still spends a timer token even when the clue-giver is unchanged'
+  'pass still spends a turn even when the clue-giver is unchanged'
 );
 
 -- Turn 2: it is STILL Ada's turn. She clues again, Bea passes again —

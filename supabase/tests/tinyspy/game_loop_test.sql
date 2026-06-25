@@ -3,7 +3,7 @@
 -- ============================================================
 --
 -- Covers the heart of the game: who can act in which phase, what
--- a green / neutral / assassin reveal does, and how the token +
+-- a green / neutral / assassin reveal does, and how the turn +
 -- clue-giver bookkeeping advances at turn end.
 --
 -- Plays two short games:
@@ -97,11 +97,11 @@ select is(
   'a green guess returns G'
 );
 
--- Green keeps the turn alive: no token spent, clue-giver unchanged.
+-- Green keeps the turn alive: no turn spent, clue-giver unchanged.
 select is(
   (select turns_remaining from games where id = (select id from g1)),
   9,
-  'green guess does not spend a timer token'
+  'green guess does not spend a turn'
 );
 select is(
   (select current_clue_giver from games where id = (select id from g1)),
@@ -127,7 +127,7 @@ select is(
 select is(
   (select turns_remaining from games where id = (select id from g1)),
   8,
-  'neutral guess spends one timer token (9 → 8)'
+  'neutral guess spends one turn (9 → 8)'
 );
 select is(
   (select current_clue_giver from games where id = (select id from g1)),
@@ -156,7 +156,7 @@ select lives_ok(
 select is(
   (select turns_remaining from games where id = (select id from g1)),
   7,
-  'pass spends one timer token (8 → 7)'
+  'pass spends one turn (8 → 7)'
 );
 select is(
   (select current_clue_giver from games where id = (select id from g1)),
@@ -168,7 +168,7 @@ select is(
 -- Game 2: assassin reveal
 -- ============================================================
 -- Bea guesses Ada's assassin cell — game ends immediately, regardless
--- of token count. play_state flips to lost_assassin and current_clue_giver
+-- of turn count. play_state flips to lost_assassin and current_clue_giver
 -- is cleared.
 
 -- Game 2 reuses the same club. common.create_game flips the prior

@@ -2,10 +2,10 @@
 -- Test: sudden death rules
 -- ============================================================
 --
--- Sudden death triggers when the last timer token is spent and
+-- Sudden death triggers when the last turn is spent and
 -- agents remain. We don't play through nine real turns to drain
--- the timer here — that's tested implicitly by game_loop_test
--- (which verifies tokens decrement on turn end). This file
+-- the turn budget here — that's tested implicitly by game_loop_test
+-- (which verifies turns decrement on turn end). This file
 -- forces the game into sudden_death directly and then exercises
 -- the rules that apply there:
 --

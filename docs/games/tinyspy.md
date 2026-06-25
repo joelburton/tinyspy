@@ -10,7 +10,7 @@ For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](
 
 Two players cooperate to find all 15 "green agents" on a 5×5 grid of 25 word cards within 9 turns. Each turn one player gives a one-word clue + a number; the other guesses. The catch: each player sees a different subset of greens, neutrals, and assassins. You can only know the greens *your partner needs to find* by deducing them from their clue.
 
-It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variable starting token counts) is deferred — every game starts with 9 tokens.
+It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variable starting turn counts) is deferred — every game starts with 9 turns.
 
 ## The rules
 
@@ -34,23 +34,23 @@ It's a strict subset of Codenames Duet's rulebook. Mission/campaign mode (variab
 
 ### The clock
 
-- Game starts with **9 timer tokens**.
-- Exactly one token is spent at each turn end. Tokens are never refunded.
+- Game starts with **9 turns**.
+- Exactly one turn is spent at each turn end. Turns are never refunded.
 - A turn ends when the guesser:
   - hits a neutral (one of the clue-giver's tan cards), or
   - stops voluntarily.
-- A turn does **not** end (and no token is spent) when the guesser reveals a green agent — they may keep guessing indefinitely. There is **no** clue+1 cap (that's normal Codenames, not Duet).
-- Hitting the assassin ends the game immediately; token count is irrelevant.
-- When the last token is spent and agents remain, the game enters **sudden death**.
+- A turn does **not** end (and no turn is spent) when the guesser reveals a green agent — they may keep guessing indefinitely. There is **no** clue+1 cap (that's normal Codenames, not Duet).
+- Hitting the assassin ends the game immediately; turn count is irrelevant.
+- When the last turn is spent and agents remain, the game enters **sudden death**.
 
 ### A turn
 
 1. **Clue-giver** (A gives the first clue; normally alternates — but a seat whose agents are all found is skipped, see [below](#a-finished-player-stops-giving-clues)) gives one word + a number. The clue must relate to words that are green from their own view.
 2. **Guesser** points to words one at a time. Each guess is resolved against the *clue-giver's* key view:
    - **Green** → place an agent marker. Guesser may continue (unlimited).
-   - **Neutral** → place a neutral marker. Turn ends; spend a timer token.
+   - **Neutral** → place a neutral marker. Turn ends — one turn used.
    - **Assassin** → game lost immediately.
-3. The guesser may stop voluntarily at any time. Doing so ends the turn and spends a timer token.
+3. The guesser may stop voluntarily at any time. Doing so ends the turn — one turn used.
 4. Reveal markers go on the **guesser's** side of the board, but the label comes from the clue-giver's key.
 
 #### A finished player stops giving clues
@@ -66,9 +66,9 @@ The FE surfaces this to **both** players in the action slot so neither reads the
 
 Both ride two booleans from `useBoard` — `myAgentsDone` / `peerAgentsDone` — computed by the pure [`agentsAllContacted`](../../src/tinyspy/lib/agents.ts) helper (an agent is a `'G'` on that seat's key; "contacted" is the global `revealed_as = 'G'`). The partner flag uses the peer's key column, which the board fetch already pulls; we return the boolean rather than the key only because `peerKey` has a dedicated terminal-gated role feeding the post-game reveal — not for secrecy (the [trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't care). Both banners show only in normal play (not sudden death, where nobody clues, nor once terminal).
 
-#### Neutrals are per-direction (the timer-token rule)
+#### Neutrals are per-direction (the neutral-marker rule)
 
-A neutral is only neutral *on the clue-giver's key*. The same word may be the **other player's agent**, so a neutral locks it for the guesser's direction only — the partner can still contact it. From the rulebook: *"A word marked by a timer token might need to be guessed by the other player."* When that partner guesses it, it resolves on *their* clue-giver's key (agent → contacted, neutral → a second token, assassin → loss). Only when **both** players have hit a word as a neutral is it dead for both ("the timer tokens cover the word").
+A neutral is only neutral *on the clue-giver's key*. The same word may be the **other player's agent**, so a neutral locks it for the guesser's direction only — the partner can still contact it. The rulebook captures this: a word one player marks neutral may still be the other player's agent, so it stays open for the partner's direction. When that partner guesses it, it resolves on *their* clue-giver's key (agent → contacted, neutral → a second neutral marker, assassin → loss). Only when **both** players have hit a word as a neutral is it dead for both (both neutral markers cover the word).
 
 Green (agent contacted) and assassin are **global** — true for both players the moment they're revealed. This is why the board stores a global `revealed_as` (`'G'`/`'A'`) *plus* per-seat `neutral_a` / `neutral_b` flags (a word can be a neutral for one player while still live for the other). The earlier implementation made *every* reveal global, which incorrectly stranded a partner's agent — a bug, not a house rule.
 
@@ -80,7 +80,7 @@ Green (agent contacted) and assassin are **global** — true for both players th
 
 ### Sudden death
 
-- Triggered when timer tokens hit 0 but agents remain.
+- Triggered when the turn budget hits 0 but agents remain.
 - No more clues are given. Players take turns pointing at words from memory of past clues.
 - Any non-green reveal (neutral or assassin) ends the game in a loss.
 
@@ -88,12 +88,12 @@ Green (agent contacted) and assassin are **global** — true for both players th
 
 | rule | code |
 |---|---|
-| 9 starting tokens, decrements only on neutral / voluntary stop | `games.turns_remaining` (default 9), decremented by `_end_turn` |
+| 9 starting turns, decrements only on neutral / voluntary stop | `games.turns_remaining` (default 9), decremented by `_end_turn` |
 | Turn alternates clue-giver, but a finished seat is skipped | `_end_turn` sets `games.current_clue_giver` to the alternation candidate only if that seat still has an unfound `'G'` on its key; otherwise the current giver keeps it |
 | Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
 | Neutral is per-direction (partner can still guess) | `submit_guess` sets `words.neutral_a` / `neutral_b` for the *guesser's* seat (not global `revealed_as`); the "already resolved" check blocks only that seat |
 | Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE greys it for both) |
-| Sudden death on token = 0 | `_end_turn` flips `status = 'sudden_death'` when `turns_remaining` hits 0 |
+| Sudden death on turns = 0 | `_end_turn` flips `status = 'sudden_death'` when `turns_remaining` hits 0 |
 | Sudden-death reveal uses partner's view | `submit_guess` picks the `key_card_*` column for the seat *opposite* to the caller |
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
@@ -121,11 +121,11 @@ There's no `tinyspy.game_players` table. The "who played this game" record lives
 `common.games.play_state` carries tinyspy's lifecycle enum. TinySpy's accepted values are:
 
 - **playing** — turn-based clue/guess loop. The most common state.
-- **sudden_death** — timer tokens are spent. No more clues; any wrong guess loses.
+- **sudden_death** — the turn budget is spent. No more clues; any wrong guess loses.
 - **won** — all 15 greens revealed. Terminal.
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
-- **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's timer tokens) hit 0. Terminal. See [Timer](#timer-server-authoritative-ticks) below.
+- **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's turn budget) hit 0. Terminal. See [Timer](#timer-server-authoritative-ticks) below.
 - **ended** — the friends manually stopped an in-progress game via the **End game** menu item (`tinyspy.end_game`). Terminal, but *neutral* — not a loss. See the [`end_game`](#tinyspyend_gametarget_game-uuid--void) RPC below.
 
 The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*` / `ended`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
@@ -197,11 +197,11 @@ Terminal transitions write `common.games.play_state` + `is_terminal = true` + th
 
 ### `tinyspy.pass_turn(target_game uuid)`
 
-Voluntary turn-end during the guess phase. Spends one timer token, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; play_state ≠ playing.
+Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; play_state ≠ playing.
 
 ### `tinyspy.submit_timeout(target_game uuid)`
 
-Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's timer-tokens-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
+Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's turns-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
 
 Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 
@@ -241,14 +241,14 @@ Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `common.is_
 
 Standard `<TimerField>` + `useGameTimer` setup — see [`wordknit.md → Timer`](wordknit.md#timer-server-authoritative-ticks) for the design rationale and drift bounds.
 
-**Distinct from the rulebook's timer tokens.** Duet has its own clock (the 9 starting tokens, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
+**Distinct from the rulebook's turn budget.** Duet has its own clock (the 9 starting turns, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
 
 - `lost_clock` — Duet's rulebook ending (sudden death + non-green reveal).
 - `lost_timeout` — wall-clock countdown hit 0.
 
 Behaviors per `setup.timer.kind`:
 
-- **`none`**: no wall-clock rendered. The default, since the rulebook's pacing already comes from the tokens.
+- **`none`**: no wall-clock rendered. The default, since the rulebook's pacing already comes from the turn budget.
 - **`countup`**: informational. Header shows elapsed MM:SS. Never expires.
 - **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `tinyspy.submit_timeout`, which flips status to `lost_timeout`. Idempotent on the server side — multiple peers racing to fire is fine.
 
@@ -384,7 +384,7 @@ See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-speci
 | file | covers |
 |---|---|
 | `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in wordknit's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
-| `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, token decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
+| `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, turn decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/tinyspy/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
 | `tests/tinyspy/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
 | `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
@@ -426,7 +426,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 Deferred or sketched but not built:
 
-- **Mission / campaign mode.** Variable starting token counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
+- **Mission / campaign mode.** Variable starting turn counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
 - **Tile `aria-label` for screen readers.** Board tiles in `BoardGrid.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the GameLog rewrite (colored words don't need text labels); a narrower helper would come back for this.
 
 ## File locations

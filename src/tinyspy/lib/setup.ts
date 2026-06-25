@@ -19,7 +19,7 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type TinySpySetup = {
   /**
-   * Starting timer-token count. Matches the Duet rulebook's
+   * Starting turn count. Matches the Duet rulebook's
    * mission/campaign starting values for easier difficulties (9
    * is the standard game; 10 and 11 are the easier missions).
    */
@@ -40,8 +40,8 @@ export type TinySpySetup = {
    * tinyspy.submit_timeout). Validated server-side by
    * `common.validate_timer`.
    *
-   * Distinct from the rulebook's `turns` (timer-tokens) above —
-   * that's the per-turn token-spend clock; this is the
+   * Distinct from the rulebook's `turns` above — that's the
+   * in-game turn budget (the `turns_remaining` clock); this is the
    * external wall-clock countdown players can choose to layer
    * on top.
    */
@@ -57,7 +57,7 @@ export type TinySpySetup = {
  * component auto-picks the first member on mount.
  *
  * Timer defaults to `none` — Duet's pacing already comes from
- * the timer-token clock; a wall-clock countdown is opt-in for
+ * the turn budget; a wall-clock countdown is opt-in for
  * players who want extra pressure.
  */
 export const DEFAULT_TINYSPY_SETUP: TinySpySetup = {

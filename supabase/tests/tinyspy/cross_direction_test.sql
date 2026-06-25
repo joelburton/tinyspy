@@ -3,8 +3,9 @@
 -- ============================================================
 -- A bystander is only neutral on the CLUE-GIVER's key. The same word may be
 -- the OTHER player's agent, so a neutral must lock only the guesser's
--- direction — the partner can still contact it. (Codenames Duet: "a word
--- marked by a timer token might need to be guessed by the other player.")
+-- direction — the partner can still contact it. (Codenames Duet: a word one
+-- player marks neutral may still be the other player's agent, so it stays open
+-- for the partner's direction.)
 --
 -- Covers:
 --   1. A neutral guess sets the GUESSER's per-seat flag, not the global

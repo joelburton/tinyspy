@@ -1,7 +1,7 @@
 /* tinyspy play surface — two-column viewport-bound layout.
  *
  *   ┌────────────────────────┬───────────────────────────┐
- *   │                        │ 0/15 agents · 9 tokens    │
+ *   │                        │ 0/15 agents · 1/9 turns   │
  *   │                        │ ─────────────────────────  │
  *   │                        │ Clue / Waiting / Input    │
  *   │   BoardGrid (5×5)      │                            │

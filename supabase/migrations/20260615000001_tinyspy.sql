@@ -54,7 +54,7 @@ create table tinyspy.games (
   club_handle text not null references common.clubs(handle) on delete cascade,
   -- play_state lives on common.games. tinyspy's enum values:
   --   playing       — turn-based clue/guess loop (default at create).
-  --   sudden_death  — timer-token-clock ran out, agents remain.
+  --   sudden_death  — turn budget ran out, agents remain.
   --   won           — all 15 greens revealed (terminal).
   --   lost_assassin — assassin revealed (terminal).
   --   lost_clock    — sudden-death reveal was non-green (terminal).
@@ -62,7 +62,7 @@ create table tinyspy.games (
   --
   -- `lost_timeout` is distinct from `lost_clock`: the former is
   -- the FE-driven wall-clock running out (setup.timer.countdown);
-  -- the latter is the Duet rulebook's "timer tokens exhausted +
+  -- the latter is the Duet rulebook's "turn budget exhausted +
   -- a wrong sudden-death guess." Conceptually both are
   -- time-related losses but the mechanic and the UX copy differ.
   turns_remaining int not null default 9,
@@ -111,8 +111,8 @@ create table tinyspy.words (
   -- Per-seat bystander marks: seat A / seat B guessed this word and it came up
   -- neutral on the clue-giver's (their partner's) key. Locks the word for THAT
   -- seat only — the partner can still guess it (it may be their agent). When
-  -- BOTH are true the word is dead for both, the "two timer tokens cover the
-  -- word" rule. The per-guess history (for the Game Log) lives in
+  -- BOTH are true the word is dead for both, the "both neutral markers cover
+  -- the word" rule. The per-guess history (for the Game Log) lives in
   -- `tinyspy.guesses`; these two flags are the denormalized board state.
   neutral_a boolean not null default false,
   neutral_b boolean not null default false,
@@ -239,7 +239,7 @@ alter publication supabase_realtime add table tinyspy.guesses;
 -- tinyspy._end_turn — internal helper
 -- ============================================================
 -- Advances the turn counter and swaps the clue-giver. Also handles
--- the "last timer token spent → sudden death" transition. Called
+-- the "last turn spent → sudden death" transition. Called
 -- by submit_guess (after a non-green-non-assassin reveal) and
 -- pass_turn (after a clue was given but no guesses taken).
 --
@@ -293,7 +293,7 @@ begin
   next_giver := case when partner_has_agents then candidate else giver end;
 
   if remaining <= 1 then
-    -- Last token spent. Transition to sudden_death on common.games
+    -- Last turn spent. Transition to sudden_death on common.games
     -- (the play_state authority); zero out turns_remaining + flip
     -- clue-giver on foo.games.
     update tinyspy.games
@@ -704,8 +704,8 @@ begin
   -- it's globally done (contacted as an agent, or the assassin was hit) OR this
   -- seat already hit it as a neutral. The PARTNER's neutral does not block the
   -- caller — the word may be the caller's agent in the other direction (the
-  -- Duet "a word marked by a timer token might need to be guessed by the other
-  -- player" rule).
+  -- Duet rule that a word one player marks neutral may still be the other
+  -- player's agent, so it stays open for the partner's direction).
   if exists (
     select 1 from tinyspy.words w
     where w.game_id = target_game and w.position = target_position
@@ -837,7 +837,7 @@ grant execute on function tinyspy.submit_guess(uuid, int) to authenticated;
 -- The FE clock is browser-side (count-down ticks locally); when
 -- it hits zero, the FE fires this. We flip the game to
 -- `lost_timeout` (distinct from `lost_clock`, which is the
--- timer-tokens-exhausted Duet ending) and call common.end_game
+-- turns-exhausted Duet ending) and call common.end_game
 -- with outcome='lost_timeout'.
 --
 -- Idempotency: the active-state guard means a second concurrent
@@ -1001,7 +1001,7 @@ grant execute on function tinyspy.end_game(uuid) to authenticated;
 -- tinyspy.pass_turn
 -- ============================================================
 -- The guesser ends the turn without taking any more guesses,
--- spending one timer token. Legal even after zero guesses on the
+-- spending one turn. Legal even after zero guesses on the
 -- turn (e.g. "the clue makes no sense, let's just move on").
 
 create function tinyspy.pass_turn(target_game uuid)

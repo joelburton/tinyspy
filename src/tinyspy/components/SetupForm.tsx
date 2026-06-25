@@ -11,7 +11,7 @@ import styles from './SetupForm.module.css'
  * tinyspy's per-game setup form, rendered inside the common
  * `SetupGameDialog`. Two choices for the players:
  *
- *   - **Turns** — starting timer-token count, one of {9, 10, 11}
+ *   - **Turns** — starting turn count, one of {9, 10, 11}
  *     (matches the Duet rulebook's mission counts). 9 is the
  *     standard game; 10 and 11 are easier warm-ups.
  *   - **Who gives the first clue** — radio with the two club
