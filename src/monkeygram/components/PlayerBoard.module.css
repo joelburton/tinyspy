@@ -221,7 +221,10 @@
 .handTile {
   width: 44px;
   height: 44px;
-  font-size: 1.25rem;
+  /* Match the board tile's letter-to-tile ratio (LETTER_SCALE = 0.6 in
+   * PlayerBoard.tsx) so a tile reads the same in the hand and on the board:
+   * 0.6 × the 44px tile. */
+  font-size: calc(44px * 0.6);
 }
 .handEmpty {
   grid-column: 1 / -1;
