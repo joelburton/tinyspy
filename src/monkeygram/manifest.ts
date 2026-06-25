@@ -78,14 +78,21 @@ export const monkeygramGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `won — ${name} finished first`
     }
+    // Countdown expiry (submit_timeout): time ran out with nobody out,
+    // so everyone lost. No winner to name.
+    if (row.play_state === 'lost') return "time's up — nobody finished"
     // Manual stop (end_game): terminal with no winner. Without this the
     // ClubPage would show the raw enum 'ended'.
     if (row.play_state === 'ended') return 'game ended'
     return row.play_state
   },
 
-  // v1 is untimed (setup.timer is always { kind: 'none' }), so the
-  // GamePage countdown never fires this. Present to satisfy the
-  // manifest contract; no monkeygram timeout RPC exists.
-  submitTimeout: async () => ({}),
+  // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
+  // collective loss (nobody went out in time) via monkeygram.submit_timeout.
+  // Idempotent server-side, so a peer racing to fire it is fine.
+  submitTimeout: async (gameId) => {
+    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
 }

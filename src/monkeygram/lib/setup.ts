@@ -6,11 +6,10 @@ import type { TimerMode } from '../../common/lib/games'
  * server-side in `monkeygram.create_game` (the canonical authority
  * for what shapes are accepted).
  *
- * v1 has a single real choice (starter hand size); the literal-union
- * mirrors the SQL `check`. `timer` is carried as `{ kind: 'none' }`
- * so the common timer machinery has a value to read — v1 is untimed,
- * but a later version can offer a count-up without a setup-shape
- * change.
+ * Two choices: starter hand size (the literal-union mirrors the SQL
+ * `check`) and the shared `timer` mode. A countdown that reaches 0 ends
+ * the race as a collective loss (`monkeygram.submit_timeout`) — time's
+ * up with nobody out.
  *
  * Lives in `lib/` (not inline in `manifest.ts`) so the SetupForm body
  * can import the type without dragging the manifest into its chunk.
@@ -19,8 +18,10 @@ export type MonkeyGramSetup = {
   /** How many tiles each player is dealt to start. 21 is the
    *  Bananagrams 2–4-player default; 15 is a quicker game. */
   hand_size: 15 | 21
-  /** Untimed in v1 (`{ kind: 'none' }`). Validated server-side by
-   *  `common.validate_timer`. */
+  /** Shared timer mode. `none` and `countup` are display-only; a
+   *  `countdown` that hits 0 ends the game as a loss for everyone
+   *  (`monkeygram.submit_timeout`). Validated server-side by
+   *  `common.validate_timer`. Defaults to `none` (opt-in pressure). */
   timer: TimerMode
 }
 

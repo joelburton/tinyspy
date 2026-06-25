@@ -116,15 +116,17 @@ export function PlayArea(ctx: GamePageCtx) {
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
-  // Terminal verdict. Two terminal shapes reach here:
+  // Terminal verdict. Three terminal shapes reach here:
   //   - a peel-win → status.winner_username is set; "did I win?" comes
   //     from comparing it to my username (winner green, others red)
   //   - a manual end (end_game) → status.outcome 'manual', NO winner.
-  // The manual case MUST be checked first: with no winner_username,
+  //   - a countdown timeout (submit_timeout) → status.outcome 'timeout',
+  //     NO winner; everyone lost (red "Time's up").
+  // The no-winner cases MUST be checked first: with no winner_username,
   // the win path below would fall through to `winnerName = 'someone'`
   // and show everyone the red "someone went out — Bananas!" verdict —
-  // wrong for a no-winner stop. Manual ends show a neutral green
-  // "Game ended." (GameOverModal renders outcome:'won' as green).
+  // wrong for those. Manual ends show a neutral green "Game ended."
+  // (GameOverModal renders outcome:'won' as green).
   const selfUsername = ctx.players.find((p) => p.user_id === ctx.session.user.id)?.username
   const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
   const selfWon = !!selfUsername && winnerName === selfUsername
@@ -132,12 +134,14 @@ export function PlayArea(ctx: GamePageCtx) {
     ? null
     : ctx.status?.outcome === 'manual'
       ? { outcome: 'won' as const, verdict: '🍌 Game ended.' }
-      : {
-          outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
-          verdict: selfWon
-            ? '🍌 Bananas! You went out first.'
-            : `${winnerName} went out — Bananas!`,
-        }
+      : ctx.status?.outcome === 'timeout'
+        ? { outcome: 'lost' as const, verdict: "⏰ Time's up — nobody went out." }
+        : {
+            outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
+            verdict: selfWon
+              ? '🍌 Bananas! You went out first.'
+              : `${winnerName} went out — Bananas!`,
+          }
 
   const bunchCount = ctx.status?.pool_remaining as number | undefined
 

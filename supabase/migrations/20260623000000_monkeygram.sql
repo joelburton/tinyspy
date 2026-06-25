@@ -685,16 +685,82 @@ $$;
 revoke execute on function monkeygram.dump(uuid, text) from public;
 grant execute on function monkeygram.dump(uuid, text) to authenticated;
 -- ============================================================
+-- monkeygram.submit_timeout — countdown expiry (everyone loses)
+-- ============================================================
+--
+-- Fired by GamePage when a chosen countdown hits 0 before anyone goes
+-- out. MonkeyGram is a race, so time expiring with no winner is a
+-- COLLECTIVE loss: every player's result is {"won": false}, same shape
+-- as the manual end_game stop but framed as a loss, not a neutral quit.
+-- Modeled on stackdown.submit_timeout's compete branch.
+--
+-- Shape vs. the other terminals:
+--   - play_state 'lost' — everyone lost (distinct from 'won' = a
+--     peel-win, and 'ended' = the neutral manual stop)
+--   - status.outcome 'timeout'; NO winner_username, so the PlayArea
+--     renders a no-winner "Time's up" loss for all
+--
+-- Idempotent on the in-progress check: a second caller, or a click
+-- racing a real peel-win, raises P0001 — which the manifest swallows.
+create function monkeygram.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = monkeygram, common, public, extensions
+as $$
+declare
+  current_play_state text;
+  player_results jsonb;
+begin
+  -- Lock the gametype row so the timeout and a concurrent peel-win
+  -- serialize — only one of them writes the terminal state.
+  perform 1 from monkeygram.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Everyone {"won": false}: time ran out with nobody going out.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'lost',
+    jsonb_build_object('outcome', 'timeout'),
+    player_results
+  );
+
+  -- Realtime touch — same trick as monkeygram.end_game: common.end_game
+  -- writes common.games (wakes the terminal modal via useCommonGame), but
+  -- the monkeygram channels watch player_boards / progress, so nudge
+  -- progress with a no-op self-set to produce a WAL entry for them.
+  update monkeygram.progress
+     set unplaced = unplaced
+   where game_id = target_game;
+end;
+$$;
+
+revoke execute on function monkeygram.submit_timeout(uuid) from public;
+grant execute on function monkeygram.submit_timeout(uuid) to authenticated;
+
+-- ============================================================
 -- monkeygram.end_game — manual stop
 -- ============================================================
 --
--- MonkeyGram's ONLY intrinsic terminal is the win inside `peel`
--- (a player goes out when the bunch can't refill the table). There
--- is no "you lost" state and — unlike timed games — no countdown to
--- expire (v1 is always `timer: { kind: 'none' }`; the manifest stubs
--- submitTimeout). So if the friends want to quit a race that's gone
--- stale before anyone goes out, they need an explicit stop. This is
--- that stop, modeled on `freebee.end_game`'s COMPETE branch.
+-- MonkeyGram's automatic terminals are the win inside `peel` (a player
+-- goes out when the bunch can't refill the table) and — if a countdown
+-- was chosen — the collective loss in `monkeygram.submit_timeout` above
+-- (time's up, nobody out). This is the third terminal: a manual stop,
+-- for when the friends want to quit a stale race before either fires.
+-- Modeled on `freebee.end_game`'s COMPETE branch.
 --
 -- Shape vs. the `peel` win:
 --   - play_state 'ended' (not 'won') — nobody went out
