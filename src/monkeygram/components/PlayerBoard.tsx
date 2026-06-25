@@ -47,6 +47,9 @@ const DUMP_COUNT = 3 // tiles drawn per dump (server default; mirrored for the F
 // the tile so the letter stays legible when the board is zoomed out — the tile
 // shrinks with zoom, the letter keeps a bit more of it.
 const LETTER_SCALE = 0.6
+// Stable empty set for "no red flags" — a fresh `new Set()` each render would
+// be a new reference and defeat memoization downstream.
+const NO_CELLS: ReadonlySet<number> = new Set()
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
@@ -93,8 +96,10 @@ type Props = {
   isTerminal?: boolean
   /** Peel (calls `peel`). Enabled only when the hand is empty; draws a tile for
    *  everyone, or — if the bunch can't refill the table — wins the game (the
-   *  win/terminal modal is driven from above by realtime). */
-  onPeel?: () => void | Promise<void>
+   *  win/terminal modal is driven from above by realtime). Resolves to
+   *  `{ illegalCells }` when a winning peel was BLOCKED by the legal-board
+   *  check (those board cells get painted red); `null` otherwise. */
+  onPeel?: () => Promise<{ illegalCells: number[] } | null>
   /** Dump a tile (calls `dump`): swap it for DUMP_COUNT from the bunch.
    *  Fired by dropping a tile on the dump slot — from the hand, or off the
    *  board (the caller clears the board cell so holdings stay consistent). */
@@ -115,6 +120,14 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [hover, setHover] = useState<Cell | null>(null)
+  // Board cells flagged illegal by a blocked winning peel (check_legal on):
+  // tiles in an invalid word or split off the main mass. Stored WITH the board
+  // they were computed against, so any edit (which changes `board`) makes them
+  // stop matching in render — they clear themselves, no effect needed.
+  const [invalid, setInvalid] = useState<{
+    board: string
+    cells: ReadonlySet<number>
+  } | null>(null)
   const [dumpHot, setDumpHot] = useState(false) // a hand tile is hovering the dump slot
   const [errFlash, setErrFlash] = useState(false)
   const [errNonce, setErrNonce] = useState(0)
@@ -396,7 +409,14 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     setDeclaring(true)
     try {
       await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
-      await onPeel()
+      // A blocked winning peel (legal-board check) hands back the offending
+      // cells; paint them red against the board they were judged on. boardRef
+      // equals the saved board here, and the board doesn't change on a peel —
+      // so the flags show until the player's next edit moves `board` past it.
+      const outcome = await onPeel()
+      if (outcome && outcome.illegalCells.length > 0) {
+        setInvalid({ board: boardRef.current, cells: new Set(outcome.illegalCells) })
+      }
     } finally {
       setDeclaring(false)
     }
@@ -526,6 +546,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   }, [minCell])
 
   // --- Render -----------------------------------------------------------
+  // The red flags apply only while the board still matches the one the legal
+  // check ran on; any edit moves `board` past it and they vanish (no effect).
+  const invalidCells = invalid && invalid.board === board ? invalid.cells : NO_CELLS
   const cells: React.ReactNode[] = []
   for (let r = 0; r < GRID; r++) {
     for (let c = 0; c < GRID; c++) {
@@ -545,7 +568,17 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           className={styles.cell + (dropOk ? ' ' + styles.dropOk : '') + (blocked ? ' ' + styles.dropNo : '')}
           onPointerDown={(e) => onCellPointerDown(r, c, e)}
         >
-          {ch !== '.' && <div className={styles.tile + (lifting ? ' ' + styles.lifted : '')}>{ch}</div>}
+          {ch !== '.' && (
+            <div
+              className={
+                styles.tile +
+                (lifting ? ' ' + styles.lifted : '') +
+                (invalidCells.has(idx(r, c)) ? ' ' + styles.tileInvalid : '')
+              }
+            >
+              {ch}
+            </div>
+          )}
           {cursorHere && (
             <div
               className={

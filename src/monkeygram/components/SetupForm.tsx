@@ -1,6 +1,7 @@
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
+  DICTIONARY_OPTIONS,
   HAND_SIZE_OPTIONS,
   MONKEYGRAM_BAG_MAX,
   tilesNeeded,
@@ -10,7 +11,7 @@ import styles from './SetupForm.module.css'
 
 /**
  * MonkeyGram's per-game setup form, rendered inside the common
- * `SetupGameDialog`. Three choices:
+ * `SetupGameDialog`. Choices:
  *
  *   - **Starter tiles** — how many tiles each player is dealt, one
  *     of {15, 21}. 21 is the Bananagrams default; 15 is a quicker
@@ -20,6 +21,8 @@ import styles from './SetupForm.module.css'
  *     hand per player — the neutral hint below shows the live "deals N"
  *     figure, and the dialog's guard (manifest `validate` →
  *     `bagSizeError`) disables Start with a red reason when it can't.
+ *   - **Check if board is legal to win** — opt-in word validation on the
+ *     winning peel; reveals a dictionary-obscurity picker (2..6) when on.
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`monkeygram.submit_timeout`).
@@ -71,6 +74,42 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           value={Number.isFinite(s.bag_size) ? s.bag_size : ''}
           onChange={(e) => onChange({ ...s, bag_size: e.target.valueAsNumber })}
         />
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
+        <legend>Winning the game</legend>
+        <label className={styles.checkRow}>
+          <input
+            type="checkbox"
+            name="check_legal"
+            checked={s.check_legal}
+            onChange={(e) => onChange({ ...s, check_legal: e.target.checked })}
+          />
+          Check if board is legal to win
+        </label>
+        <p className="muted">
+          When on, the winning peel only counts if your tiles form one
+          connected grid of real words.
+        </p>
+        {s.check_legal && (
+          <label className={styles.dictRow}>
+            Dictionary
+            <select
+              className={styles.select}
+              name="dictionary"
+              value={s.dictionary}
+              onChange={(e) =>
+                onChange({ ...s, dictionary: Number(e.target.value) })
+              }
+            >
+              {DICTIONARY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.value}: up to {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </fieldset>
 
       <TimerField

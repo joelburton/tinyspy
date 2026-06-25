@@ -125,6 +125,14 @@
   height: 100%;
   font-size: inherit; /* the grid sets font-size from the zoom */
 }
+/* A tile flagged by the legal-board check (a blocked winning peel): part of
+ * an invalid word, or split off the main mass. Red border + ring so it reads
+ * clearly at any zoom; stays until the player edits the board. */
+.tileInvalid {
+  border-color: var(--mg-error);
+  box-shadow: 0 0 0 2px var(--mg-error);
+  z-index: 1;
+}
 .lifted {
   opacity: 0.28;
 }

@@ -24,6 +24,15 @@ export type MonkeyGramSetup = {
    *  possible — `bagSizeError` enforces it in the dialog, and
    *  `create_game` re-checks server-side. */
   bag_size: number
+  /** When on, a winning peel is validated server-side: the board must be one
+   *  connected mass of real words (`monkeygram._win_blockers`) or the win is
+   *  blocked and the offending tiles flash red until edited. Off = the classic
+   *  trust-the-friends Bananagrams (no word check). Default off. */
+  check_legal: boolean
+  /** Dictionary obscurity ceiling for that check, 2..6 (`common.words`
+   *  difficulty): a word is legal iff it exists at difficulty ≤ this, so higher
+   *  = more obscure words allowed. Only meaningful when `check_legal` is on. */
+  dictionary: number
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone
    *  (`monkeygram.submit_timeout`). Validated server-side by
@@ -34,11 +43,24 @@ export type MonkeyGramSetup = {
 /** The full Bananagrams bag — the hard cap on `bag_size`. */
 export const MONKEYGRAM_BAG_MAX = 144
 
+/** The dictionary obscurity tiers offered for the legal-board check, 2..6
+ *  (`common.words` difficulty). Mirrors waffle's vocabulary bands; the label
+ *  names the *most obscure* word the dictionary will accept. */
+export const DICTIONARY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 2, label: 'Common' },
+  { value: 3, label: 'Familiar' },
+  { value: 4, label: 'Uncommon' },
+  { value: 5, label: 'Obscure' },
+  { value: 6, label: 'Expert' },
+]
+
 /** Initial setup the manifest hands the SetupGameDialog wrapper as
- *  `defaults`. Defaults to the full 144-tile bag (the classic game). */
+ *  `defaults`. Full 144-tile bag, no word check (the classic game). */
 export const DEFAULT_MONKEYGRAM_SETUP: MonkeyGramSetup = {
   hand_size: 21,
   bag_size: MONKEYGRAM_BAG_MAX,
+  check_legal: false,
+  dictionary: 4,
   timer: { kind: 'none' },
 }
 

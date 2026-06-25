@@ -264,6 +264,8 @@ declare
   new_id uuid;
   s_hand_size int;
   s_bag_size int;
+  s_check_legal boolean;
+  s_dictionary int;
   bag_text text;
   letters text[];
   shuffled text[];
@@ -305,6 +307,23 @@ begin
     raise exception 'not enough tiles: % players × % = % needed, bag holds %',
       player_count, s_hand_size, player_count * s_hand_size, s_bag_size
       using errcode = 'P0001';
+  end if;
+
+  -- check_legal (optional, default off): when on, a winning peel validates the
+  -- board against the dictionary (see peel + _win_blockers). dictionary is the
+  -- obscurity ceiling, 2..6 (common.words difficulty), required only when the
+  -- check is on.
+  s_check_legal := coalesce((setup->>'check_legal')::boolean, false);
+  if s_check_legal then
+    if (setup->>'dictionary') is null then
+      raise exception 'setup.dictionary is required when check_legal is on'
+        using errcode = 'P0001';
+    end if;
+    s_dictionary := (setup->>'dictionary')::int;
+    if s_dictionary < 2 or s_dictionary > 6 then
+      raise exception 'setup.dictionary must be between 2 and 6 (got %)', s_dictionary
+        using errcode = 'P0001';
+    end if;
   end if;
 
   perform common.validate_timer(setup->'timer');
@@ -478,6 +497,87 @@ $$;
 revoke execute on function monkeygram.save_player_board(uuid, text) from public;
 grant execute on function monkeygram.save_player_board(uuid, text) to authenticated;
 -- ============================================================
+-- monkeygram._win_blockers — board legality (optional, opt-in)
+-- ============================================================
+-- Returns the 0-indexed cells that block a legal win, or an empty array if the
+-- board is a valid Bananagrams grid. Used by peel ONLY when the game's setup
+-- has check_legal on. A board is legal when:
+--   1. every filled tile is in ONE 4-connected mass (orthogonal only — a
+--      diagonal touch does NOT connect), and
+--   2. every run of 2+ tiles (across and down) spells a real word — one in
+--      common.words at difficulty ≤ max_difficulty. Single tiles aren't words,
+--      so they're never checked against the dictionary.
+-- The blockers are the union of: tiles NOT in the main mass (the flood-fill
+-- from the top-left-most tile — so disconnected stragglers light up) and every
+-- tile of an invalid word. The FE paints these red until the player edits.
+--
+-- Plain `language sql` (not security definer): it reads only common.words
+-- (granted to all) off the `board` text it's handed, so it runs fine inside
+-- peel's definer context with nothing extra to leak.
+create function monkeygram._win_blockers(board text, max_difficulty int)
+returns int[]
+language sql
+stable
+set search_path = monkeygram, common, public, extensions
+as $$
+  with recursive filled as (
+    select i - 1 as cidx, (i - 1) / 25 as r, (i - 1) % 25 as c
+      from generate_series(1, 625) as i
+     where substr(board, i, 1) <> '.'
+  ),
+  -- Flood-fill the connected mass from the lowest-index tile (4-adjacency:
+  -- Manhattan distance 1 — never diagonal).
+  flood as (
+    select cidx, r, c from filled where cidx = (select min(cidx) from filled)
+    union
+    select f.cidx, f.r, f.c
+      from filled f
+      join flood fl on abs(f.r - fl.r) + abs(f.c - fl.c) = 1
+  ),
+  disconnected as (
+    select cidx from filled
+    except
+    select cidx from flood
+  ),
+  -- Words across: group consecutive cells in a row (gaps-and-islands on
+  -- c − row_number()); a group of 2+ is a word.
+  hgroups as (
+    select cidx, c, substr(board, cidx + 1, 1) as ch,
+           c - row_number() over (partition by r order by c) as grp, r
+      from filled
+  ),
+  hwords as (
+    select array_agg(cidx order by c) as cells, string_agg(ch, '' order by c) as word
+      from hgroups group by r, grp having count(*) >= 2
+  ),
+  -- Words down: same trick, partitioned by column.
+  vgroups as (
+    select cidx, r, substr(board, cidx + 1, 1) as ch,
+           r - row_number() over (partition by c order by r) as grp, c
+      from filled
+  ),
+  vwords as (
+    select array_agg(cidx order by r) as cells, string_agg(ch, '' order by r) as word
+      from vgroups group by c, grp having count(*) >= 2
+  ),
+  bad_word_cells as (
+    select unnest(cells) as cidx
+      from (select cells, word from hwords union all select cells, word from vwords) w
+     where not exists (
+       select 1 from common.words cw
+        where cw.word = lower(w.word) and cw.difficulty <= max_difficulty
+     )
+  )
+  select coalesce(
+    (select array_agg(distinct cidx order by cidx)
+       from (select cidx from disconnected
+             union
+             select cidx from bad_word_cells) u),
+    '{}'::int[]
+  );
+$$;
+
+-- ============================================================
 -- monkeygram.peel — draw a round, or go out (Bananas!)
 -- ============================================================
 --
@@ -495,9 +595,18 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 -- separate "declare done" move — only the manual end_game stop below).
 --
 -- peel_count comes from setup (default 1) — a future setup option can make it
--- 2 without touching this logic. There is NO board/word validation in v2; the
--- only gate is "hand empty" (placed == length(tiles)), trusting the FE flushed
--- its latest board first.
+-- 2 without touching this logic. The base gate is "hand empty" (placed ==
+-- length(tiles)), trusting the FE flushed its latest board first.
+--
+-- **Optional word check.** If setup.check_legal is on, a WINNING peel (bunch
+-- can't refill) additionally validates the board via _win_blockers: it only
+-- ends the game if the grid is one connected mass of real words. Otherwise it
+-- leaves the game in progress and returns the offending cells so the FE can
+-- paint them red. (A continuing peel — bunch can refill — is never validated;
+-- you're not winning yet.) Off → the classic trust-the-friends behavior.
+--
+-- Returns jsonb so the FE can react to a blocked win:
+--   { result: 'won' | 'dealt' | 'illegal', invalid_cells: int[] }
 --
 -- Race-safety: lock the gametype row up front so two simultaneous peels
 -- serialize. The first either ends the game or advances the pool; the second
@@ -505,7 +614,7 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 -- it. Without the lock two peelers could both draw from the same pool slice.
 
 create function monkeygram.peel(target_game uuid)
-returns void
+returns jsonb
 language plpgsql
 security definer
 set search_path = monkeygram, common, public, extensions
@@ -514,6 +623,7 @@ declare
   caller_id uuid;
   current_play_state text;
   s_setup jsonb;
+  v_board text;
   n_tiles int;
   n_placed int;
   s_peel_count int;
@@ -522,6 +632,9 @@ declare
   needed int;
   winner_name text;
   player_results jsonb;
+  v_check_legal boolean;
+  v_dictionary int;
+  v_blockers int[];
 begin
   -- Serialize concurrent peels on the gametype row (see header).
   perform 1 from monkeygram.games where id = target_game for update;
@@ -538,11 +651,11 @@ begin
   end if;
 
   -- Gate: the caller's hand must be empty (every held tile placed).
-  select length(tiles), length(replace(board, '.', ''))
-    into n_tiles, n_placed
+  select board, length(tiles), length(replace(board, '.', ''))
+    into v_board, n_tiles, n_placed
     from monkeygram.player_boards
    where game_id = target_game and user_id = caller_id;
-  if n_tiles is null then
+  if v_board is null then
     raise exception 'no board for caller' using errcode = 'P0002';
   end if;
   if n_placed <> n_tiles then
@@ -557,6 +670,19 @@ begin
 
   -- ─── Not enough to refill the table → the peeler goes out (win) ───
   if length(s_pool) < needed then
+    -- Optional word check: only the WINNING peel is validated. If the board
+    -- isn't a legal Bananagrams grid, don't end the game — hand the FE the
+    -- offending cells to paint red and let the player fix + re-peel.
+    v_check_legal := coalesce((s_setup->>'check_legal')::boolean, false);
+    if v_check_legal then
+      v_dictionary := coalesce((s_setup->>'dictionary')::int, 4);
+      v_blockers := monkeygram._win_blockers(v_board, v_dictionary);
+      if array_length(v_blockers, 1) > 0 then
+        return jsonb_build_object('result', 'illegal',
+                                  'invalid_cells', to_jsonb(v_blockers));
+      end if;
+    end if;
+
     update monkeygram.progress
        set done = true, finished_at = now()
      where game_id = target_game and user_id = caller_id;
@@ -580,7 +706,7 @@ begin
                          'pool_remaining', length(s_pool)),
       player_results
     );
-    return;
+    return jsonb_build_object('result', 'won', 'invalid_cells', '[]'::jsonb);
   end if;
 
   -- ─── Enough → every player draws peel_count from the front of the bunch ───
@@ -610,6 +736,8 @@ begin
   -- Keep the FE's bunch count current.
   perform common.update_state(target_game, 'playing',
     jsonb_build_object('pool_remaining', length(s_pool) - needed));
+
+  return jsonb_build_object('result', 'dealt', 'invalid_cells', '[]'::jsonb);
 end;
 $$;
 

@@ -49,3 +49,27 @@
 .bagInput {
   width: 5rem;
 }
+
+/* "Check if board is legal to win" checkbox row. */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.checkRow input {
+  margin: 0;
+}
+
+/* The dictionary-difficulty picker, revealed when the check is on. */
+.dictRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}

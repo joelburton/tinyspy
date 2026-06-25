@@ -37,14 +37,22 @@ export function PlayArea(ctx: GamePageCtx) {
   const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
   const { gameId, feedback, menu, isTerminal } = ctx
-  const peel = useCallback(async () => {
-    const { error } = await db.rpc('peel', { target_game: gameId })
-    // On success there's nothing to do — a continuing peel grows `tiles` (the
-    // announcement effect below reacts) and a winning peel flips is_terminal
-    // (the modal reacts). Only a failure is worth surfacing.
+  const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
+    const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
       feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+      return null
     }
+    // A blocked winning peel (check_legal on): the board isn't a legal grid, so
+    // the game stays in progress and the RPC hands back the offending cells —
+    // PlayerBoard paints them red. A 'won'/'dealt' result needs nothing here: a
+    // continuing peel grows `tiles` (the announcement effect reacts) and a
+    // winning peel flips is_terminal (the modal reacts).
+    const res = data as { result: string; invalid_cells: number[] } | null
+    if (res?.result === 'illegal') {
+      return { illegalCells: res.invalid_cells ?? [] }
+    }
+    return null
   }, [gameId, feedback])
 
   // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so

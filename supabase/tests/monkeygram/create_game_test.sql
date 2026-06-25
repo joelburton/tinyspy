@@ -19,7 +19,7 @@ begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 \ir ../_shared/setup.psql
 
@@ -131,6 +131,32 @@ select throws_ok(
   'P0001',
   'not enough tiles: 2 players × 21 = 42 needed, bag holds 40',
   'a bag too small to deal every hand is rejected'
+);
+
+-- check_legal on but dictionary missing
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L,
+       '{"hand_size": 21, "bag_size": 144, "check_legal": true, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.dictionary is required when check_legal is on',
+  'check_legal without a dictionary is rejected'
+);
+
+-- check_legal on with a dictionary out of the 2..6 band
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L,
+       '{"hand_size": 21, "bag_size": 144, "check_legal": true, "dictionary": 7, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.dictionary must be between 2 and 6 (got 7)',
+  'a dictionary above 6 is rejected'
 );
 
 -- timer missing entirely (hand_size + bag_size valid, so we reach the timer check)
