@@ -22,9 +22,9 @@ type Props = {
   /** Gametype-rendered status string, e.g. "13/16 agents" or
    *  "lost (assassin)". Produced by the manifest's `labelFor`. */
   statusLabel: string
-  /** Server-stamped game-start timestamp, ISO. Rendered as
-   *  "Mar 5, 2026, 2:11 PM" via toLocaleString. */
-  startedAt: string
+  /** `common.games.last_active_at`, ISO — the last status/progress write
+   *  (or end time), a "last played" proxy. Rendered via friendlyDate. */
+  lastActiveAt: string
   /** Where in the lifecycle this game sits. Drives both the
    *  action affordance (link vs not) and CSS treatment:
    *  prominent for current, regular for non-terminal-non-current,
@@ -58,7 +58,7 @@ type Props = {
  *     `common.games.title`. The card's biggest text.
  *   - **Status label** — the gametype's own free-form text,
  *     produced by `manifest.labelFor`.
- *   - **Started-at** date, smaller / muted.
+ *   - **Last-active** date (last play / end time), smaller / muted.
  *
  * What varies by state, all in CSS:
  *   - `active` — larger font, accent treatment.
@@ -90,7 +90,7 @@ export function ClubGameCard({
   gametype,
   title,
   statusLabel,
-  startedAt,
+  lastActiveAt,
   state,
   onDelete,
   soloClub,
@@ -99,7 +99,7 @@ export function ClubGameCard({
   // Friendly relative date — see friendlyDate.ts. Doesn't tick;
   // re-renders when ClubPage refetches via realtime, which is
   // frequent enough for a glance-at game list.
-  const startedAtLabel = friendlyDate(startedAt)
+  const dateLabel = friendlyDate(lastActiveAt)
   const [deleteState, setDeleteState] = useState<
     'idle' | 'confirming' | 'deleting'
   >('idle')
@@ -176,7 +176,7 @@ export function ClubGameCard({
               </div>
               <div className={styles.meta}>
                 <span>{statusLabel}</span>
-                <span className={styles.startedAt}>{startedAtLabel}</span>
+                <span className={styles.startedAt}>{dateLabel}</span>
               </div>
             </div>
           </div>

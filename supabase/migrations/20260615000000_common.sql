@@ -344,17 +344,25 @@ create table common.games (
   play_state text not null default 'playing',
   is_terminal boolean not null default false,
   status jsonb,
-  -- `started_at` anchors the games list ordering; it is NOT the
-  -- timer source. Elapsed game time lives in common.timers as an
-  -- additive tick count (see that table + common.tick_timer), so
-  -- pauses and "nobody viewing" gaps simply don't accrue ticks —
-  -- no wall-clock subtraction, no idle accumulator.
+  -- `started_at` is the game-start time; it is NOT the timer source
+  -- (the games list now orders by `last_active_at` below). Elapsed game
+  -- time lives in common.timers as an additive tick count (see that
+  -- table + common.tick_timer), so pauses and "nobody viewing" gaps
+  -- simply don't accrue ticks — no wall-clock subtraction, no idle
+  -- accumulator.
   started_at timestamptz not null default now(),
-  ended_at timestamptz
+  ended_at timestamptz,
+  -- Bumped to now() on every status/progress write (common.update_state)
+  -- and at terminal (common.end_game). A "last activity" proxy for "last
+  -- played": the club games list orders by and dates from this, so a
+  -- long-suspended game surfaces by when it was last touched, not when it
+  -- started. NOT bumped on is_current_view flips — that's a view change,
+  -- not play.
+  last_active_at timestamptz not null default now()
 );
 
-create index common_games_club_handle_started_at_idx
-  on common.games (club_handle, started_at desc);
+create index common_games_club_handle_last_active_idx
+  on common.games (club_handle, last_active_at desc);
 
 -- "At most one current-view game per club, across all gametypes"
 -- — the same invariant the old `is_active` partial index
@@ -1097,7 +1105,8 @@ begin
   update common.games
      set play_state = update_state.play_state,
          status = update_state.status,
-         is_terminal = false
+         is_terminal = false,
+         last_active_at = now()
    where id = target_game;
 
   if not found then
@@ -1165,7 +1174,8 @@ begin
      set ended_at = coalesce(ended_at, now()),
          play_state = end_game.play_state,
          is_terminal = true,
-         status = end_game.status
+         status = end_game.status,
+         last_active_at = now()
    where id = target_game;
 
   if not found then

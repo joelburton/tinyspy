@@ -46,7 +46,10 @@ type ListedGame = {
   gameId: string
   gametype: string
   title: string
-  startedAt: string
+  /** `common.games.last_active_at` — last status/progress write (or the
+   *  end time). The card dates + the list orders by this, so a long-
+   *  suspended game reads by when it was last played, not when it began. */
+  lastActiveAt: string
   isTerminal: boolean
   statusLabel: string
 }
@@ -397,10 +400,10 @@ export function ClubPage({ handle, session }: Props) {
       const { data } = await commonDb
         .from('games')
         .select(
-          'id, gametype, title, play_state, is_terminal, status, started_at, is_current_view',
+          'id, gametype, title, play_state, is_terminal, status, last_active_at, is_current_view',
         )
         .eq('club_handle', clubHandle)
-        .order('started_at', { ascending: false })
+        .order('last_active_at', { ascending: false })
       if (!mounted) return
 
       const rows = data ?? []
@@ -421,7 +424,7 @@ export function ClubPage({ handle, session }: Props) {
           gameId: r.id,
           gametype: r.gametype,
           title: r.title,
-          startedAt: r.started_at,
+          lastActiveAt: r.last_active_at,
           isTerminal: r.is_terminal,
           statusLabel: manifest.labelFor(listRow),
         })
@@ -576,7 +579,7 @@ export function ClubPage({ handle, session }: Props) {
                 gametype={activeGame.gametype}
                 title={activeGame.title}
                 statusLabel={activeGame.statusLabel}
-                startedAt={activeGame.startedAt}
+                lastActiveAt={activeGame.lastActiveAt}
                 state="active"
                 soloClub={soloClub}
                 onDelete={() => handleDelete(activeGame.gameId, true)}
@@ -610,7 +613,7 @@ export function ClubPage({ handle, session }: Props) {
         </section>
 
         <section className={styles.right}>
-          <h3>Other games ({otherGames.length})</h3>
+          <h3>Completed/shelved games ({otherGames.length})</h3>
           {/* Fixed-size frame with internal scroll. The frame has
               flex: 1 inside the column, which has its own flex: 1
               inside the body, which is bounded by the .frame's
@@ -628,7 +631,7 @@ export function ClubPage({ handle, session }: Props) {
                   gametype={g.gametype}
                   title={g.title}
                   statusLabel={g.statusLabel}
-                  startedAt={g.startedAt}
+                  lastActiveAt={g.lastActiveAt}
                   state={g.isTerminal ? 'completed' : 'suspended'}
                   soloClub={soloClub}
                   onDelete={() => handleDelete(g.gameId, false)}

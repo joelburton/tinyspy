@@ -152,6 +152,7 @@ export type Database = {
           id: string
           is_current_view: boolean
           is_terminal: boolean
+          last_active_at: string
           paused: boolean
           play_state: string
           setup: Json
@@ -167,6 +168,7 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           is_terminal?: boolean
+          last_active_at?: string
           paused?: boolean
           play_state?: string
           setup: Json
@@ -182,6 +184,7 @@ export type Database = {
           id?: string
           is_current_view?: boolean
           is_terminal?: boolean
+          last_active_at?: string
           paused?: boolean
           play_state?: string
           setup?: Json
