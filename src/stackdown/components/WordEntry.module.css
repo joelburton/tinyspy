@@ -6,8 +6,8 @@
   margin-top: 1rem;
 }
 
-/* One slot. Empty slots are a faint dashed placeholder; filled slots
- * carry the picked-up letter and are clickable to return the tile. */
+/* One slot. Empty slots are a dashed placeholder; filled slots carry the
+ * picked-up letter and are clickable to return the tile. */
 .slot {
   width: 48px;
   height: 48px;
@@ -16,7 +16,9 @@
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 700;
-  border: 2px dashed var(--color-surface-border);
+  /* A visible medium-grey dashed outline — the old faint one read as
+   * empty whitespace. */
+  border: 2px dashed var(--color-control-border-2);
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text);
@@ -31,4 +33,13 @@
 
 .filled:hover:not(:disabled) {
   background: var(--color-surface-hover);
+}
+
+/* Just-accepted word — a thick green "good move" border for a beat
+ * (the PlayArea clears it after ~1s, or when a new word is started).
+ * A box-shadow ring rather than a wider border so the slot doesn't
+ * resize. */
+.good {
+  border-color: var(--color-outcome-won-border);
+  box-shadow: 0 0 0 3px var(--color-outcome-won-border);
 }

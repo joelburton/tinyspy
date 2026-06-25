@@ -298,9 +298,13 @@ per-schema subscription.
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
-  roomy viewport and stays on-screen on a small one), `WordEntry` (the five-slot
-  word under the board; clicking a slot returns that tile and every tile after
-  it), `FoundWords` (the right-column game log — valid words listed, clickable to
+  roomy viewport and stays on-screen on a small one. **Post-terminal `PlayArea`
+  passes an empty `offBoard`** so the whole ORIGINAL board renders for review —
+  a won game has cleared every tile, so it'd otherwise be blank), `WordEntry`
+  (the five-slot word under the board; clicking a slot returns that tile and
+  every tile after it. A just-accepted word flashes a green "good move" border
+  for ~1s — PlayArea's `goodWord` timer — cleared early when a new word starts),
+  `FoundWords` (the right-column game log — valid words listed, clickable to
   define; invalid attempts struck through and tagged; and the muted "Requested
   hint" / "Requested word" cheat-request rows), `PlayArea` (two-column compose:
   board + entry on the left, OpponentStrip [compete] + log on the right; owns the

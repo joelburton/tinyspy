@@ -77,6 +77,30 @@ export function PlayArea({
     },
     [],
   )
+  // A just-accepted word flashes green in the entry row for a beat
+  // (positive "good move" feedback), then clears — or sooner, when the
+  // player starts a new word (onTileClick clears it).
+  const [goodWord, setGoodWord] = useState<number[] | null>(null)
+  const goodTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flashGoodWord = useCallback((tileIds: number[]) => {
+    setGoodWord(tileIds)
+    if (goodTimer.current) clearTimeout(goodTimer.current)
+    goodTimer.current = setTimeout(() => {
+      setGoodWord(null)
+      goodTimer.current = null
+    }, 1000)
+  }, [])
+  const clearGoodWord = useCallback(() => {
+    if (goodTimer.current) clearTimeout(goodTimer.current)
+    goodTimer.current = null
+    setGoodWord(null)
+  }, [])
+  useEffect(
+    () => () => {
+      if (goodTimer.current) clearTimeout(goodTimer.current)
+    },
+    [],
+  )
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -110,12 +134,14 @@ export function PlayArea({
         // valid submission lands via realtime. Teammates just see the
         // tiles leave once, on their own refetch.
         commitWord(tileIds)
+        // Flash the just-spelled word green in the entry row.
+        flashGoodWord(tileIds)
       } else {
         clearWord() // invalid → the tiles return to the board
         feedback.show({ tone: 'error', text: `Not a word: ${res.word.toUpperCase()}`, dismiss: { kind: 'timed', ms: 1500 } })
       }
     },
-    [gameId, feedback, clearWord, commitWord],
+    [gameId, feedback, clearWord, commitWord, flashGoodWord],
   )
 
   // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -160,10 +186,11 @@ export function PlayArea({
   const onTileClick = useCallback(
     (tileId: number) => {
       if (!canPlay) return
+      clearGoodWord() // starting a new word drops the green flash
       const word = appendTile(tileId)
       if (word && word.length === 5) void submit(word)
     },
-    [canPlay, appendTile, submit],
+    [canPlay, appendTile, submit, clearGoodWord],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -221,10 +248,16 @@ export function PlayArea({
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
-  // Everything off the board: tiles spent on accepted words plus the
-  // tiles currently picked up into the word being built.
-  const offBoard = new Set(removedTileIds)
-  for (const id of currentWord) offBoard.add(id)
+  // While playing, hide tiles spent on accepted words plus the tiles
+  // currently picked up into the word being built. Once the game is over,
+  // show the ORIGINAL board (a won game has cleared every tile, so it'd
+  // otherwise be blank) for review — the tiles are inert since canPlay is
+  // false.
+  const offBoard = new Set<number>()
+  if (!isTerminal) {
+    for (const id of removedTileIds) offBoard.add(id)
+    for (const id of currentWord) offBoard.add(id)
+  }
 
   const selfWon = (status?.winner as string | undefined) === session.user.id
   const over = isTerminal
@@ -255,6 +288,7 @@ export function PlayArea({
           currentWord={currentWord}
           active={canPlay}
           onRetract={retractTo}
+          goodWordTiles={goodWord}
         />
       </div>
 
