@@ -1,12 +1,12 @@
 -- ============================================================
--- Test: common.claim_username(desired text) RPC
+-- Test: common.claim_username(desired text, chosen_color text) RPC
 -- ============================================================
 --
 -- claim_username is the entry point a freshly-authenticated user
 -- hits to pick their permanent handle. It atomically:
 --
 --   1. Inserts the common.profiles row (user_id := auth.uid(),
---      chosen username, color derived from color_for_username).
+--      chosen username, the player's chosen color).
 --   2. Creates a solo club with handle '=<username>'.
 --   3. Adds the user as the solo club's sole member.
 --   4. Populates common.clubs_gametypes for the solo club —
@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(18);
+select plan(20);
 
 -- pg_temp.as_user lives in _shared/setup.psql, but we're skipping
 -- it. Inline a minimal copy so each subtest can switch sessions.
@@ -82,7 +82,7 @@ select set_config('request.jwt.claims', '', true);
 select set_config('role', 'postgres', true);
 
 select throws_ok(
-  $$ select common.claim_username('fia') $$,
+  $$ select common.claim_username('fia', 'blue') $$,
   '42501',
   'must be authenticated',
   'claim_username: unauthenticated raises 42501'
@@ -96,7 +96,7 @@ select pg_temp.as_user('f1a66666-6666-6666-6666-666666666666');
 
 -- Too short (must be 3+ chars)
 select throws_ok(
-  $$ select common.claim_username('ab') $$,
+  $$ select common.claim_username('ab', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: 2-char username rejected'
@@ -104,7 +104,7 @@ select throws_ok(
 
 -- Starts with digit (must start with letter)
 select throws_ok(
-  $$ select common.claim_username('1abc') $$,
+  $$ select common.claim_username('1abc', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: leading digit rejected'
@@ -112,7 +112,7 @@ select throws_ok(
 
 -- Uppercase letters
 select throws_ok(
-  $$ select common.claim_username('Joel') $$,
+  $$ select common.claim_username('Joel', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: uppercase letters rejected'
@@ -120,7 +120,7 @@ select throws_ok(
 
 -- Dot (only a-z, 0-9, - are allowed)
 select throws_ok(
-  $$ select common.claim_username('joel.smith') $$,
+  $$ select common.claim_username('joel.smith', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: dot rejected'
@@ -128,7 +128,7 @@ select throws_ok(
 
 -- 31 chars (1 over the cap)
 select throws_ok(
-  $$ select common.claim_username('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa') $$,
+  $$ select common.claim_username('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: 31-char username rejected'
@@ -137,10 +137,19 @@ select throws_ok(
 -- Leading = (reserved for solo-club prefix; the regex on
 -- profiles.username doesn't allow it)
 select throws_ok(
-  $$ select common.claim_username('=joel') $$,
+  $$ select common.claim_username('=joel', 'blue') $$,
   'P0001',
   'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: leading = rejected'
+);
+
+-- Off-palette color: the username is fine and fia hasn't claimed yet,
+-- so the color check is what rejects it (and nothing is inserted).
+select throws_ok(
+  $$ select common.claim_username('fia', 'chartreuse') $$,
+  'P0001',
+  'not a valid player color: chartreuse',
+  'claim_username: off-palette color rejected'
 );
 
 -- Verify no side effects landed for any of the rejected attempts.
@@ -156,7 +165,7 @@ select is(
 -- ============================================================
 
 select lives_ok(
-  $$ select common.claim_username('fia') $$,
+  $$ select common.claim_username('fia', 'blue') $$,
   'claim_username: valid claim succeeds'
 );
 
@@ -165,6 +174,13 @@ select is(
     where user_id = 'f1a66666-6666-6666-6666-666666666666'),
   'fia',
   'profile materialized with the claimed username'
+);
+
+select is(
+  (select color from common.profiles
+    where user_id = 'f1a66666-6666-6666-6666-666666666666'),
+  'blue',
+  'profile materialized with the chosen color'
 );
 
 -- Solo club: handle '=fia', name 'fia', created_by the user.
@@ -208,7 +224,7 @@ select is(
 -- from "someone else has that username."
 
 select throws_ok(
-  $$ select common.claim_username('fianewname') $$,
+  $$ select common.claim_username('fianewname', 'blue') $$,
   'P0001',
   'profile already claimed',
   'claim_username: same user can''t claim twice'
@@ -233,7 +249,7 @@ select pg_temp.as_user('9a999999-9999-9999-9999-999999999999');
 
 -- 23505 from the profiles.username UNIQUE constraint.
 select throws_ok(
-  $$ select common.claim_username('fia') $$,
+  $$ select common.claim_username('fia', 'blue') $$,
   '23505',
   null,
   'claim_username: collision on username raises 23505'

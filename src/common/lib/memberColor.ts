@@ -55,6 +55,24 @@ export function colorVarFor(name: string | null | undefined): string {
 }
 
 /**
+ * A deterministic default palette color for a username — what the claim
+ * form pre-selects so a new player isn't picking from a blank slate.
+ *
+ * A *simple* FE-only hash (not Postgres' `hashtext`): the server doesn't
+ * derive a color any more — `claim_username` just stores whatever color
+ * the form sends — so this only needs to be stable and reasonably spread
+ * across the 8 colors, not match any DB function. (`common.color_for_
+ * username` still exists for direct SQL inserts like the test personas.)
+ */
+export function defaultColorFor(username: string): string {
+  let h = 0
+  for (let i = 0; i < username.length; i++) {
+    h = (h * 31 + username.charCodeAt(i)) | 0 // keep it a 32-bit int
+  }
+  return MEMBER_COLORS[Math.abs(h) % MEMBER_COLORS.length]
+}
+
+/**
  * Build a `user_id → color CSS var` lookup map from a member
  * roster. Convenient for components that need to color N items
  * by their owner without doing the lookup themselves N times.

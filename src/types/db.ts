@@ -380,7 +380,10 @@ export type Database = {
         Args: { p_def: string; p_source: string; p_word: string }
         Returns: undefined
       }
-      claim_username: { Args: { desired: string }; Returns: string }
+      claim_username: {
+        Args: { chosen_color: string; desired: string }
+        Returns: string
+      }
       color_for_username: { Args: { username: string }; Returns: string }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }

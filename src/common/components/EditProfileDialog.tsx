@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../db'
-import { colorVarFor, MEMBER_COLORS } from '../lib/memberColor'
-import { cls } from '../lib/cls'
 import { useProfile, setProfileColor } from '../hooks/useProfile'
+import { ColorChoiceList } from './ColorChoiceList'
 import { FloatingPanel } from './FloatingPanel'
 import styles from './EditProfileDialog.module.css'
 
@@ -74,28 +73,7 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
 
         <fieldset className={styles.field}>
           <legend className={styles.label}>Player color</legend>
-          <div className={styles.swatches}>
-            {MEMBER_COLORS.map((name) => (
-              <button
-                type="button"
-                key={name}
-                className={cls(
-                  styles.swatch,
-                  selected === name && styles.swatchActive,
-                )}
-                onClick={() => setPicked(name)}
-                disabled={busy}
-                aria-pressed={selected === name}
-              >
-                <span
-                  className={styles.dot}
-                  style={{ background: colorVarFor(name) }}
-                  aria-hidden
-                />
-                <span className={styles.swatchName}>{name}</span>
-              </button>
-            ))}
-          </div>
+          <ColorChoiceList value={selected} onChange={setPicked} disabled={busy} />
         </fieldset>
 
         {error && <p className="error">{error}</p>}

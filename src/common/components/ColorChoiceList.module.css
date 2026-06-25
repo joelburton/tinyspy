@@ -1,0 +1,40 @@
+/* The palette as a 2-column grid of selectable swatches. */
+.swatches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* One color option: the actual color circle + its name. The selected
+ * one gets an accent ring. */
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+.swatch:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+.swatchActive {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.dot {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  flex: none;
+}
+
+.swatchName {
+  text-transform: capitalize;
+}

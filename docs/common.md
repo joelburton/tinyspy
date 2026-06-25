@@ -172,8 +172,8 @@ There is no `handle_new_user` trigger anymore. The flow is now user-driven:
 1. User signs in via magic link → `auth.users` row materializes; `useSession` detects the new session.
 2. `useSession` queries `common.profiles` for the row; missing row → returns `needsClaim: true`.
 3. `App.tsx` gates on `needsClaim` and renders `<ClaimHandleScreen>` instead of HomePage.
-4. User picks a handle that matches the regex `^[a-z][a-z0-9-]{2,29}$`. Submit calls `common.claim_username(desired text)`.
-5. The RPC atomically inserts the profile row, creates the `=<username>` solo club, adds the membership row, and seeds `clubs_gametypes` for the solo club with every **solo-playable** gametype (`min_players <= 1` — a one-member club is never enrolled in a two-player game; see `common.default_gametypes_for_club`).
+4. User picks a handle that matches the regex `^[a-z][a-z0-9-]{2,29}$` and a **player color** (pre-selected from a deterministic FE hash of the username via `defaultColorFor`, but changeable). Submit calls `common.claim_username(desired text, chosen_color text)`.
+5. The RPC atomically inserts the profile row (with the chosen color — it's **required**, validated against the palette; the DB doesn't derive a default), creates the `=<username>` solo club, adds the membership row, and seeds `clubs_gametypes` for the solo club with every **solo-playable** gametype (`min_players <= 1` — a one-member club is never enrolled in a two-player game; see `common.default_gametypes_for_club`).
 6. `useSession` re-probes; `needsClaim` flips to false; HomePage mounts.
 
 Reject reasons:
@@ -183,6 +183,7 @@ Reject reasons:
 | not authenticated                        | `42501`  |
 | handle fails the regex                   | `P0001`  |
 | profile already claimed (this user)      | `P0001`  |
+| color not in the 8-entry palette         | `P0001`  |
 | handle collision with another profile    | `23505`  |
 | auth.users row vanished (stale-JWT case) | `23503`  |
 
@@ -192,9 +193,9 @@ The 23503 case surfaces when a stale JWT from a previous Supabase project sits i
 
 All RPCs in `common` are `security definer` and granted only to the `authenticated` role.
 
-### `common.claim_username(desired text) → text`
+### `common.claim_username(desired text, chosen_color text) → text`
 
-Atomically creates this caller's profile, solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the claimed username. Reject reasons in [Username claim flow](#username-claim-flow) above.
+Atomically creates this caller's profile (with the chosen player color — required, palette-validated; no server-side default), solo club (`=<username>`), solo-club membership, and clubs_gametypes seeds. Called once per user on first sign-in via `<ClaimHandleScreen>`. Returns the claimed username. Reject reasons in [Username claim flow](#username-claim-flow) above.
 
 ### `common.create_club(club_name text, member_usernames text[]) → text`
 

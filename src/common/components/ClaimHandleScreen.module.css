@@ -1,0 +1,48 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+/* A field: label over its control, with the help text on its own line
+ * below. Used for both the username <label> and the color <fieldset>
+ * (the fieldset reset keeps them aligned). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.field input {
+  width: 100%;
+}
+
+.label {
+  font-weight: 600;
+  padding: 0;
+}
+
+/* The username rules — on its own line under the input (tone comes from
+ * the `muted` / `error` utility class applied alongside). */
+.help {
+  font-size: 0.9rem;
+}
+
+/* Accept + "Not you? Sign out" share one row, right-justified, macOS
+ * order: Sign out (secondary) on the left, Accept (default) rightmost.
+ * See docs/ui.md → Dialog buttons. */
+.buttonRow {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+.buttonRow button {
+  min-width: 6rem;
+}

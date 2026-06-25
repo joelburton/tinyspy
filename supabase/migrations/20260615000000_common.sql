@@ -1664,7 +1664,7 @@ grant execute on function common.send_message(text, text) to authenticated;
 -- but the explicit P0001 reads cleaner in error display. Belt-
 -- and-braces.
 
-create function common.claim_username(desired text)
+create function common.claim_username(desired text, chosen_color text)
 returns text
 language plpgsql
 security definer
@@ -1694,10 +1694,19 @@ begin
     raise exception 'profile already claimed' using errcode = 'P0001';
   end if;
 
-  -- Color is derived from the username deterministically so the
-  -- choice is stable across db:reset and predictable in tests.
+  -- The player picks their color on the claim form (the FE defaults it
+  -- to a simple hash of the username — see defaultColorFor — but they
+  -- can change it). The DB just requires a valid one; there's no
+  -- server-side default. Friendly P0001 over the raw CHECK. (Direct SQL
+  -- inserts, e.g. the test personas, still supply their own color —
+  -- common.color_for_username remains for that deterministic seeding.)
+  if chosen_color not in
+       ('red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink') then
+    raise exception 'not a valid player color: %', chosen_color using errcode = 'P0001';
+  end if;
+
   insert into common.profiles (user_id, username, color)
-  values (caller_id, desired, common.color_for_username(desired));
+  values (caller_id, desired, chosen_color);
 
   insert into common.clubs (handle, name, created_by)
   values ('=' || desired, desired, caller_id);
@@ -1713,8 +1722,8 @@ begin
 end;
 $$;
 
-revoke execute on function common.claim_username(text) from public;
-grant execute on function common.claim_username(text) to authenticated;
+revoke execute on function common.claim_username(text, text) from public;
+grant execute on function common.claim_username(text, text) to authenticated;
 
 -- ============================================================
 -- common.update_profile_color — change your own player color

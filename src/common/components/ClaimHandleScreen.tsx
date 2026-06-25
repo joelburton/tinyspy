@@ -1,6 +1,10 @@
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../db'
 import { supabase } from '../lib/supabase'
+import { cls } from '../lib/cls'
+import { defaultColorFor } from '../lib/memberColor'
+import { ColorChoiceList } from './ColorChoiceList'
+import styles from './ClaimHandleScreen.module.css'
 
 type Props = {
   /** Re-probe the profile table after the claim_username RPC
@@ -14,20 +18,19 @@ type Props = {
 }
 
 /**
- * Username-claim gate. Rendered by App.tsx when `useSession`
- * reports `needsClaim` (= signed in but no profiles row).
+ * First-run setup gate. Rendered by App.tsx when `useSession` reports
+ * `needsClaim` (= signed in but no profiles row).
  *
- * One input + one submit. The chosen handle becomes the user's
- * permanent identity: shown in chat, listed on every game roster,
- * and used as the literal handle of their solo club (`=<username>`).
- * Immutable post-claim — the "I want a different name later"
- * escape hatch is delete-and-recreate.
+ * Two fields: a username (the user's permanent handle — shown in chat,
+ * on every game roster, and as the literal handle of their solo club
+ * `=<username>`; immutable post-claim) and a player color. The color
+ * defaults to a deterministic hash of the username (`defaultColorFor`)
+ * so it's pre-selected, but they can change it here or later from the
+ * profile dialog.
  *
- * The regex is enforced both in the FE (instant feedback as the
- * user types) and on the server (CHECK constraint + RPC's explicit
- * P0001 raise). The two surfaces use the same source-of-truth
- * pattern, kept in sync with the SQL CHECK in
- * 20260615000000_common.sql.
+ * The username regex is enforced both in the FE (instant feedback) and
+ * on the server (CHECK + the RPC's P0001 raise), kept in sync with the
+ * SQL CHECK in 20260615000000_common.sql.
  *
  * Error mapping (the RPC's SQLSTATE codes → display):
  *   - P0001 "username must be 3–30 chars …" → show as-is
@@ -69,19 +72,20 @@ function suggestedHandleFromEmail(email: string | null | undefined): string {
 }
 
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
-  // Pre-fill with the email-derived suggestion as an editable
-  // default — the user can accept it as-is (one click on Claim) or
-  // type over it. Lazy initializer so it runs once on mount; `email`
-  // is always present here (App only renders this screen for a
-  // signed-in session). Empty string when the email yields no valid
-  // handle, so the field just starts blank.
+  // Pre-fill with the email-derived suggestion as an editable default.
   const [desired, setDesired] = useState(() => suggestedHandleFromEmail(email))
+  // The player's explicit color pick, or null to use the username
+  // default. `selected` resolves the two.
+  const [picked, setPicked] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // FE-side regex check, shown as you type. Empty string → no
-  // hint (don't badger the user before they've typed anything).
+  // FE-side regex check, shown as you type. Empty string → no hint
+  // (don't badger the user before they've typed anything).
   const localValid = desired.length === 0 || HANDLE_REGEX.test(desired)
+  // The color shown selected: the player's pick, else a deterministic
+  // default from the username (updates as they type until they pick).
+  const selected = picked ?? defaultColorFor(desired)
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -95,6 +99,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     setBusy(true)
     const { error: rpcError } = await commonDb.rpc('claim_username', {
       desired,
+      chosen_color: selected,
     })
     setBusy(false)
 
@@ -119,16 +124,17 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
 
   return (
     <div className="card">
-      <h1>Pick a username</h1>
+      <h1>Let&rsquo;s set you up</h1>
       <p>
-        This is your permanent handle — it shows up everywhere in
-        the app (chat, rosters, URLs) and can't be changed later. So
-        pick one you'll be happy with.
+        Your username is your permanent handle — it shows up everywhere
+        in the app (chat, rosters, URLs) and can&rsquo;t be changed later,
+        so pick one you&rsquo;ll be happy with. Your color is just a
+        starting point; you can change it any time from your profile.
       </p>
 
-      <form onSubmit={onSubmit}>
-        <label>
-          Username
+      <form onSubmit={onSubmit} className={styles.form}>
+        <label className={styles.field}>
+          <span className={styles.label}>Username</span>
           <input
             type="text"
             value={desired}
@@ -137,35 +143,37 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
             autoFocus
             required
           />
-          <span className={localValid ? 'muted' : 'error'}>
-            3–30 characters: lowercase letters, digits, and hyphens.
-            Must start with a letter.
+          <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
+            3–30 characters: lowercase letters, digits, and hyphens. Must
+            start with a letter.
           </span>
         </label>
 
+        <fieldset className={styles.field}>
+          <legend className={styles.label}>Player color</legend>
+          <ColorChoiceList value={selected} onChange={setPicked} disabled={busy} />
+        </fieldset>
+
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={busy || !HANDLE_REGEX.test(desired)}>
-          {busy ? 'Claiming…' : 'Claim username'}
-        </button>
+        {/* Always-available escape (a user can land here on a stale
+            session and not want — or be able — to claim anything; the
+            rest of the app's chrome isn't mounted behind the needsClaim
+            gate). Sits beside Accept now, styled as a real button. */}
+        <div className={styles.buttonRow}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => void supabase.auth.signOut()}
+          >
+            Not you? Sign out
+          </button>
+          <button type="submit" disabled={busy || !HANDLE_REGEX.test(desired)}>
+            {busy ? 'Setting up…' : 'Accept'}
+          </button>
+        </div>
       </form>
-
-      {/* Always-available escape. A user can land here on a stale session
-          (e.g. the DB was reset out from under them) and not want — or be
-          able — to claim anything; without a way out they're stuck on this
-          screen, since the rest of the app's chrome (UserMenu) isn't
-          mounted behind the needsClaim gate. Signing out drops them to
-          LoginScreen so they can authenticate fresh. */}
-      <p className="home-footer">
-        <button
-          type="button"
-          className="link-button"
-          disabled={busy}
-          onClick={() => void supabase.auth.signOut()}
-        >
-          Not you? Sign out
-        </button>
-      </p>
     </div>
   )
 }
