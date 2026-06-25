@@ -352,17 +352,44 @@ create table common.games (
   -- accumulator.
   started_at timestamptz not null default now(),
   ended_at timestamptz,
-  -- Bumped to now() on every status/progress write (common.update_state)
-  -- and at terminal (common.end_game). A "last activity" proxy for "last
-  -- played": the club games list orders by and dates from this, so a
-  -- long-suspended game surfaces by when it was last touched, not when it
-  -- started. NOT bumped on is_current_view flips — that's a view change,
-  -- not play.
+  -- "Last activity" — the club games list orders by and dates from this, so
+  -- a long-suspended game surfaces by when it was last touched, not when it
+  -- started. Maintained by the `games_touch_last_active` BEFORE UPDATE
+  -- trigger below, NOT by hand: every write to this row sets it to now().
+  -- Driving it from the trigger rather than imperatively in each RPC is the
+  -- whole point — a gametype CAN'T forget to bump it (we did forget, in an
+  -- early stackdown path). Because every meaningful game event writes this
+  -- row — a move (common.update_state), shelving / resuming (the
+  -- is_current_view flip), a pause, the terminal write (common.end_game) —
+  -- the timestamp lands on "last touched," which is exactly the
+  -- shelved/ended/last-played reading the list wants.
   last_active_at timestamptz not null default now()
 );
 
 create index common_games_club_handle_last_active_idx
   on common.games (club_handle, last_active_at desc);
+
+-- Keep `last_active_at` current on EVERY update to a games row, without any
+-- RPC having to remember to. A BEFORE UPDATE trigger that stamps now() is
+-- forget-proof in a way imperative `set last_active_at = now()` is not — the
+-- prompt for this was a stackdown move path that wrote its own schema and
+-- updated the games row's title (so the timestamp rode along) but had no
+-- imperative bump of its own. now() (= transaction_timestamp) matches
+-- started_at / ended_at, so all three read consistently within a transaction.
+create function common.touch_games_last_active()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.last_active_at := now();
+  return new;
+end;
+$$;
+
+create trigger games_touch_last_active
+  before update on common.games
+  for each row
+  execute function common.touch_games_last_active();
 
 -- "At most one current-view game per club, across all gametypes"
 -- — the same invariant the old `is_active` partial index
@@ -1102,11 +1129,11 @@ security definer
 set search_path = common, public, extensions
 as $$
 begin
+  -- last_active_at rides along automatically (games_touch_last_active).
   update common.games
      set play_state = update_state.play_state,
          status = update_state.status,
-         is_terminal = false,
-         last_active_at = now()
+         is_terminal = false
    where id = target_game;
 
   if not found then
@@ -1170,12 +1197,13 @@ declare
   player_key text;
   player_result jsonb;
 begin
+  -- last_active_at rides along automatically (games_touch_last_active), so
+  -- a finished game dates by its end time.
   update common.games
      set ended_at = coalesce(ended_at, now()),
          play_state = end_game.play_state,
          is_terminal = true,
-         status = end_game.status,
-         last_active_at = now()
+         status = end_game.status
    where id = target_game;
 
   if not found then

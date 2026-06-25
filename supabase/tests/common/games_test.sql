@@ -31,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(44);
+select plan(45);
 
 \ir ../_shared/setup.psql
 
@@ -671,6 +671,32 @@ select throws_ok(
   'P0002',
   'game not found',
   'delete_game: unknown game raises P0002'
+);
+
+-- ============================================================
+-- games_touch_last_active trigger: every UPDATE stamps now()
+-- ============================================================
+-- last_active_at is maintained by a BEFORE UPDATE trigger, not by
+-- hand — so no RPC can forget it. Prove it the blunt way: write an
+-- ancient timestamp directly and watch the trigger override it to
+-- now(). (now() is the transaction clock — "this test run" — which is
+-- comfortably after 2020.) That the column comes back recent, despite
+-- the UPDATE explicitly setting it to 2000, is the whole guarantee:
+-- the trigger fires on the row write regardless of what was set.
+--
+-- second_game_id is still live here (only created_game_id was deleted).
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+update common.games
+   set last_active_at = '2000-01-01T00:00:00Z'
+ where id = current_setting('test.second_game_id')::uuid;
+
+select ok(
+  (select last_active_at from common.games
+     where id = current_setting('test.second_game_id')::uuid)
+    > '2020-01-01T00:00:00Z'::timestamptz,
+  'games_touch_last_active: an UPDATE that sets an old last_active_at is overridden to now() (forget-proof)'
 );
 
 -- ============================================================

@@ -1137,6 +1137,7 @@ export type Database = {
       }
     }
     Functions: {
+      _found_title: { Args: { n: number; solution: string[] }; Returns: string }
       _is_exposed: {
         Args: { gone: number[]; tid: number; tiles: Json }
         Returns: boolean
