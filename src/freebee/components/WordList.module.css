@@ -1,15 +1,9 @@
-/* The found-words list. Multi-column alphabetical flow with a
- * fixed row-height so columns balance evenly. Mid-game each word
- * renders in the finder's color (per-finder attribution) and the
- * recently-found state adds a thick same-color underline that
- * fades after 5s; post-terminal the list switches to the muted
- * cat-A / cat-B review styling below.
- *
- * Same visual idiom as freebee-ws WordList, simplified for
- * pupgames Phase 4: no in-list definition popover (that's the
- * common dictionary feature, deferred), no pagination nav (the
- * panel scrolls vertically instead — simpler than measuring
- * the rendered layout to derive page size).
+/* The found-words list. A three-column grid filled row-major
+ * (alphabetical left-to-right then down), scrolling vertically in a
+ * fixed-height box. Mid-game each word renders in the finder's color
+ * (per-finder attribution) and the recently-found state adds a thick
+ * same-color underline that fades after 5s; post-terminal the list
+ * switches to the muted cat-A / cat-B review styling below.
  */
 
 .wrapper {
@@ -32,6 +26,10 @@
   margin-bottom: 8px;
 }
 
+/* Three-column grid, filled ROW-major (alphabetical left-to-right then
+ * down) — A B C across the top, D E F below — unlike the old balanced
+ * two-column flow which read top-to-bottom. Fixed-height box that scrolls
+ * as words pile up; rows pack to the top. */
 .list {
   list-style: none;
   margin: 0;
@@ -39,22 +37,21 @@
   /* --wl-row-height is referenced by the row-style below;
    * keeping it as a token means a future media query can tweak
    * the density without re-writing the row CSS. */
-  --wl-row-height: 22px;
-  column-count: 2;
+  --wl-row-height: 26px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 16px;
-  column-fill: balance;
+  align-content: start;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
 }
 
 .row {
-  font-size: 14px;
+  font-size: 17px;
   line-height: var(--wl-row-height);
   letter-spacing: 0.02em;
   color: var(--color-text);
-  /* Avoid breaking a row across columns. */
-  break-inside: avoid;
   /* Every row is click-to-define (see WordList.tsx). */
   cursor: pointer;
 }
@@ -77,11 +74,14 @@
   font-weight: 700;
 }
 
-/* Bonus indicator — a small dot after the word, in the resting
- * muted color. The word itself otherwise renders normally. */
+/* Bonus indicator — a bullet after the word, in the resting muted
+ * color. Bigger than the old hair-thin middle dot so "this one's a
+ * bonus" reads at a glance. The word itself otherwise renders normally. */
 .bonus::after {
-  content: '·';
-  margin-left: 4px;
+  content: '•';
+  margin-left: 5px;
+  font-size: 0.85em;
+  vertical-align: 0.05em;
   color: var(--color-muted);
 }
 
@@ -94,6 +94,9 @@
 }
 
 .empty {
+  /* Span the full grid so the placeholder centers instead of sitting
+   * in the first column. */
+  grid-column: 1 / -1;
   font-style: italic;
   color: var(--color-muted);
   text-align: center;

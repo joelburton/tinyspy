@@ -79,11 +79,11 @@ type Props = {
  * shared dictionary-lookup feature (backed by the `define` edge
  * function). See `rowActivation` below for the click/keyboard wiring.
  *
- * No pagination either — for v1 we let the panel scroll
- * vertically. The freebee-ws version measures column layout
- * to derive a page size, which is appropriate for the fixed-
- * height side panel that game has. Pupgames keeps it simpler
- * until a real need shows up.
+ * Layout: a three-column grid filled **row-major** — alphabetical
+ * left-to-right then down (A B C across the top, D E F below) — in a
+ * fixed-height box that scrolls vertically as words pile up. (No
+ * pagination; the freebee-ws version measures column layout to derive a
+ * page size, which we keep simpler until a real need shows up.)
  */
 export function WordList({
   foundWords,

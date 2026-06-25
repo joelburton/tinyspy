@@ -9,11 +9,13 @@
 
 .playArea {
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) minmax(280px, 1fr);
+  /* Right panel runs wider than the left now so the word list shows
+     three columns comfortably (see WordList.module.css). */
+  grid-template-columns: minmax(320px, 1fr) minmax(400px, 1.15fr);
   gap: 32px;
   align-items: start;
   padding: 24px 16px 48px;
-  max-width: 880px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
