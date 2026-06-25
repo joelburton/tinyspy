@@ -3,6 +3,7 @@ import { games } from '../../games'
 import { Link } from '../lib/Link'
 import { cls } from '../lib/cls'
 import { friendlyDate } from '../lib/friendlyDate'
+import { GameLogo } from './GameLogo'
 import { ModePill } from './ModePill'
 import styles from './ClubGameCard.module.css'
 
@@ -47,10 +48,12 @@ type Props = {
  * for the current game and every game in the merged "other games"
  * list on ClubPage.
  *
- * One component, three states. The fields are the same:
+ * Mirrors the StartGameButtons cards (logo + stacked content) so the
+ * played-games list reads as their sibling. One component, three states.
+ * The fields:
  *
- *   - **Gametype name** — small label above the title, from the
- *     manifest.
+ *   - **Gametype logo** — the `<GameLogo>` on the left (was a text
+ *     label), identifying the game like the start buttons do.
  *   - **Title** — the algorithmic per-game title from
  *     `common.games.title`. The card's biggest text.
  *   - **Status label** — the gametype's own free-form text,
@@ -93,7 +96,6 @@ export function ClubGameCard({
   soloClub,
 }: Props) {
   const manifest = games.find((g) => g.gametype === gametype)
-  const gameTypeName = manifest?.name ?? gametype
   // Friendly relative date — see friendlyDate.ts. Doesn't tick;
   // re-renders when ClubPage refetches via realtime, which is
   // frequent enough for a glance-at game list.
@@ -160,16 +162,24 @@ export function ClubGameCard({
               aria-hidden="true"
             />
           )}
-          <div className={styles.gametypeRow}>
-            <span className={styles.gametype}>{gameTypeName}</span>
-            {manifest && (
-              <ModePill mode={manifest.mode} soloClub={soloClub} />
-            )}
-          </div>
-          {title && <div className={styles.title}>{title}</div>}
-          <div className={styles.statusRow}>
-            <span className={styles.status}>{statusLabel}</span>
-            <span className={styles.startedAt}>{startedAtLabel}</span>
+          {/* Logo + content, mirroring the StartGameButtons cards: the
+              gametype logo (was a text label) on the left, the
+              algorithmic title + a muted status/date line on the right. */}
+          <div className={styles.body}>
+            <GameLogo gametype={gametype} />
+            <div className={styles.content}>
+              <div className={styles.titleRow}>
+                {title && <span className={styles.title}>{title}</span>}
+                {manifest && (
+                  <ModePill mode={manifest.mode} soloClub={soloClub} />
+                )}
+              </div>
+              <div className={styles.meta}>
+                {statusLabel}
+                {' · '}
+                {startedAtLabel}
+              </div>
+            </div>
           </div>
         </div>
       </Link>
