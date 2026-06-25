@@ -16,9 +16,9 @@
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 700;
-  /* A visible medium-grey dashed outline — the old faint one read as
-   * empty whitespace. */
-  border: 2px dashed var(--color-control-border-2);
+  /* A clearly-visible dark-grey dashed outline — earlier shades read as
+   * empty whitespace and were easy to miss. */
+  border: 2px dashed var(--color-muted);
   border-radius: var(--radius-md);
   background: transparent;
   color: var(--color-text);
