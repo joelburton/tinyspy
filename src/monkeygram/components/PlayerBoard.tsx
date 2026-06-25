@@ -43,6 +43,10 @@ const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
 const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
 const DUMP_COUNT = 3 // tiles drawn per dump (server default; mirrored for the FE label/gate)
+// Tile letter size as a fraction of the cell (px). A touch larger than half
+// the tile so the letter stays legible when the board is zoomed out — the tile
+// shrinks with zoom, the letter keeps a bit more of it.
+const LETTER_SCALE = 0.6
 
 type Cell = { row: number; col: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
@@ -567,7 +571,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
               gridTemplateRows: `repeat(${GRID}, ${cell}px)`,
               width: GRID * cell,
               height: GRID * cell,
-              fontSize: cell * 0.5,
+              fontSize: cell * LETTER_SCALE,
             }}
           >
             {cells}
@@ -675,7 +679,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       {drag && (
         <div
           className={styles.ghost}
-          style={{ left: drag.x, top: drag.y, width: cell, height: cell, fontSize: cell * 0.5 }}
+          style={{ left: drag.x, top: drag.y, width: cell, height: cell, fontSize: cell * LETTER_SCALE }}
         >
           {drag.letter}
         </div>
