@@ -9,11 +9,12 @@ import styles from './FoundWords.module.css'
 /**
  * The submission log — the right-column "found words" list, guess-log
  * style. Every submission lands here in order as a bordered row with a
- * left status-bar: a valid word (green) numbered #1, #2, …, an invalid
- * attempt struck through + tagged "not a word" (red), and the logged
- * cheat requests (orange). All are durable rows in
- * `stackdown.submissions` — this is just a projection of realtime. Only
- * the played words get a number; the requests are asides.
+ * left status-bar: a valid word (green), an invalid attempt struck
+ * through + tagged "not a word" (red), and the logged cheat requests
+ * (orange). All are durable rows in `stackdown.submissions` — this is
+ * just a projection of realtime. Every row is numbered #1, #2, … in
+ * order — including the cheat requests, so asking for a hint reads as
+ * having "cost a turn" rather than being free.
  *
  * Coop shows who played each word (`showWho`); compete shows only the
  * caller's own attempts (RLS already hides opponents mid-game), so the
@@ -73,12 +74,6 @@ export function FoundWords({
 
   const found = submissions.filter((s) => s.valid).length
 
-  // A played word's number is how many played words appear up to and
-  // including it (the requests aren't guesses, so they're skipped).
-  // Computed purely from the index — no render-time mutable counter.
-  const guessNumber = (i: number) =>
-    submissions.slice(0, i + 1).filter((x) => x.kind === 'word').length
-
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
@@ -92,13 +87,15 @@ export function FoundWords({
           {submissions.map((s, i) => {
             // Cheat-request rows: a logged "Requested hint" / "Requested
             // word" (shown to point out — gently — that someone asked).
-            // Orange bar; no guess number (it isn't a guess).
+            // Orange bar, and numbered like any other row so a hint reads
+            // as having "cost a turn" rather than being free.
             if (s.kind === 'hint' || s.kind === 'reveal') {
               return (
                 <li
                   key={`${s.user_id}-${s.seq}`}
                   className={cls(styles.row, styles.barOrange)}
                 >
+                  <span className={styles.num}>#{i + 1}</span>
                   <span className={styles.requestLabel}>
                     Requested {s.kind === 'hint' ? 'hint' : 'word'}
                   </span>
@@ -117,7 +114,7 @@ export function FoundWords({
                   !s.valid && styles.invalid,
                 )}
               >
-                <span className={styles.num}>#{guessNumber(i)}</span>
+                <span className={styles.num}>#{i + 1}</span>
                 {s.valid && s.word ? (
                   <span
                     className={cls(styles.word, styles.clickable)}
