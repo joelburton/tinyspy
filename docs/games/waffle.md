@@ -196,6 +196,13 @@ Timer is optional (`none` / `countup` / `countdown`, via `common.validate_timer`
 A countdown is a pace/cap: on expiry, coop → `lost`; compete forces any
 not-yet-done player to "done" (failed) and computes the winner among solvers.
 
+### Title formula
+
+The difficulty **band name**: `create_game` maps `setup.difficulty` (1–6) to
+one of Universal / Common / Familiar / Uncommon / Obscure / Expert. Same in
+both modes — the band is the one player-facing knob, so it's what names the
+game in the club list.
+
 ## Board generation: `waffle-build-board` (edge function)
 
 **No external corpus** (unlike wordknit's found Connections collection) and **no

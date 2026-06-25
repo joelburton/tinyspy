@@ -58,6 +58,13 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus freebee's per-gu
 - **`submit_guess(game, guess) → jsonb`** — `FOR UPDATE` lock (coop serialization). Soft rejects (no burn, no row): `invalid` (not 5 a–z), `notAWord` (not in `len=5, difficulty≤4`), `duplicate`. A valid fresh word → compute colors, log it, `guesses_used++` (coop: all rows; compete: caller), set `solved`. Terminal: coop → `won`/`lost`; compete → when every player is done, winner = fewest guesses (tie earliest) → `won_compete`/`lost_compete`. Returns `{ result, colors, guesses_used, solved, terminal }`; `result ∈ correct | incorrect | notAWord | duplicate | invalid`.
 - **`submit_timeout`** / **`end_game`** — mirror waffle's (countdown loss / race-resolve; manual neutral `ended`). Both fire a realtime "touch" on `wordle.games` so the FE refetches the now-revealed target.
 
+### Title formula
+
+Static: the string **"WordNerd"**, passed verbatim by `create_game` in both
+modes. There's nothing per-game to put in the club list — the target is hidden
+(it can't sit in a club-wide-readable column), and the gametype logo already
+identifies the game — so the title carries no board-specific info.
+
 ## Frontend (`src/wordle/`)
 
 `manifest` (sibling pair; `startGameInClub` calls `create_game` directly), `db.ts`, `hooks/useGame` (games_state + players + guesses, refetch pattern), and components:
