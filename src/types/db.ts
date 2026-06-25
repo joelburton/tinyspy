@@ -760,7 +760,7 @@ export type Database = {
     }
     Functions: {
       _win_blockers: {
-        Args: { board: string; max_difficulty: number }
+        Args: { board: string; check_words: boolean; max_difficulty: number }
         Returns: number[]
       }
       create_game: {

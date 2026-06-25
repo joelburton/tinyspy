@@ -43,9 +43,10 @@ export function PlayArea(ctx: GamePageCtx) {
       feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
       return null
     }
-    // A blocked winning peel (check_legal on): the board isn't a legal grid, so
-    // the game stays in progress and the RPC hands back the offending cells —
-    // PlayerBoard paints them red. A 'won'/'dealt' result needs nothing here: a
+    // A blocked winning peel: the board isn't a legal grid (disconnected, or —
+    // with check_words on — a non-word), so the game stays in progress and the
+    // RPC hands back the offending cells — PlayerBoard paints them red. A
+    // 'won'/'dealt' result needs nothing here: a
     // continuing peel grows `tiles` (the announcement effect reacts) and a
     // winning peel flips is_terminal (the modal reacts).
     const res = data as { result: string; invalid_cells: number[] } | null

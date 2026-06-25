@@ -120,7 +120,8 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [hover, setHover] = useState<Cell | null>(null)
-  // Board cells flagged illegal by a blocked winning peel (check_legal on):
+  // Board cells flagged illegal by a blocked winning peel (disconnected, or —
+  // with check_words on — in an invalid word):
   // tiles in an invalid word or split off the main mass. Stored WITH the board
   // they were computed against, so any edit (which changes `board`) makes them
   // stop matching in render — they clear themselves, no effect needed.

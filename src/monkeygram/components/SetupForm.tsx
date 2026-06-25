@@ -21,8 +21,9 @@ import styles from './SetupForm.module.css'
  *     hand per player — the neutral hint below shows the live "deals N"
  *     figure, and the dialog's guard (manifest `validate` →
  *     `bagSizeError`) disables Start with a red reason when it can't.
- *   - **Check if board is legal to win** — opt-in word validation on the
- *     winning peel; reveals a dictionary-obscurity picker (2..6) when on.
+ *   - **Require real words to win** — opt-in dictionary check on the winning
+ *     peel; reveals a dictionary-obscurity picker (2..6) when on. (Board
+ *     geography — one connected grid — is always required, so it's not a knob.)
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`monkeygram.submit_timeout`).
@@ -78,20 +79,20 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
 
       <fieldset className={styles.fieldset}>
         <legend>Winning the game</legend>
+        <p className="muted">
+          To go out, your tiles must always form one connected grid. Optionally,
+          require every word in it to be real:
+        </p>
         <label className={styles.checkRow}>
           <input
             type="checkbox"
-            name="check_legal"
-            checked={s.check_legal}
-            onChange={(e) => onChange({ ...s, check_legal: e.target.checked })}
+            name="check_words"
+            checked={s.check_words}
+            onChange={(e) => onChange({ ...s, check_words: e.target.checked })}
           />
-          Check if board is legal to win
+          Require real words to win
         </label>
-        <p className="muted">
-          When on, the winning peel only counts if your tiles form one
-          connected grid of real words.
-        </p>
-        {s.check_legal && (
+        {s.check_words && (
           <label className={styles.dictRow}>
             Dictionary
             <select

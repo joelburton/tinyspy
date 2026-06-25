@@ -264,7 +264,7 @@ declare
   new_id uuid;
   s_hand_size int;
   s_bag_size int;
-  s_check_legal boolean;
+  s_check_words boolean;
   s_dictionary int;
   bag_text text;
   letters text[];
@@ -309,14 +309,14 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- check_legal (optional, default off): when on, a winning peel validates the
-  -- board against the dictionary (see peel + _win_blockers). dictionary is the
-  -- obscurity ceiling, 2..6 (common.words difficulty), required only when the
-  -- check is on.
-  s_check_legal := coalesce((setup->>'check_legal')::boolean, false);
-  if s_check_legal then
+  -- check_words (optional, default off): when on, a winning peel additionally
+  -- requires every word to be real (see peel + _win_blockers). Connectivity is
+  -- checked regardless. dictionary is the obscurity ceiling, 2..6 (common.words
+  -- difficulty), required only when the word check is on.
+  s_check_words := coalesce((setup->>'check_words')::boolean, false);
+  if s_check_words then
     if (setup->>'dictionary') is null then
-      raise exception 'setup.dictionary is required when check_legal is on'
+      raise exception 'setup.dictionary is required when check_words is on'
         using errcode = 'P0001';
     end if;
     s_dictionary := (setup->>'dictionary')::int;
@@ -497,24 +497,28 @@ $$;
 revoke execute on function monkeygram.save_player_board(uuid, text) from public;
 grant execute on function monkeygram.save_player_board(uuid, text) to authenticated;
 -- ============================================================
--- monkeygram._win_blockers — board legality (optional, opt-in)
+-- monkeygram._win_blockers — board legality
 -- ============================================================
 -- Returns the 0-indexed cells that block a legal win, or an empty array if the
--- board is a valid Bananagrams grid. Used by peel ONLY when the game's setup
--- has check_legal on. A board is legal when:
---   1. every filled tile is in ONE 4-connected mass (orthogonal only — a
---      diagonal touch does NOT connect), and
---   2. every run of 2+ tiles (across and down) spells a real word — one in
---      common.words at difficulty ≤ max_difficulty. Single tiles aren't words,
---      so they're never checked against the dictionary.
+-- board is a valid Bananagrams grid. Called on every winning peel. A board is
+-- legal when:
+--   1. ALWAYS: every filled tile is in ONE 4-connected mass (orthogonal only —
+--      a diagonal touch does NOT connect). Geography is structural — a
+--      scattered board isn't a real grid, so this holds even in trust-the-
+--      friends mode.
+--   2. WHEN check_words: every run of 2+ tiles (across and down) spells a real
+--      word — one in common.words at difficulty ≤ max_difficulty. Single tiles
+--      aren't words, so they're never checked. This is the opt-in part (the
+--      dictionary is a matter of taste); max_difficulty is ignored when off.
 -- The blockers are the union of: tiles NOT in the main mass (the flood-fill
--- from the top-left-most tile — so disconnected stragglers light up) and every
--- tile of an invalid word. The FE paints these red until the player edits.
+-- from the top-left-most tile — so disconnected stragglers light up) and (when
+-- checking words) every tile of an invalid word. The FE paints these red until
+-- the player edits.
 --
 -- Plain `language sql` (not security definer): it reads only common.words
 -- (granted to all) off the `board` text it's handed, so it runs fine inside
 -- peel's definer context with nothing extra to leak.
-create function monkeygram._win_blockers(board text, max_difficulty int)
+create function monkeygram._win_blockers(board text, max_difficulty int, check_words boolean)
 returns int[]
 language sql
 stable
@@ -563,10 +567,11 @@ as $$
   bad_word_cells as (
     select unnest(cells) as cidx
       from (select cells, word from hwords union all select cells, word from vwords) w
-     where not exists (
-       select 1 from common.words cw
-        where cw.word = lower(w.word) and cw.difficulty <= max_difficulty
-     )
+     where check_words
+       and not exists (
+         select 1 from common.words cw
+          where cw.word = lower(w.word) and cw.difficulty <= max_difficulty
+       )
   )
   select coalesce(
     (select array_agg(distinct cidx order by cidx)
@@ -598,12 +603,13 @@ $$;
 -- 2 without touching this logic. The base gate is "hand empty" (placed ==
 -- length(tiles)), trusting the FE flushed its latest board first.
 --
--- **Optional word check.** If setup.check_legal is on, a WINNING peel (bunch
--- can't refill) additionally validates the board via _win_blockers: it only
--- ends the game if the grid is one connected mass of real words. Otherwise it
--- leaves the game in progress and returns the offending cells so the FE can
--- paint them red. (A continuing peel — bunch can refill — is never validated;
--- you're not winning yet.) Off → the classic trust-the-friends behavior.
+-- **Board check on a winning peel.** A WINNING peel (bunch can't refill) is
+-- always validated for GEOGRAPHY via _win_blockers — the grid must be one
+-- connected mass (a scattered board can't win, even in trust-the-friends
+-- mode). When setup.check_words is on it ALSO requires every word to be real.
+-- If anything blocks, the game stays in progress and the offending cells come
+-- back for the FE to paint red. (A continuing peel — bunch can refill — is
+-- never validated; you're not winning yet.)
 --
 -- Returns jsonb so the FE can react to a blocked win:
 --   { result: 'won' | 'dealt' | 'illegal', invalid_cells: int[] }
@@ -632,7 +638,7 @@ declare
   needed int;
   winner_name text;
   player_results jsonb;
-  v_check_legal boolean;
+  v_check_words boolean;
   v_dictionary int;
   v_blockers int[];
 begin
@@ -670,17 +676,16 @@ begin
 
   -- ─── Not enough to refill the table → the peeler goes out (win) ───
   if length(s_pool) < needed then
-    -- Optional word check: only the WINNING peel is validated. If the board
-    -- isn't a legal Bananagrams grid, don't end the game — hand the FE the
-    -- offending cells to paint red and let the player fix + re-peel.
-    v_check_legal := coalesce((s_setup->>'check_legal')::boolean, false);
-    if v_check_legal then
-      v_dictionary := coalesce((s_setup->>'dictionary')::int, 4);
-      v_blockers := monkeygram._win_blockers(v_board, v_dictionary);
-      if array_length(v_blockers, 1) > 0 then
-        return jsonb_build_object('result', 'illegal',
-                                  'invalid_cells', to_jsonb(v_blockers));
-      end if;
+    -- A winning board is ALWAYS checked for geography (one connected mass —
+    -- a scattered grid can't win), and additionally for real words when
+    -- setup.check_words is on. If anything blocks, don't end the game — hand
+    -- the FE the offending cells to paint red and let the player fix + re-peel.
+    v_check_words := coalesce((s_setup->>'check_words')::boolean, false);
+    v_dictionary := coalesce((s_setup->>'dictionary')::int, 4);
+    v_blockers := monkeygram._win_blockers(v_board, v_dictionary, v_check_words);
+    if array_length(v_blockers, 1) > 0 then
+      return jsonb_build_object('result', 'illegal',
+                                'invalid_cells', to_jsonb(v_blockers));
     end if;
 
     update monkeygram.progress

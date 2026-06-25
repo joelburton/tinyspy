@@ -24,14 +24,15 @@ export type MonkeyGramSetup = {
    *  possible — `bagSizeError` enforces it in the dialog, and
    *  `create_game` re-checks server-side. */
   bag_size: number
-  /** When on, a winning peel is validated server-side: the board must be one
-   *  connected mass of real words (`monkeygram._win_blockers`) or the win is
-   *  blocked and the offending tiles flash red until edited. Off = the classic
-   *  trust-the-friends Bananagrams (no word check). Default off. */
-  check_legal: boolean
-  /** Dictionary obscurity ceiling for that check, 2..6 (`common.words`
+  /** When on, a winning peel additionally requires every word on the board to
+   *  be real (`monkeygram._win_blockers`); the offending tiles flash red until
+   *  edited. Off = the classic trust-the-friends Bananagrams (no word check).
+   *  Default off. NOTE: board GEOGRAPHY (one connected grid) is always required
+   *  to win regardless of this — it's structural, not a matter of taste. */
+  check_words: boolean
+  /** Dictionary obscurity ceiling for the word check, 2..6 (`common.words`
    *  difficulty): a word is legal iff it exists at difficulty ≤ this, so higher
-   *  = more obscure words allowed. Only meaningful when `check_legal` is on. */
+   *  = more obscure words allowed. Only meaningful when `check_words` is on. */
   dictionary: number
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone
@@ -59,7 +60,7 @@ export const DICTIONARY_OPTIONS: ReadonlyArray<{ value: number; label: string }>
 export const DEFAULT_MONKEYGRAM_SETUP: MonkeyGramSetup = {
   hand_size: 21,
   bag_size: MONKEYGRAM_BAG_MAX,
-  check_legal: false,
+  check_words: false,
   dictionary: 4,
   timer: { kind: 'none' },
 }
