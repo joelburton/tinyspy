@@ -54,7 +54,7 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
   return (
     <div className={styles.setup}>
       <fieldset className={styles.fieldset}>
-        <legend>Starting timer tokens</legend>
+        <legend>Number of turns</legend>
         <p className="muted">
           The standard game is 9. Pick 10 or 11 for an easier
           warm-up (matches the rulebook's mission difficulties).

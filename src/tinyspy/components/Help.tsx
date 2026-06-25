@@ -52,11 +52,11 @@ export function Help({ onClose }: Props) {
         <li>The clue-giver types a clue: a <strong>count</strong> + a <strong>word or phrase</strong>.</li>
         <li>The partner guesses one card at a time on the board.</li>
         <li>Hitting a green agent? Keep going.</li>
-        <li>Hitting a tan? Turn ends, one timer token spent.</li>
+        <li>Hitting a tan? Your turn ends — one of your turns is used.</li>
         <li>Hitting an assassin? Game over.</li>
       </ol>
       <p>
-        You have <strong>9 timer tokens</strong>. When they run out, you enter sudden death —
+        You have <strong>9 turns</strong>. When they run out, you enter sudden death —
         any wrong reveal loses the game.
       </p>
 
