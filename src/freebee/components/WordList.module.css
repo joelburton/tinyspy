@@ -80,14 +80,11 @@
   font-weight: 700;
 }
 
-/* Bonus indicator — a bullet after the word, enlarged so it reads at a
- * glance, centered with vertical-align (no line-height override — the
- * row's line-height handles the box). */
-.bonus::after {
-  content: '•';
-  margin-left: 5px;
-  font-size: 1.6em;
-  vertical-align: middle;
+/* Bonus indicator — a trailing '•' bullet (emitted as text in the TSX,
+ * see WordList.tsx). Just muted so it reads as a marker, not part of the
+ * word; it's a normal inline character, so it centers with the word on
+ * its own with no size/vertical-align tricks. */
+.bonusDot {
   color: var(--color-muted);
 }
 

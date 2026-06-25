@@ -202,7 +202,6 @@ export function WordList({
                     // Mid-game: no category class, finder color wins.
                     reveal && (isMine ? styles.catSelf : styles.catOther),
                     row.is_pangram && styles.pangram,
-                    row.is_bonus && styles.bonus,
                     // Recently-found flash is mid-game only — see the
                     // foundWordsOnly note + the component doc.
                     !reveal && recentlyFound.has(row.word) && styles.recent,
@@ -213,6 +212,10 @@ export function WordList({
                   {...rowActivation(row.word)}
                 >
                   {row.word.toUpperCase()}
+                  {/* Bonus words get a trailing bullet. Emitted as real
+                      text (not a ::after) so it sits naturally inline +
+                      centered with the word — no vertical-align fiddling. */}
+                  {row.is_bonus && <span className={styles.bonusDot}>{' •'}</span>}
                 </li>
               )
             })
