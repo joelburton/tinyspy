@@ -175,9 +175,8 @@ export function ClubGameCard({
                 )}
               </div>
               <div className={styles.meta}>
-                {statusLabel}
-                {' · '}
-                {startedAtLabel}
+                <span>{statusLabel}</span>
+                <span className={styles.startedAt}>{startedAtLabel}</span>
               </div>
             </div>
           </div>

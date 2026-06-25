@@ -77,12 +77,24 @@
   word-break: break-word;
 }
 
-/* Status · started-at — the subtle second line, same small muted
- * register as the start buttons' description line. */
+/* The subtle second line — same small muted register as the start
+ * buttons' description: the status on the left, the started-at date
+ * right-justified. */
 .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   font-size: 0.85rem;
   color: var(--color-muted);
   line-height: 1.3;
+}
+
+/* Right-justified even if the status is short or the line wraps. */
+.startedAt {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 /* ─── State-specific treatments ────────────────────────────── */
