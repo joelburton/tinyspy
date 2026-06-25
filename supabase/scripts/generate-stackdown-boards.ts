@@ -11,8 +11,8 @@
  * over every spelling of every word — see docs/games/stackdown.md §2.4),
  * ~10s/board. We don't want to pay that on every `db:reset`. So we
  * generate a library once (this script, run rarely, output committed to
- * git like `words.tsv.gz`), and re-import the cheap file whenever the DB
- * is cleared.
+ * git as the jsonl), and re-import the cheap file whenever the DB is
+ * cleared.
  *
  * What it does:
  *   1. Loads the lexicon — the StackDown standard set (`difficulty = 1 AND

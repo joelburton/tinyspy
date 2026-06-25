@@ -507,7 +507,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | Everything server-side — schema, column grants, RLS, the `games_state` view, hidden-wordlist helper (`_required_words_for`) + `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `freebee_coop`/`freebee_compete` gametype rows | [`supabase/migrations/20260617000000_freebee.sql`](../../supabase/migrations/20260617000000_freebee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
 | Target-rank picker in the setup dialog | [`src/freebee/components/SetupForm.tsx`](../../src/freebee/components/SetupForm.tsx) |
-| How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (`supabase/data/words.tsv.gz`) — see [common.md](../common.md#the-word-list-commonwords) |
+| How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-freebee-pangrams.ts`](../../supabase/scripts/import-freebee-pangrams.ts) (derives `freebee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/freebee-build-board/index.ts`](../../supabase/functions/freebee-build-board/index.ts) |
 | The play surface | [`src/freebee/components/PlayArea.tsx`](../../src/freebee/components/PlayArea.tsx) |
