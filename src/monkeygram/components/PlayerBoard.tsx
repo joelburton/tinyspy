@@ -230,8 +230,11 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor.row, cursor.col])
 
-  // --- Error flash ------------------------------------------------------
-  const flashError = useCallback(() => {
+  // --- Hand error flash -------------------------------------------------
+  // A brief red box around the hand: "you don't hold that tile." Bumping the
+  // nonce remounts the overlay (keyed by it) so the flash replays even on a
+  // repeated miss — e.g. mashing a letter you don't have.
+  const flashHandError = useCallback(() => {
     setErrFlash(true)
     setErrNonce((n) => n + 1)
   }, [])
@@ -440,22 +443,29 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       if (k.length === 1 && /[a-z]/i.test(k)) {
         e.preventDefault()
         const letter = k.toUpperCase()
-        const here = boardRef.current[idx(cur.row, cur.col)]
-        if (here !== '.') {
-          if (here === letter) advance(cur)
-          else flashError()
-          return
-        }
-        // Available iff the derived hand (held tiles − placed) still has one.
-        if (!deriveHand(tilesRef.current, boardRef.current).includes(letter)) {
-          flashError()
+        const i = idx(cur.row, cur.col)
+        // Typing on a FILLED cell swaps: the tile under the cursor returns to
+        // the hand and the typed letter takes its place. So the hand we can
+        // place FROM is the held tiles minus everything placed EXCEPT this
+        // cell — clear it first, then ask "do I hold the typed letter?". (On
+        // an empty cell that clear is a no-op, so this collapses to the plain
+        // check.) Because the hand is DERIVED from the board, the single
+        // overwrite below does BOTH halves of the swap: the old letter
+        // re-derives back into the hand, the typed letter leaves it. (Typing
+        // a letter over its own twin is a harmless no-op for the same reason.)
+        const freed =
+          boardRef.current[i] === '.'
+            ? boardRef.current
+            : setChar(boardRef.current, i, '.')
+        if (!deriveHand(tilesRef.current, freed).includes(letter)) {
+          flashHandError() // you don't hold that tile → red flash around the hand
           return
         }
         handToBoard(letter, cur.row, cur.col)
         advance(cur)
       }
     },
-    [advance, flashError, boardToHand, handToBoard, doPeel],
+    [advance, flashHandError, boardToHand, handToBoard, doPeel],
   )
   useEffect(() => {
     window.addEventListener('keydown', onKeyDown)
@@ -534,12 +544,10 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           {ch !== '.' && <div className={styles.tile + (lifting ? ' ' + styles.lifted : '')}>{ch}</div>}
           {cursorHere && (
             <div
-              key={'cur-' + errNonce}
               className={
                 styles.cursor +
                 ' ' +
-                (cursor.dir === 'h' ? styles.cursorH : styles.cursorV) +
-                (errFlash ? ' ' + styles.cursorError : '')
+                (cursor.dir === 'h' ? styles.cursorH : styles.cursorV)
               }
             />
           )}
@@ -600,6 +608,12 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           />
         </div>
         <div className={styles.hand} data-zone="hand">
+          {/* Red box flash: "you don't hold that tile" (a keyboard miss).
+              Keyed by the nonce so a repeated miss replays the animation;
+              pointer-events:none so it never blocks tile drags. */}
+          {errFlash && (
+            <div key={errNonce} className={styles.handError} aria-hidden />
+          )}
           {displayedHand.split('').map((letter, i) => (
             <div
               key={i}

@@ -148,20 +148,28 @@
   border-left-width: 5px;
   border-right-width: 5px;
 }
-.cursorError {
-  border-color: var(--mg-cursor-err) !important;
-  animation: mg-shake 180ms ease;
+/* A brief red box around the hand: "you don't hold that tile" (a keyboard
+ * miss). Absolutely covers the hand (which is position:relative); rendered
+ * only during the ~180ms flash and keyed by a nonce so a repeated miss
+ * replays. pointer-events:none so it never blocks a tile drag underneath. */
+.handError {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--mg-error);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  z-index: 2;
+  animation: mg-hand-err 180ms ease;
 }
-@keyframes mg-shake {
-  0%,
-  100% {
-    transform: translateX(0);
+@keyframes mg-hand-err {
+  0% {
+    opacity: 0;
   }
   25% {
-    transform: translateX(-3px);
+    opacity: 1;
   }
-  75% {
-    transform: translateX(3px);
+  100% {
+    opacity: 0;
   }
 }
 
@@ -196,6 +204,7 @@
   color: var(--color-muted);
 }
 .hand {
+  position: relative; /* positioning context for the .handError flash box */
   flex: 1;
   min-height: 0;
   display: grid;

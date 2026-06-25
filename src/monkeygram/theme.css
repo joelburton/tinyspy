@@ -11,7 +11,7 @@
   --monkeygram-tile-edge: #cdb887;
   --monkeygram-tile-ink: #4a3b22;
   --mg-cursor: #4aa3ff;
-  --mg-cursor-err: #d84a4a;
+  --mg-error: #d84a4a; /* the in-game error red (hand-miss flash) */
   --mg-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
 }
 

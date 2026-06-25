@@ -114,14 +114,22 @@ by its thick edges: horizontal = thick top/bottom, vertical = thick left/right.
 - An arrow **along** the current axis moves one cell; an arrow **across** it flips the axis (no move).
 - "Forward" (for typing and advancing) is **right** (horizontal) / **down** (vertical).
 
-**Typing a letter** at the cursor cell:
+**Typing a letter** at the cursor cell — a place-or-swap that always consumes
+a tile from the hand:
 
 | cell state | result |
 |---|---|
-| filled with the **same** letter | advance forward (lets you run through shared/crossing letters) |
-| filled with a **different** letter | error (red pulse); don't move, no change |
 | empty, letter **in hand** | place it (consume from hand), advance forward |
-| empty, letter **not in hand** | error; don't move |
+| filled, **typed letter in hand** | **swap**: the tile under the cursor returns to the hand, the typed tile takes its place, advance forward |
+| filled with the **same** letter | a swap that nets nothing (the tile returns and goes right back) — so it just advances |
+| **typed letter not in hand** | red box flashes around the **hand** ("you don't hold that tile"); don't move, no change |
+
+The "available?" check, for a filled cell, counts the tile currently under the
+cursor as back in the hand (you're typing over it) — so swapping `A`→`B`
+needs a `B` you hold elsewhere, while typing `A` over `A` always works. Because
+the hand is **derived** from the board (`deriveHand(tiles, board)`), one board
+overwrite does both halves of the swap: the old letter re-derives into the
+hand, the typed letter leaves it.
 
 **Backspace** steps back one cell in the current direction; if the cursor was
 **on a tile**, that tile returns to the hand first. An empty cell just moves —
