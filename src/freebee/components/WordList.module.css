@@ -1,9 +1,10 @@
-/* The found-words list. A three-column grid filled row-major
- * (alphabetical left-to-right then down), scrolling vertically in a
- * fixed-height box. Mid-game each word renders in the finder's color
- * (per-finder attribution) and the recently-found state adds a thick
- * same-color underline that fades after 5s; post-terminal the list
- * switches to the muted cat-A / cat-B review styling below.
+/* The found-words list. An alphabetical, column-major grid (down each
+ * column, then right) in a fixed-height box that scrolls horizontally
+ * once words run past the third column. Mid-game each word renders in
+ * the finder's color (per-finder attribution) and the recently-found
+ * state adds a thick same-color underline that fades after 5s;
+ * post-terminal the list switches to the muted cat-A / cat-B review
+ * styling below.
  */
 
 .wrapper {
@@ -26,23 +27,28 @@
   margin-bottom: 8px;
 }
 
-/* Three-column grid, filled ROW-major (alphabetical left-to-right then
- * down) — A B C across the top, D E F below — unlike the old balanced
- * two-column flow which read top-to-bottom. Fixed-height box that scrolls
- * as words pile up; rows pack to the top. */
+/* An alphabetical list filled COLUMN-major (down each column, then the
+ * next to the right): APPLE / BERRY in column 1, CHERRY / DURIAN in
+ * column 2, … The box is a FIXED height (derived from the viewport — see
+ * PlayArea `.sidePanel`), so each column is exactly that tall; three
+ * columns show at a time and the rest scroll HORIZONTALLY. */
 .list {
   list-style: none;
   margin: 0;
-  padding: 0 0 8px;
-  /* --wl-row-height is referenced by the row-style below;
-   * keeping it as a token means a future media query can tweak
-   * the density without re-writing the row CSS. */
+  padding: 0;
+  /* --wl-row-height is referenced by the row-style below; keeping it a
+   * token means the row count is derived from it + the box height. */
   --wl-row-height: 26px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* As many rows as fit the fixed height; columns then flow rightward. */
+  grid-template-rows: repeat(auto-fill, var(--wl-row-height));
+  grid-auto-flow: column;
+  /* Each column is exactly a third of the visible width (minus the two
+   * 16px gaps between three columns), so three fit and the rest scroll. */
+  grid-auto-columns: calc((100% - 2 * 16px) / 3);
   column-gap: 16px;
-  align-content: start;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -93,10 +99,14 @@
   text-underline-offset: 3px;
 }
 
+/* When the list is empty the grid is dropped (.listEmpty) so the
+ * placeholder is a normal full-width block that can center. */
+.listEmpty {
+  display: block;
+  overflow: hidden;
+}
+
 .empty {
-  /* Span the full grid so the placeholder centers instead of sitting
-   * in the first column. */
-  grid-column: 1 / -1;
   font-style: italic;
   color: var(--color-muted);
   text-align: center;

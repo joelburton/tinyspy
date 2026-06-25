@@ -29,11 +29,13 @@
 .sidePanel {
   display: flex;
   flex-direction: column;
-  /* Phase 4 caps the panel at the viewport height so the
-   * WordList scrolls internally rather than pushing the
-   * actions off-screen. The bordered grid below is naturally
-   * inflexible; the WordList grows to fill what's left. */
-  max-height: calc(100vh - 200px);
+  /* A DEFINITE viewport-derived height (not just a cap): the WordList
+   * fills what's left below the score/rank/actions and gets a definite
+   * height itself, which its column-major grid needs to know how many
+   * rows fit (and therefore where columns wrap). The bordered grids
+   * above are inflexible; the WordList (flex: 1) absorbs the rest and
+   * scrolls horizontally inside. */
+  height: calc(100vh - 200px);
   min-height: 240px;
   padding: 0 8px;
 }

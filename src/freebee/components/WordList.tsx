@@ -79,11 +79,12 @@ type Props = {
  * shared dictionary-lookup feature (backed by the `define` edge
  * function). See `rowActivation` below for the click/keyboard wiring.
  *
- * Layout: a three-column grid filled **row-major** — alphabetical
- * left-to-right then down (A B C across the top, D E F below) — in a
- * fixed-height box that scrolls vertically as words pile up. (No
- * pagination; the freebee-ws version measures column layout to derive a
- * page size, which we keep simpler until a real need shows up.)
+ * Layout: an alphabetical grid filled **column-major** — down each
+ * column, then the next to the right (APPLE/BERRY in column 1,
+ * CHERRY/DURIAN in column 2, …). The box is a fixed height (derived from
+ * the viewport), so each column is exactly that tall and three show at a
+ * time; once words run past the third column the box scrolls
+ * **horizontally**. See WordList.module.css for the grid mechanics.
  */
 export function WordList({
   foundWords,
@@ -157,7 +158,14 @@ export function WordList({
           ? `${foundWordsCount} / ${requiredWordsCount} words — reveal`
           : `${foundWordsCount} / ${requiredWordsCount} words`}
       </div>
-      <ul className={styles.list}>
+      <ul
+        className={cls(
+          styles.list,
+          // Drop the column grid when there's nothing to lay out, so the
+          // placeholder centers instead of sitting in a third-width cell.
+          displayRows.length === 0 && styles.listEmpty,
+        )}
+      >
         {displayRows.length === 0
           ? (
             <li className={styles.empty}>No words yet</li>

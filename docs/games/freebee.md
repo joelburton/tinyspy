@@ -68,7 +68,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Shuffle / Delete / Enter actions** | shipped | Shuffle stays clickable when locked; hover rotates only the ⟲ glyph, not the button |
 | **Pangram detection + bonus + visual marker** | shipped | |
 | **Rank ladder + rank-bar UI with hover tooltips** | shipped | |
-| **Found-words list** (three-column row-major grid, per-finder color, pangram bold, bonus bullet, recently-found underline) | shipped | |
+| **Found-words list** (column-major grid, fixed height, horizontal scroll past 3 columns; per-finder color, pangram bold, bonus bullet, recently-found underline) | shipped | |
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<TimerField>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
