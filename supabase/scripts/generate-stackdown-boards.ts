@@ -443,8 +443,10 @@ function generateAnyBoard(
 // One serialized board, the shape `stackdown:import` reads back.
 type BoardLine = { tiles: Tile[]; words: string[]; wordlist: number }
 
-/** Order-independent signature of a board's six words, for dedup. */
-const wordSig = (words: string[]) => [...words].sort().join(',')
+/** Order- and case-independent signature of a board's six words, for
+ *  dedup (works whether the file holds lower- or upper-case words). */
+const wordSig = (words: string[]) =>
+  words.map((w) => w.toLowerCase()).sort().join(',')
 
 // Existing library (so we append, and skip word-sets already present).
 const existing: BoardLine[] = existsSync(BOARDS_FILE)
@@ -503,7 +505,13 @@ for (let i = 0; i < COUNT; i++) {
     continue
   }
   seen.add(wordSig(g.words))
-  fresh.push({ tiles: g.tiles, words: g.words, wordlist: 0 })
+  // Store words LOWERCASE in the file — matches common.words and what the
+  // DB holds (see stackdown.md §2.5). Tile letters stay uppercase glyphs.
+  fresh.push({
+    tiles: g.tiles,
+    words: g.words.map((w) => w.toLowerCase()),
+    wordlist: 0,
+  })
   console.log(
     `  board ${i + 1}/${COUNT}: ${g.words.join(' ')} ` +
       `(${g.attempts} attempt(s), ${g.wordSetsTried} word-set(s))`,
