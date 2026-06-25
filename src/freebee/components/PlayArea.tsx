@@ -471,7 +471,6 @@ export function PlayArea(ctx: GamePageCtx) {
         <WordList
           foundWords={foundWords}
           players={players}
-          selfUserId={session.user.id}
           foundWordsCount={foundWordsCount}
           requiredWordsCount={game.required_words_count}
           // Once terminal, games_state surfaces the full required-

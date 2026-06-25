@@ -15,9 +15,6 @@ import styles from './WordList.module.css'
 type Props = {
   foundWords: FoundWordRow[]
   players: Player[]
-  /** The viewing player's user_id. Drives the post-terminal
-   *  cat-A / cat-B split: a found word is cat A iff *I* found it. */
-  selfUserId: string
   /** Count of all words the viewer/team has found (required + bonus).
    *  Driven by the parent so it matches the server's
    *  status.found_words_count. Can exceed requiredWordsCount when
@@ -25,54 +22,44 @@ type Props = {
   foundWordsCount: number
   requiredWordsCount: number
   /** Post-terminal reveal: when set, the list interleaves the
-   *  unfound required words alphabetically with the found words.
-   *  Its mere presence is also the signal that the game is over,
-   *  which flips the list from the mid-game per-finder-color model
-   *  to the cat-A / cat-B review model (see the component doc).
-   *  Drawn from `games_state.required_words`, which materializes
-   *  only when `common.games.is_terminal` flips. */
+   *  unfound required words alphabetically with the found words (the
+   *  unfound ones render grey). Its mere presence is also the "game
+   *  over" signal — it suppresses the recently-found flash. Drawn from
+   *  `games_state.required_words`, which materializes only when
+   *  `common.games.is_terminal` flips. */
   revealWords?: Array<{ word: string; points: number; is_pangram: boolean }> | null
 }
 
 // The merged-row shape + the build/dedup logic live in
-// `../lib/displayRows` so the dedup (mine-wins-over-opponent's for a
-// word both found, post-terminal in compete) is unit-tested.
+// `../lib/displayRows` (first-finder-wins dedup), unit-tested there.
 
 /**
- * Alphabetical list of every accepted submission.
+ * Alphabetical list of every accepted submission, plus — post-terminal —
+ * the required words nobody found.
  *
- * The list has **two visual models**, switched by whether the game
- * is over (signalled by `revealWords` being present):
+ * Coloring is uniform across modes and phases:
  *
- *   - **Mid-game (per-finder attribution).** Each word renders in
- *     the finder's color via `colorVarFor(player.color)`. In coop
- *     you see your words plus your teammates' (each in their color);
- *     in compete RLS narrows the rows so you only see your own.
+ *   - **Found words** render in their **finder's** color
+ *     (`colorVarFor(player.color)`). Each word appears once; a word
+ *     more than one player found (compete, post-terminal) is colored by
+ *     the FIRST finder — buildDisplayRows dedups by earliest `found_at`.
+ *     Mid-game compete shows only your own words (RLS); mid-game coop
+ *     shows everyone's, each in their color.
+ *   - **Unfound required words** (the post-terminal reveal) render in
+ *     **medium grey** (`.unfound`) — "here's what the team / field
+ *     missed." Bonus words are never revealed, so these are required-
+ *     only.
  *
- *   - **Post-terminal (cat-A / cat-B review).** Per-finder colors
- *     give way to a binary "how did *I* do" split:
- *       · **cat A** — words I found, kept in my own color.
- *       · **cat B** — everything else, undifferentiated and muted:
- *         words found by other players *plus* the required words
- *         nobody found (the reveal). Merging "someone else got it"
- *         and "nobody got it" into one bucket is deliberate — see
- *         the freebee.md game-over spec.
- *     The two buckets carry distinct classes (`catSelf` / `catOther`)
- *     so they can be styled independently.
+ * Two flags compose on top:
  *
- * Three flags compose on top of either model:
- *
- *   - **Pangram** — emphasized via font-weight so a glance shows
- *     "someone got the pangram!" (or, in cat B, "the pangram we
- *     missed was…").
- *   - **Bonus** — appended dot indicates a bonus word (legal −
- *     required). The word still renders in its category/finder color;
- *     the trailing dot signals it's outside the required goal (it
- *     does still score the same).
- *   - **Recently found** — underline in the finder's color, fades
- *     after 5s (managed by useRecentlyFound). Suppressed post-terminal:
- *     the reveal refetch makes every peer row appear at once, which
- *     would otherwise flash the whole list.
+ *   - **Pangram** — emphasized via font-weight (a found one, or a
+ *     missed one in grey).
+ *   - **Bonus** — a trailing '•' bullet (a bonus word: legal − required;
+ *     scores the same, doesn't count toward the required goal).
+ *   - **Recently found** — underline in the finder's color, fades after
+ *     5s (useRecentlyFound). Suppressed post-terminal: the reveal
+ *     refetch makes every peer row appear at once, which would otherwise
+ *     flash the whole list.
  *
  * Rows are interactive: clicking (or Enter/Space on) a word opens
  * the common `DefinitionPopover` anchored to that row, via the
@@ -89,13 +76,12 @@ type Props = {
 export function WordList({
   foundWords,
   players,
-  selfUserId,
   foundWordsCount,
   requiredWordsCount,
   revealWords,
 }: Props) {
-  // Presence of the reveal list is our "game is over" signal, which
-  // flips the list from per-finder colors to the cat-A / cat-B model.
+  // Presence of the reveal list is the "game is over" signal — it only
+  // gates the recently-found flash now (coloring is phase-agnostic).
   const reveal = !!revealWords
   // Color lookup by user_id. Players list is small (<10 in
   // realistic clubs) so a Map+get rather than .find on each row.
@@ -108,8 +94,8 @@ export function WordList({
   // Merge the found rows with any reveal entries into one alphabetical
   // list (dedup rules in buildDisplayRows).
   const displayRows = useMemo(
-    () => buildDisplayRows(foundWords, revealWords, selfUserId),
-    [foundWords, revealWords, selfUserId],
+    () => buildDisplayRows(foundWords, revealWords),
+    [foundWords, revealWords],
   )
 
   // Just the found words for the useRecentlyFound input — the
@@ -172,15 +158,15 @@ export function WordList({
           )
           : (
             displayRows.map((entry) => {
-              // Unfound reveal entries are always cat B (a required
-              // word nobody got) and only ever render post-terminal.
+              // Unfound reveal entries — required words nobody found,
+              // only ever post-terminal. Rendered in medium grey.
               if (entry.kind === 'unfound') {
                 return (
                   <li
                     key={entry.word}
                     className={cls(
                       styles.row,
-                      styles.catOther,
+                      styles.unfound,
                       entry.isPangram && styles.pangram,
                     )}
                     {...rowActivation(entry.word)}
@@ -189,26 +175,21 @@ export function WordList({
                   </li>
                 )
               }
+              // A found word — always in its (first) finder's color,
+              // mid-game and post-terminal alike.
               const row = entry.row
-              const isMine = entry.category === 'a'
               const color = colorByUser.get(row.user_id) ?? 'var(--color-text)'
               return (
                 <li
                   key={row.word}
                   className={cls(
                     styles.row,
-                    // Post-terminal: cat A (mine) keeps its inline
-                    // color, cat B (others') goes muted via catOther.
-                    // Mid-game: no category class, finder color wins.
-                    reveal && (isMine ? styles.catSelf : styles.catOther),
                     row.is_pangram && styles.pangram,
                     // Recently-found flash is mid-game only — see the
                     // foundWordsOnly note + the component doc.
                     !reveal && recentlyFound.has(row.word) && styles.recent,
                   )}
-                  // cat B drops the inline color so .catOther's muted
-                  // gray wins; everything else keeps the finder color.
-                  style={reveal && !isMine ? undefined : { color }}
+                  style={{ color }}
                   {...rowActivation(row.word)}
                 >
                   {row.word.toUpperCase()}

@@ -110,25 +110,10 @@
   padding: 16px 8px;
 }
 
-/* Post-terminal categories. Once a game ends the list stops using
- * per-finder colors and splits every word into two stylable buckets
- * (see WordList.tsx → the cat-A / cat-B review model):
- *
- *   .catSelf  — cat A: words the viewing player found. Keeps the
- *               player's own finder color (set inline on the <li>),
- *               so "what I got" stays prominent. This rule is mostly
- *               a styling hook for future emphasis (a left accent,
- *               weight, etc.) without touching the TSX.
- *
- *   .catOther — cat B: words found by *other* players OR required
- *               words nobody found. Deliberately merged into one
- *               muted style — "everything that isn't mine,"
- *               undifferentiated. No inline color is set on these
- *               rows, so this gray wins. */
-.catSelf {
-  /* Color comes from the inline finder color. Hook for later. */
-}
-
-.catOther {
+/* Unfound required words (the post-terminal reveal — what the team /
+ * field missed). Found words always keep their finder's color; only
+ * these missed words go medium grey, so the eye reads "found = colored,
+ * missed = grey." No italic — they're plain. */
+.unfound {
   color: var(--color-muted);
 }
