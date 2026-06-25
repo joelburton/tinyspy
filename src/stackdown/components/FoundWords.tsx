@@ -1,16 +1,19 @@
 import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { cls } from '../../common/lib/cls'
 import { DefinitionPopover } from '../../common/components/DefinitionPopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
 
 /**
  * The submission log — the right-column "found words" list, guess-log
- * style. Every submission lands here in order: a valid word in its own
- * row, an invalid attempt struck through and tagged "not a word" (both
- * are durable rows in `stackdown.submissions`, so this is just a
- * projection of what realtime delivers).
+ * style. Every submission lands here in order as a bordered row with a
+ * left status-bar: a valid word (green) numbered #1, #2, …, an invalid
+ * attempt struck through + tagged "not a word" (red), and the logged
+ * cheat requests (orange). All are durable rows in
+ * `stackdown.submissions` — this is just a projection of realtime. Only
+ * the played words get a number; the requests are asides.
  *
  * Coop shows who played each word (`showWho`); compete shows only the
  * caller's own attempts (RLS already hides opponents mid-game), so the
@@ -70,22 +73,32 @@ export function FoundWords({
 
   const found = submissions.filter((s) => s.valid).length
 
+  // A played word's number is how many played words appear up to and
+  // including it (the requests aren't guesses, so they're skipped).
+  // Computed purely from the index — no render-time mutable counter.
+  const guessNumber = (i: number) =>
+    submissions.slice(0, i + 1).filter((x) => x.kind === 'word').length
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
-        <span>Found words</span>
+        <span>Found words:</span>
         <span className={styles.count}>{found}/6</span>
       </div>
       {submissions.length === 0 ? (
         <p className="muted">No words yet.</p>
       ) : (
         <ol className={styles.list}>
-          {submissions.map((s) => {
+          {submissions.map((s, i) => {
             // Cheat-request rows: a logged "Requested hint" / "Requested
             // word" (shown to point out — gently — that someone asked).
+            // Orange bar; no guess number (it isn't a guess).
             if (s.kind === 'hint' || s.kind === 'reveal') {
               return (
-                <li key={`${s.user_id}-${s.seq}`}>
+                <li
+                  key={`${s.user_id}-${s.seq}`}
+                  className={cls(styles.row, styles.barOrange)}
+                >
                   <span className={styles.requestLabel}>
                     Requested {s.kind === 'hint' ? 'hint' : 'word'}
                   </span>
@@ -93,16 +106,21 @@ export function FoundWords({
                 </li>
               )
             }
-            // Played-word rows: valid → clickable to define; invalid →
-            // struck through + tagged.
+            // Played-word rows: valid → green bar, clickable to define;
+            // invalid → red bar, struck through + tagged.
             return (
               <li
                 key={`${s.user_id}-${s.seq}`}
-                className={s.valid ? styles.valid : styles.invalid}
+                className={cls(
+                  styles.row,
+                  s.valid ? styles.barGreen : styles.barRed,
+                  !s.valid && styles.invalid,
+                )}
               >
+                <span className={styles.num}>#{guessNumber(i)}</span>
                 {s.valid && s.word ? (
                   <span
-                    className={`${styles.word} ${styles.clickable}`}
+                    className={cls(styles.word, styles.clickable)}
                     {...defineActivation(s.word)}
                   >
                     {s.word.toUpperCase()}

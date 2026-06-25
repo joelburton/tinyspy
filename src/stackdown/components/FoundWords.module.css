@@ -5,10 +5,13 @@
   min-height: 0;
 }
 
+/* "Found words: N/6" — the count sits right next to the label, not
+ * pushed to the right edge (right-aligning it lined it up under the
+ * player-name column, which is unrelated and read as confusing). */
 .header {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  gap: 0.4rem;
   font-size: 1rem;
   color: var(--color-text);
 }
@@ -29,15 +32,37 @@
   overflow-y: auto;
 }
 
-.list li {
+/* One submission: a thin-bordered row with a fat colored status-bar on
+ * the left — green accepted / red rejected / orange cheat-request. */
+.row {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-surface-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+}
+.barGreen {
+  border-left-color: var(--color-outcome-won-border);
+}
+.barRed {
+  border-left-color: var(--color-outcome-lost-border);
+}
+.barOrange {
+  border-left-color: var(--color-outcome-near-border);
+}
+
+/* Running guess number (#1, #2, …) on the played-word rows. */
+.num {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .word {
   font-weight: 700;
   letter-spacing: 0.06em;
+  color: var(--color-text);
 }
 
 /* A clickable (definable) word — subtle underline-on-hover affordance. */
@@ -51,13 +76,8 @@
   outline: none;
 }
 
-/* A valid, accepted word. */
-.valid .word {
-  color: var(--color-text);
-}
-
-/* An invalid attempt — struck through and dimmed, with a "not a word"
- * tag. Still a real, durable log row. */
+/* An invalid attempt — struck through and dimmed (the red bar carries
+ * the "rejected" signal). */
 .invalid {
   color: var(--color-muted);
 }
@@ -71,18 +91,18 @@
   color: var(--color-error);
 }
 
-/* A logged cheat request ("Requested hint" / "Requested word"). The row
- * itself is normal size like a played word; only the label is set apart
- * — italic + the same red as the "not a word" tag — so it reads as an
- * aside without shrinking the line. The submitter name beside it keeps
- * the normal player-color treatment. */
+/* A logged cheat request ("Requested hint" / "Requested word"). Italic +
+ * the same red as the "not a word" tag, normal size, so it reads as an
+ * aside without shrinking the line. */
 .requestLabel {
   font-style: italic;
   color: var(--color-error);
 }
 
+/* The submitter — bold (the player color alone can be hard to read) and
+ * the same size as the word. Right-aligned via margin-left; the palette
+ * color is applied inline in the component. */
 .who {
   margin-left: auto;
-  font-size: 0.8rem;
-  color: var(--color-muted);
+  font-weight: 700;
 }
