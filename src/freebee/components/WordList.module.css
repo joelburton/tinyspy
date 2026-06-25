@@ -88,7 +88,9 @@
   margin-left: 5px;
   font-size: 1.6em;
   line-height: 0;
-  vertical-align: -0.18em;
+  /* Center the bullet on the word rather than sitting it on the
+   * baseline (where the big glyph hangs low). */
+  vertical-align: middle;
   color: var(--color-muted);
 }
 
