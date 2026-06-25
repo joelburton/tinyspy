@@ -80,20 +80,15 @@
   font-weight: 700;
 }
 
-/* Bonus indicator — a solid dot after the word. A real inline-block
- * circle (not a font bullet) so its size and vertical position are
- * exact and don't depend on the font's glyph metrics. Sized to read at a
- * glance and nudged up so it sits centered on the (uppercase) word
- * rather than down on the baseline. */
+/* Bonus indicator — a bullet after the word, enlarged so it reads at a
+ * glance, centered with vertical-align (no line-height override — the
+ * row's line-height handles the box). */
 .bonus::after {
-  content: '';
-  display: inline-block;
-  width: 0.5em;
-  height: 0.5em;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--color-muted);
-  vertical-align: 0.18em;
+  content: '•';
+  margin-left: 5px;
+  font-size: 1.6em;
+  vertical-align: middle;
+  color: var(--color-muted);
 }
 
 /* Recently-found underline. Uses currentColor so the underline
