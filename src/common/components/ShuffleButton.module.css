@@ -12,7 +12,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  /* Big glyph: the ⟲ reads as tiny at small sizes, so fill most of the
+   * 44px pill (the .glyph span inherits this). */
+  font-size: 32px;
   border-radius: 999px;
   border: 1px solid var(--color-surface-border);
   background: var(--color-surface);
@@ -46,6 +48,7 @@
 
 .glyph {
   display: inline-block;
+  line-height: 1;
   transition: transform 120ms ease;
 }
 
