@@ -19,7 +19,7 @@ begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(23);
+select plan(27);
 
 \ir ../_shared/setup.psql
 
@@ -276,6 +276,12 @@ select is(
   true,
   'bag is 144 uppercase tiles'
 );
+-- A full (144) bag leaves nothing over → the box is empty.
+select is(
+  (select length(box) from monkeygram.games where id = (select id from mg_game)),
+  0,
+  'a full 144 bag leaves an empty box'
+);
 
 -- Smaller bag: bag length = 60, bunch = 60 − 42 dealt = 18.
 select is(
@@ -287,6 +293,23 @@ select is(
   (select length(pool) from monkeygram.games where id = (select id from mg_small)),
   18,
   'the smaller bag leaves an 18-tile bunch (60 − 2×21)'
+);
+-- The tiles left OUT of the bag aren't discarded — they seed the box.
+-- 144 − 60 = 84, and bag + box together account for all 144.
+select is(
+  (select length(box) from monkeygram.games where id = (select id from mg_small)),
+  84,
+  'the 84 tiles not in the bag seed the box (144 − 60)'
+);
+select is(
+  (select length(bag) + length(box) from monkeygram.games where id = (select id from mg_small)),
+  144,
+  'bag + box account for all 144 tiles — none discarded'
+);
+select is(
+  (select (status->>'box_remaining')::int from common.games where id = (select id from mg_small)),
+  84,
+  'status.box_remaining surfaces the starting box count'
 );
 
 select * from finish();

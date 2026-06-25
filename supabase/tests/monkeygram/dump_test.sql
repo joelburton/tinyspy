@@ -9,16 +9,18 @@
 --      (bunch nets −3; box +1)
 --   3. dump_to_box + short bunch: the draw tops up from the box front, dumped
 --      tile to the box back
---   4. Can't dump a tile you don't hold
---   5. Can't dump when bunch + box is too small (< dump_count)
---   6. Non-players rejected
+--   4. return-to-bag + short bunch + a non-empty box (the bag_size leftover):
+--      the draw still taps the box, but the dumped tile returns to the bag
+--   5. Can't dump a tile you don't hold
+--   6. Can't dump when bunch + box is too small (< dump_count)
+--   7. Non-players rejected
 -- ============================================================
 
 begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(15);
+select plan(17);
 
 \ir ../_shared/setup.psql
 
@@ -160,6 +162,41 @@ select is(
   (select (status->>'box_remaining')::int from common.games where id = (select id from g3)),
   2,
   'status.box_remaining tracks the box (3 − 2 drawn + 1 dumped = 2)'
+);
+
+-- ─── return-to-bag also taps the box (the leftover from a reduced bag) ───
+-- A return-to-bag game can have a non-empty box too (bag_size < 144 puts the
+-- remainder there). A short-bunch dump draws off the box front and the box
+-- shrinks; the dumped tile returns to the BAG, not the box. Crafted: pool='A',
+-- box='XYZ', ada holds Q.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g4 on commit drop as
+select * from monkeygram.create_game(
+  (select handle from club),
+  '{"hand_size": 21, "bag_size": 144, "dump_to_box": false, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid]
+);
+reset role;
+select set_config('request.jwt.claims', '', true);
+update monkeygram.games set pool = 'A', box = 'XYZ' where id = (select id from g4);
+update monkeygram.player_boards set tiles = 'Q'
+ where game_id = (select id from g4) and user_id = 'ada11111-1111-1111-1111-111111111111';
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select monkeygram.dump((select id from g4), 'Q');
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select box from monkeygram.games where id = (select id from g4)),
+  'Z',
+  'return-to-bag: the box shrinks as the draw taps it (XYZ − XY = Z)'
+);
+select is(
+  (select pool from monkeygram.games where id = (select id from g4)),
+  'Q',
+  'return-to-bag: the dumped tile returns to the BAG, not the box'
 );
 
 -- ─── Can't dump a tile you don't hold ───

@@ -92,11 +92,12 @@ create table monkeygram.games (
   -- `pool` is the live "bunch": every tile not currently held by a player.
   -- Starts as the undealt suffix of `bag` and MUTATES during play.
   pool text not null,
-  -- `box` is the OUT-OF-PLAY reserve, only used when setup.dump_to_box is on:
-  -- a dumped tile goes here instead of back into the bunch, so the bunch
-  -- depletes (the game ends sooner). It isn't fully lost, though — a dump
-  -- whose draw the bunch can't cover dips into the box. Empty otherwise.
-  -- Hidden like pool (its order would leak future draws).
+  -- `box` is the OUT-OF-PLAY reserve. It starts with the 144 − bag_size tiles
+  -- left out of the bag (so a reduced bag_size sets the rest aside rather than
+  -- discarding them), and in dump_to_box mode a dumped tile goes here too
+  -- (instead of back to the bunch, so the bunch depletes and the game ends
+  -- sooner). The box isn't dead, though — a dump whose draw the bunch can't
+  -- cover dips into it. Hidden like pool (its order would leak future draws).
   box text not null default '',
   hand_size int not null check (hand_size between 1 and 30),
   created_at timestamptz not null default now()
@@ -278,6 +279,7 @@ declare
   shuffled text[];
   player_count int;
   s_bag text;
+  s_box text;
   s_pool text;
 begin
   -- ─── Player count: 1..6 (solo allowed — see header) ──
@@ -349,16 +351,17 @@ begin
   letters := string_to_array(bag_text, NULL);
 
   -- A fresh seed makes the shuffle order unpredictable. setseed wants a
-  -- double in [-1, 1]. Truncating the shuffled 144 to bag_size yields a
-  -- uniformly random subset (and a random order) for the smaller game.
+  -- double in [-1, 1].
   perform setseed(random() * 2 - 1);
   select array_agg(ch order by random()) into shuffled
     from unnest(letters) as ch;
-  shuffled := shuffled[1:s_bag_size];
 
-  -- The immutable bag of record (hands-then-bunch, in deal order). A future
-  -- "restart" re-deals from this exact sequence.
-  s_bag := array_to_string(shuffled, '');
+  -- Split the shuffled 144 at bag_size: the first bag_size tiles are this
+  -- game's BAG (a uniformly random subset — hands + bunch); the rest aren't
+  -- in play but aren't thrown away either — they seed the out-of-play BOX,
+  -- which a dump can dip into when the bunch is short.
+  s_bag := array_to_string(shuffled[1:s_bag_size], '');
+  s_box := coalesce(array_to_string(shuffled[s_bag_size + 1:144], ''), '');
 
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
@@ -376,8 +379,8 @@ begin
        from generate_series(player_count * s_hand_size + 1, s_bag_size) as gidx),
     ''
   );
-  insert into monkeygram.games (id, club_handle, bag, pool, hand_size)
-  values (new_id, target_club, s_bag, s_pool, s_hand_size);
+  insert into monkeygram.games (id, club_handle, bag, pool, box, hand_size)
+  values (new_id, target_club, s_bag, s_pool, s_box, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
   -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
@@ -400,9 +403,11 @@ begin
 
   -- Surface the bunch + box COUNTS to the FE: `pool`/`box` themselves are
   -- hidden, so the counts ride on common.games.status (which the FE already
-  -- reads live). peel/dump keep them current. The box starts empty.
+  -- reads live). peel/dump keep them current. The box starts with the
+  -- 144 − bag_size tiles left out of the bag.
   perform common.update_state(new_id, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool), 'box_remaining', 0));
+    jsonb_build_object('pool_remaining', length(s_pool),
+                       'box_remaining', length(s_box)));
 
   return query select new_id;
 end;
@@ -857,21 +862,21 @@ begin
   end if;
 
   -- Draw dump_count from the FRONT of the bunch first, then top up from the
-  -- FRONT of the box if the bunch is short (only possible in to-box mode).
+  -- FRONT of the box if the bunch is short. (The box can hold tiles in EITHER
+  -- mode now — a reduced bag_size leaves its remainder there — so always pull
+  -- the drawn tiles off both fronts.)
   from_pool := least(length(s_pool), s_dump_count);
   from_box  := s_dump_count - from_pool;
   drawn := substr(s_pool, 1, from_pool) || substr(s_box, 1, from_box);
+  new_pool := substr(s_pool, from_pool + 1);
+  new_box  := substr(s_box, from_box + 1);
 
-  -- Where the dumped tile lands: the BACK of the bunch (return-to-bag) or the
-  -- BACK of the box (to-box) — always after the draw, so it can't refill its
-  -- own swap.
+  -- The dumped tile then lands at the BACK of the bunch (return-to-bag) or the
+  -- BACK of the box (to-box) — after the draw, so it can't refill its own swap.
   if s_dump_to_box then
-    new_pool := substr(s_pool, from_pool + 1);
-    new_box  := substr(s_box, from_box + 1) || tile;
+    new_box := new_box || tile;
   else
-    -- return-to-bag: box is empty, so from_box is 0 and the box is untouched.
-    new_pool := substr(s_pool, from_pool + 1) || tile;
-    new_box  := s_box;
+    new_pool := new_pool || tile;
   end if;
 
   update monkeygram.player_boards
