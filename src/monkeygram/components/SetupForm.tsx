@@ -21,6 +21,9 @@ import styles from './SetupForm.module.css'
  *     hand per player — the neutral hint below shows the live "deals N"
  *     figure, and the dialog's guard (manifest `validate` →
  *     `bagSizeError`) disables Start with a red reason when it can't.
+ *   - **Dumping a tile** — "Return dumped tiles to the box": off (default) puts
+ *     a dumped tile back in the bag; on takes it out of play (the game shrinks
+ *     by one each dump).
  *   - **Require real words to win** — opt-in dictionary check on the winning
  *     peel; reveals a dictionary-obscurity picker (2..6) when on. (Board
  *     geography — one connected grid — is always required, so it's not a knob.)
@@ -75,6 +78,24 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           value={Number.isFinite(s.bag_size) ? s.bag_size : ''}
           onChange={(e) => onChange({ ...s, bag_size: e.target.valueAsNumber })}
         />
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
+        <legend>Dumping a tile</legend>
+        <label className={styles.checkRow}>
+          <input
+            type="checkbox"
+            name="dump_to_box"
+            checked={s.dump_to_box}
+            onChange={(e) => onChange({ ...s, dump_to_box: e.target.checked })}
+          />
+          Return dumped tiles to the box (out of play)
+        </label>
+        <p className="muted">
+          By default a dumped tile goes back in the bag and can be drawn again.
+          To the box, it's gone for good — shrinking the game by one tile each
+          dump (you still draw three).
+        </p>
       </fieldset>
 
       <fieldset className={styles.fieldset}>

@@ -752,17 +752,24 @@ grant execute on function monkeygram.peel(uuid) to authenticated;
 -- monkeygram.dump — swap one tile for three from the bunch
 -- ============================================================
 --
--- A player stuck with an awkward tile (a Q, a lone consonant) trades it: the
--- dumped tile goes back into the bunch and they draw dump_count (default 3) in
--- return — a net +2 to the hand, the cost of getting unstuck.
+-- A player stuck with an awkward tile (a Q, a lone consonant) trades it: they
+-- draw dump_count (default 3) in return — a net +2 to the hand, the cost of
+-- getting unstuck.
+--
+-- What happens to the DUMPED tile depends on setup.dump_to_box:
+--   - default (false) — return-to-bag: it goes back into the bunch (the BACK
+--     of the pool) and may be drawn again later. Tile count is conserved.
+--   - true — to-the-box: it's set aside, OUT OF PLAY. The game shrinks by one
+--     tile per dump (the bunch runs dry sooner, ending the game earlier).
+-- Either way the player still draws dump_count.
 --
 -- Two guarantees from the rules:
 --   - You can't dump if the bunch can't cover the draw (length(pool) <
---     dump_count). The dumped tile is returned only AFTER the draw, so it can
---     never refill its own swap.
---   - You won't draw back the SAME tile: we draw from the FRONT of the pool and
---     append the dumped tile to the BACK. (You might draw the same LETTER if
---     another copy was near the front — that's allowed.)
+--     dump_count). In return-to-bag the dumped tile is appended only AFTER the
+--     draw, so it can never refill its own swap.
+--   - You won't draw back the SAME tile: we draw from the FRONT of the pool;
+--     return-to-bag appends to the BACK, to-the-box discards. (You might draw
+--     the same LETTER if another copy was near the front — that's allowed.)
 --
 -- dump_count comes from setup (default 3) — a future setup option can change it
 -- without touching this logic. No board/word validation (v2 trust model); the
@@ -782,6 +789,7 @@ declare
   current_play_state text;
   s_setup jsonb;
   s_dump_count int;
+  s_dump_to_box boolean;
   s_pool text;
   caller_tiles text;
   drawn text;
@@ -807,6 +815,7 @@ begin
   end if;
 
   s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
+  s_dump_to_box := coalesce((s_setup->>'dump_to_box')::boolean, false);
 
   select pool into s_pool from monkeygram.games where id = target_game;
   if length(s_pool) < s_dump_count then
@@ -822,7 +831,8 @@ begin
     raise exception 'you do not hold that tile' using errcode = 'P0001';
   end if;
 
-  -- Draw dump_count from the FRONT; the dumped tile returns to the BACK.
+  -- Draw dump_count from the FRONT; the dumped tile then returns to the BACK
+  -- (return-to-bag) or is discarded out of play (to-the-box).
   drawn := substr(s_pool, 1, s_dump_count);
 
   update monkeygram.player_boards
@@ -831,17 +841,20 @@ begin
    where game_id = target_game and user_id = caller_id;
 
   update monkeygram.games
-     set pool = substr(s_pool, s_dump_count + 1) || tile
+     set pool = substr(s_pool, s_dump_count + 1)
+                || case when s_dump_to_box then '' else tile end
    where id = target_game;
 
-  -- Held grew by dump_count − 1 (placed unchanged), so unplaced does too.
+  -- The caller's hand math is identical either way (−1 dumped, +dump_count
+  -- drawn), so unplaced grows by dump_count − 1 regardless.
   update monkeygram.progress
      set unplaced = unplaced + (s_dump_count - 1)
    where game_id = target_game and user_id = caller_id;
 
-  -- Pool net change: −dump_count drawn + 1 returned.
+  -- Pool net change: −dump_count drawn, +1 returned (bag) or +0 (box).
   perform common.update_state(target_game, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool) - s_dump_count + 1));
+    jsonb_build_object('pool_remaining',
+      length(s_pool) - s_dump_count + case when s_dump_to_box then 0 else 1 end));
 end;
 $$;
 

@@ -34,6 +34,11 @@ export type MonkeyGramSetup = {
    *  difficulty): a word is legal iff it exists at difficulty ≤ this, so higher
    *  = more obscure words allowed. Only meaningful when `check_words` is on. */
   dictionary: number
+  /** Where a dumped tile goes. `false` (default) = back into the bag (it may
+   *  be drawn again; tile count conserved). `true` = out of play ("the box"),
+   *  shrinking the game by one tile per dump — the bunch runs dry sooner. The
+   *  player still draws `dump_count` either way. */
+  dump_to_box: boolean
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone
    *  (`monkeygram.submit_timeout`). Validated server-side by
@@ -62,6 +67,7 @@ export const DEFAULT_MONKEYGRAM_SETUP: MonkeyGramSetup = {
   bag_size: MONKEYGRAM_BAG_MAX,
   check_words: false,
   dictionary: 4,
+  dump_to_box: false,
   timer: { kind: 'none' },
 }
 
