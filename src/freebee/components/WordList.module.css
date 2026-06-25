@@ -86,8 +86,9 @@
 .bonus::after {
   content: '•';
   margin-left: 5px;
-  font-size: 0.85em;
-  vertical-align: 0.05em;
+  font-size: 1.6em;
+  line-height: 0;
+  vertical-align: -0.18em;
   color: var(--color-muted);
 }
 
