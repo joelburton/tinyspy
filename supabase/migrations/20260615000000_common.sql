@@ -108,7 +108,7 @@ create table common.profiles (
   -- username itself in v1; a future "change my color" RPC would
   -- need a narrow UPDATE policy.
   color text not null check (color in (
-    'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'
+    'red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink'
   )),
   created_at timestamptz not null default now()
 );
@@ -743,7 +743,7 @@ language sql
 immutable
 as $$
   select (array[
-    'red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'
+    'red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink'
   ])[(abs(hashtext(username)) % 8) + 1];
 $$;
 
@@ -1711,7 +1711,7 @@ begin
   -- inserts, e.g. the test personas, still supply their own color —
   -- common.color_for_username remains for that deterministic seeding.)
   if chosen_color not in
-       ('red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink') then
+       ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
     raise exception 'not a valid player color: %', chosen_color using errcode = 'P0001';
   end if;
 
@@ -1761,7 +1761,7 @@ begin
   -- list must match the CHECK on common.profiles.color (and the FE's
   -- MEMBER_COLORS in memberColor.ts).
   if new_color not in
-       ('red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink') then
+       ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
     raise exception 'not a valid player color: %', new_color using errcode = 'P0001';
   end if;
 

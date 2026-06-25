@@ -118,10 +118,20 @@
   --color-member-orange: #f57c00;
   --color-member-yellow: #f9a825;
   --color-member-green:  #388e3c;
-  --color-member-teal:   #00897b;
+  /* Brown, not teal. The earlier teal (#00897b) read as a second
+     green next to --color-member-green at small dot size — two cool
+     greens crowding the green/blue corner of the palette. Brown is
+     the only warm-neutral here, so it stays unmistakable against the
+     green/blue pair. (The co-op mode pill above is still teal — a
+     different vocabulary: an outlined text chip, not a player dot.) */
+  --color-member-brown:  #6d4c41;
   --color-member-blue:   #1976d2;
   --color-member-purple: #7b1fa2;
-  --color-member-pink:   #c2185b;
+  /* A true, lighter-than-red pink. The earlier #c2185b was a dark
+     crimson — darker than --color-member-red, and easily misread as a
+     second red; pink 400 reads unmistakably pink and sits lighter
+     than red, the way a pink should. */
+  --color-member-pink:   #ec407a;
 
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */

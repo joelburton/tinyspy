@@ -17,7 +17,7 @@ describe('colorVarFor', () => {
       'orange',
       'yellow',
       'green',
-      'teal',
+      'brown',
       'blue',
       'purple',
       'pink',

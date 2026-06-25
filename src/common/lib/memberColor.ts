@@ -27,7 +27,7 @@ export const MEMBER_COLORS = [
   'orange',
   'yellow',
   'green',
-  'teal',
+  'brown',
   'blue',
   'purple',
   'pink',
