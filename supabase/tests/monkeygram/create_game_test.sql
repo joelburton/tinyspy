@@ -5,19 +5,21 @@
 -- Compete-only, single gametype (no mode param). What we cover:
 --   1. Auth gating (unauthenticated rejected)
 --   2. Membership gating (non-member caller rejected)
---   3. Setup-shape validation: hand_size + timer
+--   3. Setup-shape validation: hand_size + bag_size + timer
+--      (incl. bag must hold playerCount × hand_size to deal)
 --   4. Happy path: writes the 'monkeygram' gametype, the
---      monkeygram.games row, deals a hand_size `tiles` to each
---      player (board empty), materializes the bunch (`pool` =
---      undealt remainder), seeds progress
---   5. Solo (1-player) is allowed
+--      monkeygram.games row, persists the immutable `bag`, deals a
+--      hand_size `tiles` to each player (board empty), materializes
+--      the bunch (`pool` = undealt remainder), seeds progress
+--   5. A smaller bag deals + leaves a smaller bunch
+--   6. Solo (1-player) is allowed
 -- ============================================================
 
 begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(14);
+select plan(21);
 
 \ir ../_shared/setup.psql
 
@@ -31,7 +33,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select monkeygram.create_game(
        '=ada',
-       '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
   '42501',
@@ -56,7 +58,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
     $$ select monkeygram.create_game(%L,
-         '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
+         '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
          array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -94,10 +96,47 @@ select throws_ok(
   'hand_size outside {15, 21} is rejected'
 );
 
--- timer missing entirely
+-- bag_size missing (hand_size valid, so we reach the bag_size check)
 select throws_ok(
   format(
-    $$ select monkeygram.create_game(%L, '{"hand_size": 21}'::jsonb,
+    $$ select monkeygram.create_game(%L, '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.bag_size is required',
+  'missing bag_size is rejected'
+);
+
+-- bag_size out of range (> 144)
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L, '{"hand_size": 21, "bag_size": 200, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.bag_size must be between 1 and 144 (got 200)',
+  'bag_size above 144 is rejected'
+);
+
+-- bag_size too small to deal: 2 players × 21 = 42 needed, bag holds 40
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L, '{"hand_size": 21, "bag_size": 40, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid,
+             'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'not enough tiles: 2 players × 21 = 42 needed, bag holds 40',
+  'a bag too small to deal every hand is rejected'
+);
+
+-- timer missing entirely (hand_size + bag_size valid, so we reach the timer check)
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L, '{"hand_size": 21, "bag_size": 144}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -113,7 +152,7 @@ select throws_ok(
 create temp table mg_game on commit drop as
 select * from monkeygram.create_game(
   (select handle from club),
-  '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -121,9 +160,18 @@ select * from monkeygram.create_game(
 -- (solo is allowed: ada starts a game in her solo club)
 select lives_ok(
   $$ select monkeygram.create_game('=ada',
-       '{"hand_size": 15, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 15, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
   'solo (1-player) create_game is allowed'
+);
+
+-- A smaller bag: 2 players × 21 = 42 dealt, bag holds 60 → bunch of 18.
+create temp table mg_small on commit drop as
+select * from monkeygram.create_game(
+  (select handle from club),
+  '{"hand_size": 21, "bag_size": 60, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid]
 );
 
 -- Reset to superuser to read across the owner-only RLS on
@@ -188,6 +236,31 @@ select is(
   (select length(pool) from monkeygram.games where id = (select id from mg_game)),
   102,
   'pool (the bunch) holds the 102 undealt tiles'
+);
+
+-- The immutable `bag` of record is the full chosen size (144 here): hands +
+-- bunch together. 42 dealt + 102 pool = 144.
+select is(
+  (select length(bag) from monkeygram.games where id = (select id from mg_game)),
+  144,
+  'bag (immutable record) holds the full chosen bag size'
+);
+select is(
+  (select bag ~ '^[A-Z]{144}$' from monkeygram.games where id = (select id from mg_game)),
+  true,
+  'bag is 144 uppercase tiles'
+);
+
+-- Smaller bag: bag length = 60, bunch = 60 − 42 dealt = 18.
+select is(
+  (select length(bag) from monkeygram.games where id = (select id from mg_small)),
+  60,
+  'a bag_size of 60 persists a 60-tile bag'
+);
+select is(
+  (select length(pool) from monkeygram.games where id = (select id from mg_small)),
+  18,
+  'the smaller bag leaves an 18-tile bunch (60 − 2×21)'
 );
 
 select * from finish();

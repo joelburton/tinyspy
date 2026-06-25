@@ -37,7 +37,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 create temp table mg_game on commit drop as
 select * from monkeygram.create_game(
   (select handle from club),
-  '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );

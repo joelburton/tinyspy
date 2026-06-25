@@ -1,7 +1,11 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_MONKEYGRAM_SETUP, type MonkeyGramSetup } from './lib/setup'
+import {
+  bagSizeError,
+  DEFAULT_MONKEYGRAM_SETUP,
+  type MonkeyGramSetup,
+} from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -45,6 +49,10 @@ export const monkeygramGame: GameManifest = {
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_MONKEYGRAM_SETUP,
+    // Gate Start until the bag can deal everyone a starter hand
+    // (bag_size ≥ playerCount × hand_size). create_game re-checks.
+    validate: (setup, playerCount) =>
+      bagSizeError(setup as MonkeyGramSetup, playerCount),
   },
 
   // Single gametype → no `mode` in the payload (the RPC writes

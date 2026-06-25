@@ -81,6 +81,16 @@ grant usage on schema monkeygram to authenticated;
 create table monkeygram.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
+  -- `bag` is the IMMUTABLE record of the shuffled bag this game was dealt
+  -- from: the full tile sequence (length = the chosen bag size, ≤ 144),
+  -- hands-then-bunch in deal order. Set once at create_game and never
+  -- written again. `pool` (below) is the live remainder that mutates; this
+  -- is what a future "restart game" re-deals from. Hidden from the FE for
+  -- the same reason as `pool` — it carries the bunch order, which would let
+  -- a player predict peels (the column grant below omits it).
+  bag text not null,
+  -- `pool` is the live "bunch": every tile not currently held by a player.
+  -- Starts as the undealt suffix of `bag` and MUTATES during play.
   pool text not null,
   hand_size int not null check (hand_size between 1 and 30),
   created_at timestamptz not null default now()
@@ -194,8 +204,10 @@ create policy progress_select on monkeygram.progress
   );
 
 -- ============================================================
--- Grants — `pool` is column-excluded
+-- Grants — `pool` and `bag` are column-excluded
 -- ============================================================
+-- The whitelist omits both `pool` (live bunch) and `bag` (the initial
+-- shuffled sequence) — either would let a player predict upcoming peels.
 
 grant select
   (id, club_handle, hand_size, created_at)
@@ -251,10 +263,12 @@ as $$
 declare
   new_id uuid;
   s_hand_size int;
+  s_bag_size int;
   bag_text text;
   letters text[];
   shuffled text[];
   player_count int;
+  s_bag text;
   s_pool text;
 begin
   -- ─── Player count: 1..6 (solo allowed — see header) ──
@@ -274,10 +288,29 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- bag_size: how many tiles to draw from the 144-tile set for this game.
+  -- ≤ 144 (the full Bananagrams bag); smaller = a shorter game on a random
+  -- subset. MUST be ≥ player_count × hand_size or the deal can't be made —
+  -- the FE disables Start on the same check (see monkeygram bagSizeError),
+  -- but the server is the authority.
+  if (setup->>'bag_size') is null then
+    raise exception 'setup.bag_size is required' using errcode = 'P0001';
+  end if;
+  s_bag_size := (setup->>'bag_size')::int;
+  if s_bag_size < 1 or s_bag_size > 144 then
+    raise exception 'setup.bag_size must be between 1 and 144 (got %)', s_bag_size
+      using errcode = 'P0001';
+  end if;
+  if player_count * s_hand_size > s_bag_size then
+    raise exception 'not enough tiles: % players × % = % needed, bag holds %',
+      player_count, s_hand_size, player_count * s_hand_size, s_bag_size
+      using errcode = 'P0001';
+  end if;
+
   perform common.validate_timer(setup->'timer');
 
-  -- ─── Build the 144-tile Bananagrams bag ──────────────
-  -- Standard letter distribution. string_to_array(_, NULL)
+  -- ─── Build the bag: shuffle the 144-tile set, take bag_size ──
+  -- Standard Bananagrams letter distribution. string_to_array(_, NULL)
   -- splits the concatenated string into one element per char.
   bag_text :=
     repeat('A', 13) || repeat('B', 3)  || repeat('C', 3)  || repeat('D', 6)  ||
@@ -289,19 +322,17 @@ begin
     repeat('Y', 3)  || repeat('Z', 2);
   letters := string_to_array(bag_text, NULL);
 
-  if player_count * s_hand_size > array_length(letters, 1) then
-    raise exception 'not enough tiles to deal % to % players',
-      s_hand_size, player_count using errcode = 'P0001';
-  end if;
-
-  -- ─── Shuffle the bag (throwaway seed) ────────────────
-  -- A fresh seed makes the shuffle order unpredictable; we don't
-  -- store it (the materialized `pool` below is the authority, and
-  -- dump mutates it past anything a seed could describe). setseed
-  -- wants a double in [-1, 1].
+  -- A fresh seed makes the shuffle order unpredictable. setseed wants a
+  -- double in [-1, 1]. Truncating the shuffled 144 to bag_size yields a
+  -- uniformly random subset (and a random order) for the smaller game.
   perform setseed(random() * 2 - 1);
   select array_agg(ch order by random()) into shuffled
     from unnest(letters) as ch;
+  shuffled := shuffled[1:s_bag_size];
+
+  -- The immutable bag of record (hands-then-bunch, in deal order). A future
+  -- "restart" re-deals from this exact sequence.
+  s_bag := array_to_string(shuffled, '');
 
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
@@ -312,16 +343,15 @@ begin
   );
 
   -- The bunch = every tile past the dealt slices
-  -- (shuffled[player_count*hand_size + 1 ..]). coalesce to '' for the
-  -- degenerate "exact deal, nothing left over" case so NOT NULL holds.
+  -- (shuffled[player_count*hand_size + 1 .. bag_size]). coalesce to '' for
+  -- the degenerate "exact deal, nothing left over" case so NOT NULL holds.
   s_pool := coalesce(
     (select string_agg(shuffled[gidx], '' order by gidx)
-       from generate_series(player_count * s_hand_size + 1,
-                            array_length(shuffled, 1)) as gidx),
+       from generate_series(player_count * s_hand_size + 1, s_bag_size) as gidx),
     ''
   );
-  insert into monkeygram.games (id, club_handle, pool, hand_size)
-  values (new_id, target_club, s_pool, s_hand_size);
+  insert into monkeygram.games (id, club_handle, bag, pool, hand_size)
+  values (new_id, target_club, s_bag, s_pool, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
   -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`

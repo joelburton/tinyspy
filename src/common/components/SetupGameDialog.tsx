@@ -136,6 +136,12 @@ export function SetupGameDialog({
         ? `At most ${maxPlayers} players.`
         : null
 
+  // Cross-field setup guard (optional per manifest). Couples the
+  // collected `setup` to the live `playerCount` — e.g. MonkeyGram's
+  // "the bag must hold playerCount × hand_size tiles". Non-null is a
+  // reason to keep Start disabled; the server re-checks in create_game.
+  const setupError = manifest.setupForm.validate?.(setup, playerCount) ?? null
+
   const SetupBody = manifest.setupForm.Component
 
   /**
@@ -226,10 +232,14 @@ export function SetupGameDialog({
           members={members}
           clubHandle={clubHandle}
           mode={manifest.mode}
+          playerCount={playerCount}
           value={setup}
           onChange={setSetup}
         />
       </Suspense>
+      {/* Setup-level guard (e.g. bag too small): blocks Start with a
+          fix-this hint, same muted register as the player-count hint. */}
+      {setupError && <p className={styles.playerHint}>{setupError}</p>}
       {error && <p className="error">{error}</p>}
       <div className={styles.actions}>
         <button
@@ -243,7 +253,7 @@ export function SetupGameDialog({
         <button
           type="button"
           onClick={handleStartGame}
-          disabled={busy || !countOk}
+          disabled={busy || !countOk || setupError !== null}
           autoFocus
         >
           {busy ? 'Starting…' : `Start ${manifest.name}`}
