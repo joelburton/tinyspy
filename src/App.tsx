@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { useSession } from './common/hooks/useSession'
 import { LoginScreen } from './common/components/LoginScreen'
 import { ClaimHandleScreen } from './common/components/ClaimHandleScreen'
@@ -7,6 +7,7 @@ import { CreateClubPage } from './common/components/CreateClubPage'
 import { GamePage } from './common/components/GamePage'
 import { HomePage } from './common/components/HomePage'
 import { UserMenu } from './common/components/UserMenu'
+import { EditProfileDialog } from './common/components/EditProfileDialog'
 import { GameInvitations } from './common/components/GameInvitations'
 import { usePath } from './common/lib/router'
 import { games } from './games'
@@ -55,6 +56,10 @@ import { games } from './games'
 export default function App() {
   const { session, needsClaim, loading, refresh } = useSession()
   const path = usePath()
+  // Edit-profile popup, opened from the UserMenu. Held here (not in the
+  // menu) so the dialog is a sibling of the page — the popup coexists
+  // with chat / invitations rather than replacing the current screen.
+  const [editingProfile, setEditingProfile] = useState(false)
 
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
@@ -128,7 +133,17 @@ export default function App() {
   return (
     <>
       {page}
-      <UserMenu session={session} />
+      <UserMenu
+        session={session}
+        onEditProfile={() => setEditingProfile(true)}
+      />
+      {editingProfile && (
+        <EditProfileDialog
+          session={session}
+          onSaved={() => setEditingProfile(false)}
+          onCancel={() => setEditingProfile(false)}
+        />
+      )}
       {/* Mounted after the auth + claim-handle gates, so invitations
           pop on every real page but never the login / claim screens. */}
       <GameInvitations session={session} />

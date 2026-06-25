@@ -547,10 +547,11 @@ create policy timers_select on common.timers
     )
   );
 
--- No UPDATE policy on profiles. username and color are both
--- immutable in v1 — the only way to alter either is to
--- delete-and-recreate. A future "change my color" surface would
--- add a narrow column-scoped policy here.
+-- No UPDATE policy on profiles. `username` is immutable in v1 (change
+-- it by delete-and-recreate). `color` IS changeable, but only through
+-- the security-definer `common.update_profile_color` RPC (caller-
+-- scoped), so no direct-UPDATE policy is needed — writes go through the
+-- RPC like every other mutation.
 
 create policy clubs_select on common.clubs
   for select to authenticated
@@ -1714,6 +1715,46 @@ $$;
 
 revoke execute on function common.claim_username(text) from public;
 grant execute on function common.claim_username(text) to authenticated;
+
+-- ============================================================
+-- common.update_profile_color — change your own player color
+-- ============================================================
+-- The one mutable profile field today (username is still immutable in
+-- v1). Security-definer + caller-scoped (only ever writes auth.uid()'s
+-- own row), so there's no UPDATE policy on common.profiles — this RPC
+-- is the single write path, like every other mutation in the app. The
+-- FE surface is the "Edit profile" dialog off the user menu.
+create function common.update_profile_color(new_color text)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+begin
+  caller_id := auth.uid();
+  if caller_id is null then
+    raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  -- Friendly P0001 instead of the raw 23514 the CHECK would raise. The
+  -- list must match the CHECK on common.profiles.color (and the FE's
+  -- MEMBER_COLORS in memberColor.ts).
+  if new_color not in
+       ('red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink') then
+    raise exception 'not a valid player color: %', new_color using errcode = 'P0001';
+  end if;
+
+  update common.profiles set color = new_color where user_id = caller_id;
+  if not found then
+    raise exception 'no profile to update' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke execute on function common.update_profile_color(text) from public;
+grant execute on function common.update_profile_color(text) to authenticated;
 -- ============================================================
 -- common.words — the master playable-word list
 -- ============================================================

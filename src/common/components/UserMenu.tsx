@@ -8,6 +8,9 @@ import styles from './UserMenu.module.css'
 
 type Props = {
   session: Session
+  /** Open the Edit-profile dialog (mounted at the App level next to
+   *  this menu, so the popup coexists with chat / notifications). */
+  onEditProfile: () => void
 }
 
 /**
@@ -20,8 +23,8 @@ type Props = {
  * the current user's username with a small chevron; clicking
  * opens a dropdown of **user-focused** actions:
  *
- *   - **Profile** — placeholder, disabled today. Will eventually
- *     route to a per-user settings screen.
+ *   - **Profile** — opens the Edit-profile dialog (player color today;
+ *     username and more later) via the `onEditProfile` callback.
  *   - **Log out** — calls `supabase.auth.signOut()`; useSession
  *     detects the change, App re-renders, the user lands on
  *     `<LoginScreen>`.
@@ -36,7 +39,7 @@ type Props = {
  * dropdown opens leftward into the page rather than overflowing
  * off-screen.
  */
-export function UserMenu({ session }: Props) {
+export function UserMenu({ session, onEditProfile }: Props) {
   const profile = useProfile(session)
 
   const sections: MenuSection[] = [
@@ -45,14 +48,7 @@ export function UserMenu({ session }: Props) {
         {
           id: 'profile',
           label: 'Profile',
-          // Placeholder — disabled until the per-user settings
-          // screen exists. Disabled (rather than enabled-with-toast)
-          // because there's no per-page feedback channel from
-          // here; a quiet greyed-out item reads as "this exists
-          // but isn't functional yet" without needing additional
-          // UI plumbing.
-          onClick: () => {},
-          disabled: true,
+          onClick: onEditProfile,
         },
         {
           id: 'logout',

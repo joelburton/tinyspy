@@ -432,6 +432,7 @@ export type Database = {
       slugify_club_name: { Args: { name: string }; Returns: string }
       tick_timer: { Args: { target_game: string }; Returns: number }
       unset_current_view: { Args: { target_game: string }; Returns: undefined }
+      update_profile_color: { Args: { new_color: string }; Returns: undefined }
       update_state: {
         Args: { play_state: string; status: Json; target_game: string }
         Returns: undefined

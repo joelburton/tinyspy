@@ -16,12 +16,13 @@
  */
 
 // The same 8 names as the DB check constraint on
-// common.profiles.color. Mirrored here so the FE can defend
-// against an unknown value (a future palette extension that
-// updated the DB but not the FE; in the meantime the unknown
-// name falls through to the body-text color, which beats a
-// broken `var(--color-member-undefined)` reference).
-const VALID = new Set([
+// common.profiles.color.
+//
+// `MEMBER_COLORS` is the ordered palette, exported so the "Edit
+// profile" color picker can map over it (each rendered as its
+// `--color-member-NAME` swatch). Keep in sync with the DB CHECK and
+// the `common.update_profile_color` RPC allow-list.
+export const MEMBER_COLORS = [
   'red',
   'orange',
   'yellow',
@@ -30,7 +31,13 @@ const VALID = new Set([
   'blue',
   'purple',
   'pink',
-])
+] as const
+
+// Mirrored as a Set so the FE can defend against an unknown value (a
+// future palette extension that updated the DB but not the FE; in the
+// meantime the unknown name falls through to the body-text color,
+// which beats a broken `var(--color-member-undefined)` reference).
+const VALID = new Set<string>(MEMBER_COLORS)
 
 /**
  * Return the CSS variable reference for a profile color name.
