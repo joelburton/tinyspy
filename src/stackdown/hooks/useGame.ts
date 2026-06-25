@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase'
+import { channelDedupSuffix } from '../../common/lib/channelDedup'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Tile } from '../lib/board'
@@ -53,10 +53,14 @@ type StateRow = Pick<
 > & { solution: string[] | null }
 
 /**
- * The in-progress word's mutations, carried over the stackdown-specific
- * realtime channel. In coop these broadcast so every seat sees the same
- * collaborative word being built; in compete the senders short-circuit
- * (each player's word is private) and the events stay local.
+ * The in-progress word's mutations — a small local reducer action set.
+ * The word is **private to the player building it** in both modes:
+ * selections are never broadcast, so teammates can try words
+ * independently rather than taking turns on one shared word. What's
+ * shared is the completed result — every submission (found word, bad
+ * word, hint/word request) is a `stackdown.submissions` row that reaches
+ * peers via postgres-changes (the right-column history) and, for an
+ * accepted word, removes its tiles from the shared coop board.
  *
  *   - append  — a tile was picked up onto the end of the word.
  *   - retract — a tile in the word was clicked, returning it AND every
@@ -64,12 +68,11 @@ type StateRow = Pick<
  *   - clear   — the word was emptied, tiles RETURNED to the board (an
  *     invalid submit, or an abandoned word).
  *   - commit  — an ACCEPTED word: the word is emptied but its tiles
- *     STAY off the board. Carries the tile ids so every peer can hold
- *     them removed optimistically (their own `pendingRemoved`) until the
- *     valid submission arrives via realtime — without this a peer would
- *     briefly flash the tiles back onto the grid between the `clear` and
- *     the refetch. `clear` and `commit` look identical on the wire
- *     otherwise, so they must be distinct events.
+ *     STAY off the board. Carries the tile ids so they're held removed
+ *     optimistically (`pendingRemoved`) until the valid submission
+ *     arrives via realtime — without this the submitter's grid would
+ *     briefly flash the tiles back on between the clear and the refetch.
+ *     `clear` and `commit` differ only in this hold.
  */
 type WordEvent =
   | { type: 'append'; tileId: number }
@@ -78,11 +81,19 @@ type WordEvent =
   | { type: 'commit'; tileIds: number[] }
 
 /**
- * StackDown's per-gametype data hook — the broadcast-coupled realtime
- * pattern (docs/code-conventions.md → "Realtime data hooks"), the same
- * shape wordknit uses: one stable-name channel carrying both
- * postgres-changes (games / players / submissions) and the shared
- * in-progress-word Broadcast (coop only).
+ * StackDown's per-gametype data hook — a postgres-changes realtime hook
+ * (docs/code-conventions.md → "Realtime data hooks"): one channel
+ * carrying changes to games / players / submissions, plus the player's
+ * own local in-progress-word state.
+ *
+ * **Selections are local, not shared.** Earlier, coop broadcast the
+ * in-progress word so the whole table built one word together — which
+ * forced players to take turns and wait. Now each player builds their
+ * own word privately; only completed submissions are shared, via the
+ * `submissions` table + realtime (the history shows the word, and an
+ * accepted word's tiles leave the shared coop board). Same model both
+ * modes; the only coop/compete difference is RLS on `submissions`
+ * (coop = everyone's, compete = own).
  *
  * The board the player sees is the static `game.tiles` minus the tiles
  * that have left it. Tiles leave in two ways:
@@ -96,16 +107,10 @@ type WordEvent =
  *     `exposedIds`.
  *
  * The submit itself lives in the PlayArea (it owns feedback + the RPC);
- * this hook owns the selection state and its broadcast. `appendTile`
- * returns the resulting word so the caller can fire the submit when it
- * reaches five letters — and only the originating client submits
- * (remote peers merely apply the broadcast), so a coop word isn't
- * double-submitted.
+ * this hook owns the selection state. `appendTile` returns the resulting
+ * word so the caller can fire the submit when it reaches five letters.
  */
-export function useGame(
-  session: Session,
-  gameId: string,
-): {
+export function useGame(gameId: string): {
   game: StackdownGame | null
   players: PlayerRow[]
   submissions: SubmissionRow[]
@@ -127,14 +132,11 @@ export function useGame(
   // back onto the board during the round-trip. Pruned in `load()`.
   const [pendingRemoved, setPendingRemoved] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
-  const [channel, setChannel] = useState<
-    ReturnType<typeof supabase.channel> | null
-  >(null)
 
-  // Apply a word event to local state. Idempotent so the echo of our own
-  // broadcast (and any reorder) is harmless: append skips a tile already
-  // in the word, retract/clear are slice/empty, commit's pendingRemoved
-  // is deduped into a Set downstream (all stable under replay).
+  // Apply a word event to the local in-progress word. Idempotent (append
+  // skips a tile already in the word, retract/clear are slice/empty,
+  // commit's pendingRemoved is deduped into a Set downstream) — handy
+  // since the PlayArea can re-fire on rapid clicks.
   const applyWordEvent = useCallback((event: WordEvent) => {
     if (event.type === 'commit') {
       // Accepted word: hold its tiles removed optimistically (same as the
@@ -156,11 +158,9 @@ export function useGame(
   }, [])
 
   // Join this game's stackdown room: load games_state + players +
-  // submissions, attach postgres-changes on all three, and (coop)
-  // carry the shared-word Broadcast. Compete senders short-circuit in
-  // the mutators below, so foreign events shouldn't arrive in compete;
-  // the handler registers unconditionally because the channel is built
-  // before mode is known.
+  // submissions and attach postgres-changes on all three. No Broadcast
+  // any more — selections are local, so the only cross-client traffic is
+  // the durable submission rows (which carry the shared board + history).
   useEffect(function joinStackdownRoom() {
     let mounted = true
 
@@ -206,13 +206,20 @@ export function useGame(
       for (const s of subs) if (s.valid && s.tile_ids) for (const id of s.tile_ids) confirmed.add(id)
       setPendingRemoved((prev) => prev.filter((id) => !confirmed.has(id)))
 
+      // A teammate's accepted word may have claimed a tile we were still
+      // building with (selections are private now — we don't see each
+      // other's in-progress picks). If so our word is stale (its tiles
+      // aren't all on the board), so reset it. Our own just-committed
+      // word is already empty, so this only fires for a teammate's grab.
+      setCurrentWord((prev) => (prev.some((id) => confirmed.has(id)) ? [] : prev))
+
       setLoading(false)
     }
 
-    // Stable channel name — the coop shared-word Broadcast needs every
-    // peer in the same room, so no UUID suffix. StrictMode's double
-    // mount is handled by removeChannel in cleanup.
-    const ch = supabase.channel(`stackdown:${gameId}`)
+    // Per-effect-run channel name (no shared Broadcast room any more), so
+    // a StrictMode/remount double-subscribe doesn't collide on the
+    // supabase-js name cache. See channelDedupSuffix.
+    const ch = supabase.channel(`stackdown:${gameId}:${channelDedupSuffix()}`)
     ch.on(
       'postgres_changes',
       { event: '*', schema: 'stackdown', table: 'games', filter: `id=eq.${gameId}` },
@@ -228,68 +235,53 @@ export function useGame(
       { event: '*', schema: 'stackdown', table: 'submissions', filter: `game_id=eq.${gameId}` },
       load,
     )
-    ch.on('broadcast', { event: 'word' }, ({ payload }) =>
-      applyWordEvent(payload as WordEvent),
-    )
     // SUBSCRIBED fires on initial subscribe AND every reconnect, so this
     // covers both the mount-time fetch and the missed-events refetch.
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') load()
     })
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChannel(ch)
 
     return () => {
       mounted = false
       supabase.removeChannel(ch)
-      setChannel(null)
     }
-  }, [applyWordEvent, gameId, session.user.id])
-
-  // Send a word event + apply locally (optimistic). Compete keeps the
-  // word private — apply locally only, no broadcast — mirroring
-  // wordknit's per-player selection short-circuit.
-  const broadcast = useCallback(
-    (event: WordEvent) => {
-      applyWordEvent(event)
-      if (!channel || game?.mode === 'compete') return
-      channel.send({ type: 'broadcast', event: 'word', payload: event })
-    },
-    [applyWordEvent, channel, game?.mode],
-  )
+  }, [gameId])
 
   // Local tile click: pick the tile up onto the end of the word. Returns
-  // the resulting word so the PlayArea can submit when it hits five (and
-  // ONLY the originating client does — remote peers just see the
-  // broadcast). Returns null when the word is already full or the tile's
-  // already in it (the click is a no-op).
+  // the resulting word so the PlayArea can submit when it hits five.
+  // Returns null when the word is already full or the tile's already in
+  // it (the click is a no-op).
   const appendTile = useCallback(
     (tileId: number): number[] | null => {
       if (currentWord.length >= 5 || currentWord.includes(tileId)) return null
-      broadcast({ type: 'append', tileId })
+      applyWordEvent({ type: 'append', tileId })
       return [...currentWord, tileId]
     },
-    [broadcast, currentWord],
+    [applyWordEvent, currentWord],
   )
 
   // Local click on a tile already in the word: return it AND every tile
   // after it to the board (the word is an order, so you can't pull one
   // from the middle without invalidating the rest).
   const retractTo = useCallback(
-    (index: number) => broadcast({ type: 'retract', index }),
-    [broadcast],
+    (index: number) => applyWordEvent({ type: 'retract', index }),
+    [applyWordEvent],
   )
 
-  const clearWord = useCallback(() => broadcast({ type: 'clear' }), [broadcast])
+  const clearWord = useCallback(
+    () => applyWordEvent({ type: 'clear' }),
+    [applyWordEvent],
+  )
 
   // Commit an ACCEPTED word: empty it and hold its tiles removed
-  // optimistically — locally AND on every coop peer (via the broadcast),
-  // so nobody's grid flashes the tiles back on between the word clearing
-  // and the valid submission arriving via realtime. The hold is pruned in
-  // load() once the submission confirms it.
+  // optimistically so the submitter's grid doesn't flash the tiles back
+  // on between the word clearing and the valid submission arriving via
+  // realtime. The hold is pruned in load() once the submission confirms
+  // it. (Teammates never had these tiles selected, so they just see them
+  // leave the board once on the refetch — no flash to guard against.)
   const commitWord = useCallback(
-    (tileIds: number[]) => broadcast({ type: 'commit', tileIds }),
-    [broadcast],
+    (tileIds: number[]) => applyWordEvent({ type: 'commit', tileIds }),
+    [applyWordEvent],
   )
 
   // The durably-removed set: tiles of every valid submission visible to

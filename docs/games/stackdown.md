@@ -48,11 +48,16 @@ games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
 
 ### Coop vs compete
 
-- **Coop** — one **shared** board. Any player can click; the in-progress
-  selection is shared live (the wordknit peer-selection pattern) so everyone
-  watches the same word form. A word accepted by anyone advances the shared
-  board. The team wins when all six words are found; the countdown expiring (if
-  a timer is set) is a shared loss.
+- **Coop** — one **shared** board, but each player builds words
+  **independently**: in-progress selections are *private*, not broadcast, so
+  teammates try words in parallel instead of taking turns on one shared word.
+  What's shared is the result — a word accepted by anyone removes its tiles from
+  the board for everyone, and every submission (found / bad word, hint / word
+  request) shows up in the right-column history for the whole team. The team
+  wins when all six words are found; the countdown expiring (if a timer is set)
+  is a shared loss. (Two players can build from the same tile at once; whoever
+  submits a valid word first claims it, and the other's in-progress word — now
+  missing a tile — resets.)
 - **Compete** — every player gets the **same starting board** but plays it
   **independently**. You see nothing of opponents except their running tally —
   `Found words: Joel 2 · Moth 1`. It's a **race**: the **first** player to clear
@@ -275,20 +280,21 @@ per-schema subscription.
   prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
   quadrant). Pure; Vitest in `board.test.ts`.
-- **`hooks/useGame.ts`** — the broadcast-coupled realtime hook (the wordknit
-  pattern): one stable-name channel carrying postgres-changes on `games_state` /
-  `players` / `submissions` **and** the coop shared-word Broadcast. The board the
-  player sees is `game.tiles` minus `removedTileIds` (valid-submission tiles, plus
-  a brief optimistic hold so an accepted word doesn't flash back during the
-  realtime round-trip) minus `currentWord` (the tiles picked up into the word
-  being built). In coop the in-progress word is shared peer-to-peer; the
-  Broadcast carries `append` / `retract` / `clear` plus a `commit` event (an
-  accepted word — kept distinct from `clear` so peers hold its tiles removed
-  optimistically too; without it a peer's grid would flash the tiles back on
-  between the word clearing and the realtime refetch). In compete the word is
-  local (senders short-circuit). Only the client that places the fifth tile
-  submits — remote peers just apply the broadcast — so a coop word isn't
-  double-submitted.
+- **`hooks/useGame.ts`** — the realtime hook: one channel carrying
+  postgres-changes on `games_state` / `players` / `submissions` (no Broadcast).
+  The board the player sees is `game.tiles` minus `removedTileIds`
+  (valid-submission tiles, plus a brief optimistic hold so an accepted word
+  doesn't flash back during the realtime round-trip) minus `currentWord` (the
+  tiles picked up into the word being built). **The in-progress word is local in
+  both modes** — selections are never broadcast, so teammates build words in
+  parallel; `append` / `retract` / `clear` / `commit` are now just a local
+  reducer's actions (`commit` still distinct from `clear` for the
+  submitter's optimistic tile-hold). Sharing happens entirely through the
+  `submissions` rows: coop RLS shows everyone's, so a teammate's accepted word
+  reaches you via the realtime refetch (board + history). If that refetch shows
+  a tile you were mid-building with is now gone (a teammate claimed it), `load()`
+  resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
+  shared Broadcast room that needed a stable name is gone.
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a

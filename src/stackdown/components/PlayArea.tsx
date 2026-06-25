@@ -24,12 +24,14 @@ import '../theme.css'
  * Clicking an exposed tile picks it onto the word; the fifth tile
  * auto-submits via `stackdown.submit_word`. Accepted words remove their
  * tiles (the board updates via the realtime refetch in useGame);
- * invalid attempts are logged and their tiles returned. The shared
- * coop word is kept in sync peer-to-peer by useGame's Broadcast.
+ * invalid attempts are logged and their tiles returned. The word being
+ * built is **private** to each player — not broadcast — in both modes.
  *
  * Coop renders the SHARED stack + log (everyone's, 6 words to clear
- * together). Compete renders the caller's own copy + an OpponentStrip of
- * each player's found-word count; first to clear all six wins.
+ * together — but each player builds their own word, only the completed
+ * submissions are shared). Compete renders the caller's own copy + an
+ * OpponentStrip of each player's found-word count; first to clear all
+ * six wins.
  */
 export function PlayArea({
   session,
@@ -54,7 +56,7 @@ export function PlayArea({
     clearWord,
     commitWord,
     loading,
-  } = useGame(session, gameId)
+  } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [submitting, setSubmitting] = useState(false)
   // Tiles to briefly outline in red — set when a typed letter is
@@ -84,9 +86,9 @@ export function PlayArea({
     !!self && !isTerminal && !submitting && !(isCompete && mySolved)
 
   // ─── Submit a completed (5-tile) word ─────────────────────────
-  // Only the client that placed the fifth tile calls this (appendTile
-  // returns the word to its local caller; remote peers just see the
-  // broadcast), so a coop word isn't double-submitted.
+  // Each player builds their own word locally (selections aren't shared
+  // any more), so whoever lays the fifth tile submits their own word —
+  // there's no shared word to double-submit.
   const submit = useCallback(
     async (tileIds: number[]) => {
       setSubmitting(true)
@@ -103,9 +105,10 @@ export function PlayArea({
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
       if (res.result === 'accepted') {
-        // Empty the word and hold its tiles removed optimistically — on
-        // THIS client and every coop peer — so no grid flashes the tiles
-        // back on before the valid submission arrives via realtime.
+        // Empty the word and hold its tiles removed optimistically on
+        // THIS client so the grid doesn't flash them back on before the
+        // valid submission lands via realtime. Teammates just see the
+        // tiles leave once, on their own refetch.
         commitWord(tileIds)
       } else {
         clearWord() // invalid → the tiles return to the board
