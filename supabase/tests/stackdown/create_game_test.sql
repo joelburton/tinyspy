@@ -10,7 +10,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(11);
+select plan(14);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -60,6 +60,21 @@ select is(
   (select play_state from common.games where id = (select id from g)),
   'playing',
   'play_state is playing');
+
+-- A fresh game is titled "New game"; coop rewrites this to the cleared
+-- words as it plays (see gameplay_test), compete keeps it.
+select is(
+  (select title from common.games where id = (select id from g)),
+  'New game',
+  'a fresh game is titled "New game" (no words cleared yet)');
+
+-- _found_title display rules (the title builder): cap at three words,
+-- ellipsis beyond. The integration cases (1 and 6 words) live in
+-- gameplay_test; here we pin the three-vs-four boundary directly.
+select is(stackdown._found_title(array['a','b','c','d'], 3), 'A-B-C',
+  '_found_title: exactly three cleared words → no ellipsis');
+select is(stackdown._found_title(array['a','b','c','d'], 4), 'A-B-C…',
+  '_found_title: a fourth cleared word → capped at three, plus an ellipsis');
 
 -- The solution is HIDDEN mid-game: games_state returns NULL.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -218,6 +218,28 @@ as $$
       on t.id = u.tid;
 $$;
 
+-- Build the club-list TITLE from the cleared words. Coop rewrites the
+-- title on every valid word (see submit_word) so the games list reads the
+-- game's progress at a glance — "APPLE-BERRY-COMPY…". The display is
+-- capped at three words; a fourth-and-beyond is implied by the trailing
+-- ellipsis. A zero-word game is just "New game" (the create-time title).
+--
+-- Compete deliberately does NOT call this: its found words are hidden from
+-- the opponent (only found_count is public — same board, same hidden
+-- solution, raced independently), so putting them in the shared club-list
+-- title would hand a trailing racer the next words. Compete keeps "New game".
+create function stackdown._found_title(solution text[], n int)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when n <= 0 then 'New game'
+    else upper(array_to_string(solution[1:least(n, 3)], '-'))
+         || case when n > 3 then '…' else '' end
+  end;
+$$;
+
 -- Reveal the solution only once the game is terminal (the end reveal).
 create function stackdown._solution_for(g_id uuid)
 returns text[]
@@ -290,8 +312,11 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- "New game" until words start clearing. Coop rewrites this title to the
+  -- cleared words as it plays (submit_word); compete leaves it untouched
+  -- so it never leaks the hidden solution to the trailing racer.
   new_id := common.create_game(
-    target_club, 'stackdown_' || mode, player_user_ids, 'StackDown', setup, setup
+    target_club, 'stackdown_' || mode, player_user_ids, 'New game', setup, setup
   );
 
   insert into stackdown.games (id, club_handle, mode, tiles, solution, wordlist, board_id)
@@ -429,6 +454,13 @@ begin
   if g_row.mode = 'coop' then
     select count(*) into team_found
       from stackdown.submissions where game_id = target_game and valid;
+    -- Surface the cleared words as the club-list title. They're shared and
+    -- already shown in the FoundWords panel, so this reveals nothing new.
+    -- Runs on every valid coop word, including the sixth — leaving the
+    -- final title in place when end_game flips the row terminal below.
+    update common.games
+       set title = stackdown._found_title(g_row.solution, team_found)
+     where id = target_game;
     if team_found >= 6 then
       out_terminal := true;
       select jsonb_object_agg(user_id::text, jsonb_build_object('won', true))

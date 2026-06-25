@@ -11,7 +11,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(7);
+select plan(8);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -42,6 +42,12 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
   'mid-game: ada''s found_count IS visible to bea (the public tally)');
+-- The title must NOT leak ada's cleared word into the shared club list:
+-- compete keeps the create-time "New game" no matter how far ahead a racer is.
+select is(
+  (select title from common.games where id = (select id from g)),
+  'New game',
+  'mid-game: compete title stays "New game" — cleared words never leak');
 
 -- ── ada clears the rest; the sixth wins the race immediately ────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

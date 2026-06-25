@@ -243,7 +243,9 @@ creation, so it's self-contained; `board_id` is provenance only.
   FE); logs the submission (valid OR invalid — both are durable rows); on a valid
   word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
   compete → `won_compete` with `winner = caller`). Returns
-  `{result: 'accepted'|'invalid', word, terminal}`.
+  `{result: 'accepted'|'invalid', word, terminal}`. On a valid **coop** word it
+  also rewrites `common.games.title` to the cleared words (see [Title
+  formula](#title-formula)).
 - **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
   `lost_compete` (a race, so no winner if it gets here).
 - **`end_game(target_game)`** — manual neutral stop → `ended`.
@@ -273,6 +275,26 @@ creation, so it's self-contained; `board_id` is provenance only.
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
 (`update stackdown.games set club_handle = club_handle`) to wake the FE's
 per-schema subscription.
+
+### Title formula
+
+A StackDown game is created titled **"New game"** (the gametype logo, not the
+title, identifies the game in the club list — so a static "StackDown" title
+would just be noise).
+
+**Coop** then rewrites the title to the words cleared so far, on every valid
+word: the first three, uppercased and `-`-joined, with a trailing `…` once a
+fourth is cleared — `EAGLE`, `EAGLE-TABLE`, `EAGLE-TABLE-PLANS`,
+`EAGLE-TABLE-PLANS…`. The club list reads a coop game's progress at a glance,
+and the final value persists into history (`end_game` doesn't touch the title).
+This reveals nothing new — coop's cleared words are shared and already on the
+FoundWords panel. The formula is `stackdown._found_title(solution, n)`.
+
+**Compete** keeps the create-time "New game". Its found words are hidden from
+the opponent (same board, same hidden solution, raced independently — only
+`found_count` is public), so putting them in the *shared* club-list title would
+hand a trailing racer the upcoming words. The non-spoiler invariant wins over a
+prettier title here.
 
 ### 5.3 Frontend (`src/stackdown/`)
 

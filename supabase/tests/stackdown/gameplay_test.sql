@@ -11,7 +11,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(10);
+select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -52,6 +52,12 @@ select is(
   (select stackdown.submit_word((select id from g), pg_temp.sd_seq(1))->>'result'),
   'accepted', 'EAGLE → accepted');
 
+-- Coop surfaces the cleared word as the club-list title (ada is a club
+-- member, so she can read common.games).
+select is(
+  (select title from common.games where id = (select id from g)),
+  'EAGLE', 'coop: the first cleared word becomes the club-list title');
+
 -- ── Play out the remaining five; the sixth ends the game ─────────────
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(2));
 select stackdown.submit_word((select id from g), pg_temp.sd_seq(3));
@@ -70,6 +76,13 @@ select is(
   (select count(*) from common.game_players
     where game_id = (select id from g) and (result->>'won')::boolean),
   2::bigint, 'both players recorded as won');
+
+-- Six words cleared → the title caps at three with an ellipsis. end_game
+-- leaves the title alone, so this final value persists into the history.
+select is(
+  (select title from common.games where id = (select id from g)),
+  'EAGLE-TABLE-PLANS…',
+  'coop: title caps at three cleared words plus an ellipsis');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
