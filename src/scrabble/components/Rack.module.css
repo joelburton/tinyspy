@@ -1,11 +1,15 @@
 .rack {
   display: flex;
   flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: 6px;
   padding: 8px;
   background: #6b4a2a;
   border-radius: 8px;
-  width: fit-content;
+  /* Always a full 7-tile-wide tray; with fewer tiles they stay left-aligned
+     (the gap math: 7 tiles + 6 gaps + the L/R padding). */
+  box-sizing: border-box;
+  width: calc(7 * 42px + 6 * 6px + 2 * 8px);
 }
 
 .tile {

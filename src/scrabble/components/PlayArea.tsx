@@ -45,6 +45,32 @@ function overRackAtPoint(x: number, y: number): boolean {
 }
 
 /**
+ * The rack display order after a draw: keep the tiles that remain in their
+ * current display order (compacted left), then append the freshly-drawn tiles
+ * on the right — so it's obvious which are new. `removed` are the OLD rack
+ * indices that left (played or exchanged); the server rebuilds the rack as
+ * `[remaining-in-ascending-order ++ drawn]`, so new server indices
+ * `[remainingCount .. newLen-1]` are the new tiles. Falls back to identity on
+ * the first load (no prior action) or any length mismatch.
+ */
+function nextRackOrder(
+  prevOrder: number[],
+  action: { removed: Set<number>; oldLen: number } | null,
+  newLen: number,
+): number[] {
+  const identity = Array.from({ length: newLen }, (_, i) => i)
+  if (!action) return identity
+  const remainingAsc: number[] = []
+  for (let i = 0; i < action.oldLen; i++) if (!action.removed.has(i)) remainingAsc.push(i)
+  const oldToNew = new Map(remainingAsc.map((oldIdx, k) => [oldIdx, k]))
+  const remaining = prevOrder.filter((i) => oldToNew.has(i)).map((i) => oldToNew.get(i)!)
+  const drawn: number[] = []
+  for (let i = remainingAsc.length; i < newLen; i++) drawn.push(i)
+  const result = [...remaining, ...drawn]
+  return result.length === newLen ? result : identity
+}
+
+/**
  * RackAttack's play surface (coop + compete). Left: the board, sized to grow
  * as tall as the layout allows. Right (fixed column): score / whose-turn, the
  * rack, a live score preview, the action row, and the move log.
@@ -92,6 +118,8 @@ export function PlayArea({
   // just drawn (from a play or an exchange). Both clear after ~1s.
   const [greenFlash, setGreenFlash] = useState<Set<number>>(new Set())
   const [yellowFlash, setYellowFlash] = useState<Set<number>>(new Set())
+  // Red on the new cells of a rejected (not-in-dictionary) word.
+  const [redFlash, setRedFlash] = useState<Set<number>>(new Set())
 
   // ─── Derived (null-safe until the loading guard) ──────────────
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -144,12 +172,14 @@ export function PlayArea({
   const stagedRef = useRef(staged)
   const actingRackRef = useRef(actingRack)
   const canActRef = useRef(canAct)
+  const orderRef = useRef(order)
   useEffect(() => {
     boardRef.current = board
     stagedRef.current = staged
     actingRackRef.current = actingRack
     canActRef.current = canAct
-  }, [board, staged, actingRack, canAct])
+    orderRef.current = order
+  }, [board, staged, actingRack, canAct, order])
 
   // A shown "not in the dictionary" pill is closeable (no auto-timer); we
   // also clear it the moment the staged tiles change (see the effect below).
@@ -157,6 +187,9 @@ export function PlayArea({
   // How many tiles the last play/exchange drew — turned into a yellow rack
   // flash once the new rack arrives (the drawn tiles are the rack's last N).
   const pendingDrawRef = useRef(0)
+  // Which OLD rack slots left on the last play/exchange (+ the old rack length),
+  // so the next order keeps the remaining tiles put and adds the new ones right.
+  const lastActionRef = useRef<{ removed: Set<number>; oldLen: number } | null>(null)
 
   // Reset staged + selection + cursor on any server version move.
   const prevVersion = useRef<number | null>(null)
@@ -167,8 +200,12 @@ export function PlayArea({
       prevVersion.current = game.version
       setStaged([])
       setSelected(new Set())
-      setCursor({ x: 7, y: 7, dir: 'H' })
-      setOrder(Array.from({ length: rackLen }, (_, i) => i))
+      // Leave the cursor where it is — the next word is usually nearby, so
+      // snapping back to center each turn would just be in the way. (Its
+      // initial center comes from useState on load.)
+      // Keep remaining tiles put (compacted left); new tiles land on the right.
+      setOrder(nextRackOrder(orderRef.current, lastActionRef.current, rackLen))
+      lastActionRef.current = null
       setOptimistic([]) // the server board now holds the played tiles
       // Flash the freshly-drawn tiles — the rack's last N slots (the SQL
       // appends drawn tiles to the end).
@@ -191,6 +228,11 @@ export function PlayArea({
     const id = setTimeout(() => setYellowFlash(new Set()), 1000)
     return () => clearTimeout(id)
   }, [yellowFlash])
+  useEffect(() => {
+    if (redFlash.size === 0) return
+    const id = setTimeout(() => setRedFlash(new Set()), 1000)
+    return () => clearTimeout(id)
+  }, [redFlash])
 
   // Dismiss a lingering "not in the dictionary" pill as soon as the player
   // adds / moves / removes a tile (staged changes). The pill itself stays up
@@ -199,6 +241,7 @@ export function PlayArea({
   useEffect(() => {
     if (dictErrorRef.current) {
       feedback.clear()
+      setRedFlash(new Set()) // the offending tiles are moving — drop the red outline
       dictErrorRef.current = false
     }
   }, [staged, feedback])
@@ -431,6 +474,7 @@ export function PlayArea({
       setOptimistic(placements)
       setGreenFlash(new Set(placements.map((p) => cellIndex(p.x, p.y))))
       pendingDrawRef.current = res.drawn?.length ?? 0
+      lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
       setStaged([])
       setSelected(new Set())
       feedback.show({
@@ -444,8 +488,17 @@ export function PlayArea({
       // Persistent: stays until the player clicks its X or changes the board.
       feedback.show({ tone: 'error', text: `Not in the dictionary: ${(res.bad_words ?? []).join(', ')}`, dismiss: { kind: 'closeable' } })
       dictErrorRef.current = true
+      // Red-flash the NEW cells in each rejected word (match the server's
+      // bad_words back to the words evaluatePlay read off the board).
+      const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
+      const cells = new Set<number>()
+      for (const w of ev.words) {
+        if (!bad.has(w.word.toUpperCase())) continue
+        for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
+      }
+      setRedFlash(cells)
     }
-  }, [game, board, staged, gameId, feedback])
+  }, [game, board, staged, actingRack, gameId, feedback])
 
   const exchange = useCallback(async () => {
     if (!game) return
@@ -461,6 +514,7 @@ export function PlayArea({
     if (res.result === 'stale') {
       feedback.show({ tone: 'info', text: 'The board changed — try again.', dismiss: { kind: 'timed', ms: 2000 } })
     } else {
+      lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
       feedback.show({ tone: 'success', text: `Exchanged ${tiles.length} tiles`, dismiss: { kind: 'timed', ms: 1800 } })
@@ -508,6 +562,7 @@ export function PlayArea({
           cursor={cursor}
           hover={hover}
           greenCells={greenFlash}
+          redCells={redFlash}
           dragSource={drag && drag.source.kind === 'board' ? { x: drag.source.x, y: drag.source.y } : null}
           dragging={!!drag}
           onCellPointerDown={onCellPointerDown}

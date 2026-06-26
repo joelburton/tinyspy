@@ -39,6 +39,7 @@ export function Board({
   cursor,
   hover,
   greenCells,
+  redCells,
   dragSource,
   dragging,
   onCellPointerDown,
@@ -49,6 +50,8 @@ export function Board({
   hover: XY | null
   /** Cell indices to outline green for a beat (a just-accepted word). */
   greenCells: Set<number>
+  /** Cell indices to outline red for a beat (new tiles in a rejected word). */
+  redCells: Set<number>
   dragSource: XY | null
   dragging: boolean
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
@@ -96,6 +99,7 @@ export function Board({
                     committed ? styles.committed : styles.tentative,
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
+                    redCells.has(idx) && styles.flashReject,
                   )}
                 >
                   <span className={styles.letter}>{glyph}</span>

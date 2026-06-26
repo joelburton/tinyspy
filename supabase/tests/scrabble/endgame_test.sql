@@ -11,7 +11,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(17);
+select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -76,6 +76,8 @@ select is((select result->>'won' from common.game_players
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gcp) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   'false', 'the loser is flagged won=false');
+select is((select status->>'winner_name' from common.games where id = (select id from gcp)),
+  'ada', 'the winner name lands in status for the club-list label');
 
 -- ─── Compete blocked (6 scoreless) ───────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -129,6 +131,8 @@ select is((select result->>'won' from common.game_players
   'true', 'tie: bea is a co-winner too');
 select is((select status->>'winner' from common.games where id = (select id from gtie)),
   null, 'a tie names no single winner (per-player co-win flags carry it)');
+select is((select status->>'winner_name' from common.games where id = (select id from gtie)),
+  null, 'a tie has no winner_name (label shows "tie")');
 
 select * from finish();
 rollback;

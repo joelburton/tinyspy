@@ -12,7 +12,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(23);
+select plan(24);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -66,6 +66,8 @@ select is((select acc.res->'drawn' from acc), '["X","Y","Z"]'::jsonb,
   'play_word returns the newly-drawn tiles');
 select is((select string_agg(seq||':'||kind, ',') from scrabble.plays where game_id = (select id from ga)),
   '1:word', 'one word play is logged');
+select is((select title from common.games where id = (select id from ga)),
+  'CAT', 'the game title becomes the first word played');
 
 -- Occupied-square guard: replaying onto (7,7) (now version 1) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

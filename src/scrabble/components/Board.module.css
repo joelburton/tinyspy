@@ -10,7 +10,7 @@
   /* Grow as large as the layout allows: a square sized by viewport height,
      but never so wide it crowds the fixed side column. */
   aspect-ratio: 1;
-  height: min(82vh, calc(100vw - 410px));
+  height: var(--scrabble-board-size);
   width: auto;
   container-type: inline-size;
   user-select: none;
@@ -81,6 +81,12 @@
 /* A just-accepted word: green outline for ~1s. */
 .tile.flashAccept {
   outline: 3px solid #2faa5a;
+  outline-offset: -3px;
+  z-index: 2;
+}
+/* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s. */
+.tile.flashReject {
+  outline: 3px solid #d24a4a;
   outline-offset: -3px;
   z-index: 2;
 }

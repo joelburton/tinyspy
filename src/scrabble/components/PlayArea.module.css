@@ -14,6 +14,10 @@
 /* Fixed column wide enough for the 7-tile rack in one row. */
 .sideCol {
   flex: 0 0 360px;
+  /* As tall as the board, so the moves log (the flex-growing last child) can
+     fill the leftover height and scroll inside itself. */
+  height: var(--scrabble-board-size);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;

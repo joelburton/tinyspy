@@ -51,21 +51,32 @@ async function submitTimeout(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
-/** Pure one-line label for the ClubPage games list. Coop shows the running
- *  team score; compete just shows the phase (per-player scores aren't named
- *  here — the card's ModePill shows the mode, the score lives in-game). */
+/** Pure one-line label for the ClubPage games list. Mid-game shows the tiles
+ *  left in the bag (+ the team score in coop); terminal shows the result —
+ *  "ended" for a manual stop, the winner's name or "tie" in compete, the final
+ *  team score in coop. (All values come off `row.status`, written by the RPCs;
+ *  the title separately carries the first words played.) */
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
-    const score = (row.status as { team_score?: number } | null)?.team_score
+    const st = row.status as {
+      team_score?: number
+      bag_count?: number
+      winner_name?: string | null
+    } | null
     switch (row.play_state) {
-      case 'won':
-        return score != null ? `${score} pts` : 'finished'
-      case 'won_compete':
-        return 'winner decided'
       case 'ended':
         return 'ended'
-      default:
-        return mode === 'coop' && score != null ? `${score} pts` : 'playing…'
+      case 'won': // coop completion
+        return st?.team_score != null ? `${st.team_score} pts` : 'finished'
+      case 'won_compete':
+        return st?.winner_name ? `won by ${st.winner_name}` : 'tie'
+      default: {
+        const left = st?.bag_count != null ? `${st.bag_count} tiles left` : ''
+        if (mode === 'coop' && st?.team_score != null) {
+          return left ? `${st.team_score} pts · ${left}` : `${st.team_score} pts`
+        }
+        return left || 'playing…'
+      }
     }
   }
 }

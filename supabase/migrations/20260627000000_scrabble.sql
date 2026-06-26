@@ -372,6 +372,28 @@ begin
 end;
 $$;
 
+-- The club-list title: the first three words played, uppercased — so a game
+-- is recognizable at a glance (the board is public, so no spoiler concern in
+-- either mode). NULL until the first word is played.
+create function scrabble._title(g_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+  select string_agg(upper(p.words[1]), ' · ' order by p.seq)
+    from (
+      select seq, words
+        from scrabble.plays
+       where game_id = g_id and kind = 'word' and words is not null
+       order by seq
+       limit 3
+    ) p;
+$$;
+
+revoke execute on function scrabble._title(uuid) from public;
+
 -- Advance compete's turn pointer to the next seat (wraps around).
 create function scrabble._advance_turn(g_id uuid)
 returns void
@@ -476,6 +498,8 @@ begin
 
     v_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome, 'winner', v_winner,
+      -- The winner's name (NULL on a tie) so the club-list label can show it.
+      'winner_name', (select username from common.profiles where user_id = v_winner),
       'leaderboard', (select jsonb_agg(
                                jsonb_build_object('user_id', user_id, 'score', score)
                                order by score desc, seat)
@@ -742,6 +766,11 @@ begin
        set rack = v_new_rack, score = pl.score + play_word.score
      where pl.game_id = target_game and pl.user_id = caller_id;
   end if;
+
+  -- Title = the first three words played (recognizable in the club list).
+  update common.games gm
+     set title = coalesce(scrabble._title(target_game), gm.title)
+   where gm.id = target_game;
 
   -- ─── End check: going out (bag empty AND acting rack empty) ──
   v_went_out := coalesce(array_length(g.bag, 1), 0) = v_ndraw  -- bag now empty
