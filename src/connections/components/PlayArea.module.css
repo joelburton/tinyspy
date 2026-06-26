@@ -1,7 +1,7 @@
 /* connections board layout.
  *
  * Viewport-bound, per docs/ui.md → "Page-height fits the
- * viewport." Same shape tinyspy and psychicnum use: the bordered
+ * viewport." Same shape codenamesduet and psychicnum use: the bordered
  * surface (.boardArea) takes 100vh minus the shared chrome
  * offset (--game-chrome-height in common/theme.css — body
  * padding + GamePage header + frame gap). `box-sizing: border-

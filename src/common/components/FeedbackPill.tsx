@@ -27,7 +27,7 @@ type Props = {
  * background + border color via a CSS-class branch. The tones
  * are global UI-state vocabulary (see docs/ui.md → "Two
  * vocabularies") — a connections "wrong guess" pill should look
- * like a tinyspy "clue invalid" pill should look like a future
+ * like a codenamesduet "clue invalid" pill should look like a future
  * Boggle "not a word" pill. Same component, same tone, same
  * paint.
  */

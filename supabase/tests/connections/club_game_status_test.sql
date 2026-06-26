@@ -17,7 +17,7 @@
 --      color).
 --   4. is_terminal + play_state propagate from common.games.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer.
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 

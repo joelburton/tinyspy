@@ -142,6 +142,202 @@ export type Database = {
       [_ in never]: never
     }
   }
+  codenamesduet: {
+    Tables: {
+      clues: {
+        Row: {
+          by_seat: string
+          count: number
+          game_id: string
+          id: string
+          submitted_at: string
+          turn_number: number
+          word: string
+        }
+        Insert: {
+          by_seat: string
+          count: number
+          game_id: string
+          id?: string
+          submitted_at?: string
+          turn_number: number
+          word: string
+        }
+        Update: {
+          by_seat?: string
+          count?: number
+          game_id?: string
+          id?: string
+          submitted_at?: string
+          turn_number?: number
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clues_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          current_clue_giver: string | null
+          id: string
+          key_card_a: Json
+          key_card_b: Json
+          turn_number: number
+          turns_remaining: number
+          user_a_id: string
+          user_b_id: string
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          current_clue_giver?: string | null
+          id: string
+          key_card_a: Json
+          key_card_b: Json
+          turn_number?: number
+          turns_remaining?: number
+          user_a_id: string
+          user_b_id: string
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          current_clue_giver?: string | null
+          id?: string
+          key_card_a?: Json
+          key_card_b?: Json
+          turn_number?: number
+          turns_remaining?: number
+          user_a_id?: string
+          user_b_id?: string
+        }
+        Relationships: []
+      }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          guesser_seat: string
+          id: string
+          outcome: string
+          position: number
+          turn_number: number
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          guesser_seat: string
+          id?: string
+          outcome: string
+          position: number
+          turn_number: number
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          guesser_seat?: string
+          id?: string
+          outcome?: string
+          position?: number
+          turn_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_pool: {
+        Row: {
+          word: string
+        }
+        Insert: {
+          word: string
+        }
+        Update: {
+          word?: string
+        }
+        Relationships: []
+      }
+      words: {
+        Row: {
+          game_id: string
+          neutral_a: boolean
+          neutral_b: boolean
+          position: number
+          revealed_as: string | null
+          word: string
+        }
+        Insert: {
+          game_id: string
+          neutral_a?: boolean
+          neutral_b?: boolean
+          position: number
+          revealed_as?: string | null
+          word: string
+        }
+        Update: {
+          game_id?: string
+          neutral_a?: boolean
+          neutral_b?: boolean
+          position?: number
+          revealed_as?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      _end_turn: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: { player_user_ids: string[]; setup: Json; target_club: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      get_clue_context: { Args: { target_game: string }; Returns: Json }
+      pass_turn: { Args: { target_game: string }; Returns: undefined }
+      submit_clue: {
+        Args: { clue_count: number; target_game: string; word: string }
+        Returns: undefined
+      }
+      submit_guess: {
+        Args: { target_game: string; target_position: number }
+        Returns: string
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   common: {
     Tables: {
       clubs: {
@@ -1662,202 +1858,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-  tinyspy: {
-    Tables: {
-      clues: {
-        Row: {
-          by_seat: string
-          count: number
-          game_id: string
-          id: string
-          submitted_at: string
-          turn_number: number
-          word: string
-        }
-        Insert: {
-          by_seat: string
-          count: number
-          game_id: string
-          id?: string
-          submitted_at?: string
-          turn_number: number
-          word: string
-        }
-        Update: {
-          by_seat?: string
-          count?: number
-          game_id?: string
-          id?: string
-          submitted_at?: string
-          turn_number?: number
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clues_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      games: {
-        Row: {
-          club_handle: string
-          created_at: string
-          current_clue_giver: string | null
-          id: string
-          key_card_a: Json
-          key_card_b: Json
-          turn_number: number
-          turns_remaining: number
-          user_a_id: string
-          user_b_id: string
-        }
-        Insert: {
-          club_handle: string
-          created_at?: string
-          current_clue_giver?: string | null
-          id: string
-          key_card_a: Json
-          key_card_b: Json
-          turn_number?: number
-          turns_remaining?: number
-          user_a_id: string
-          user_b_id: string
-        }
-        Update: {
-          club_handle?: string
-          created_at?: string
-          current_clue_giver?: string | null
-          id?: string
-          key_card_a?: Json
-          key_card_b?: Json
-          turn_number?: number
-          turns_remaining?: number
-          user_a_id?: string
-          user_b_id?: string
-        }
-        Relationships: []
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          guesser_seat: string
-          id: string
-          outcome: string
-          position: number
-          turn_number: number
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          guesser_seat: string
-          id?: string
-          outcome: string
-          position: number
-          turn_number: number
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          guesser_seat?: string
-          id?: string
-          outcome?: string
-          position?: number
-          turn_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      word_pool: {
-        Row: {
-          word: string
-        }
-        Insert: {
-          word: string
-        }
-        Update: {
-          word?: string
-        }
-        Relationships: []
-      }
-      words: {
-        Row: {
-          game_id: string
-          neutral_a: boolean
-          neutral_b: boolean
-          position: number
-          revealed_as: string | null
-          word: string
-        }
-        Insert: {
-          game_id: string
-          neutral_a?: boolean
-          neutral_b?: boolean
-          position: number
-          revealed_as?: string | null
-          word: string
-        }
-        Update: {
-          game_id?: string
-          neutral_a?: boolean
-          neutral_b?: boolean
-          position?: number
-          revealed_as?: string | null
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "words_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      _end_turn: { Args: { target_game: string }; Returns: undefined }
-      create_game: {
-        Args: { player_user_ids: string[]; setup: Json; target_club: string }
-        Returns: {
-          id: string
-        }[]
-      }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      get_clue_context: { Args: { target_game: string }; Returns: Json }
-      pass_turn: { Args: { target_game: string }; Returns: undefined }
-      submit_clue: {
-        Args: { clue_count: number; target_game: string; word: string }
-        Returns: undefined
-      }
-      submit_guess: {
-        Args: { target_game: string; target_position: number }
-        Returns: string
-      }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   waffle: {
     Tables: {
       games: {
@@ -2417,6 +2417,9 @@ export const Constants = {
   bananagrams: {
     Enums: {},
   },
+  codenamesduet: {
+    Enums: {},
+  },
   common: {
     Enums: {},
   },
@@ -2439,9 +2442,6 @@ export const Constants = {
     Enums: {},
   },
   stackdown: {
-    Enums: {},
-  },
-  tinyspy: {
     Enums: {},
   },
   waffle: {

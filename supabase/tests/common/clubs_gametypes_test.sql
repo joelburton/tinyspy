@@ -6,7 +6,7 @@
 --   1. common.gametypes is populated for every registered gametype
 --      family — both psychicnum siblings ('psychicnum_coop' AND
 --      'psychicnum_compete'), both connections siblings (coop and
---      compete), plus tinyspy + spellingbee.
+--      compete), plus codenamesduet + spellingbee.
 --      Each manifest entry is its own row.
 --   2. claim_username populates clubs_gametypes for each solo
 --      club it creates — one row per SOLO-PLAYABLE gametype
@@ -18,7 +18,7 @@
 --   5. RLS: common.gametypes is permissively readable (sanity
 --      check — gametype identifiers are not sensitive)
 --
--- See `tinyspy/create_game_test.sql` for the pgTAP / auth-
+-- See `codenamesduet/create_game_test.sql` for the pgTAP / auth-
 -- simulation primer.
 
 begin;
@@ -42,12 +42,12 @@ select plan(17);
 select is(
   (select count(*) from common.gametypes),
   16::bigint,
-  'common.gametypes contains sixteen rows (tinyspy + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble)'
+  'common.gametypes contains sixteen rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['bananagrams','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  array['bananagrams','codenamesduet','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
   'common.gametypes contains the sixteen registered gametypes by name'
 );
 
@@ -107,7 +107,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['bananagrams','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  array['bananagrams','codenamesduet','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
   'new club has m2m rows for all sixteen registered gametypes'
 );
 
@@ -166,7 +166,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ insert into common.clubs_gametypes (club_handle, gametype)
      values ((select handle from common.clubs where handle = '=ada'),
-             'tinyspy') $$,
+             'codenamesduet') $$,
   '42501',
   'permission denied for table clubs_gametypes',
   'direct INSERT into clubs_gametypes is blocked (no grant on authenticated)'
@@ -176,13 +176,13 @@ select throws_ok(
 -- (11) min_players mirrors each manifest's player-count lower bound
 -- ============================================================
 -- Solo-playable games register 1; two-player games register 2.
--- Sorted by gametype: bananagrams(1), spellingbee_compete(2),
--- spellingbee_coop(1), tinyspy(2).
+-- Sorted by gametype: bananagrams(1), codenamesduet(2),
+-- spellingbee_compete(2), spellingbee_coop(1).
 select is(
   (select array_agg(min_players order by gametype)
      from common.gametypes
-    where gametype in ('tinyspy', 'bananagrams', 'spellingbee_coop', 'spellingbee_compete')),
-  array[1, 2, 1, 2]::smallint[],
+    where gametype in ('codenamesduet', 'bananagrams', 'spellingbee_coop', 'spellingbee_compete')),
+  array[1, 2, 2, 1]::smallint[],
   'common.gametypes.min_players: solo games register 1, two-player games register 2'
 );
 
@@ -198,14 +198,14 @@ reset role;
 update common.clubs_gametypes
    set default_setup = '{"turns": 9}'::jsonb
  where club_handle = (select handle from club)
-   and gametype = 'tinyspy';
+   and gametype = 'codenamesduet';
 
 -- Ada (a member) trims the friend club down to three gametypes.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   $$ select common.set_club_gametypes(
        (select handle from club),
-       array['tinyspy', 'connections_coop', 'spellingbee_coop']) $$,
+       array['codenamesduet', 'connections_coop', 'spellingbee_coop']) $$,
   'set_club_gametypes: a member can replace the club''s gametype set'
 );
 
@@ -213,14 +213,14 @@ select is(
   (select array_agg(gametype order by gametype)
      from common.clubs_gametypes
     where club_handle = (select handle from club)),
-  array['connections_coop', 'spellingbee_coop', 'tinyspy'],
+  array['codenamesduet', 'connections_coop', 'spellingbee_coop'],
   'set_club_gametypes replaced the set with exactly the passed gametypes'
 );
 
 select is(
   (select default_setup->>'turns'
      from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'tinyspy'),
+    where club_handle = (select handle from club) and gametype = 'codenamesduet'),
   '9',
   'set_club_gametypes preserved default_setup on a kept row (delete-by-difference)'
 );
@@ -245,7 +245,7 @@ select is(
 -- Same membership gate as every other club RPC (require_club_member).
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  $$ select common.set_club_gametypes((select handle from club), array['tinyspy']) $$,
+  $$ select common.set_club_gametypes((select handle from club), array['codenamesduet']) $$,
   '42501',
   NULL,
   'set_club_gametypes: a non-member is rejected (42501)'

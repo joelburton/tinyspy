@@ -22,7 +22,7 @@
 -- helpers directly while simulating the authentication context
 -- they would see in production.
 --
--- See ../tinyspy/create_game_test.sql for the broader pgTAP
+-- See ../codenamesduet/create_game_test.sql for the broader pgTAP
 -- primer (personas, as_user, begin/rollback).
 
 begin;

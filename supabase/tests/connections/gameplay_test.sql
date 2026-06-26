@@ -18,7 +18,7 @@
 --   - 4 matched categories flips play_state to 'solved', clears
 --     is_current_view flipped via common.end_game
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
+-- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
 -- simulation primer.
 
 begin;

@@ -815,7 +815,7 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- 'lost', compete 'won_compete' / 'lost_compete' (see submit_swap
 -- and submit_timeout). This RPC is a *different* thing: a neutral
 -- stop that nobody wins or loses. It writes the UNIFORM terminal
--- play_state 'ended' (the same value spellingbee/tinyspy/etc. use for
+-- play_state 'ended' (the same value spellingbee/codenamesduet/etc. use for
 -- a manual end), NOT one of waffle's intrinsic verdicts — so the
 -- FE renders the neutral green "Game ended" card rather than a
 -- win/lose result.

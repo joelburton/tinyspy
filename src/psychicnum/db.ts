@@ -10,7 +10,7 @@ import { supabase } from '../common/lib/supabase'
  *     const { data } = await db.from('games').select('id,status')...
  *     await db.rpc('submit_guess', { target_game: id, guess: 7 })
  *
- * Same pattern as `src/tinyspy/db.ts` — game schemas are
+ * Same pattern as `src/codenamesduet/db.ts` — game schemas are
  * deliberately omitted from PostgREST's `extra_search_path`
  * (see docs/code-conventions.md), so addressing psychicnum tables
  * from the FE goes through this handle.

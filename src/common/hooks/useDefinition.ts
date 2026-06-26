@@ -73,7 +73,7 @@ export function useDefinition(word: string | null): State {
       .then(({ data, error }) => {
         if (cancelled) return
         // Dual-check: a transport error OR an in-body `error` field
-        // (the same pattern tinyspy's clue suggester uses).
+        // (the same pattern codenamesduet's clue suggester uses).
         if (error || data?.error) {
           setLoaded({
             forWord: word,

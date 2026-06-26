@@ -34,7 +34,7 @@
 --      idempotent on second call (raises 'game is not in
 --      progress' P0001).
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer.
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 

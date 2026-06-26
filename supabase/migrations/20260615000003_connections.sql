@@ -9,7 +9,7 @@
 -- all 4 categories wins.
 --
 -- "connections" is the codename for the gametype (analogous to how
--- "tinyspy" is the codename for Codenames Duet). The user-facing
+-- "codenamesduet" is the codename for Codenames Duet). The user-facing
 -- copy can use whatever phrasing reads best; SQL / TypeScript /
 -- folder names are all `connections`.
 --
@@ -34,7 +34,7 @@
 -- └────────────────────────────────────────────────────────┘
 --
 -- ┌─ The "FE-knows-the-answer" design decision ────────────┐
--- │ Unlike tinyspy and psychicnum — where the server      │
+-- │ Unlike codenamesduet and psychicnum — where the server      │
 -- │ holds a secret and validates moves against it — the    │
 -- │ connections board (categories + tile order) is publicly   │
 -- │ readable. The FE has the answer key and evaluates      │

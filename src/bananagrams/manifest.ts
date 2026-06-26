@@ -11,7 +11,7 @@ import logoUrl from './logo.svg?url'
 /**
  * bananagrams's registration with the shell — a SINGLE manifest.
  *
- * bananagrams is compete-only, so (like tinyspy, which is coop-only)
+ * bananagrams is compete-only, so (like codenamesduet, which is coop-only)
  * it's one `common.gametypes` row and one Start button — no
  * coop/compete sibling pair, hence the bare `gametype: 'bananagrams'`
  * (the `_compete` suffix only earns its keep when there's a `_coop`

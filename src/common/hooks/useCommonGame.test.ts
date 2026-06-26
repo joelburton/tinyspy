@@ -135,7 +135,7 @@ function buildChannel() {
 const GAME_ROW = {
   id: 'g1',
   club_handle: 'club-one',
-  gametype: 'tinyspy',
+  gametype: 'codenamesduet',
   title: 'Game One',
   setup: { timer: { kind: 'none' } },
   is_current_view: true,
@@ -219,7 +219,7 @@ describe('useCommonGame — initial load', () => {
     expect(result.current.commonGame).toMatchObject({
       id: 'g1',
       club_handle: 'club-one',
-      gametype: 'tinyspy',
+      gametype: 'codenamesduet',
       title: 'Game One',
     })
     expect(result.current.players).toEqual(PROFILES)

@@ -13,7 +13,7 @@
 --   - common.end_game: ended_at + play_state + is_terminal + status +
 --     per-player results + is_current_view flipped to false
 --
--- Per-game tests (tinyspy/psychicnum/connections) exercise these
+-- Per-game tests (codenamesduet/psychicnum/connections) exercise these
 -- helpers indirectly through their own create_game RPCs; this
 -- file pins the contract directly.
 --
@@ -22,7 +22,7 @@
 -- enforcing one-current-view-per-club). The separate
 -- club_active_game pointer table is gone.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP / personas
+-- See ../codenamesduet/create_game_test.sql for the pgTAP / personas
 -- primer, and helpers_test.sql for the "as_jwt_only" trick we
 -- reuse here to call security-revoked helpers as postgres while
 -- still simulating an authenticated caller's auth.uid().

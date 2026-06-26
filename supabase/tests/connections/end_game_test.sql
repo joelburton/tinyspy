@@ -22,7 +22,7 @@
 --   - auth: a club outsider is rejected with 42501 via
 --     require_game_player
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
+-- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
 -- simulation primer; ../spellingbee/gameplay_test.sql for the
 -- structurally-identical spellingbee.end_game test.
 

@@ -8,8 +8,8 @@ import type { Database } from '../../types/db'
  * top-level key per exposed Postgres schema. Game-specific tables
  * and RPCs are reached via `.schema('<game>')`:
  *
- *     supabase.schema('tinyspy').from('games').select(...)
- *     supabase.schema('tinyspy').rpc('start_game', {...})
+ *     supabase.schema('codenamesduet').from('games').select(...)
+ *     supabase.schema('codenamesduet').rpc('start_game', {...})
  *     supabase.schema('common').from('profiles').select(...)
  *
  * Auth, Edge Functions, and Realtime channels operate on the raw

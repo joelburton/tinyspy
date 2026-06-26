@@ -12,7 +12,7 @@ import { playerCountFits, playerCountLabel } from './games'
 
 describe('playerCountFits', () => {
   it('returns true when the count falls inside an exact-match range', () => {
-    // [2, 2] is tinyspy's range — only exactly-2-member clubs.
+    // [2, 2] is codenamesduet's range — only exactly-2-member clubs.
     expect(playerCountFits([2, 2], 2)).toBe(true)
   })
 

@@ -79,7 +79,7 @@ $$;
 -- Build a valid create_game setup payload that references the
 -- fixture puzzle. Defaults to a 10-minute countdown timer; tests
 -- override timer to exercise specific validation paths. Mirrors
--- tinyspy_setup in spirit — a typing-saver, not a validator.
+-- codenamesduet_setup in spirit — a typing-saver, not a validator.
 --
 --   connections_setup(puzzle_id)                  -- 10-min countdown
 --   connections_setup(puzzle_id, '{"kind":"none"}'::jsonb)

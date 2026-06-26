@@ -26,7 +26,7 @@ type Props = {
  * and auto-snaps to the bottom on every new guess via the
  * effect below — same UX as a chat panel.
  *
- * The pattern carries forward to harder games: tinyspy's clue +
+ * The pattern carries forward to harder games: codenamesduet's clue +
  * guess log, future game move lists. When those land, each
  * `<XHistory>` can adopt this same shape — pure render from a
  * list + the member roster needed to resolve attribution.

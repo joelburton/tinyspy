@@ -1,0 +1,205 @@
+/* The 5×5 codenamesduet board.
+ *
+ * Styles were previously co-located in PlayArea.module.css; moved
+ * here when PlayArea was restructured into the two-column layout
+ * so the board's chrome stays with the BoardGrid component itself.
+ *
+ * On reveal each tile commits to a solid label color (agent /
+ * neutral / assassin). Pre-reveal, the clue-giver's tiles show a
+ * tinted hint background that previews the seat's key label
+ * without committing. The grid uses `aspect-ratio: 5/3` per tile
+ * so a 5×5 board fits a typical laptop screen without
+ * shouting-wide tiles.
+ */
+
+.errorBanner {
+  background: var(--codenamesduet-assassin-soft);
+  border: 1px solid var(--codenamesduet-assassin);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin: 0 0 1rem;
+  color: var(--color-error-soft-text);
+  font-size: 0.95rem;
+}
+
+/* --------- the 5×5 grid + tiles ---------
+ *
+ * The grid fills the available column height + width — both axes
+ * use `repeat(5, 1fr)` so each tile takes an equal slice of both
+ * dimensions. Tiles no longer carry their own aspect-ratio
+ * constraint; they're as wide or as tall as the column allows.
+ * This keeps the board "on screen" for the page-height-fits-the-
+ * viewport rule (docs/ui.md → "Page-height fits the viewport") —
+ * at a tall viewport the tiles get taller, at a wide one wider.
+ *
+ * The grid is a flex child of `.boardCol` (PlayArea); `flex: 1 +
+ * min-height: 0` is what bounds it within the column so the
+ * 1fr-row math has something to divide.
+ */
+
+.boardGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.tile {
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  /* Center the word horizontally + vertically in the tile.
+   * Pending state's "…" indicator absolute-positions to the
+   * bottom-right so it doesn't compete with the centered word. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  position: relative;
+  font: inherit;
+  color: inherit;
+  /* Fallback background; every tile gets one of the `.bg*` result classes
+     (white / tan / green / red) below, plus the corner keycard squares. */
+  background: transparent;
+  /* Container-queries on the tile so the word's font-size can
+   * scale with the tile's width — wider tiles, bigger letters,
+   * clamped at both ends so it stays readable at small sizes and
+   * doesn't go silly-large on huge screens. */
+  container-type: inline-size;
+}
+
+.tileWord {
+  text-align: center;
+  font-weight: 700;
+  /* clamp(min, 10% of tile width, max). 10cqi at a 150px tile is
+   * 15px; at a 250px tile, 25px. Caps prevent the font from
+   * vanishing on shrunken viewports or shouting at large ones. */
+  font-size: clamp(0.85rem, 10cqi, 1.5rem);
+  word-break: break-word;
+  line-height: 1.15;
+
+  /*background-color: white;*/
+  /*color: black;*/
+  /*padding: 0.25em;*/
+  /*border-radius: 0.25em;*/
+}
+
+.tileKey {
+  /* Pending indicator — bottom-right corner, out of the way of
+   * the centered word. */
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.5rem;
+  font-size: 0.7rem;
+  opacity: 0.55;
+  font-family: ui-monospace, Menlo, monospace;
+  letter-spacing: 0.1em;
+}
+
+/* Tile BACKGROUND = the caller's OWN result on this cell (set in BoardGrid):
+ *   white   — I haven't guessed it (incl. cells only my partner has)
+ *   tan     — I guessed it and it came up neutral (mine only)
+ *   green   — we contacted an agent (global)
+ *   red     — the assassin was hit (global)
+ * The keycard squares (below) carry the "what does a key SAY" signal; the
+ * background carries "what happened." */
+.bgWhite {
+  background: #fff;
+  border-color: var(--color-surface-border);
+}
+.bgNeutral {
+  background: var(--codenamesduet-neutral);
+  border-color: var(--codenamesduet-neutral);
+  color: white;
+}
+.bgAgent {
+  background: var(--codenamesduet-agent);
+  border-color: var(--codenamesduet-agent);
+  color: white;
+}
+.bgAssassin {
+  /* Real Duet uses black for the assassin; we use red because "red = wrong
+   * pick" reads more obviously on screen than "black = ominous." */
+  background: var(--codenamesduet-assassin);
+  border-color: var(--codenamesduet-assassin);
+  color: white;
+}
+
+.tileClickable {
+  cursor: pointer;
+}
+/* Hover affordance: a black ring AROUND the tile — and nothing else. The
+ * background must NOT change on hover (a recolor reads as a real reveal — a
+ * partner once mistook the old hover-blue for a played tile). Bare <button>s
+ * carry no global look now (see common/theme.css), so the tile keeps its own
+ * per-state color on hover; we just add the outline. */
+.tileClickable:hover:not(:disabled) {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.tile:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.tilePending {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* Keycard squares — small corner chips showing what a key card SAYS about the
+ * cell, always in the soft/unrevealed palette (independent of what's been
+ * guessed). My own is bottom-left and always shown (it's how I read which cells
+ * to clue for); the peer's is top-right and shown only once the game is over
+ * (their view is secret during play). Bottom/top placement mirrors a
+ * tabletop: my card near me, my opponent's across the table. */
+.keySquare {
+  position: absolute;
+  width: clamp(24px, 18cqi, 36px);
+  height: clamp(24px, 18cqi, 36px);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.28);
+}
+.keyMine {
+  bottom: 5px;
+  left: 5px;
+}
+.keyPeer {
+  top: 5px;
+  right: 5px;
+}
+.keyAgent {
+  background: var(--codenamesduet-agent-key);
+}
+.keyNeutral {
+  background: var(--codenamesduet-neutral-key);
+}
+.keyAssassin {
+  background: var(--codenamesduet-assassin-key);
+}
+
+/* Neutral-guessed triangles — above/below the word, one per player who guessed
+ * this cell as a neutral, pointing toward where they sit (peer above pointing
+ * up, me below pointing down). White: it reads cleanly on the saturated tile
+ * backgrounds, where black (and profile colors) get lost. Shown only while the
+ * cell is unrevealed — a contacted agent / hit assassin drops the markers. */
+.triangle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: clamp(6px, 6cqi, 10px) solid transparent;
+  border-right: clamp(6px, 6cqi, 10px) solid transparent;
+}
+.triPeer {
+  top: 4px;
+  border-bottom: clamp(8px, 8cqi, 13px) solid #fff; /* points up */
+}
+.triMine {
+  bottom: 4px;
+  border-top: clamp(8px, 8cqi, 13px) solid #fff; /* points down */
+}

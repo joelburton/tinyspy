@@ -11,14 +11,14 @@ port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
 # `common` holds shared user-data (profiles); each game gets its own schema
-# (`tinyspy`, eventually `boggle`, etc.). See docs/naming.md for the convention.
-schemas = ["public", "graphql_public", "common", "tinyspy", "psychicnum", "connections", "spellingbee", "bananagrams", "waffle", "wordle", "stackdown", "scrabble"]
+# (`codenamesduet`, eventually `boggle`, etc.). See docs/naming.md for the convention.
+schemas = ["public", "graphql_public", "common", "codenamesduet", "psychicnum", "connections", "spellingbee", "bananagrams", "waffle", "wordle", "stackdown", "scrabble"]
 # Extra schemas to add to the search_path of every request.
 # `common` is included so cross-game shared tables (e.g. profiles) resolve
 # unqualified. Game schemas are deliberately omitted from the search_path —
 # game-specific access goes through `supabase.schema('<game>')` from the FE
 # and through explicit `<game>.<table>` references in SQL, which keeps each
-# game's namespace clean (e.g. both tinyspy and boggle can have a `words`
+# game's namespace clean (e.g. both codenamesduet and boggle can have a `words`
 # table without collision).
 extra_search_path = ["common", "public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size

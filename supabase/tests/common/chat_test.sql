@@ -16,7 +16,7 @@
 -- common.send_message and reads common.messages via RLS — this
 -- file exercises both directly.
 --
--- See `tinyspy/create_game_test.sql` for the pgTAP primer.
+-- See `codenamesduet/create_game_test.sql` for the pgTAP primer.
 
 begin;
 

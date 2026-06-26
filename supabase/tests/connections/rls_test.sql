@@ -5,13 +5,13 @@
 -- A non-member (dee) must not be able to see anything about an
 -- ada+bea club's connections game, and must not be able to call any
 -- mutating RPC against it. Mirrors the structure of
--- ../tinyspy/rls_test.sql and ../psychicnum/rls_test.sql.
+-- ../codenamesduet/rls_test.sql and ../psychicnum/rls_test.sql.
 --
 -- Includes a positive baseline (ada CAN see the game) so the
 -- negative assertions are meaningful (otherwise "0 rows" could
 -- just mean nothing exists).
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer.
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 

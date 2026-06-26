@@ -1,0 +1,102 @@
+-- ============================================================
+-- codenamesduet-shared test setup
+-- ============================================================
+--
+-- Included by every codenamesduet test file alongside the shared
+-- personas + as_user helper:
+--
+--   \ir ../_shared/setup.psql
+--   \ir setup.psql
+--
+-- (`\ir` is psql's relative include — paths resolve relative to
+-- the including file's directory, so the same two lines work from
+-- every codenamesduet test regardless of the caller's cwd.)
+--
+-- This file holds codenamesduet-specific helpers. It deliberately does
+-- NOT chain `_shared/setup.psql` — every test still imports that
+-- explicitly, so a reader can see both dependencies at the top of
+-- the file without having to chase down what `setup.psql` pulls in.
+--
+-- Promotion from inlined helpers per the threshold in
+-- docs/testing.md: codenamesduet now uses three shared helpers
+-- (find_position, find_position_set, codenamesduet_setup) — past the
+-- "three or more" trigger — so they live here rather than being
+-- copy-pasted into each test.
+
+-- ─── find_position ─────────────────────────────────────
+-- "Find the first board position whose label on seat `s`'s view
+-- is `target`." The key card is random per-game; tests can't
+-- hardcode positions for a green / neutral / assassin reveal.
+--
+-- Reads the key view from the corresponding column on codenamesduet.games
+-- (key_card_a or key_card_b) — seats are columns now, not a side
+-- table.
+create function pg_temp.find_position(g uuid, s text, target text) returns int
+language sql as $$
+  select (ord - 1)::int
+  from codenamesduet.games gm,
+       jsonb_array_elements_text(
+         case s when 'A' then gm.key_card_a else gm.key_card_b end
+       ) with ordinality as t(label, ord)
+  where gm.id = g and t.label = target
+  limit 1;
+$$;
+
+-- ─── find_position_set ─────────────────────────────────
+-- Array-returning variant for "find all positions matching."
+-- The positional `with ordinality` unnest avoids the
+-- `row_number()`-vs-SRF trap. Used by tests that walk through
+-- every green agent (the win test in particular).
+create function pg_temp.find_position_set(g uuid, s text, target text) returns int[]
+language sql as $$
+  select coalesce(array_agg((ord - 1)::int), array[]::int[])
+  from codenamesduet.games gm,
+       jsonb_array_elements_text(
+         case s when 'A' then gm.key_card_a else gm.key_card_b end
+       ) with ordinality as t(label, ord)
+  where gm.id = g and t.label = target;
+$$;
+
+-- ─── codenamesduet_setup ─────────────────────────────────────
+-- Build a valid create_game setup payload. Defaults to the
+-- standard 9-turn game with ada (the canonical "default test
+-- subject" per the personas convention) as the first clue-giver.
+-- Tests override turns or first_user as needed:
+--
+--   codenamesduet_setup()                              -- 9 turns, ada
+--   codenamesduet_setup(11)                            -- 11 turns, ada
+--   codenamesduet_setup(9, 'bea22222-...'::uuid)       -- 9 turns, bea
+--
+-- The shape mirrors src/codenamesduet/lib/setup.ts (CodenamesduetSetup).
+-- create_game validates the payload server-side; this helper is
+-- purely a typing-saver, not a validator.
+create function pg_temp.codenamesduet_setup(
+  turns int default 9,
+  first_user uuid default 'ada11111-1111-1111-1111-111111111111'::uuid
+) returns jsonb
+language sql as $$
+  -- timer defaults to kind=none so gameplay tests (which don't
+  -- exercise the wall-clock timer) pass create_game's
+  -- common.validate_timer gate without further setup. The
+  -- create_game and submit_timeout-specific tests pass an
+  -- explicit countdown timer where they need it.
+  select jsonb_build_object(
+    'turns', turns,
+    'firstClueGiverUserId', first_user,
+    'timer', jsonb_build_object('kind', 'none')
+  );
+$$;
+
+-- ─── codenamesduet_players ──────────────────────────────────
+-- The standard 2-player roster for codenamesduet tests: ada + bea.
+-- Tests use this as the third arg to create_game (which now takes
+-- player_user_ids: uuid[] per the Phase 2c refactor).
+--
+--   codenamesduet_players()                            -- [ada, bea]
+create function pg_temp.codenamesduet_players() returns uuid[]
+language sql as $$
+  select array[
+    'ada11111-1111-1111-1111-111111111111'::uuid,
+    'bea22222-2222-2222-2222-222222222222'::uuid
+  ];
+$$;

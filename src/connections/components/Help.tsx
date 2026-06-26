@@ -17,7 +17,7 @@ type Props = {
  * — for now, a brief reminder + a pointer is enough for the
  * friends who actually play.
  *
- * tinyspy's `Help.tsx` is the visual model when richer copy lands.
+ * codenamesduet's `Help.tsx` is the visual model when richer copy lands.
  */
 export function Help({ onClose, brand }: Props) {
   return (

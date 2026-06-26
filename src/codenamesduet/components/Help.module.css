@@ -1,0 +1,18 @@
+/* HowToPlay rules-text styles. The panel chrome (surface,
+ * padding, header, close X) lives on <FloatingPanel>; this
+ * stylesheet owns only the rules-color swatches + the Got-it
+ * action row.
+ */
+
+.hintAgent    { color: var(--codenamesduet-agent-text); }
+.hintNeutral  { color: var(--codenamesduet-neutral-text); }
+.hintAssassin { color: var(--codenamesduet-assassin-text); }
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+.actions button {
+  min-width: 6rem;
+}

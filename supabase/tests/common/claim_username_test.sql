@@ -24,7 +24,7 @@
 -- "fresh user" assertions. Instead each subtest below inserts
 -- the auth.users row it needs inline.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer +
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer +
 -- ../_shared/setup.psql for the persona convention.
 
 begin;

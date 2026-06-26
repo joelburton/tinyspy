@@ -243,7 +243,7 @@ alter publication supabase_realtime add table bananagrams.player_boards;
 -- bananagrams.create_game(target_club, setup, player_user_ids)
 -- ============================================================
 -- Compete-only, single gametype 'bananagrams' (no mode parameter —
--- there's no coop sibling, like tinyspy). Solo (1 player) is
+-- there's no coop sibling, like codenamesduet). Solo (1 player) is
 -- allowed: a one-player race is just "finish your own tiles."
 --
 -- Setup shape (each field validated below):

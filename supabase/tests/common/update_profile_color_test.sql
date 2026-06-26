@@ -5,7 +5,7 @@
 -- "Edit profile" dialog. Security-definer + caller-scoped (only ever
 -- writes auth.uid()'s row) + validated against the palette.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer +
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer +
 -- ../_shared/setup.psql for the persona convention. _shared seeds each
 -- persona's color as common.color_for_username(<name>).
 

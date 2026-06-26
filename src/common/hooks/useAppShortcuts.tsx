@@ -21,7 +21,7 @@ import { setChatOpen } from '../lib/chatOpenStore'
  *
  * These fire when nothing is focused (the common case mid-game, where
  * word games read keys off `window`) AND when a *game* input is focused
- * (tinyspy's clue field, psychicnum's guess field) — so you can hit `/`
+ * (codenamesduet's clue field, psychicnum's guess field) — so you can hit `/`
  * to chat without first clicking away. They DON'T fire when a non-game
  * field has focus (a setup form, the chat box itself, a future
  * scratchpad), so `/`, `?`, and `~` type literally there. Game inputs
@@ -52,7 +52,7 @@ export function useAppShortcuts(openMenu: () => void): ReactNode {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (isNonGameField(e.target)) return
       // We're taking this key — don't also type it into a focused game
-      // input (tinyspy/psychicnum) or trigger find-in-page.
+      // input (codenamesduet/psychicnum) or trigger find-in-page.
       e.preventDefault()
       if (e.key === '/') {
         setChatOpen(true)

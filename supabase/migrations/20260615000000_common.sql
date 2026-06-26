@@ -267,7 +267,7 @@ $$;
 --
 -- Each gametype owns its title formula. Today's conventions:
 --
---   tinyspy:     "<seatA>-v-<seatB>: WORD1, WORD2, WORD3, WORD4"
+--   codenamesduet:     "<seatA>-v-<seatB>: WORD1, WORD2, WORD3, WORD4"
 --                (alphabetical first 4 of the picked 25)
 --   psychicnum:  "<target-number-as-text>"
 --                (the target IS leaked — psychicnum is a toy
@@ -791,7 +791,7 @@ $$;
 -- FE has no reason to invoke them directly.
 --
 -- Convention: lift when N=3 callers would converge. Today the
--- three callers are tinyspy, psychicnum, connections. A future
+-- three callers are codenamesduet, psychicnum, connections. A future
 -- gametype follows the same pattern.
 
 -- ─── common.require_club_member ────────────────────────
@@ -937,7 +937,7 @@ revoke execute on function common.validate_timer(jsonb) from public;
 --   - Insert one common.game_players row per uid.
 --   - Return the new game id.
 --
--- Size constraints (exactly-2 for tinyspy, at-least-1 for the
+-- Size constraints (exactly-2 for codenamesduet, at-least-1 for the
 -- open games) live in the gametype's `<gametype>.create_game`,
 -- not here — common doesn't know each gametype's rules. This
 -- helper just enforces "all listed players are club members."
@@ -957,7 +957,7 @@ create function common.create_game(
   -- The savable subset of `setup` for the saved-defaults feature
   -- (see common.clubs_gametypes.default_setup). Each gametype's
   -- create_game decides what to pass: most pass `setup` verbatim;
-  -- tinyspy strips its `firstClueGiverUserId` (per-game decision,
+  -- codenamesduet strips its `firstClueGiverUserId` (per-game decision,
   -- not a per-club preference). Pass NULL to opt out of auto-save
   -- entirely for this call.
   saved_default jsonb
@@ -1100,7 +1100,7 @@ revoke execute on function common.require_game_player(uuid) from public;
 -- ─── common.update_state ───────────────────────────────
 -- The mid-game state-write helper. Per-gametype RPCs call this
 -- after any state transition that's NOT a game-end — connections's
--- mistake-count bump, tinyspy's sudden-death entry, psychicnum's
+-- mistake-count bump, codenamesduet's sudden-death entry, psychicnum's
 -- guesses_remaining decrement, etc. Updates `play_state` (the
 -- gametype's enum value) + `status` (the listing-label jsonb) +
 -- `is_terminal` (always false here by definition; the column
@@ -1150,7 +1150,7 @@ revoke execute on function common.update_state(uuid, text, jsonb) from public;
 -- end-game half of the duplicate-write discipline. Called by
 -- each gametype's RPC at the moment its game-specific rule says
 -- "this game is over" — 4 mistakes in connections, assassin in
--- tinyspy, last guess used in psychicnum, countdown expired,
+-- codenamesduet, last guess used in psychicnum, countdown expired,
 -- etc. Writes:
 --
 --   - common.games.ended_at        = now()
@@ -1404,7 +1404,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 --   - common.game_players      (game_id FK, ON DELETE CASCADE)
 --   - <gametype>.games         (id FK,      ON DELETE CASCADE)
 --     ⤷ which cascades to per-gametype child tables
---        (tinyspy.words/clues, psychicnum.guesses, connections.guesses)
+--        (codenamesduet.words/clues, psychicnum.guesses, connections.guesses)
 -- So one DELETE on common.games removes the whole subtree.
 --
 -- This RPC does NOT handle "tell peers viewing the game to
@@ -1679,7 +1679,7 @@ grant execute on function common.send_message(text, text) to authenticated;
 --   3. clubs_gametypes rows for the solo club, covering only the
 --      gametypes a single player can actually play (min_players <=
 --      1, via common.default_gametypes_for_club). A solo club has
---      one member forever, so two-player games like tinyspy would
+--      one member forever, so two-player games like codenamesduet would
 --      never be startable there — we don't enroll the club in them.
 --      The member can still add them later from the club-settings UI
 --      (common.set_club_gametypes) if they want them listed.
@@ -1989,7 +1989,7 @@ grant execute on function common.cache_definition(text, text, text) to service_r
 -- Centralizes the "max N players" check that each open-N game's
 -- create_game calls near the top (mirrors require_club_member +
 -- validate_timer). 6 isn't a global rule — each create_game passes its
--- own cap; tinyspy keeps its inline exactly-2 check. No grant to
+-- own cap; codenamesduet keeps its inline exactly-2 check. No grant to
 -- authenticated: only callable from other SECURITY DEFINER RPCs.
 
 create or replace function common.require_player_count_max(

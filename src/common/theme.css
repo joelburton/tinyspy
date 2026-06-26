@@ -14,9 +14,9 @@
  * button.secondary). Component-specific styles live in
  * co-located `*.module.css` files and are scoped automatically.
  *
- * Game-specific color tokens (e.g. the tinyspy green/neutral/
+ * Game-specific color tokens (e.g. the codenamesduet green/neutral/
  * assassin palette) live in each game's own theme.css, loaded
- * with that game's chunk — see src/tinyspy/theme.css.
+ * with that game's chunk — see src/codenamesduet/theme.css.
  * ============================================================ */
 
 /* ---------- Design tokens ---------- */
@@ -142,7 +142,7 @@
      1rem gap between header and play area = ~9rem total.
      Centralized so a header redesign moves one number, not three.
      See docs/ui.md → "Page-height fits the viewport"; consumed
-     today by tinyspy/PlayArea.module.css and psychicnum/PlayArea.
+     today by codenamesduet/PlayArea.module.css and psychicnum/PlayArea.
      module.css (connections conversion pending). */
   --game-chrome-height:       9rem;
 
@@ -216,9 +216,9 @@ button {
 
 /* No hover effect on the raw <button> element. Too many <button>s are
  * "non-button-buttons" (board tiles, icon hit-targets) for a blanket
- * background-changing hover to be safe — on a tinyspy tile the old accent-blue
+ * background-changing hover to be safe — on a codenamesduet tile the old accent-blue
  * hover read as a real reveal. Components that want a hover style their own
- * (e.g. tinyspy's tile gets a black outline); a future `.button` class can
+ * (e.g. codenamesduet's tile gets a black outline); a future `.button` class can
  * reintroduce a hover for genuine buttons. */
 
 button:disabled {

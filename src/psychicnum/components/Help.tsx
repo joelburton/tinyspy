@@ -15,7 +15,7 @@ type Props = {
  * docs/psychicnum.md). The rules fit in three sentences; we
  * keep the modal small to match.
  *
- * tinyspy's `Help.tsx` is the visual model when richer copy is
+ * codenamesduet's `Help.tsx` is the visual model when richer copy is
  * useful here (unlikely — psychicnum is on the chopping block
  * post-beta).
  */

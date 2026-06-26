@@ -8,7 +8,7 @@
 --
 -- (`\ir`, not `\i` — `\ir` resolves the path relative to the
 -- *including file's* directory, so this single line works
--- whether the caller lives in tests/common/, tests/tinyspy/, or
+-- whether the caller lives in tests/common/, tests/codenamesduet/, or
 -- tests/psychicnum/. With `\i`, the path would resolve relative
 -- to psql's current working directory, which is brittle.)
 --
@@ -50,7 +50,7 @@
 --           particular game" — e.g., he walked into the club
 --           room while ada + bea were mid-game, or he's the
 --           third member of a 3-member club that's about to be
---           rejected by tinyspy.create_game (which requires
+--           rejected by codenamesduet.create_game (which requires
 --           exactly 2 members).
 --
 --   dee     Outside the club entirely. dee is an existing

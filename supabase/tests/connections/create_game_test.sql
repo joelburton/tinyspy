@@ -3,7 +3,7 @@
 -- ============================================================
 --
 -- Doubles as the pgTAP primer for the connections suite. See
--- ../tinyspy/create_game_test.sql for the deeper primer
+-- ../codenamesduet/create_game_test.sql for the deeper primer
 -- (personas + as_user, why we begin/rollback).
 --
 -- Coverage:

@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
  *      modal, the action-slot indicator carries the lasting cue;
  *      reopening on every re-render would be hostile.
  *
- * This hook was duplicated verbatim in tinyspy/connections/psychicnum
+ * This hook was duplicated verbatim in codenamesduet/connections/psychicnum
  * PlayAreas; extracting it pins the contract in one place so future
  * games (Boggle, etc.) drop into the same shape without re-deriving
  * it. See docs/ui.md → "Modals for terminal results."

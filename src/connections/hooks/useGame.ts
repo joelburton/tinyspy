@@ -12,7 +12,7 @@ import type { Board, CategoryRank } from '../lib/board'
  * personal scores), so the Player type is a straight re-export.
  *
  * Why we expose it anyway: cross-game vocabulary consistency.
- * Every game's hook file exposes a Player type — tinyspy's adds
+ * Every game's hook file exposes a Player type — codenamesduet's adds
  * `seat: 'A' | 'B'`; psychicnum's is a re-export like this.
  * A reader scanning per-game folders sees the same parallel
  * everywhere, and a future "per-player tile-rate" stat (or
@@ -240,7 +240,7 @@ export function useGame(
     // shared room across peers, so a UUID-suffix would defeat the
     // purpose. StrictMode's double-mount is handled by the
     // removeChannel(ch) in the effect cleanup. See useGame for
-    // tinyspy/psychicnum's UUID-suffixed approach when broadcast
+    // codenamesduet/psychicnum's UUID-suffixed approach when broadcast
     // isn't in play.
     const ch = supabase.channel(`connections:${gameId}`)
 

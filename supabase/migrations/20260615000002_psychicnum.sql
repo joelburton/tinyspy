@@ -38,7 +38,7 @@
 -- learn the pattern. Connections + spellingbee adoption can crib from
 -- here directly.
 --
--- What this still exercises that tinyspy doesn't:
+-- What this still exercises that codenamesduet doesn't:
 --   - N-player, no turns (anyone-acts-any-time)
 --   - A genuine server-side secret (the target), hidden from the
 --     client even with devtools open via a column-level grant

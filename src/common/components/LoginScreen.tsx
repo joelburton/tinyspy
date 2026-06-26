@@ -17,7 +17,7 @@ import { supabase } from '../lib/supabase'
  *   1. Click the magic link — the browser hits Supabase's redirect URL,
  *      which exchanges the link's hash token for a session and lands the
  *      user back at `window.location.origin` (so a sign-in started on
- *      `/g/tinyspy/<id>` returns to that same path).
+ *      `/g/codenamesduet/<id>` returns to that same path).
  *
  *   2. Enter the code in the "I have a code" form here — calls
  *      `verifyOtp({type: 'email'})` to exchange the code for a session

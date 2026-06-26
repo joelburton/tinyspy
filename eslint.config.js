@@ -15,16 +15,16 @@ import { defineConfig, globalIgnores } from 'eslint/config'
  * 3+ games; the dup is one line each and the lint failure on a missed
  * update is obvious.)
  */
-const GAMETYPES = ['tinyspy', 'psychicnum', 'connections', 'spellingbee']
+const GAMETYPES = ['codenamesduet', 'psychicnum', 'connections', 'spellingbee']
 
 /**
  * Build the `patterns` array for `no-restricted-imports` that blocks
  * imports reaching into any of `forbidden` game folders.
  *
  * Each game gets two patterns:
- *   - `**` + `/<name>/` + `**`  — catches `../tinyspy/Root`,
- *                                  `../../tinyspy/hooks/useGame`, etc.
- *   - `**` + `/<name>`           — catches `../tinyspy` (folder index
+ *   - `**` + `/<name>/` + `**`  — catches `../codenamesduet/Root`,
+ *                                  `../../codenamesduet/hooks/useGame`, etc.
+ *   - `**` + `/<name>`           — catches `../codenamesduet` (folder index
  *                                  imports, no trailing path).
  *
  * Picomatch (ESLint's matcher) treats `..` as an ordinary path segment,
@@ -90,7 +90,7 @@ export default defineConfig([
   },
 
   // Each game folder may not import from any OTHER game folder. Today
-  // there's only tinyspy so this expands to zero rules for tinyspy;
+  // there's only codenamesduet so this expands to zero rules for codenamesduet;
   // becomes load-bearing the moment boggle (or another game) is added.
   ...GAMETYPES.flatMap((self) => {
     const others = GAMETYPES.filter((g) => g !== self)

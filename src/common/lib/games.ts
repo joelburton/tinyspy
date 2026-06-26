@@ -59,7 +59,7 @@ export type GamePageCtx = {
    *  choices the SetupGameDialog collected at start. Typed as
    *  `Record<string, unknown>` here because each gametype's
    *  shape is different; per-game PlayAreas cast to their own
-   *  setup type (`as TinySpySetup`, `as ConnectionsSetup`, etc.)
+   *  setup type (`as CodenamesduetSetup`, `as ConnectionsSetup`, etc.)
    *  on access. Read-only at this level — setup is fixed at
    *  game-creation time. */
   setup: Record<string, unknown>
@@ -268,7 +268,7 @@ export type GameManifest = {
    * Family key that ties variant gametypes together.
    * `baseGametype` is the stable identifier of the "thing this
    * game is a variant of." For single-mode games it equals
-   * `gametype` (e.g., tinyspy's baseGametype is 'tinyspy').
+   * `gametype` (e.g., codenamesduet's baseGametype is 'codenamesduet').
    * For variants — coop vs compete pairs today, "super-tough
    * boggle" or other player-count variants in the future — it's
    * the shared root (`psychicnum_coop` and `psychicnum_compete`
@@ -345,7 +345,7 @@ export type GameManifest = {
    * channel load, the chat surface area — all assume a bounded
    * count). For an "any club" game, pick a reasonable max — today
    * we use 6 for all the open-N games (connections, psychicnum,
-   * spellingbee) and `[2, 2]` for fixed-seat tinyspy.
+   * spellingbee) and `[2, 2]` for fixed-seat codenamesduet.
    *
    * The shell uses this to decide whether the "Start" button is
    * hidden / disabled / enabled (in combination with the

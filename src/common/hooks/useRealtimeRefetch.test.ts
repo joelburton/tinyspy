@@ -93,7 +93,7 @@ afterEach(() => {
 })
 
 const ONE_TABLE = {
-  schema: 'tinyspy',
+  schema: 'codenamesduet',
   table: 'clues',
   filter: 'game_id=eq.g1',
 }
@@ -234,7 +234,7 @@ describe('useRealtimeRefetch', () => {
     const { rerender } = renderHook(
       ({ id }: { id: string }) =>
         useRealtimeRefetch({
-          tables: { schema: 'tinyspy', table: 'clues', filter: `game_id=eq.${id}` },
+          tables: { schema: 'codenamesduet', table: 'clues', filter: `game_id=eq.${id}` },
           load,
           channelPrefix: 'clues',
           id,

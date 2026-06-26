@@ -1,5 +1,5 @@
 import type { GameManifest } from './common/lib/games'
-import { tinyspyGame } from './tinyspy/manifest'
+import { codenamesduetGame } from './codenamesduet/manifest'
 import {
   psychicnumCoopGame,
   psychicnumCompeteGame,
@@ -49,7 +49,7 @@ import { scrabbleCoopGame, scrabbleCompeteGame } from './scrabble/manifest'
  * those imports elsewhere.
  */
 export const games: GameManifest[] = [
-  tinyspyGame,
+  codenamesduetGame,
   psychicnumCoopGame,
   psychicnumCompeteGame,
   connectionsCoopGame,

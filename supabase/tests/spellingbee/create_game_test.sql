@@ -21,7 +21,7 @@
 --   6. Title formula: "<CENTER>·<OUTER-SORTED>".
 --   7. Player-count upper bound: 7+ entries rejected.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer.
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 

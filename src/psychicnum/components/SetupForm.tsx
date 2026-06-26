@@ -18,7 +18,7 @@ import styles from '../../common/components/setupForm.module.css'
  * no auto-seeding logic — the manifest's defaults already cover
  * a usable initial state.
  *
- * Controlled component pattern, same as the tinyspy form: state
+ * Controlled component pattern, same as the codenamesduet form: state
  * lives in the wrapper; we render from `value` and signal via
  * `onChange`. The single `value as PsychicNumSetup` cast at
  * the top is the boundary between the manifest's `unknown` setup

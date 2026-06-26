@@ -1326,7 +1326,7 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 -- spellingbee.end_game — manual stop
 -- ============================================================
 --
--- Unlike tinyspy / psychicnum / connections, spellingbee has no
+-- Unlike codenamesduet / psychicnum / connections, spellingbee has no
 -- intrinsic "you lost" or "you won" terminal state in coop: the
 -- only automatic terminals are the compete first-to-target-rank
 -- (handled inside submit_word as outcome='won_compete') and the

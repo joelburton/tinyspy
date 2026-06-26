@@ -11,7 +11,7 @@
  * drifted (bold vs muted legends, 0.3 vs 0.4rem radio gaps). One stylesheet
  * makes "what a setup fieldset looks like" a single definition, so a player
  * switching games reads the same surface every time and the drift can't recur.
- * The values here are the majority shape (the tinyspy / psychicnum / bananagrams
+ * The values here are the majority shape (the codenamesduet / psychicnum / bananagrams
  * / connections cluster that four forms already shared byte-for-byte).
  *
  * The forms sit inside `SetupGameDialog`'s content area and inherit its

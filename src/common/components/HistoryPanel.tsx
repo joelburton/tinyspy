@@ -19,7 +19,7 @@ export type Verdict = 'correct' | 'wrong' | 'oneAway'
  * row shows the guessed number) and the column's outer width/flex, passed via
  * `className`.
  *
- * Not every game's log fits this shape — tinyspy's GameLog deliberately uses
+ * Not every game's log fits this shape — codenamesduet's GameLog deliberately uses
  * divider-separated turns rather than strip cards, and scrabble's framed
  * PlayLog has its own chrome. This is for the strip-card "guess log" family.
  */

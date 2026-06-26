@@ -26,7 +26,7 @@
 -- rls_test.sql. The two test files together form the
 -- baseline assertions.
 --
--- See ../tinyspy/create_game_test.sql for the pgTAP primer.
+-- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 
