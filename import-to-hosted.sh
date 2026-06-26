@@ -52,7 +52,7 @@
 #           bin to PATH) / `apt install postgresql-client`.
 #
 # To use:
-#   1. Fill in the REPLACE-WITH-* values below.
+#   1. cp import-to-hosted.secrets.example.sh import-to-hosted.secrets.sh, then fill it in.
 #   2. chmod +x import-to-hosted.sh   (first time only)
 #   3. ./import-to-hosted.sh --destroy     (or --keep)
 #
@@ -137,7 +137,7 @@ SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 # Schemas to expose via the Data API. `public` + `graphql_public`
 # are Supabase defaults that we keep so other features that read
 # from them don't break.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,monkeygram,waffle,wordle,stackdown,scrabble"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble"
 
 # Extra search path. Strictly speaking we don't NEED this (every
 # common.* reference in our RLS and RPCs is fully qualified — see
@@ -156,7 +156,7 @@ EXTRA_SEARCH_PATH="common,public,extensions"
 if [[ "$PERSONAL_ACCESS_TOKEN" == *"REPLACE-WITH"* ]]; then
   echo "ERROR: PERSONAL_ACCESS_TOKEN still has its REPLACE-WITH placeholder." >&2
   echo "       Get one at supabase.com/dashboard/account/tokens" >&2
-  echo "       and edit import-to-hosted.sh before running." >&2
+  echo "       and set it in import-to-hosted.secrets.sh before running." >&2
   exit 1
 fi
 

@@ -343,7 +343,7 @@ src/codenamesduet/
     agents.test.ts        Pure unit test of the above.
     labels.ts             KeyLabel type ('G' | 'N' | 'A') — single-letter agent /
                           neutral / assassin role.
-    setup.ts              CodenamesduetSetup type + DEFAULT_TINYSPY_SETUP. PlayArea
+    setup.ts              CodenamesduetSetup type + DEFAULT_CODENAMESDUET_SETUP. PlayArea
                           casts `ctx.setup as CodenamesduetSetup` to read the turn cap.
 ```
 

@@ -409,8 +409,8 @@ src/spellingbee/
 
   lib/
     setup.ts              SpellingbeeSetup type (timer / target_rank? / custom_letters? /
-                          custom_center?) + DEFAULT_FREEBEE_SETUP_COOP +
-                          DEFAULT_FREEBEE_SETUP_COMPETE (compete seeds target_rank=5).
+                          custom_center?) + DEFAULT_SPELLINGBEE_SETUP_COOP +
+                          DEFAULT_SPELLINGBEE_SETUP_COMPETE (compete seeds target_rank=5).
                           Mode is NOT on this type — it's locked at the gametype level.
     ranks.ts              Port of ~/spellingbee-ws/shared/ranks.js: RANKS, GENIUS_AT,
                           rankThreshold, rankPoints, currentRankIndex. Mirrored on the SQL
