@@ -1,7 +1,7 @@
+import { DifficultyField } from '../../common/components/DifficultyField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
-  DICTIONARY_OPTIONS,
   HAND_SIZE_OPTIONS,
   MONKEYGRAM_BAG_MAX,
   tilesNeeded,
@@ -25,8 +25,10 @@ import styles from './SetupForm.module.css'
  *     a dumped tile back in the bag; on takes it out of play (the game shrinks
  *     by one each dump).
  *   - **Require real words to win** — opt-in dictionary check on the winning
- *     peel; reveals a dictionary-obscurity picker (2..6) when on. (Board
- *     geography — one connected grid — is always required, so it's not a knob.)
+ *     peel; reveals two DifficultyField pickers when on — one for 2-letter
+ *     words (band 2..6) and one for longer words (1..6), since 2-letter words
+ *     are a separate, thinner vocabulary. (Board geography — one connected grid
+ *     — is always required, so it's not a knob.)
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`monkeygram.submit_timeout`).
@@ -114,23 +116,24 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           Require real words to win
         </label>
         {s.check_words && (
-          <label className={styles.dictRow}>
-            Dictionary
-            <select
-              className={styles.select}
-              name="dictionary"
-              value={s.dictionary}
-              onChange={(e) =>
-                onChange({ ...s, dictionary: Number(e.target.value) })
-              }
-            >
-              {DICTIONARY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.value}: up to {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className={styles.dictRow}>
+            <DifficultyField
+              label="2-letter words"
+              length={2}
+              minDifficulty={2}
+              maxDifficulty={6}
+              value={s.dict_2}
+              onChange={(dict_2) => onChange({ ...s, dict_2 })}
+            />
+            <DifficultyField
+              label="Longer words (3+)"
+              length="3+"
+              minDifficulty={1}
+              maxDifficulty={6}
+              value={s.dict_3plus}
+              onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
+            />
+          </div>
         )}
       </fieldset>
 

@@ -30,10 +30,15 @@ export type MonkeyGramSetup = {
    *  Default off. NOTE: board GEOGRAPHY (one connected grid) is always required
    *  to win regardless of this — it's structural, not a matter of taste. */
   check_words: boolean
-  /** Dictionary obscurity ceiling for the word check, 2..6 (`common.words`
-   *  difficulty): a word is legal iff it exists at difficulty ≤ this, so higher
-   *  = more obscure words allowed. Only meaningful when `check_words` is on. */
-  dictionary: number
+  /** Obscurity ceiling for **2-letter** words, 2..6 (`common.words`
+   *  difficulty): a 2-letter word is legal iff it exists at difficulty ≤ this.
+   *  2-letter words are a thin, separate vocabulary, so they get their own band
+   *  (and band 1 is too sparse to be fun, hence the 2 floor). Only meaningful
+   *  when `check_words` is on. */
+  dict_2: number
+  /** Obscurity ceiling for **3+-letter** words, 1..6 (`common.words`
+   *  difficulty). Only meaningful when `check_words` is on. */
+  dict_3plus: number
   /** Where a dumped tile goes. `false` (default) = back into the bag (it may
    *  be drawn again). `true` = to the out-of-play "box", so the bunch depletes
    *  (the game ends sooner) — though a dump can top up from the box when the
@@ -49,24 +54,14 @@ export type MonkeyGramSetup = {
 /** The full Bananagrams bag — the hard cap on `bag_size`. */
 export const MONKEYGRAM_BAG_MAX = 144
 
-/** The dictionary obscurity tiers offered for the legal-board check, 2..6
- *  (`common.words` difficulty). Mirrors waffle's vocabulary bands; the label
- *  names the *most obscure* word the dictionary will accept. */
-export const DICTIONARY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
-  { value: 2, label: 'Common' },
-  { value: 3, label: 'Familiar' },
-  { value: 4, label: 'Uncommon' },
-  { value: 5, label: 'Obscure' },
-  { value: 6, label: 'Expert' },
-]
-
 /** Initial setup the manifest hands the SetupGameDialog wrapper as
  *  `defaults`. Full 144-tile bag, no word check (the classic game). */
 export const DEFAULT_MONKEYGRAM_SETUP: MonkeyGramSetup = {
   hand_size: 21,
   bag_size: MONKEYGRAM_BAG_MAX,
   check_words: false,
-  dictionary: 4,
+  dict_2: 4,
+  dict_3plus: 4,
   dump_to_box: false,
   timer: { kind: 'none' },
 }

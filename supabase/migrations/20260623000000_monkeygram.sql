@@ -273,7 +273,8 @@ declare
   s_hand_size int;
   s_bag_size int;
   s_check_words boolean;
-  s_dictionary int;
+  s_dict_2 int;
+  s_dict_3plus int;
   bag_text text;
   letters text[];
   shuffled text[];
@@ -320,17 +321,28 @@ begin
 
   -- check_words (optional, default off): when on, a winning peel additionally
   -- requires every word to be real (see peel + _win_blockers). Connectivity is
-  -- checked regardless. dictionary is the obscurity ceiling, 2..6 (common.words
-  -- difficulty), required only when the word check is on.
+  -- checked regardless. Two obscurity ceilings (common.words difficulty),
+  -- required only when the word check is on: dict_2 for 2-letter words (2..6 —
+  -- band 1 has too few 2-letter words to be fun) and dict_3plus for longer
+  -- words (1..6).
   s_check_words := coalesce((setup->>'check_words')::boolean, false);
   if s_check_words then
-    if (setup->>'dictionary') is null then
-      raise exception 'setup.dictionary is required when check_words is on'
+    if (setup->>'dict_2') is null then
+      raise exception 'setup.dict_2 is required when check_words is on'
         using errcode = 'P0001';
     end if;
-    s_dictionary := (setup->>'dictionary')::int;
-    if s_dictionary < 2 or s_dictionary > 6 then
-      raise exception 'setup.dictionary must be between 2 and 6 (got %)', s_dictionary
+    s_dict_2 := (setup->>'dict_2')::int;
+    if s_dict_2 < 2 or s_dict_2 > 6 then
+      raise exception 'setup.dict_2 must be between 2 and 6 (got %)', s_dict_2
+        using errcode = 'P0001';
+    end if;
+    if (setup->>'dict_3plus') is null then
+      raise exception 'setup.dict_3plus is required when check_words is on'
+        using errcode = 'P0001';
+    end if;
+    s_dict_3plus := (setup->>'dict_3plus')::int;
+    if s_dict_3plus < 1 or s_dict_3plus > 6 then
+      raise exception 'setup.dict_3plus must be between 1 and 6 (got %)', s_dict_3plus
         using errcode = 'P0001';
     end if;
   end if;
@@ -519,9 +531,11 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 --      scattered board isn't a real grid, so this holds even in trust-the-
 --      friends mode.
 --   2. WHEN check_words: every run of 2+ tiles (across and down) spells a real
---      word — one in common.words at difficulty ≤ max_difficulty. Single tiles
---      aren't words, so they're never checked. This is the opt-in part (the
---      dictionary is a matter of taste); max_difficulty is ignored when off.
+--      word — one in common.words at difficulty ≤ the band for its LENGTH:
+--      `dict_2` for 2-letter words, `dict_3plus` for longer ones (2-letter
+--      words are a much thinner, separate vocabulary, so they get their own
+--      band). Single tiles aren't words, so they're never checked. This is the
+--      opt-in part; the bands are ignored when off.
 -- The blockers are the union of: tiles NOT in the main mass (the flood-fill
 -- from the top-left-most tile — so disconnected stragglers light up) and (when
 -- checking words) every tile of an invalid word. The FE paints these red until
@@ -530,7 +544,7 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 -- Plain `language sql` (not security definer): it reads only common.words
 -- (granted to all) off the `board` text it's handed, so it runs fine inside
 -- peel's definer context with nothing extra to leak.
-create function monkeygram._win_blockers(board text, max_difficulty int, check_words boolean)
+create function monkeygram._win_blockers(board text, dict_2 int, dict_3plus int, check_words boolean)
 returns int[]
 language sql
 stable
@@ -582,7 +596,8 @@ as $$
      where check_words
        and not exists (
          select 1 from common.words cw
-          where cw.word = lower(w.word) and cw.difficulty <= max_difficulty
+          where cw.word = lower(w.word)
+            and cw.difficulty <= case when length(w.word) = 2 then dict_2 else dict_3plus end
        )
   )
   select coalesce(
@@ -652,7 +667,8 @@ declare
   winner_name text;
   player_results jsonb;
   v_check_words boolean;
-  v_dictionary int;
+  v_dict_2 int;
+  v_dict_3plus int;
   v_blockers int[];
 begin
   -- Serialize concurrent peels on the gametype row (see header).
@@ -697,8 +713,9 @@ begin
     -- setup.check_words is on. If anything blocks, don't end the game — hand
     -- the FE the offending cells to paint red and let the player fix + re-peel.
     v_check_words := coalesce((s_setup->>'check_words')::boolean, false);
-    v_dictionary := coalesce((s_setup->>'dictionary')::int, 4);
-    v_blockers := monkeygram._win_blockers(v_board, v_dictionary, v_check_words);
+    v_dict_2 := coalesce((s_setup->>'dict_2')::int, 4);
+    v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
+    v_blockers := monkeygram._win_blockers(v_board, v_dict_2, v_dict_3plus, v_check_words);
     if array_length(v_blockers, 1) > 0 then
       return jsonb_build_object('result', 'illegal',
                                 'invalid_cells', to_jsonb(v_blockers));

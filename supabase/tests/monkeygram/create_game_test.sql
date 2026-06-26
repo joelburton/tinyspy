@@ -19,7 +19,7 @@ begin;
 
 set search_path = monkeygram, common, public, extensions;
 
-select plan(27);
+select plan(29);
 
 \ir ../_shared/setup.psql
 
@@ -133,30 +133,56 @@ select throws_ok(
   'a bag too small to deal every hand is rejected'
 );
 
--- check_words on but dictionary missing
+-- check_words on but dict_2 missing
 select throws_ok(
   format(
     $$ select monkeygram.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.dictionary is required when check_words is on',
-  'check_words without a dictionary is rejected'
+  'setup.dict_2 is required when check_words is on',
+  'check_words without dict_2 is rejected'
 );
 
--- check_words on with a dictionary out of the 2..6 band
+-- dict_2 out of its 2..6 band (band 1 has too few 2-letter words)
 select throws_ok(
   format(
     $$ select monkeygram.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dictionary": 7, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.dictionary must be between 2 and 6 (got 7)',
-  'a dictionary above 6 is rejected'
+  'setup.dict_2 must be between 2 and 6 (got 1)',
+  'dict_2 below 2 is rejected'
+);
+
+-- dict_3plus missing (dict_2 present, so we reach the dict_3plus check)
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L,
+       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.dict_3plus is required when check_words is on',
+  'check_words without dict_3plus is rejected'
+);
+
+-- dict_3plus out of its 1..6 band
+select throws_ok(
+  format(
+    $$ select monkeygram.create_game(%L,
+       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.dict_3plus must be between 1 and 6 (got 7)',
+  'dict_3plus above 6 is rejected'
 );
 
 -- timer missing entirely (hand_size + bag_size valid, so we reach the timer check)

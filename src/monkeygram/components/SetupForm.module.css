@@ -61,15 +61,11 @@
   margin: 0;
 }
 
-/* The dictionary-difficulty picker, revealed when the check is on. */
+/* The two dictionary-difficulty pickers (2-letter + 3+), revealed when the
+ * word check is on. Stacked. */
 .dictRow {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.select {
-  padding: 0.25rem 0.4rem;
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
 }
