@@ -49,7 +49,7 @@ select isnt(
 select is(
   (select wordlist from stackdown.games where id = (select id from g)),
   0,
-  'the wordlist level is recorded (0 = the StackDown standard set)');
+  'the wordlist level is recorded (0 = the stackdown standard set)');
 
 select is(
   (select count(*)::int from stackdown.players where game_id = (select id from g)),

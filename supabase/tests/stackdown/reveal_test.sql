@@ -29,14 +29,14 @@ select is(
   'eagle', 'reveal at the start → the first word (eagle, stored lowercase)');
 
 -- reveal_next_hint returns the next word's HINT (not the word). Every
--- StackDown word is in common.words' hint set, so the hint is present.
+-- stackdown word is in common.words' hint set, so the hint is present.
 select is(
   (select stackdown.reveal_next_hint((select id from g))),
   (select hint from common.words where word = 'eagle'),
   'reveal_next_hint → the next word''s hint (EAGLE''s)');
 select ok(
   (select stackdown.reveal_next_hint((select id from g))) is not null,
-  'the hint is present (StackDown words are all in the hint set)');
+  'the hint is present (stackdown words are all in the hint set)');
 
 -- ── Requesting logs a persistent row (deduped per word) ─────────────
 -- Above, ada called reveal_next_word once + reveal_next_hint twice, all

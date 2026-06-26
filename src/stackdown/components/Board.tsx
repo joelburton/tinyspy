@@ -27,7 +27,7 @@ function depthColor(depth: number, maxDepth: number): string {
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
 
 /**
- * The StackDown board: the 30 lettered tiles drawn on their fixed grid,
+ * The stackdown board: the 30 lettered tiles drawn on their fixed grid,
  * stacked by layer. Only the tiles still on the board are painted (the
  * caller passes `offBoard` — the union of accepted-word tiles and the
  * tiles currently picked up into the word being built). Exposed tiles

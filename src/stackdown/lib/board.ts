@@ -1,5 +1,5 @@
 /**
- * StackDown — the board geometry + stacking logic, ported verbatim
+ * stackdown — the board geometry + stacking logic, ported verbatim
  * from the prototype's `core.ts` / `main.tsx` (the throwaway tool that
  * pinned the rules down). Pure functions, no React, no supabase — the
  * Board component and the useGame hook both lean on these.

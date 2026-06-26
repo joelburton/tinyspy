@@ -1,7 +1,7 @@
 /**
- * RackAttack (codename `scrabble`) — the board + tile *constants*.
+ * scrabble (codename `scrabble`) — the board + tile *constants*.
  *
- * Unlike the board-library games (StackDown, FreeBee), RackAttack's board
+ * Unlike the board-library games (stackdown, FreeBee), scrabble's board
  * layout and tile distribution never vary between games — they're the standard
  * Scrabble constants, hard-coded here. The premium-square grid is FE-only: the
  * server never scores (trusting commit — see play.ts), so it has no need for it.

@@ -1856,7 +1856,7 @@ grant execute on function common.update_profile_color(text) to authenticated;
 --   hint        — a guessing-game clue that HIDES the word (the inverse
 --                 of definition): a category / near-synonym nudge. Set
 --                 for the 5-letter hint set (len=5 AND (wordle OR
---                 difficulty=1)), NULL elsewhere. Drives StackDown's
+--                 difficulty=1)), NULL elsewhere. Drives stackdown's
 --                 "Reveal hint".
 --
 -- letter_mask is a GENERATED column: the 26-bit set of distinct
@@ -1907,7 +1907,7 @@ create table common.words (
   -- Guessing-game clue that HIDES the word (the opposite of definition):
   -- a category/near-synonym nudge ("A hooded snake" → cobra). Present for
   -- every word in the hint set (len = 5 AND (wordle OR difficulty = 1));
-  -- NULL elsewhere. Drives StackDown's "Reveal hint". See the upstream
+  -- NULL elsewhere. Drives stackdown's "Reveal hint". See the upstream
   -- gamelist AI.md → Hints.
   hint              text,
   -- Distinct-letter bitmask, derived from `word`. See above.

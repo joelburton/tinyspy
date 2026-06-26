@@ -2,6 +2,7 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
@@ -14,10 +15,10 @@ type Props = {
  * yet — that's Phase 4). Same FloatingPanel scaffold the other
  * games use.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play FreeBee"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 460, height: 420 }}
       minWidth={300}

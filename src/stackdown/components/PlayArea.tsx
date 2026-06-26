@@ -17,7 +17,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * StackDown's play surface, shared by the coop and compete manifests.
+ * stackdown's play surface, shared by the coop and compete manifests.
  * Two columns: the tile stack + the word-being-built on the left, the
  * opponent strip (compete) + the submission log on the right. Mode is
  * read from `game.mode`.
@@ -176,7 +176,7 @@ export function PlayArea({
   // A softer reveal than "Reveal word": shows the curated hint for the
   // next solution word (common.words.hint, a clue that hides the word).
   // The word never reaches the client — reveal_next_hint returns only the
-  // hint text. Every StackDown word is in the hint set, so no fallback.
+  // hint text. Every stackdown word is in the hint set, so no fallback.
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {

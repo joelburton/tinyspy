@@ -2,6 +2,7 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
@@ -9,10 +10,10 @@ type Props = {
  * GamePage menu. Implements the common `help: ComponentType<{ onClose }>`
  * contract on `GameManifest`.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play MonkeyGram"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 460, height: 420 }}
       minWidth={300}

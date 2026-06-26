@@ -5,10 +5,10 @@ import type { StackdownSetup } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
 
 /**
- * StackDown's setup form, rendered inside the common SetupGameDialog.
+ * stackdown's setup form, rendered inside the common SetupGameDialog.
  * The board is claimed at random from the pre-generated library, so the
  * only real knob is the shared `TimerField`. We also show a (disabled)
- * word-difficulty field so players can see StackDown is fixed to the most
+ * word-difficulty field so players can see stackdown is fixed to the most
  * common 5-letter words — its boards are pre-generated at band 1.
  * Controlled component (state lives in the wrapper); shared by both
  * manifests (mode doesn't change the form).
@@ -32,7 +32,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         disabled
       />
       <p className="muted">
-        StackDown is fixed to the most common 5-letter words.
+        The word list is fixed to the most common 5-letter words.
       </p>
       <TimerField
         value={s.timer}

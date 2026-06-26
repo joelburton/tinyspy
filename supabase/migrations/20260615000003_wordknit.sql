@@ -24,7 +24,7 @@
 -- │   solve all 4 themselves; "I matched it" doesn't help   │
 -- │   anyone else.                                          │
 -- │ - First player to all-4 wins; everyone else loses       │
--- │   immediately. (PsychicNum-style race-end.)             │
+-- │   immediately. (psychicnum-style race-end.)             │
 -- │ - 4 mistakes eliminates that player but the game        │
 -- │   continues. All-eliminated → lost_compete.             │
 -- │ - Timer expiry → lost_compete, everyone loses.          │

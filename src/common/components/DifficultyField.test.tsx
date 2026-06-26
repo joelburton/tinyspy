@@ -58,7 +58,7 @@ describe('DifficultyField', () => {
     expect(band1.textContent).not.toContain('OX')
   })
 
-  it('prepends an always-enabled extra option (WordNerd "0: Wordle")', () => {
+  it('prepends an always-enabled extra option (wordle "0: Wordle")', () => {
     render(
       <DifficultyField
         label="Answer source"
@@ -76,7 +76,7 @@ describe('DifficultyField', () => {
     expect(options[0]).toBeEnabled()
   })
 
-  it('disables the whole control when asked (StackDown is locked to band 1)', () => {
+  it('disables the whole control when asked (stackdown is locked to band 1)', () => {
     render(
       <DifficultyField
         length={5}

@@ -6,7 +6,7 @@ import form from '../../common/components/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 /**
- * WordNerd's setup form, rendered inside the common SetupGameDialog.
+ * wordle's setup form, rendered inside the common SetupGameDialog.
  *
  *   - **Guesses** — the budget (5–8; 6 is classic Wordle). In coop it's
  *     shared by the team; in compete it's each player's own.

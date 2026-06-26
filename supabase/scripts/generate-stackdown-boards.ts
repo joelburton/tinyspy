@@ -1,12 +1,12 @@
 #!/usr/bin/env -S npx tsx
 /**
- * GENERATE StackDown boards into a vendored text file —
+ * GENERATE stackdown boards into a vendored text file —
  * `supabase/data/stackdown-boards.jsonl` (one JSON board per line). This
  * is `npm run stackdown:gen`. It does NOT touch the database; the
  * companion `npm run stackdown:import` (import-stackdown-boards.ts) loads
  * the file into `stackdown.boards`.
  *
- * The split exists because generation is SLOW — StackDown boards are
+ * The split exists because generation is SLOW — stackdown boards are
  * expensive to validate (the strict no-trap check is a recursive walk
  * over every spelling of every word — see docs/games/stackdown.md §2.4),
  * ~10s/board. We don't want to pay that on every `db:reset`. So we
@@ -15,7 +15,7 @@
  * cleared.
  *
  * What it does:
- *   1. Loads the lexicon — the StackDown standard set (`difficulty = 1 AND
+ *   1. Loads the lexicon — the stackdown standard set (`difficulty = 1 AND
  *      american AND slur = 0 AND crude = 0 AND len = 5`; wordlist 0) — from `common.words`
  *      over a direct psql connection (read-only). This IS the set the
  *      no-trap validation runs against — boards come out solvable and
@@ -464,7 +464,7 @@ console.log(
     `lexicon from ${safeTarget}; ${existing.length} already in the file.`,
 )
 
-// Load the lexicon: the StackDown standard set (wordlist 0) — common,
+// Load the lexicon: the stackdown standard set (wordlist 0) — common,
 // clean, 5-letter american words (plurals included). This is the set the
 // no-trap validation runs against, so generated boards are solvable and
 // fork-free with respect to exactly these words. (Runtime no longer

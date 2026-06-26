@@ -25,6 +25,10 @@ type Props = {
   /** Whether the active typing row should show (game still in play for
    *  this player). */
   active: boolean
+  /** Brand name (from the manifest, via `ctx.brand`) for the grid's
+   *  screen-reader label — kept out of this chunk's source so the brand
+   *  lives only in the manifest. */
+  brand: string
 }
 
 /**
@@ -44,7 +48,7 @@ type Props = {
  * flipping tiles — the keyframes (with `forwards`) hold the final color —
  * so each tile reads blank until its flip reaches halfway.
  */
-export function WordleGrid({ rows, current, pending, maxGuesses, active }: Props) {
+export function WordleGrid({ rows, current, pending, maxGuesses, active, brand }: Props) {
   const activeIndex = active ? rows.length : -1
   // Rows present at first render — these don't flip (only fresh guesses do).
   // A lazy useState initializer captures the count once at mount and is
@@ -52,7 +56,7 @@ export function WordleGrid({ rows, current, pending, maxGuesses, active }: Props
   const [firstRows] = useState(rows.length)
 
   return (
-    <div className={styles.grid} role="grid" aria-label="WordNerd board">
+    <div className={styles.grid} role="grid" aria-label={`${brand} board`}>
       {Array.from({ length: maxGuesses }, (_, r) => {
         const submitted = rows[r]
         const isActive = r === activeIndex

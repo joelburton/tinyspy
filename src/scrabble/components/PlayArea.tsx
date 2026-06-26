@@ -62,7 +62,7 @@ function nextRackOrder(
 }
 
 /**
- * RackAttack's play surface (coop + compete). Left: the board, sized to grow
+ * scrabble's play surface (coop + compete). Left: the board, sized to grow
  * as tall as the layout allows. Right (fixed column): score / whose-turn, the
  * rack, a live score preview, the action row, and the move log.
  *

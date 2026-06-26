@@ -1,12 +1,13 @@
 -- ============================================================
--- scrabble (brand: RackAttack) — a Scrabble-style word game
+-- scrabble — a Scrabble-style word game
 -- ============================================================
 --
 -- Players build interlocking words from lettered tiles on the standard
 -- 15×15 premium-square board, drawing from a shared 100-tile bag.
 --
--- "scrabble" is the codename. User-facing copy is "RackAttack";
--- SQL / TypeScript / folder names are all `scrabble`.
+-- "scrabble" is the codename used in SQL, TypeScript, and folder names.
+-- The user-facing brand lives only in the FE manifest (see
+-- docs/naming.md for the codename-vs-brand split).
 --
 -- Coop + compete ship as a sibling-manifest pair (`scrabble_coop` +
 -- `scrabble_compete`, a denormalized `mode` column, a `mode` arg on

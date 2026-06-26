@@ -319,6 +319,7 @@ export function GamePage({
         {children({
           session,
           gameId,
+          brand: manifest.name,
           players,
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,
@@ -354,7 +355,7 @@ export function GamePage({
           clicked Help; they expect it to appear within a beat). */}
       {helpOpen && (
         <Suspense fallback={null}>
-          <HelpComponent onClose={() => setHelpOpen(false)} />
+          <HelpComponent onClose={() => setHelpOpen(false)} brand={manifest.name} />
         </Suspense>
       )}
 

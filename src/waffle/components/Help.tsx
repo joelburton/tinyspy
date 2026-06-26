@@ -2,17 +2,18 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
- * SyrupSwap's help / rules modal — opened from the "Help" item in the
+ * waffle's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
  * contract on GameManifest.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play SyrupSwap"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 460, height: 360 }}
       minWidth={300}

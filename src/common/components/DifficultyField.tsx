@@ -16,10 +16,10 @@ type Props = {
   maxDifficulty: number
   value: number
   onChange: (band: number) => void
-  /** Disable the whole control (e.g. StackDown is locked to band 1). */
+  /** Disable the whole control (e.g. stackdown is locked to band 1). */
   disabled?: boolean
   /** An always-enabled option rendered ABOVE band 1 — for a source that sits
-   *  outside the 1..6 difficulty scale. WordNerd uses `{ value: 0, label:
+   *  outside the 1..6 difficulty scale. wordle uses `{ value: 0, label:
    *  'Wordle' }` for the curated NYT answer list. */
   extraLowOption?: { value: number; label: string }
 }

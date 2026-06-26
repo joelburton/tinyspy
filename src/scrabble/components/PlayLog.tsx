@@ -7,7 +7,7 @@ import type { PlayRow } from '../hooks/useGame'
 import styles from './PlayLog.module.css'
 
 /**
- * The move log — guess-log style, like StackDown's FoundWords: a framed,
+ * The move log — guess-log style, like stackdown's FoundWords: a framed,
  * scrollable box of thin-bordered rows (green left bar for a word, orange for
  * an exchange/pass), oldest-first so new moves land at the BOTTOM and
  * auto-scroll into view. Each word reads "<name>: +<score> <WORD>" — the name

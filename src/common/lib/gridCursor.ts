@@ -1,13 +1,13 @@
 /**
  * The shared keyboard-cursor *movement* math for the two grid games
- * (MonkeyGram + RackAttack). Both run an identical crossword-style cursor: a
+ * (MonkeyGram + scrabble). Both run an identical crossword-style cursor: a
  * position `{ x, y }` plus a direction `'h'`/`'v'`. An arrow either rotates the
  * cursor onto its axis (when it's currently pointing the other way) or steps
  * one cell along its current axis; Backspace steps one cell BACK along the axis.
  * Positions are clamped to `[0, max]` (max = the grid's last index).
  *
  * ONLY this movement math is shared. What a keypress *places* differs deeply
- * between the games (MonkeyGram's derived-multiset hand vs RackAttack's rack
+ * between the games (MonkeyGram's derived-multiset hand vs scrabble's rack
  * slots + blanks + a locked-committed tier), as does what Backspace *removes*
  * and how the cursor *advances after a placement* — all of that stays per-game,
  * wrapped around these helpers. Pure (no React) so they're trivially unit-tested.

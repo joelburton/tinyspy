@@ -16,7 +16,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * WordNerd's play surface, shared by the coop and compete manifests.
+ * wordle's play surface, shared by the coop and compete manifests.
  * Two columns: the board + on-screen keyboard on the left, the
  * guesses-used counter + guess list on the right. Mode is read from
  * `game.mode`.
@@ -33,6 +33,7 @@ import '../theme.css'
 export function PlayArea({
   session,
   gameId,
+  brand,
   players: members,
   playState,
   isTerminal,
@@ -209,6 +210,7 @@ export function PlayArea({
           pending={pendingWord}
           maxGuesses={game.max_guesses}
           active={canGuess}
+          brand={brand}
         />
         <Keyboard
           keyStates={keyStates}

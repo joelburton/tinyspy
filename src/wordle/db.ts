@@ -1,7 +1,7 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * Pre-bound DB handle for the `wordle` (WordNerd) Postgres schema.
+ * Pre-bound DB handle for the `wordle` (wordle) Postgres schema.
  *
  * Usage from inside `src/wordle/`:
  *

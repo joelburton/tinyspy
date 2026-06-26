@@ -2,17 +2,18 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
- * StackDown's help / rules modal — opened from the "Help" item in the
+ * stackdown's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
  * contract on GameManifest.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play StackDown"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 480, height: 420 }}
       minWidth={300}

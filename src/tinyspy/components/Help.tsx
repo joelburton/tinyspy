@@ -3,6 +3,7 @@ import styles from './Help.module.css'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
@@ -19,10 +20,10 @@ type Props = {
  * help modal is open, so there's no `open` prop — `onClose`
  * unmounts it. Each open lands centered; position isn't persisted.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play Codenames Duet"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 480, height: 540 }}
       minWidth={320}

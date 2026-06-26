@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * StackDown's per-game setup — collected by the start-game dialog,
+ * stackdown's per-game setup — collected by the start-game dialog,
  * persisted to `common.games.setup`, and validated server-side by
  * `stackdown.create_game` (the authority for what's accepted).
  *

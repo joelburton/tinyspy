@@ -11,7 +11,7 @@
 -- drawn from a curated pool, not a random difficulty-1 pick, so the fixture
 -- survives the upstream re-banding of borderline words. All six are in
 -- `common.words` at `difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5`
--- (the StackDown standard set the boards are generated against), and the
+-- (the stackdown standard set the boards are generated against), and the
 -- board is fork-free against that full set. Solution words are stored
 -- LOWERCASE (the app convention); tile letters stay uppercase glyphs.
 --

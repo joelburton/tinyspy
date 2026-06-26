@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * SyrupSwap's per-game setup — collected by the start-game dialog,
+ * waffle's per-game setup — collected by the start-game dialog,
  * persisted to `common.games.setup`, and validated server-side by
  * `waffle.create_game` (the authority for what's accepted).
  *

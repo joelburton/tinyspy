@@ -1,13 +1,13 @@
 -- ============================================================
--- waffle (brand: SyrupSwap) — Waffle-style swap-to-solve puzzle
+-- waffle — Waffle-style swap-to-solve puzzle
 -- ============================================================
 --
 -- A 5×5 lattice of 6 interlocking 5-letter words (3 across on rows
 -- 0/2/4, 3 down on cols 0/2/4). Every correct letter is on the board
 -- but scrambled; players SWAP tile pairs to solve within a budget,
 -- with Wordle-style green/yellow/gray feedback. Codename `waffle`
--- everywhere in code; the user-facing brand is "SyrupSwap" (manifest
--- title + end-user copy only).
+-- everywhere in code; the user-facing brand lives only in the FE
+-- manifest (see docs/naming.md).
 --
 -- See docs/games/waffle.md for the full design (schema, RPCs,
 -- coop/compete terminal logic, the on-demand board generation).

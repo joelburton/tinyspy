@@ -2,6 +2,7 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
@@ -18,10 +19,10 @@ type Props = {
  *
  * tinyspy's `Help.tsx` is the visual model when richer copy lands.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play WordKnit"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 440, height: 360 }}
       minWidth={300}

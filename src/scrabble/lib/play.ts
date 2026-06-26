@@ -1,10 +1,10 @@
 /**
- * RackAttack — the pure play engine: given the current board and a set of new
+ * scrabble — the pure play engine: given the current board and a set of new
  * tile placements, decide whether the play is geometrically legal, read off
  * every word it forms, and score it.
  *
  * This is the ONLY place geometry, word-extraction, and scoring live — there is
- * no SQL re-implementation to keep in sync. RackAttack uses a *trusting commit*:
+ * no SQL re-implementation to keep in sync. scrabble uses a *trusting commit*:
  * the FE evaluates a play here (live score + word highlighting as tiles are
  * placed) and submits the words + score it computed; `scrabble.play_word`
  * TRUSTS those numbers and only adds what the client can't be the authority on —

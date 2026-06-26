@@ -1,7 +1,7 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * RackAttack's PostgREST handle — scopes every query/RPC to the
+ * scrabble's PostgREST handle — scopes every query/RPC to the
  * `scrabble` schema so call sites read `db.from('games_state')` rather
  * than repeating the schema name.
  *

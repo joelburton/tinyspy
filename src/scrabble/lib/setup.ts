@@ -1,7 +1,7 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * RackAttack's per-game setup — collected by the start-game dialog, persisted
+ * scrabble's per-game setup — collected by the start-game dialog, persisted
  * to `common.games.setup`, validated server-side by `scrabble.create_game`
  * (the authority). Coop and compete share the shape; mode is locked at the
  * gametype level, not chosen here.

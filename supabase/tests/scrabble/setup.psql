@@ -4,7 +4,7 @@
 -- Loaded by every scrabble/*_test.sql via `\ir setup.psql` (after the
 -- shared persona setup).
 --
--- RackAttack deals racks + shuffles the bag RANDOMLY, so tests can't
+-- scrabble deals racks + shuffles the bag RANDOMLY, so tests can't
 -- predict what a player holds. These helpers (run as the postgres
 -- superuser, bypassing RLS/grants) overwrite the relevant rack + bag with
 -- KNOWN tiles so a test can drive a deterministic play. They're the

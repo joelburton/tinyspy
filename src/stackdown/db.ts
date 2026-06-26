@@ -1,7 +1,7 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * StackDown's PostgREST handle — scopes every query/RPC to the
+ * stackdown's PostgREST handle — scopes every query/RPC to the
  * `stackdown` schema so call sites read `db.from('games')` rather
  * than repeating the schema name. Same one-liner every game folder
  * exports.

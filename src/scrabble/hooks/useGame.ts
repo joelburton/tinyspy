@@ -48,11 +48,11 @@ export type ScrabbleGame = {
 }
 
 /**
- * RackAttack's per-gametype data hook — a postgres-changes realtime hook
+ * scrabble's per-gametype data hook — a postgres-changes realtime hook
  * (docs/code-conventions.md → "Realtime data hooks", Pattern A): one
  * UUID-suffixed channel reloading games_state / players_state / plays on
  * any change. There's no Broadcast — tentative placements are local to the
- * PlayArea (private until a commit), exactly like StackDown's private
+ * PlayArea (private until a commit), exactly like stackdown's private
  * in-progress word; the only cross-client state is the committed rows.
  *
  * The FE reads the VIEWS, so the bag stays a count and a compete

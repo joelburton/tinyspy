@@ -5,7 +5,7 @@ import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
 
 /**
- * SyrupSwap's setup form, rendered inside the common SetupGameDialog.
+ * waffle's setup form, rendered inside the common SetupGameDialog.
  * Two choices plus the timer:
  *
  *   - **Word difficulty** — which vocabulary band (1..6) the six 5-letter

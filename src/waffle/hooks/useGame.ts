@@ -3,7 +3,7 @@ import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 import { db } from '../db'
 
-/** A SyrupSwap player. No fixed seats — every game_player can act. */
+/** A waffle player. No fixed seats — every game_player can act. */
 export type Player = Member
 
 /**
@@ -50,7 +50,7 @@ export type WaffleSwap = {
 }
 
 /**
- * SyrupSwap's per-gametype data hook — the refetch-only realtime
+ * waffle's per-gametype data hook — the refetch-only realtime
  * pattern (Pattern A). Every move flows through `waffle.submit_swap`,
  * which writes `waffle.players` rows (in coop, every player's row);
  * those propagate to peers via the standard postgres-changes

@@ -30,6 +30,15 @@ export const MODE_LABEL: Record<'coop' | 'compete', string> = {
 export type GamePageCtx = {
   session: Session
   gameId: string
+  /** This gametype's user-facing brand name, resolved by GamePage
+   *  from the matched `manifest.name`. Threaded through ctx so deep
+   *  PlayArea children (e.g. wordle's grid aria-label) can show the
+   *  brand without hardcoding the string — the brand lives in exactly
+   *  one place, the manifest, so a fork rebrands by editing only that.
+   *  Most UI reads `manifest.name` directly; this is for the parts
+   *  buried inside a game's lazy chunk, where importing the registry
+   *  would defeat code-splitting. */
+  brand: string
   /** Everyone in this game's `common.game_players`. See
    *  [Member] for why this is `players` (game context) and
    *  not `members` (club context). */
@@ -309,8 +318,12 @@ export type GameManifest = {
    *  to the logo). Every game declares one — the question "how
    *  do I play this?" is universal. Lazy-loaded so each game's
    *  help content ships in that game's chunk, not the main
-   *  bundle. See docs/ui.md → "Help" + "GamePage menu". */
-  help: ComponentType<{ onClose: () => void }>
+   *  bundle. See docs/ui.md → "Help" + "GamePage menu".
+   *
+   *  Receives `brand` (the manifest's own `name`) so the modal's
+   *  "How to play <brand>" title is sourced from the single
+   *  branding source rather than hardcoded in each game's Help. */
+  help: ComponentType<{ onClose: () => void; brand: string }>
 
   /**
    * Per-gametype baseline timer. Optional; default is no timer.

@@ -19,7 +19,7 @@ export const DEFAULT_CELL = 40 // px per cell; the smallest zoom is computed to 
 export const MAX_CELL = 64
 
 /** Flat board index from (x, y). x = column, y = row; both 0..GRID-1.
- *  Same x-first convention as RackAttack's `cellIndex`. */
+ *  Same x-first convention as scrabble's `cellIndex`. */
 export const idx = (x: number, y: number) => y * GRID + x
 export const inBounds = (x: number, y: number) => x >= 0 && x < GRID && y >= 0 && y < GRID
 export const clamp = (v: number) => Math.max(0, Math.min(GRID - 1, v))

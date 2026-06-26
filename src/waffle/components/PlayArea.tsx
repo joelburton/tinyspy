@@ -13,7 +13,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * SyrupSwap's play surface, shared by the coop and compete manifests.
+ * waffle's play surface, shared by the coop and compete manifests.
  * Renders the caller's board with live color feedback, a swap counter
  * (used/budget/remaining + the puzzle's par), (coop) the shared swap
  * log, (compete) an opponent-progress strip, and the terminal verdict +

@@ -3,7 +3,7 @@ import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 import { db } from '../db'
 
-/** A WordNerd player. No fixed seats — every game_player can guess. */
+/** A wordle player. No fixed seats — every game_player can guess. */
 export type Player = Member
 
 /**
@@ -42,7 +42,7 @@ export type WordleGuess = {
 }
 
 /**
- * WordNerd's per-gametype data hook (both modes share it) — the
+ * wordle's per-gametype data hook (both modes share it) — the
  * refetch-only realtime pattern. Every guess flows through
  * `wordle.submit_guess`, which writes `wordle.{players, guesses}`; those
  * propagate to peers via the postgres-changes subscription and we

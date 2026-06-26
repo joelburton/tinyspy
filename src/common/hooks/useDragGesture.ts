@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * The shared "press a tile, then either tap or drag it" pointer plumbing,
- * factored out of MonkeyGram and RackAttack — the two games with a grid you
+ * factored out of MonkeyGram and scrabble — the two games with a grid you
  * drag lettered tiles onto.
  *
  * Both games run the *same* gesture state machine: a pointer-down arms a

@@ -2,6 +2,7 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
@@ -18,10 +19,10 @@ type Props = {
  * useful here (unlikely — psychicnum is on the chopping block
  * post-beta).
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play PsychicNum"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 420, height: 280 }}
       minWidth={280}

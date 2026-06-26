@@ -1,5 +1,5 @@
 /**
- * Pure SyrupSwap (waffle) board generation — geometry, the exact
+ * Pure waffle (waffle) board generation — geometry, the exact
  * minimum-swaps par calculation, and the board fill + anchored
  * scramble. No IO, no Deno/Node specifics, so it's importable by both
  * the edge function (index.ts) and the `deno test` in gen_test.ts.

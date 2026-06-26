@@ -384,7 +384,10 @@ begin
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
     target_club, 'monkeygram', player_user_ids,
-    'MonkeyGram',
+    -- Instance label for common.games.title (the club card's heading).
+    -- Neutral, like stackdown/scrabble — the brand is shown from the FE
+    -- manifest, never stored here.
+    'New game',
     setup,
     setup
   );

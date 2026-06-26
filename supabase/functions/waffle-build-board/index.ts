@@ -1,5 +1,5 @@
 /**
- * waffle-build-board — Edge Function that generates a fresh SyrupSwap
+ * waffle-build-board — Edge Function that generates a fresh waffle
  * (waffle) board and creates the game in one round-trip.
  *
  * Why edge (not pre-generated): waffle used to ship a committed library

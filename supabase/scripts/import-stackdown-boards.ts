@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx tsx
 /**
- * Load the vendored StackDown board library into `stackdown.boards` —
+ * Load the vendored stackdown board library into `stackdown.boards` —
  * `npm run stackdown:import`. Reads `supabase/data/stackdown-boards.jsonl`
  * (produced by `npm run stackdown:gen`) and replaces the table's
  * contents with it.

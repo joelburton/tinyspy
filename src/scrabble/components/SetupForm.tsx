@@ -5,10 +5,10 @@ import type { ScrabbleSetup } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
 
 /**
- * RackAttack's setup form. Shared by both modes:
+ * scrabble's setup form. Shared by both modes:
  *   - two dictionary bands (all six offered each) — separate ceilings for
  *     2-letter and 3+-letter words (the MonkeyGram split). Uniquely for
- *     RackAttack these ARE the acceptance bar, so a lower band makes a stricter
+ *     scrabble these ARE the acceptance bar, so a lower band makes a stricter
  *     game (docs/games/scrabble.md §3.3);
  *   - the timer.
  * Controlled component; state lives in the SetupGameDialog wrapper.

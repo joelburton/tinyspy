@@ -2,17 +2,18 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
- * WordNerd's help / rules modal — opened from the "Help" item in the
+ * wordle's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
  * contract on GameManifest.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play WordNerd"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 460, height: 380 }}
       minWidth={300}

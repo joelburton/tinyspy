@@ -1,7 +1,7 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * Pre-bound DB handle for the `waffle` (SyrupSwap) Postgres schema.
+ * Pre-bound DB handle for the `waffle` (waffle) Postgres schema.
  *
  * Usage from inside `src/waffle/`:
  *

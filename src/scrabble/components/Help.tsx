@@ -2,16 +2,17 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 
 type Props = {
   onClose: () => void
+  brand: string
 }
 
 /**
- * RackAttack's help / rules modal — opened from the GamePage menu's "Help"
+ * scrabble's help / rules modal — opened from the GamePage menu's "Help"
  * item. Implements the `help: ComponentType<{ onClose }>` contract.
  */
-export function Help({ onClose }: Props) {
+export function Help({ onClose, brand }: Props) {
   return (
     <FloatingPanel
-      title="How to play RackAttack"
+      title={`How to play ${brand}`}
       onClose={onClose}
       defaultSize={{ width: 500, height: 460 }}
       minWidth={320}

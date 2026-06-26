@@ -25,7 +25,7 @@ describe('moveCursor', () => {
     expect(moveCursor(C(5, 24, 'v'), 'ArrowDown', 24)).toEqual(C(5, 24, 'v'))
   })
 
-  it('respects the per-game max (14 for RackAttack, 24 for MonkeyGram)', () => {
+  it('respects the per-game max (14 for scrabble, 24 for MonkeyGram)', () => {
     expect(moveCursor(C(14, 5, 'h'), 'ArrowRight', 14)).toEqual(C(14, 5, 'h'))
     expect(moveCursor(C(14, 5, 'h'), 'ArrowRight', 24)).toEqual(C(15, 5, 'h'))
   })

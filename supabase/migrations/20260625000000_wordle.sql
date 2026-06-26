@@ -1,5 +1,5 @@
 -- ============================================================
--- wordle (brand: WordNerd) — NYT-Wordle-style guess-the-word game
+-- wordle — NYT-Wordle-style guess-the-word game
 -- ============================================================
 --
 -- A hidden 5-letter target; players type 5-letter guesses and get
@@ -7,8 +7,9 @@
 -- the word, wrong spot), gray (not in the word). Win by guessing the
 -- word within the budget (5–8 guesses, default 6).
 --
--- "wordle" is the codename. User-facing copy is "WordNerd"; SQL /
--- TypeScript / folder names are all `wordle`.
+-- "wordle" is the codename used in SQL, TypeScript, and folder names.
+-- The user-facing brand lives only in the FE manifest (see
+-- docs/naming.md for the codename-vs-brand split).
 --
 -- Coop + compete ship as a sibling-manifest pair (`wordle_coop` +
 -- `wordle_compete` gametypes, a denormalized `mode` column on
@@ -350,7 +351,7 @@ begin
 
   -- ─── Pick a random target ────────────────────────────────
   -- answer_source 0: the curated 5-letter NYT answers (any crude/slur level —
-  -- WordNerd stays permissive, like the original). 1..6: any clean 5-letter
+  -- wordle stays permissive, like the original). 1..6: any clean 5-letter
   -- word of that band or easier (a higher band can be obscure).
   if s_answer_source = 0 then
     select word into v_target
@@ -368,7 +369,9 @@ begin
   end if;
 
   new_id := common.create_game(
-    target_club, 'wordle_' || mode, player_user_ids, 'WordNerd', setup,
+    -- 'New game' is the instance label for common.games.title (the club
+    -- card heading); the brand is shown from the FE manifest, not stored.
+    target_club, 'wordle_' || mode, player_user_ids, 'New game', setup,
     setup
   );
 
