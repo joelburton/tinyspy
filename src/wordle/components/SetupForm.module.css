@@ -1,19 +1,6 @@
-.setup {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.fieldset {
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-}
-
-.fieldset legend {
-  font-weight: 600;
-  padding: 0 0.4rem;
-}
+/* WordNerd-specific setup bits. The form scaffold (.setup / .fieldset /
+ * legend) comes from the shared common/components/setupForm.module.css; only
+ * the answer-count <select> is unique to WordNerd. */
 
 .select {
   margin-top: 0.5rem;

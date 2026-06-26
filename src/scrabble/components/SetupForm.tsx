@@ -2,7 +2,7 @@ import { DifficultyField } from '../../common/components/DifficultyField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { ScrabbleSetup } from '../lib/setup'
-import styles from './SetupForm.module.css'
+import styles from '../../common/components/setupForm.module.css'
 
 /**
  * RackAttack's setup form. Shared by both modes:

@@ -2,6 +2,7 @@ import { DifficultyField } from '../../common/components/DifficultyField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
+import form from '../../common/components/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 /**
@@ -22,8 +23,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as WordleSetup
 
   return (
-    <div className={styles.setup}>
-      <fieldset className={styles.fieldset}>
+    <div className={form.setup}>
+      <fieldset className={form.fieldset}>
         <legend>Guesses</legend>
         <p className="muted">How many guesses you get (6 is classic).</p>
         <select
@@ -41,7 +42,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           ))}
         </select>
       </fieldset>
-      <fieldset className={styles.fieldset}>
+      <fieldset className={form.fieldset}>
         <legend>Words</legend>
         <DifficultyField
           label="Answer source"

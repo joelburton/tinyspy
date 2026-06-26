@@ -7,6 +7,7 @@ import {
   tilesNeeded,
   type MonkeyGramSetup,
 } from '../lib/setup'
+import form from '../../common/components/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 /**
@@ -44,15 +45,15 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
   const needed = tilesNeeded(s, playerCount)
 
   return (
-    <div className={styles.setup}>
-      <fieldset className={styles.fieldset}>
+    <div className={form.setup}>
+      <fieldset className={form.fieldset}>
         <legend>Starter tiles per player</legend>
         <p className="muted">
           How many tiles each player is dealt. First to place them all wins.
         </p>
-        <div className={styles.radioRow}>
+        <div className={form.radioRow}>
           {HAND_SIZE_OPTIONS.map((n) => (
-            <label key={n} className={styles.radio}>
+            <label key={n} className={form.radio}>
               <input
                 type="radio"
                 name="hand_size"
@@ -65,7 +66,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         </div>
       </fieldset>
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={form.fieldset}>
         <legend>Tiles in bag</legend>
         <p className="muted">
           The full bag is {MONKEYGRAM_BAG_MAX}; fewer makes a shorter game.
@@ -84,7 +85,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         />
       </fieldset>
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={form.fieldset}>
         <legend>Dumping a tile</legend>
         <label className={styles.checkRow}>
           <input
@@ -102,7 +103,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         </p>
       </fieldset>
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={form.fieldset}>
         <legend>Words</legend>
         <p className="muted">
           To go out, your tiles must always form one connected grid. Optionally,

@@ -3,7 +3,7 @@ import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
 import type { FreeBeeSetup } from '../lib/setup'
-import styles from './SetupForm.module.css'
+import styles from '../../common/components/setupForm.module.css'
 
 /**
  * Allowed target-rank choices for the compete picker. The full

@@ -4,7 +4,7 @@ import {
   GUESS_OPTIONS,
   type PsychicNumSetup,
 } from '../lib/setup'
-import styles from './SetupForm.module.css'
+import styles from '../../common/components/setupForm.module.css'
 
 /**
  * psychicnum's per-game setup form, rendered inside the common

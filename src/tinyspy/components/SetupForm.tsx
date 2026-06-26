@@ -5,7 +5,7 @@ import {
   TURN_OPTIONS,
   type TinySpySetup,
 } from '../lib/setup'
-import styles from './SetupForm.module.css'
+import styles from '../../common/components/setupForm.module.css'
 
 /**
  * tinyspy's per-game setup form, rendered inside the common

@@ -1,0 +1,64 @@
+/*
+ * Shared setup-form scaffold — the layout every game's per-game
+ * `SetupForm` (rendered inside `SetupGameDialog`) draws its fieldsets and
+ * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
+ * for `.setup` / `.fieldset` / `.radioRow` / `.radio`; only genuinely
+ * game-specific bits (MonkeyGram's bag/checkbox rows, WordNerd's answer-source
+ * `<select>`) stay in a game-local module.
+ *
+ * Why this is shared rather than copied per game: with nine games the forms had
+ * each kept a near-identical copy of these rules, and the copies had quietly
+ * drifted (bold vs muted legends, 0.3 vs 0.4rem radio gaps). One stylesheet
+ * makes "what a setup fieldset looks like" a single definition, so a player
+ * switching games reads the same surface every time and the drift can't recur.
+ * The values here are the majority shape (the tinyspy / psychicnum / monkeygram
+ * / wordknit cluster that four forms already shared byte-for-byte).
+ *
+ * The forms sit inside `SetupGameDialog`'s content area and inherit its
+ * padding; these rules only shape the fieldsets + radio rows within.
+ */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldset {
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+}
+
+.fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+/* An intro paragraph placed directly under the legend (`<p class="muted">`). */
+.fieldset > p {
+  margin: 0.25rem 0 0.75rem 0;
+}
+
+.radioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* A radio sits inline with its label; the input loses its default vertical
+ * drift via the flex alignment. */
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.radio input {
+  margin: 0;
+  /* Override theme.css's input padding (`0.6rem 0.9rem`) — that sizes text
+   * inputs, not radios. */
+  padding: 0;
+}

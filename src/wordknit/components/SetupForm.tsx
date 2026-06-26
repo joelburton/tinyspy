@@ -4,7 +4,7 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { WordKnitSetup } from '../lib/setup'
 import { Calendar, type OutcomeBucket } from './Calendar'
-import styles from './SetupForm.module.css'
+import styles from '../../common/components/setupForm.module.css'
 
 /** A puzzle entry as the form needs it — id + date. Date is
  *  nullable on the table now (non-NYT puzzles may carry NULL),
