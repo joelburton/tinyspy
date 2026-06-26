@@ -450,6 +450,27 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 | File names — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
 | File names — docs | kebab-case | `code-conventions.md`, `cheatsheet.md` |
 
+### Grid coordinates
+
+The games that let you place tiles onto a coordinate-addressed grid with a keyboard cursor — **MonkeyGram** and **RackAttack** — share one vocabulary:
+
+> **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching RackAttack's `cellIndex`).**
+
+Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/gridCursor.ts`](../src/common/lib/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/useDragGesture.ts`](../src/common/hooks/useDragGesture.ts).
+
+**Scope — this only binds the coordinate-pair-with-cursor games.** Most grids deliberately *don't* address cells by an `(x, y)` pair, and that's correct — they have no cursor to drift:
+
+| game | how a cell is addressed |
+|---|---|
+| MonkeyGram, RackAttack | `(x, y)` pair + keyboard cursor → **this convention** |
+| StackDown | tile `id`; tile *positions* are `x` / `y` / `z` (z = stack layer) — already x/y |
+| TinySpy, SyrupSwap | flat index (`position` / `pos`, 0..N) — no pair, no cursor |
+| WordKnit | the tile string itself |
+
+So: a new game with a coordinate-pair grid + cursor uses this vocabulary and reaches for the shared helpers. A game that addresses cells by flat index or identity (the more common case) has no pair to name — don't invent one.
+
+The one surviving `row`/`col` is intentional: SyrupSwap's `coord(pos)` in [`waffle/lib/waffle.ts`](../src/waffle/lib/waffle.ts) builds a *spreadsheet label* like `"C3"`, where column-letter + row-number is the natural vocabulary. That's a display string, not playfield addressing — leave it.
+
 ### Avoid `SELECT *`
 
 > Every `.from('foo').select(...)` should pass an explicit column list. Don't reach for `.select('*')`.
