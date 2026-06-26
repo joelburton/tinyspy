@@ -1,106 +1,24 @@
-/* ============================================================
- * Guess-history sidebar for the wordknit PlayArea.
- *
- * Sits to the right of the board (see PlayArea.module.css for
- * the layout grid). Capped width so a long history doesn't
- * push the board narrower than the 4×4 grid's natural read
- * size on mid-width screens.
- *
- * Row outcome color shows as a 10px-wide colored strip on the
- * left of each card (a thick left-border); the rest of the card
- * stays transparent so the colored strip is the only chrome that
- * carries semantic color. Outcome palette comes from the common
- * tokens (`--color-outcome-{won,lost,near}-border`); see
- * common/theme.css. The component is wordknit-specific but the
- * palette is shared so future games' equivalent history surfaces
- * can adopt the same look without copying colors.
- *
- * Why the strip pattern over the previous full-bg fill: at four
- * mistakes the column of dark-red rows was visually loud and
- * crowded out the rest of the page. The strip carries enough
- * signal to scan ("which were correct?") without dominating.
- * ============================================================ */
+/* wordknit-specific bits of the guess-history sidebar. The panel chrome
+ * (heading + scrolling list + verdict-strip cards) comes from the shared
+ * common/components/HistoryPanel; only the column width and the row content
+ * (the guessed tiles + the meta line) are wordknit's. */
 
+/* Fixed-basis column so its width doesn't depend on what it holds. 18rem fits a
+ * typical 4-tile guess (ALPHA · BANANA · CASTLE · DAGGER) on one line; longer
+ * tile sets soft-wrap inside the row (see `.tiles`). The shared panel supplies
+ * the flex-column + min-height:0 that lets the inner list scroll. */
 .history {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  /* Fixed-basis flex item so the column's width doesn't depend
-     on what it currently holds. Without this, the empty-state
-     "No guesses yet" sat narrow and the column jumped wider once
-     the first guess row arrived. 18rem fits a typical 4-tile
-     guess like ALPHA · BANANA · CASTLE · DAGGER on one line at
-     the default font size; longer tile sets soft-wrap inside the
-     row (see `.tiles` word-break below). */
   flex: 0 0 18rem;
-  /* `min-height: 0` lets this column shrink to its parent's
-     stretched height instead of growing to fit its own content
-     — required so the inner `.list` overflow-y: auto can kick
-     in once the log gets long, rather than pushing the page
-     past the viewport. */
-  min-height: 0;
-}
-
-.heading {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  /* Scroll the list, not the whole panel, when guesses pile up.
-     `flex: 1` + `min-height: 0` claim whatever vertical space the
-     `.history` column has left after the heading; overflow-y on
-     this element (rather than on .history) means only the rows
-     scroll while the "Guesses" heading stays pinned at the top.
-     Replaces the earlier `max-height: 28rem` cap — the viewport-
-     bound .boardArea now provides the natural ceiling. */
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* Card body: thin surface-bound on three sides for definition,
- * thick (10px) colored strip on the left for the outcome signal.
- * Background stays transparent so the page surface shows through
- * — the variants only ever set `border-left-color`. */
-.item {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-surface-border);
-  border-left-width: 10px;
-  padding: 0.45rem 0.6rem 0.45rem 0.7rem;
-  font-size: 0.85rem;
-  background: transparent;
-}
-
-.item_correct {
-  border-left-color: var(--color-outcome-won-border);
-}
-.item_wrong {
-  border-left-color: var(--color-outcome-lost-border);
-}
-.item_oneAway {
-  border-left-color: var(--color-outcome-near-border);
 }
 
 .tiles {
-  /* Tiles read as UPPERCASE on the board; keep the convention here
-     so the line reads as "these are the words I clicked." Tabular
-     spacing isn't useful (variable-width words), but the small
-     letter-spacing matches the tile look. */
+  /* Tiles read as UPPERCASE on the board; keep the convention here so the line
+     reads as "these are the words I clicked." */
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-bottom: 0.2rem;
-  /* Soft wrap on long tile sets — the dot separator gives the
-     browser natural break points. */
+  /* Soft wrap on long tile sets — the dot separator gives natural break points. */
   word-break: break-word;
 }
 

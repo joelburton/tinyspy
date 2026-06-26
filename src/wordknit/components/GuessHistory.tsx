@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { HistoryPanel, HistoryRow } from '../../common/components/HistoryPanel'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
@@ -43,7 +43,6 @@ type Props = {
 export function GuessHistory({ guesses, matchedCategories, players }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
-  const listRef = useRef<HTMLOListElement>(null)
 
   // Build a rank → name lookup once for the matched-category
   // attribution. Each rank appears at most once in
@@ -54,52 +53,32 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
     matchedCategories.map((m) => [m.rank, m.name]),
   )
 
-  // Auto-scroll the list to the bottom whenever a new guess
-  // lands — same "always snap to latest" pattern ChatBody uses
-  // for chat messages. With chronological order (oldest at top),
-  // this keeps the most recent guess in view.
-  //
-  // Simple, not polished: doesn't check whether the user has
-  // scrolled up to review older guesses. In practice the player
-  // is usually acting then watching their action land, so the
-  // yank is rarely felt; revisit if it bites.
-  useEffect(function scrollToLatest() {
-    const el = listRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [guesses])
-
   return (
-    <section className={styles.history}>
-      <h3 className={styles.heading}>Guesses</h3>
-      {guesses.length === 0 ? (
-        <p className="muted">No guesses yet.</p>
-      ) : (
-        <ol ref={listRef} className={styles.list}>
-          {guesses.map((g) => {
-            const guesser = playerFor(g.user_id)
-            return (
-              <li
-                key={g.id}
-                className={`${styles.item} ${styles[`item_${g.result}`]}`}
+    <HistoryPanel
+      heading="Guesses"
+      empty={guesses.length === 0}
+      scrollKey={guesses}
+      className={styles.history}
+    >
+      {guesses.map((g) => {
+        const guesser = playerFor(g.user_id)
+        return (
+          <HistoryRow key={g.id} verdict={g.result}>
+            <div className={styles.tiles}>{g.tiles.join(' · ')}</div>
+            <div className={styles.meta}>
+              <span
+                className={styles.user}
+                style={{ color: colorVarFor(guesser?.color) }}
               >
-                <div className={styles.tiles}>{g.tiles.join(' · ')}</div>
-                <div className={styles.meta}>
-                  <span
-                    className={styles.user}
-                    style={{ color: colorVarFor(guesser?.color) }}
-                  >
-                    {guesser?.username ?? 'someone'}
-                  </span>
-                  <span className={styles.separator}> · </span>
-                  <span>{verdictLabel(g, nameByRank)}</span>
-                </div>
-              </li>
-            )
-          })}
-        </ol>
-      )}
-    </section>
+                {guesser?.username ?? 'someone'}
+              </span>
+              <span className={styles.separator}> · </span>
+              <span>{verdictLabel(g, nameByRank)}</span>
+            </div>
+          </HistoryRow>
+        )
+      })}
+    </HistoryPanel>
   )
 }
 

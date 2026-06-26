@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { HistoryPanel, HistoryRow } from '../../common/components/HistoryPanel'
 import type { Player, PsychicNumGuess } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
@@ -35,50 +34,36 @@ type Props = {
 export function GuessHistory({ guesses, players }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
-  const listRef = useRef<HTMLOListElement>(null)
-
-  // Auto-scroll to the latest on every guess — see the
-  // wordknit GuessHistory for the rationale; same simple
-  // pattern as ChatBody's autoScrollToBottom.
-  useEffect(function scrollToLatest() {
-    const el = listRef.current
-    if (!el) return
-    el.scrollTop = el.scrollHeight
-  }, [guesses])
 
   return (
-    <section className={styles.history}>
-      <h3 className={styles.heading}>Guesses</h3>
-      {guesses.length === 0 ? (
-        <p className="muted">No guesses yet.</p>
-      ) : (
-        <ol ref={listRef} className={styles.list}>
-          {guesses.map((g) => {
-            const guesser = playerFor(g.user_id)
-            return (
-              <li
-                key={g.id}
-                className={cls(
-                  styles.item,
-                  g.was_correct ? styles.item_correct : styles.item_wrong,
-                )}
+    <HistoryPanel
+      heading="Guesses"
+      empty={guesses.length === 0}
+      scrollKey={guesses}
+      className={styles.history}
+    >
+      {guesses.map((g) => {
+        const guesser = playerFor(g.user_id)
+        return (
+          <HistoryRow
+            key={g.id}
+            verdict={g.was_correct ? 'correct' : 'wrong'}
+            className={styles.itemRow}
+          >
+            <div className={styles.number}>{g.number}</div>
+            <div className={styles.meta}>
+              <span
+                className={styles.user}
+                style={{ color: colorVarFor(guesser?.color) }}
               >
-                <div className={styles.number}>{g.number}</div>
-                <div className={styles.meta}>
-                  <span
-                    className={styles.user}
-                    style={{ color: colorVarFor(guesser?.color) }}
-                  >
-                    {guesser?.username ?? 'someone'}
-                  </span>
-                  <span className={styles.separator}>·</span>
-                  <span>{g.was_correct ? 'Correct!' : 'Not the number'}</span>
-                </div>
-              </li>
-            )
-          })}
-        </ol>
-      )}
-    </section>
+                {guesser?.username ?? 'someone'}
+              </span>
+              <span className={styles.separator}>·</span>
+              <span>{g.was_correct ? 'Correct!' : 'Not the number'}</span>
+            </div>
+          </HistoryRow>
+        )
+      })}
+    </HistoryPanel>
   )
 }
