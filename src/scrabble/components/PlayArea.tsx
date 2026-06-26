@@ -6,6 +6,7 @@ import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { evaluatePlay, type Placement } from '../lib/play'
@@ -22,16 +23,7 @@ import '../theme.css'
 type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-type Gesture = {
-  source: DragSource
-  letter: string | null
-  cell: XY | null
-  startX: number
-  startY: number
-  started: boolean
-}
 
-const DRAG_THRESHOLD = 4
 const clamp = (n: number) => Math.max(0, Math.min(BOARD_SIZE - 1, n))
 
 /** The board cell under a screen point (via data-cell), or null. */
@@ -108,8 +100,6 @@ export function PlayArea({
   const [order, setOrder] = useState<number[]>([])
   const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
   const [cursor, setCursor] = useState<Cursor>({ x: 7, y: 7, dir: 'H' })
-  const [drag, setDrag] = useState<{ letter: string; x: number; y: number; source: DragSource } | null>(null)
-  const [hover, setHover] = useState<XY | null>(null)
   const [submitting, setSubmitting] = useState(false)
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.
@@ -253,9 +243,7 @@ export function PlayArea({
     [],
   )
 
-  // ─── Drag gesture (MonkeyGram-style pointer plumbing) ─────────
-  const gestureRef = useRef<Gesture | null>(null)
-
+  // ─── Drag gesture (shared pointer plumbing — see useDragGesture) ──
   const toggleSelect = useCallback((rackIdx: number) => {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -266,7 +254,7 @@ export function PlayArea({
   }, [])
 
   const finishDrag = useCallback(
-    (g: Gesture, px: number, py: number) => {
+    (g: DragGesture<DragSource, XY>, px: number, py: number) => {
       const target = cellAtPoint(px, py)
       if (target) {
         const ownCell = g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
@@ -300,66 +288,39 @@ export function PlayArea({
     [committedAt, stagedAt],
   )
 
-  const onGestureMove = useCallback((e: PointerEvent) => {
-    const g = gestureRef.current
-    if (!g) return
-    if (!g.started && g.letter && Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD) {
-      g.started = true
-      document.body.classList.add('scrabble-dragging')
-    }
-    if (g.started && g.letter) {
-      setDrag({ letter: g.letter, x: e.clientX, y: e.clientY, source: g.source })
-      setHover(cellAtPoint(e.clientX, e.clientY))
-    }
-  }, [])
-
-  const onGestureUp = useCallback(
-    (e: PointerEvent) => {
-      const g = gestureRef.current
-      if (!g) return
-      gestureRef.current = null
-      document.body.classList.remove('scrabble-dragging')
-      if (g.started) {
-        finishDrag(g, e.clientX, e.clientY)
-        setDrag(null)
-        setHover(null)
-      } else if (g.source.kind === 'rack') {
-        toggleSelect(g.source.rackIdx) // a tap on a rack tile → toggle for exchange
-      } else if (g.cell) {
-        setCursor({ x: g.cell.x, y: g.cell.y, dir: 'H' }) // a tap on a square → move cursor
-      }
+  // A plain tap: on a rack tile toggles it for exchange; on a board square
+  // moves the keyboard cursor there.
+  const onTap = useCallback(
+    (g: DragGesture<DragSource, XY>) => {
+      if (g.source.kind === 'rack') toggleSelect(g.source.rackIdx)
+      else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'H' })
     },
-    [finishDrag, toggleSelect],
+    [toggleSelect],
   )
 
-  useEffect(() => {
-    window.addEventListener('pointermove', onGestureMove)
-    window.addEventListener('pointerup', onGestureUp)
-    return () => {
-      window.removeEventListener('pointermove', onGestureMove)
-      window.removeEventListener('pointerup', onGestureUp)
-    }
-  }, [onGestureMove, onGestureUp])
+  const { drag, hover, start } = useDragGesture<DragSource, XY>({
+    dragClass: 'scrabble-dragging',
+    cellAtPoint,
+    onDrop: finishDrag,
+    onTap,
+  })
 
-  const onCellPointerDown = useCallback((x: number, y: number, e: React.PointerEvent) => {
-    if (e.button !== 0 || !canActRef.current) return
-    e.preventDefault()
-    const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
-    gestureRef.current = {
-      source: { kind: 'board', x, y },
-      letter: tent ? tent.letter : null,
-      cell: { x, y },
-      startX: e.clientX,
-      startY: e.clientY,
-      started: false,
-    }
-  }, [stagedAt])
+  const onCellPointerDown = useCallback(
+    (x: number, y: number, e: React.PointerEvent) => {
+      if (!canActRef.current) return
+      const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
+      start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
+    },
+    [stagedAt, start],
+  )
 
-  const onRackPointerDown = useCallback((rackIdx: number, glyph: string, e: React.PointerEvent) => {
-    if (e.button !== 0 || !canActRef.current) return
-    e.preventDefault()
-    gestureRef.current = { source: { kind: 'rack', rackIdx }, letter: glyph, cell: null, startX: e.clientX, startY: e.clientY, started: false }
-  }, [])
+  const onRackPointerDown = useCallback(
+    (rackIdx: number, glyph: string, e: React.PointerEvent) => {
+      if (!canActRef.current) return
+      start({ kind: 'rack', rackIdx }, glyph, null, e)
+    },
+    [start],
+  )
 
   const pickBlank = useCallback(
     (letter: string) => {

@@ -13,6 +13,7 @@ import {
   shuffleString,
 } from '../lib/board'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -39,7 +40,6 @@ import styles from './PlayerBoard.module.css'
  * "Persistence"). `tiles` is server-owned and never saved from here.
  */
 
-const DRAG_THRESHOLD = 4 // px before a press becomes a drag (vs a click)
 const AUTOSAVE_MS = 800 // debounce before snapshotting an edit
 const FIT_MARGIN = 3 // cells of breathing room kept around the tiles on a fit
 const DUMP_COUNT = 3 // tiles drawn per dump (server default; mirrored for the FE label/gate)
@@ -59,15 +59,6 @@ type Cursor = Cell & { dir: 'h' | 'v' }
 // outward from the middle — and is reset there after a recenter.
 const CENTER_CURSOR: Cursor = { row: Math.floor(GRID / 2), col: Math.floor(GRID / 2), dir: 'h' }
 type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; row: number; col: number }
-type Drag = { letter: string; source: DragSource; x: number; y: number }
-type Gesture = {
-  cell: Cell | null
-  letter: string | null
-  source: DragSource
-  startX: number
-  startY: number
-  started: boolean
-}
 
 function cellAtPoint(x: number, y: number): Cell | null {
   const el = document.elementFromPoint(x, y)
@@ -122,8 +113,6 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
   const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
   const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
-  const [drag, setDrag] = useState<Drag | null>(null)
-  const [hover, setHover] = useState<Cell | null>(null)
   // Board cells flagged illegal by a blocked winning peel (disconnected, or —
   // with check_words on — in an invalid word):
   // tiles in an invalid word or split off the main mass. Stored WITH the board
@@ -285,11 +274,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     setBoard((b) => setChar(b, idx(r, c), '.'))
   }, [])
 
-  // --- Drag plumbing (always-on window listeners) -----------------------
-  const gestureRef = useRef<Gesture | null>(null)
-
+  // --- Drag plumbing (shared hook owns the window listeners) ------------
   const finishDrag = useCallback(
-    (g: Gesture, x: number, y: number) => {
+    (g: DragGesture<DragSource, Cell>, x: number, y: number) => {
       const target = cellAtPoint(x, y)
       if (target) {
         const occupied = boardRef.current[idx(target.row, target.col)] !== '.'
@@ -324,78 +311,35 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, boxCount],
   )
 
-  const onGestureMove = useCallback((e: PointerEvent) => {
-    const g = gestureRef.current
-    if (!g) return
-    if (
-      !g.started &&
-      g.letter &&
-      Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD
-    ) {
-      g.started = true
-      document.body.classList.add('mg-dragging')
-    }
-    if (g.started && g.letter) {
-      setDrag({ letter: g.letter, source: g.source, x: e.clientX, y: e.clientY })
-      setHover(cellAtPoint(e.clientX, e.clientY))
-      // Any dragged tile (hand or board) can be dumped; light the slot
-      // when one hovers it.
-      setDumpHot(overDumpAtPoint(e.clientX, e.clientY))
-    }
+  // A plain tap on a board cell moves the keyboard cursor there.
+  const onTap = useCallback((g: DragGesture<DragSource, Cell>) => {
+    if (g.cell) setCursor({ row: g.cell.row, col: g.cell.col, dir: 'h' })
   }, [])
 
-  const onGestureUp = useCallback(
-    (e: PointerEvent) => {
-      const g = gestureRef.current
-      if (!g) return
-      gestureRef.current = null
-      document.body.classList.remove('mg-dragging')
-      if (g.started) {
-        finishDrag(g, e.clientX, e.clientY)
-        setDrag(null)
-        setHover(null)
-        setDumpHot(false)
-      } else if (g.cell) {
-        setCursor({ row: g.cell.row, col: g.cell.col, dir: 'h' })
-      }
+  const { drag, hover, start } = useDragGesture<DragSource, Cell>({
+    dragClass: 'mg-dragging',
+    cellAtPoint,
+    onDrop: finishDrag,
+    onTap,
+    // Any dragged tile (hand or board) can be dumped; light the slot when one
+    // hovers it, and clear that highlight once the drag ends.
+    onDragMove: (x, y) => setDumpHot(overDumpAtPoint(x, y)),
+    onDragEnd: () => setDumpHot(false),
+  })
+
+  const onCellPointerDown = useCallback(
+    (r: number, c: number, e: React.PointerEvent) => {
+      const letter = boardRef.current[idx(r, c)]
+      start({ kind: 'board', row: r, col: c }, letter !== '.' ? letter : null, { row: r, col: c }, e)
     },
-    [finishDrag],
+    [start],
   )
-
-  useEffect(() => {
-    window.addEventListener('pointermove', onGestureMove)
-    window.addEventListener('pointerup', onGestureUp)
-    return () => {
-      window.removeEventListener('pointermove', onGestureMove)
-      window.removeEventListener('pointerup', onGestureUp)
-    }
-  }, [onGestureMove, onGestureUp])
-
-  const onCellPointerDown = useCallback((r: number, c: number, e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    e.preventDefault()
-    const letter = boardRef.current[idx(r, c)]
-    gestureRef.current = {
-      cell: { row: r, col: c },
-      letter: letter !== '.' ? letter : null,
-      source: { kind: 'board', row: r, col: c },
-      startX: e.clientX,
-      startY: e.clientY,
-      started: false,
-    }
-  }, [])
-  const onHandPointerDown = useCallback((index: number, letter: string, e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    e.preventDefault()
-    gestureRef.current = {
-      cell: null,
-      letter,
-      source: { kind: 'hand', index },
-      startX: e.clientX,
-      startY: e.clientY,
-      started: false,
-    }
-  }, [])
+  const onHandPointerDown = useCallback(
+    (index: number, letter: string, e: React.PointerEvent) => {
+      start({ kind: 'hand', index }, letter, null, e)
+    },
+    [start],
+  )
 
   // --- Keyboard cursor --------------------------------------------------
   const advance = useCallback((cur: Cursor) => {
