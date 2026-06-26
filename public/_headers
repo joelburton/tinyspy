@@ -1,0 +1,30 @@
+# Netlify custom response headers — cache policy for the SPA.
+# Format + precedence: https://docs.netlify.com/routing/headers/
+#
+# The problem this solves: a returning browser loading a STALE index.html.
+# index.html is the only un-hashed file we ship — it's the entry point that
+# names the current content-hashed bundles (`/assets/index-<hash>.js`). If a
+# browser reuses an old cached index.html, it asks for old bundle filenames;
+# after a redeploy those may be gone (or just old), so the user sees a stale
+# app — exactly the "old claim-username form until refresh" bug.
+#
+# Two rules, relying on Netlify's "most-specific path wins for a given header":
+
+# Everything (the HTML served for `/` and every client-side route via the
+# `_redirects` SPA fallback, plus favicon) — always revalidate before reuse.
+# max-age=0 + must-revalidate means the browser may keep a copy but MUST check
+# with the CDN (a cheap conditional request → 304 if unchanged) before using
+# it, so a new deploy is picked up on the very next navigation. This is also
+# Netlify's default for HTML; making it explicit means the policy lives in the
+# repo instead of depending on a platform default we can't see.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Vite content-hashes every file under /assets/, so the filename itself changes
+# whenever the bytes change. That makes them safe to cache forever: `immutable`
+# tells the browser not to even send a revalidation request for the life of the
+# entry. This rule is more specific than `/*` above, so it wins for these paths.
+# (A fresh index.html will reference the new hashes, so there's no staleness
+# risk — the old immutable files just stop being requested.)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
