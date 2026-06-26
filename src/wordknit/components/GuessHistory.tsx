@@ -21,9 +21,10 @@ type Props = {
  * Each row shows: the 4 tiles guessed (in board order — kept as
  * the FE stored them, not re-sorted, so the visual matches what
  * the players were looking at when they submitted), who guessed,
- * and a short verdict. Background fill comes from the common
- * outcome tokens (`--color-outcome-won/lost/near-bg`) so the
- * three states read as a single semantic palette across surfaces:
+ * and a short verdict. The outcome shows as a colored left strip
+ * (drawn by the shared `<HistoryPanel>`) from the common outcome
+ * tokens (`--color-outcome-{won,lost,near}-border`), so the three
+ * states read as a single semantic palette across surfaces:
  *
  *   - **Correct** — green; subtitle names the matched category
  *     ("Matched: Words starting with A"). The category name is
@@ -36,9 +37,9 @@ type Props = {
  *     dominate the row.
  *
  * Chronological order (oldest at top, latest at bottom) — the
- * list scrolls and auto-snaps to the bottom on every new guess
- * (see the effect below). Same UX as a chat panel: read top-down
- * to retrace the game, the latest action is always in view.
+ * shared `<HistoryPanel>` scrolls the list and auto-snaps to the
+ * latest guess. Same UX as a chat panel: read top-down to retrace
+ * the game, the latest action is always in view.
  */
 export function GuessHistory({ guesses, matchedCategories, players }: Props) {
   const playerFor = (userId: string) =>
