@@ -63,7 +63,7 @@ export function usePeerFeedback({
       feedback.show({
         tone: 'success',
         text: r.is_pangram
-          ? `🐝 ${name} found a pangram!`
+          ? `🐝 ${name} found a pangram — ${r.word.toUpperCase()}!`
           : `${name} found ${r.word.toUpperCase()}`,
         dismiss: { kind: 'timed' },
       })
