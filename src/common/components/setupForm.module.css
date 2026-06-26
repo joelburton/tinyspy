@@ -12,7 +12,7 @@
  * makes "what a setup fieldset looks like" a single definition, so a player
  * switching games reads the same surface every time and the drift can't recur.
  * The values here are the majority shape (the tinyspy / psychicnum / monkeygram
- * / wordknit cluster that four forms already shared byte-for-byte).
+ * / connections cluster that four forms already shared byte-for-byte).
  *
  * The forms sit inside `SetupGameDialog`'s content area and inherit its
  * padding; these rules only shape the fieldsets + radio rows within.

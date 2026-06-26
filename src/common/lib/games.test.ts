@@ -22,7 +22,7 @@ describe('playerCountFits', () => {
   })
 
   it('returns true for counts inside a bounded range, false outside', () => {
-    // [1, 6] is the shape wordknit / psychicnum / freebee all use.
+    // [1, 6] is the shape connections / psychicnum / freebee all use.
     expect(playerCountFits([1, 6], 1)).toBe(true)
     expect(playerCountFits([1, 6], 3)).toBe(true)
     expect(playerCountFits([1, 6], 6)).toBe(true)

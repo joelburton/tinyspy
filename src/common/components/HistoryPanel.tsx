@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { cls } from '../lib/cls'
 import styles from './HistoryPanel.module.css'
 
-/** The outcome a row's left strip paints. `oneAway` is wordknit-only; the
+/** The outcome a row's left strip paints. `oneAway` is connections-only; the
  *  others are shared. */
 export type Verdict = 'correct' | 'wrong' | 'oneAway'
 
@@ -10,12 +10,12 @@ export type Verdict = 'correct' | 'wrong' | 'oneAway'
  * The shared side-column "history log" shell: a heading over an
  * internally-scrolling list of verdict-strip cards, auto-snapping to the latest
  * row like a chat panel. Factored out of the per-game `GuessHistory` components
- * (wordknit + psychicnum), which had grown the same structure + scroll effect +
+ * (connections + psychicnum), which had grown the same structure + scroll effect +
  * card chrome side by side.
  *
  * What's shared: the section/heading/empty-state/scroll-frame skeleton, the
  * scroll-to-latest behavior, and the card + outcome-strip look (`<HistoryRow>`).
- * What stays per-game: the ROW CONTENT (a wordknit row shows tiles; a psychicnum
+ * What stays per-game: the ROW CONTENT (a connections row shows tiles; a psychicnum
  * row shows the guessed number) and the column's outer width/flex, passed via
  * `className`.
  *

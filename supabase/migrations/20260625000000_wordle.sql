@@ -14,7 +14,7 @@
 -- Coop + compete ship as a sibling-manifest pair (`wordle_coop` +
 -- `wordle_compete` gametypes, a denormalized `mode` column on
 -- wordle.games, and a `mode` arg on create_game) — same pattern
--- waffle/freebee/wordknit/psychicnum follow.
+-- waffle/freebee/connections/psychicnum follow.
 --   - Coop: ONE shared board. Either player guesses; the guess (and its
 --     colors) is visible to all once submitted. The guess budget is
 --     shared by the team.

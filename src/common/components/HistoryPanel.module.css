@@ -1,6 +1,6 @@
 /*
  * Shared side-column history panel — the heading + internally-scrolling list of
- * verdict-strip cards used by the per-game guess logs (wordknit + psychicnum
+ * verdict-strip cards used by the per-game guess logs (connections + psychicnum
  * `GuessHistory`). See HistoryPanel.tsx.
  *
  * Each card carries its outcome as a 10px colored left strip (the rest of the

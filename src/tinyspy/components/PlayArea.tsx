@@ -62,7 +62,7 @@ import '../theme.css'  // tinyspy-specific color tokens (lazy-loaded with this c
  *  intentionally: the agents-found counter sits in the right
  *  column status row, the board carries the revealed tiles.
  *
- *  Named to match wordknit's and psychicnum's equivalents so a
+ *  Named to match connections's and psychicnum's equivalents so a
  *  reader scanning the per-game PlayAreas sees the same shape
  *  across all three. */
 function buildOver(

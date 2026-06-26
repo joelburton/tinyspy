@@ -1,4 +1,4 @@
-/* The inline per-player progress strip shared by waffle / wordknit /
+/* The inline per-player progress strip shared by waffle / connections /
  * freebee / psychicnum. Muted, small, wraps on overflow. Consolidated
  * from the near-identical per-game copies these games used to carry. */
 .strip {

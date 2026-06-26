@@ -18,7 +18,7 @@ type Props = {
  * prefixed by a dot in that player's profile color.
  *
  * The color lives on the **dot**, not the name: a player who sees a
- * colored cue elsewhere in the game (an orange frame on a wordknit
+ * colored cue elsewhere in the game (an orange frame on a connections
  * tile, an orange marker in psychicnum's history) can read "orange
  * is moth" off the dot, while the names stay legible in plain black.
  *

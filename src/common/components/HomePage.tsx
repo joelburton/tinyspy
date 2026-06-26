@@ -22,7 +22,7 @@ type Props = {
  * (including your own solo space), and a path to create a new
  * one. Per-gametype "Start X" affordances live on each club's
  * own page — once the user knows where their clubs are, "Start
- * wordknit" only makes sense inside a specific club, so this
+ * connections" only makes sense inside a specific club, so this
  * page doesn't carry those buttons.
  *
  * Solo clubs (handle = `=<username>`) used to be hidden from

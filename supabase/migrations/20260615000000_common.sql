@@ -100,7 +100,7 @@ create table common.profiles (
   --
   -- Used wherever a user's identity needs to be visually anchored:
   -- the colored circle next to their name in member lists, the
-  -- bold name in chat messages, the wordknit per-peer tile-
+  -- bold name in chat messages, the connections per-peer tile-
   -- selection borders, per-game guess/clue history attribution.
   --
   -- Deterministically derived from the username at claim time
@@ -274,7 +274,7 @@ $$;
 --                 game; the column-grant pattern on `target` is
 --                 retained for educational value but not for
 --                 actual secrecy)
---   wordknit:    "TILE1, TILE2, TILE3, TILE4"
+--   connections:    "TILE1, TILE2, TILE3, TILE4"
 --                (alphabetical first 4 of the 16 board tiles —
 --                 degenerate in the POC since the board is
 --                 hardcoded, but the rule travels forward when
@@ -632,7 +632,7 @@ create policy games_select on common.games
 
 -- Game-player records inherit visibility from their parent game.
 -- The EXISTS subquery mirrors the per-gametype `*_select` policy
--- shape (psychicnum.guesses, wordknit.guesses, etc.).
+-- shape (psychicnum.guesses, connections.guesses, etc.).
 create policy game_players_select on common.game_players
   for select to authenticated
   using (
@@ -791,7 +791,7 @@ $$;
 -- FE has no reason to invoke them directly.
 --
 -- Convention: lift when N=3 callers would converge. Today the
--- three callers are tinyspy, psychicnum, wordknit. A future
+-- three callers are tinyspy, psychicnum, connections. A future
 -- gametype follows the same pattern.
 
 -- ─── common.require_club_member ────────────────────────
@@ -1099,7 +1099,7 @@ revoke execute on function common.require_game_player(uuid) from public;
 
 -- ─── common.update_state ───────────────────────────────
 -- The mid-game state-write helper. Per-gametype RPCs call this
--- after any state transition that's NOT a game-end — wordknit's
+-- after any state transition that's NOT a game-end — connections's
 -- mistake-count bump, tinyspy's sudden-death entry, psychicnum's
 -- guesses_remaining decrement, etc. Updates `play_state` (the
 -- gametype's enum value) + `status` (the listing-label jsonb) +
@@ -1149,7 +1149,7 @@ revoke execute on function common.update_state(uuid, text, jsonb) from public;
 -- The terminal-transition counterpart to create_game + the
 -- end-game half of the duplicate-write discipline. Called by
 -- each gametype's RPC at the moment its game-specific rule says
--- "this game is over" — 4 mistakes in wordknit, assassin in
+-- "this game is over" — 4 mistakes in connections, assassin in
 -- tinyspy, last guess used in psychicnum, countdown expired,
 -- etc. Writes:
 --
@@ -1404,7 +1404,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 --   - common.game_players      (game_id FK, ON DELETE CASCADE)
 --   - <gametype>.games         (id FK,      ON DELETE CASCADE)
 --     ⤷ which cascades to per-gametype child tables
---        (tinyspy.words/clues, psychicnum.guesses, wordknit.guesses)
+--        (tinyspy.words/clues, psychicnum.guesses, connections.guesses)
 -- So one DELETE on common.games removes the whole subtree.
 --
 -- This RPC does NOT handle "tell peers viewing the game to

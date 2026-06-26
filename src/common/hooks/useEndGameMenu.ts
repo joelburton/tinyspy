@@ -32,7 +32,7 @@ import type { FeedbackApi, MenuApi } from '../lib/games'
  *
  * Two games deliberately do NOT use this hook and own their menu wiring
  * directly:
- *   - `wordknit` — its menu carries a second, game-specific "Hint" item
+ *   - `connections` — its menu carries a second, game-specific "Hint" item
  *     and gates on elimination state.
  *   - `freebee` — it routes the end-game error to its own in-body
  *     feedback surface (the word-result `<Feedback>`), not the common

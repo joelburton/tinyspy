@@ -27,7 +27,7 @@
 -- The "family pair sharing a schema" pattern is canonical here.
 -- See manifest.baseGametype + manifest.mode in src/common/lib/games.ts
 -- for the FE side of the same idea. A future game that adds a
--- compete sibling (wordknit, freebee) follows this template:
+-- compete sibling (connections, freebee) follows this template:
 --   - one schema, one folder
 --   - two `common.gametypes` rows ('<base>_coop', '<base>_compete')
 --   - mode-denormalized column on the game row for RLS branching
@@ -35,7 +35,7 @@
 --
 -- Educationally minimal: psychicnum is a deliberately tiny game,
 -- and its coop/compete split is the smallest possible surface to
--- learn the pattern. Wordknit + freebee adoption can crib from
+-- learn the pattern. Connections + freebee adoption can crib from
 -- here directly.
 --
 -- What this still exercises that tinyspy doesn't:

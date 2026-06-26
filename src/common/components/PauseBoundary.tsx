@@ -50,7 +50,7 @@ type Props = {
  * above the boundary (useCommonGame). State inside PlayArea is
  * always pause-transient.
  *
- * See `docs/games/wordknit.md` → "Pause on disconnect" for the broader
+ * See `docs/games/connections.md` → "Pause on disconnect" for the broader
  * pattern.
  */
 export function PauseBoundary({

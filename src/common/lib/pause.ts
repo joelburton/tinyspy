@@ -20,7 +20,7 @@ import type { Member } from './games'
  * every handler synchronously. That hook derives `presentUserIds`
  * via this helper.
  *
- * See docs/games/wordknit.md → "Pause on disconnect" for the wider
+ * See docs/games/connections.md → "Pause on disconnect" for the wider
  * pattern.
  */
 export function computePause(

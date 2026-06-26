@@ -5,9 +5,9 @@ import {
   psychicnumCompeteGame,
 } from './psychicnum/manifest'
 import {
-  wordknitCoopGame,
-  wordknitCompeteGame,
-} from './wordknit/manifest'
+  connectionsCoopGame,
+  connectionsCompeteGame,
+} from './connections/manifest'
 import {
   freebeeCoopGame,
   freebeeCompeteGame,
@@ -52,8 +52,8 @@ export const games: GameManifest[] = [
   tinyspyGame,
   psychicnumCoopGame,
   psychicnumCompeteGame,
-  wordknitCoopGame,
-  wordknitCompeteGame,
+  connectionsCoopGame,
+  connectionsCompeteGame,
   freebeeCoopGame,
   freebeeCompeteGame,
   monkeygramGame,

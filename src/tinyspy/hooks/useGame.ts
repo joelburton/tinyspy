@@ -59,7 +59,7 @@ export type Player = Member & {
  * channel) instead of one batched fetch — accepted as the cost of
  * keeping each concern's data lifecycle independent. Don't
  * consolidate without rethinking the PlayArea component split.
- * psychicnum + wordknit use the alternative one-hook-many-tables
+ * psychicnum + connections use the alternative one-hook-many-tables
  * shape, which is the right choice when the data flows back to a
  * single PlayArea component.
  */
@@ -86,7 +86,7 @@ export function useGame(gameId: string) {
         // Explicit null on not-found — without this, a server-side
         // delete (e.g. db:reset during dev) leaves the previously-
         // loaded game state in place and the PlayArea keeps
-        // rendering it. Matches psychicnum / wordknit useGame.
+        // rendering it. Matches psychicnum / connections useGame.
         setGame(null)
         setPlayers([])
         setLoading(false)

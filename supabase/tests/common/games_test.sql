@@ -13,7 +13,7 @@
 --   - common.end_game: ended_at + play_state + is_terminal + status +
 --     per-player results + is_current_view flipped to false
 --
--- Per-game tests (tinyspy/psychicnum/wordknit) exercise these
+-- Per-game tests (tinyspy/psychicnum/connections) exercise these
 -- helpers indirectly through their own create_game RPCs; this
 -- file pins the contract directly.
 --
@@ -61,7 +61,7 @@ select set_config('request.jwt.claims', '', true);
 -- ============================================================
 -- common.create_game — happy path
 -- ============================================================
--- Caller is ada; players are [ada, bea]; gametype 'wordknit_coop'.
+-- Caller is ada; players are [ada, bea]; gametype 'connections_coop'.
 -- The new game_id goes into session-config so we can read it
 -- back across role switches (temp tables are role-bound).
 
@@ -75,7 +75,7 @@ select set_config(
   'test.created_game_id',
   (common.create_game(
     (select handle from club),
-    'wordknit_coop',
+    'connections_coop',
     array[
       'ada11111-1111-1111-1111-111111111111'::uuid,
       'bea22222-2222-2222-2222-222222222222'::uuid
@@ -95,7 +95,7 @@ select isnt(
 
 select is(
   (select gametype from common.games where id = current_setting('test.created_game_id')::uuid),
-  'wordknit_coop',
+  'connections_coop',
   'create_game: common.games row has the right gametype'
 );
 
@@ -126,7 +126,7 @@ select is(
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'wordknit_coop',
+    $$ select common.create_game(%L, 'connections_coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'test-title', '{}'::jsonb, null) $$,
@@ -144,7 +144,7 @@ select throws_ok(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'wordknit_coop', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
+    $$ select common.create_game(%L, 'connections_coop', array[]::uuid[], 'test-title', '{}'::jsonb, null) $$,
     (select handle from club)
   ),
   'P0001',
@@ -159,7 +159,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select common.create_game(%L, 'wordknit_coop',
+    $$ select common.create_game(%L, 'connections_coop',
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'dee44444-4444-4444-4444-444444444444'::uuid],
        'test-title', '{}'::jsonb, null) $$,
@@ -350,7 +350,7 @@ select set_config(
   'test.second_game_id',
   (common.create_game(
     (select handle from club),
-    'wordknit_coop',
+    'connections_coop',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'second',
     '{}'::jsonb,
@@ -543,19 +543,19 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'wordknit_coop'),
+    where club_handle = (select handle from club) and gametype = 'connections_coop'),
   null,
   'saved defaults: starts NULL (handle_new_user / create_club leave it unset)'
 );
 
 -- Issue a third create_game with a non-null saved_default. This
 -- exercises the auto-save path. The shape is intentionally
--- different from a real wordknit setup to make the test self-
+-- different from a real connections setup to make the test self-
 -- evident: we're checking the plumbing, not the semantic.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
   (select handle from club),
-  'wordknit_coop',
+  'connections_coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'third',
   '{"timer": {"kind": "none"}, "puzzleId": "marker-1"}'::jsonb,
@@ -567,7 +567,7 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'wordknit_coop'),
+    where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-1',
   'saved defaults: a non-null saved_default writes to clubs_gametypes.default_setup'
 );
@@ -579,7 +579,7 @@ select is(
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select common.create_game(
   (select handle from club),
-  'wordknit_coop',
+  'connections_coop',
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'fourth',
   '{"timer": {"kind": "none"}, "puzzleId": "marker-2"}'::jsonb,
@@ -591,7 +591,7 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
-    where club_handle = (select handle from club) and gametype = 'wordknit_coop'),
+    where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-2',
   'saved defaults: a subsequent non-null saved_default overwrites the row'
 );

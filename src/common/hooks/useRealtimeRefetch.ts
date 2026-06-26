@@ -88,7 +88,7 @@ type Config = {
  *     heavy load that's a real perf win over refetch-always.
  *     The hand-rolled shape stays where it is; this factory is
  *     for "game state changed, reload the picture."
- *   - **Broadcast-coupled channels.** wordknit's `useGame` runs
+ *   - **Broadcast-coupled channels.** connections's `useGame` runs
  *     postgres-changes AND a shared-selection broadcast on the
  *     same stable-name channel (the broadcast needs the shared
  *     room across peers, the postgres-changes happen to ride
@@ -98,7 +98,7 @@ type Config = {
  *
  * **When porting a new game**, the per-game `useGame` hook
  * should default to using this factory. Reach for hand-rolling
- * only if the game introduces broadcast-coupling like wordknit
+ * only if the game introduces broadcast-coupling like connections
  * does, or chat-style append semantics like the club chat does.
  */
 export function useRealtimeRefetch({

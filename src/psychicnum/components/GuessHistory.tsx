@@ -14,11 +14,11 @@ type Props = {
  * Stateless and presentational — owns no state, makes no RPC
  * calls, just renders the rows from the props it's given.
  *
- * **Visual style** mirrors wordknit's GuessHistory: each row is
+ * **Visual style** mirrors connections's GuessHistory: each row is
  * a small card with a 10px-wide colored strip on the left
  * (green for correct, red for wrong), the rest transparent.
  * Same semantic palette across games — "wrong guess" reads the
- * same in wordknit as it does here.
+ * same in connections as it does here.
  *
  * **Chronological order** (oldest at top, latest at bottom).
  * The list scrolls inside its own frame (see the `.list` styles

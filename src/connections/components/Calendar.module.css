@@ -1,0 +1,141 @@
+/* ============================================================
+ * Calendar widget for the connections setup form.
+ *
+ * Visual rules:
+ *   - The grid is 7 columns wide; 6 rows tall (max possible
+ *     across all months — most months are 5 rows + a trailing
+ *     empty row that just renders).
+ *   - Day squares are square-aspect-ratio buttons, sized via
+ *     `aspect-ratio: 1` so the grid stays uniform across months.
+ *   - Outcome fills come from the common theme tokens
+ *     (`--color-outcome-*-bg` / `--color-outcome-*-border`) so
+ *     other surfaces (listing chips, stats badges) can reuse
+ *     the same palette.
+ *   - Selected ring is the accent color, drawn as a 2px inset
+ *     outline so it doesn't change the cell's bounding box.
+ *   - No-puzzle squares: muted text, no fill, disabled. Stays
+ *     in the grid so the calendar's overall shape is stable
+ *     month-to-month.
+ * ============================================================ */
+
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Cap the calendar's width so a typical-month grid renders
+     readable squares without stretching across a wide modal. */
+  max-width: 320px;
+  margin-top: 0.5rem;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navButton {
+  /* Reset the global button defaults to read as a neutral
+     month-stepper. The arrow glyph carries enough meaning that
+     we don't need the filled-accent treatment. */
+  background: transparent;
+  border: 1px solid var(--color-control-border);
+  color: var(--color-text);
+  padding: 0.25rem 0.6rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+.navButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.empty {
+  aspect-ratio: 1;
+}
+
+.day {
+  /* Reset the global filled-accent button. Calendar squares
+     stand on a white background by default; outcome classes
+     overlay specific fills. */
+  aspect-ratio: 1;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.day:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.day_won {
+  background: var(--color-outcome-won-bg);
+  border-color: var(--color-outcome-won-border);
+}
+.day_won:hover:not(:disabled) {
+  /* Hover stays close to the resting color — small darken so
+     the click affordance is felt without losing the won-green
+     identity. */
+  filter: brightness(0.95);
+}
+
+.day_lost {
+  background: var(--color-outcome-lost-bg);
+  border-color: var(--color-outcome-lost-border);
+}
+.day_lost:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.day_active {
+  background: var(--color-outcome-active-bg);
+  border-color: var(--color-outcome-active-border);
+}
+.day_active:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.daySelected {
+  /* Inset 2px ring so the cell's outer bounds don't shift on
+     selection — keeps the grid spacing stable as the user
+     clicks around. The accent color reads as "this is the
+     currently-picked date" regardless of outcome fill. */
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.dayNoPuzzle {
+  color: var(--color-muted);
+  cursor: not-allowed;
+  /* Keep the bg-white so the grid's rhythm stays clean; the
+     muted text + disabled cursor are the affordance. */
+}
+.dayNoPuzzle:hover {
+  background: var(--color-surface);
+}

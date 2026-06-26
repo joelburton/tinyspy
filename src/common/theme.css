@@ -143,7 +143,7 @@
      Centralized so a header redesign moves one number, not three.
      See docs/ui.md → "Page-height fits the viewport"; consumed
      today by tinyspy/PlayArea.module.css and psychicnum/PlayArea.
-     module.css (wordknit conversion pending). */
+     module.css (connections conversion pending). */
   --game-chrome-height:       9rem;
 
   /* Type. */

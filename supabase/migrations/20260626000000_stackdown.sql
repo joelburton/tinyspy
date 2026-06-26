@@ -18,7 +18,7 @@
 --
 -- Sibling-manifest pair:
 --   coop    — one SHARED board; the in-progress selection is shared peer-
---             to-peer (wordknit pattern); the team finds all six together.
+--             to-peer (connections pattern); the team finds all six together.
 --   compete — same starting board, played INDEPENDENTLY; the first player
 --             to clear all six wins immediately (a race). Opponents show
 --             only a tally ("Found words: Joel 2 · Moth 1").

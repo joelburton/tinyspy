@@ -2,7 +2,7 @@
  * Tests for useClubChat. This hook is the pattern parent for every
  * "initial load + Realtime INSERT append + SUBSCRIBED refetch on
  * reconnect" shape in the repo (the per-game useBoard / useClues /
- * wordknit useGame all repeat it). Pinning the contract here once
+ * connections useGame all repeat it). Pinning the contract here once
  * documents what every sibling hook is expected to do.
  *
  * Mocking strategy

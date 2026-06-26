@@ -12,7 +12,7 @@ type Props = {
 
 /**
  * The coop move log — the shared swap history, in the spirit of
- * psychicnum's GuessHistory and wordknit's guess log. Coop only;
+ * psychicnum's GuessHistory and connections's guess log. Coop only;
  * PlayArea doesn't render it in compete (where a swap sequence would
  * leak an opponent's hidden-board deductions, and the table is empty
  * anyway).

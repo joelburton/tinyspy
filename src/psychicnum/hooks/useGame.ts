@@ -9,7 +9,7 @@ import type { Member } from '../../common/lib/games'
  * type is a straight re-export — but every per-game folder
  * exposes a Player type so the cross-game vocabulary is
  * consistent (a reader scanning psychicnum code finds the same
- * Player parallel that exists in tinyspy + wordknit).
+ * Player parallel that exists in tinyspy + connections).
  */
 export type Player = Member
 

@@ -453,6 +453,186 @@ export type Database = {
       [_ in never]: never
     }
   }
+  connections: {
+    Tables: {
+      games: {
+        Row: {
+          board: Json
+          club_handle: string
+          created_at: string
+          id: string
+          mode: string
+          puzzle_id: string
+        }
+        Insert: {
+          board: Json
+          club_handle: string
+          created_at?: string
+          id: string
+          mode: string
+          puzzle_id: string
+        }
+        Update: {
+          board?: Json
+          club_handle?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          puzzle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_game_status"
+            referencedColumns: ["game_id"]
+          },
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          id: string
+          matched_category_rank: number | null
+          mode: string
+          result: string
+          tiles: string[]
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          id?: string
+          matched_category_rank?: number | null
+          mode: string
+          result: string
+          tiles: string[]
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          id?: string
+          matched_category_rank?: number | null
+          mode?: string
+          result?: string
+          tiles?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          game_id: string
+          mistake_count: number
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          mistake_count?: number
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          mistake_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      puzzles: {
+        Row: {
+          categories: Json
+          id: string
+          imported_at: string
+          nyt_date: string | null
+          source_id: string
+        }
+        Insert: {
+          categories: Json
+          id?: string
+          imported_at?: string
+          nyt_date?: string | null
+          source_id: string
+        }
+        Update: {
+          categories?: Json
+          id?: string
+          imported_at?: string
+          nyt_date?: string | null
+          source_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      club_game_status: {
+        Row: {
+          club_handle: string | null
+          game_id: string | null
+          is_terminal: boolean | null
+          mode: string | null
+          nyt_date: string | null
+          play_state: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_guess: {
+        Args: {
+          matched_category_rank?: number
+          result: string
+          target_game: string
+          tiles: string[]
+        }
+        Returns: undefined
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   freebee: {
     Tables: {
       found_words: {
@@ -1937,186 +2117,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-  wordknit: {
-    Tables: {
-      games: {
-        Row: {
-          board: Json
-          club_handle: string
-          created_at: string
-          id: string
-          mode: string
-          puzzle_id: string
-        }
-        Insert: {
-          board: Json
-          club_handle: string
-          created_at?: string
-          id: string
-          mode: string
-          puzzle_id: string
-        }
-        Update: {
-          board?: Json
-          club_handle?: string
-          created_at?: string
-          id?: string
-          mode?: string
-          puzzle_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "games_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "club_game_status"
-            referencedColumns: ["game_id"]
-          },
-          {
-            foreignKeyName: "games_puzzle_id_fkey"
-            columns: ["puzzle_id"]
-            isOneToOne: false
-            referencedRelation: "puzzles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          id: string
-          matched_category_rank: number | null
-          mode: string
-          result: string
-          tiles: string[]
-          user_id: string
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          id?: string
-          matched_category_rank?: number | null
-          mode: string
-          result: string
-          tiles: string[]
-          user_id: string
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          id?: string
-          matched_category_rank?: number | null
-          mode?: string
-          result?: string
-          tiles?: string[]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      players: {
-        Row: {
-          game_id: string
-          mistake_count: number
-          user_id: string
-        }
-        Insert: {
-          game_id: string
-          mistake_count?: number
-          user_id: string
-        }
-        Update: {
-          game_id?: string
-          mistake_count?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "players_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      puzzles: {
-        Row: {
-          categories: Json
-          id: string
-          imported_at: string
-          nyt_date: string | null
-          source_id: string
-        }
-        Insert: {
-          categories: Json
-          id?: string
-          imported_at?: string
-          nyt_date?: string | null
-          source_id: string
-        }
-        Update: {
-          categories?: Json
-          id?: string
-          imported_at?: string
-          nyt_date?: string | null
-          source_id?: string
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      club_game_status: {
-        Row: {
-          club_handle: string | null
-          game_id: string | null
-          is_terminal: boolean | null
-          mode: string | null
-          nyt_date: string | null
-          play_state: string | null
-        }
-        Relationships: []
-      }
-    }
-    Functions: {
-      create_game: {
-        Args: {
-          mode: string
-          player_user_ids: string[]
-          setup: Json
-          target_club: string
-        }
-        Returns: {
-          id: string
-        }[]
-      }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      submit_guess: {
-        Args: {
-          matched_category_rank?: number
-          result: string
-          target_game: string
-          tiles: string[]
-        }
-        Returns: undefined
-      }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   wordle: {
     Tables: {
       games: {
@@ -2417,6 +2417,9 @@ export const Constants = {
   common: {
     Enums: {},
   },
+  connections: {
+    Enums: {},
+  },
   freebee: {
     Enums: {},
   },
@@ -2442,9 +2445,6 @@ export const Constants = {
     Enums: {},
   },
   waffle: {
-    Enums: {},
-  },
-  wordknit: {
     Enums: {},
   },
   wordle: {

@@ -204,7 +204,7 @@ create policy games_select on waffle.games
 -- ============================================================
 -- One row per player. `board` is the player's current arrangement,
 -- starting equal to the scramble. In COOP every row is kept identical
--- and updated in lock-step on each swap (mirrors wordknit.players);
+-- and updated in lock-step on each swap (mirrors connections.players);
 -- in COMPETE each row moves independently. `solved` / `solved_at`
 -- drive the compete fewest-swaps + earliest-time tie-break.
 create table waffle.players (
@@ -246,7 +246,7 @@ create policy players_select on waffle.players
 -- waffle.swaps — the per-swap move log (coop only)
 -- ============================================================
 -- One row per swap, the shared move history other games keep (cf.
--- psychicnum.guesses, wordknit's guess log). Written ONLY in coop:
+-- psychicnum.guesses, connections's guess log). Written ONLY in coop:
 -- there the board is shared and public, so the whole log is club-
 -- readable and the FE renders it during and after the game. Compete
 -- never writes here — an opponent's swap sequence would leak the

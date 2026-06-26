@@ -1,5 +1,5 @@
 /* The coop move log in the right column. Mirrors the GuessHistory
- * card pattern from psychicnum / wordknit: a heading over a scrolling
+ * card pattern from psychicnum / connections: a heading over a scrolling
  * list of small cards, each a swap. The list scrolls internally so a
  * long game doesn't push the column past a sensible height. */
 

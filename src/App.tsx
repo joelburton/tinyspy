@@ -87,7 +87,7 @@ export default function App() {
       // than rendering a broken game screen), matching the
       // "be forgiving with URLs" stance.
       // Gametype allows underscore so the sibling-manifest pair strings
-      // (wordknit_coop, wordknit_compete, psychicnum_coop, …) match.
+      // (connections_coop, connections_compete, psychicnum_coop, …) match.
       // Without it, opening a sibling game silently falls through to
       // the HomePage fallback below — the user lands back at their
       // club list with no console error to explain why.

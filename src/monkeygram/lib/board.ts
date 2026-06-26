@@ -71,7 +71,7 @@ export function deriveHand(tiles: string, board: string): string {
 
 /**
  * Reconcile a local shuffle order against the canonical hand multiset — the
- * multiset-aware sibling of WordKnit's `reconcileLocalOrder` (letters repeat,
+ * multiset-aware sibling of Connections's `reconcileLocalOrder` (letters repeat,
  * so we count occurrences rather than use a Set). Keeps the chars `order`
  * already has (in their positions), drops any the canonical no longer has, and
  * appends canonical chars `order` is missing (newly drawn from peel/dump) at

@@ -59,7 +59,7 @@ export type GamePageCtx = {
    *  choices the SetupGameDialog collected at start. Typed as
    *  `Record<string, unknown>` here because each gametype's
    *  shape is different; per-game PlayAreas cast to their own
-   *  setup type (`as TinySpySetup`, `as WordKnitSetup`, etc.)
+   *  setup type (`as TinySpySetup`, `as ConnectionsSetup`, etc.)
    *  on access. Read-only at this level — setup is fixed at
    *  game-creation time. */
   setup: Record<string, unknown>
@@ -194,8 +194,8 @@ export type SetupBodyProps = {
    *  need club-scoped data read it; the rest ignore it. */
   clubHandle: string
   /** The manifest's `mode` — `'coop'` or `'compete'`. Forwarded
-   *  so sibling-pair setup forms (wordknit, psychicnum) that
-   *  query mode-aware club state (e.g. wordknit's per-date
+   *  so sibling-pair setup forms (connections, psychicnum) that
+   *  query mode-aware club state (e.g. connections's per-date
    *  calendar overlay) can scope their reads to the right mode.
    *  Setup forms for single-mode games can ignore it. */
   mode: 'coop' | 'compete'
@@ -339,7 +339,7 @@ export type GameManifest = {
    * benefits from a hard cap (the FE rendering, the realtime
    * channel load, the chat surface area — all assume a bounded
    * count). For an "any club" game, pick a reasonable max — today
-   * we use 6 for all the open-N games (wordknit, psychicnum,
+   * we use 6 for all the open-N games (connections, psychicnum,
    * freebee) and `[2, 2]` for fixed-seat tinyspy.
    *
    * The shell uses this to decide whether the "Start" button is
@@ -448,7 +448,7 @@ export type CommonGameListRow = {
  *     `submitTimeout` fires; the game flips to a terminal
  *     play_state.
  *
- * See docs/games/wordknit.md → "Timer" for the browser-side / no-
+ * See docs/games/connections.md → "Timer" for the browser-side / no-
  * server-sync choice.
  */
 export type TimerMode =

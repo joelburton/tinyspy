@@ -163,7 +163,7 @@ create index tinyspy_guesses_game_idx on tinyspy.guesses (game_id);
 -- ============================================================
 -- RLS
 -- ============================================================
--- Same shape as psychicnum + wordknit: SELECT gated on
+-- Same shape as psychicnum + connections: SELECT gated on
 -- is_club_member(club_handle). History is club-wide — any club member
 -- can see every game in the club, regardless of whether they sat
 -- down at this specific game. "Is in this game" is a gameplay
@@ -844,7 +844,7 @@ grant execute on function tinyspy.submit_guess(uuid, int) to authenticated;
 -- call from another tab raises P0001 'game is not active'. The
 -- FE swallows that — losing once is enough.
 --
--- Mirrors wordknit.submit_timeout / psychicnum.submit_timeout —
+-- Mirrors connections.submit_timeout / psychicnum.submit_timeout —
 -- see those for the rationale on FE-driven clock + idempotent
 -- server flip.
 

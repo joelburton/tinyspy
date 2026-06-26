@@ -23,7 +23,7 @@
 -- wordlist pattern, RPCs) with coop + compete shipped as a
 -- sibling-manifest pair (`freebee_coop` + `freebee_compete`
 -- gametypes, a denormalized `mode` column on freebee.games, and a
--- `mode` arg on create_game). Same pattern psychicnum and wordknit
+-- `mode` arg on create_game). Same pattern psychicnum and connections
 -- follow.
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
@@ -127,7 +127,7 @@ grant select on freebee.pangrams to authenticated;
 -- denormalized onto the gametype row so submit_word / submit_timeout
 -- / end_game and the found_words RLS policy can read it with a
 -- single-table query instead of digging into common.games.setup.
--- Same shape as psychicnum.games.mode and wordknit.games.mode.
+-- Same shape as psychicnum.games.mode and connections.games.mode.
 --
 -- ───────────────────────────────────────────────────────────
 -- The "terminal-gated wordlists" pattern
@@ -287,7 +287,7 @@ create policy games_select on freebee.games
 --
 -- Club membership is the outer gate; the mode/visibility
 -- discrimination is the inner condition. Mirrors the
--- wordknit.guesses_select shape.
+-- connections.guesses_select shape.
 create policy found_words_select on freebee.found_words
   for select to authenticated
   using (
@@ -607,7 +607,7 @@ begin
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
     -- compete Start button in 1-player clubs; this is the
-    -- server-side catch. Matches psychicnum + wordknit.
+    -- server-side catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
       raise exception 'compete mode requires at least 2 players'
         using errcode = 'P0001';
@@ -1188,7 +1188,7 @@ grant execute on function freebee.submit_word(uuid, text) to authenticated;
 -- the first with P0001 (which the FE swallows silently).
 --
 -- Mode comes off freebee.games.mode. This is identical in shape
--- to wordknit / psychicnum's submit_timeout, just with freebee's
+-- to connections / psychicnum's submit_timeout, just with freebee's
 -- status payload.
 --
 -- ───────────────────────────────────────────────────────────
@@ -1326,7 +1326,7 @@ grant execute on function freebee.submit_timeout(uuid) to authenticated;
 -- freebee.end_game — manual stop
 -- ============================================================
 --
--- Unlike tinyspy / psychicnum / wordknit, freebee has no
+-- Unlike tinyspy / psychicnum / connections, freebee has no
 -- intrinsic "you lost" or "you won" terminal state in coop: the
 -- only automatic terminals are the compete first-to-target-rank
 -- (handled inside submit_word as outcome='won_compete') and the

@@ -22,7 +22,7 @@ type Props = {
  * Turn-by-turn replay in the right column, beneath the action slot.
  * Chronological order: oldest turn at the top, latest at the bottom.
  * Auto-scrolls to the bottom on every new clue or guess (effect
- * below) — same pattern as wordknit / psychicnum GuessHistory and
+ * below) — same pattern as connections / psychicnum GuessHistory and
  * ChatBody.
  *
  * Each turn renders as two lines + a divider above (except the first):
@@ -39,7 +39,7 @@ type Props = {
  * **Why the layout changed.** The previous "one card per guess
  * with a colored left strip" pattern was using the strip for
  * player identity, which clashed with how the same affordance is
- * used elsewhere (wordknit / psychicnum use the strip for the
+ * used elsewhere (connections / psychicnum use the strip for the
  * outcome verdict). Now identity rides on text color (matching the
  * PlayersStrip + ClubGameCard pattern) and the outcome rides on
  * the colored word — no double-meaning for the same visual.

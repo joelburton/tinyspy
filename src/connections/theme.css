@@ -1,0 +1,39 @@
+/* connections's color tokens. Loaded with this game's chunk
+ * (imported from components/PlayArea.tsx) so they only ship when
+ * connections is being played.
+ *
+ * The rank palette matches the NYT Connections convention:
+ * yellow / green / blue / purple, mapped to category rank 0..3.
+ * Numbers approximate the published puzzle's bands; we use
+ * slightly darkened variants so the bands read on a white card
+ * without needing extra outline.
+ *
+ * `--connections-tile-bg` and `--connections-tile-selected-*` define
+ * the unrevealed tile state — light gray with a near-black
+ * selected fill. Matches the NYT visual idiom.
+ *
+ * Two-vocabularies rule (see docs/ui.md): these tokens use
+ * semantic names tied to connections's game vocabulary
+ * (`rank-0` not `yellow`) so a future theme tweak doesn't
+ * have to walk every consumer.
+ */
+:root {
+  /* NYT rank palette. Numbers chosen to look like the
+   * published puzzle while reading on the white card surface. */
+  --connections-rank-0:    #f9df6d;  /* yellow — easiest */
+  --connections-rank-1:    #a0c35a;  /* green */
+  --connections-rank-2:    #b0c4ef;  /* blue */
+  --connections-rank-3:    #ba81c5;  /* purple — hardest */
+
+  /* Tile palette. Selected uses the project's text color
+   * inverted — near-black background with white text. The
+   * hover token is a slightly-darker warm gray than the resting
+   * tile bg, so the hover read is "this tile is selectable"
+   * without competing with the dark selected state. */
+  --connections-tile-bg:           #f0e6d2;
+  --connections-tile-hover-bg:     #ece2cc;
+  --connections-tile-border:       #e0d4b8;
+  --connections-tile-text:         #1a1a1a;
+  --connections-tile-selected-bg:  #5a594e;
+  --connections-tile-selected-text:#ffffff;
+}

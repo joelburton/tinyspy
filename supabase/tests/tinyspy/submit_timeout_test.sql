@@ -2,7 +2,7 @@
 -- Test: tinyspy.submit_timeout — wall-clock countdown expired
 -- ============================================================
 --
--- Mirrors wordknit / psychicnum: the FE fires this RPC when its
+-- Mirrors connections / psychicnum: the FE fires this RPC when its
 -- count-down timer hits 0. The server-side gate is the
 -- non-terminal-play_state check; play_state flips to 'lost_timeout' and
 -- common.end_game records outcome='lost_timeout'. Idempotent on
