@@ -35,11 +35,17 @@
   background: var(--color-surface-hover);
 }
 
-/* Just-accepted word — a thick green "good move" border for a beat
- * (the PlayArea clears it after ~1s, or when a new word is started).
- * A box-shadow ring rather than a wider border so the slot doesn't
- * resize. */
+/* A flashed word — a thick colored ring for a beat (the PlayArea clears
+ * it after ~1s, or when a new word is started). A box-shadow ring rather
+ * than a wider border so the slot doesn't resize.
+ *   - good: an accepted word (the player's own, or a teammate's valid find)
+ *   - bad:  a teammate's rejected word (their tiles bounced back) */
 .good {
   border-color: var(--color-outcome-won-border);
   box-shadow: 0 0 0 3px var(--color-outcome-won-border);
+}
+
+.bad {
+  border-color: var(--color-outcome-lost-border);
+  box-shadow: 0 0 0 3px var(--color-outcome-lost-border);
 }

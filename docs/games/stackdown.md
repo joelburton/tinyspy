@@ -317,6 +317,15 @@ prettier title here.
   a tile you were mid-building with is now gone (a teammate claimed it), `load()`
   resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
   shared Broadcast room that needed a stable name is gone.
+- **`hooks/usePeerFeedback.ts`** — coop-only narration of teammates' moves (the
+  freebee `usePeerFeedback` pattern). Diffs the `submissions` list against a
+  `seen` set keyed by `(user_id, seq)`, bootstrapping quietly on the first
+  loaded render so a reconnect doesn't replay the backlog. Each *new* teammate
+  submission fires a header feedback pill — "moth found SCARE" / "moth tried
+  FOOFS — not a word" / "moth revealed a hint" / "moth revealed a word" — and,
+  for a played word, calls back into PlayArea to flash that word (green/red) in
+  the entry row. No-ops off coop (compete hides peers' submissions) and skips
+  the caller's own rows (those are reported next to their own input).
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
@@ -324,8 +333,11 @@ prettier title here.
   passes an empty `offBoard`** so the whole ORIGINAL board renders for review —
   a won game has cleared every tile, so it'd otherwise be blank), `WordEntry`
   (the five-slot word under the board; clicking a slot returns that tile and
-  every tile after it. A just-accepted word flashes a green "good move" border
-  for ~1s — PlayArea's `goodWord` timer — cleared early when a new word starts),
+  every tile after it. When nothing's being spelled it flashes a word for ~1s
+  — PlayArea's `flash` timer, cleared early when a new word starts: green for
+  the player's own just-accepted word OR a teammate's valid find, red for a
+  teammate's rejected word. The flash carries plain letters, not tile ids, so
+  it can show a teammate's word whose tiles this client never picked up),
   `FoundWords` (the right-column game log — valid words listed, clickable to
   define; invalid attempts struck through and tagged; and the muted "Requested
   hint" / "Requested word" cheat-request rows), `PlayArea` (two-column compose:

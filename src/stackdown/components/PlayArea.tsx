@@ -9,8 +9,9 @@ import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { exposedIds } from '../lib/board'
 import { useGame } from '../hooks/useGame'
+import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { Board } from './Board'
-import { WordEntry } from './WordEntry'
+import { WordEntry, type WordFlash } from './WordEntry'
 import { FoundWords } from './FoundWords'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -77,29 +78,37 @@ export function PlayArea({
     },
     [],
   )
-  // A just-accepted word flashes green in the entry row for a beat
-  // (positive "good move" feedback), then clears — or sooner, when the
-  // player starts a new word (onTileClick clears it).
-  const [goodWord, setGoodWord] = useState<number[] | null>(null)
-  const goodTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const flashGoodWord = useCallback((tileIds: number[]) => {
-    setGoodWord(tileIds)
-    if (goodTimer.current) clearTimeout(goodTimer.current)
-    goodTimer.current = setTimeout(() => {
-      setGoodWord(null)
-      goodTimer.current = null
+  // A word flashes in the entry row for a beat, then clears — or sooner,
+  // when the player starts a new word (onTileClick clears it). Two sources
+  // feed it: the player's OWN just-accepted word (green "good move"), and —
+  // in coop — a TEAMMATE's played word (green if valid, red if rejected),
+  // driven by usePeerFeedback. WordEntry only shows the flash while the
+  // player isn't mid-word, so it never stomps an in-progress spelling.
+  const [flash, setFlash] = useState<WordFlash | null>(null)
+  const flashWordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showFlash = useCallback((letters: string[], tone: 'good' | 'bad') => {
+    setFlash({ letters, tone })
+    if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
+    flashWordTimer.current = setTimeout(() => {
+      setFlash(null)
+      flashWordTimer.current = null
     }, 1000)
   }, [])
-  const clearGoodWord = useCallback(() => {
-    if (goodTimer.current) clearTimeout(goodTimer.current)
-    goodTimer.current = null
-    setGoodWord(null)
+  const clearFlash = useCallback(() => {
+    if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
+    flashWordTimer.current = null
+    setFlash(null)
   }, [])
   useEffect(
     () => () => {
-      if (goodTimer.current) clearTimeout(goodTimer.current)
+      if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
     },
     [],
+  )
+  // Coop: a teammate's played word → flash it green (valid) / red (invalid).
+  const onPeerWord = useCallback(
+    (letters: string[], valid: boolean) => showFlash(letters, valid ? 'good' : 'bad'),
+    [showFlash],
   )
 
   // ─── Derived (null-safe; real values after the loading guard) ──
@@ -135,13 +144,13 @@ export function PlayArea({
         // tiles leave once, on their own refetch.
         commitWord(tileIds)
         // Flash the just-spelled word green in the entry row.
-        flashGoodWord(tileIds)
+        showFlash([...res.word.toUpperCase()], 'good')
       } else {
         clearWord() // invalid → the tiles return to the board
         feedback.show({ tone: 'error', text: `Not a word: ${res.word.toUpperCase()}`, dismiss: { kind: 'timed', ms: 1500 } })
       }
     },
-    [gameId, feedback, clearWord, commitWord, flashGoodWord],
+    [gameId, feedback, clearWord, commitWord, showFlash],
   )
 
   // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -186,11 +195,11 @@ export function PlayArea({
   const onTileClick = useCallback(
     (tileId: number) => {
       if (!canPlay) return
-      clearGoodWord() // starting a new word drops the green flash
+      clearFlash() // starting a new word drops any lingering flash
       const word = appendTile(tileId)
       if (word && word.length === 5) void submit(word)
     },
-    [canPlay, appendTile, submit, clearGoodWord],
+    [canPlay, appendTile, submit, clearFlash],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -245,6 +254,22 @@ export function PlayArea({
     endGame: () => db.rpc('end_game', { target_game: gameId }),
   })
 
+  // ─── Coop: narrate teammates' moves ───────────────────────────
+  // The player who DIDN'T make a move otherwise saw nothing but the log
+  // quietly growing. Surface each teammate submission as a feedback pill,
+  // and flash their played word (green/red) in the entry row. Called
+  // unconditionally before the early returns; the hook no-ops off coop and
+  // until loaded.
+  usePeerFeedback({
+    loading,
+    mode: game?.mode,
+    selfUserId: session.user.id,
+    submissions,
+    players: members,
+    feedback,
+    onPeerWord,
+  })
+
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
@@ -288,7 +313,7 @@ export function PlayArea({
           currentWord={currentWord}
           active={canPlay}
           onRetract={retractTo}
-          goodWordTiles={goodWord}
+          flash={flash}
         />
       </div>
 

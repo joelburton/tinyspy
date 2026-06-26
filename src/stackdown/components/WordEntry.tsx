@@ -2,6 +2,15 @@ import { cls } from '../../common/lib/cls'
 import type { Tile } from '../lib/board'
 import styles from './WordEntry.module.css'
 
+/** A word to flash in the entry row when nothing is being spelled — the
+ *  player's own just-accepted word, or a teammate's played word. `tone`
+ *  colors the slots: 'good' (green) for an accepted/valid word, 'bad'
+ *  (red) for a teammate's rejected word. The letters are passed directly
+ *  (not tile ids) because a flashed word may be a teammate's, whose tiles
+ *  this client never picked up — and a valid word's tiles have already
+ *  left the board. */
+export type WordFlash = { letters: string[]; tone: 'good' | 'bad' }
+
 /**
  * The word being built, shown as five slots below the board. Each filled
  * slot is the letter of a tile that's been picked up, in selection
@@ -12,36 +21,41 @@ import styles from './WordEntry.module.css'
  * Five empty slots when nothing's selected, so the entry row keeps its
  * footprint and reads as "spell a 5-letter word here."
  *
- * When `goodWordTiles` is set (a word was just accepted) and no new word
- * is in progress, those letters show with a green "good move" border for
- * a beat — driven by the PlayArea's flash timer.
+ * When `flash` is set and no new word is in progress, those letters show
+ * for a beat in the flash's tone — green for a good word, red for a bad
+ * one — driven by the PlayArea's flash timer. The flash is suppressed the
+ * instant the player starts spelling (currentWord wins), so it never
+ * stomps an in-progress word.
  */
 export function WordEntry({
   tiles,
   currentWord,
   active,
   onRetract,
-  goodWordTiles,
+  flash,
 }: {
   tiles: Tile[]
   currentWord: number[]
   active: boolean
   onRetract: (index: number) => void
-  goodWordTiles?: number[] | null
+  flash?: WordFlash | null
 }) {
   const letterOf = (id: number) => tiles.find((t) => t.id === id)?.letter ?? '?'
 
-  // The just-accepted word takes over the row only while nothing new is
-  // being spelled (the moment a tile is picked, currentWord wins).
-  const showGood =
-    currentWord.length === 0 && !!goodWordTiles && goodWordTiles.length > 0
-  const display = showGood ? goodWordTiles : currentWord
+  // The flash takes over the row only while nothing new is being spelled
+  // (the moment a tile is picked, currentWord wins).
+  const showFlash =
+    currentWord.length === 0 && !!flash && flash.letters.length > 0
 
   return (
     <div className={styles.row} aria-label="Current word">
       {Array.from({ length: 5 }, (_, i) => {
-        const tileId = display[i]
-        const filled = tileId !== undefined
+        // Flash mode renders letters directly; otherwise map the
+        // in-progress tile ids to their glyphs.
+        const letter = showFlash ? flash.letters[i] : currentWord[i] !== undefined
+          ? letterOf(currentWord[i])
+          : undefined
+        const filled = letter !== undefined
         return (
           <button
             type="button"
@@ -49,17 +63,19 @@ export function WordEntry({
             className={cls(
               styles.slot,
               filled && styles.filled,
-              showGood && filled && styles.good,
+              showFlash && filled && (flash.tone === 'good' ? styles.good : styles.bad),
             )}
-            disabled={!filled || !active || showGood}
+            // Flashed slots aren't interactive — only an in-progress word's
+            // tiles can be returned.
+            disabled={!filled || !active || showFlash}
             onClick={() => onRetract(i)}
             title={
-              filled && !showGood
+              filled && !showFlash
                 ? 'Return this tile (and the ones after it)'
                 : undefined
             }
           >
-            {filled ? letterOf(tileId) : ''}
+            {letter ?? ''}
           </button>
         )
       })}
