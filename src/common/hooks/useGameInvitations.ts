@@ -125,6 +125,31 @@ export function useGameInvitations(session: Session): {
     [selfId, load],
   )
 
+  // Entering the invited game by ANY route is a real dismissal — the
+  // club's active-game card (a plain <Link>), a shared URL, the
+  // back/forward button, or the dialog's own Join. Without this, those
+  // non-dialog paths leave the invite in `pending`; the render-time filter
+  // below only HIDES it while the URL is exactly that game, so it pops
+  // right back the moment you navigate away (back to the club, or the
+  // auto-redirect when the game ends / suspends). Dropping it from
+  // `pending` makes the suppression durable. It's already marked seen at
+  // surface time, so a later refetch won't re-add it.
+  //
+  // This is React's "adjust state when a value changes *during render*"
+  // pattern (you-might-not-need-an-effect) rather than an effect: we store
+  // the last-seen game id and prune `pending` the render the path first
+  // resolves to a pending invite's game. No effect → no extra commit, and
+  // it can't lag a frame behind the navigation.
+  const [enteredGameId, setEnteredGameId] = useState<string | null>(null)
+  if (currentGameId && currentGameId !== enteredGameId) {
+    setEnteredGameId(currentGameId)
+    setPending((prev) =>
+      prev.some((i) => i.gameId === currentGameId)
+        ? prev.filter((i) => i.gameId !== currentGameId)
+        : prev,
+    )
+  }
+
   const dismiss = useCallback((gameId: string) => {
     setPending((prev) => prev.filter((i) => i.gameId !== gameId))
   }, [])
@@ -135,7 +160,10 @@ export function useGameInvitations(session: Session): {
     navigate(`/g/${invite.gametype}/${invite.gameId}`)
   }, [])
 
-  // Never invite someone to the game they're already looking at.
+  // Never invite someone to the game they're already looking at. This
+  // suppresses the popup on the SAME render the path changes (no one-frame
+  // flash); the effect above then removes the invite from `pending` so the
+  // dismissal is durable once they navigate away.
   const invites = pending.filter((i) => i.gameId !== currentGameId)
   return { invites, dismiss, join }
 }
