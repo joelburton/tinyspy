@@ -12,7 +12,7 @@ import {
 /**
  * The hand in MonkeyGram v2 is DERIVED, not stored: hand = tiles − placed.
  * These helpers are the multiset algebra behind that (letters repeat, so the
- * set-based Connections reconcile won't do). Pure + deterministic, except
+ * set-based connections reconcile won't do). Pure + deterministic, except
  * shuffleString — for which we test invariants, not output.
  */
 

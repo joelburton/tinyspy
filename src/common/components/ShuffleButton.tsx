@@ -16,7 +16,7 @@ type Props = {
 /**
  * The standard ⟲ shuffle control — an icon-only pill, used wherever a player
  * reshuffles their OWN tiles for a fresh look (FreeBee's outer letters,
- * Connections's remaining tiles, MonkeyGram's hand). It's part of the shared
+ * connections's remaining tiles, MonkeyGram's hand). It's part of the shared
  * design language: the same recognizable glyph + hover-spin everywhere, so a
  * player who learns it in one game knows it in the next. See docs/ui.md →
  * Consistency across games.

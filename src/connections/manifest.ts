@@ -12,7 +12,7 @@ import logoUrl from './logo.svg?url'
  * grouping game. The user-facing copy reads however we like;
  * gametype / schema / folder are all `connections`.
  *
- * Connections exists in coop and compete modes, each a separate
+ * connections exists in coop and compete modes, each a separate
  * row in `common.gametypes` ('connections_coop', 'connections_compete')
  * and a separate Start button on the club page. Same sibling-
  * manifest pattern psychicnum introduced — see
@@ -63,8 +63,8 @@ const playAreaLoader = lazy(() =>
 
 // SetupForm is shared — puzzle picker + timer-mode field, mode-
 // independent. The mode is locked at the gametype level, not a
-// setup choice; clicking "Start Connections (coop)" vs "(compete)"
-// is what picks the mode.
+// setup choice; clicking the coop vs compete Start button is what
+// picks the mode.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
@@ -82,7 +82,11 @@ const setupFormLoader = lazy(() =>
 //
 // RLS makes the lookup safe: the row only appears for club members,
 // belt-and-braces on top of the .eq('club_handle', ...) filter.
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+//
+// `brand` is the manifest's own `name` (passed in from BRAND below) so
+// the user-facing error reads the brand from the single branding source
+// — there is no hardcoded brand string anywhere but `name`/BRAND.
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (
     clubHandle: string,
     setup: unknown,
@@ -110,7 +114,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     if (error || !data) {
       return {
         error:
-          error?.message ?? `failed to start Connections (${mode}) game`,
+          error?.message ?? `failed to start ${brand} (${mode}) game`,
       }
     }
     return { id: data.id }
@@ -132,12 +136,19 @@ async function submitTimeout(gameId: string) {
 // Coop terminal labels are also derived from the same status keys.
 type StatusBlob = Record<string, unknown>
 
+// The single source of truth for this game's user-facing brand name.
+// Both sibling manifests set `name: BRAND`, and the start-game error
+// reads it too — so a fork rebrands by editing this one line. The
+// codename (`connections`) is unrelated and stays lowercase everywhere
+// in code.
+const BRAND = 'WordKnit'
+
 export const connectionsCoopGame: GameManifest = {
   gametype: 'connections_coop',
   schema: 'connections',
   baseGametype: 'connections',
   mode: 'coop',
-  name: 'WordKnit',
+  name: BRAND,
   shortDescription: 'Find categories, like Connections',
   logoUrl,
 
@@ -155,7 +166,7 @@ export const connectionsCoopGame: GameManifest = {
     defaults: DEFAULT_CONNECTIONS_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
@@ -182,7 +193,7 @@ export const connectionsCompeteGame: GameManifest = {
   schema: 'connections',
   baseGametype: 'connections',
   mode: 'compete',
-  name: 'WordKnit',
+  name: BRAND,
   shortDescription: 'Race to solve, NYT Connections',
   logoUrl,
 
@@ -201,7 +212,7 @@ export const connectionsCompeteGame: GameManifest = {
     defaults: DEFAULT_CONNECTIONS_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
 
   // Compete listing labels are intentionally numeric-free — the
   // "opponents see mistakes only" decision means we don't surface
