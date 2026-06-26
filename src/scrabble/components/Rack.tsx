@@ -49,7 +49,7 @@ export function Rack({
               flashIds.has(rackIdx) && styles.flashNew,
             )}
           >
-            <span className={styles.letter}>{isBlank ? '' : glyph}</span>
+            <span className={styles.letter}>{isBlank ? '?' : glyph}</span>
             {!isBlank && <span className={styles.value}>{LETTER_VALUES[glyph] ?? 0}</span>}
           </div>
         )

@@ -72,14 +72,26 @@
 .tile.committed {
   cursor: default;
 }
+/* Placed-but-not-committed (this-turn) tiles get a bright face so the player
+   can see exactly what they're laying down before they commit the word. */
 .tile.tentative {
   background: var(--scrabble-tile-tentative);
 }
-/* A blank shows its declared letter but a grey face, so it's still
-   recognizable as a blank (like the real game). After .tentative so it wins
-   for a not-yet-committed blank too. */
-.tile.blank {
-  background: var(--scrabble-tile-blank);
+/* A placed blank shows its declared letter normally, marked as a blank by a
+   thin ring around the glyph (like circling a wildcard) rather than a tinted
+   face. The ring is sized in `em` off the letter's font-size, so it scales
+   with the tile and stays centered on the glyph. */
+.tile.blank .letter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.25em;
+  height: 1.25em;
+  transform: translate(-50%, -50%);
+  border: 0.07em solid currentColor;
+  border-radius: 50%;
+  pointer-events: none;
 }
 .tile.lifted {
   opacity: 0.3;

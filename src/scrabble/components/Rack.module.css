@@ -28,10 +28,10 @@
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
   touch-action: none;
 }
-/* Grey face for a blank, matching the board — reinforces "grey = blank".
-   Before .selected so an exchange selection still overrides it. */
-.tile.blank {
-  background: var(--scrabble-tile-blank);
+/* An unplaced blank shows a faint "?" where its letter will go (it has no
+   letter until it's placed and declared) — see Rack.tsx. */
+.tile.blank .letter {
+  opacity: 0.4;
 }
 .tile.used {
   opacity: 0.3;
