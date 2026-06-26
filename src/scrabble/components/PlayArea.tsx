@@ -7,6 +7,7 @@ import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
+import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { evaluatePlay, type Placement } from '../lib/play'
@@ -23,8 +24,6 @@ import '../theme.css'
 type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
-
-const clamp = (n: number) => Math.max(0, Math.min(BOARD_SIZE - 1, n))
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -349,19 +348,6 @@ export function PlayArea({
     [isFilled],
   )
 
-  const moveCursor = useCallback(
-    (key: string) => {
-      const axis = key === 'ArrowLeft' || key === 'ArrowRight' ? 'h' : 'v'
-      setCursor((cur) => {
-        if (cur.dir !== axis) return { ...cur, dir: axis }
-        const dx = key === 'ArrowRight' ? 1 : key === 'ArrowLeft' ? -1 : 0
-        const dy = key === 'ArrowDown' ? 1 : key === 'ArrowUp' ? -1 : 0
-        return { x: clamp(cur.x + dx), y: clamp(cur.y + dy), dir: cur.dir }
-      })
-    },
-    [],
-  )
-
   const typeLetter = useCallback(
     (letter: string) => {
       // Skip forward over committed (locked) tiles to the first placeable cell.
@@ -394,11 +380,7 @@ export function PlayArea({
 
   const backspace = useCallback(() => {
     setStaged((prev) => prev.filter((s) => !(s.x === cursor.x && s.y === cursor.y)))
-    setCursor((cur) => ({
-      x: clamp(cur.x - (cur.dir === 'h' ? 1 : 0)),
-      y: clamp(cur.y - (cur.dir === 'v' ? 1 : 0)),
-      dir: cur.dir,
-    }))
+    setCursor((cur) => stepBack(cur, BOARD_SIZE - 1))
   }, [cursor])
 
   const recallAll = useCallback(() => setStaged([]), [])
@@ -503,7 +485,7 @@ export function PlayArea({
       backspace()
     } else if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
       e.preventDefault()
-      moveCursor(k)
+      setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1))
     } else if (k.length === 1 && /^[a-z]$/i.test(k)) {
       e.preventDefault()
       typeLetter(k.toUpperCase())

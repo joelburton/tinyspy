@@ -14,6 +14,7 @@ import {
 } from '../lib/board'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
+import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -397,23 +398,12 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       if (k === 'Backspace') {
         e.preventDefault()
         if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
-        setCursor({
-          x: clamp(cur.x - (cur.dir === 'h' ? 1 : 0)),
-          y: clamp(cur.y - (cur.dir === 'v' ? 1 : 0)),
-          dir: cur.dir,
-        })
+        setCursor(stepBack(cur, GRID - 1))
         return
       }
       if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
         e.preventDefault()
-        const axis = k === 'ArrowLeft' || k === 'ArrowRight' ? 'h' : 'v'
-        if (cur.dir !== axis) {
-          setCursor({ x: cur.x, y: cur.y, dir: axis })
-        } else {
-          const dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0
-          const dy = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0
-          setCursor({ x: clamp(cur.x + dx), y: clamp(cur.y + dy), dir: cur.dir })
-        }
+        setCursor(moveCursor(cur, k, GRID - 1))
         return
       }
       if (k.length === 1 && /[a-z]/i.test(k)) {
