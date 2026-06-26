@@ -15,7 +15,7 @@ type Props = {
 
 /**
  * The standard ⟲ shuffle control — an icon-only pill, used wherever a player
- * reshuffles their OWN tiles for a fresh look (FreeBee's outer letters,
+ * reshuffles their OWN tiles for a fresh look (spellingbee's outer letters,
  * connections's remaining tiles, MonkeyGram's hand). It's part of the shared
  * design language: the same recognizable glyph + hover-spin everywhere, so a
  * player who learns it in one game knows it in the next. See docs/ui.md →
@@ -28,7 +28,7 @@ type Props = {
  * The glyph rotates on hover; the rotation lives on the inner span so the pill
  * itself stays put (rotating the button would spin the whole control, which
  * reads as a twitch). `onMouseDown` is suppressed so a click doesn't steal
- * focus from a game's keyboard-handler attachment point (FreeBee captures typed
+ * focus from a game's keyboard-handler attachment point (spellingbee captures typed
  * letters and must keep focus where keydown is bound).
  */
 export function ShuffleButton({ onShuffle, disabled, label = 'Shuffle', className }: Props) {

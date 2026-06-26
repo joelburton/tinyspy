@@ -14,7 +14,7 @@
 -- Coop + compete ship as a sibling-manifest pair (`wordle_coop` +
 -- `wordle_compete` gametypes, a denormalized `mode` column on
 -- wordle.games, and a `mode` arg on create_game) — same pattern
--- waffle/freebee/connections/psychicnum follow.
+-- waffle/spellingbee/connections/psychicnum follow.
 --   - Coop: ONE shared board. Either player guesses; the guess (and its
 --     colors) is visible to all once submitted. The guess budget is
 --     shared by the team.
@@ -23,7 +23,7 @@
 --     tie-break earliest solve.
 --
 -- The structure is waffle's hidden-answer pattern (a HIDDEN `target`,
--- revealed post-terminal via games_state) plus freebee's per-guess log
+-- revealed post-terminal via games_state) plus spellingbee's per-guess log
 -- with mode-aware RLS (compete hides opponents' guesses). The target is
 -- drawn per the chosen `answer_source` (0 = the curated Wordle answer
 -- list, 1..6 = a difficulty band of common.words); guesses are validated
@@ -109,7 +109,7 @@ $$;
 -- ============================================================
 -- `target` is the answer key — HIDDEN via a column-level grant and
 -- revealed only post-terminal through games_state (the
--- waffle/freebee/psychicnum hidden-answer pattern). `max_guesses` is
+-- waffle/spellingbee/psychicnum hidden-answer pattern). `max_guesses` is
 -- the budget; in coop it's shared by the team, in compete it's each
 -- player's own.
 create table wordle.games (
@@ -204,7 +204,7 @@ create index wordle_guesses_game_id_idx on wordle.guesses (game_id);
 grant select on wordle.guesses to authenticated;
 
 alter table wordle.guesses enable row level security;
--- Visibility (mirrors freebee.found_words): club membership is the
+-- Visibility (mirrors spellingbee.found_words): club membership is the
 -- outer gate; inside, coop shows everyone's guesses, you always see
 -- your own, and once the game ends everyone sees everyone's (the
 -- compete reveal).

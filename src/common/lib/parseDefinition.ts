@@ -15,7 +15,7 @@
  *
  *   - **Seeded glosses** (`source` is 's' / 'e' / 'm'): the shared
  *     custom symbology (see the definition-format notes in
- *     docs/games/freebee.md — richer than the original Scrabble
+ *     docs/games/spellingbee.md — richer than the original Scrabble
  *     glosses). The only markup we act on is the cross-reference — a
  *     target word + part-of-speech in angle or curly brackets:
  *     `<aah=v>`, `{vulture=n}`. Each becomes a `ref` part the FE

@@ -115,7 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // want to quit before anyone goes out, this is the explicit stop. It
   // ends the game for EVERYONE with nobody as the winner (status.outcome
   // 'manual') — agreeing to stop is a valid outcome, not a loss. Mirrors
-  // freebee's PlayArea: confirm, fire the RPC, surface only failures.
+  // spellingbee's PlayArea: confirm, fire the RPC, surface only failures.
   useEndGameMenu({
     isTerminal,
     menu,

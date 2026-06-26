@@ -26,7 +26,7 @@ import type { SubmissionRow } from './useGame'
  *
  * **Coop only.** In compete a teammate's submissions are RLS-hidden until
  * terminal, and there's no shared board to narrate — so the hook no-ops on
- * any non-coop mode. Like freebee's `usePeerFeedback`, it bootstraps from
+ * any non-coop mode. Like spellingbee's `usePeerFeedback`, it bootstraps from
  * the first loaded render (the `ready` ref) so a reconnect or navigate-back
  * doesn't replay the whole backlog as a burst of pills, and it skips the
  * player's OWN submissions (those are reported next to their input).

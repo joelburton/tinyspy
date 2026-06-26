@@ -19,7 +19,7 @@ import logoUrl from './logo.svg?url'
  * interaction axis for any code that reads it.
  *
  * Solo is allowed: `numberOfPlayers` starts at 1 (a one-player race
- * is "finish your own tiles"), unlike the psychicnum/connections/freebee
+ * is "finish your own tiles"), unlike the psychicnum/connections/spellingbee
  * compete siblings whose lower bound is 2.
  */
 export const monkeygramGame: GameManifest = {

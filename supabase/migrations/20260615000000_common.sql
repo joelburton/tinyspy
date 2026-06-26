@@ -1805,7 +1805,7 @@ grant execute on function common.update_profile_color(text) to authenticated;
 -- ============================================================
 -- common.words — the master playable-word list
 -- ============================================================
--- One row per playable word, shared by every word game (freebee
+-- One row per playable word, shared by every word game (spellingbee
 -- today; Boggle, MonkeyGram board-validation, crosswords later). A
 -- single categorized source means each game filters the same table
 -- to its own taste instead of vendoring its own word list. Every
@@ -1821,7 +1821,7 @@ grant execute on function common.update_profile_color(text) to authenticated;
 --                 3 familiar, 4 uncommon, 5 obscure, 6 expert
 --                 (SOWPODS-only). A single threshold controls how hard
 --                 the playable set is; games pick by player skill.
---                 freebee uses two thresholds: required = <= 3 (clean),
+--                 spellingbee uses two thresholds: required = <= 3 (clean),
 --                 legal = <= 5.
 --   american/british/canadian/australian — dialect validity. Mostly
 --                 a SPELLING filter (colour/color, -ise/-ize); a word
@@ -1840,12 +1840,12 @@ grant execute on function common.update_profile_color(text) to authenticated;
 --   wordle      — in the fixed NYT Wordle answer/guess list. A future
 --                 Wordle game would pull exactly `WHERE wordle`.
 --   len         — char length, stored so per-game length rules
---                 (freebee >=4, Boggle >=3, MonkeyGram >=2) filter
+--                 (spellingbee >=4, Boggle >=3, MonkeyGram >=2) filter
 --                 cheaply without a function call.
 --   root_word   — lemma of an inflected form (cats -> cat), else
 --                 NULL; drives "see also" grouping.
 --   definition / definition_source — the click-to-define payload, in
---                 the compact freebee symbology (parseDefinition on
+--                 the compact spellingbee symbology (parseDefinition on
 --                 the FE). source provenance: s=real scrabble def,
 --                 e=auto gloss ("plural of cat"), w=looked up online
 --                 (Wiktionary), m=manual; NULL=never looked up.
@@ -1861,12 +1861,12 @@ grant execute on function common.update_profile_color(text) to authenticated;
 --
 -- letter_mask is a GENERATED column: the 26-bit set of distinct
 -- letters in the word (bit 0 = 'a'). It powers the "find every word
--- whose letters fit this puzzle" bitmask query the freebee board
+-- whose letters fit this puzzle" bitmask query the spellingbee board
 -- builder runs (word.letter_mask & ~puzzle_mask = 0). Generated, so
 -- it's always correct and the importer never has to compute it.
 
 -- The bit convention here (bit 0 = 'a', ascii('a')=97) must match
--- the TS letterMask() the freebee board builder uses to compute
+-- the TS letterMask() the spellingbee board builder uses to compute
 -- puzzle masks, or the subset test would compare incompatible bit
 -- layouts. IMMUTABLE so it's usable in the generated column + any
 -- expression index.
@@ -1899,7 +1899,7 @@ create table common.words (
   wordle            boolean not null default false,  -- in the fixed Wordle word list
   len               smallint not null,
   root_word         text,                     -- lemma of an inflected form, else NULL
-  definition        text,                     -- gloss/def in freebee symbology, NULL if none yet
+  definition        text,                     -- gloss/def in spellingbee symbology, NULL if none yet
   -- NULL allowed (a CHECK passes when its expression is NULL): a
   -- word that's never been looked up has a NULL source.
   definition_source char(1)
@@ -1917,15 +1917,15 @@ create table common.words (
 
 -- The two common per-game filters (mirrors the upstream schema): a
 -- difficulty threshold and a length floor. The letter_mask board-
--- build index lands with freebee's queries in a later migration — it
--- wants a partial index tuned to the freebee universe (len, no-'s'),
+-- build index lands with spellingbee's queries in a later migration — it
+-- wants a partial index tuned to the spellingbee universe (len, no-'s'),
 -- so it's defined where that query lives, not here.
 create index words_difficulty_idx on common.words (difficulty);
 create index words_len_idx        on common.words (len);
 
 -- Public reference data: an English dictionary isn't secret and
--- leaks no per-game answer key (a freebee board's legal words live
--- in the hidden freebee.games_state columns, not here). Readable by
+-- leaks no per-game answer key (a spellingbee board's legal words live
+-- in the hidden spellingbee.games_state columns, not here). Readable by
 -- any signed-in user; no RLS. The only write path is the lazy
 -- definition fill through cache_definition (SECURITY DEFINER), so
 -- authenticated gets SELECT only. The bulk seed importer connects as

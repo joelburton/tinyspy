@@ -1,0 +1,47 @@
+/* The 2-cell stat grid: Score / Words. Sits between the RankBar
+ * and the WordList. Each cell shows a small uppercase label + a
+ * large number, spellingbee-ws idiom. (The timer lives in the GamePage
+ * header, so it isn't repeated here.)
+ *
+ * Grid template: 2 equal columns. Tightly packed so the score +
+ * words read at a glance.
+ */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--color-surface-border);
+  padding: 12px 0;
+  margin: 12px 0;
+  text-align: center;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--spellingbee-hex-text);
+}
+
+.muted {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+}

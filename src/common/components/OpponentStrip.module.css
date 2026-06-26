@@ -1,5 +1,5 @@
 /* The inline per-player progress strip shared by waffle / connections /
- * freebee / psychicnum. Muted, small, wraps on overflow. Consolidated
+ * spellingbee / psychicnum. Muted, small, wraps on overflow. Consolidated
  * from the near-identical per-game copies these games used to carry. */
 .strip {
   display: flex;
@@ -10,7 +10,7 @@
   font-size: 0.85rem;
 }
 
-/* Optional row above the entries (e.g. freebee's "target: Amazing"). */
+/* Optional row above the entries (e.g. spellingbee's "target: Amazing"). */
 .leading {
   font-size: 0.75rem;
   text-transform: uppercase;

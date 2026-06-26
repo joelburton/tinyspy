@@ -5,7 +5,7 @@ import styles from './GameInvitations.module.css'
 /**
  * The game-invitation popups — mounted once on every authenticated page
  * (App.tsx, sibling to UserMenu). When a friend adds you to a game you
- * get a card here: "Moth added you to a new FreeBee game" with a Join
+ * get a card here: "Moth added you to a new spellingbee game" with a Join
  * button. Replaces the old auto-navigate-into-the-club's-game behavior:
  * you choose when to join (the game also waits for you — it's paused
  * until every invited player is present), or dismiss and join later from

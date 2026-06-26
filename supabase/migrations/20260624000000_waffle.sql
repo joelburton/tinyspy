@@ -167,7 +167,7 @@ $$;
 -- function (no pre-generated puzzle library) and stored here, so the
 -- game is self-contained. `solution` is the answer key — HIDDEN via a
 -- column-level grant and revealed only post-terminal through
--- games_state (the freebee/psychicnum hidden-answer pattern).
+-- games_state (the spellingbee/psychicnum hidden-answer pattern).
 -- `scramble` is the starting board (public).
 create table waffle.games (
   id          uuid primary key references common.games(id) on delete cascade,
@@ -815,7 +815,7 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- 'lost', compete 'won_compete' / 'lost_compete' (see submit_swap
 -- and submit_timeout). This RPC is a *different* thing: a neutral
 -- stop that nobody wins or loses. It writes the UNIFORM terminal
--- play_state 'ended' (the same value freebee/tinyspy/etc. use for
+-- play_state 'ended' (the same value spellingbee/tinyspy/etc. use for
 -- a manual end), NOT one of waffle's intrinsic verdicts — so the
 -- FE renders the neutral green "Game ended" card rather than a
 -- win/lose result.

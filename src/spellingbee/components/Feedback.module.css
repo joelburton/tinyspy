@@ -1,0 +1,34 @@
+/* The submission feedback pill. Sits between the typed-word
+ * display and the honeycomb; only renders when there's a
+ * message to show. The three tones (success / warning / error)
+ * map onto submit_word's result enum:
+ *
+ *   accepted, bonus            → success (green)
+ *   alreadyFound, tooShort     → warning (amber)
+ *   badLetters, missingCenter,
+ *   notAWord                   → error (red)
+ *
+ * Pill shape, tracking-wide, short copy. Disappears after a
+ * short timeout (handled by the caller, not here).
+ */
+
+.feedback {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.message {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid currentColor;
+}
+
+.success { color: var(--spellingbee-feedback-success); }
+.warning { color: var(--spellingbee-feedback-warning); }
+.error   { color: var(--spellingbee-feedback-error);   }

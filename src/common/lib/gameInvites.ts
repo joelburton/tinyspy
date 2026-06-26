@@ -1,6 +1,6 @@
 /**
  * Game-invitation model — the data + pure logic behind the "Moth added
- * you to a new FreeBee game" popup (see `useGameInvitations`).
+ * you to a new spellingbee game" popup (see `useGameInvitations`).
  *
  * Games seat every player at creation (a `common.game_players` row each),
  * but we no longer drag people into the game. Instead, wherever a player
@@ -27,7 +27,7 @@ export type InviteCandidate = {
 export type GameInvite = {
   gameId: string
   gametype: string
-  /** Display name from the manifest registry (e.g. "FreeBee (coop)"). */
+  /** Display name from the manifest registry (e.g. "spellingbee (coop)"). */
   gameName: string
   clubHandle: string
   /** The game's creator — "<inviterName> added you to a new …". */

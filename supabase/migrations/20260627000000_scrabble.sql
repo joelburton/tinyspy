@@ -11,7 +11,7 @@
 --
 -- Coop + compete ship as a sibling-manifest pair (`scrabble_coop` +
 -- `scrabble_compete`, a denormalized `mode` column, a `mode` arg on
--- create_game) — the pattern waffle/wordle/freebee follow.
+-- create_game) — the pattern waffle/wordle/spellingbee follow.
 --   - Compete (2..4): classic turn-based Scrabble. Private per-player
 --     racks + scores; only the player whose turn it is may act; highest
 --     final score wins.

@@ -57,7 +57,7 @@ export function FoundWords({
     setDefining({ word, rect: el.getBoundingClientRect() })
 
   // Click / keyboard activation for a clickable word chip (mirrors
-  // freebee's WordList — same "Click to define" affordance).
+  // spellingbee's WordList — same "Click to define" affordance).
   const defineActivation = (word: string) => ({
     onClick: (e: MouseEvent<HTMLSpanElement>) =>
       openDefine(word, e.currentTarget),

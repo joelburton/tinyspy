@@ -42,7 +42,7 @@ vi.mock('../lib/router', () => ({
 vi.mock('../lib/channelDedup', () => ({ channelDedupSuffix: () => 'test' }))
 
 vi.mock('../../games', () => ({
-  games: [{ gametype: 'freebee_coop', name: 'FreeBee' }],
+  games: [{ gametype: 'spellingbee_coop', name: 'FreeBee' }],
 }))
 
 // A real game id is a hex UUID — the path regex only captures `[0-9a-f-]+`,
@@ -54,7 +54,7 @@ const GID = '11111111-1111-1111-1111-111111111111'
 const dbData: Record<string, unknown[]> = {
   game_players: [{ game_id: GID }],
   games: [
-    { id: GID, gametype: 'freebee_coop', club_handle: 'pals', created_by: 'moth-id' },
+    { id: GID, gametype: 'spellingbee_coop', club_handle: 'pals', created_by: 'moth-id' },
   ],
   profiles: [{ user_id: 'moth-id', username: 'moth' }],
 }
@@ -127,7 +127,7 @@ describe('useGameInvitations', () => {
     const { result } = await renderWithInvite()
     expect(result.current.invites[0]).toMatchObject({
       gameId: GID,
-      gametype: 'freebee_coop',
+      gametype: 'spellingbee_coop',
       gameName: 'FreeBee',
       inviterName: 'moth',
     })
@@ -139,7 +139,7 @@ describe('useGameInvitations', () => {
     // Enter the game by the active-game link (a navigation, not the
     // dialog's Join) — the popup must hide.
     await act(async () => {
-      mockPath = `/g/freebee_coop/${GID}`
+      mockPath = `/g/spellingbee_coop/${GID}`
       rerender()
     })
     expect(result.current.invites).toEqual([])

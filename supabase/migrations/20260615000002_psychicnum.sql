@@ -27,7 +27,7 @@
 -- The "family pair sharing a schema" pattern is canonical here.
 -- See manifest.baseGametype + manifest.mode in src/common/lib/games.ts
 -- for the FE side of the same idea. A future game that adds a
--- compete sibling (connections, freebee) follows this template:
+-- compete sibling (connections, spellingbee) follows this template:
 --   - one schema, one folder
 --   - two `common.gametypes` rows ('<base>_coop', '<base>_compete')
 --   - mode-denormalized column on the game row for RLS branching
@@ -35,7 +35,7 @@
 --
 -- Educationally minimal: psychicnum is a deliberately tiny game,
 -- and its coop/compete split is the smallest possible surface to
--- learn the pattern. Connections + freebee adoption can crib from
+-- learn the pattern. Connections + spellingbee adoption can crib from
 -- here directly.
 --
 -- What this still exercises that tinyspy doesn't:
@@ -684,7 +684,7 @@ grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 -- ('lost' / 'lost_compete') because timing out genuinely is a
 -- loss, a *manual* stop is neither a win nor a loss — the friends
 -- simply agreed to stop. So this writes the UNIFORM terminal
--- play_state 'ended' (the same value freebee/the other games use
+-- play_state 'ended' (the same value spellingbee/the other games use
 -- for their manual stops) with status.outcome='manual'. The FE
 -- has explicit 'ended' branches that render this neutrally (green
 -- "Game ended", not the red "you lost" treatment).

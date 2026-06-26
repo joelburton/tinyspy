@@ -1004,7 +1004,7 @@ grant execute on function monkeygram.submit_timeout(uuid) to authenticated;
 -- was chosen — the collective loss in `monkeygram.submit_timeout` above
 -- (time's up, nobody out). This is the third terminal: a manual stop,
 -- for when the friends want to quit a stale race before either fires.
--- Modeled on `freebee.end_game`'s COMPETE branch.
+-- Modeled on `spellingbee.end_game`'s COMPETE branch.
 --
 -- Shape vs. the `peel` win:
 --   - play_state 'ended' (not 'won') — nobody went out
@@ -1043,7 +1043,7 @@ begin
   end if;
 
   -- All players {"won": false} — no winner. MonkeyGram's per-player
-  -- result is bare {"won": bool} (no score; unlike freebee there's no
+  -- result is bare {"won": bool} (no score; unlike spellingbee there's no
   -- running point total to report).
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results
@@ -1055,7 +1055,7 @@ begin
     player_results
   );
 
-  -- Realtime touch — same trick as freebee.end_game / submit_timeout.
+  -- Realtime touch — same trick as spellingbee.end_game / submit_timeout.
   -- `common.end_game` writes to common.games, which wakes the terminal
   -- modal via useCommonGame's common.games subscription. But the FE's
   -- monkeygram channels subscribe to monkeygram.player_boards (useGame)

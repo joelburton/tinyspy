@@ -16,7 +16,7 @@ import { setChatOpen } from '../lib/chatOpenStore'
  *     render. The dialog is identical on every page, so centralizing it
  *     here means each page gets word-lookup for free just by calling
  *     this hook — there's nothing page-specific to wire up. (This used
- *     to be re-implemented per-game in freebee/scrabble; it now lives
+ *     to be re-implemented per-game in spellingbee/scrabble; it now lives
  *     here so it works almost everywhere.)
  *
  * These fire when nothing is focused (the common case mid-game, where

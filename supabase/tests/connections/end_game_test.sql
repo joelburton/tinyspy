@@ -23,8 +23,8 @@
 --     require_game_player
 --
 -- See ../tinyspy/create_game_test.sql for the pgTAP / auth-
--- simulation primer; ../freebee/gameplay_test.sql for the
--- structurally-identical freebee.end_game test.
+-- simulation primer; ../spellingbee/gameplay_test.sql for the
+-- structurally-identical spellingbee.end_game test.
 
 begin;
 

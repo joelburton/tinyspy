@@ -4,7 +4,7 @@ import { newInviteCandidates, type InviteCandidate } from './gameInvites'
 const me = 'me-id'
 const candidate = (over: Partial<InviteCandidate>): InviteCandidate => ({
   id: 'g1',
-  gametype: 'freebee_coop',
+  gametype: 'spellingbee_coop',
   club_handle: 'pals',
   created_by: 'moth-id',
   ...over,

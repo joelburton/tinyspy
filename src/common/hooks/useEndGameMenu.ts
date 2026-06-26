@@ -34,7 +34,7 @@ import type { FeedbackApi, MenuApi } from '../lib/games'
  * directly:
  *   - `connections` — its menu carries a second, game-specific "Hint" item
  *     and gates on elimination state.
- *   - `freebee` — it routes the end-game error to its own in-body
+ *   - `spellingbee` — it routes the end-game error to its own in-body
  *     feedback surface (the word-result `<Feedback>`), not the common
  *     header pill this hook uses.
  */

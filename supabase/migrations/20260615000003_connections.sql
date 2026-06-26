@@ -1120,8 +1120,8 @@ begin
   -- The self-set (club_handle = club_handle, a real not-null
   -- column on connections.games) is a semantic no-op but produces a
   -- WAL entry on connections.games that Realtime delivers to the
-  -- games-table subscription. Same trick freebee.end_game /
-  -- freebee.submit_timeout use; see those for the bug history.
+  -- games-table subscription. Same trick spellingbee.end_game /
+  -- spellingbee.submit_timeout use; see those for the bug history.
   update connections.games
      set club_handle = club_handle
    where id = target_game;

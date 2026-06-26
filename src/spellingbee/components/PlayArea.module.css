@@ -1,0 +1,78 @@
+/* Two-column layout: the input loop on the left, the score/
+ * rank/word-list panel on the right. Both columns share a
+ * single centered wrapper with a max-width.
+ *
+ * Desktop-only per docs/ui.md — the play surface is a laptop
+ * browser; mobile gets graceful degradation, not engineering.
+ * We don't write narrow-viewport reflows.
+ */
+
+.playArea {
+  display: grid;
+  /* Right panel runs wider than the left now so the word list shows
+     three columns comfortably (see WordList.module.css). */
+  grid-template-columns: minmax(320px, 1fr) minmax(400px, 1.15fr);
+  gap: 32px;
+  align-items: start;
+  padding: 24px 16px 48px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.inputColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  /* A DEFINITE viewport-derived height (not just a cap): the WordList
+   * fills what's left below the score/rank/actions and gets a definite
+   * height itself, which its column-major grid needs to know how many
+   * rows fit (and therefore where columns wrap). The bordered grids
+   * above are inflexible; the WordList (flex: 1) absorbs the rest and
+   * scrolls horizontally inside. */
+  height: calc(100vh - 200px);
+  min-height: 240px;
+  padding: 0 8px;
+}
+
+.loading,
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-muted);
+  grid-column: 1 / -1;
+}
+
+/* The terminal indicator that replaces the Feedback row once
+ * the game has ended (and the GameOverModal has been
+ * dismissed). One line of copy + a Back-to-club button — same
+ * idiom psychicnum uses. The Back-to-club here skips the
+ * suspend-confirm modal (the game is terminal, no progress to
+ * lose); wired by GamePage via `ctx.goToClub`.
+ */
+.terminalIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 28px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.terminalIndicator button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-surface-border);
+  background: var(--color-surface);
+  color: var(--spellingbee-hex-text);
+  cursor: pointer;
+}
+

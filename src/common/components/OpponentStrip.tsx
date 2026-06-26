@@ -15,7 +15,7 @@ type Props = {
    * game wants to show: a number, a rank name, `<MistakeDots>`, etc.
    */
   metricFor: (player: Member, isSelf: boolean) => ReactNode
-  /** Optional row rendered above the entries, e.g. freebee's
+  /** Optional row rendered above the entries, e.g. spellingbee's
    *  "target: Amazing". Omit when there's nothing to lead with. */
   leading?: ReactNode
 }
@@ -27,7 +27,7 @@ type Props = {
  * `orderSelfFirst`), followed by a game-specific metric cell.
  *
  * Four games render exactly this shape and differ ONLY in the metric:
- * waffle (swaps + ✓/✗), connections (mistake dots), freebee (rank),
+ * waffle (swaps + ✓/✗), connections (mistake dots), spellingbee (rank),
  * psychicnum (guess budget). They pass a `metricFor` and share
  * everything else — order, the colored-name label, the `·` separators,
  * the wrapper, the CSS.

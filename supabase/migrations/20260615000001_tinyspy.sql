@@ -912,7 +912,7 @@ grant execute on function tinyspy.submit_timeout(uuid) to authenticated;
 --
 -- The friends' explicit "we're done here" button. tinyspy has
 -- plenty of *automatic* terminals (won / lost_assassin / lost_clock
--- / lost_timeout), so unlike freebee's coop mode there's always a
+-- / lost_timeout), so unlike spellingbee's coop mode there's always a
 -- rules-driven way for a game to end on its own — but the friends
 -- may still want to abandon an in-progress game early (a clue went
 -- sideways, someone has to leave the Zoom call). This RPC is that

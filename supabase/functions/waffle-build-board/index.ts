@@ -8,7 +8,7 @@
  * into each puzzle, so you can't filter a pre-generated board after the
  * fact. Generating on demand applies whatever filters the player chose
  * for free, over a continuous space, and is fast (a board builds in a
- * few ms). Same pattern as freebee-build-board.
+ * few ms). Same pattern as spellingbee-build-board.
  *
  * Generating server-side (not on the FE) keeps the solution off the
  * creating client — for a solve-the-board puzzle, a creator who knew

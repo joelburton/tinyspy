@@ -18,7 +18,7 @@ import { useEffect, useRef } from 'react'
  *     any read-only closure capture, and the deps array has to enumerate
  *     every variable the handler reads.
  *
- * Used by the word games (freebee, wordle) for physical-keyboard input
+ * Used by the word games (spellingbee, wordle) for physical-keyboard input
  * alongside their on-screen keyboards. Game-specific key handling stays
  * in the handler the caller passes; only the listen-once mechanism is
  * shared. The handler is responsible for its own gating (e.g. an early

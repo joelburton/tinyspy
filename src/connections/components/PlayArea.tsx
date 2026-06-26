@@ -105,15 +105,15 @@ export function PlayArea({
 
   // Local helper: every connections feedback today is `closeable`.
   //
-  // NOTE the arg order is (tone, text) — the OPPOSITE of freebee's
-  // showFeedback(text, tone). Don't copy a freebee call site verbatim.
+  // NOTE the arg order is (tone, text) — the OPPOSITE of spellingbee's
+  // showFeedback(text, tone). Don't copy a spellingbee call site verbatim.
   //
   // Defined here (above the menu-sync effect) because handleEndGame
   // below closes over it, and that closure is in turn referenced by
   // the syncMenuItems effect. Keeping the declaration order
   // feedback-helper → handleEndGame → effect avoids any
   // temporal-dead-zone / hooks-order problem.
-  // Memoized (like freebee's showFeedback) so handleEndGame's dep
+  // Memoized (like spellingbee's showFeedback) so handleEndGame's dep
   // array stays stable across renders — an un-memoized function here
   // would make the useCallback below rebuild every render.
   const showFeedback = useCallback(
@@ -127,7 +127,7 @@ export function PlayArea({
   // Available in both modes. Manual end terminates the game with
   // everyone {won:false} and a NEUTRAL green "Game ended" modal —
   // friends agreeing to stop is a valid outcome, not a "you lose"
-  // punishment. Mirrors freebee.handleEndGame; the only difference
+  // punishment. Mirrors spellingbee.handleEndGame; the only difference
   // is showFeedback's (tone, text) arg order (see note above).
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return

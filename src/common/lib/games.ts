@@ -72,7 +72,7 @@ export type GamePageCtx = {
    *  the latest value seen by `useCommonGame`'s realtime
    *  subscription — updates in place as RPCs land.
    *
-   *  Today's primary consumer is freebee's compete-mode
+   *  Today's primary consumer is spellingbee's compete-mode
    *  OpponentStrip, which reads `status.leaderboard` for
    *  the per-player rank summary. The same channel is open to
    *  any future game that wants a live status field surfaced
@@ -345,7 +345,7 @@ export type GameManifest = {
    * channel load, the chat surface area — all assume a bounded
    * count). For an "any club" game, pick a reasonable max — today
    * we use 6 for all the open-N games (connections, psychicnum,
-   * freebee) and `[2, 2]` for fixed-seat tinyspy.
+   * spellingbee) and `[2, 2]` for fixed-seat tinyspy.
    *
    * The shell uses this to decide whether the "Start" button is
    * hidden / disabled / enabled (in combination with the

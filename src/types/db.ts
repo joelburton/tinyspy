@@ -633,191 +633,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-  freebee: {
-    Tables: {
-      found_words: {
-        Row: {
-          found_at: string
-          game_id: string
-          is_bonus: boolean
-          is_pangram: boolean
-          points: number
-          user_id: string
-          word: string
-        }
-        Insert: {
-          found_at?: string
-          game_id: string
-          is_bonus: boolean
-          is_pangram: boolean
-          points: number
-          user_id: string
-          word: string
-        }
-        Update: {
-          found_at?: string
-          game_id?: string
-          is_bonus?: boolean
-          is_pangram?: boolean
-          points?: number
-          user_id?: string
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "found_words_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "found_words_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      games: {
-        Row: {
-          bonus_words: string[]
-          center_letter: string
-          club_handle: string
-          created_at: string
-          id: string
-          mode: string
-          outer_letters: string
-          required_words: Json
-          required_words_count: number
-          required_words_score: number
-        }
-        Insert: {
-          bonus_words: string[]
-          center_letter: string
-          club_handle: string
-          created_at?: string
-          id: string
-          mode: string
-          outer_letters: string
-          required_words: Json
-          required_words_count: number
-          required_words_score: number
-        }
-        Update: {
-          bonus_words?: string[]
-          center_letter?: string
-          club_handle?: string
-          created_at?: string
-          id?: string
-          mode?: string
-          outer_letters?: string
-          required_words?: Json
-          required_words_count?: number
-          required_words_score?: number
-        }
-        Relationships: []
-      }
-      pangrams: {
-        Row: {
-          has_rare_letters: boolean
-          mask: number
-          required_words_count: number
-        }
-        Insert: {
-          has_rare_letters: boolean
-          mask: number
-          required_words_count: number
-        }
-        Update: {
-          has_rare_letters?: boolean
-          mask?: number
-          required_words_count?: number
-        }
-        Relationships: []
-      }
-    }
-    Views: {
-      games_state: {
-        Row: {
-          center_letter: string | null
-          club_handle: string | null
-          created_at: string | null
-          id: string | null
-          mode: string | null
-          outer_letters: string | null
-          required_words: Json | null
-          required_words_count: number | null
-          required_words_score: number | null
-        }
-        Insert: {
-          center_letter?: string | null
-          club_handle?: string | null
-          created_at?: string | null
-          id?: string | null
-          mode?: string | null
-          outer_letters?: string | null
-          required_words?: never
-          required_words_count?: number | null
-          required_words_score?: number | null
-        }
-        Update: {
-          center_letter?: string | null
-          club_handle?: string | null
-          created_at?: string | null
-          id?: string | null
-          mode?: string | null
-          outer_letters?: string | null
-          required_words?: never
-          required_words_count?: number | null
-          required_words_score?: number | null
-        }
-        Relationships: []
-      }
-    }
-    Functions: {
-      _rank_idx: { Args: { score: number; total: number }; Returns: number }
-      _required_words_for: { Args: { g: string }; Returns: Json }
-      candidate_words: {
-        Args: {
-          center_bit: number
-          legal_band: number
-          puzzle_mask: number
-          required_band: number
-        }
-        Returns: {
-          is_required: boolean
-          letter_mask: number
-          word: string
-        }[]
-      }
-      create_game: {
-        Args: {
-          board: Json
-          mode: string
-          player_user_ids: string[]
-          setup: Json
-          target_club: string
-        }
-        Returns: {
-          id: string
-        }[]
-      }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
-      submit_word: {
-        Args: { target_game: string; word: string }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -1432,6 +1247,191 @@ export type Database = {
         Returns: Json
       }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  spellingbee: {
+    Tables: {
+      found_words: {
+        Row: {
+          found_at: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Insert: {
+          found_at?: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Update: {
+          found_at?: string
+          game_id?: string
+          is_bonus?: boolean
+          is_pangram?: boolean
+          points?: number
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          bonus_words: string[]
+          center_letter: string
+          club_handle: string
+          created_at: string
+          id: string
+          mode: string
+          outer_letters: string
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Insert: {
+          bonus_words: string[]
+          center_letter: string
+          club_handle: string
+          created_at?: string
+          id: string
+          mode: string
+          outer_letters: string
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Update: {
+          bonus_words?: string[]
+          center_letter?: string
+          club_handle?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          outer_letters?: string
+          required_words?: Json
+          required_words_count?: number
+          required_words_score?: number
+        }
+        Relationships: []
+      }
+      pangrams: {
+        Row: {
+          has_rare_letters: boolean
+          mask: number
+          required_words_count: number
+        }
+        Insert: {
+          has_rare_letters: boolean
+          mask: number
+          required_words_count: number
+        }
+        Update: {
+          has_rare_letters?: boolean
+          mask?: number
+          required_words_count?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          center_letter: string | null
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          mode: string | null
+          outer_letters: string | null
+          required_words: Json | null
+          required_words_count: number | null
+          required_words_score: number | null
+        }
+        Insert: {
+          center_letter?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          outer_letters?: string | null
+          required_words?: never
+          required_words_count?: number | null
+          required_words_score?: number | null
+        }
+        Update: {
+          center_letter?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          outer_letters?: string | null
+          required_words?: never
+          required_words_count?: number | null
+          required_words_score?: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _rank_idx: { Args: { score: number; total: number }; Returns: number }
+      _required_words_for: { Args: { g: string }; Returns: Json }
+      candidate_words: {
+        Args: {
+          center_bit: number
+          legal_band: number
+          puzzle_mask: number
+          required_band: number
+        }
+        Returns: {
+          is_required: boolean
+          letter_mask: number
+          word: string
+        }[]
+      }
+      create_game: {
+        Args: {
+          board: Json
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: { target_game: string; word: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2420,9 +2420,6 @@ export const Constants = {
   connections: {
     Enums: {},
   },
-  freebee: {
-    Enums: {},
-  },
   graphql_public: {
     Enums: {},
   },
@@ -2436,6 +2433,9 @@ export const Constants = {
     Enums: {},
   },
   scrabble: {
+    Enums: {},
+  },
+  spellingbee: {
     Enums: {},
   },
   stackdown: {
