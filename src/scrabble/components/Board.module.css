@@ -75,6 +75,12 @@
 .tile.tentative {
   background: var(--scrabble-tile-tentative);
 }
+/* A blank shows its declared letter but a grey face, so it's still
+   recognizable as a blank (like the real game). After .tentative so it wins
+   for a not-yet-committed blank too. */
+.tile.blank {
+  background: var(--scrabble-tile-blank);
+}
 .tile.lifted {
   opacity: 0.3;
 }
@@ -97,7 +103,11 @@
 .letter {
   position: absolute;
   top: 14%;
-  left: 20%;
+  /* Horizontally centered (anchored at the glyph's middle), nudged a hair
+     left of center — so a narrow letter like "I" still looks centered rather
+     than jammed against the left edge. */
+  left: 44%;
+  transform: translateX(-50%);
   font-size: 58cqmin;
   font-weight: 700;
   line-height: 1;

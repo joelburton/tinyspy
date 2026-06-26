@@ -47,6 +47,9 @@
 .barOrange {
   border-left-color: var(--color-outcome-near-border);
 }
+.barRed {
+  border-left-color: var(--color-outcome-lost-border);
+}
 
 .who {
   font-weight: 700; /* the player color is applied inline */
@@ -55,7 +58,21 @@
   color: #2e7d52;
   font-weight: 600;
 }
+.scoreNeg {
+  color: var(--color-error);
+  font-weight: 600;
+}
 .word {
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+/* A clickable (definable) word — subtle underline-on-hover affordance. */
+.clickable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.clickable:hover,
+.clickable:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }

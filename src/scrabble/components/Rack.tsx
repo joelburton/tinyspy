@@ -43,6 +43,7 @@ export function Rack({
             }}
             className={cls(
               styles.tile,
+              isBlank && styles.blank,
               isUsed && styles.used,
               selected.has(rackIdx) && styles.selected,
               flashIds.has(rackIdx) && styles.flashNew,

@@ -17,6 +17,7 @@
   --scrabble-tile-ink: #3b2a14;
   --scrabble-tile-edge: #d8bd82;
   --scrabble-tile-tentative: #ffe9b0; /* a not-yet-committed tile */
+  --scrabble-tile-blank: #ffeeb3; /* a blank: same warm hue as a tile, but brighter + more golden */
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
   --scrabble-cursor: #c9881f; /* the keyboard-entry cursor ring */
   /* The board's on-screen size — a square bounded by viewport height and by

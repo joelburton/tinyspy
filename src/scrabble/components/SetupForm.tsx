@@ -5,10 +5,11 @@ import type { ScrabbleSetup } from '../lib/setup'
 import styles from './SetupForm.module.css'
 
 /**
- * RackAttack's setup form. Two knobs, shared by both modes:
- *   - the dictionary band (all six offered) — uniquely for RackAttack this
- *     IS the acceptance bar, so a lower band makes a stricter game
- *     (docs/games/scrabble.md §3.3);
+ * RackAttack's setup form. Shared by both modes:
+ *   - two dictionary bands (all six offered each) — separate ceilings for
+ *     2-letter and 3+-letter words (the MonkeyGram split). Uniquely for
+ *     RackAttack these ARE the acceptance bar, so a lower band makes a stricter
+ *     game (docs/games/scrabble.md §3.3);
  *   - the timer.
  * Controlled component; state lives in the SetupGameDialog wrapper.
  */
@@ -17,16 +18,24 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   return (
     <div className={styles.setup}>
       <p className="muted">
-        Build words on the board from your rack of tiles. Words must be in the
-        dictionary at the difficulty you pick below.
+        Build words on the board from your rack of tiles. A word is accepted if
+        it's in the dictionary at the difficulty you pick for its length.
       </p>
       <DifficultyField
-        label="Word difficulty (acceptance bar)"
-        length={null}
+        label="2-letter words"
+        length={2}
         minDifficulty={1}
         maxDifficulty={6}
-        value={s.difficulty}
-        onChange={(difficulty) => onChange({ ...s, difficulty })}
+        value={s.dict_2}
+        onChange={(dict_2) => onChange({ ...s, dict_2 })}
+      />
+      <DifficultyField
+        label="Longer words (3+)"
+        length="3+"
+        minDifficulty={1}
+        maxDifficulty={6}
+        value={s.dict_3plus}
+        onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
       />
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

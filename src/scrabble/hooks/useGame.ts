@@ -20,7 +20,9 @@ export type PlayerRow = {
 export type PlayRow = {
   user_id: string
   seq: number
-  kind: 'word' | 'exchange' | 'pass'
+  /** 'forfeit' = a coop game ended with tiles in hand; `score` is the
+   *  (negative) leftover-tile value lost. */
+  kind: 'word' | 'exchange' | 'pass' | 'forfeit'
   placements: { x: number; y: number; letter: string; blank: boolean }[] | null
   words: string[] | null
   score: number | null
@@ -32,7 +34,6 @@ export type ScrabbleGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
-  difficulty: number
   /** The public 15×15 board — a flat 225-cell array. */
   board: Cell[]
   /** Optimistic-concurrency move counter; sent back as `base_version`. */
@@ -77,7 +78,7 @@ export function useGame(gameId: string): {
           db
             .from('games_state')
             .select(
-              'id, club_handle, mode, difficulty, board, version, bag_count, shared_rack, team_score, current_user_id',
+              'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_user_id',
             )
             .eq('id', gameId)
             .maybeSingle(),
@@ -102,7 +103,6 @@ export function useGame(gameId: string): {
           id: r.id as string,
           club_handle: r.club_handle as string,
           mode: r.mode as 'coop' | 'compete',
-          difficulty: r.difficulty as number,
           board: (r.board ?? []) as unknown as Cell[],
           version: r.version as number,
           bagCount: (r.bag_count ?? 0) as number,

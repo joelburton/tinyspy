@@ -87,6 +87,7 @@ export function Board({
           {(committed || tent) &&
             (() => {
               const glyph = committed ? committed.l : tent!.letter
+              const isBlank = committed ? committed.b : tent!.blank
               const val = committed
                 ? cellValue(committed)
                 : tent!.blank
@@ -97,6 +98,7 @@ export function Board({
                   className={cls(
                     styles.tile,
                     committed ? styles.committed : styles.tentative,
+                    isBlank && styles.blank,
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
                     redCells.has(idx) && styles.flashReject,

@@ -21,7 +21,7 @@ reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gco on commit drop as
   select id from scrabble.create_game((select handle from cl),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;
@@ -59,7 +59,7 @@ select is((select kind || ':' || tile_count from scrabble.plays
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
   select id from scrabble.create_game((select handle from cl),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;

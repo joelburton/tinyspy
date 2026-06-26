@@ -664,8 +664,8 @@ function buildOver({
 }): { outcome: 'won' | 'lost'; verdict: string; status: string } {
   const outcome = (status?.outcome as string | undefined) ?? ''
   if (game.mode === 'coop') {
-    if (playState === 'ended') return { outcome: 'won', verdict: 'Game ended.', status: 'ended' }
     const score = game.teamScore ?? 0
+    if (outcome === 'manual') return { outcome: 'won', verdict: `Game ended — ${score} points.`, status: `${score} points` }
     if (outcome === 'timeout') return { outcome: 'won', verdict: `Time's up — ${score} points.`, status: `${score} points` }
     return { outcome: 'won', verdict: `Board cleared — ${score} points! 🎉`, status: `${score} points` }
   }

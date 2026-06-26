@@ -19,7 +19,7 @@ create temp table cc on commit drop as
 create temp table gc on commit drop as
   select * from scrabble.create_game(
     (select handle from cc),
-    '{"difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 3, "dict_3plus": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop');
@@ -32,8 +32,8 @@ select is(
   (select mode from scrabble.games where id = (select id from gc)),
   'coop', 'scrabble.games stores mode coop');
 select is(
-  (select difficulty from scrabble.games where id = (select id from gc)),
-  3, 'the difficulty band is recorded');
+  (select dict_2 || '/' || dict_3plus from scrabble.games where id = (select id from gc)),
+  '3/3', 'both difficulty bands (2-letter / 3+) are recorded');
 select is(
   (select version from scrabble.games where id = (select id from gc)),
   0, 'version starts at 0');
@@ -66,7 +66,7 @@ create temp table cp on commit drop as
 create temp table gp on commit drop as
   select * from scrabble.create_game(
     (select handle from cp),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'compete');
@@ -96,7 +96,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok($$
   select scrabble.create_game(
     (select handle from cp),
-    '{"difficulty": 3}'::jsonb,
+    '{"dict_2": 3, "dict_3plus": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'compete')
 $$, 'P0001', null, 'compete rejects a single player');
@@ -104,7 +104,7 @@ $$, 'P0001', null, 'compete rejects a single player');
 select throws_ok($$
   select scrabble.create_game(
     (select handle from cp),
-    '{"difficulty": 3}'::jsonb,
+    '{"dict_2": 3, "dict_3plus": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid,
           'cade3333-3333-3333-3333-333333333333'::uuid,

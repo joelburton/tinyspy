@@ -11,13 +11,15 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type ScrabbleSetup = {
   /**
-   * The dictionary band that gates word acceptance: a word is legal iff its
-   * `common.words.difficulty` ≤ this (1..6). Unlike most games, this band IS
-   * the acceptance bar — picking a lower band genuinely makes a stricter game.
-   * The form offers all six; the server bounds it. See docs/games/scrabble.md
-   * §3.3.
+   * The dictionary bands that gate word acceptance, by word length (both
+   * 1..6, `common.words.difficulty`). 2-letter words are a thin, separate
+   * vocabulary, so they get their own band (`dict_2`) from the longer words
+   * (`dict_3plus`) — the same split MonkeyGram uses. Unlike most games these
+   * ARE the acceptance bar: a lower band genuinely makes a stricter game. The
+   * server bounds them. See docs/games/scrabble.md §3.3.
    */
-  difficulty: number
+  dict_2: number
+  dict_3plus: number
   /**
    * Timer mode. `none` / `countup` are informational; a `countdown` ends the
    * game on expiry via `scrabble.submit_timeout`.
@@ -27,6 +29,7 @@ export type ScrabbleSetup = {
 
 /** Initial setup the manifest hands the dialog. Band 3 = "Familiar". */
 export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
-  difficulty: 3,
+  dict_2: 3,
+  dict_3plus: 3,
   timer: { kind: 'none' },
 }

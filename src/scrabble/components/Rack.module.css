@@ -28,6 +28,11 @@
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
   touch-action: none;
 }
+/* Grey face for a blank, matching the board — reinforces "grey = blank".
+   Before .selected so an exchange selection still overrides it. */
+.tile.blank {
+  background: var(--scrabble-tile-blank);
+}
 .tile.used {
   opacity: 0.3;
   cursor: default;
@@ -46,7 +51,9 @@
 .letter {
   position: absolute;
   top: 14%;
-  left: 20%;
+  /* Centered (glyph midpoint), nudged a hair left — see Board.module.css. */
+  left: 44%;
+  transform: translateX(-50%);
   font-size: 58cqmin;
   font-weight: 700;
   line-height: 1;

@@ -20,7 +20,7 @@ create temp table ca on commit drop as
   select common.create_club('Rackplay', array['ada', 'bea']) as handle;
 create temp table ga on commit drop as
   select id from scrabble.create_game((select handle from ca),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;
@@ -81,7 +81,7 @@ reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
   select id from scrabble.create_game((select handle from ca),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;
@@ -123,7 +123,7 @@ reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
   select id from scrabble.create_game((select handle from ca),
-    '{"difficulty": 6, "timer": {"kind": "none"}}'::jsonb,
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;

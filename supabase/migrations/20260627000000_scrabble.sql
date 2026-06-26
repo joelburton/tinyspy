@@ -140,10 +140,13 @@ create table scrabble.games (
   id          uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   mode        text not null check (mode in ('coop', 'compete')),
-  -- The dictionary acceptance band: a word is legal iff its
-  -- common.words.difficulty <= this (1..6). Unlike most games this band
-  -- IS the bar, not just a puzzle-shaping knob — see docs §3.3.
-  difficulty  int  not null check (difficulty between 1 and 6),
+  -- The dictionary acceptance bands (both 1..6): a word is legal iff its
+  -- common.words.difficulty <= the band for its length — `dict_2` gates
+  -- 2-letter words, `dict_3plus` gates everything 3+ (2-letter words are a
+  -- thin, separate vocabulary, like MonkeyGram). Unlike most games these IS
+  -- the bar, not just a puzzle knob — see docs §3.3.
+  dict_2      int  not null check (dict_2 between 1 and 6),
+  dict_3plus  int  not null check (dict_3plus between 1 and 6),
   board       jsonb not null,                  -- PUBLIC: 225-cell array
   bag         text[] not null,                 -- HIDDEN: remaining draw order
   version     int  not null default 0,         -- optimistic-concurrency counter
@@ -160,8 +163,10 @@ create index scrabble_games_club_handle_idx on scrabble.games (club_handle);
 
 -- Column grant: everything EXCEPT the hidden `bag`. (Enumerating the safe
 -- columns is what flips the table from all-visible to granted-only.)
+-- (The dictionary bands are server-only config — not granted / not in the
+-- view; the FE never validates words.)
 grant select
-  (id, club_handle, mode, difficulty, board, version,
+  (id, club_handle, mode, board, version,
    shared_rack, team_score, current_user_id, consecutive_scoreless, created_at)
   on scrabble.games to authenticated;
 
@@ -207,19 +212,20 @@ create policy players_select on scrabble.players
 -- scrabble.plays — the durable move log
 -- ============================================================
 -- One row per move, a single per-game sequence. `kind`: 'word' (carries
--- `placements`/`words`/`score`), 'exchange' (`tile_count` returned), or
--- 'pass'. PUBLIC in both modes — every played word is already on the
--- shared public board, so there's nothing to hide here (unlike freebee's
--- mid-game-private found_words). Only racks + the bag are secret.
+-- `placements`/`words`/`score`), 'exchange' (`tile_count` returned),
+-- 'pass', or 'forfeit' (a coop game ended with tiles still in hand — the
+-- leftover-tile value is logged as a NEGATIVE `score`; see end_game).
+-- PUBLIC in both modes — every played word is already on the shared public
+-- board, so there's nothing to hide here. Only racks + the bag are secret.
 create table scrabble.plays (
   game_id    uuid not null references scrabble.games(id) on delete cascade,
   user_id    uuid not null references common.profiles(user_id) on delete cascade,
   seq        int  not null,
-  kind       text not null check (kind in ('word', 'exchange', 'pass')),
+  kind       text not null check (kind in ('word', 'exchange', 'pass', 'forfeit')),
   placements jsonb,                 -- kind='word'
   words      text[],                -- kind='word'
-  score      int,                   -- kind='word'
-  tile_count int,                   -- kind='exchange'
+  score      int,                   -- kind='word' (gained) / 'forfeit' (lost, negative)
+  tile_count int,                   -- kind='exchange' / 'forfeit'
   played_at  timestamptz not null default now(),
   primary key (game_id, seq)
 );
@@ -306,7 +312,6 @@ create view scrabble.games_state with (security_invoker = true) as
   select g.id,
          g.club_handle,
          g.mode,
-         g.difficulty,
          g.board,
          g.version,
          g.shared_rack,
@@ -521,7 +526,7 @@ on conflict do nothing;
 -- scrabble.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "difficulty": 1..6 (default 3),
+--   { "dict_2": 1..6 (default 3), "dict_3plus": 1..6 (default 3),
 --     "timer": (none | countup | countdown{seconds}) }
 -- Builds + shuffles the 100-tile bag, deals 7-tile racks (per-player in
 -- compete, one shared rack in coop), picks a random first player (compete),
@@ -539,7 +544,8 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   new_id        uuid;
-  s_difficulty  int;
+  s_dict_2      int;
+  s_dict_3plus  int;
   v_bag         text[];
   v_empty_board jsonb;
   v_first       uuid;
@@ -562,10 +568,13 @@ begin
     raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
   end if;
 
-  s_difficulty := coalesce((setup->>'difficulty')::int, 3);
-  if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
-      using errcode = 'P0001';
+  s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
+  s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
+  if s_dict_2 < 1 or s_dict_2 > 6 then
+    raise exception 'setup.dict_2 must be 1..6 (got %)', s_dict_2 using errcode = 'P0001';
+  end if;
+  if s_dict_3plus < 1 or s_dict_3plus > 6 then
+    raise exception 'setup.dict_3plus must be 1..6 (got %)', s_dict_3plus using errcode = 'P0001';
   end if;
 
   perform common.validate_timer(setup->'timer');
@@ -583,8 +592,8 @@ begin
   if mode = 'compete' then
     v_first := player_user_ids[1 + floor(random() * array_length(player_user_ids, 1))::int];
     insert into scrabble.games
-      (id, club_handle, mode, difficulty, board, bag, current_user_id)
-    values (new_id, target_club, mode, s_difficulty, v_empty_board, v_bag, v_first);
+      (id, club_handle, mode, dict_2, dict_3plus, board, bag, current_user_id)
+    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_first);
 
     -- Deal 7 tiles to each player, threading the bag down.
     foreach uid in array player_user_ids loop
@@ -601,8 +610,8 @@ begin
     v_drawn := v_bag[1:7];
     v_bag   := v_bag[8:];
     insert into scrabble.games
-      (id, club_handle, mode, difficulty, board, bag, shared_rack, team_score)
-    values (new_id, target_club, mode, s_difficulty, v_empty_board, v_bag, v_drawn, 0);
+      (id, club_handle, mode, dict_2, dict_3plus, board, bag, shared_rack, team_score)
+    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_drawn, 0);
 
     foreach uid in array player_user_ids loop
       insert into scrabble.players (game_id, user_id, seat) values (new_id, uid, v_seat);
@@ -718,15 +727,16 @@ begin
   v_rack := scrabble._remove_tiles(v_rack, v_consumed);
 
   -- ─── Dictionary check (the only server-side validation) ──
-  -- Legal iff difficulty <= the game's band AND valid in american OR
-  -- british (permissive — both `color` and `colour` are legal). Words are
-  -- stored lowercase; the FE's words are uppercase board letters.
+  -- Legal iff difficulty <= the band for the word's LENGTH (dict_2 for
+  -- 2-letter words, dict_3plus for 3+) AND valid in american OR british
+  -- (permissive — both `color` and `colour` are legal). Words are stored
+  -- lowercase; the FE's words are uppercase board letters.
   select array_agg(w) into bad_words
     from unnest(words) w
    where not exists (
      select 1 from common.words cw
       where cw.word = lower(w)
-        and cw.difficulty <= g.difficulty
+        and cw.difficulty <= (case when length(w) = 2 then g.dict_2 else g.dict_3plus end)
         and (cw.american or cw.british)
    );
   if array_length(bad_words, 1) > 0 then
@@ -1005,11 +1015,15 @@ revoke execute on function scrabble.submit_timeout(uuid) from public;
 grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- scrabble.end_game — manual neutral stop
+-- scrabble.end_game — the "we're done" action
 -- ============================================================
--- The friends' "we're done" action, both modes. Uniform neutral terminal
--- 'ended' (nobody wins/loses), everyone {won:false}, status.outcome =
--- 'manual'. No final scoring (it's not a finish, it's a stop). Idempotent.
+-- COOP deviates from the uniform neutral stop: ending with tiles still in
+-- hand FORFEITS their value from the team score (so a solo/coop team is
+-- pushed to find plays for its last tiles rather than just stopping — the
+-- same leftover-tile penalty a natural end applies). It runs final scoring
+-- (play_state 'won', the adjusted team score) and logs a 'forfeit' row with
+-- the lost value as a negative score. COMPETE keeps the uniform neutral
+-- terminal ('ended', everyone {won:false}, no scoring). Idempotent.
 create function scrabble.end_game(target_game uuid)
 returns void
 language plpgsql
@@ -1017,26 +1031,46 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  play_state     text;
+  caller_id      uuid;
+  g              scrabble.games%rowtype;
+  cur_state      text;
   player_results jsonb;
+  v_leftover     int;
+  v_seq          int;
 begin
-  if not exists (select 1 from scrabble.games where id = target_game) then
+  caller_id := common.require_game_player(target_game);
+
+  select * into g from scrabble.games where id = target_game for update;
+  if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
-  perform common.require_game_player(target_game);
 
-  select g2.play_state into play_state from common.games g2 where g2.id = target_game;
-  if play_state <> 'playing' then
+  select g2.play_state into cur_state from common.games g2 where g2.id = target_game;
+  if cur_state <> 'playing' then
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into player_results
-    from common.game_players where game_id = target_game;
-  perform common.end_game(
-    target_game, 'ended', jsonb_build_object('outcome', 'manual'), player_results);
+  if g.mode = 'coop' then
+    -- Log the leftover-tile value lost (negative), then score it out.
+    v_leftover := coalesce((select sum(scrabble._tile_value(t))
+                              from unnest(g.shared_rack) t), 0);
+    if v_leftover > 0 then
+      v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
+      insert into scrabble.plays (game_id, user_id, seq, kind, score, tile_count)
+      values (target_game, caller_id, v_seq, 'forfeit', -v_leftover,
+              coalesce(array_length(g.shared_rack, 1), 0));
+    end if;
+    perform scrabble._finish(target_game, 'manual', null);
+  else
+    select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+      into player_results
+      from common.game_players where game_id = target_game;
+    perform common.end_game(
+      target_game, 'ended', jsonb_build_object('outcome', 'manual'), player_results);
+  end if;
 
-  -- Realtime touch (see submit_timeout).
+  -- Realtime touch (see submit_timeout) — wakes the games subscription so the
+  -- FE reveals the final racks even on the compete neutral path.
   update scrabble.games set club_handle = club_handle where id = target_game;
 end;
 $$;

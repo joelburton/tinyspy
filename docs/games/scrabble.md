@@ -157,11 +157,13 @@ Two natural end triggers, plus the universal manual / timeout paths:
   with no word played) — the standard tournament signal that nobody can move.
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
   or **End game**.
-- **Manual end** (`end_game`): any player stops the game — **neutral**, no
-  winner, per the uniform contract in [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game).
+- **Manual end** (`end_game`): any player stops the game. **Compete** is the
+  uniform neutral stop ([common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game))
+  — no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
+  leftover-tile value.
 - **Timeout** (`submit_timeout`): a countdown clock hit 0.
 
-**Final scoring** runs on every terminal *except* manual end:
+**Final scoring** runs on every terminal except a **compete** manual end:
 
 - **Compete:** each player's leftover rack-tile values are **subtracted** from
   their score; the player who went out **gains the sum of all opponents'
@@ -170,7 +172,11 @@ Two natural end triggers, plus the universal manual / timeout paths:
 - **Coop:** leftover shared-rack values subtract from the team score; the final
   number is reported. Coop has no opponent, so there's no "loss" — completion is
   a neutral score report; a countdown that expires first just frames it as
-  "time's up" (gentle, not a punishment).
+  "time's up" (gentle, not a punishment). **Manual end is NOT neutral in coop**:
+  ending with tiles still in hand forfeits their value from the team score
+  (logged as a `'forfeit'` play, a red "−N tiles unplayed" in the log). This is
+  deliberate — it pushes a solo/coop team to find plays for its last tiles
+  rather than just stopping, the same penalty a natural end applies.
 
 > **Deliberate deviation from the roster's timeout convention.** FreeBee/etc.
 > treat a compete timeout as *no winner*. RackAttack instead crowns the highest
@@ -208,25 +214,29 @@ SQL-side for the bag shuffle):
 (Unlike FreeBee, **`S` is included and plurals are legal** — they're core to
 Scrabble, not a trivializing exploit.)
 
-### 3.3 The dictionary (difficulty band)
+### 3.3 The dictionary (difficulty bands, by word length)
 
 The legal word set is the shared `common.words` list (see
-[common.md → The word list](../common.md#the-word-list-commonwords)), gated by a
-**per-game difficulty band** chosen at setup. A word is legal iff
-`difficulty ≤ selected band` and it's valid in the **american OR british**
-dialect (the codebase's default-play convention). No clean filter — among
-friends, crude words are legal Scrabble plays (standard dictionaries include
-them), the same way FreeBee's *legal* tier carries no clean restriction.
+[common.md → The word list](../common.md#the-word-list-commonwords)), gated by
+**two per-game difficulty bands** chosen at setup — one for **2-letter** words
+(`dict_2`) and one for **3+-letter** words (`dict_3plus`), both 1..6. A word is
+legal iff `difficulty ≤ the band for its length` and it's valid in the
+**american OR british** dialect (the codebase's default-play convention). The
+two-band split (the same MonkeyGram uses) exists because 2-letter words are a
+thin, separate vocabulary you usually want to gate independently of the rest. No
+clean filter — among friends, crude words are legal Scrabble plays (standard
+dictionaries include them), the same way FreeBee's *legal* tier carries no clean
+restriction.
 
-**The band is the acceptance gate — RackAttack deviates from the roster default
+**The bands are the acceptance gate — RackAttack deviates from the roster default
 here.** The general convention (common.md) is "validation accepts the *full* 1–6
 range; which bands a game *offers* is a UI choice" — because in most games the
 band only shapes the puzzle / required set, not what's enterable. RackAttack is
 the FreeBee-*legal*-tier case instead: the selected band **is** the bar that
-`play_word` enforces (a word above the band is the *only* kind that's rejected),
-so picking a lower band genuinely makes a stricter game. The setup form **offers
-all six** bands as selectable options (default 3). Picking 6 allows everything in
-the list; picking 1 allows only universal words.
+`play_word` enforces (a word above its length's band is the *only* kind that's
+rejected), so picking a lower band genuinely makes a stricter game. The setup
+form offers **all six** for each (default 3 / 3). The bands are server-only
+config — not exposed to the FE (which never validates words).
 
 Word legality is a plain `common.words` lookup inside `play_word` — the one piece
 of validation that stays server-side, because that's where the word list is
@@ -245,7 +255,7 @@ StackDown's `20260626`).
 
 | table | what it holds | visibility |
 |---|---|---|
-| `games` | one row per game. `mode`, `difficulty` (selected band), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_scoreless` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
+| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_scoreless` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
 | `players` | `(game_id, user_id)` → `seat` (turn order, compete), `score` (compete per-player). **Compete:** `rack` jsonb (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded |
 | `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`count`) / `'pass'`. | club members, both modes |
 
@@ -290,7 +300,7 @@ The FE reads `games_state` / `players_state`, never the base tables.
 ### 5.1 `create_game(target_club, setup, player_user_ids, mode)`
 
 Club-member + player-count (compete 2–4, coop 1–4) + timer validation, reads
-`setup.difficulty` (1–6, default 3), then:
+`setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), then:
 
 - Builds the 100-tile bag and **shuffles** it (`order by random()`); the shuffle
   is the only randomness — no board library, no builder edge function.
@@ -321,7 +331,8 @@ declared letter).
    (`?` per blank, else the letter) are actually in the acting rack (compete:
    caller's; coop: shared). These keep the board + bag accounting honest against
    a buggy client; they do *not* re-derive words or score.
-5. **Dictionary:** every word in `words` must be legal at the game's band. **Any**
+5. **Dictionary:** every word in `words` must be legal at the band for its length
+   (`dict_2` for 2-letter, `dict_3plus` for 3+). **Any**
    failure → return `{result:'invalid', bad_words}` with **no state change** (the
    free reject). This is the only validation the server does, because the word
    list is here.
@@ -356,13 +367,14 @@ blocked-end condition.
 
 ### 5.5 `end_game` / `submit_timeout`
 
-The uniform terminal contract from
-[common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game):
-`end_game` is the neutral manual stop (no final-scoring winner — friends agreed to
-quit); `submit_timeout` is countdown expiry. **Both run final scoring**
-([§2.7](#27-ending-the-game)) except manual end, which is neutral. Both do the
-realtime-touch self-write on a `scrabble` row so the FE subscription wakes to
-reveal final racks.
+`submit_timeout` is countdown expiry and always runs final scoring
+([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop: in
+**compete** it's the uniform neutral terminal ([common.md → Manual
+end](../common.md#manual-end--every-gametypes-end_gametarget_game)) — no winner,
+no scoring; in **coop** it deviates and runs final scoring with a leftover-tile
+**forfeit** (a `'forfeit'` play row with the negative value lost, `play_state
+'won'`, `outcome 'manual'`). Both do the realtime-touch self-write on a
+`scrabble` row so the FE subscription wakes to reveal final racks.
 
 ---
 
@@ -429,7 +441,7 @@ tiles on a grid with keyboard input.
   (no SQL re-implementation — see [§6](#6-where-validation-lives)). Vitest-heavy:
   in-line/contiguous/connected/center-first; main + cross-word extraction;
   premiums-only-on-new-tiles; bingo +50; blanks = 0.
-- **`lib/setup.ts`** — `ScrabbleSetup` (timer + difficulty band; compete adds
+- **`lib/setup.ts`** — `ScrabbleSetup` (timer + the two difficulty bands; compete adds
   nothing today).
 - **`hooks/useGame.ts`** — postgres-changes on `scrabble.{games_state,
   players_state, plays}` (Pattern A, per-tab UUID-suffixed channel).
@@ -517,9 +529,10 @@ Every design fork is now settled with Joel — nothing blocks starting to build:
 - **Blanks in** — letter declared on commit, permanent ([§2.5](#25-blank-tiles)).
 - **Rejected word costs nothing** — free bounce, no turn lost, not logged
   ([§2.2](#22-a-play-placing-a-word)).
-- **Difficulty band is the acceptance gate** (not the roster-default "accept all
-  1–6"): legal iff `difficulty ≤ selected band`; the form offers all six,
-  default 3 ([§3.3](#33-the-dictionary-difficulty-band)).
+- **Difficulty bands are the acceptance gate** (not the roster-default "accept
+  all 1–6"): two bands by word length — `dict_2` (2-letter) and `dict_3plus`
+  (3+), each legal iff `difficulty ≤ band`; the form offers all six for each,
+  default 3 ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
 - **Endgame** — full Scrabble rules in compete (leftover subtraction + going-out
   bonus); **coop ends only on going-out or End game** (no blocked-end);
   **compete ties → co-winners**; **compete first turn is random**

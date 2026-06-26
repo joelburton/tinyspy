@@ -980,7 +980,8 @@ export type Database = {
           consecutive_scoreless: number
           created_at: string
           current_user_id: string | null
-          difficulty: number
+          dict_2: number
+          dict_3plus: number
           id: string
           mode: string
           shared_rack: string[] | null
@@ -994,7 +995,8 @@ export type Database = {
           consecutive_scoreless?: number
           created_at?: string
           current_user_id?: string | null
-          difficulty: number
+          dict_2: number
+          dict_3plus: number
           id: string
           mode: string
           shared_rack?: string[] | null
@@ -1008,7 +1010,8 @@ export type Database = {
           consecutive_scoreless?: number
           created_at?: string
           current_user_id?: string | null
-          difficulty?: number
+          dict_2?: number
+          dict_3plus?: number
           id?: string
           mode?: string
           shared_rack?: string[] | null
@@ -1117,7 +1120,6 @@ export type Database = {
           consecutive_scoreless: number | null
           created_at: string | null
           current_user_id: string | null
-          difficulty: number | null
           id: string | null
           mode: string | null
           shared_rack: string[] | null
@@ -1131,7 +1133,6 @@ export type Database = {
           consecutive_scoreless?: number | null
           created_at?: string | null
           current_user_id?: string | null
-          difficulty?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -1145,7 +1146,6 @@ export type Database = {
           consecutive_scoreless?: number | null
           created_at?: string | null
           current_user_id?: string | null
-          difficulty?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -1216,6 +1216,7 @@ export type Database = {
       }
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
+      _title: { Args: { g_id: string }; Returns: string }
       create_game: {
         Args: {
           mode: string

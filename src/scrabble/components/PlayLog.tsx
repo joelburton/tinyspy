@@ -1,16 +1,19 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
+import { DefinitionPopover } from '../../common/components/DefinitionPopover'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './PlayLog.module.css'
 
 /**
- * The move log — guess-log style, like StackDown's FoundWords: thin-bordered
- * rows, oldest-first so new moves land at the BOTTOM, auto-scrolled into view.
- * Each word reads "<name>: +<score> <WORD>" — the name in the player's color,
- * the score green, the word bold. The list scrolls inside a fixed-height box
- * so it never grows the page.
+ * The move log — guess-log style, like StackDown's FoundWords: a framed,
+ * scrollable box of thin-bordered rows (green left bar for a word, orange for
+ * an exchange/pass), oldest-first so new moves land at the BOTTOM and
+ * auto-scroll into view. Each word reads "<name>: +<score> <WORD>" — the name
+ * in the player's color, the score green, the word bold and **clickable to
+ * define** (the shared DefinitionPopover → common.words/Wiktionary lookup
+ * every word game gets).
  */
 export function PlayLog({ plays, players }: { plays: PlayRow[]; players: Member[] }) {
   const listRef = useRef<HTMLOListElement>(null)
@@ -19,6 +22,25 @@ export function PlayLog({ plays, players }: { plays: PlayRow[]; players: Member[
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [plays.length])
+
+  // The word currently being defined + the element it anchors under.
+  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(null)
+  const openDefine = (word: string, el: HTMLElement) =>
+    setDefining({ word: word.toLowerCase(), rect: el.getBoundingClientRect() })
+  // Click / keyboard activation for a clickable word (mirrors FoundWords).
+  const defineProps = (word: string) => ({
+    className: cls(styles.word, styles.clickable),
+    role: 'button' as const,
+    tabIndex: 0,
+    title: 'Click to define',
+    onClick: (e: MouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
+    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        openDefine(word, e.currentTarget)
+      }
+    },
+  })
 
   const renderWho = (userId: string) => {
     const p = players.find((m) => m.user_id === userId)
@@ -39,22 +61,41 @@ export function PlayLog({ plays, players }: { plays: PlayRow[]; players: Member[
           {plays.map((p) => (
             <li
               key={p.seq}
-              className={cls(styles.row, p.kind === 'word' ? styles.barGreen : styles.barOrange)}
+              className={cls(
+                styles.row,
+                p.kind === 'word' ? styles.barGreen : p.kind === 'forfeit' ? styles.barRed : styles.barOrange,
+              )}
             >
               {renderWho(p.user_id)}:{' '}
               {p.kind === 'word' && (
                 <>
                   <span className={styles.score}>+{p.score ?? 0}</span>{' '}
-                  <span className={styles.word}>
-                    {(p.words ?? []).map((w) => w.toUpperCase()).join(' ')}
-                  </span>
+                  {(p.words ?? []).map((w, i) => (
+                    <span key={`${w}-${i}`}>
+                      {i > 0 ? ' ' : ''}
+                      <span {...defineProps(w)}>{w.toUpperCase()}</span>
+                    </span>
+                  ))}
                 </>
               )}
               {p.kind === 'exchange' && <span className="muted">exchanged {p.tile_count} tiles</span>}
               {p.kind === 'pass' && <span className="muted">passed</span>}
+              {p.kind === 'forfeit' && (
+                <>
+                  <span className={styles.scoreNeg}>{p.score}</span> tiles unplayed
+                </>
+              )}
             </li>
           ))}
         </ol>
+      )}
+
+      {defining && (
+        <DefinitionPopover
+          initialWord={defining.word}
+          anchorRect={defining.rect}
+          onClose={() => setDefining(null)}
+        />
       )}
     </div>
   )
