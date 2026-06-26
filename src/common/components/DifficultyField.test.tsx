@@ -58,6 +58,24 @@ describe('DifficultyField', () => {
     expect(band1.textContent).not.toContain('OX')
   })
 
+  it('prepends an always-enabled extra option (WordNerd "0: Wordle")', () => {
+    render(
+      <DifficultyField
+        label="Answer source"
+        length={5}
+        minDifficulty={1}
+        maxDifficulty={6}
+        value={0}
+        onChange={() => {}}
+        extraLowOption={{ value: 0, label: 'Wordle' }}
+      />,
+    )
+    const options = screen.getAllByRole('option')
+    expect(options).toHaveLength(7) // 0 + bands 1..6
+    expect(options[0]).toHaveTextContent('0: Wordle')
+    expect(options[0]).toBeEnabled()
+  })
+
   it('disables the whole control when asked (StackDown is locked to band 1)', () => {
     render(
       <DifficultyField

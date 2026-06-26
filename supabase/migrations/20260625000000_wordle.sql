@@ -118,6 +118,11 @@ create table wordle.games (
   mode        text not null check (mode in ('coop', 'compete')),
   target      char(5) not null,    -- HIDDEN answer key
   max_guesses int not null,        -- guess budget (5..8)
+  -- A guess is legal iff it's a real 5-letter word of difficulty ≤ this band
+  -- (setup.legal_guess, 1..6). Stored here so submit_guess reads it off the
+  -- locked games row. (answer_source isn't kept — it's only used to pick the
+  -- target at create time.)
+  legal_guess int not null default 4,
   created_at  timestamptz not null default now()
 );
 
@@ -293,9 +298,12 @@ security definer
 set search_path = wordle, common, public, extensions
 as $$
 declare
-  new_id        uuid;
-  s_max_guesses int;
-  v_target      char(5);
+  new_id          uuid;
+  s_max_guesses   int;
+  s_answer_source int;
+  s_legal_guess   int;
+  s_answer_max    int;
+  v_target        char(5);
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
@@ -313,18 +321,45 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- ─── Validate the word bands ─────────────────────────────
+  -- answer_source: 0 = the curated Wordle list, 1..6 = a difficulty band.
+  -- legal_guess: 1..6. A guess must be able to spell any possible answer, so
+  -- legal_guess must reach the answer's hardest band — 2 for the Wordle list
+  -- (it tops out at band 2), else answer_source.
+  s_answer_source := coalesce((setup->>'answer_source')::int, 0);
+  if s_answer_source < 0 or s_answer_source > 6 then
+    raise exception 'setup.answer_source must be 0..6 (got %)', s_answer_source
+      using errcode = 'P0001';
+  end if;
+  s_legal_guess := coalesce((setup->>'legal_guess')::int, 4);
+  if s_legal_guess < 1 or s_legal_guess > 6 then
+    raise exception 'setup.legal_guess must be 1..6 (got %)', s_legal_guess
+      using errcode = 'P0001';
+  end if;
+  s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
+  if s_legal_guess < s_answer_max then
+    raise exception 'setup.legal_guess (%) must reach the answer band (%)',
+      s_legal_guess, s_answer_max using errcode = 'P0001';
+  end if;
+
   perform common.validate_timer(setup->'timer');
 
-  -- ─── Pick a random target from the Wordle answer list ────
-  -- The list is the curated 5-letter NYT answers; any crude/slur level is
-  -- allowed (WordNerd stays permissive, like the original).
-  select word into v_target
-    from common.words
-   where wordle
-   order by random()
-   limit 1;
+  -- ─── Pick a random target ────────────────────────────────
+  -- answer_source 0: the curated 5-letter NYT answers (any crude/slur level —
+  -- WordNerd stays permissive, like the original). 1..6: any clean 5-letter
+  -- word of that band or easier (a higher band can be obscure).
+  if s_answer_source = 0 then
+    select word into v_target
+      from common.words where wordle and len = 5
+     order by random() limit 1;
+  else
+    select word into v_target
+      from common.words
+     where len = 5 and difficulty <= s_answer_source and slur = 0 and crude = 0
+     order by random() limit 1;
+  end if;
   if v_target is null then
-    raise exception 'no wordle answer words — run words:import'
+    raise exception 'no answer words for that band — run words:import'
       using errcode = 'P0002';
   end if;
 
@@ -333,8 +368,8 @@ begin
     setup
   );
 
-  insert into wordle.games (id, club_handle, mode, target, max_guesses)
-  values (new_id, target_club, mode, v_target, s_max_guesses);
+  insert into wordle.games (id, club_handle, mode, target, max_guesses, legal_guess)
+  values (new_id, target_club, mode, v_target, s_max_guesses, s_legal_guess);
 
   insert into wordle.players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) uid;
@@ -451,11 +486,12 @@ begin
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
-  -- Legal guess = a real 5-letter word of difficulty ≤ 4. No dialect /
-  -- slur / slang filter (Wordle is permissive on guesses).
+  -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_guess
+  -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
+  -- on guesses — only the difficulty band gates them).
   if not exists (
     select 1 from common.words
-     where word = norm and len = 5 and difficulty <= 4
+     where word = norm and len = 5 and difficulty <= g_row.legal_guess
   ) then
     return jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
                               'solved', false, 'terminal', false);

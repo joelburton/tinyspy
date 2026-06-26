@@ -1,7 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_WORDLE_SETUP, type WordleSetup } from './lib/setup'
+import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -104,6 +104,9 @@ export const wordleCoopGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_WORDLE_SETUP,
+    // Gate Start until legal guesses reach the answer's hardest band (so every
+    // possible answer is itself guessable). create_game re-checks.
+    validate: (setup) => legalGuessError(setup as WordleSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -132,6 +135,9 @@ export const wordleCompeteGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_WORDLE_SETUP,
+    // Gate Start until legal guesses reach the answer's hardest band (so every
+    // possible answer is itself guessable). create_game re-checks.
+    validate: (setup) => legalGuessError(setup as WordleSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

@@ -7,7 +7,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(11);
+select plan(17);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -61,6 +61,47 @@ select throws_ok(
   format($$ select wordle.create_game(%L, pg_temp.wordle_setup(6), array['ada11111-1111-1111-1111-111111111111'::uuid], 'solo') $$,
          (select handle from club)),
   'P0001', null, 'an invalid mode is rejected');
+
+-- ── Word bands: answer_source + legal_guess ─────────────────
+-- g used the default setup → answer_source 0 → target from the Wordle list.
+reset role;
+select set_config('request.jwt.claims', '', true);
+select ok(
+  exists (
+    select 1 from common.words
+     where word = trim((select target from wordle.games where id = (select id from g)))
+       and wordle),
+  'answer_source 0 (default) draws the target from the curated Wordle list');
+
+-- A difficulty-band answer source: target is band-1-or-easier; legal_guess stored.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g1 on commit drop as
+select * from wordle.create_game(
+  (select handle from club),
+  '{"max_guesses": 6, "answer_source": 1, "legal_guess": 6, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop');
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select legal_guess from wordle.games where id = (select id from g1)),
+  6, 'legal_guess is stored on the games row');
+select ok(
+  (select difficulty from common.words
+     where word = trim((select target from wordle.games where id = (select id from g1)))) <= 1,
+  'answer_source 1 draws a band-1-or-easier target');
+
+-- Band validation (as a member).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select throws_ok(
+  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":7,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
+  'P0001', 'setup.answer_source must be 0..6 (got 7)', 'answer_source above 6 is rejected');
+select throws_ok(
+  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":1,"legal_guess":7,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
+  'P0001', 'setup.legal_guess must be 1..6 (got 7)', 'legal_guess above 6 is rejected');
+select throws_ok(
+  format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":5,"legal_guess":4,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
+  'P0001', 'setup.legal_guess (4) must reach the answer band (5)',
+  'a legal_guess below the answer band is rejected');
 
 select * from finish();
 rollback;

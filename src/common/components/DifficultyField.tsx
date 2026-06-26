@@ -18,6 +18,10 @@ type Props = {
   onChange: (band: number) => void
   /** Disable the whole control (e.g. StackDown is locked to band 1). */
   disabled?: boolean
+  /** An always-enabled option rendered ABOVE band 1 — for a source that sits
+   *  outside the 1..6 difficulty scale. WordNerd uses `{ value: 0, label:
+   *  'Wordle' }` for the curated NYT answer list. */
+  extraLowOption?: { value: number; label: string }
 }
 
 /**
@@ -38,6 +42,7 @@ export function DifficultyField({
   value,
   onChange,
   disabled,
+  extraLowOption,
 }: Props) {
   const samples = sampleWordsFor(length)
   const select = (
@@ -47,6 +52,11 @@ export function DifficultyField({
       disabled={disabled}
       onChange={(e) => onChange(Number(e.target.value))}
     >
+      {extraLowOption && (
+        <option value={extraLowOption.value}>
+          {extraLowOption.value}: {extraLowOption.label}
+        </option>
+      )}
       {DIFFICULTY_LABELS.map((bandLabel, i) => {
         const band = i + 1
         const examples = samples[i].map((w) => w.toUpperCase()).join(' ')
