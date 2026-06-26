@@ -37,21 +37,14 @@ supabase/snippets
 # Edge Function secrets
 supabase/functions/.env
 
-# Hosted-Supabase one-shot import runner (carries the service-role key
-# inline). Local edit only; never committed.
-import-to-hosted.sh
+# Hosted-Supabase import: the runner (import-to-hosted.sh) is committed;
+# its secrets + per-deployment values live in import-to-hosted.secrets.sh,
+# which is NOT (copy it from import-to-hosted.secrets.example.sh).
+import-to-hosted.secrets.sh
 
 # Playwright (e2e smoke tests)
 /test-results/
 /playwright-report/
 /playwright/.cache/
 
-# MonkeyGram UX prototype — standalone throwaway Vite app, deliberately
-# not part of the real app and not committed (see docs/games/monkeygram.md).
-/monkeygram-ui/
 waffle-samples.txt
-
-# StackDown board-gen + UI prototype — standalone throwaway, kept on disk
-# but deliberately not committed. The real game (pre-generated board library
-# + the stackdown gametype) lands separately.
-/stackdown-proto/
