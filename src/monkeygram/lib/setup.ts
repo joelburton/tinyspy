@@ -6,10 +6,12 @@ import type { TimerMode } from '../../common/lib/games'
  * server-side in `monkeygram.create_game` (the canonical authority
  * for what shapes are accepted).
  *
- * Two choices: starter hand size (the literal-union mirrors the SQL
- * `check`) and the shared `timer` mode. A countdown that reaches 0 ends
- * the race as a collective loss (`monkeygram.submit_timeout`) — time's
- * up with nobody out.
+ * The choices: starter hand size (the literal-union mirrors the SQL
+ * `check`), bag size, the opt-in word check with its two difficulty
+ * bands (`check_words` / `dict_2` / `dict_3plus`), where a dumped tile
+ * goes (`dump_to_box`), and the shared `timer` mode. A countdown that
+ * reaches 0 ends the race as a collective loss
+ * (`monkeygram.submit_timeout`) — time's up with nobody out.
  *
  * Lives in `lib/` (not inline in `manifest.ts`) so the SetupForm body
  * can import the type without dragging the manifest into its chunk.

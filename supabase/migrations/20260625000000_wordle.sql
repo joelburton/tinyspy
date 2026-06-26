@@ -24,9 +24,10 @@
 -- The structure is waffle's hidden-answer pattern (a HIDDEN `target`,
 -- revealed post-terminal via games_state) plus freebee's per-guess log
 -- with mode-aware RLS (compete hides opponents' guesses). The target is
--- a random word from the curated Wordle answer list (common.words
--- `wordle` column); guesses are validated against the broader
--- difficulty ≤ 4 / 5-letter slice. Boards aren't pre-generated.
+-- drawn per the chosen `answer_source` (0 = the curated Wordle answer
+-- list, 1..6 = a difficulty band of common.words); guesses are validated
+-- against the `legal_guess` band (1..6, default 4). Boards aren't
+-- pre-generated.
 --
 -- Depends on `common` (clubs, profiles, games, game_players, words,
 -- is_club_member, gametypes, create_game, update_state, end_game,
@@ -281,11 +282,14 @@ on conflict do nothing;
 -- ============================================================
 -- Setup shape (server validates):
 --   { "max_guesses": 5..8 (default 6),
+--     "answer_source": 0..6 (0 = curated Wordle answer list; 1..6 =
+--       that difficulty band of common.words),
+--     "legal_guess": 1..6 (the band a typed guess must exist in to
+--       count; default 4; must reach the answer's hardest band),
 --     "timer": (none | countup | countdown{seconds}) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
--- working-state semantics. Picks a random target from the curated
--- Wordle answer list (common.words `wordle`, minus slurs), stores it
--- hidden, and seeds one players row per player.
+-- working-state semantics. Picks a hidden target per `answer_source`
+-- (minus slurs) and seeds one players row per player.
 create function wordle.create_game(
   target_club     text,
   setup           jsonb,

@@ -13,8 +13,10 @@
 --     COUNT, never each other's boards.
 --   - When your hand empties you PEEL: everyone draws a round, or
 --     — if the bunch can't refill the table — you go out and win.
---     DUMP swaps one awkward tile for three from the bunch. There
---     is NO word/connectivity validation (we trust the friends).
+--     DUMP swaps one awkward tile for three from the bunch. A
+--     winning peel ALWAYS re-checks board CONNECTIVITY (one
+--     connected grid); WORD validity is an opt-in extra
+--     (`check_words`). See `_win_blockers`.
 --
 -- All RPCs live INLINE in this one squashed baseline file —
 -- create_game, save_player_board, peel, dump, end_game (this is
@@ -244,13 +246,17 @@ alter publication supabase_realtime add table monkeygram.player_boards;
 -- there's no coop sibling, like tinyspy). Solo (1 player) is
 -- allowed: a one-player race is just "finish your own tiles."
 --
--- Setup shape:
+-- Setup shape (each field validated below):
 --   { "hand_size": 15 | 21,
---     "timer": { "kind": "none" } }
+--     "bag_size": 1..144 (≥ player_count × hand_size),
+--     "check_words": bool, "dict_2": 2..6, "dict_3plus": 1..6
+--       (the two bands required only when check_words is on),
+--     "dump_to_box": bool (read at dump time, not here),
+--     "timer": (none | countdown{seconds}) }
 --
--- (v1 ships untimed; the timer field is carried so the common
--- timer machinery has something to read and a later version can
--- offer a count-up.)
+-- A countdown that reaches 0 ends the race as a collective loss
+-- (`submit_timeout`); the check_words/dict_* bands gate the opt-in
+-- word check on a winning peel.
 --
 -- The deal: build the 144-tile Bananagrams bag, shuffle it with a
 -- throwaway seed, and hand each player a contiguous slice of

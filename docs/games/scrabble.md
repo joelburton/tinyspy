@@ -260,7 +260,7 @@ StackDown's `20260626`).
 |---|---|---|
 | `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_scoreless` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
 | `players` | `(game_id, user_id)` → `seat` (turn order, compete), `score` (compete per-player). **Compete:** `rack` jsonb (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded |
-| `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`count`) / `'pass'`. | club members, both modes |
+| `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
 
 **Why `plays` is public in both modes** (unlike FreeBee's mid-game-private
 `found_words`): every committed word is *on the shared board*, which is public —
@@ -363,10 +363,11 @@ reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
 condition. **Coop:** none of that — it's just a rack refresh (no turns, no
 blocked-end). Returns `{drawn, version}`.
 
-### 5.4 `pass_turn(target_game)` (compete only)
+### 5.4 `pass_turn(target_game, base_version)` (compete only)
 
 Advances the turn, `consecutive_scoreless += 1`, logs `kind='pass'`, checks the
-blocked-end condition.
+blocked-end condition. Like the other moves it takes `base_version` and runs the
+optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
 
 ### 5.5 `end_game` / `submit_timeout`
 

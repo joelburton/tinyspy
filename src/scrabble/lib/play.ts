@@ -3,12 +3,14 @@
  * tile placements, decide whether the play is geometrically legal, read off
  * every word it forms, and score it.
  *
- * This is the FE's preview half (live score + word highlighting as tiles are
- * placed) AND the authoritative spec the server re-implements in
- * `scrabble.play_word`. The two are kept in lockstep by a cross-check test, the
- * way `freebee.ranks.ts` mirrors `freebee._rank_idx` — see
- * docs/games/scrabble.md §6 for why validation lives in SQL but the rules also
- * live here.
+ * This is the ONLY place geometry, word-extraction, and scoring live — there is
+ * no SQL re-implementation to keep in sync. RackAttack uses a *trusting commit*:
+ * the FE evaluates a play here (live score + word highlighting as tiles are
+ * placed) and submits the words + score it computed; `scrabble.play_word`
+ * TRUSTS those numbers and only adds what the client can't be the authority on —
+ * the dictionary check, the draw from the hidden bag, and the bookkeeping. So
+ * there's no cross-check / mirror test (there's nothing to mirror). See
+ * docs/games/scrabble.md §6 for why that trade is the right call here.
  *
  * What this module does NOT do: check words against the dictionary (it has no
  * word list — the server uses `common.words`, the FE shows the words and lets
@@ -56,9 +58,9 @@ export const tilesUsed = (placements: Placement[]): string[] =>
 
 /**
  * Geometry gate. Returns an error string (suitable for FE feedback) or null.
- * Ordered so the friendliest / most-fundamental complaint wins. Mirrors the
- * checks in `scrabble.play_word`; the server repeats all of this because it,
- * not the client, is the authority on a legal move.
+ * Ordered so the friendliest / most-fundamental complaint wins. This is the
+ * sole authority on a legal *shape*: the server does NOT re-run these checks —
+ * it trusts the committed play (see the module header).
  */
 function geometryError(board: Cell[], placements: Placement[]): string | null {
   if (placements.length === 0) return 'Place at least one tile.'
@@ -196,8 +198,8 @@ function scoreRun(cells: WordCell[]): number {
 /**
  * The whole evaluation the FE preview wants: legal? what words? what score?
  * `bingo` (+50) lands when the play uses a full rack of 7 tiles. The server's
- * `play_word` computes the same numbers, then additionally checks each `word`
- * against the dictionary before accepting.
+ * `play_word` does NOT recompute any of this — it trusts the submitted `words`
+ * + `score` and only checks each `word` against the dictionary before accepting.
  */
 export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvaluation {
   const error = geometryError(board, placements)

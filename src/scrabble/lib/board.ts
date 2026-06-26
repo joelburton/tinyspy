@@ -3,8 +3,10 @@
  *
  * Unlike the board-library games (StackDown, FreeBee), RackAttack's board
  * layout and tile distribution never vary between games — they're the standard
- * Scrabble constants, hard-coded here and mirrored on the SQL side
- * (`scrabble._premium_at` / the bag builder in `create_game`). The only
+ * Scrabble constants, hard-coded here. The premium-square grid is FE-only: the
+ * server never scores (trusting commit — see play.ts), so it has no need for it.
+ * The only thing mirrored SQL-side is the bag distribution + letter values that
+ * `create_game`'s bag builder and end-game leftover scoring need. The only
  * per-game randomness is the bag's shuffle order. This module is the FE's half
  * of the rules; `play.ts` builds the geometry + scoring on top of it. Both are
  * pure (no React, no Supabase) so they're cheap to unit-test and safe to share.
