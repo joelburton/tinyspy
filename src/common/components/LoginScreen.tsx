@@ -5,15 +5,21 @@ import { supabase } from '../lib/supabase'
  * Magic-link sign-in flow with two verification paths.
  *
  * On submit, calls `signInWithOtp` to mail the user an email that
- * contains BOTH a clickable magic link AND a 6-digit code. The user can
+ * contains BOTH a clickable magic link AND a numeric code. The user can
  * verify either way:
+ *
+ * (We deliberately don't name the code's digit count in the UI — the
+ * length is a Supabase setting, `auth.email.otp_length`, and the local
+ * config.toml has differed from the deployed project before. Length-
+ * agnostic copy stays correct whatever that setting is; the input has no
+ * maxLength so any length pastes/types fine.)
  *
  *   1. Click the magic link — the browser hits Supabase's redirect URL,
  *      which exchanges the link's hash token for a session and lands the
  *      user back at `window.location.origin` (so a sign-in started on
  *      `/g/tinyspy/<id>` returns to that same path).
  *
- *   2. Enter the 6-digit code in the "I have a code" form here — calls
+ *   2. Enter the code in the "I have a code" form here — calls
  *      `verifyOtp({type: 'email'})` to exchange the code for a session
  *      on the current device. This is the only way to sign in when the
  *      email was opened on one device (commonly a phone) but the user
@@ -57,7 +63,7 @@ export function LoginScreen() {
       setStatus('sent')
       // Auto-switch to code-entry. If the magic link works first,
       // useSession picks up SIGNED_IN and unmounts this screen; if not,
-      // the user can enter the 6-digit code from the same email right
+      // the user can enter the code from the same email right
       // here without re-typing their address.
       setAction('verify-code')
       return
@@ -92,14 +98,14 @@ export function LoginScreen() {
 
       {status === 'sent' ? (
         <p>
-          Sent a magic link and a 6-digit code to <strong>{email}</strong>.
+          Sent a magic link and a sign-in code to <strong>{email}</strong>.
           Click the link in the email, or enter the code below.
         </p>
       ) : (
         <p>
           {action === 'send-link'
             ? 'Sign in with a magic link.'
-            : 'Enter your email and the 6-digit code from your sign-in email.'}
+            : 'Enter your email and the code from your sign-in email.'}
         </p>
       )}
 
@@ -118,7 +124,7 @@ export function LoginScreen() {
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="one-time-code"
-            placeholder="6-digit code"
+            placeholder="Sign-in code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={busy}
