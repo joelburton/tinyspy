@@ -99,7 +99,7 @@ export function PlayArea({
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
   const [order, setOrder] = useState<number[]>([])
   const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
-  const [cursor, setCursor] = useState<Cursor>({ x: 7, y: 7, dir: 'H' })
+  const [cursor, setCursor] = useState<Cursor>({ x: 7, y: 7, dir: 'h' })
   const [submitting, setSubmitting] = useState(false)
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.
@@ -293,7 +293,7 @@ export function PlayArea({
   const onTap = useCallback(
     (g: DragGesture<DragSource, XY>) => {
       if (g.source.kind === 'rack') toggleSelect(g.source.rackIdx)
-      else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'H' })
+      else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
     },
     [toggleSelect],
   )
@@ -337,11 +337,11 @@ export function PlayArea({
     [committedAt, stagedAt],
   )
   const nextEmpty = useCallback(
-    (x: number, y: number, dir: 'H' | 'V'): XY | null => {
+    (x: number, y: number, dir: 'h' | 'v'): XY | null => {
       let cx = x
       let cy = y
       do {
-        if (dir === 'H') cx++
+        if (dir === 'h') cx++
         else cy++
       } while (inBounds(cx, cy) && isFilled(cx, cy))
       return inBounds(cx, cy) ? { x: cx, y: cy } : null
@@ -351,7 +351,7 @@ export function PlayArea({
 
   const moveCursor = useCallback(
     (key: string) => {
-      const axis = key === 'ArrowLeft' || key === 'ArrowRight' ? 'H' : 'V'
+      const axis = key === 'ArrowLeft' || key === 'ArrowRight' ? 'h' : 'v'
       setCursor((cur) => {
         if (cur.dir !== axis) return { ...cur, dir: axis }
         const dx = key === 'ArrowRight' ? 1 : key === 'ArrowLeft' ? -1 : 0
@@ -368,7 +368,7 @@ export function PlayArea({
       let tx = cursor.x
       let ty = cursor.y
       while (inBounds(tx, ty) && committedAt(tx, ty)) {
-        if (cursor.dir === 'H') tx++
+        if (cursor.dir === 'h') tx++
         else ty++
       }
       if (!inBounds(tx, ty)) return
@@ -395,8 +395,8 @@ export function PlayArea({
   const backspace = useCallback(() => {
     setStaged((prev) => prev.filter((s) => !(s.x === cursor.x && s.y === cursor.y)))
     setCursor((cur) => ({
-      x: clamp(cur.x - (cur.dir === 'H' ? 1 : 0)),
-      y: clamp(cur.y - (cur.dir === 'V' ? 1 : 0)),
+      x: clamp(cur.x - (cur.dir === 'h' ? 1 : 0)),
+      y: clamp(cur.y - (cur.dir === 'v' ? 1 : 0)),
       dir: cur.dir,
     }))
   }, [cursor])

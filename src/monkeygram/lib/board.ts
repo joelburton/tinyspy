@@ -1,7 +1,7 @@
 /**
  * Player-board model — a FIXED 25×25 arena.
  *
- * The board is a flat `GRID*GRID` = 625-char string: `board[idx(r, c)]` is a
+ * The board is a flat `GRID*GRID` = 625-char string: `board[idx(x, y)]` is a
  * letter or `'.'` (empty). The grid never resizes — you navigate it with zoom
  * + scroll — so placing a tile can never shift the view, which is what keeps
  * this code simple (no view box, no growth, no scroll compensation). Coordinates
@@ -18,8 +18,10 @@ export const GRID = 25
 export const DEFAULT_CELL = 40 // px per cell; the smallest zoom is computed to fit the grid
 export const MAX_CELL = 64
 
-export const idx = (r: number, c: number) => r * GRID + c
-export const inBounds = (r: number, c: number) => r >= 0 && r < GRID && c >= 0 && c < GRID
+/** Flat board index from (x, y). x = column, y = row; both 0..GRID-1.
+ *  Same x-first convention as RackAttack's `cellIndex`. */
+export const idx = (x: number, y: number) => y * GRID + x
+export const inBounds = (x: number, y: number) => x >= 0 && x < GRID && y >= 0 && y < GRID
 export const clamp = (v: number) => Math.max(0, Math.min(GRID - 1, v))
 
 export function emptyBoard(): string {
@@ -110,24 +112,24 @@ export function shuffleString(s: string): string {
   return out.join('')
 }
 
-export type Extent = { minR: number; maxR: number; minC: number; maxC: number }
+export type Extent = { minX: number; maxX: number; minY: number; maxY: number }
 
 /** Bounding box of the placed tiles, or null when the board is empty. */
 export function tilesExtent(board: string): Extent | null {
-  let minR = GRID,
-    maxR = -1,
-    minC = GRID,
-    maxC = -1
-  for (let r = 0; r < GRID; r++) {
-    for (let c = 0; c < GRID; c++) {
-      if (board[idx(r, c)] !== '.') {
-        if (r < minR) minR = r
-        if (r > maxR) maxR = r
-        if (c < minC) minC = c
-        if (c > maxC) maxC = c
+  let minX = GRID,
+    maxX = -1,
+    minY = GRID,
+    maxY = -1
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      if (board[idx(x, y)] !== '.') {
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
       }
     }
   }
-  if (maxR < 0) return null
-  return { minR, maxR, minC, maxC }
+  if (maxY < 0) return null
+  return { minX, maxX, minY, maxY }
 }

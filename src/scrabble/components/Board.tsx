@@ -13,7 +13,7 @@ import styles from './Board.module.css'
 /** A tile a player has placed this turn but not yet committed. */
 export type Tentative = { letter: string; blank: boolean }
 /** The keyboard-entry cursor. */
-export type Cursor = { x: number; y: number; dir: 'H' | 'V' }
+export type Cursor = { x: number; y: number; dir: 'h' | 'v' }
 type XY = { x: number; y: number }
 
 const PREMIUM_LABEL: Record<PremiumType, string> = {
@@ -111,7 +111,7 @@ export function Board({
             })()}
           {!committed && !tent && (idx === CENTER ? '★' : PREMIUM_LABEL[premium])}
           {cursorHere && (
-            <span className={cls(styles.cursor, cursor.dir === 'H' ? styles.cursorH : styles.cursorV)} />
+            <span className={cls(styles.cursor, cursor.dir === 'h' ? styles.cursorH : styles.cursorV)} />
           )}
         </div>,
       )

@@ -51,20 +51,20 @@ const LETTER_SCALE = 0.6
 // be a new reference and defeat memoization downstream.
 const NO_CELLS: ReadonlySet<number> = new Set()
 
-type Cell = { row: number; col: number }
+type Cell = { x: number; y: number }
 type Cursor = Cell & { dir: 'h' | 'v' }
 
 // The board cursor is always present during play (you can type the
 // moment the board loads). It starts dead center — Bananagrams builds
 // outward from the middle — and is reset there after a recenter.
-const CENTER_CURSOR: Cursor = { row: Math.floor(GRID / 2), col: Math.floor(GRID / 2), dir: 'h' }
-type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; row: number; col: number }
+const CENTER_CURSOR: Cursor = { x: Math.floor(GRID / 2), y: Math.floor(GRID / 2), dir: 'h' }
+type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; x: number; y: number }
 
 function cellAtPoint(x: number, y: number): Cell | null {
   const el = document.elementFromPoint(x, y)
   const cell = el?.closest('[data-cell]') as HTMLElement | null
   if (!cell) return null
-  return { row: Number(cell.dataset.row), col: Number(cell.dataset.col) }
+  return { x: Number(cell.dataset.x), y: Number(cell.dataset.y) }
 }
 function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
@@ -204,10 +204,10 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     const c = scrollRef.current
     if (!c) return
     const ext = tilesExtent(boardRef.current)
-    const cr = ext ? (ext.minR + ext.maxR + 1) / 2 : GRID / 2
-    const cc = ext ? (ext.minC + ext.maxC + 1) / 2 : GRID / 2
-    c.scrollLeft = cc * cell - c.clientWidth / 2
-    c.scrollTop = cr * cell - c.clientHeight / 2
+    const cy = ext ? (ext.minY + ext.maxY + 1) / 2 : GRID / 2
+    const cx = ext ? (ext.minX + ext.maxX + 1) / 2 : GRID / 2
+    c.scrollLeft = cx * cell - c.clientWidth / 2
+    c.scrollTop = cy * cell - c.clientHeight / 2
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -232,14 +232,14 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     const c = scrollRef.current
     if (!c) return
     const m = cell
-    const x = cursor.col * cell
-    const y = cursor.row * cell
+    const x = cursor.x * cell
+    const y = cursor.y * cell
     if (x - m < c.scrollLeft) c.scrollLeft = x - m
     else if (x + cell + m > c.scrollLeft + c.clientWidth) c.scrollLeft = x + cell + m - c.clientWidth
     if (y - m < c.scrollTop) c.scrollTop = y - m
     else if (y + cell + m > c.scrollTop + c.clientHeight) c.scrollTop = y + cell + m - c.clientHeight
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cursor.row, cursor.col])
+  }, [cursor.x, cursor.y])
 
   // --- Hand error flash -------------------------------------------------
   // A brief red box around the hand: "you don't hold that tile." Bumping the
@@ -258,20 +258,20 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   // --- Mutations (board-only; the hand re-derives) ----------------------
   // Placing a hand tile just fills a cell — the derived hand loses that letter
   // automatically. (No hand index needed: tiles are interchangeable by letter.)
-  const handToBoard = useCallback((letter: string, r: number, c: number) => {
-    setBoard((b) => setChar(b, idx(r, c), letter))
+  const handToBoard = useCallback((letter: string, x: number, y: number) => {
+    setBoard((b) => setChar(b, idx(x, y), letter))
   }, [])
-  const boardToBoard = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+  const boardToBoard = useCallback((x1: number, y1: number, x2: number, y2: number) => {
     setBoard((b) => {
-      const letter = b[idx(r1, c1)]
-      return setChar(setChar(b, idx(r1, c1), '.'), idx(r2, c2), letter)
+      const letter = b[idx(x1, y1)]
+      return setChar(setChar(b, idx(x1, y1), '.'), idx(x2, y2), letter)
     })
   }, [])
   // Returning a tile to the hand just empties its cell — the derived hand gains
   // the letter back.
-  const boardToHand = useCallback((r: number, c: number) => {
-    if (boardRef.current[idx(r, c)] === '.') return
-    setBoard((b) => setChar(b, idx(r, c), '.'))
+  const boardToHand = useCallback((x: number, y: number) => {
+    if (boardRef.current[idx(x, y)] === '.') return
+    setBoard((b) => setChar(b, idx(x, y), '.'))
   }, [])
 
   // --- Drag plumbing (shared hook owns the window listeners) ------------
@@ -279,12 +279,12 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     (g: DragGesture<DragSource, Cell>, x: number, y: number) => {
       const target = cellAtPoint(x, y)
       if (target) {
-        const occupied = boardRef.current[idx(target.row, target.col)] !== '.'
+        const occupied = boardRef.current[idx(target.x, target.y)] !== '.'
         const ownCell =
-          g.source.kind === 'board' && g.source.row === target.row && g.source.col === target.col
+          g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
         if (occupied && !ownCell) return // taken → snap back
-        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter, target.row, target.col)
-        else if (g.source.kind === 'board') boardToBoard(g.source.row, g.source.col, target.row, target.col)
+        if (g.source.kind === 'hand' && g.letter) handToBoard(g.letter, target.x, target.y)
+        else if (g.source.kind === 'board') boardToBoard(g.source.x, g.source.y, target.x, target.y)
         return
       }
       // Drop a tile on the dump slot → dump it (server swaps it for
@@ -302,18 +302,18 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
       const canDump = drawable === undefined || drawable >= DUMP_COUNT
       if (overDumpAtPoint(x, y) && g.letter && canDump) {
-        if (g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
+        if (g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
         onDump?.(g.letter)
         return
       }
-      if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.row, g.source.col)
+      if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
     },
     [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, boxCount],
   )
 
   // A plain tap on a board cell moves the keyboard cursor there.
   const onTap = useCallback((g: DragGesture<DragSource, Cell>) => {
-    if (g.cell) setCursor({ row: g.cell.row, col: g.cell.col, dir: 'h' })
+    if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
   }, [])
 
   const { drag, hover, start } = useDragGesture<DragSource, Cell>({
@@ -328,9 +328,9 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   })
 
   const onCellPointerDown = useCallback(
-    (r: number, c: number, e: React.PointerEvent) => {
-      const letter = boardRef.current[idx(r, c)]
-      start({ kind: 'board', row: r, col: c }, letter !== '.' ? letter : null, { row: r, col: c }, e)
+    (x: number, y: number, e: React.PointerEvent) => {
+      const letter = boardRef.current[idx(x, y)]
+      start({ kind: 'board', x, y }, letter !== '.' ? letter : null, { x, y }, e)
     },
     [start],
   )
@@ -344,8 +344,8 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   // --- Keyboard cursor --------------------------------------------------
   const advance = useCallback((cur: Cursor) => {
     setCursor({
-      row: clamp(cur.row + (cur.dir === 'v' ? 1 : 0)),
-      col: clamp(cur.col + (cur.dir === 'h' ? 1 : 0)),
+      x: clamp(cur.x + (cur.dir === 'h' ? 1 : 0)),
+      y: clamp(cur.y + (cur.dir === 'v' ? 1 : 0)),
       dir: cur.dir,
     })
   }, [])
@@ -396,10 +396,10 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
 
       if (k === 'Backspace') {
         e.preventDefault()
-        if (boardRef.current[idx(cur.row, cur.col)] !== '.') boardToHand(cur.row, cur.col)
+        if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
         setCursor({
-          row: clamp(cur.row - (cur.dir === 'v' ? 1 : 0)),
-          col: clamp(cur.col - (cur.dir === 'h' ? 1 : 0)),
+          x: clamp(cur.x - (cur.dir === 'h' ? 1 : 0)),
+          y: clamp(cur.y - (cur.dir === 'v' ? 1 : 0)),
           dir: cur.dir,
         })
         return
@@ -408,18 +408,18 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
         e.preventDefault()
         const axis = k === 'ArrowLeft' || k === 'ArrowRight' ? 'h' : 'v'
         if (cur.dir !== axis) {
-          setCursor({ row: cur.row, col: cur.col, dir: axis })
+          setCursor({ x: cur.x, y: cur.y, dir: axis })
         } else {
-          const dc = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0
-          const dr = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0
-          setCursor({ row: clamp(cur.row + dr), col: clamp(cur.col + dc), dir: cur.dir })
+          const dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0
+          const dy = k === 'ArrowDown' ? 1 : k === 'ArrowUp' ? -1 : 0
+          setCursor({ x: clamp(cur.x + dx), y: clamp(cur.y + dy), dir: cur.dir })
         }
         return
       }
       if (k.length === 1 && /[a-z]/i.test(k)) {
         e.preventDefault()
         const letter = k.toUpperCase()
-        const i = idx(cur.row, cur.col)
+        const i = idx(cur.x, cur.y)
         // Typing on a FILLED cell swaps: the tile under the cursor returns to
         // the hand and the typed letter takes its place. So the hand we can
         // place FROM is the held tiles minus everything placed EXCEPT this
@@ -437,7 +437,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
           flashHandError() // you don't hold that tile → red flash around the hand
           return
         }
-        handToBoard(letter, cur.row, cur.col)
+        handToBoard(letter, cur.x, cur.y)
         advance(cur)
       }
     },
@@ -463,18 +463,18 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
       })
       return
     }
-    const h = ext.maxR - ext.minR + 1
-    const w = ext.maxC - ext.minC + 1
+    const h = ext.maxY - ext.minY + 1
+    const w = ext.maxX - ext.minX + 1
     const top = Math.floor((GRID - h) / 2)
     const left = Math.floor((GRID - w) / 2)
-    const dr = top - ext.minR
-    const dc = left - ext.minC
+    const dy = top - ext.minY
+    const dx = left - ext.minX
     setBoard((b) => {
       const nb = new Array(GRID * GRID).fill('.')
-      for (let r = 0; r < GRID; r++)
-        for (let col = 0; col < GRID; col++) {
-          const ch = b[idx(r, col)]
-          if (ch !== '.') nb[idx(r + dr, col + dc)] = ch
+      for (let y = 0; y < GRID; y++)
+        for (let x = 0; x < GRID; x++) {
+          const ch = b[idx(x, y)]
+          if (ch !== '.') nb[idx(x + dx, y + dy)] = ch
         }
       return nb.join('')
     })
@@ -502,30 +502,30 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   // check ran on; any edit moves `board` past it and they vanish (no effect).
   const invalidCells = invalid && invalid.board === board ? invalid.cells : NO_CELLS
   const cells: React.ReactNode[] = []
-  for (let r = 0; r < GRID; r++) {
-    for (let c = 0; c < GRID; c++) {
-      const ch = board[idx(r, c)]
-      const isHover = hover && hover.row === r && hover.col === c
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      const ch = board[idx(x, y)]
+      const isHover = hover && hover.x === x && hover.y === y
       const lifting =
-        drag && drag.source.kind === 'board' && drag.source.row === r && drag.source.col === c
+        drag && drag.source.kind === 'board' && drag.source.x === x && drag.source.y === y
       const blocked = isHover && ch !== '.' && !lifting
       const dropOk = isHover && !blocked
-      const cursorHere = cursor.row === r && cursor.col === c
+      const cursorHere = cursor.x === x && cursor.y === y
       cells.push(
         <div
-          key={r * GRID + c}
+          key={y * GRID + x}
           data-cell
-          data-row={r}
-          data-col={c}
+          data-x={x}
+          data-y={y}
           className={styles.cell + (dropOk ? ' ' + styles.dropOk : '') + (blocked ? ' ' + styles.dropNo : '')}
-          onPointerDown={(e) => onCellPointerDown(r, c, e)}
+          onPointerDown={(e) => onCellPointerDown(x, y, e)}
         >
           {ch !== '.' && (
             <div
               className={
                 styles.tile +
                 (lifting ? ' ' + styles.lifted : '') +
-                (invalidCells.has(idx(r, c)) ? ' ' + styles.tileInvalid : '')
+                (invalidCells.has(idx(x, y)) ? ' ' + styles.tileInvalid : '')
               }
             >
               {ch}

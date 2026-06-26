@@ -59,8 +59,9 @@ not from memory. A debounced autosave (~800 ms) during play bounds crash-loss
 ## The player board — a fixed 25×25 arena
 
 The player board is a **fixed 25×25 grid**: a flat 625-char string
-(`player_boards.board`), `board[row*25 + col]` = a letter or `'.'`
-(empty). You navigate it with a **zoom slider + scrollbars**; the grid never
+(`player_boards.board`), `board[idx(x, y)]` = `board[y*25 + x]` = a letter or
+`'.'` (empty) — x = column, y = row, the same x-first convention RackAttack
+uses. You navigate it with a **zoom slider + scrollbars**; the grid never
 resizes.
 
 That "never resizes" is the whole reason this code stays simple. Because the
