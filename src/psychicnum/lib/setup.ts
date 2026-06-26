@@ -16,7 +16,7 @@ import type { TimerMode } from '../../common/lib/games'
  * the manifest in (which would defeat the lazy-load — the form
  * would not split into its own chunk).
  */
-export type PsychicNumSetup = {
+export type PsychicnumSetup = {
   /**
    * Starting guess budget — the shared pool every club member
    * draws from. 7 is the historical default; 3/5/9 are the
@@ -39,7 +39,7 @@ export type PsychicNumSetup = {
  * "casual game with stakes" baseline that players can dial up or
  * down (or turn off entirely) before starting.
  */
-export const DEFAULT_PSYCHICNUM_SETUP: PsychicNumSetup = {
+export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   guesses: 7,
   timer: { kind: 'countdown', seconds: 15 },
 }

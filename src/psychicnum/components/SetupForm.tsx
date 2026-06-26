@@ -2,7 +2,7 @@ import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
-  type PsychicNumSetup,
+  type PsychicnumSetup,
 } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
 
@@ -20,19 +20,19 @@ import styles from '../../common/components/setupForm.module.css'
  *
  * Controlled component pattern, same as the codenamesduet form: state
  * lives in the wrapper; we render from `value` and signal via
- * `onChange`. The single `value as PsychicNumSetup` cast at
+ * `onChange`. The single `value as PsychicnumSetup` cast at
  * the top is the boundary between the manifest's `unknown` setup
  * type and psychicnum's narrow shape.
  *
  * Component name `SetupForm` matches the file + the
  * `manifest.setupForm` field — this is the *form definition*,
- * distinct from `PsychicNumSetup` (the *data shape* the form
+ * distinct from `PsychicnumSetup` (the *data shape* the form
  * produces, stored on `common.games.setup`). The folder path
  * (`psychicnum/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
 export function SetupForm({ value, onChange }: SetupBodyProps) {
-  const s = value as PsychicNumSetup
+  const s = value as PsychicnumSetup
 
   return (
     <div className={styles.setup}>

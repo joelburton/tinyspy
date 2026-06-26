@@ -6,9 +6,9 @@ import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * SyrupSwap's registration with the shell. Brand name **SyrupSwap**;
- * codename `waffle` everywhere in code (schema, folder, gametype
- * strings). A Waffle-style swap-to-solve deduction puzzle — see
+ * waffle's registration with the shell. Codename `waffle` everywhere
+ * in code (schema, folder, gametype strings); the brand lives only in
+ * the BRAND const below. A Waffle-style swap-to-solve deduction puzzle — see
  * docs/games/waffle.md.
  *
  * Ships as a coop / compete sibling pair: `waffleCoopGame` (solve one
@@ -39,7 +39,7 @@ const setupFormLoader = lazy(() =>
  * is the per-manifest constant, forwarded top-level. Returns `{ id }`
  * or `{ error }` whose message the dialog surfaces verbatim.
  */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (
     clubHandle: string,
     setup: unknown,
@@ -78,7 +78,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
     const payload = data as { id?: string; error?: string } | null
     if (!payload || payload.error || !payload.id) {
       return {
-        error: payload?.error ?? `failed to start SyrupSwap (${mode})`,
+        error: payload?.error ?? `failed to start ${brand} (${mode})`,
       }
     }
     return { id: payload.id }
@@ -117,12 +117,17 @@ function labelFor(modeLabel: string) {
   }
 }
 
+// Single source of truth for this game's user-facing brand name —
+// both manifests' name and the start-game error read it, so a fork
+// rebrands by editing this one line. Codename stays lowercase in code.
+const BRAND = 'SyrupSwap'
+
 export const waffleCoopGame: GameManifest = {
   gametype: 'waffle_coop',
   schema: 'waffle',
   baseGametype: 'waffle',
   mode: 'coop',
-  name: 'SyrupSwap',
+  name: BRAND,
   shortDescription: 'Unscramble the waffle together',
   logoUrl,
 
@@ -139,7 +144,7 @@ export const waffleCoopGame: GameManifest = {
     defaults: DEFAULT_WAFFLE_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
 
   labelFor: labelFor('coop'),
 
@@ -151,7 +156,7 @@ export const waffleCompeteGame: GameManifest = {
   schema: 'waffle',
   baseGametype: 'waffle',
   mode: 'compete',
-  name: 'SyrupSwap',
+  name: BRAND,
   shortDescription: 'Race to unscramble the waffle',
   logoUrl,
 
@@ -169,7 +174,7 @@ export const waffleCompeteGame: GameManifest = {
     defaults: DEFAULT_WAFFLE_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
 
   labelFor: labelFor('compete'),
 

@@ -32,7 +32,7 @@ export type Player = Member
  * `play_state` itself isn't on this row — it lives on
  * common.games and arrives via GamePageCtx.
  */
-export type PsychicNumGame = {
+export type PsychicnumGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
@@ -54,7 +54,7 @@ export type PsychicNumGame = {
  * is enforced by giving this table club-wide RLS while
  * `psychicnum.guesses` gets user-scoped RLS in compete mode.
  */
-export type PsychicNumPlayer = {
+export type PsychicnumPlayer = {
   user_id: string
   guesses_remaining: number
 }
@@ -66,7 +66,7 @@ export type PsychicNumPlayer = {
  * rows. PlayArea renders them the same way either way; the
  * filtering is invisible to the FE.
  */
-export type PsychicNumGuess = {
+export type PsychicnumGuess = {
   id: string
   user_id: string
   number: number
@@ -92,14 +92,14 @@ export type PsychicNumGuess = {
  * `src/common/hooks/useCommonGame.ts`.
  */
 export function useGame(gameId: string): {
-  game: PsychicNumGame | null
-  players: PsychicNumPlayer[]
-  guesses: PsychicNumGuess[]
+  game: PsychicnumGame | null
+  players: PsychicnumPlayer[]
+  guesses: PsychicnumGuess[]
   loading: boolean
 } {
-  const [game, setGame] = useState<PsychicNumGame | null>(null)
-  const [players, setPlayers] = useState<PsychicNumPlayer[]>([])
-  const [guesses, setGuesses] = useState<PsychicNumGuess[]>([])
+  const [game, setGame] = useState<PsychicnumGame | null>(null)
+  const [players, setPlayers] = useState<PsychicnumPlayer[]>([])
+  const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
@@ -146,8 +146,8 @@ export function useGame(gameId: string): {
         target: gameData.target as number | null,
         created_at: gameData.created_at as string,
       })
-      setPlayers((playerRows ?? []) as PsychicNumPlayer[])
-      setGuesses((guessRows ?? []) as PsychicNumGuess[])
+      setPlayers((playerRows ?? []) as PsychicnumPlayer[])
+      setGuesses((guessRows ?? []) as PsychicnumGuess[])
       setLoading(false)
     },
   })

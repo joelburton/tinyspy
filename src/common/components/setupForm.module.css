@@ -3,7 +3,7 @@
  * `SetupForm` (rendered inside `SetupGameDialog`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
  * for `.setup` / `.fieldset` / `.radioRow` / `.radio`; only genuinely
- * game-specific bits (bananagrams's bag/checkbox rows, WordNerd's answer-source
+ * game-specific bits (bananagrams's bag/checkbox rows, wordle's answer-source
  * `<select>`) stay in a game-local module.
  *
  * Why this is shared rather than copied per game: with nine games the forms had

@@ -42,7 +42,7 @@ vi.mock('../lib/router', () => ({
 vi.mock('../lib/channelDedup', () => ({ channelDedupSuffix: () => 'test' }))
 
 vi.mock('../../games', () => ({
-  games: [{ gametype: 'spellingbee_coop', name: 'FreeBee' }],
+  games: [{ gametype: 'spellingbee_coop', name: 'Test Game' }],
 }))
 
 // A real game id is a hex UUID — the path regex only captures `[0-9a-f-]+`,
@@ -128,7 +128,7 @@ describe('useGameInvitations', () => {
     expect(result.current.invites[0]).toMatchObject({
       gameId: GID,
       gametype: 'spellingbee_coop',
-      gameName: 'FreeBee',
+      gameName: 'Test Game',
       inviterName: 'moth',
     })
   })

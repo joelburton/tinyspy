@@ -1,5 +1,5 @@
 /*
- * StackDown theme tokens — the warm "felt" the tiles stack on and the
+ * stackdown theme tokens — the warm "felt" the tiles stack on and the
  * ink color for letters on the opaque tiles. The per-tile background is
  * computed at runtime (depth shading, an hsl ramp in Board.tsx), so it
  * isn't a token. Imported by the PlayArea.

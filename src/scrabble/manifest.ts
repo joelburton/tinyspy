@@ -5,7 +5,7 @@ import { DEFAULT_SCRABBLE_SETUP, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * RackAttack's registration with the shell — a Scrabble-style word game
+ * scrabble's registration with the shell — a Scrabble-style word game
  * (codename `scrabble`); see docs/games/scrabble.md.
  *
  * Two-manifest family (sibling pattern): coop and compete share the
@@ -27,7 +27,7 @@ const setupFormLoader = lazy(() =>
 
 /** Shared start-game caller. `mode` is the per-manifest constant; the RPC
  *  routes on it to write the right gametype string + per-mode dealing. */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
     const s = setup as ScrabbleSetup
     const { data, error } = await db
@@ -39,7 +39,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start RackAttack (${mode})` }
+      return { error: error?.message ?? `failed to start ${brand} (${mode})` }
     }
     return { id: data.id }
   }
@@ -81,12 +81,17 @@ function labelFor(mode: 'coop' | 'compete') {
   }
 }
 
+// Single source of truth for this game's user-facing brand name —
+// both manifests' name and the start-game error read it, so a fork
+// rebrands by editing this one line. Codename stays lowercase in code.
+const BRAND = 'RackAttack'
+
 export const scrabbleCoopGame: GameManifest = {
   gametype: 'scrabble_coop',
   schema: 'scrabble',
   baseGametype: 'scrabble',
   mode: 'coop',
-  name: 'RackAttack',
+  name: BRAND,
   shortDescription: 'Build words together on one board',
   logoUrl,
   help: helpLoader,
@@ -94,7 +99,7 @@ export const scrabbleCoopGame: GameManifest = {
   numberOfPlayers: [1, 4],
   PlayArea: playAreaLoader,
   setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP },
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
   labelFor: labelFor('coop'),
   submitTimeout,
 }
@@ -104,7 +109,7 @@ export const scrabbleCompeteGame: GameManifest = {
   schema: 'scrabble',
   baseGametype: 'scrabble',
   mode: 'compete',
-  name: 'RackAttack',
+  name: BRAND,
   shortDescription: 'Race for the highest score',
   logoUrl,
   help: helpLoader,
@@ -112,7 +117,7 @@ export const scrabbleCompeteGame: GameManifest = {
   numberOfPlayers: [2, 4],
   PlayArea: playAreaLoader,
   setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP },
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: labelFor('compete'),
   submitTimeout,
 }

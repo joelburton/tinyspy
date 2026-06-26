@@ -1,5 +1,5 @@
 /*
- * RackAttack theme tokens. Loaded with the gametype's chunk via the
+ * scrabble theme tokens. Loaded with the gametype's chunk via the
  * PlayArea.tsx import, so they only ship when someone plays it. Premium
  * colors follow the familiar Scrabble palette; tiles are a warm cream.
  */

@@ -5,9 +5,9 @@ import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/s
 import logoUrl from './logo.svg?url'
 
 /**
- * WordNerd's registration with the shell. Brand name **WordNerd**;
- * codename `wordle` everywhere in code (schema, folder, gametype
- * strings). A NYT-Wordle-style guess-the-word game — see
+ * wordle's registration with the shell. Codename `wordle` everywhere
+ * in code (schema, folder, gametype strings); the brand lives only in
+ * the BRAND const below. A NYT-Wordle-style guess-the-word game — see
  * docs/games/wordle.md.
  *
  * Two-manifest family (sibling pattern): coop and compete share the
@@ -32,7 +32,7 @@ const setupFormLoader = lazy(() =>
 /** Shared start-game caller. `mode` is the per-manifest constant; the
  *  RPC routes on it to write the right gametype string and pick the
  *  target. No edge function — picking a random target is one SQL line. */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (
     clubHandle: string,
     setup: unknown,
@@ -48,7 +48,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start WordNerd (${mode})` }
+      return { error: error?.message ?? `failed to start ${brand} (${mode})` }
     }
     return { id: data.id }
   }
@@ -85,12 +85,17 @@ function labelFor(modeLabel: string) {
   }
 }
 
+// Single source of truth for this game's user-facing brand name —
+// both manifests' name and the start-game error read it, so a fork
+// rebrands by editing this one line. Codename stays lowercase in code.
+const BRAND = 'WordNerd'
+
 export const wordleCoopGame: GameManifest = {
   gametype: 'wordle_coop',
   schema: 'wordle',
   baseGametype: 'wordle',
   mode: 'coop',
-  name: 'WordNerd',
+  name: BRAND,
   shortDescription: 'Guess the word together',
   logoUrl,
 
@@ -109,7 +114,7 @@ export const wordleCoopGame: GameManifest = {
     validate: (setup) => legalGuessError(setup as WordleSetup),
   },
 
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
 
   labelFor: labelFor('coop'),
 
@@ -121,7 +126,7 @@ export const wordleCompeteGame: GameManifest = {
   schema: 'wordle',
   baseGametype: 'wordle',
   mode: 'compete',
-  name: 'WordNerd',
+  name: BRAND,
   shortDescription: 'Race to guess the word',
   logoUrl,
 
@@ -140,7 +145,7 @@ export const wordleCompeteGame: GameManifest = {
     validate: (setup) => legalGuessError(setup as WordleSetup),
   },
 
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
 
   labelFor: labelFor('compete'),
 

@@ -5,7 +5,7 @@ import { DEFAULT_STACKDOWN_SETUP, type StackdownSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * StackDown's registration with the shell. A mahjong-style word game:
+ * stackdown's registration with the shell. A mahjong-style word game:
  * clear a stack of lettered tiles by spelling words off the exposed
  * ones — see docs/games/stackdown.md.
  *
@@ -31,7 +31,7 @@ const setupFormLoader = lazy(() =>
 /** Shared start-game caller. `mode` is the per-manifest constant; the
  *  RPC routes on it to write the right gametype string and claim a
  *  random board from the library. */
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (
     clubHandle: string,
     setup: unknown,
@@ -47,7 +47,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start StackDown (${mode})` }
+      return { error: error?.message ?? `failed to start ${brand} (${mode})` }
     }
     return { id: data.id }
   }
@@ -84,12 +84,17 @@ function labelFor(modeLabel: string) {
   }
 }
 
+// Single source of truth for this game's user-facing brand name —
+// both manifests' name and the start-game error read it, so a fork
+// rebrands by editing this one line. Codename stays lowercase in code.
+const BRAND = 'StackDown'
+
 export const stackdownCoopGame: GameManifest = {
   gametype: 'stackdown_coop',
   schema: 'stackdown',
   baseGametype: 'stackdown',
   mode: 'coop',
-  name: 'StackDown',
+  name: BRAND,
   shortDescription: 'Clear the tile stack together',
   logoUrl,
 
@@ -105,7 +110,7 @@ export const stackdownCoopGame: GameManifest = {
     defaults: DEFAULT_STACKDOWN_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
 
   labelFor: labelFor('coop'),
 
@@ -117,7 +122,7 @@ export const stackdownCompeteGame: GameManifest = {
   schema: 'stackdown',
   baseGametype: 'stackdown',
   mode: 'compete',
-  name: 'StackDown',
+  name: BRAND,
   shortDescription: 'Race to clear the tile stack',
   logoUrl,
 
@@ -133,7 +138,7 @@ export const stackdownCompeteGame: GameManifest = {
     defaults: DEFAULT_STACKDOWN_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
 
   labelFor: labelFor('compete'),
 

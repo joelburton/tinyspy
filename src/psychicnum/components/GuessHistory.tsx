@@ -1,10 +1,10 @@
 import { colorVarFor } from '../../common/lib/memberColor'
 import { HistoryPanel, HistoryRow } from '../../common/components/HistoryPanel'
-import type { Player, PsychicNumGuess } from '../hooks/useGame'
+import type { Player, PsychicnumGuess } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
 type Props = {
-  guesses: PsychicNumGuess[]
+  guesses: PsychicnumGuess[]
   players: Player[]
 }
 

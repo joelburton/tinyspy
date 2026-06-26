@@ -1,7 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
-import { DEFAULT_PSYCHICNUM_SETUP, type PsychicNumSetup } from './lib/setup'
+import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -62,13 +62,13 @@ const setupFormLoader = lazy(() =>
 // Shared start-game caller. `mode` is the per-manifest constant
 // — the RPC routes on it to write the right gametype string +
 // per-mode end-game vocabulary.
-function startGameInClubFactory(mode: 'coop' | 'compete') {
+function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
   ) => {
-    const s = setup as PsychicNumSetup
+    const s = setup as PsychicnumSetup
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
@@ -78,7 +78,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start PsychicNum (${mode}) game` }
+      return { error: error?.message ?? `failed to start ${brand} (${mode}) game` }
     }
     return { id: data.id }
   }
@@ -107,12 +107,17 @@ function labelMidGame(row: { status: StatusBlob | null }) {
   return `${remaining} ${word} left`
 }
 
+// Single source of truth for this game's user-facing brand name —
+// both manifests' name and the start-game error read it. The brand
+// keeps its display casing; code identifiers are the lowercase codename.
+const BRAND = 'PsychicNum'
+
 export const psychicnumCoopGame: GameManifest = {
   gametype: 'psychicnum_coop',
   schema: 'psychicnum',
   baseGametype: 'psychicnum',
   mode: 'coop',
-  name: 'PsychicNum',
+  name: BRAND,
   shortDescription: 'Guess the secret number together',
   logoUrl,
 
@@ -129,7 +134,7 @@ export const psychicnumCoopGame: GameManifest = {
     defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('coop'),
+  startGameInClub: startGameInClubFactory('coop', BRAND),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
@@ -155,7 +160,7 @@ export const psychicnumCompeteGame: GameManifest = {
   schema: 'psychicnum',
   baseGametype: 'psychicnum',
   mode: 'compete',
-  name: 'PsychicNum',
+  name: BRAND,
   shortDescription: 'Race to guess the secret number',
   logoUrl,
 
@@ -173,7 +178,7 @@ export const psychicnumCompeteGame: GameManifest = {
     defaults: DEFAULT_PSYCHICNUM_SETUP,
   },
 
-  startGameInClub: startGameInClubFactory('compete'),
+  startGameInClub: startGameInClubFactory('compete', BRAND),
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob

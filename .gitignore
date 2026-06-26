@@ -46,5 +46,3 @@ import-to-hosted.secrets.sh
 /test-results/
 /playwright-report/
 /playwright/.cache/
-
-waffle-samples.txt

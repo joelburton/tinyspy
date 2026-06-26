@@ -1,6 +1,6 @@
-/* WordNerd-specific setup bits. The form scaffold (.setup / .fieldset /
+/* wordle-specific setup bits. The form scaffold (.setup / .fieldset /
  * legend) comes from the shared common/components/setupForm.module.css; only
- * the answer-count <select> is unique to WordNerd. */
+ * the answer-count <select> is unique to wordle. */
 
 .select {
   margin-top: 0.5rem;
