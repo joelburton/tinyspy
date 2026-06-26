@@ -12,7 +12,7 @@ port = 54321
 # endpoints. `public` and `graphql_public` schemas are included by default.
 # `common` holds shared user-data (profiles); each game gets its own schema
 # (`tinyspy`, eventually `boggle`, etc.). See docs/naming.md for the convention.
-schemas = ["public", "graphql_public", "common", "tinyspy", "psychicnum", "connections", "spellingbee", "monkeygram", "waffle", "wordle", "stackdown", "scrabble"]
+schemas = ["public", "graphql_public", "common", "tinyspy", "psychicnum", "connections", "spellingbee", "bananagrams", "waffle", "wordle", "stackdown", "scrabble"]
 # Extra schemas to add to the search_path of every request.
 # `common` is included so cross-game shared tables (e.g. profiles) resolve
 # unqualified. Game schemas are deliberately omitted from the search_path —

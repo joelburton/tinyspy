@@ -3,17 +3,17 @@ import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import {
   bagSizeError,
-  DEFAULT_MONKEYGRAM_SETUP,
-  type MonkeyGramSetup,
+  DEFAULT_BANANAGRAMS_SETUP,
+  type BananagramsSetup,
 } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * MonkeyGram's registration with the shell — a SINGLE manifest.
+ * bananagrams's registration with the shell — a SINGLE manifest.
  *
- * MonkeyGram is compete-only, so (like tinyspy, which is coop-only)
+ * bananagrams is compete-only, so (like tinyspy, which is coop-only)
  * it's one `common.gametypes` row and one Start button — no
- * coop/compete sibling pair, hence the bare `gametype: 'monkeygram'`
+ * coop/compete sibling pair, hence the bare `gametype: 'bananagrams'`
  * (the `_compete` suffix only earns its keep when there's a `_coop`
  * sibling sharing the schema). `mode: 'compete'` still tags the
  * interaction axis for any code that reads it.
@@ -22,12 +22,19 @@ import logoUrl from './logo.svg?url'
  * is "finish your own tiles"), unlike the psychicnum/connections/spellingbee
  * compete siblings whose lower bound is 2.
  */
-export const monkeygramGame: GameManifest = {
-  gametype: 'monkeygram',
-  schema: 'monkeygram',
-  baseGametype: 'monkeygram',
+
+// The single source of truth for this game's user-facing brand name —
+// `name` and the start-game error both read it, so a fork rebrands by
+// editing this one line. The codename (`bananagrams`) is unrelated and
+// stays lowercase everywhere in code.
+const BRAND = 'MonkeyGram'
+
+export const bananagramsGame: GameManifest = {
+  gametype: 'bananagrams',
+  schema: 'bananagrams',
+  baseGametype: 'bananagrams',
   mode: 'compete',
-  name: 'MonkeyGram',
+  name: BRAND,
   shortDescription: 'Race to lay out all your tiles',
   logoUrl,
 
@@ -36,7 +43,7 @@ export const monkeygramGame: GameManifest = {
   ),
 
   // Solo race up to a 6-player table. MUST AGREE with the
-  // require_player_count_max(6) call in monkeygram.create_game. See
+  // require_player_count_max(6) call in bananagrams.create_game. See
   // docs/code-conventions.md → "Per-game player counts".
   numberOfPlayers: [1, 6],
 
@@ -48,18 +55,18 @@ export const monkeygramGame: GameManifest = {
     Component: lazy(() =>
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
-    defaults: DEFAULT_MONKEYGRAM_SETUP,
+    defaults: DEFAULT_BANANAGRAMS_SETUP,
     // Gate Start until the bag can deal everyone a starter hand
     // (bag_size ≥ playerCount × hand_size). create_game re-checks.
     validate: (setup, playerCount) =>
-      bagSizeError(setup as MonkeyGramSetup, playerCount),
+      bagSizeError(setup as BananagramsSetup, playerCount),
   },
 
   // Single gametype → no `mode` in the payload (the RPC writes
-  // 'monkeygram' directly). The server deals the starter hands and
+  // 'bananagrams' directly). The server deals the starter hands and
   // validates the setup shape; the FE-collected setup isn't trusted.
   startGameInClub: async (clubHandle, setup, playerUserIds) => {
-    const s = setup as MonkeyGramSetup
+    const s = setup as BananagramsSetup
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
@@ -68,14 +75,14 @@ export const monkeygramGame: GameManifest = {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? 'failed to start MonkeyGram game' }
+      return { error: error?.message ?? `failed to start ${BRAND} game` }
     }
     return { id: data.id }
   },
 
   // Per-row label for the ClubPage games list. Pure + synchronous.
   // We don't write a mid-game status to common.games (progress lives
-  // on monkeygram.progress), so "in progress" is the live label; the
+  // on bananagrams.progress), so "in progress" is the live label; the
   // 'won' label reads the winner from status, which is written when a
   // player goes out — that terminal is detected inside `peel`, not by
   // a dedicated RPC. The 'ended' label covers the manual end_game stop.
@@ -96,7 +103,7 @@ export const monkeygramGame: GameManifest = {
   },
 
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
-  // collective loss (nobody went out in time) via monkeygram.submit_timeout.
+  // collective loss (nobody went out in time) via bananagrams.submit_timeout.
   // Idempotent server-side, so a peer racing to fire it is fine.
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })

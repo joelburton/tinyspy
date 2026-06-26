@@ -32,7 +32,7 @@ type Props = {
  * everything else — order, the colored-name label, the `·` separators,
  * the wrapper, the CSS.
  *
- * Not used by monkeygram: its peer display is a vertical dot-list
+ * Not used by bananagrams: its peer display is a vertical dot-list
  * sorted by who's closest to finishing — a different shape that belongs
  * to the `PlayersStrip` dot family, not this inline strip.
  */

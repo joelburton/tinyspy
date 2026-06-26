@@ -132,7 +132,7 @@
   font-weight: 600;
 }
 
-/* The keyboard cursor — a thick-on-the-axis ring (MonkeyGram style). */
+/* The keyboard cursor — a thick-on-the-axis ring (bananagrams style). */
 .cursor {
   position: absolute;
   inset: 0;

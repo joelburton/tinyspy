@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * The shared "press a tile, then either tap or drag it" pointer plumbing,
- * factored out of MonkeyGram and scrabble — the two games with a grid you
+ * factored out of bananagrams and scrabble — the two games with a grid you
  * drag lettered tiles onto.
  *
  * Both games run the *same* gesture state machine: a pointer-down arms a
@@ -68,7 +68,7 @@ export type UseDragGestureOpts<TSource, TCell> = {
   onDrop: (g: DragGesture<TSource, TCell>, x: number, y: number) => void
   /** A press that never became a drag (a plain tap/click). */
   onTap: (g: DragGesture<TSource, TCell>) => void
-  /** Optional: extra per-move side-effect during a drag (MonkeyGram lights its
+  /** Optional: extra per-move side-effect during a drag (bananagrams lights its
    *  dump slot when a tile hovers it). Called with the live pointer position. */
   onDragMove?: (x: number, y: number) => void
   /** Optional: extra cleanup once a drag finishes (clear the dump highlight). */

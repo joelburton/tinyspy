@@ -3,15 +3,15 @@ import { db } from '../db'
 import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 
-/** Cross-game vocabulary: a player in a MonkeyGram game is just a
+/** Cross-game vocabulary: a player in a bananagrams game is just a
  *  Member today (no per-game enrichment). Declared for parity with
  *  the other game folders' `Player` alias. */
 export type Player = Member
 
 /**
- * Per-gametype data hook for MonkeyGram — the caller's OWN player board.
+ * Per-gametype data hook for bananagrams — the caller's OWN player board.
  *
- * Two split pieces (see the monkeygram.player_boards comment):
+ * Two split pieces (see the bananagrams.player_boards comment):
  *
  *   - `initialBoard` — the FE-owned placement grid, read ONCE for seeding.
  *     The FE owns the board after mount, so we never re-seed it (a realtime
@@ -31,8 +31,8 @@ export function useGame(gameId: string) {
   const seeded = useRef(false)
 
   useRealtimeRefetch({
-    tables: { schema: 'monkeygram', table: 'player_boards', filter: `game_id=eq.${gameId}` },
-    channelPrefix: 'monkeygram-board',
+    tables: { schema: 'bananagrams', table: 'player_boards', filter: `game_id=eq.${gameId}` },
+    channelPrefix: 'bananagrams-board',
     id: gameId,
     load: async ({ mounted }) => {
       const { data } = await db
@@ -52,9 +52,9 @@ export function useGame(gameId: string) {
   return { initialBoard, tiles, loading: initialBoard === null }
 }
 
-/** One row of `monkeygram.progress` — the public per-player projection peers
+/** One row of `bananagrams.progress` — the public per-player projection peers
  *  read: unplaced/placed counts + the done flag. */
-export type MonkeyGramProgress = {
+export type BananagramsProgress = {
   user_id: string
   unplaced: number
   placed: number
@@ -62,17 +62,17 @@ export type MonkeyGramProgress = {
 }
 
 /**
- * Subscribe to every player's `monkeygram.progress` row for this game — the
+ * Subscribe to every player's `bananagrams.progress` row for this game — the
  * thin realtime surface (counts only, never boards). `progress` is
  * club-readable, so the caller sees all players' rows; the PeersStrip renders
  * the opponents'. Pattern A (refetch on any change) — the table is tiny
  * (one row per player) and updates at most on each player's debounced save.
  */
-export function useProgress(gameId: string): MonkeyGramProgress[] {
-  const [rows, setRows] = useState<MonkeyGramProgress[]>([])
+export function useProgress(gameId: string): BananagramsProgress[] {
+  const [rows, setRows] = useState<BananagramsProgress[]>([])
   useRealtimeRefetch({
-    tables: { schema: 'monkeygram', table: 'progress', filter: `game_id=eq.${gameId}` },
-    channelPrefix: 'monkeygram-progress',
+    tables: { schema: 'bananagrams', table: 'progress', filter: `game_id=eq.${gameId}` },
+    channelPrefix: 'bananagrams-progress',
     id: gameId,
     load: async ({ mounted }) => {
       const { data } = await db

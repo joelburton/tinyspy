@@ -7,6 +7,141 @@ export type Json =
   | Json[]
 
 export type Database = {
+  bananagrams: {
+    Tables: {
+      games: {
+        Row: {
+          bag: string
+          box: string
+          club_handle: string
+          created_at: string
+          hand_size: number
+          id: string
+          pool: string
+        }
+        Insert: {
+          bag: string
+          box?: string
+          club_handle: string
+          created_at?: string
+          hand_size: number
+          id: string
+          pool: string
+        }
+        Update: {
+          bag?: string
+          box?: string
+          club_handle?: string
+          created_at?: string
+          hand_size?: number
+          id?: string
+          pool?: string
+        }
+        Relationships: []
+      }
+      player_boards: {
+        Row: {
+          board: string
+          game_id: string
+          tiles: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board: string
+          game_id: string
+          tiles: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          board?: string
+          game_id?: string
+          tiles?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_boards_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      progress: {
+        Row: {
+          done: boolean
+          finished_at: string | null
+          game_id: string
+          placed: number
+          unplaced: number
+          user_id: string
+        }
+        Insert: {
+          done?: boolean
+          finished_at?: string | null
+          game_id: string
+          placed?: number
+          unplaced: number
+          user_id: string
+        }
+        Update: {
+          done?: boolean
+          finished_at?: string | null
+          game_id?: string
+          placed?: number
+          unplaced?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      _win_blockers: {
+        Args: {
+          board: string
+          check_words: boolean
+          dict_2: number
+          dict_3plus: number
+        }
+        Returns: number[]
+      }
+      create_game: {
+        Args: { player_user_ids: string[]; setup: Json; target_club: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      dump: { Args: { target_game: string; tile: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      peel: { Args: { target_game: string }; Returns: Json }
+      save_player_board: {
+        Args: { board: string; target_game: string }
+        Returns: undefined
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   common: {
     Tables: {
       clubs: {
@@ -650,141 +785,6 @@ export type Database = {
         }
         Returns: Json
       }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  monkeygram: {
-    Tables: {
-      games: {
-        Row: {
-          bag: string
-          box: string
-          club_handle: string
-          created_at: string
-          hand_size: number
-          id: string
-          pool: string
-        }
-        Insert: {
-          bag: string
-          box?: string
-          club_handle: string
-          created_at?: string
-          hand_size: number
-          id: string
-          pool: string
-        }
-        Update: {
-          bag?: string
-          box?: string
-          club_handle?: string
-          created_at?: string
-          hand_size?: number
-          id?: string
-          pool?: string
-        }
-        Relationships: []
-      }
-      player_boards: {
-        Row: {
-          board: string
-          game_id: string
-          tiles: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          board: string
-          game_id: string
-          tiles: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          board?: string
-          game_id?: string
-          tiles?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "player_boards_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      progress: {
-        Row: {
-          done: boolean
-          finished_at: string | null
-          game_id: string
-          placed: number
-          unplaced: number
-          user_id: string
-        }
-        Insert: {
-          done?: boolean
-          finished_at?: string | null
-          game_id: string
-          placed?: number
-          unplaced: number
-          user_id: string
-        }
-        Update: {
-          done?: boolean
-          finished_at?: string | null
-          game_id?: string
-          placed?: number
-          unplaced?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "progress_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      _win_blockers: {
-        Args: {
-          board: string
-          check_words: boolean
-          dict_2: number
-          dict_3plus: number
-        }
-        Returns: number[]
-      }
-      create_game: {
-        Args: { player_user_ids: string[]; setup: Json; target_club: string }
-        Returns: {
-          id: string
-        }[]
-      }
-      dump: { Args: { target_game: string; tile: string }; Returns: undefined }
-      end_game: { Args: { target_game: string }; Returns: undefined }
-      peel: { Args: { target_game: string }; Returns: Json }
-      save_player_board: {
-        Args: { board: string; target_game: string }
-        Returns: undefined
-      }
-      submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -2414,6 +2414,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  bananagrams: {
+    Enums: {},
+  },
   common: {
     Enums: {},
   },
@@ -2421,9 +2424,6 @@ export const Constants = {
     Enums: {},
   },
   graphql_public: {
-    Enums: {},
-  },
-  monkeygram: {
     Enums: {},
   },
   psychicnum: {

@@ -1806,7 +1806,7 @@ grant execute on function common.update_profile_color(text) to authenticated;
 -- common.words — the master playable-word list
 -- ============================================================
 -- One row per playable word, shared by every word game (spellingbee
--- today; Boggle, MonkeyGram board-validation, crosswords later). A
+-- today; Boggle, bananagrams board-validation, crosswords later). A
 -- single categorized source means each game filters the same table
 -- to its own taste instead of vendoring its own word list. Every
 -- row is a single lowercase a–z word fit for play — no proper nouns,
@@ -1840,7 +1840,7 @@ grant execute on function common.update_profile_color(text) to authenticated;
 --   wordle      — in the fixed NYT Wordle answer/guess list. A future
 --                 Wordle game would pull exactly `WHERE wordle`.
 --   len         — char length, stored so per-game length rules
---                 (spellingbee >=4, Boggle >=3, MonkeyGram >=2) filter
+--                 (spellingbee >=4, Boggle >=3, bananagrams >=2) filter
 --                 cheaply without a function call.
 --   root_word   — lemma of an inflected form (cats -> cat), else
 --                 NULL; drives "see also" grouping.

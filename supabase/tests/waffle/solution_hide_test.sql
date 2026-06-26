@@ -13,7 +13,7 @@
 --   3. ...and is revealed once the game is terminal.
 --
 -- A coop game is used so a single solve ends it. The mirror of wordle's
--- target test and monkeygram's `pool` column-exclusion test.
+-- target test and bananagrams's `pool` column-exclusion test.
 
 begin;
 

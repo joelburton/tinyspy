@@ -7,10 +7,10 @@ import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
 import { PlayerBoard } from './PlayerBoard'
 import { PeersStrip } from './PeersStrip'
-import '../theme.css' // monkeygram tokens + the global drag-cursor rule
+import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 
 /**
- * MonkeyGram play surface.
+ * bananagrams play surface.
  *
  * Load gate: `useGame` fetches the caller's own player board (`board` seeded
  * once, `tiles` kept live), `useProgress` subscribes to every player's public
@@ -111,7 +111,7 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [tiles, loading, feedback])
 
   // ─── End-game action (per-game menu item) ──────────────
-  // MonkeyGram's only intrinsic terminal is a peel-win; if the friends
+  // bananagrams's only intrinsic terminal is a peel-win; if the friends
   // want to quit before anyone goes out, this is the explicit stop. It
   // ends the game for EVERYONE with nobody as the winner (status.outcome
   // 'manual') — agreeing to stop is a valid outcome, not a loss. Mirrors

@@ -10,7 +10,7 @@
  * The HAND is not stored — it's DERIVED from the two server/FE-split pieces:
  * `hand = tiles − placed`, where `tiles` (server-owned) is everything the
  * player holds and `placed` is the letters already on the board. See
- * `deriveHand` + the comment on monkeygram.player_boards. A local "shuffle"
+ * `deriveHand` + the comment on bananagrams.player_boards. A local "shuffle"
  * order is layered on top with `reconcileHandOrder`.
  */
 

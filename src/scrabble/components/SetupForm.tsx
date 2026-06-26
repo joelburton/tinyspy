@@ -7,7 +7,7 @@ import styles from '../../common/components/setupForm.module.css'
 /**
  * scrabble's setup form. Shared by both modes:
  *   - two dictionary bands (all six offered each) — separate ceilings for
- *     2-letter and 3+-letter words (the MonkeyGram split). Uniquely for
+ *     2-letter and 3+-letter words (the bananagrams split). Uniquely for
  *     scrabble these ARE the acceptance bar, so a lower band makes a stricter
  *     game (docs/games/scrabble.md §3.3);
  *   - the timer.

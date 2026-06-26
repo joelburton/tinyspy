@@ -1,7 +1,7 @@
-/* MonkeyGram-specific setup bits. The form scaffold (.setup / .fieldset /
+/* bananagrams-specific setup bits. The form scaffold (.setup / .fieldset /
  * .radioRow / .radio) comes from the shared
  * common/components/setupForm.module.css; only the bag-size input and the
- * checkbox / dictionary-picker rows below are unique to MonkeyGram. */
+ * checkbox / dictionary-picker rows below are unique to bananagrams. */
 
 /* The bag-size number input — a short box; it only ever holds 1–3
  * digits (max 144). */

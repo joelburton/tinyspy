@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: monkeygram.peel(target_game)
+-- Test: bananagrams.peel(target_game)
 -- ============================================================
 -- The v2 draw/endgame. Covers:
 --   1. Empty hand required — peeling with tiles in hand is rejected
@@ -12,7 +12,7 @@
 
 begin;
 
-set search_path = monkeygram, common, public, extensions;
+set search_path = bananagrams, common, public, extensions;
 
 select plan(12);
 
@@ -24,7 +24,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 
 -- ─── Game 1: 2 players, hand_size 21. pool = 144 − 42 = 102, needed = 2 ───
 create temp table g1 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -34,53 +34,53 @@ select * from monkeygram.create_game(
 -- (1) Tiles still in hand → peel rejected (ada's board is empty).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select monkeygram.peel(%L) $$, (select id from g1)),
+  format($$ select bananagrams.peel(%L) $$, (select id from g1)),
   'P0001',
   'your hand is not empty',
   'cannot peel with tiles still in hand'
 );
 
 -- ada places all 21 of her REAL tiles (board = her tiles + padding), then peels.
-select monkeygram.save_player_board(
+select bananagrams.save_player_board(
   (select id from g1),
   (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from monkeygram.player_boards
+     from bananagrams.player_boards
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111')
 );
-select monkeygram.peel((select id from g1));
+select bananagrams.peel((select id from g1));
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select length(tiles) from monkeygram.player_boards
+  (select length(tiles) from bananagrams.player_boards
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   22,
   'the peeler drew 1 tile too (21 → 22)'
 );
 select is(
-  (select length(tiles) from monkeygram.player_boards
+  (select length(tiles) from bananagrams.player_boards
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   22,
   'every other player also drew 1 (bea 21 → 22)'
 );
 select is(
-  (select length(pool) from monkeygram.games where id = (select id from g1)),
+  (select length(pool) from bananagrams.games where id = (select id from g1)),
   100,
   'the bunch advanced by players × peel_count (102 → 100)'
 );
 select is(
-  (select unplaced from monkeygram.progress
+  (select unplaced from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
   'peeler unplaced = the freshly drawn tile (placed 21, holds 22)'
 );
 select is(
-  (select unplaced from monkeygram.progress
+  (select unplaced from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   22,
@@ -95,7 +95,7 @@ select is(
 -- (3) Non-player cannot peel.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($$ select monkeygram.peel(%L) $$, (select id from g1)),
+  format($$ select bananagrams.peel(%L) $$, (select id from g1)),
   '42501',
   'not playing this game',
   'a non-player cannot peel'
@@ -104,17 +104,17 @@ select throws_ok(
 -- ─── Game 2: solo ada (needed = 1). Drain the bunch, then peel = win ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   '=ada',
   '{"hand_size": 15, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
 );
 
 -- ada places all 15 tiles (empty hand).
-select monkeygram.save_player_board(
+select bananagrams.save_player_board(
   (select id from g2),
   (select tiles || repeat('.', 25 * 25 - length(tiles))
-     from monkeygram.player_boards
+     from bananagrams.player_boards
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111')
 );
@@ -122,10 +122,10 @@ select monkeygram.save_player_board(
 -- Empty the bunch so the next peel can't refill → going out wins.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update monkeygram.games set pool = '' where id = (select id from g2);
+update bananagrams.games set pool = '' where id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select monkeygram.peel((select id from g2));
+select bananagrams.peel((select id from g2));
 
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -151,7 +151,7 @@ select is(
 -- (5) Race: peeling an already-won game is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select monkeygram.peel(%L) $$, (select id from g2)),
+  format($$ select bananagrams.peel(%L) $$, (select id from g2)),
   'P0001',
   'game is not active',
   'peeling after the game is over is rejected'

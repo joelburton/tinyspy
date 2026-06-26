@@ -1,18 +1,18 @@
 import type { Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
-import type { MonkeyGramProgress } from '../hooks/useGame'
+import type { BananagramsProgress } from '../hooks/useGame'
 import styles from './PeersStrip.module.css'
 
 type Props = {
   players: Member[]
-  progress: MonkeyGramProgress[]
+  progress: BananagramsProgress[]
   selfUserId: string
 }
 
 /**
  * The race signal: each opponent's remaining (unplaced) tile count, ticking
  * toward zero. This is the *only* thing a player sees about a peer — never the
- * board itself. Counts come from `monkeygram.progress` (club-readable),
+ * board itself. Counts come from `bananagrams.progress` (club-readable),
  * updated live as each peer snapshots their board.
  *
  * Renders nothing in a solo game (no peers). Peers are sorted by tiles-left

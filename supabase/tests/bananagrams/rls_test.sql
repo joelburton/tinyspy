@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: monkeygram RLS — owner-only player_boards, club-wide progress
+-- Test: bananagrams RLS — owner-only player_boards, club-wide progress
 -- ============================================================
 -- The privacy boundary of the whole game: a player must NOT be able to
 -- read another player's tile rack (`player_boards`), while the derived
@@ -21,7 +21,7 @@
 
 begin;
 
-set search_path = monkeygram, common, public, extensions;
+set search_path = bananagrams, common, public, extensions;
 
 select plan(6);
 
@@ -35,7 +35,7 @@ create temp table club on commit drop as
 select common.create_club('test club', array['ada', 'bea']) as handle;
 
 create temp table mg_game on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -46,7 +46,7 @@ select * from monkeygram.create_game(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 select is(
-  (select count(*) from monkeygram.player_boards
+  (select count(*) from bananagrams.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0::bigint,
@@ -54,7 +54,7 @@ select is(
 );
 
 select is(
-  (select count(*) from monkeygram.player_boards
+  (select count(*) from bananagrams.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   1::bigint,
@@ -62,7 +62,7 @@ select is(
 );
 
 select is(
-  (select count(*) from monkeygram.progress
+  (select count(*) from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
@@ -74,7 +74,7 @@ select is(
 -- the column-level grant, so selecting it is a privilege error.
 select throws_ok(
   format(
-    $$ select pool from monkeygram.games where id = %L $$,
+    $$ select pool from bananagrams.games where id = %L $$,
     (select id from mg_game)
   ),
   '42501',
@@ -86,14 +86,14 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 select is(
-  (select count(*) from monkeygram.progress
+  (select count(*) from bananagrams.progress
     where game_id = (select id from mg_game)),
   0::bigint,
   'a non-member sees no progress rows (progress is club-gated)'
 );
 
 select is(
-  (select count(*) from monkeygram.player_boards
+  (select count(*) from bananagrams.player_boards
     where game_id = (select id from mg_game)),
   0::bigint,
   'a non-member sees no boards either'

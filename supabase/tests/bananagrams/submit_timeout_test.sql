@@ -1,7 +1,7 @@
 -- ============================================================
--- Test: monkeygram.submit_timeout(target_game)
+-- Test: bananagrams.submit_timeout(target_game)
 -- ============================================================
--- The countdown-expiry terminal. MonkeyGram is a race, so time running
+-- The countdown-expiry terminal. bananagrams is a race, so time running
 -- out with nobody out is a COLLECTIVE loss. Fired by GamePage when a
 -- chosen countdown hits 0; the RPC itself is timer-agnostic (it just
 -- ends the in-progress game). Covers:
@@ -16,7 +16,7 @@
 
 begin;
 
-set search_path = monkeygram, common, public, extensions;
+set search_path = bananagrams, common, public, extensions;
 
 select plan(8);
 
@@ -29,7 +29,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 -- 2-player game started WITH a countdown (the realistic setup for a
 -- timeout, though submit_timeout doesn't inspect the timer).
 create temp table g1 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -39,7 +39,7 @@ select * from monkeygram.create_game(
 -- (1) ANY player can fire it — bea (who didn't create the game).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select lives_ok(
-  format($$ select monkeygram.submit_timeout(%L) $$, (select id from g1)),
+  format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
   'any game player can fire the timeout'
 );
 
@@ -82,7 +82,7 @@ select is(
 -- (4) Idempotency: a second timeout (or a click racing a peel-win) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select monkeygram.submit_timeout(%L) $$, (select id from g1)),
+  format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
   'P0001',
   'game is not in progress',
   'timing out an already-terminal game is rejected'
@@ -91,7 +91,7 @@ select throws_ok(
 -- (5) Non-player cannot fire it.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($$ select monkeygram.submit_timeout(%L) $$, (select id from g1)),
+  format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
   '42501',
   'not playing this game',
   'a non-player cannot fire the timeout'

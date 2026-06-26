@@ -1,9 +1,9 @@
 import { supabase } from '../common/lib/supabase'
 
 /**
- * Pre-bound DB handle for the `monkeygram` Postgres schema.
+ * Pre-bound DB handle for the `bananagrams` Postgres schema.
  *
- * Usage from inside `src/monkeygram/`:
+ * Usage from inside `src/bananagrams/`:
  *
  *     import { db } from '../db'
  *
@@ -12,7 +12,7 @@ import { supabase } from '../common/lib/supabase'
  *
  * Same pattern as the other game schemas — gametype schemas are
  * deliberately omitted from PostgREST's `extra_search_path` (see
- * docs/code-conventions.md), so addressing monkeygram tables from
+ * docs/code-conventions.md), so addressing bananagrams tables from
  * the FE goes through this handle.
  */
-export const db = supabase.schema('monkeygram')
+export const db = supabase.schema('bananagrams')

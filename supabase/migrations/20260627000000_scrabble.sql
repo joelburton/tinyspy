@@ -144,7 +144,7 @@ create table scrabble.games (
   -- The dictionary acceptance bands (both 1..6): a word is legal iff its
   -- common.words.difficulty <= the band for its length — `dict_2` gates
   -- 2-letter words, `dict_3plus` gates everything 3+ (2-letter words are a
-  -- thin, separate vocabulary, like MonkeyGram). Unlike most games these IS
+  -- thin, separate vocabulary, like bananagrams). Unlike most games these IS
   -- the bar, not just a puzzle knob — see docs §3.3.
   dict_2      int  not null check (dict_2 between 1 and 6),
   dict_3plus  int  not null check (dict_3plus between 1 and 6),

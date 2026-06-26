@@ -3,15 +3,15 @@ import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
-  MONKEYGRAM_BAG_MAX,
+  BANANAGRAMS_BAG_MAX,
   tilesNeeded,
-  type MonkeyGramSetup,
+  type BananagramsSetup,
 } from '../lib/setup'
 import form from '../../common/components/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 /**
- * MonkeyGram's per-game setup form, rendered inside the common
+ * bananagrams's per-game setup form, rendered inside the common
  * `SetupGameDialog`. Choices:
  *
  *   - **Starter tiles** — how many tiles each player is dealt, one
@@ -34,14 +34,14 @@ import styles from './SetupForm.module.css'
  *     connected grid — is always required, so it's not a knob.)
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
- *     everyone (`monkeygram.submit_timeout`).
+ *     everyone (`bananagrams.submit_timeout`).
  *
  * Controlled component: state lives in the wrapper; we render `value`
  * and signal via `onChange`. The single cast at the top is the boundary
  * between the manifest's `unknown` setup and our narrow shape.
  */
 export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
-  const s = value as MonkeyGramSetup
+  const s = value as BananagramsSetup
   const needed = tilesNeeded(s, playerCount)
 
   return (
@@ -69,7 +69,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       <fieldset className={form.fieldset}>
         <legend>Tiles in bag</legend>
         <p className="muted">
-          The full bag is {MONKEYGRAM_BAG_MAX}; fewer makes a shorter game.
+          The full bag is {BANANAGRAMS_BAG_MAX}; fewer makes a shorter game.
           This game deals {needed} ({playerCount} player
           {playerCount === 1 ? '' : 's'} × {s.hand_size}).
         </p>
@@ -78,7 +78,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           type="number"
           name="bag_size"
           min={1}
-          max={MONKEYGRAM_BAG_MAX}
+          max={BANANAGRAMS_BAG_MAX}
           step={1}
           value={Number.isFinite(s.bag_size) ? s.bag_size : ''}
           onChange={(e) => onChange({ ...s, bag_size: e.target.valueAsNumber })}

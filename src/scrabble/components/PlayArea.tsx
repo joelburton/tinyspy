@@ -66,7 +66,7 @@ function nextRackOrder(
  * as tall as the layout allows. Right (fixed column): score / whose-turn, the
  * rack, a live score preview, the action row, and the move log.
  *
- * Placement mirrors MonkeyGram exactly, two ways:
+ * Placement mirrors bananagrams exactly, two ways:
  *   - DRAG a tile from the rack to a square (or move/return a staged tile by
  *     dragging it). A blank prompts for its letter on drop.
  *   - KEYBOARD: a cursor sits on the board (tap a square to move it); arrow
@@ -330,7 +330,7 @@ export function PlayArea({
     [blankAt],
   )
 
-  // ─── Keyboard cursor (mirrors MonkeyGram's keys) ──────────────
+  // ─── Keyboard cursor (mirrors bananagrams's keys) ──────────────
   const isFilled = useCallback(
     (x: number, y: number) => committedAt(x, y) || !!stagedAt(x, y),
     [committedAt, stagedAt],

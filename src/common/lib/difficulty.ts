@@ -22,7 +22,7 @@ export const DIFFICULTY_LABELS = [
 /**
  * Which sample-word set a dropdown shows: a fixed word length, or `null` for
  * "any length" (open). `'3+'` is the open set with its 2-letter words dropped
- * — MonkeyGram's longer-words dictionary, where 2-letter words are a separate
+ * — bananagrams's longer-words dictionary, where 2-letter words are a separate
  * choice.
  */
 export type WordLength = 2 | 5 | '3+' | null

@@ -25,7 +25,7 @@ const PREMIUM_LABEL: Record<PremiumType, string> = {
 }
 
 /**
- * The 15×15 scrabble board. Pointer-driven, like MonkeyGram: each cell
+ * The 15×15 scrabble board. Pointer-driven, like bananagrams: each cell
  * forwards `onCellPointerDown` so PlayArea can run the shared drag gesture
  * (a press that moves becomes a drag; a press that doesn't becomes a tap
  * that moves the keyboard cursor). The board paints committed tiles,

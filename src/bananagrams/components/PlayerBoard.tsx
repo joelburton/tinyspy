@@ -35,9 +35,9 @@ import styles from './PlayerBoard.module.css'
  * dump grows `tiles` upstream and the hand grows by re-derivation. A local
  * shuffle order (the ⟲ button) is layered on with `reconcileHandOrder`.
  *
- * **Persistence.** Snapshots the board to `monkeygram.save_player_board` on a
+ * **Persistence.** Snapshots the board to `bananagrams.save_player_board` on a
  * debounce AND on unmount — the unmount save is load-bearing because
- * `PauseBoundary` unmounts the play area on pause (docs/games/monkeygram.md →
+ * `PauseBoundary` unmounts the play area on pause (docs/games/bananagrams.md →
  * "Persistence"). `tiles` is server-owned and never saved from here.
  */
 

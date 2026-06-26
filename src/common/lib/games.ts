@@ -207,7 +207,7 @@ export type SetupBodyProps = {
   /** How many players are currently selected in the dialog's picker.
    *  Live — it updates as the creator checks/unchecks members. Setup
    *  forms whose options depend on the headcount read it (e.g.
-   *  MonkeyGram sizes its tile bag against `playerCount × hand_size`);
+   *  bananagrams sizes its tile bag against `playerCount × hand_size`);
    *  the rest ignore it. */
   playerCount: number
   value: unknown
@@ -232,7 +232,7 @@ export type GameSetupForm = {
    * button. Returns a human-readable reason the current `setup` can't
    * start (shown under the form, Start disabled) or `null` when it's
    * valid. Gets `playerCount` because some constraints couple the
-   * setup to the headcount — MonkeyGram's "bag must hold
+   * setup to the headcount — bananagrams's "bag must hold
    * `playerCount × hand_size` tiles" is the first. Pure + synchronous;
    * the server re-validates in `create_game` regardless (this is UX,
    * not the authority).

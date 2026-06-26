@@ -6,7 +6,7 @@ type Props = {
 }
 
 /**
- * MonkeyGram's help / rules modal — opened from the "Help" item in the
+ * bananagrams's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the common `help: ComponentType<{ onClose }>`
  * contract on `GameManifest`.
  */

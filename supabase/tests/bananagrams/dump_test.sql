@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: monkeygram.dump(target_game, tile)
+-- Test: bananagrams.dump(target_game, tile)
 -- ============================================================
 -- Swap one held tile for dump_count (default 3) from the bunch. Covers:
 --   1. Happy path (return-to-bag, default): tiles −1 +3 (net +2); pool −3 +1;
@@ -18,7 +18,7 @@
 
 begin;
 
-set search_path = monkeygram, common, public, extensions;
+set search_path = bananagrams, common, public, extensions;
 
 select plan(17);
 
@@ -30,7 +30,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 
 -- 2 players, hand_size 21 → pool = 144 − 42 = 102, dump_count = 3.
 create temp table g1 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -43,35 +43,35 @@ select * from monkeygram.create_game(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table dumped on commit drop as
 select left(tiles, 1) as letter
-  from monkeygram.player_boards
+  from bananagrams.player_boards
  where game_id = (select id from g1)
    and user_id = 'ada11111-1111-1111-1111-111111111111';
 
-select monkeygram.dump((select id from g1), (select letter from dumped));
+select bananagrams.dump((select id from g1), (select letter from dumped));
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select length(tiles) from monkeygram.player_boards
+  (select length(tiles) from bananagrams.player_boards
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   23,
   'dumping swaps 1 for 3 (21 → 23 tiles)'
 );
 select is(
-  (select length(pool) from monkeygram.games where id = (select id from g1)),
+  (select length(pool) from bananagrams.games where id = (select id from g1)),
   100,
   'the bunch nets −2 (drew 3, returned 1: 102 → 100)'
 );
 -- The dumped tile is appended to the back, never among the freshly drawn.
 select is(
-  (select right(pool, 1) from monkeygram.games where id = (select id from g1)),
+  (select right(pool, 1) from bananagrams.games where id = (select id from g1)),
   (select letter from dumped),
   'the dumped tile is returned to the BACK of the bunch'
 );
 select is(
-  (select unplaced from monkeygram.progress
+  (select unplaced from bananagrams.progress
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   23,
@@ -89,33 +89,33 @@ select is(
 -- nets −3 (not −2) and the box grows by one.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "dump_to_box": true, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
-select monkeygram.dump((select id from g2),
-  (select left(tiles, 1) from monkeygram.player_boards
+select bananagrams.dump((select id from g2),
+  (select left(tiles, 1) from bananagrams.player_boards
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'));
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select length(tiles) from monkeygram.player_boards
+  (select length(tiles) from bananagrams.player_boards
     where game_id = (select id from g2)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   23,
   'dump_to_box: the hand still swaps 1 for 3 (21 → 23)'
 );
 select is(
-  (select length(pool) from monkeygram.games where id = (select id from g2)),
+  (select length(pool) from bananagrams.games where id = (select id from g2)),
   99,
   'dump_to_box: the bunch nets −3 (drew 3 from it, returned 0: 102 → 99)'
 );
 select is(
-  (select length(box) from monkeygram.games where id = (select id from g2)),
+  (select length(box) from bananagrams.games where id = (select id from g2)),
   1,
   'dump_to_box: the dumped tile lands in the box (box 0 → 1)'
 );
@@ -131,7 +131,7 @@ select is(
 -- the BACK of the box. Crafted state: pool='A' (1), box='XYZ' (3), ada holds Q.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "dump_to_box": true, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -139,22 +139,22 @@ select * from monkeygram.create_game(
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
-update monkeygram.games set pool = 'A', box = 'XYZ' where id = (select id from g3);
-update monkeygram.player_boards set tiles = 'Q'
+update bananagrams.games set pool = 'A', box = 'XYZ' where id = (select id from g3);
+update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g3) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select monkeygram.dump((select id from g3), 'Q');
+select bananagrams.dump((select id from g3), 'Q');
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select length(pool) from monkeygram.games where id = (select id from g3)),
+  (select length(pool) from bananagrams.games where id = (select id from g3)),
   0,
   'short-bunch dump drains the bunch (1 → 0)'
 );
 select is(
-  (select box from monkeygram.games where id = (select id from g3)),
+  (select box from bananagrams.games where id = (select id from g3)),
   'ZQ',
   'it drew XY off the box front (Z left) and appended the dumped Q to the back → ZQ'
 );
@@ -171,7 +171,7 @@ select is(
 -- box='XYZ', ada holds Q.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g4 on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "dump_to_box": false, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -179,22 +179,22 @@ select * from monkeygram.create_game(
 );
 reset role;
 select set_config('request.jwt.claims', '', true);
-update monkeygram.games set pool = 'A', box = 'XYZ' where id = (select id from g4);
-update monkeygram.player_boards set tiles = 'Q'
+update bananagrams.games set pool = 'A', box = 'XYZ' where id = (select id from g4);
+update bananagrams.player_boards set tiles = 'Q'
  where game_id = (select id from g4) and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select monkeygram.dump((select id from g4), 'Q');
+select bananagrams.dump((select id from g4), 'Q');
 
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select box from monkeygram.games where id = (select id from g4)),
+  (select box from bananagrams.games where id = (select id from g4)),
   'Z',
   'return-to-bag: the box shrinks as the draw taps it (XYZ − XY = Z)'
 );
 select is(
-  (select pool from monkeygram.games where id = (select id from g4)),
+  (select pool from bananagrams.games where id = (select id from g4)),
   'Q',
   'return-to-bag: the dumped tile returns to the BAG, not the box'
 );
@@ -203,10 +203,10 @@ select is(
 -- Find a letter ada doesn't currently hold and try to dump it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select monkeygram.dump(%L, %L) $$,
+  format($$ select bananagrams.dump(%L, %L) $$,
     (select id from g1),
     (select chr(c) from generate_series(65, 90) as c
-       where position(chr(c) in (select tiles from monkeygram.player_boards
+       where position(chr(c) in (select tiles from bananagrams.player_boards
               where game_id = (select id from g1)
                 and user_id = 'ada11111-1111-1111-1111-111111111111')) = 0
        limit 1)),
@@ -218,7 +218,7 @@ select throws_ok(
 -- ─── Non-player rejected ───
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($$ select monkeygram.dump(%L, 'A') $$, (select id from g1)),
+  format($$ select bananagrams.dump(%L, 'A') $$, (select id from g1)),
   '42501',
   'not playing this game',
   'a non-player cannot dump'
@@ -228,11 +228,11 @@ select throws_ok(
 -- g1 is return-to-bag, so its box is empty: bunch+box = 2 < dump_count 3.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update monkeygram.games set pool = 'AB' where id = (select id from g1); -- 2 < dump_count 3
+update bananagrams.games set pool = 'AB' where id = (select id from g1); -- 2 < dump_count 3
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select monkeygram.dump(%L, 'A') $$, (select id from g1)),
+  format($$ select bananagrams.dump(%L, 'A') $$, (select id from g1)),
   'P0001',
   'not enough tiles to dump',
   'cannot dump when bunch + box is smaller than dump_count'

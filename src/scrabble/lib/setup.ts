@@ -14,7 +14,7 @@ export type ScrabbleSetup = {
    * The dictionary bands that gate word acceptance, by word length (both
    * 1..6, `common.words.difficulty`). 2-letter words are a thin, separate
    * vocabulary, so they get their own band (`dict_2`) from the longer words
-   * (`dict_3plus`) — the same split MonkeyGram uses. Unlike most games these
+   * (`dict_3plus`) — the same split bananagrams uses. Unlike most games these
    * ARE the acceptance bar: a lower band genuinely makes a stricter game. The
    * server bounds them. See docs/games/scrabble.md §3.3.
    */

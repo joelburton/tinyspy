@@ -7,7 +7,7 @@ type Props = {
   /** When true (the club's handle starts with '=', i.e. a solo club),
    *  NO pill renders — neither "Co-op" (no one to cooperate with) nor
    *  "Compete" (a solo member may have enabled a 2-player game like
-   *  MonkeyGram, but "Compete" makes no sense with one player). Mode is
+   *  bananagrams, but "Compete" makes no sense with one player). Mode is
    *  simply noise on a solo club's surfaces. Defaults to false. */
   soloClub?: boolean
 }

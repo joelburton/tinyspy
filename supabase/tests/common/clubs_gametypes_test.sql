@@ -42,12 +42,12 @@ select plan(17);
 select is(
   (select count(*) from common.gametypes),
   16::bigint,
-  'common.gametypes contains sixteen rows (tinyspy + 2 psychicnum + 2 connections + 2 spellingbee + monkeygram + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble)'
+  'common.gametypes contains sixteen rows (tinyspy + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['connections_compete','connections_coop','monkeygram','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  array['bananagrams','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
   'common.gametypes contains the sixteen registered gametypes by name'
 );
 
@@ -78,7 +78,7 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['connections_coop','monkeygram','psychicnum_coop','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
+  array['bananagrams','connections_coop','psychicnum_coop','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
   'ada''s solo club has m2m rows for the eight solo-playable gametypes'
 );
 
@@ -107,7 +107,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['connections_compete','connections_coop','monkeygram','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  array['bananagrams','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','tinyspy','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
   'new club has m2m rows for all sixteen registered gametypes'
 );
 
@@ -176,12 +176,12 @@ select throws_ok(
 -- (11) min_players mirrors each manifest's player-count lower bound
 -- ============================================================
 -- Solo-playable games register 1; two-player games register 2.
--- Sorted by gametype: monkeygram(1), spellingbee_compete(2),
+-- Sorted by gametype: bananagrams(1), spellingbee_compete(2),
 -- spellingbee_coop(1), tinyspy(2).
 select is(
   (select array_agg(min_players order by gametype)
      from common.gametypes
-    where gametype in ('tinyspy', 'monkeygram', 'spellingbee_coop', 'spellingbee_compete')),
+    where gametype in ('tinyspy', 'bananagrams', 'spellingbee_coop', 'spellingbee_compete')),
   array[1, 2, 1, 2]::smallint[],
   'common.gametypes.min_players: solo games register 1, two-player games register 2'
 );

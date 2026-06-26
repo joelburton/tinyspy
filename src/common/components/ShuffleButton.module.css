@@ -1,5 +1,5 @@
 /* The standard ⟲ shuffle control: an icon-only pill, shared across spellingbee,
- * Connections, and MonkeyGram so "reshuffle my tiles" looks the same everywhere.
+ * Connections, and bananagrams so "reshuffle my tiles" looks the same everywhere.
  * Lifted from spellingbee's original .iconAction button onto neutral theme tokens.
  *
  * The glyph rotates on hover via the inner .glyph span (rotating the button

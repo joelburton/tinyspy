@@ -2,15 +2,15 @@ import { test, expect } from '@playwright/test'
 import {
   createSoloClub,
   createClubWithMembers,
-  createMonkeygramGame,
-  saveMonkeygramBoard,
-  getMonkeygramTiles,
-  drainMonkeygramPool,
+  createBananagramsGame,
+  saveBananagramsBoard,
+  getBananagramsTiles,
+  drainBananagramsPool,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * Smoke test for the MonkeyGram play surface actually rendering ON SCREEN.
+ * Smoke test for the bananagrams play surface actually rendering ON SCREEN.
  *
  * The bug this guards against: a layout regression left the PlayArea blank
  * with no console error — the oversized padded board canvas ballooned the
@@ -22,13 +22,13 @@ import { signIn } from './helpers/session'
  * Solo club (one member) so the game doesn't presence-pause (which would
  * unmount the play area and is a different code path).
  */
-test.describe('monkeygram renders', () => {
+test.describe('bananagrams renders', () => {
   test('the dealt hand and the board are both on screen', async ({ browser }) => {
     // alice's own solo club + a solo game: only she's a player, so it won't
     // presence-pause when she's the sole viewer.
     const club = await createSoloClub('alice')
     const [alice] = club.members
-    const game = await createMonkeygramGame(club)
+    const game = await createBananagramsGame(club)
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -81,13 +81,13 @@ test.describe('monkeygram renders', () => {
 
 /**
  * Persistence: a placed tile must survive a reload (debounced autosave →
- * monkeygram.save_player_board → reload → useGame restore).
+ * bananagrams.save_player_board → reload → useGame restore).
  */
-test.describe('monkeygram persistence', () => {
+test.describe('bananagrams persistence', () => {
   test('a placed tile survives a reload', async ({ browser }) => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
-    const game = await createMonkeygramGame(club)
+    const game = await createBananagramsGame(club)
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -130,15 +130,15 @@ test.describe('monkeygram persistence', () => {
  * placing alice's REAL tiles (the FE derives the hand by letter) and drain the
  * bunch so the peel can't refill.
  */
-test.describe('monkeygram win', () => {
+test.describe('bananagrams win', () => {
   test('peeling a dry bunch with an empty hand wins', async ({ browser }) => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
-    const game = await createMonkeygramGame(club)
+    const game = await createBananagramsGame(club)
 
-    const tiles = await getMonkeygramTiles(alice, game.id)
-    await saveMonkeygramBoard(alice, game.id, tiles + '.'.repeat(25 * 25 - tiles.length))
-    drainMonkeygramPool(game.id)
+    const tiles = await getBananagramsTiles(alice, game.id)
+    await saveBananagramsBoard(alice, game.id, tiles + '.'.repeat(25 * 25 - tiles.length))
+    drainBananagramsPool(game.id)
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -161,15 +161,15 @@ test.describe('monkeygram win', () => {
  * player. From the peeler's view their own hand gains a tile (live `tiles`
  * subscription) and a peer's count ticks up (progress realtime).
  */
-test.describe('monkeygram peel draw', () => {
+test.describe('bananagrams peel draw', () => {
   test('peeling deals a tile to every player', async ({ browser }) => {
     const club = await createClubWithMembers(['alice', 'bob'])
     const [alice, bob] = club.members
-    const game = await createMonkeygramGame(club, [alice.userId, bob.userId])
+    const game = await createBananagramsGame(club, [alice.userId, bob.userId])
 
     // Empty alice's hand by placing all her real tiles.
-    const aliceTiles = await getMonkeygramTiles(alice, game.id)
-    await saveMonkeygramBoard(alice, game.id, aliceTiles + '.'.repeat(25 * 25 - aliceTiles.length))
+    const aliceTiles = await getBananagramsTiles(alice, game.id)
+    await saveBananagramsBoard(alice, game.id, aliceTiles + '.'.repeat(25 * 25 - aliceTiles.length))
 
     const ctxA = await browser.newContext()
     await signIn(ctxA, alice.session)
@@ -204,11 +204,11 @@ test.describe('monkeygram peel draw', () => {
  * from the bunch — a net +2 to the hand, −2 to the bunch. Exercises the
  * drag-to-dump gesture + the dump RPC + the live re-derive of the hand.
  */
-test.describe('monkeygram dump', () => {
+test.describe('bananagrams dump', () => {
   test('dumping a tile swaps it for three from the bunch', async ({ browser }) => {
     const club = await createSoloClub('alice')
     const [alice] = club.members
-    const game = await createMonkeygramGame(club) // hand_size 15
+    const game = await createBananagramsGame(club) // hand_size 15
 
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
@@ -245,11 +245,11 @@ test.describe('monkeygram dump', () => {
  * so both browsers stay open; one player's board snapshot must tick the other's
  * peer count down.
  */
-test.describe('monkeygram peer counts', () => {
+test.describe('bananagrams peer counts', () => {
   test("a peer's tiles-left count updates live", async ({ browser }) => {
     const club = await createClubWithMembers(['alice', 'bob'])
     const [alice, bob] = club.members
-    const game = await createMonkeygramGame(club, [alice.userId, bob.userId])
+    const game = await createBananagramsGame(club, [alice.userId, bob.userId])
 
     const ctxA = await browser.newContext()
     await signIn(ctxA, alice.session)
@@ -269,7 +269,7 @@ test.describe('monkeygram peer counts', () => {
 
     // Bob places two tiles (15 held − 2 placed = 13 left) → alice's strip
     // updates live.
-    await saveMonkeygramBoard(bob, game.id, 'AB' + '.'.repeat(25 * 25 - 2))
+    await saveBananagramsBoard(bob, game.id, 'AB' + '.'.repeat(25 * 25 - 2))
     await expect(bobCount).toHaveText('13')
 
     await ctxA.close()

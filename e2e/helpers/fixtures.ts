@@ -178,36 +178,36 @@ export async function createGame(
 }
 
 /**
- * Start a monkeygram game in the club, with all members as players.
- * Returns the id + gametype for building the `/g/monkeygram/<id>` URL.
+ * Start a bananagrams game in the club, with all members as players.
+ * Returns the id + gametype for building the `/g/bananagrams/<id>` URL.
  */
-export async function createMonkeygramGame(
+export async function createBananagramsGame(
   club: E2EClub,
   playerUserIds: string[] = club.members.map((m) => m.userId),
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
-    .schema('monkeygram')
+    .schema('bananagrams')
     .rpc('create_game', {
       target_club: club.handle,
       setup: { hand_size: 15, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
     })
-  if (res.error) throw new Error(`monkeygram.create_game: ${res.error.message}`)
+  if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'monkeygram' }
+  return { id: (row as { id: string }).id, gametype: 'bananagrams' }
 }
 
 /** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
  *  select to their own player_boards row. Useful when a test needs to place a
  *  player's REAL tiles (the FE derives the hand by letter, so placing arbitrary
  *  letters wouldn't empty it). */
-export async function getMonkeygramTiles(
+export async function getBananagramsTiles(
   member: E2EMember,
   gameId: string,
 ): Promise<string> {
   const res = await asUser(member.session.access_token)
-    .schema('monkeygram')
+    .schema('bananagrams')
     .from('player_boards')
     .select('tiles')
     .eq('game_id', gameId)
@@ -216,32 +216,32 @@ export async function getMonkeygramTiles(
   return res.data.tiles as string
 }
 
-/** Save `member`'s monkeygram board placement (a 625-char grid). Drives their
+/** Save `member`'s bananagrams board placement (a 625-char grid). Drives their
  *  public progress count: unplaced = held tiles − filled cells. */
-export async function saveMonkeygramBoard(
+export async function saveBananagramsBoard(
   member: E2EMember,
   gameId: string,
   board: string,
 ): Promise<void> {
   const res = await asUser(member.session.access_token)
-    .schema('monkeygram')
+    .schema('bananagrams')
     .rpc('save_player_board', { target_game: gameId, board })
   if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
 }
 
-/** Empty a monkeygram game's bunch so the next peel can't refill the table —
+/** Empty a bananagrams game's bunch so the next peel can't refill the table —
  *  the way to drive a winning peel in a test without draining tile-by-tile.
- *  `monkeygram.pool` is hidden from PostgREST roles (it's a secret column), so
+ *  `bananagrams.pool` is hidden from PostgREST roles (it's a secret column), so
  *  we reach it the same way the import scripts do: psql as the local superuser.
  *  Test-only — no prod grant required. */
-export function drainMonkeygramPool(gameId: string): void {
+export function drainBananagramsPool(gameId: string): void {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   execFileSync(
     'psql',
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
-      '-c', `update monkeygram.games set pool = '' where id = '${gameId}';`,
+      '-c', `update bananagrams.games set pool = '' where id = '${gameId}';`,
     ],
     { stdio: 'pipe' },
   )

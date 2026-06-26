@@ -1,9 +1,9 @@
 import type { TimerMode } from '../../common/lib/games'
 
 /**
- * MonkeyGram's per-game setup — the choices the start-game dialog
+ * bananagrams's per-game setup — the choices the start-game dialog
  * collects, persisted to `common.games.setup`, and validated
- * server-side in `monkeygram.create_game` (the canonical authority
+ * server-side in `bananagrams.create_game` (the canonical authority
  * for what shapes are accepted).
  *
  * The choices: starter hand size (the literal-union mirrors the SQL
@@ -11,12 +11,12 @@ import type { TimerMode } from '../../common/lib/games'
  * bands (`check_words` / `dict_2` / `dict_3plus`), where a dumped tile
  * goes (`dump_to_box`), and the shared `timer` mode. A countdown that
  * reaches 0 ends the race as a collective loss
- * (`monkeygram.submit_timeout`) — time's up with nobody out.
+ * (`bananagrams.submit_timeout`) — time's up with nobody out.
  *
  * Lives in `lib/` (not inline in `manifest.ts`) so the SetupForm body
  * can import the type without dragging the manifest into its chunk.
  */
-export type MonkeyGramSetup = {
+export type BananagramsSetup = {
   /** How many tiles each player is dealt to start. 21 is the
    *  Bananagrams 2–4-player default; 15 is a quicker game. */
   hand_size: 15 | 21
@@ -27,7 +27,7 @@ export type MonkeyGramSetup = {
    *  `create_game` re-checks server-side. */
   bag_size: number
   /** When on, a winning peel additionally requires every word on the board to
-   *  be real (`monkeygram._win_blockers`); the offending tiles flash red until
+   *  be real (`bananagrams._win_blockers`); the offending tiles flash red until
    *  edited. Off = the classic trust-the-friends Bananagrams (no word check).
    *  Default off. NOTE: board GEOGRAPHY (one connected grid) is always required
    *  to win regardless of this — it's structural, not a matter of taste. */
@@ -48,19 +48,19 @@ export type MonkeyGramSetup = {
   dump_to_box: boolean
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone
-   *  (`monkeygram.submit_timeout`). Validated server-side by
+   *  (`bananagrams.submit_timeout`). Validated server-side by
    *  `common.validate_timer`. Defaults to `none` (opt-in pressure). */
   timer: TimerMode
 }
 
 /** The full Bananagrams bag — the hard cap on `bag_size`. */
-export const MONKEYGRAM_BAG_MAX = 144
+export const BANANAGRAMS_BAG_MAX = 144
 
 /** Initial setup the manifest hands the SetupGameDialog wrapper as
  *  `defaults`. Full 144-tile bag, no word check (the classic game). */
-export const DEFAULT_MONKEYGRAM_SETUP: MonkeyGramSetup = {
+export const DEFAULT_BANANAGRAMS_SETUP: BananagramsSetup = {
   hand_size: 21,
-  bag_size: MONKEYGRAM_BAG_MAX,
+  bag_size: BANANAGRAMS_BAG_MAX,
   check_words: false,
   dict_2: 4,
   dict_3plus: 4,
@@ -76,7 +76,7 @@ export const HAND_SIZE_OPTIONS = [15, 21] as const
  * The number of tiles a game needs to deal: one starter hand per player.
  * Drives both the bag-size hint and the gate below.
  */
-export function tilesNeeded(setup: MonkeyGramSetup, playerCount: number): number {
+export function tilesNeeded(setup: BananagramsSetup, playerCount: number): number {
   return playerCount * setup.hand_size
 }
 
@@ -87,15 +87,15 @@ export function tilesNeeded(setup: MonkeyGramSetup, playerCount: number): number
  * checks: 1..144, and big enough to deal every player their hand.
  */
 export function bagSizeError(
-  setup: MonkeyGramSetup,
+  setup: BananagramsSetup,
   playerCount: number,
 ): string | null {
   const { bag_size } = setup
   if (!Number.isInteger(bag_size) || bag_size < 1) {
     return 'Bag size must be a whole number of at least 1.'
   }
-  if (bag_size > MONKEYGRAM_BAG_MAX) {
-    return `The bag holds at most ${MONKEYGRAM_BAG_MAX} tiles.`
+  if (bag_size > BANANAGRAMS_BAG_MAX) {
+    return `The bag holds at most ${BANANAGRAMS_BAG_MAX} tiles.`
   }
   const needed = tilesNeeded(setup, playerCount)
   if (bag_size < needed) {

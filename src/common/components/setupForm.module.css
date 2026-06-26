@@ -3,7 +3,7 @@
  * `SetupForm` (rendered inside `SetupGameDialog`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
  * for `.setup` / `.fieldset` / `.radioRow` / `.radio`; only genuinely
- * game-specific bits (MonkeyGram's bag/checkbox rows, WordNerd's answer-source
+ * game-specific bits (bananagrams's bag/checkbox rows, WordNerd's answer-source
  * `<select>`) stay in a game-local module.
  *
  * Why this is shared rather than copied per game: with nine games the forms had
@@ -11,7 +11,7 @@
  * drifted (bold vs muted legends, 0.3 vs 0.4rem radio gaps). One stylesheet
  * makes "what a setup fieldset looks like" a single definition, so a player
  * switching games reads the same surface every time and the drift can't recur.
- * The values here are the majority shape (the tinyspy / psychicnum / monkeygram
+ * The values here are the majority shape (the tinyspy / psychicnum / bananagrams
  * / connections cluster that four forms already shared byte-for-byte).
  *
  * The forms sit inside `SetupGameDialog`'s content area and inherit its

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   bagSizeError,
-  DEFAULT_MONKEYGRAM_SETUP,
-  MONKEYGRAM_BAG_MAX,
-  type MonkeyGramSetup,
+  DEFAULT_BANANAGRAMS_SETUP,
+  BANANAGRAMS_BAG_MAX,
+  type BananagramsSetup,
 } from './setup'
 
 /**
  * `bagSizeError` is the gate the SetupGameDialog runs (via the manifest's
  * `validate`) to disable Start until the chosen bag can deal everyone a
- * starter hand. It mirrors `monkeygram.create_game`'s server-side checks.
+ * starter hand. It mirrors `bananagrams.create_game`'s server-side checks.
  */
-const base = (over: Partial<MonkeyGramSetup> = {}): MonkeyGramSetup => ({
-  ...DEFAULT_MONKEYGRAM_SETUP,
+const base = (over: Partial<BananagramsSetup> = {}): BananagramsSetup => ({
+  ...DEFAULT_BANANAGRAMS_SETUP,
   ...over,
 })
 
@@ -36,7 +36,7 @@ describe('bagSizeError', () => {
     )
   })
 
-  it(`rejects a bag larger than ${MONKEYGRAM_BAG_MAX}`, () => {
+  it(`rejects a bag larger than ${BANANAGRAMS_BAG_MAX}`, () => {
     expect(bagSizeError(base({ bag_size: 145 }), 2)).toMatch(/at most 144/)
   })
 

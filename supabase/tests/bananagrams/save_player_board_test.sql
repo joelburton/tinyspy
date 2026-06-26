@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: monkeygram.save_player_board(target_game, board)
+-- Test: bananagrams.save_player_board(target_game, board)
 -- ============================================================
 -- The snapshot endpoint. Only the BOARD is sent — `tiles` (what the
 -- player holds) is server-owned and untouched here. Covers:
@@ -13,7 +13,7 @@
 
 begin;
 
-set search_path = monkeygram, common, public, extensions;
+set search_path = bananagrams, common, public, extensions;
 
 select plan(7);
 
@@ -24,7 +24,7 @@ create temp table club on commit drop as
 select common.create_club('test club', array['ada', 'bea']) as handle;
 
 create temp table mg_game on commit drop as
-select * from monkeygram.create_game(
+select * from bananagrams.create_game(
   (select handle from club),
   '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -33,7 +33,7 @@ select * from monkeygram.create_game(
 
 -- ─── ada snapshots a board with 2 tiles placed (A, B) ───
 -- She holds 21 tiles; placing 2 leaves 19 in hand.
-select monkeygram.save_player_board(
+select bananagrams.save_player_board(
   (select id from mg_game),
   'AB' || repeat('.', 25 * 25 - 2)
 );
@@ -42,7 +42,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 
 select is(
-  (select left(board, 2) from monkeygram.player_boards
+  (select left(board, 2) from bananagrams.player_boards
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'AB',
@@ -50,7 +50,7 @@ select is(
 );
 
 select is(
-  (select placed from monkeygram.progress
+  (select placed from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2,
@@ -58,7 +58,7 @@ select is(
 );
 
 select is(
-  (select unplaced from monkeygram.progress
+  (select unplaced from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   19,
@@ -69,7 +69,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select monkeygram.save_player_board(%L, 'AB') $$,
+    $$ select bananagrams.save_player_board(%L, 'AB') $$,
     (select id from mg_game)
   ),
   'P0001',
@@ -81,7 +81,7 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select monkeygram.save_player_board(%L, %L) $$,
+    $$ select bananagrams.save_player_board(%L, %L) $$,
     (select id from mg_game), repeat('.', 25 * 25)
   ),
   '42501',
@@ -97,7 +97,7 @@ select common.end_game((select id from mg_game), 'won', '{}'::jsonb, '{}'::jsonb
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   format(
-    $$ select monkeygram.save_player_board(%L, %L) $$,
+    $$ select bananagrams.save_player_board(%L, %L) $$,
     (select id from mg_game), repeat('C', 5) || repeat('.', 25 * 25 - 5)
   ),
   'snapshotting a terminal game does not error'
@@ -106,7 +106,7 @@ select lives_ok(
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select placed from monkeygram.progress
+  (select placed from bananagrams.progress
     where game_id = (select id from mg_game)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   2,

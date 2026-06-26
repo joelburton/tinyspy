@@ -1,8 +1,8 @@
 -- ============================================================
--- monkeygram schema — baseline (squashed)
+-- bananagrams schema — baseline (squashed)
 -- ============================================================
 --
--- MonkeyGram is a Bananagrams clone: a real-time, competitive
+-- bananagrams is a Bananagrams clone: a real-time, competitive
 -- word-tile race. Each player builds their own **player board**
 -- (a private crossword) from a hand of letter tiles, drawing more
 -- from a shared bank as they go:
@@ -24,15 +24,15 @@
 -- accreting per-RPC migrations; see CLAUDE.md). The intrinsic
 -- win is detected inside `peel`; `end_game` is the manual stop.
 --
--- See docs/games/monkeygram.md for the full plan, the keyboard
+-- See docs/games/bananagrams.md for the full plan, the keyboard
 -- rules, and the bank loop.
 --
 -- The state split is the design's spine — three visibility
 -- classes, three handlings:
 --
---   monkeygram.games          club-readable header (pool hidden)
---   monkeygram.player_boards  the private grid — OWNER-ONLY read
---   monkeygram.progress       the public projection — club read
+--   bananagrams.games          club-readable header (pool hidden)
+--   bananagrams.player_boards  the private grid — OWNER-ONLY read
+--   bananagrams.progress       the public projection — club read
 --
 -- Within player_boards, a second split (board = FE-owned, tiles =
 -- server-owned, hand = derived) is what lets peel/dump grow every
@@ -48,17 +48,17 @@
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- gametypes, is_club_member, create_game). Per the removability
--- invariant, common MUST NOT reference monkeygram back.
+-- invariant, common MUST NOT reference bananagrams back.
 
 -- ============================================================
 -- Schema + usage grant
 -- ============================================================
 
-create schema if not exists monkeygram;
-grant usage on schema monkeygram to authenticated;
+create schema if not exists bananagrams;
+grant usage on schema bananagrams to authenticated;
 
 -- ============================================================
--- monkeygram.games — one row per playing
+-- bananagrams.games — one row per playing
 -- ============================================================
 -- `pool` is the live "bunch": every tile not currently held by a
 -- player. It starts as the undealt remainder of the shuffled
@@ -80,7 +80,7 @@ grant usage on schema monkeygram to authenticated;
 -- the RLS policies (and progress's policy) can call
 -- is_club_member(club_handle) without joining common.games.
 
-create table monkeygram.games (
+create table bananagrams.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   -- `bag` is the IMMUTABLE record of the shuffled bag this game was dealt
@@ -105,14 +105,14 @@ create table monkeygram.games (
   created_at timestamptz not null default now()
 );
 
-create index monkeygram_games_club_handle_idx on monkeygram.games (club_handle);
+create index bananagrams_games_club_handle_idx on bananagrams.games (club_handle);
 
 -- ============================================================
--- monkeygram.player_boards — the private player board
+-- bananagrams.player_boards — the private player board
 -- ============================================================
 -- One row per player, split by WHO OWNS each piece of state — the
 -- key idea that lets PEEL hand a tile to every player at once
--- without write-conflicts (see docs/games/monkeygram.md → "The
+-- without write-conflicts (see docs/games/bananagrams.md → "The
 -- player board"):
 --
 --   board   FE-OWNED. The fixed 25×25 arena: a flat 625-char
@@ -146,8 +146,8 @@ create index monkeygram_games_club_handle_idx on monkeygram.games (club_handle);
 -- into the derived hand. Board snapshots echo back to the same
 -- owner harmlessly — the FE reacts only to `tiles` changes.
 
-create table monkeygram.player_boards (
-  game_id uuid not null references monkeygram.games(id) on delete cascade,
+create table bananagrams.player_boards (
+  game_id uuid not null references bananagrams.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   board text not null,
   tiles text not null,
@@ -156,7 +156,7 @@ create table monkeygram.player_boards (
 );
 
 -- ============================================================
--- monkeygram.progress — the public projection peers read
+-- bananagrams.progress — the public projection peers read
 -- ============================================================
 -- The club-visible counters derived from each player's board:
 -- unplaced/placed tile counts + the done flag. This is what the
@@ -169,8 +169,8 @@ create table monkeygram.player_boards (
 --
 -- In the realtime publication so a peer's count updates live.
 
-create table monkeygram.progress (
-  game_id uuid not null references monkeygram.games(id) on delete cascade,
+create table bananagrams.progress (
+  game_id uuid not null references bananagrams.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   unplaced int not null,
   placed int not null default 0,
@@ -183,30 +183,30 @@ create table monkeygram.progress (
 -- RLS
 -- ============================================================
 
-alter table monkeygram.games         enable row level security;
-alter table monkeygram.player_boards enable row level security;
-alter table monkeygram.progress      enable row level security;
+alter table bananagrams.games         enable row level security;
+alter table bananagrams.player_boards enable row level security;
+alter table bananagrams.progress      enable row level security;
 
 -- Games: any club member sees the row (`pool` is additionally
 -- column-hidden, regardless of policy).
-create policy games_select on monkeygram.games
+create policy games_select on bananagrams.games
   for select to authenticated
   using (common.is_club_member(club_handle));
 
 -- Player boards: OWNER ONLY. A club member who isn't this row's
 -- owner cannot read another player's board — the competitive
 -- visibility rule, enforced at the row level.
-create policy player_boards_select on monkeygram.player_boards
+create policy player_boards_select on bananagrams.player_boards
   for select to authenticated
   using (user_id = auth.uid());
 
 -- Progress: club-wide. Peers read each other's counts (but not
 -- boards). Branches through the parent game's club_handle.
-create policy progress_select on monkeygram.progress
+create policy progress_select on bananagrams.progress
   for select to authenticated
   using (
     exists (
-      select 1 from monkeygram.games g
+      select 1 from bananagrams.games g
        where g.id = progress.game_id
          and common.is_club_member(g.club_handle)
     )
@@ -221,10 +221,10 @@ create policy progress_select on monkeygram.progress
 
 grant select
   (id, club_handle, hand_size, created_at)
-  on monkeygram.games to authenticated;
+  on bananagrams.games to authenticated;
 
-grant select on monkeygram.player_boards to authenticated;
-grant select on monkeygram.progress to authenticated;
+grant select on bananagrams.player_boards to authenticated;
+grant select on bananagrams.progress to authenticated;
 
 -- ============================================================
 -- Realtime publication — progress + player_boards
@@ -236,13 +236,13 @@ grant select on monkeygram.progress to authenticated;
 -- immutable to the FE (its `pool` mutates, but that's hidden and the
 -- count rides on common.games.status instead).
 
-alter publication supabase_realtime add table monkeygram.progress;
-alter publication supabase_realtime add table monkeygram.player_boards;
+alter publication supabase_realtime add table bananagrams.progress;
+alter publication supabase_realtime add table bananagrams.player_boards;
 
 -- ============================================================
--- monkeygram.create_game(target_club, setup, player_user_ids)
+-- bananagrams.create_game(target_club, setup, player_user_ids)
 -- ============================================================
--- Compete-only, single gametype 'monkeygram' (no mode parameter —
+-- Compete-only, single gametype 'bananagrams' (no mode parameter —
 -- there's no coop sibling, like tinyspy). Solo (1 player) is
 -- allowed: a one-player race is just "finish your own tiles."
 --
@@ -264,7 +264,7 @@ alter publication supabase_realtime add table monkeygram.player_boards;
 -- past the dealt slices becomes the `pool` (the bunch) that peel and
 -- dump later draw from. Each player's `board` starts empty.
 
-create function monkeygram.create_game(
+create function bananagrams.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[]
@@ -272,7 +272,7 @@ create function monkeygram.create_game(
 returns table(id uuid)
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   new_id uuid;
@@ -291,7 +291,7 @@ declare
 begin
   -- ─── Player count: 1..6 (solo allowed — see header) ──
   -- MUST AGREE with numberOfPlayers: [1, 6] in
-  -- src/monkeygram/manifest.ts. See docs/code-conventions.md →
+  -- src/bananagrams/manifest.ts. See docs/code-conventions.md →
   -- "Per-game player counts".
   perform common.require_player_count_max(player_user_ids, 6);
   player_count := coalesce(array_length(player_user_ids, 1), 0);
@@ -309,7 +309,7 @@ begin
   -- bag_size: how many tiles to draw from the 144-tile set for this game.
   -- ≤ 144 (the full Bananagrams bag); smaller = a shorter game on a random
   -- subset. MUST be ≥ player_count × hand_size or the deal can't be made —
-  -- the FE disables Start on the same check (see monkeygram bagSizeError),
+  -- the FE disables Start on the same check (see bananagrams bagSizeError),
   -- but the server is the authority.
   if (setup->>'bag_size') is null then
     raise exception 'setup.bag_size is required' using errcode = 'P0001';
@@ -383,7 +383,7 @@ begin
 
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
-    target_club, 'monkeygram', player_user_ids,
+    target_club, 'bananagrams', player_user_ids,
     -- Instance label for common.games.title (the club card's heading).
     -- Neutral, like stackdown/scrabble — the brand is shown from the FE
     -- manifest, never stored here.
@@ -400,14 +400,14 @@ begin
        from generate_series(player_count * s_hand_size + 1, s_bag_size) as gidx),
     ''
   );
-  insert into monkeygram.games (id, club_handle, bag, pool, box, hand_size)
+  insert into bananagrams.games (id, club_handle, bag, pool, box, hand_size)
   values (new_id, target_club, s_bag, s_pool, s_box, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
   -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
   -- (everything they hold; nothing placed yet). The board starts
   -- empty — a 25×25 = 625-char string of '.'.
-  insert into monkeygram.player_boards (game_id, user_id, board, tiles)
+  insert into bananagrams.player_boards (game_id, user_id, board, tiles)
   select
     new_id,
     pu.uid,
@@ -418,7 +418,7 @@ begin
     )
   from unnest(player_user_ids) with ordinality as pu(uid, pi);
 
-  insert into monkeygram.progress (game_id, user_id, unplaced, placed, done)
+  insert into bananagrams.progress (game_id, user_id, unplaced, placed, done)
   select new_id, uid, s_hand_size, 0, false
     from unnest(player_user_ids) as uid;
 
@@ -434,35 +434,35 @@ begin
 end;
 $$;
 
-revoke execute on function monkeygram.create_game(text, jsonb, uuid[]) from public;
-grant execute on function monkeygram.create_game(text, jsonb, uuid[]) to authenticated;
+revoke execute on function bananagrams.create_game(text, jsonb, uuid[]) from public;
+grant execute on function bananagrams.create_game(text, jsonb, uuid[]) to authenticated;
 
 -- ============================================================
--- Register monkeygram with common.gametypes
+-- Register bananagrams with common.gametypes
 -- ============================================================
 -- One row (compete-only, single manifest). Backfill
 -- clubs_gametypes for every existing club — create_club handles
 -- new clubs, but any club that exists before this migration needs
--- the row so its MonkeyGram Start button surfaces.
+-- the row so its bananagrams Start button surfaces.
 
 insert into common.gametypes (gametype, min_players) values
-  ('monkeygram', 1)
+  ('bananagrams', 1)
 on conflict do nothing;
 
--- monkeygram is solo-playable (min_players 1), so every club —
+-- bananagrams is solo-playable (min_players 1), so every club —
 -- solo clubs included — gets the row.
 insert into common.clubs_gametypes (club_handle, gametype)
-select handle, 'monkeygram' from common.clubs
+select handle, 'bananagrams' from common.clubs
 on conflict do nothing;
 -- ============================================================
--- monkeygram.save_player_board — snapshot the private board
+-- bananagrams.save_player_board — snapshot the private board
 -- ============================================================
 --
 -- The board is high-frequency, PRIVATE scratch state (drag a tile,
 -- place a letter — many times a second). It does NOT round-trip per
 -- move; the FE owns it as local state and snapshots the whole grid
 -- here on a debounce + when the board component unmounts (which, per
--- docs/games/monkeygram.md, is what makes pause/navigate/shelve
+-- docs/games/bananagrams.md, is what makes pause/navigate/shelve
 -- durable — PauseBoundary UNMOUNTS the play area, so an un-snapshotted
 -- board would be lost).
 --
@@ -483,11 +483,11 @@ on conflict do nothing;
 -- Terminal games are a no-op: a late unmount-snapshot arriving after
 -- someone has won shouldn't clobber the final board.
 
-create function monkeygram.save_player_board(target_game uuid, board text)
+create function bananagrams.save_player_board(target_game uuid, board text)
 returns void
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
@@ -509,28 +509,28 @@ begin
     raise exception 'board must be a 625-char string' using errcode = 'P0001';
   end if;
 
-  update monkeygram.player_boards
+  update bananagrams.player_boards
      set board = save_player_board.board,
          updated_at = now()
    where game_id = target_game and user_id = caller_id;
 
   -- tiles is unchanged by this call; read it back to recompute counts.
   select length(tiles) into n_tiles
-    from monkeygram.player_boards
+    from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
   n_placed := length(replace(board, '.', ''));
 
-  update monkeygram.progress
+  update bananagrams.progress
      set unplaced = greatest(n_tiles - n_placed, 0),
          placed = n_placed
    where game_id = target_game and user_id = caller_id;
 end;
 $$;
 
-revoke execute on function monkeygram.save_player_board(uuid, text) from public;
-grant execute on function monkeygram.save_player_board(uuid, text) to authenticated;
+revoke execute on function bananagrams.save_player_board(uuid, text) from public;
+grant execute on function bananagrams.save_player_board(uuid, text) to authenticated;
 -- ============================================================
--- monkeygram._win_blockers — board legality
+-- bananagrams._win_blockers — board legality
 -- ============================================================
 -- Returns the 0-indexed cells that block a legal win, or an empty array if the
 -- board is a valid Bananagrams grid. Called on every winning peel. A board is
@@ -553,11 +553,11 @@ grant execute on function monkeygram.save_player_board(uuid, text) to authentica
 -- Plain `language sql` (not security definer): it reads only common.words
 -- (granted to all) off the `board` text it's handed, so it runs fine inside
 -- peel's definer context with nothing extra to leak.
-create function monkeygram._win_blockers(board text, dict_2 int, dict_3plus int, check_words boolean)
+create function bananagrams._win_blockers(board text, dict_2 int, dict_3plus int, check_words boolean)
 returns int[]
 language sql
 stable
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
   with recursive filled as (
     select i - 1 as cidx, (i - 1) / 25 as r, (i - 1) % 25 as c
@@ -619,7 +619,7 @@ as $$
 $$;
 
 -- ============================================================
--- monkeygram.peel — draw a round, or go out (Bananas!)
+-- bananagrams.peel — draw a round, or go out (Bananas!)
 -- ============================================================
 --
 -- The heart of v2. A player who has placed every tile they hold (empty hand)
@@ -655,11 +655,11 @@ $$;
 -- then sees the new state (a non-'playing' game, or a smaller pool) and acts on
 -- it. Without the lock two peelers could both draw from the same pool slice.
 
-create function monkeygram.peel(target_game uuid)
+create function bananagrams.peel(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
@@ -681,7 +681,7 @@ declare
   v_blockers int[];
 begin
   -- Serialize concurrent peels on the gametype row (see header).
-  perform 1 from monkeygram.games where id = target_game for update;
+  perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -697,7 +697,7 @@ begin
   -- Gate: the caller's hand must be empty (every held tile placed).
   select board, length(tiles), length(replace(board, '.', ''))
     into v_board, n_tiles, n_placed
-    from monkeygram.player_boards
+    from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
   if v_board is null then
     raise exception 'no board for caller' using errcode = 'P0002';
@@ -710,7 +710,7 @@ begin
   -- Read box too: peel doesn't change it, but update_state replaces the whole
   -- status blob, so the dealt-status below must re-emit box_remaining or the
   -- FE's box count would vanish after a peel.
-  select pool, box into s_pool, s_box from monkeygram.games where id = target_game;
+  select pool, box into s_pool, s_box from bananagrams.games where id = target_game;
   select count(*)::int into player_count
     from common.game_players where game_id = target_game;
   needed := player_count * s_peel_count;
@@ -724,13 +724,13 @@ begin
     v_check_words := coalesce((s_setup->>'check_words')::boolean, false);
     v_dict_2 := coalesce((s_setup->>'dict_2')::int, 4);
     v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
-    v_blockers := monkeygram._win_blockers(v_board, v_dict_2, v_dict_3plus, v_check_words);
+    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_check_words);
     if array_length(v_blockers, 1) > 0 then
       return jsonb_build_object('result', 'illegal',
                                 'invalid_cells', to_jsonb(v_blockers));
     end if;
 
-    update monkeygram.progress
+    update bananagrams.progress
        set done = true, finished_at = now()
      where game_id = target_game and user_id = caller_id;
 
@@ -763,7 +763,7 @@ begin
     select user_id, row_number() over (order by user_id) as pi
       from common.game_players where game_id = target_game
   )
-  update monkeygram.player_boards pb
+  update bananagrams.player_boards pb
      set tiles = pb.tiles || substr(s_pool, ((r.pi - 1) * s_peel_count + 1)::int, s_peel_count),
          updated_at = now()
     from ranked r
@@ -771,12 +771,12 @@ begin
 
   -- Each player's unplaced count grows by what they just drew (placed is
   -- unchanged by a peel).
-  update monkeygram.progress
+  update bananagrams.progress
      set unplaced = unplaced + s_peel_count
    where game_id = target_game;
 
   -- Advance the bunch past the drawn tiles.
-  update monkeygram.games
+  update bananagrams.games
      set pool = substr(s_pool, needed + 1)
    where id = target_game;
 
@@ -789,10 +789,10 @@ begin
 end;
 $$;
 
-revoke execute on function monkeygram.peel(uuid) from public;
-grant execute on function monkeygram.peel(uuid) to authenticated;
+revoke execute on function bananagrams.peel(uuid) from public;
+grant execute on function bananagrams.peel(uuid) to authenticated;
 -- ============================================================
--- monkeygram.dump — swap one tile for three from the bunch
+-- bananagrams.dump — swap one tile for three from the bunch
 -- ============================================================
 --
 -- A player stuck with an awkward tile (a Q, a lone consonant) trades it: they
@@ -826,11 +826,11 @@ grant execute on function monkeygram.peel(uuid) to authenticated;
 -- Locks the gametype row so a dump and a concurrent peel serialize on the
 -- shared pool (both draw from the front).
 
-create function monkeygram.dump(target_game uuid, tile text)
+create function bananagrams.dump(target_game uuid, tile text)
 returns void
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   caller_id uuid;
@@ -849,7 +849,7 @@ declare
   pos int;
 begin
   -- Serialize against concurrent peels/dumps on the shared pool.
-  perform 1 from monkeygram.games where id = target_game for update;
+  perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -870,7 +870,7 @@ begin
   s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
   s_dump_to_box := coalesce((s_setup->>'dump_to_box')::boolean, false);
 
-  select pool, box into s_pool, s_box from monkeygram.games where id = target_game;
+  select pool, box into s_pool, s_box from bananagrams.games where id = target_game;
   -- You need dump_count tiles to draw. Normally that's just the bunch, but in
   -- to-box mode the box can top up a draw the bunch can't cover (return-to-bag
   -- keeps the box empty, so this reduces to "bunch < dump_count" there).
@@ -880,7 +880,7 @@ begin
 
   -- The caller must hold the tile they're dumping.
   select tiles into caller_tiles
-    from monkeygram.player_boards
+    from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
   pos := position(tile in caller_tiles);
   if pos = 0 then
@@ -905,18 +905,18 @@ begin
     new_pool := new_pool || tile;
   end if;
 
-  update monkeygram.player_boards
+  update bananagrams.player_boards
      set tiles = overlay(caller_tiles placing '' from pos for 1) || drawn,
          updated_at = now()
    where game_id = target_game and user_id = caller_id;
 
-  update monkeygram.games
+  update bananagrams.games
      set pool = new_pool, box = new_box
    where id = target_game;
 
   -- The caller's hand math is identical either way (−1 dumped, +dump_count
   -- drawn), so unplaced grows by dump_count − 1 regardless.
-  update monkeygram.progress
+  update bananagrams.progress
      set unplaced = unplaced + (s_dump_count - 1)
    where game_id = target_game and user_id = caller_id;
 
@@ -926,14 +926,14 @@ begin
 end;
 $$;
 
-revoke execute on function monkeygram.dump(uuid, text) from public;
-grant execute on function monkeygram.dump(uuid, text) to authenticated;
+revoke execute on function bananagrams.dump(uuid, text) from public;
+grant execute on function bananagrams.dump(uuid, text) to authenticated;
 -- ============================================================
--- monkeygram.submit_timeout — countdown expiry (everyone loses)
+-- bananagrams.submit_timeout — countdown expiry (everyone loses)
 -- ============================================================
 --
 -- Fired by GamePage when a chosen countdown hits 0 before anyone goes
--- out. MonkeyGram is a race, so time expiring with no winner is a
+-- out. bananagrams is a race, so time expiring with no winner is a
 -- COLLECTIVE loss: every player's result is {"won": false}, same shape
 -- as the manual end_game stop but framed as a loss, not a neutral quit.
 -- Modeled on stackdown.submit_timeout's compete branch.
@@ -946,11 +946,11 @@ grant execute on function monkeygram.dump(uuid, text) to authenticated;
 --
 -- Idempotent on the in-progress check: a second caller, or a click
 -- racing a real peel-win, raises P0001 — which the manifest swallows.
-create function monkeygram.submit_timeout(target_game uuid)
+create function bananagrams.submit_timeout(target_game uuid)
 returns void
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   current_play_state text;
@@ -958,7 +958,7 @@ declare
 begin
   -- Lock the gametype row so the timeout and a concurrent peel-win
   -- serialize — only one of them writes the terminal state.
-  perform 1 from monkeygram.games where id = target_game for update;
+  perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -982,26 +982,26 @@ begin
     player_results
   );
 
-  -- Realtime touch — same trick as monkeygram.end_game: common.end_game
+  -- Realtime touch — same trick as bananagrams.end_game: common.end_game
   -- writes common.games (wakes the terminal modal via useCommonGame), but
-  -- the monkeygram channels watch player_boards / progress, so nudge
+  -- the bananagrams channels watch player_boards / progress, so nudge
   -- progress with a no-op self-set to produce a WAL entry for them.
-  update monkeygram.progress
+  update bananagrams.progress
      set unplaced = unplaced
    where game_id = target_game;
 end;
 $$;
 
-revoke execute on function monkeygram.submit_timeout(uuid) from public;
-grant execute on function monkeygram.submit_timeout(uuid) to authenticated;
+revoke execute on function bananagrams.submit_timeout(uuid) from public;
+grant execute on function bananagrams.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- monkeygram.end_game — manual stop
+-- bananagrams.end_game — manual stop
 -- ============================================================
 --
--- MonkeyGram's automatic terminals are the win inside `peel` (a player
+-- bananagrams's automatic terminals are the win inside `peel` (a player
 -- goes out when the bunch can't refill the table) and — if a countdown
--- was chosen — the collective loss in `monkeygram.submit_timeout` above
+-- was chosen — the collective loss in `bananagrams.submit_timeout` above
 -- (time's up, nobody out). This is the third terminal: a manual stop,
 -- for when the friends want to quit a stale race before either fires.
 -- Modeled on `spellingbee.end_game`'s COMPETE branch.
@@ -1017,11 +1017,11 @@ grant execute on function monkeygram.submit_timeout(uuid) to authenticated;
 -- server just needs the caller to be in the game). Idempotent: a
 -- second call (or a click racing a real peel-win) raises P0001, which
 -- the FE swallows the same way it does any "already terminal" race.
-create function monkeygram.end_game(target_game uuid)
+create function bananagrams.end_game(target_game uuid)
 returns void
 language plpgsql
 security definer
-set search_path = monkeygram, common, public, extensions
+set search_path = bananagrams, common, public, extensions
 as $$
 declare
   current_play_state text;
@@ -1029,7 +1029,7 @@ declare
 begin
   -- Lock the gametype row so a manual end and a concurrent peel-win
   -- serialize — only one of them gets to write the terminal state.
-  perform 1 from monkeygram.games where id = target_game for update;
+  perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -1042,7 +1042,7 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
-  -- All players {"won": false} — no winner. MonkeyGram's per-player
+  -- All players {"won": false} — no winner. bananagrams's per-player
   -- result is bare {"won": bool} (no score; unlike spellingbee there's no
   -- running point total to report).
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -1058,15 +1058,15 @@ begin
   -- Realtime touch — same trick as spellingbee.end_game / submit_timeout.
   -- `common.end_game` writes to common.games, which wakes the terminal
   -- modal via useCommonGame's common.games subscription. But the FE's
-  -- monkeygram channels subscribe to monkeygram.player_boards (useGame)
-  -- and monkeygram.progress (useProgress) — neither sees that write. A
+  -- bananagrams channels subscribe to bananagrams.player_boards (useGame)
+  -- and bananagrams.progress (useProgress) — neither sees that write. A
   -- self-set on progress's `unplaced` is a semantic no-op that still
   -- produces a WAL entry, nudging those subscribers belt-and-suspenders.
-  update monkeygram.progress
+  update bananagrams.progress
      set unplaced = unplaced
    where game_id = target_game;
 end;
 $$;
 
-revoke execute on function monkeygram.end_game(uuid) from public;
-grant execute on function monkeygram.end_game(uuid) to authenticated;
+revoke execute on function bananagrams.end_game(uuid) from public;
+grant execute on function bananagrams.end_game(uuid) to authenticated;

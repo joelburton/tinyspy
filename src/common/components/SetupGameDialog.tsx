@@ -137,7 +137,7 @@ export function SetupGameDialog({
         : null
 
   // Cross-field setup guard (optional per manifest). Couples the
-  // collected `setup` to the live `playerCount` — e.g. MonkeyGram's
+  // collected `setup` to the live `playerCount` — e.g. bananagrams's
   // "the bag must hold playerCount × hand_size tiles". Non-null is a
   // reason to keep Start disabled; the server re-checks in create_game.
   const setupError = manifest.setupForm.validate?.(setup, playerCount) ?? null
