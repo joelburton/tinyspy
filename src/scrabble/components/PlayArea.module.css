@@ -1,0 +1,90 @@
+.layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* The board sizes itself (see Board.module.css) to grow as tall as the
+   layout allows; this column just wraps it. */
+.boardArea {
+  flex: 0 0 auto;
+}
+
+/* Fixed column wide enough for the 7-tile rack in one row. */
+.sideCol {
+  flex: 0 0 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Vertical rule separating the non-submit (left) from the submit (right)
+   action buttons. */
+.divider {
+  align-self: stretch;
+  width: 1px;
+  min-height: 1.6em;
+  margin: 0 3px;
+  background: var(--color-divider);
+}
+
+.turn {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.preview {
+  min-height: 1.4em;
+  font-size: 0.95rem;
+}
+.previewOk {
+  color: #2e7d52;
+  font-weight: 600;
+}
+.previewBad {
+  color: var(--color-muted);
+}
+
+.hint {
+  font-size: 0.8rem;
+}
+
+/* The dragged tile, following the pointer. */
+.ghost {
+  position: fixed;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  border: 1px solid var(--scrabble-tile-edge);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 21px;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.gameOver {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 8px;
+}
+.gameOver .muted {
+  margin-right: 4px;
+}

@@ -1,0 +1,56 @@
+.rack {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 8px;
+  background: #6b4a2a;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.tile {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  /* Same container-query trick as the board tile, so the glyph layout below
+     matches it exactly at this (smaller) size. */
+  container-type: size;
+  border-radius: 3px;
+  border: 1px solid var(--scrabble-tile-edge);
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  cursor: grab;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  touch-action: none;
+}
+.tile.used {
+  opacity: 0.3;
+  cursor: default;
+}
+.tile.selected {
+  background: var(--scrabble-tile-selected);
+  transform: translateY(-4px);
+}
+/* A freshly-drawn tile: yellow outline for ~1s. */
+.tile.flashNew {
+  outline: 3px solid #e6b324;
+  outline-offset: 1px;
+}
+
+/* MUST stay in sync with Board.module.css's .letter / .value. */
+.letter {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  font-size: 58cqmin;
+  font-weight: 700;
+  line-height: 1;
+}
+.value {
+  position: absolute;
+  right: 8%;
+  bottom: 4%;
+  font-size: 36cqmin;
+  font-weight: 600;
+}

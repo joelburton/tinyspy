@@ -1,0 +1,125 @@
+.board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  gap: 2px;
+  background: var(--scrabble-board-bg);
+  padding: 4px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  /* Grow as large as the layout allows: a square sized by viewport height,
+     but never so wide it crowds the fixed side column. */
+  aspect-ratio: 1;
+  height: min(82vh, calc(100vw - 410px));
+  width: auto;
+  container-type: inline-size;
+  user-select: none;
+  touch-action: none;
+}
+
+.cell,
+.tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 3px;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrabble-cell-bg);
+  color: #6b8378;
+  font-size: 2.4cqi;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cell.DW { background: var(--scrabble-dw); color: #7a3b34; }
+.cell.TW { background: var(--scrabble-tw); color: #fff; }
+.cell.DL { background: var(--scrabble-dl); color: #2c4f6b; }
+.cell.TL { background: var(--scrabble-tl); color: #fff; }
+.cell.center { font-size: 4.6cqi; color: #7a3b34; }
+
+/* Drag-drop feedback on the hovered target cell. */
+.dropOk {
+  outline: 2px solid rgba(120, 200, 130, 0.7);
+  outline-offset: -2px;
+  background: rgba(120, 200, 130, 0.25);
+}
+.dropNo {
+  outline: 2px solid rgba(210, 110, 110, 0.7);
+  outline-offset: -2px;
+}
+
+.tile {
+  /* Fill the (position:relative) cell. The letter + value are absolutely
+     positioned WITHIN the tile, so without an explicit box the span would
+     collapse to zero size and its face/border wouldn't render.
+     `container-type: size` lets the letter/value scale to a fixed FRACTION
+     of the tile — the same layout the rack uses, so board + rack tiles look
+     identical at any size. (Keep .letter/.value in sync with Rack.module.css.) */
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  container-type: size;
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  border: 1px solid var(--scrabble-tile-edge);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  cursor: grab;
+}
+.tile.committed {
+  cursor: default;
+}
+.tile.tentative {
+  background: var(--scrabble-tile-tentative);
+}
+.tile.lifted {
+  opacity: 0.3;
+}
+/* A just-accepted word: green outline for ~1s. */
+.tile.flashAccept {
+  outline: 3px solid #2faa5a;
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+/* Tile glyph layout — sized as a fraction of the tile (cqmin), so it's
+   identical on the board and in the rack. MUST stay in sync with
+   Rack.module.css's .letter / .value. */
+.letter {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  font-size: 58cqmin;
+  font-weight: 700;
+  line-height: 1;
+}
+.value {
+  position: absolute;
+  right: 8%;
+  bottom: 4%;
+  font-size: 36cqmin;
+  font-weight: 600;
+}
+
+/* The keyboard cursor — a thick-on-the-axis ring (MonkeyGram style). */
+.cursor {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 5;
+}
+.cursorH {
+  border: 1px solid var(--scrabble-cursor);
+  border-top-width: 5px;
+  border-bottom-width: 5px;
+}
+.cursorV {
+  border: 1px solid var(--scrabble-cursor);
+  border-left-width: 5px;
+  border-right-width: 5px;
+}

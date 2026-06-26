@@ -1,0 +1,38 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.panel {
+  background: var(--color-surface);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 320px;
+}
+.prompt {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.letter {
+  aspect-ratio: 1;
+  border: 1px solid var(--scrabble-tile-edge);
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.letter:hover {
+  background: var(--scrabble-tile-selected);
+}

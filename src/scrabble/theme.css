@@ -1,0 +1,28 @@
+/*
+ * RackAttack theme tokens. Loaded with the gametype's chunk via the
+ * PlayArea.tsx import, so they only ship when someone plays it. Premium
+ * colors follow the familiar Scrabble palette; tiles are a warm cream.
+ */
+:root {
+  --scrabble-board-bg: #1f6f54; /* the felt green between cells */
+  --scrabble-cell-bg: #e9f3ee; /* a plain (non-premium) square */
+  --scrabble-cell-line: #cfe0d8;
+
+  --scrabble-tw: #e06a52; /* triple word  */
+  --scrabble-dw: #f0a9a0; /* double word + center star */
+  --scrabble-tl: #5a91c8; /* triple letter */
+  --scrabble-dl: #acd0ea; /* double letter */
+
+  --scrabble-tile-bg: #f2dca8; /* the wooden tile face */
+  --scrabble-tile-ink: #3b2a14;
+  --scrabble-tile-edge: #d8bd82;
+  --scrabble-tile-tentative: #ffe9b0; /* a not-yet-committed tile */
+  --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
+  --scrabble-cursor: #c9881f; /* the keyboard-entry cursor ring */
+}
+
+/* While dragging a tile, suppress text selection + show the grab cursor. */
+body.scrabble-dragging {
+  user-select: none;
+  cursor: grabbing;
+}

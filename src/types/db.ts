@@ -970,6 +970,295 @@ export type Database = {
       [_ in never]: never
     }
   }
+  scrabble: {
+    Tables: {
+      games: {
+        Row: {
+          bag: string[]
+          board: Json
+          club_handle: string
+          consecutive_scoreless: number
+          created_at: string
+          current_user_id: string | null
+          difficulty: number
+          id: string
+          mode: string
+          shared_rack: string[] | null
+          team_score: number | null
+          version: number
+        }
+        Insert: {
+          bag: string[]
+          board: Json
+          club_handle: string
+          consecutive_scoreless?: number
+          created_at?: string
+          current_user_id?: string | null
+          difficulty: number
+          id: string
+          mode: string
+          shared_rack?: string[] | null
+          team_score?: number | null
+          version?: number
+        }
+        Update: {
+          bag?: string[]
+          board?: Json
+          club_handle?: string
+          consecutive_scoreless?: number
+          created_at?: string
+          current_user_id?: string | null
+          difficulty?: number
+          id?: string
+          mode?: string
+          shared_rack?: string[] | null
+          team_score?: number | null
+          version?: number
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          game_id: string
+          rack: string[] | null
+          score: number | null
+          seat: number
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          rack?: string[] | null
+          score?: number | null
+          seat: number
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          rack?: string[] | null
+          score?: number | null
+          seat?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plays: {
+        Row: {
+          game_id: string
+          kind: string
+          placements: Json | null
+          played_at: string
+          score: number | null
+          seq: number
+          tile_count: number | null
+          user_id: string
+          words: string[] | null
+        }
+        Insert: {
+          game_id: string
+          kind: string
+          placements?: Json | null
+          played_at?: string
+          score?: number | null
+          seq: number
+          tile_count?: number | null
+          user_id: string
+          words?: string[] | null
+        }
+        Update: {
+          game_id?: string
+          kind?: string
+          placements?: Json | null
+          played_at?: string
+          score?: number | null
+          seq?: number
+          tile_count?: number | null
+          user_id?: string
+          words?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plays_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plays_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          bag_count: number | null
+          board: Json | null
+          club_handle: string | null
+          consecutive_scoreless: number | null
+          created_at: string | null
+          current_user_id: string | null
+          difficulty: number | null
+          id: string | null
+          mode: string | null
+          shared_rack: string[] | null
+          team_score: number | null
+          version: number | null
+        }
+        Insert: {
+          bag_count?: never
+          board?: Json | null
+          club_handle?: string | null
+          consecutive_scoreless?: number | null
+          created_at?: string | null
+          current_user_id?: string | null
+          difficulty?: number | null
+          id?: string | null
+          mode?: string | null
+          shared_rack?: string[] | null
+          team_score?: number | null
+          version?: number | null
+        }
+        Update: {
+          bag_count?: never
+          board?: Json | null
+          club_handle?: string | null
+          consecutive_scoreless?: number | null
+          created_at?: string | null
+          current_user_id?: string | null
+          difficulty?: number | null
+          id?: string | null
+          mode?: string | null
+          shared_rack?: string[] | null
+          team_score?: number | null
+          version?: number | null
+        }
+        Relationships: []
+      }
+      players_state: {
+        Row: {
+          game_id: string | null
+          rack: string[] | null
+          rack_count: number | null
+          score: number | null
+          seat: number | null
+          user_id: string | null
+        }
+        Insert: {
+          game_id?: string | null
+          rack?: never
+          rack_count?: never
+          score?: number | null
+          seat?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          game_id?: string | null
+          rack?: never
+          rack_count?: never
+          score?: number | null
+          seat?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      _advance_turn: { Args: { g_id: string }; Returns: undefined }
+      _bag_count_for: { Args: { g_id: string }; Returns: number }
+      _finish: {
+        Args: { g_id: string; out_user: string; outcome: string }
+        Returns: undefined
+      }
+      _new_bag: { Args: never; Returns: string[] }
+      _rack_count_for: {
+        Args: { g_id: string; p_user: string }
+        Returns: number
+      }
+      _rack_for: { Args: { g_id: string; p_user: string }; Returns: string[] }
+      _remove_tiles: {
+        Args: { p_rack: string[]; p_remove: string[] }
+        Returns: string[]
+      }
+      _status: { Args: { g_id: string }; Returns: Json }
+      _tile_value: { Args: { ch: string }; Returns: number }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      exchange_tiles: {
+        Args: {
+          base_version: number
+          rack_tiles: string[]
+          target_game: string
+        }
+        Returns: Json
+      }
+      pass_turn: {
+        Args: { base_version: number; target_game: string }
+        Returns: Json
+      }
+      play_word: {
+        Args: {
+          base_version: number
+          placements: Json
+          score: number
+          target_game: string
+          words: string[]
+        }
+        Returns: Json
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   stackdown: {
     Tables: {
       boards: {
@@ -2140,6 +2429,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
+    Enums: {},
+  },
+  scrabble: {
     Enums: {},
   },
   stackdown: {

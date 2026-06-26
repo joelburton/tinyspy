@@ -1,0 +1,42 @@
+-- ============================================================
+-- Per-test-file scrabble fixtures / rigging helpers
+-- ============================================================
+-- Loaded by every scrabble/*_test.sql via `\ir setup.psql` (after the
+-- shared persona setup).
+--
+-- RackAttack deals racks + shuffles the bag RANDOMLY, so tests can't
+-- predict what a player holds. These helpers (run as the postgres
+-- superuser, bypassing RLS/grants) overwrite the relevant rack + bag with
+-- KNOWN tiles so a test can drive a deterministic play. They're the
+-- scrabble analogue of stackdown's `sd_seq` fixture.
+--
+-- The dictionary check in play_word reads the real common.words table
+-- (populated by `words:import`, visible inside the test transaction), so
+-- tests use real words ('AT', 'CAT', …) and a deliberate non-word for the
+-- reject path.
+
+reset role;
+
+-- Coop: set the shared rack + remaining bag.
+create function pg_temp.sc_coop(g uuid, p_rack text[], p_bag text[])
+returns void language sql as $$
+  update scrabble.games set shared_rack = p_rack, bag = p_bag where id = g;
+$$;
+
+-- Compete: set one player's rack.
+create function pg_temp.sc_rack(g uuid, p_uid uuid, p_rack text[])
+returns void language sql as $$
+  update scrabble.players set rack = p_rack where game_id = g and user_id = p_uid;
+$$;
+
+-- Set the remaining bag (either mode).
+create function pg_temp.sc_bag(g uuid, p_bag text[])
+returns void language sql as $$
+  update scrabble.games set bag = p_bag where id = g;
+$$;
+
+-- Force whose turn it is (compete).
+create function pg_temp.sc_turn(g uuid, p_uid uuid)
+returns void language sql as $$
+  update scrabble.games set current_user_id = p_uid where id = g;
+$$;
