@@ -504,6 +504,20 @@ It watches `common.game_players` for INSERTs of the caller's own rows (instant p
 
 This **replaces the previous ClubPage auto-nav** (a club-games subscription that navigated every member into any non-terminal `is_current_view` game). ClubPage's subscription now only refreshes its games list; `is_current_view` stays the club's durable "current game" pointer (the card + the abandoned-pointer heal) — it just no longer yanks anyone in. Joining a game while mid-play in another simply leaves the first (which pauses for the others).
 
+### App-level keyboard shortcuts
+
+One hook — [`useAppShortcuts`](../src/common/hooks/useAppShortcuts.tsx) — owns the shortcuts available on every "real" page (any ClubPage / GamePage, as opposed to the login / claim-handle screens). Both pages call it; the keys behave identically everywhere:
+
+| key | does | how |
+|---|---|---|
+| `/` | open chat + focus its input | flips the `chatOpenStore`, then rAF-focuses `[data-chat-input]` |
+| `?` | open the logo menu | calls the `openMenu` callback the page wires to its `<Menu ref>` |
+| `~` | open the free-form **word-lookup** dialog | the hook owns the open/closed state and **returns** the `WordLookupDialog` node for the page to render |
+
+The first two delegate to the caller (chat is a global store; the menu differs per page). The `~` lookup dialog is identical on every page, so the hook owns it outright — it holds the state and returns the dialog node, and each page just renders `{lookupDialog}` in its tree. That's why word-lookup is available almost everywhere with zero per-game wiring (see [Word definitions](#word-definitions-click-to-define--lookup)).
+
+All three fire when nothing is focused (the mid-game common case, where word games read keys off `window`) **and** when a *game* input is focused (tinyspy's clue field, psychicnum's guess field — opted in with `data-game-input`), but **not** when a non-game field has focus (a setup form, the chat box itself) — there the keys type literally. The gate is `isNonGameField`, shared with the same hook. Escape is deliberately not handled here; it stays "close the topmost open modal," owned by the dialogs.
+
 ## Theme & styling
 
 Conventions live in [`code-conventions.md`](code-conventions.md); the short version:
@@ -554,7 +568,7 @@ The master playable-word list, shared by every word game (freebee today; Boggle,
 
 ## Word definitions (click-to-define + lookup)
 
-A shared definition lookup, available to every word game (freebee, stackdown, scrabble today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover (freebee's `WordList`, stackdown's `FoundWords` rows, scrabble's move log), and a per-game **shortcut key** (`~` in freebee + scrabble) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen.
+A shared definition lookup, available to every word game (freebee, stackdown, scrabble today; boggle/crosswords later). Two affordances: **click a word** in a list to get a popover (freebee's `WordList`, stackdown's `FoundWords` rows, scrabble's move log), and an app-global **shortcut key** (`~`) that opens a free-form "look up any word" dialog — the escape hatch for chasing a "see X" cross-reference or any word that isn't on screen. The `~` shortcut works on every "real" page (any ClubPage / GamePage, not just word games), the same as `?` for the menu and `/` for chat — see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts).
 
 Below the definition, `DefinitionView` also shows a small muted line of the word's **categorization** from `common.words` — difficulty `band N`, the dialects it's valid in (`US/CA/UK/AU`), any `slur-N` / `crude-N` level, and `wordle`-list membership — for any in-list word (even one with no definition text).
 
@@ -571,7 +585,9 @@ Below the definition, `DefinitionView` also shows a small muted line of the word
 - `components/DefinitionView` — the shared body (heading + parsed def + clickable refs + CC BY-SA attribution when `source === 'w'`); shows "Unknown word." for a word not in the list, "No definition found." for an in-list word Wiktionary had nothing for. A ref click calls `onNavigate` to re-point the lookup in place.
 - `components/DefinitionPopover` (anchored card, click-to-define) and `components/WordLookupDialog` (FloatingPanel + text box, the shortcut) both embed `DefinitionView` — they differ only in *how the first word is chosen*.
 
-**Per-game wiring (freebee).** `WordList` rows are click/keyboard-activatable → `DefinitionPopover`. The `~` shortcut is added to `PlayArea`'s existing `useGlobalKeyHandler`, *before* the loading/terminal guards (so lookups work during the post-game reveal) but *after* the INPUT/TEXTAREA guard (so `~` types literally in chat and the lookup box).
+**Click-to-define wiring (per-game).** `WordList` rows (freebee), `FoundWords` rows (stackdown), and the move log (scrabble) are click/keyboard-activatable → `DefinitionPopover`. This stays per-game because *which* words are clickable is game-specific.
+
+**The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in freebee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
 
 ## Common testing
 

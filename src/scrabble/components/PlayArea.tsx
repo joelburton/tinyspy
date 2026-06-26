@@ -15,7 +15,6 @@ import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { BlankPicker } from './BlankPicker'
 import { PlayLog } from './PlayLog'
-import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -108,7 +107,6 @@ export function PlayArea({
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
   const [order, setOrder] = useState<number[]>([])
   const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
-  const [lookupOpen, setLookupOpen] = useState(false) // the `~` define-any-word dialog
   const [cursor, setCursor] = useState<Cursor>({ x: 7, y: 7, dir: 'H' })
   const [drag, setDrag] = useState<{ letter: string; x: number; y: number; source: DragSource } | null>(null)
   const [hover, setHover] = useState<XY | null>(null)
@@ -533,14 +531,7 @@ export function PlayArea({
 
   useGlobalKeyHandler((e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
-    // `~` opens the free-form "define any word" dialog — before the can-act
-    // guard so it works when it's not your turn or the game's over (the
-    // useGlobalKeyHandler already ignores keys aimed at chat / inputs).
-    if (e.key === '~') {
-      e.preventDefault()
-      setLookupOpen(true)
-      return
-    }
+    // (The "~" word-lookup shortcut is now app-global; see useAppShortcuts.)
     if (!game || !canAct) return
     const k = e.key
     if (k === 'Enter') {
@@ -644,8 +635,6 @@ export function PlayArea({
       </div>
 
       {blankAt && <BlankPicker onPick={pickBlank} onCancel={() => setBlankAt(null)} />}
-
-      {lookupOpen && <WordLookupDialog onClose={() => setLookupOpen(false)} />}
 
       {drag && (
         <div className={styles.ghost} style={{ left: drag.x, top: drag.y }}>

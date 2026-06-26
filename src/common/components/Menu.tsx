@@ -14,7 +14,7 @@ import type { MenuItem, MenuSection } from '../lib/games'
 import styles from './Menu.module.css'
 
 /** Imperative handle exposed via `ref` so an app-level shortcut (the
- *  "?" key — see useChatMenuShortcuts) can open the menu without owning
+ *  "?" key — see useAppShortcuts) can open the menu without owning
  *  its internal open state. */
 export type MenuHandle = { open: () => void }
 

@@ -1,6 +1,6 @@
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isNonGameField, useChatMenuShortcuts } from './useChatMenuShortcuts'
+import { isNonGameField, useAppShortcuts } from './useAppShortcuts'
 import { getChatOpen, setChatOpen } from '../lib/chatOpenStore'
 
 function press(key: string, target: EventTarget) {
@@ -31,7 +31,7 @@ describe('isNonGameField', () => {
   })
 })
 
-describe('useChatMenuShortcuts', () => {
+describe('useAppShortcuts', () => {
   beforeEach(() => {
     setChatOpen(false)
   })
@@ -42,7 +42,7 @@ describe('useChatMenuShortcuts', () => {
 
   it('"/" opens chat and "?" opens the menu when nothing/board is focused', () => {
     const openMenu = vi.fn()
-    renderHook(() => useChatMenuShortcuts(openMenu))
+    renderHook(() => useAppShortcuts(openMenu))
 
     press('/', document.body)
     expect(getChatOpen()).toBe(true)
@@ -51,9 +51,21 @@ describe('useChatMenuShortcuts', () => {
     expect(openMenu).toHaveBeenCalledTimes(1)
   })
 
+  it('"~" returns the word-lookup dialog node (idle → open)', () => {
+    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+
+    // Idle: nothing rendered.
+    expect(result.current).toBeNull()
+
+    // Pressing "~" flips the hook's own open state, so the hook now
+    // returns the dialog node for the caller to render.
+    act(() => press('~', document.body))
+    expect(result.current).not.toBeNull()
+  })
+
   it('fires while a GAME input is focused (data-game-input)', () => {
     const openMenu = vi.fn()
-    renderHook(() => useChatMenuShortcuts(openMenu))
+    renderHook(() => useAppShortcuts(openMenu))
 
     const gameInput = document.createElement('input')
     gameInput.setAttribute('data-game-input', '')
@@ -65,14 +77,16 @@ describe('useChatMenuShortcuts', () => {
 
   it('does NOT fire while a non-game field is focused (setup input, chat box)', () => {
     const openMenu = vi.fn()
-    renderHook(() => useChatMenuShortcuts(openMenu))
+    const { result } = renderHook(() => useAppShortcuts(openMenu))
 
     const input = document.createElement('input')
     document.body.append(input)
 
     press('/', input)
     press('?', input)
+    press('~', input)
     expect(getChatOpen()).toBe(false)
     expect(openMenu).not.toHaveBeenCalled()
+    expect(result.current).toBeNull()
   })
 })

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { WordLookupDialog } from '../../common/components/WordLookupDialog'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { db } from '../db'
@@ -188,9 +187,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // FE-only — never shared or stored.
   const [lastWord, setLastWord] = useState('')
 
-  // ─── "Look up any word" dialog (tilde shortcut) ────────
-  const [lookupOpen, setLookupOpen] = useState(false)
-
   const handleLetterClick = useCallback((letter: string) => {
     setWord((prev) => prev + letter.toUpperCase())
   }, [])
@@ -268,15 +264,8 @@ export function PlayArea(ctx: GamePageCtx) {
         // useGlobalKeyHandler already drops keystrokes aimed at a focused
         // text field (chat, dialogs), so everything below only ever runs
         // for board-level input — never while the user is typing in chat.
-
-        // Tilde opens the "look up any word" dialog. Handled BEFORE the
-        // loading/terminal guards so it works in every state — chasing
-        // a "see X" definition during the post-game reveal is a prime use.
-        if (e.key === '~') {
-          e.preventDefault()
-          setLookupOpen(true)
-          return
-        }
+        // (The "~" word-lookup shortcut is now app-global; see
+        // useAppShortcuts.)
 
         if (loading || !game) return
         if (isTerminal) return
@@ -486,9 +475,6 @@ export function PlayArea(ctx: GamePageCtx) {
           onClose={closeModal}
           onBackToClub={goToClub}
         />
-      )}
-      {lookupOpen && (
-        <WordLookupDialog onClose={() => setLookupOpen(false)} />
       )}
     </div>
   )

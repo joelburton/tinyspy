@@ -78,7 +78,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_freebee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
-| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not freebee-specific. Clicking a `WordList` row opens `common/components/DefinitionPopover` anchored to that row; the `~` key opens `common/components/WordLookupDialog` to define any word. Both are backed by the `supabase/functions/define` edge function. |
+| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not freebee-specific. Clicking a `WordList` row opens `common/components/DefinitionPopover` anchored to that row; the `~` key opens `common/components/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/define` edge function. |
 | **Sounds** | out of scope | freebee-ws doesn't have them either. |
 | **Mid-session "new board" affordance** | out of scope | Pupgames path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
 

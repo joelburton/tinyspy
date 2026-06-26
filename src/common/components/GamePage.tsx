@@ -17,7 +17,7 @@ import type {
   MenuItem,
   MenuSection,
 } from '../lib/games'
-import { useChatMenuShortcuts } from '../hooks/useChatMenuShortcuts'
+import { useAppShortcuts } from '../hooks/useAppShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
@@ -184,9 +184,11 @@ export function GamePage({
     })
   }, [timer.expired, paused, commonGame, gameId, gametype])
 
-  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu.
+  // App-chrome keyboard shortcuts: "/" opens chat, "?" opens this menu,
+  // "~" opens the word-lookup dialog (the hook owns + returns that
+  // dialog; we render it below).
   const menuRef = useRef<MenuHandle>(null)
-  useChatMenuShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
 
   // Auto-clear `timed`-dismiss feedback after the configured
   // duration (default 2200ms). Sticky and closeable modes are
@@ -355,6 +357,12 @@ export function GamePage({
           <HelpComponent onClose={() => setHelpOpen(false)} />
         </Suspense>
       )}
+
+      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null
+          when closed; a FloatingPanel when open. Sits at the page level
+          so it stays available in any state, including the post-game
+          reveal where chasing a "see X" definition is a prime use. */}
+      {lookupDialog}
 
       {confirmingSuspend && (
         <SuspendConfirmDialog

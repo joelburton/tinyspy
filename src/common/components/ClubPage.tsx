@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Link } from '../lib/Link'
 import { navigate } from '../lib/router'
 import { channelDedupSuffix } from '../lib/channelDedup'
-import { useChatMenuShortcuts } from '../hooks/useChatMenuShortcuts'
+import { useAppShortcuts } from '../hooks/useAppShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
@@ -102,10 +102,11 @@ export function ClubPage({ handle, session }: Props) {
   const presence = useClubPresence(handle, null, selfUserId)
 
   // App-chrome keyboard shortcuts: "/" opens chat, "?" opens the club
-  // menu. Same hook the GamePage uses. Declared above the loading early
-  // returns so the hook order stays stable.
+  // menu, "~" opens the word-lookup dialog (the hook owns + returns that
+  // dialog; we render it below). Same hook the GamePage uses. Declared
+  // above the loading early returns so the hook order stays stable.
   const menuRef = useRef<MenuHandle>(null)
-  useChatMenuShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
 
   const presentUserIds = useMemo(
     () => new Set(presence.map((e) => e.userId)),
@@ -651,6 +652,10 @@ export function ClubPage({ handle, session }: Props) {
         selfUserId={selfUserId}
         hideClosedButton
       />
+
+      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null
+          when closed; a FloatingPanel when open. */}
+      {lookupDialog}
 
       {pendingSetup && (
         <SetupGameDialog

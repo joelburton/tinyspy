@@ -465,7 +465,7 @@ a square to position the cursor; tap a rack tile to mark it for Exchange.
   newest at the bottom, auto-scrolled; `name: +score WORD` with the name in the
   player's color; words click-to-define via the common `DefinitionPopover`),
   `PlayArea` (the composition + the gesture/keyboard plumbing, the live score
-  preview, the optimistic just-played hold, the `~` `WordLookupDialog` shortcut,
+  preview, the optimistic just-played hold,
   `GameOverModal` + the End-game menu item), `SetupForm` (two `<DifficultyField>`s
   + timer), `Help`.
 
