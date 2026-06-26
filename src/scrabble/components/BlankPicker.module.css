@@ -12,7 +12,13 @@
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  max-width: 320px;
+  /* Bounded (and `min-width: 0` so the flex centering in `.overlay` can't let
+     the grid's content min-width force the panel wider than this — that was the
+     bug where the 7th letter column spilled out the side). Caps to the viewport
+     on small screens. */
+  width: min(92vw, 340px);
+  min-width: 0;
+  box-sizing: border-box;
 }
 .prompt {
   margin: 0 0 12px;
@@ -20,12 +26,20 @@
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  /* `minmax(0, 1fr)` (not `1fr`) lets the columns shrink to share the panel
+     width evenly instead of being floored at each button's min-content. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
   margin-bottom: 12px;
 }
 .letter {
   aspect-ratio: 1;
+  /* Reset the inherited (global) button padding/min-width/font so the tile is
+     sized by its grid column, like a rack tile. */
+  min-width: 0;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
   border: 1px solid var(--scrabble-tile-edge);
   background: var(--scrabble-tile-bg);
   color: var(--scrabble-tile-ink);
