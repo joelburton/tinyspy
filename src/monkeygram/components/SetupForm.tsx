@@ -24,11 +24,13 @@ import styles from './SetupForm.module.css'
  *   - **Dumping a tile** — "Return dumped tiles to the box": off (default) puts
  *     a dumped tile back in the bag; on takes it out of play (the game shrinks
  *     by one each dump).
- *   - **Require real words to win** — opt-in dictionary check on the winning
- *     peel; reveals two DifficultyField pickers when on — one for 2-letter
- *     words (band 2..6) and one for longer words (1..6), since 2-letter words
- *     are a separate, thinner vocabulary. (Board geography — one connected grid
- *     — is always required, so it's not a knob.)
+ *   - **Words** — an opt-in "require real words to win" dictionary check on the
+ *     winning peel, plus two always-shown DifficultyField pickers (one for
+ *     2-letter words, band 2..6; one for longer words, 1..6, since 2-letter
+ *     words are a separate, thinner vocabulary). The bands define what counts as
+ *     a real word for both the win check AND the upcoming opt-in "check board"
+ *     helper, so they show regardless of the checkbox. (Board geography — one
+ *     connected grid — is always required, so it's not a knob.)
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`monkeygram.submit_timeout`).
@@ -101,7 +103,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       </fieldset>
 
       <fieldset className={styles.fieldset}>
-        <legend>Winning the game</legend>
+        <legend>Words</legend>
         <p className="muted">
           To go out, your tiles must always form one connected grid. Optionally,
           require every word in it to be real:
@@ -115,26 +117,30 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           />
           Require real words to win
         </label>
-        {s.check_words && (
-          <div className={styles.dictRow}>
-            <DifficultyField
-              label="2-letter words"
-              length={2}
-              minDifficulty={2}
-              maxDifficulty={6}
-              value={s.dict_2}
-              onChange={(dict_2) => onChange({ ...s, dict_2 })}
-            />
-            <DifficultyField
-              label="Longer words (3+)"
-              length="3+"
-              minDifficulty={1}
-              maxDifficulty={6}
-              value={s.dict_3plus}
-              onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
-            />
-          </div>
-        )}
+        {/* The two band pickers are ALWAYS shown — not gated on
+            check_words. They define which words count as "real" both for
+            the win check (when required above) and for the upcoming
+            opt-in "check board" helper a player can run mid-game even
+            when the win check is off. 2-letter words are a separate,
+            thinner vocabulary, so they get their own band. */}
+        <div className={styles.dictRow}>
+          <DifficultyField
+            label="2-letter words"
+            length={2}
+            minDifficulty={2}
+            maxDifficulty={6}
+            value={s.dict_2}
+            onChange={(dict_2) => onChange({ ...s, dict_2 })}
+          />
+          <DifficultyField
+            label="Longer words (3+)"
+            length="3+"
+            minDifficulty={1}
+            maxDifficulty={6}
+            value={s.dict_3plus}
+            onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
+          />
+        </div>
       </fieldset>
 
       <TimerField
