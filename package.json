@@ -20,6 +20,7 @@
     "words:import": "npx tsx supabase/scripts/import-words.ts",
     "stackdown:gen": "npx tsx supabase/scripts/generate-stackdown-boards.ts",
     "stackdown:import": "npx tsx supabase/scripts/import-stackdown-boards.ts",
+    "import": "npm run words:import && npm run freebee:import && npm run wordknit:import && npm run stackdown:import",
     "deploy": "supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist",
     "test:e2e": "playwright test"
   },
