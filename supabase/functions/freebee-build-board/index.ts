@@ -69,6 +69,11 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 type Setup = {
   /** Required when `mode === 'compete'` (validated server-side). */
   target_rank?: number
+  /** Vocabulary bands for this board's word lists (validated server-side by
+   *  freebee.create_game). `required` (2..6, default 3) = the displayed goal
+   *  set; `legal` (required..6, default 5) = the wider accepted set. */
+  required?: number
+  legal?: number
   timer:
     | { kind: 'none' }
     | { kind: 'countup' }
@@ -368,6 +373,8 @@ async function fetchCandidateWords(
   supabase: SupabaseClient,
   puzzleMask: bigint,
   centerBit: bigint,
+  requiredBand: number,
+  legalBand: number,
 ): Promise<CandidateRow[]> {
   const { data, error } = await supabase
     .schema('freebee')
@@ -376,6 +383,9 @@ async function fetchCandidateWords(
       // to bigint on the column-type match.
       puzzle_mask: puzzleMask.toString(),
       center_bit: centerBit.toString(),
+      // The per-game word bands (default to the classic 3 / 5).
+      required_band: requiredBand,
+      legal_band: legalBand,
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
   // The RPC returns (word, letter_mask, is_required) — note that
@@ -430,6 +440,10 @@ serve(async (req) => {
       console.log('reject: missing/invalid setup')
       return json({ error: 'setup (object) required' }, 400)
     }
+    // Word bands for this board (create_game is the authority on their range;
+    // here we just default the classic 3 / 5 and feed candidate_words).
+    const requiredBand = setup.required ?? 3
+    const legalBand = setup.legal ?? 5
     if (mode !== 'coop' && mode !== 'compete') {
       console.log(`reject: invalid mode "${mode}"`)
       return json({ error: 'mode ("coop" | "compete") required' }, 400)
@@ -489,7 +503,7 @@ serve(async (req) => {
       const letters = maskLetters(mask)
       for (const center of shuffled([...letters])) {
         const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
-        const candidates = await fetchCandidateWords(supabase, mask, centerBit)
+        const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
         const cand = buildBoard(letters.replace(center, ''), center, candidates)
         if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
           board = cand

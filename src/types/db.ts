@@ -600,7 +600,12 @@ export type Database = {
       _rank_idx: { Args: { score: number; total: number }; Returns: number }
       _required_words_for: { Args: { g: string }; Returns: Json }
       candidate_words: {
-        Args: { center_bit: number; puzzle_mask: number }
+        Args: {
+          center_bit: number
+          legal_band: number
+          puzzle_mask: number
+          required_band: number
+        }
         Returns: {
           is_required: boolean
           letter_mask: number

@@ -1,3 +1,4 @@
+import { DifficultyField } from '../../common/components/DifficultyField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
@@ -69,6 +70,30 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           </div>
         </fieldset>
       )}
+
+      <fieldset className={styles.fieldset}>
+        <legend>Word difficulty</legend>
+        <p className="muted">
+          Required words are the goal; legal words also score but aren't
+          required. Both are length-agnostic (examples just show the band).
+        </p>
+        <DifficultyField
+          label="Required words"
+          length={null}
+          minDifficulty={2}
+          maxDifficulty={6}
+          value={s.required}
+          onChange={(required) => onChange({ ...s, required })}
+        />
+        <DifficultyField
+          label="Legal (bonus) words"
+          length={null}
+          minDifficulty={s.required}
+          maxDifficulty={6}
+          value={s.legal}
+          onChange={(legal) => onChange({ ...s, legal })}
+        />
+      </fieldset>
 
       <TimerField
         value={s.timer}

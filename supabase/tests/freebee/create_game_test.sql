@@ -27,7 +27,7 @@ begin;
 
 set search_path = freebee, common, public, extensions;
 
-select plan(28);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -294,6 +294,88 @@ select throws_ok(
   'P0001',
   'setup.target_rank only allowed when mode=compete',
   'coop with a stray target_rank rejected (loud — FE forgot to strip)'
+);
+
+-- ============================================================
+-- (16b) Word-difficulty band validation
+-- ============================================================
+-- The setup carries two vocabulary bands: `required` (the goal
+-- words, 2..6) and `legal` (the wider accepted set, required..6).
+-- create_game re-checks them server-side (the FE's freebeeLegalError
+-- gate is UX only). The defaults (required 3 / legal 5) are absent
+-- from pg_temp.freebee_setup(), so the happy paths above exercise
+-- the coalesced defaults; these assert the rejection edges.
+
+select throws_ok(
+  format(
+    $$ select freebee.create_game(%L,
+                                   pg_temp.freebee_setup() || '{"required": 1}'::jsonb,
+                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                   'coop',
+                                   pg_temp.freebee_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  null,
+  'rejects setup.required below 2 (band floor)'
+);
+
+select throws_ok(
+  format(
+    $$ select freebee.create_game(%L,
+                                   pg_temp.freebee_setup() || '{"required": 7}'::jsonb,
+                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                   'coop',
+                                   pg_temp.freebee_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  null,
+  'rejects setup.required above 6 (band ceiling)'
+);
+
+select throws_ok(
+  format(
+    $$ select freebee.create_game(%L,
+                                   pg_temp.freebee_setup() || '{"required": 4, "legal": 3}'::jsonb,
+                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                   'coop',
+                                   pg_temp.freebee_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  null,
+  'rejects setup.legal below setup.required (legal must contain required)'
+);
+
+select throws_ok(
+  format(
+    $$ select freebee.create_game(%L,
+                                   pg_temp.freebee_setup() || '{"required": 2, "legal": 7}'::jsonb,
+                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                   'coop',
+                                   pg_temp.freebee_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  null,
+  'rejects setup.legal above 6 (band ceiling)'
+);
+
+-- Happy path with explicit non-default bands: required 4, legal 6.
+select isnt(
+  (
+    select id from freebee.create_game(
+      (select common.create_club('Bands ok', array['ada','bea']) as handle),
+      pg_temp.freebee_setup() || '{"required": 4, "legal": 6}'::jsonb,
+      array['ada11111-1111-1111-1111-111111111111'::uuid,
+            'bea22222-2222-2222-2222-222222222222'::uuid],
+      'coop',
+      pg_temp.freebee_board()
+    )
+  ),
+  null,
+  'accepts explicit required=4 / legal=6 (legal ≥ required, both in range)'
 );
 
 -- ============================================================

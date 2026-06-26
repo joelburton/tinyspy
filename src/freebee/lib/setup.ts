@@ -21,6 +21,12 @@ import type { TimerMode } from '../../common/lib/games'
  *     manifest; absent when starting from the coop manifest.
  *     0..6 maps to the Start..Genius rank ladder. Compete wins
  *     when the first player reaches this rank.
+ *   - `required` / `legal` — the vocabulary bands. `required`
+ *     (2..6) is where the displayed goal words come from; `legal`
+ *     (required..6) is the wider set of accepted/bonus words. The
+ *     board pool is selected at the band-2 floor, so any choice is
+ *     solvable; `legal` must contain `required` (see
+ *     `freebeeLegalError`).
  *
  * Deferred fields (designed-in, FE not yet wiring them):
  *   - `custom_letters` + `custom_center` — a player-specified
@@ -32,8 +38,24 @@ export type FreeBeeSetup = {
    *  because both manifests share it; the per-mode default
    *  factories below seed the field iff compete. */
   target_rank?: number
+  /** Required-words band (2..6); see the type-level notes. */
+  required: number
+  /** Legal/bonus-words band (required..6). */
+  legal: number
   custom_letters?: string
   custom_center?: string
+}
+
+/**
+ * Why the current `legal` band is too low to start, or `null`: the legal set
+ * must contain the required set, so `legal >= required`. The dialog gates Start
+ * on this (via the manifest's `validate`); `create_game` re-checks server-side.
+ */
+export function freebeeLegalError(setup: FreeBeeSetup): string | null {
+  if (setup.legal < setup.required) {
+    return `Legal words must reach at least the required band (${setup.required}).`
+  }
+  return null
 }
 
 /**
@@ -43,6 +65,8 @@ export type FreeBeeSetup = {
  */
 export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
   timer: { kind: 'none' },
+  required: 3,
+  legal: 5,
 }
 
 /**
@@ -55,4 +79,6 @@ export const DEFAULT_FREEBEE_SETUP_COOP: FreeBeeSetup = {
 export const DEFAULT_FREEBEE_SETUP_COMPETE: FreeBeeSetup = {
   timer: { kind: 'none' },
   target_rank: 5,
+  required: 3,
+  legal: 5,
 }

@@ -5,6 +5,7 @@ import { db } from './db'
 import {
   DEFAULT_FREEBEE_SETUP_COMPETE,
   DEFAULT_FREEBEE_SETUP_COOP,
+  freebeeLegalError,
   type FreeBeeSetup,
 } from './lib/setup'
 import { RANKS } from './lib/ranks'
@@ -157,6 +158,7 @@ export const freebeeCoopGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_FREEBEE_SETUP_COOP,
+    validate: (setup) => freebeeLegalError(setup as FreeBeeSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -208,6 +210,7 @@ export const freebeeCompeteGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_FREEBEE_SETUP_COMPETE,
+    validate: (setup) => freebeeLegalError(setup as FreeBeeSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

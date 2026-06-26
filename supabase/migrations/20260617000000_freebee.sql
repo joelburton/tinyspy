@@ -452,22 +452,22 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 -- through supabase.rpc(...) in one round-trip.
 --
 -- This is also where freebee's slice of the shared common.words
--- list is defined, on the 1..6 recognizability bands:
---   - legal      difficulty <= 5  (returned at all = enterable). No
+-- list is defined, on the 1..6 recognizability bands. Both bands are now a
+-- per-game setup choice (`required` 2..6, `legal` required..6), threaded in by
+-- the edge function:
+--   - legal      difficulty <= legal_band  (returned at all = enterable). No
 --                dialect / slang / crude / slur restriction — anything up
---                to band 5 counts if you play it.
---   - required   difficulty <= 3 AND american AND NOT slang AND clean
---                (slur = 0 AND crude = 0) — the is_required flag; counts
+--                to the legal band counts if you play it.
+--   - required   difficulty <= required_band AND american AND NOT slang AND
+--                clean (slur = 0 AND crude = 0) — the is_required flag; counts
 --                toward the displayed goal + rank denominator. Crude/slur
 --                words are legal but never required. Words that are legal
---                but not required (band 4-5, or band <=3 that's
---                non-american / slang / crude / a slur) come back as BONUS
---                (is_required false): legal − required. Bonus words
+--                but not required (above the required band, or band <=required
+--                that's non-american / slang / crude / a slur) come back as
+--                BONUS (is_required false): legal − required. Bonus words
 --                still SCORE (length + pangram bonus); they just don't
 --                count toward the required goal.
 --   - length     len >= 4  (the Spelling-Bee minimum)
--- The required/legal bands become a per-game user choice later; for
--- now they're the locked defaults (see docs/games/freebee.md).
 --
 -- `s`-words need no explicit filter: a board never contains 's', so
 -- the 's' bit is never in puzzle_mask and any 's'-word fails the
@@ -481,7 +481,9 @@ grant execute on function freebee._rank_idx(int, int) to authenticated;
 
 create function freebee.candidate_words(
   puzzle_mask bigint,
-  center_bit bigint
+  center_bit bigint,
+  required_band int,
+  legal_band int
 )
 returns table(word text, letter_mask bigint, is_required boolean)
 language sql
@@ -491,12 +493,12 @@ set search_path = freebee, common, public, extensions
 as $$
   select w.word,
          w.letter_mask,
-         (w.difficulty <= 3 and w.american and not w.slang
+         (w.difficulty <= required_band and w.american and not w.slang
             and w.slur = 0 and w.crude = 0)
            as is_required
     from common.words w
    where w.len >= 4
-     and w.difficulty <= 5
+     and w.difficulty <= legal_band
      -- Subset of puzzle: every letter bit of the word must be
      -- present in the puzzle's bitmask (reads the generated
      -- common.words.letter_mask). Not sargable, so this is a
@@ -506,8 +508,8 @@ as $$
      and (w.letter_mask & center_bit) <> 0;
 $$;
 
-revoke execute on function freebee.candidate_words(bigint, bigint) from public;
-grant execute on function freebee.candidate_words(bigint, bigint) to authenticated;
+revoke execute on function freebee.candidate_words(bigint, bigint, int, int) from public;
+grant execute on function freebee.candidate_words(bigint, bigint, int, int) to authenticated;
 
 -- ============================================================
 -- freebee.create_game — mode is a positional arg
@@ -585,6 +587,8 @@ as $$
 declare
   new_id uuid;
   s_target_rank int;
+  s_required int;
+  s_legal int;
   b_outer text;
   b_center text;
   b_required_words_score int;
@@ -646,6 +650,24 @@ begin
       raise exception 'setup.target_rank only allowed when mode=compete'
         using errcode = 'P0001';
     end if;
+  end if;
+
+  -- ─── Validate the word bands ─────────────────────────────
+  -- required: the band the displayed/required goal words are drawn from (2..6;
+  -- band 2 is the floor the board pool was selected at). legal: how obscure an
+  -- accepted word may be (required..6, so the legal set always contains the
+  -- required set). Both optional — default to the classic 3 / 5. The edge
+  -- function builds the board's word lists from these; create_game is the
+  -- authority on the shape.
+  s_required := coalesce((setup->>'required')::int, 3);
+  if s_required < 2 or s_required > 6 then
+    raise exception 'setup.required must be 2..6 (got %)', s_required
+      using errcode = 'P0001';
+  end if;
+  s_legal := coalesce((setup->>'legal')::int, 5);
+  if s_legal < s_required or s_legal > 6 then
+    raise exception 'setup.legal (%) must be between required (%) and 6',
+      s_legal, s_required using errcode = 'P0001';
   end if;
 
   perform common.validate_timer(setup->'timer');
