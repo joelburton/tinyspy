@@ -45,7 +45,7 @@ Sibling-manifest pairs that include a compete variant (see [`common.md` → The 
 
 The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
 
-Freebee's eventual compete variant will follow the same suffix convention (the schema already declares `'won_compete'` as a planned play_state). Wordknit's compete will use `'solved_compete'` (matching connections's coop terminal naming `'solved'`).
+spellingbee's eventual compete variant will follow the same suffix convention (the schema already declares `'won_compete'` as a planned play_state). connections's compete will use `'solved_compete'` (matching connections's coop terminal naming `'solved'`).
 
 ### `is_terminal` is materialized
 

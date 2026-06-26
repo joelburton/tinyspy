@@ -84,7 +84,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 
 ## Compete mode
 
-Freebee's compete mode is a per-player race to a setup-configured target rank. Same honeycomb for everyone; private per-player progress; first to the target ends the race for everyone else.
+spellingbee's compete mode is a per-player race to a setup-configured target rank. Same honeycomb for everyone; private per-player progress; first to the target ends the race for everyone else.
 
 ### Sibling-manifest at a glance
 
