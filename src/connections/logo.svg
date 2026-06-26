@@ -1,8 +1,7 @@
-<!-- Connections logo — the Connections-style mark, moved from the
-     `connections` project (packages/client/public/favicon.svg).
-     Connections is our Connections-style game, so it carries the same
-     icon. GameLogo renders this via <img>, so the path's black fill
-     is what shows (currentColor wouldn't inherit through an <img>). -->
+<!-- connections logo — moved from the original `connections` project
+     (packages/client/public/favicon.svg). GameLogo renders this via
+     <img>, so the path's black fill is what shows (currentColor
+     wouldn't inherit through an <img>). -->
 <svg version="1.0" width="285pt" height="277.5pt" viewBox="0 0 285 277.5"
      preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg">
   <path

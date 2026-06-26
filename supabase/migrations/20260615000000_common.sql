@@ -280,7 +280,7 @@ $$;
 --                 hardcoded, but the rule travels forward when
 --                 real puzzles arrive)
 --
--- Future puzzle-based games (crosswords, NYT Connections, etc.)
+-- Future puzzle-based games (crosswords, connections, etc.)
 -- will pull title from the puzzle source ("NYT Sun 2026-06-14").
 
 -- `setup jsonb` is the frozen-at-create-time player choices for

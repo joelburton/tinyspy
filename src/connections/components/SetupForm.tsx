@@ -58,7 +58,7 @@ type ClubGameStatusRow = {
  * (`connections/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ clubHandle, mode, value, onChange }: SetupBodyProps) {
+export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBodyProps) {
   const s = value as ConnectionsSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
   const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
@@ -186,7 +186,7 @@ export function SetupForm({ clubHandle, mode, value, onChange }: SetupBodyProps)
       <fieldset className={styles.fieldset}>
         <legend>Puzzle</legend>
         <p className="muted">
-          Pick a NYT Connections puzzle by date. Green squares are
+          Pick a {brand} puzzle by date. Green squares are
           puzzles your club has solved; red are lost; yellow are in
           progress. Defaults to today's puzzle if available.
         </p>

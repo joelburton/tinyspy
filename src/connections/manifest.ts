@@ -200,7 +200,7 @@ export const connectionsCompeteGame: GameManifest = {
   help: helpLoader,
 
   // Compete needs an opposing PLAYER — racing yourself against
-  // a Connections puzzle would just be a solo coop game. Lower
+  // a connections puzzle would just be a solo coop game. Lower
   // bound 2 hides the Start button in solo clubs; the RPC also
   // enforces it server-side.
   numberOfPlayers: [2, 6],

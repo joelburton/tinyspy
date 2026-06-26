@@ -230,6 +230,7 @@ export function SetupGameDialog({
       <Suspense fallback={<p className="muted">Loading options…</p>}>
         <SetupBody
           members={members}
+          brand={manifest.name}
           clubHandle={clubHandle}
           mode={manifest.mode}
           playerCount={playerCount}

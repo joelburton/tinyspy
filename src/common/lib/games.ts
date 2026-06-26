@@ -190,6 +190,11 @@ export type Member = {
  */
 export type SetupBodyProps = {
   members: Member[]
+  /** This gametype's user-facing brand name (the manifest's `name`),
+   *  forwarded by SetupGameDialog so a setup form's own copy reads the
+   *  brand from the single branding source rather than hardcoding it
+   *  (e.g. connections's "Pick a <brand> puzzle"). Most forms ignore it. */
+  brand: string
   /** Club the game would start in. Per-game setup forms that
    *  need club-scoped data read it; the rest ignore it. */
   clubHandle: string
