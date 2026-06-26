@@ -318,13 +318,16 @@ Add a `play_word` case: rigged rack with `?`, play a blank-as-letter word,
 assert the rack loses `?` and the cell has `b:true`. (Also untested:
 `exchange_tiles` returning a `?` to the bag.)
 
-### 6.2 — MED: `end_game_test.sql` vs `endgame_test.sql` naming footgun
+### 6.2 — MED: `end_game_test.sql` vs `endgame_test.sql` naming footgun ✅ RESOLVED
 
-These are **not** duplicates — `end_game_test.sql` covers manual `end_game` +
-`submit_timeout`; `endgame_test.sql` covers the automatic `_finish` paths
-(going-out, blocked-6, leftover transfer, tie co-winners). Both are
-intentional and well-targeted. But the one-character difference is a future
-trap. Rename to something like `manual_end_test.sql` / `auto_finish_test.sql`.
+These were **not** duplicates — `end_game_test.sql` covers manual `end_game` +
+`submit_timeout`; `endgame_test.sql` covered the automatic `_finish` paths
+(going-out, blocked-6, leftover transfer, tie co-winners). Both were
+intentional and well-targeted, but the one-character difference was a future
+trap. **Resolution:** `end_game_test.sql` is a cross-game convention (tinyspy /
+monkeygram / waffle / wordle each have one for their manual end), so it kept
+its name; the colliding `endgame_test.sql` was renamed to `auto_finish_test.sql`
+and both files now cross-reference each other in their headers.
 
 ### 6.3 — LOW
 

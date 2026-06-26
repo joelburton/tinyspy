@@ -1,10 +1,14 @@
 -- ============================================================
--- Test: scrabble endgame + final scoring
+-- Test: scrabble AUTOMATIC finish (_finish) + final scoring
 -- ============================================================
--- Going-out (bag empty + rack empty) and blocked (6 scoreless turns)
--- trigger _finish: coop is a neutral 'won' score report; compete subtracts
--- each player's leftover tiles, gives the out-player the opponents'
--- leftovers, and crowns the top score ('won_compete'), ties → co-winners.
+-- The game-ends-itself paths, as opposed to the player-initiated
+-- end_game / submit_timeout in end_game_test.sql (named the standard
+-- per-game way; this file is split out so the two aren't one keystroke
+-- apart). Going-out (bag empty + rack empty) and blocked (6 scoreless
+-- turns) trigger _finish: coop is a neutral 'won' score report; compete
+-- subtracts each player's leftover tiles, gives the out-player the
+-- opponents' leftovers, and crowns the top score ('won_compete'), ties →
+-- co-winners.
 
 begin;
 set search_path = scrabble, common, public, extensions;

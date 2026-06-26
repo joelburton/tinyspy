@@ -25,14 +25,6 @@
   --wordknit-rank-2:    #b0c4ef;  /* blue */
   --wordknit-rank-3:    #ba81c5;  /* purple — hardest */
 
-  /* Band text — black on all ranks for now (the NYT palette has
-   * enough lightness across the four bands that a single text
-   * color works). */
-  --wordknit-rank-0-text: #1a1a1a;
-  --wordknit-rank-1-text: #1a1a1a;
-  --wordknit-rank-2-text: #1a1a1a;
-  --wordknit-rank-3-text: #1a1a1a;
-
   /* Tile palette. Selected uses the project's text color
    * inverted — near-black background with white text. The
    * hover token is a slightly-darker warm gray than the resting

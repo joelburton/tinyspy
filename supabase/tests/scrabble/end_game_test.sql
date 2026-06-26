@@ -1,9 +1,11 @@
 -- ============================================================
 -- Test: scrabble.end_game (manual) + scrabble.submit_timeout
 -- ============================================================
--- COOP end_game FORFEITS the leftover-tile value from the team score (a
--- penalty, logged as a 'forfeit' row) so a team is pushed to play its last
--- tiles; a realtime touch wakes the FE. submit_timeout runs final scoring.
+-- The PLAYER-INITIATED ends (this file), as opposed to the game's own
+-- automatic terminals in auto_finish_test.sql. COOP end_game FORFEITS the
+-- leftover-tile value from the team score (a penalty, logged as a 'forfeit'
+-- row) so a team is pushed to play its last tiles; a realtime touch wakes
+-- the FE. submit_timeout runs final scoring.
 
 begin;
 set search_path = scrabble, common, public, extensions;

@@ -6,7 +6,6 @@
 :root {
   --scrabble-board-bg: #1f6f54; /* the felt green between cells */
   --scrabble-cell-bg: #e9f3ee; /* a plain (non-premium) square */
-  --scrabble-cell-line: #cfe0d8;
 
   --scrabble-tw: #e06a52; /* triple word  */
   --scrabble-dw: #f0a9a0; /* double word + center star */

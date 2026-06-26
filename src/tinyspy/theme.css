@@ -25,28 +25,19 @@
   /* Agent — the "good" target color. Deep forest green; reads as
      saturated on white without screaming. */
   --tinyspy-agent:               #2e7d32;
-  --tinyspy-agent-soft:          rgba(46, 125, 50, 0.16);
-  --tinyspy-agent-soft-bright:   rgba(46, 125, 50, 0.28);
   --tinyspy-agent-soft-banner:   rgba(46, 125, 50, 0.18);
   --tinyspy-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
 
   /* Neutral bystander — warm tan, low-key on the board. */
   --tinyspy-neutral:             #b4986e;
-  --tinyspy-neutral-soft:        rgba(180, 152, 110, 0.16);
   --tinyspy-neutral-soft-bright: rgba(180, 152, 110, 0.30);
   --tinyspy-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
-  --tinyspy-neutral-text-dark:   #1a1a1a;  /* on the mid-tone solid neutral bg */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
-     wrapper border and the in-board error banner. The revealed-
-     assassin tile keeps a dark fill (#1a1a1a) regardless of
-     theme — the "you died" look survives both light and dark. */
+     wrapper border and the in-board error banner. */
   --tinyspy-assassin:            #be3c3c;
   --tinyspy-assassin-soft:       rgba(190, 60, 60, 0.16);
   --tinyspy-assassin-soft-dim:   rgba(190, 60, 60, 0.05);
-  --tinyspy-assassin-soft-banner:rgba(190, 60, 60, 0.18);
-  --tinyspy-assassin-soft-bright:rgba(190, 60, 60, 0.28);
-  --tinyspy-assassin-bg:         #1a1a1a;  /* dark fill behind the revealed assassin tile */
   --tinyspy-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
 
   /* Keycard-square fills — the small corner chips showing what a key card says

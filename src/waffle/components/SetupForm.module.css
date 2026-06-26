@@ -28,16 +28,3 @@
   gap: 0.35rem;
   cursor: pointer;
 }
-
-/* The word-difficulty dropdown. Native <select>, lightly styled to sit
- * with the dialog's controls. */
-.select {
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  cursor: pointer;
-}
