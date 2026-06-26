@@ -1,18 +1,15 @@
+import { DifficultyField } from '../../common/components/DifficultyField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
-import {
-  DIFFICULTY_OPTIONS,
-  EXTRA_SWAP_OPTIONS,
-  type WaffleSetup,
-} from '../lib/setup'
+import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
 import styles from './SetupForm.module.css'
 
 /**
  * SyrupSwap's setup form, rendered inside the common SetupGameDialog.
  * Two choices plus the timer:
  *
- *   - **Word difficulty** — which vocabulary tier the six words are
- *     drawn from (sets `difficulty`).
+ *   - **Word difficulty** — which vocabulary band (1..6) the six 5-letter
+ *     words are drawn from (sets `difficulty`), via the shared DifficultyField.
  *   - **Swap budget** — how many *extra* swaps beyond the puzzle's
  *     par you get. Fewer = harder. `max_swaps = par + extra_swaps`.
  *
@@ -31,20 +28,13 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       <fieldset className={styles.fieldset}>
         <legend>Word difficulty</legend>
         <p className="muted">Which vocabulary the puzzle's words come from.</p>
-        <select
-          className={styles.select}
-          name="difficulty"
+        <DifficultyField
+          length={5}
+          minDifficulty={1}
+          maxDifficulty={6}
           value={s.difficulty}
-          onChange={(e) =>
-            onChange({ ...s, difficulty: Number(e.target.value) })
-          }
-        >
-          {DIFFICULTY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.value}: {opt.label}
-            </option>
-          ))}
-        </select>
+          onChange={(difficulty) => onChange({ ...s, difficulty })}
+        />
       </fieldset>
       <fieldset className={styles.fieldset}>
         <legend>Swap budget</legend>

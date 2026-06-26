@@ -10,12 +10,11 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type WaffleSetup = {
   /**
-   * Vocabulary tier — the recognizability band the six words are drawn
-   * from: a tier-N puzzle uses words of band ≤ N with its hardest word
-   * at exactly N. The board is generated on demand for the chosen band
-   * (the `waffle-build-board` edge function); the server accepts the
-   * full band range 1–6, the dialog offers a subset (see
-   * `DIFFICULTY_OPTIONS`).
+   * Vocabulary tier (1–6) — the recognizability band the six words are
+   * drawn from: a tier-N puzzle uses words of band ≤ N with its hardest
+   * word at exactly N. The board is generated on demand for the chosen
+   * band (the `waffle-build-board` edge function). The dialog offers the
+   * full 1–6 via the shared `DifficultyField`.
    */
   difficulty: number
   /**
@@ -38,21 +37,6 @@ export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
   extra_swaps: 5,
   timer: { kind: 'none' },
 }
-
-/**
- * The vocab tiers the form OFFERS — bands 1–5 (band 6, SOWPODS-only
- * "expert", is left off as too obscure for a swap puzzle). This is a
- * pure UI choice: the server accepts the full 1–6 range and generates a
- * board for any band on demand, so adding/removing a tier here needs no
- * DB or data change. Labels follow the common.words band names.
- */
-export const DIFFICULTY_OPTIONS: ReadonlyArray<{ value: number; label: string }> = [
-  { value: 1, label: 'Universal' },
-  { value: 2, label: 'Common' },
-  { value: 3, label: 'Familiar' },
-  { value: 4, label: 'Uncommon' },
-  { value: 5, label: 'Obscure' },
-]
 
 /**
  * The extra-swap choices the form offers, with a difficulty gloss.
