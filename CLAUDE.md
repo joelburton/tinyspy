@@ -88,7 +88,7 @@ React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, Postg
 
 ## Game roster — trajectory
 
-The rough target is ~7–8 games. Eight live today (TinySpy, WordKnit, PsychicNum, FreeBee, MonkeyGram, SyrupSwap, WordNerd, StackDown); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
+The original target was ~7–8 games; nine are live today (TinySpy, WordKnit, PsychicNum, FreeBee, MonkeyGram, SyrupSwap, WordNerd, StackDown, RackAttack [codename `scrabble`]); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
 
 **Most upcoming games are ports.** Joel has implementations of these games in other stacks (the rules / problem-space are well understood). The work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
 

@@ -17,9 +17,12 @@ RackAttack is a **coop / compete sibling pair** (`scrabble_coop`,
 manual "End game" — through `<GamePage>` + `useCommonGame`, like every other
 multiplayer gametype.
 
-> **Status: in build.** Design settled (§11). The pure engine
-> (`lib/board.ts` + `lib/play.ts`) is written + unit-tested; the migration and FE
-> follow.
+> **Status: live.** RackAttack is the **9th** registered gametype — built
+> end-to-end (engine, migration, RPCs, FE) and shipping. Design forks settled in
+> §11. A few choices landed *after* the initial build, from playtesting, and are
+> reflected throughout: two difficulty bands by word length ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)),
+> the coop "tiles unplayed" forfeit ([§2.7](#27-ending-the-game)), and the
+> title/label shapes ([§8](#8-title-formula), [§9](#9-status-jsonb--labels)).
 
 ---
 
@@ -429,36 +432,49 @@ RackAttack doesn't have.)
 ## 7. Frontend (`src/scrabble/`)
 
 Shared `PlayArea` / `SetupForm` / `Help` / `useGame`, mode-branched at render on
-`game.mode`. The novel UI work is the **board + tile placement** — worth
-**reusing MonkeyGram's tile arena + keyboard cursor** (`src/monkeygram/`) rather
-than building placement from scratch; it already solves percentage-positioned
-tiles on a grid with keyboard input.
+`game.mode`. The board on the left grows to fill the height (`--scrabble-board-size`,
+a square bounded by viewport height and the width left after the fixed side
+column); the rack, action row, score, and move log sit in that fixed side column.
+
+**Placement mirrors MonkeyGram's two input modes** — its pointer-gesture system
+(a press-past-threshold becomes a drag, with a floating ghost + drop highlights)
+and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
+typing places a matching rack tile / a blank declared by the typed letter, then
+advances). Drag a tile rack→board, board→board (move), or board→rack (recall); tap
+a square to position the cursor; tap a rack tile to mark it for Exchange.
 
 - **`lib/board.ts`** — premium grid, tile values, distribution constants. Pure;
   Vitest (layout symmetry, distribution sums to 100).
 - **`lib/play.ts`** — the **sole** geometry validation + word extraction + scoring
-  (`evaluatePlay`), used both for live preview and to build the commit payload
+  (`evaluatePlay`), used both for the live preview and to build the commit payload
   (no SQL re-implementation — see [§6](#6-where-validation-lives)). Vitest-heavy:
   in-line/contiguous/connected/center-first; main + cross-word extraction;
   premiums-only-on-new-tiles; bingo +50; blanks = 0.
-- **`lib/setup.ts`** — `ScrabbleSetup` (timer + the two difficulty bands; compete adds
-  nothing today).
+- **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer).
 - **`hooks/useGame.ts`** — postgres-changes on `scrabble.{games_state,
   players_state, plays}` (Pattern A, per-tab UUID-suffixed channel).
-- **`components/`** — `Board` (15×15, premium colors, committed + tentative
-  tiles, center star), `Rack` (7 tiles, click/keyboard to place, shuffle),
-  `Controls` (Submit / Recall / Shuffle rack / Exchange / Pass), `Scores`
-  (per-player or team, bag count, turn indicator), `BlankPicker` (declare a
-  blank's letter on commit), `PlayLog` (right-column move history; words
-  click-to-define via the common `DefinitionPopover`), `PlayArea` (composition +
-  submit dispatch + `GameOverModal` + End-game menu item), `SetupForm` (timer +
-  the shared `<DifficultyField>`; mode-aware), `Help`.
+- **`components/`** — `Board` (15×15 premium grid; committed / tentative tiles,
+  blanks shown on a brighter golden face; the cursor overlay; drag drop-highlights
+  + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
+  7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
+  just-drawn tiles flashed yellow, blanks greyed), `Controls` (a divider splits
+  the non-submit actions — Recall, the common `ShuffleButton` — from the blue
+  submit actions — Exchange, Submit, and Pass in compete), `BlankPicker` (declare
+  a dragged blank's letter on drop), `PlayLog` (framed, scrollable move log: thin
+  rows with a colored left bar — green word / orange exchange-pass / red forfeit —
+  newest at the bottom, auto-scrolled; `name: +score WORD` with the name in the
+  player's color; words click-to-define via the common `DefinitionPopover`),
+  `PlayArea` (the composition + the gesture/keyboard plumbing, the live score
+  preview, the optimistic just-played hold, the `~` `WordLookupDialog` shortcut,
+  `GameOverModal` + the End-game menu item), `SetupForm` (two `<DifficultyField>`s
+  + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the
 "should this survive a pause?" rule it lives in `PlayArea`, clearing on
-pause/unmount). **Compete disables controls when it isn't your turn**; coop leaves
-them always-live (race to commit). Peer narration of plays reuses the StackDown/
-FreeBee `usePeerFeedback` shape (header pills: "moth played QUARTZ +24").
+pause/unmount, and on any server `version` move). On an accepted word the played
+tiles are held **optimistically** (rendered committed) until the realtime refetch
+lands, so they never blink off the board. **Compete disables placement when it
+isn't your turn**; coop leaves it always-live (race to commit).
 
 ### Realtime channels
 
@@ -471,24 +487,30 @@ FreeBee `usePeerFeedback` shape (header pills: "moth played QUARTZ +24").
 
 ## 8. Title formula
 
-Unlike StackDown, RackAttack's board is **public in both modes**, so titles carry
-no spoiler risk — scores are already derivable from the board.
-
-- **Compete:** the live leaderboard, e.g. `"Joel 124 · Moth 98"`, rewritten by
-  `play_word` so the club list reads the race at a glance.
-- **Coop:** the running team score, e.g. `"124 pts"`, rewritten on each play (the
-  StackDown-coop title-rewrite pattern).
+The `common.games.title` is the **first three words played**, uppercased and
+`·`-joined (e.g. `"SCOWL · TABLE · QUARTZ"`), built by `scrabble._title` and
+rewritten by `play_word` in **both** modes — a game is recognizable at a glance
+in the club list. No spoiler risk: the board is public, so the words are already
+visible. A fresh game stays `"New game"` until the first word lands.
 
 ---
 
 ## 9. `status` jsonb & labels
 
-- **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }`.
-- **Compete:** `{ mode:'compete', leaderboard:[{user_id, score}], current_user_id,
-  bag_count, winner_user_id?, outcome? }` — the leaderboard drives the
-  `OpponentStrip` (scores are *not* hidden here, since the board reveals them).
+The `status` jsonb (written by the state-transition RPCs) drives the club-list
+`labelFor`:
 
-`labelFor` reads these off the row for the club games list.
+- **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }` (`outcome` ∈
+  `complete` / `timeout` / `manual` at terminal).
+- **Compete:** `{ mode:'compete', leaderboard:[{user_id, score}], current_user_id,
+  bag_count, winner?, winner_name?, outcome? }` — the leaderboard drives the
+  in-game `OpponentStrip` (scores aren't hidden — the board reveals them);
+  `winner_name` (NULL on a tie) lets the label name the winner.
+
+`labelFor` shows, **mid-game**, the tiles left in the bag (coop prepends the team
+score: `"124 pts · 30 tiles left"`); **at terminal**, the result — `"ended"`
+(compete manual stop), `"won by <name>"` / `"tie"` (compete), or the final
+`"N pts"` (coop).
 
 ---
 
@@ -507,13 +529,17 @@ commit), not the TS-owned geometry/scoring:
 - `play_word` — the **version CAS** (`stale` on a mismatch), the integrity guards
   (out-of-bounds / occupied square / tile-not-in-rack rejects), the **dictionary
   free reject** (no row, no state change, no version bump), the happy path (board
-  applied, rack drawn from bag, score added, version bumped), compete turn advance.
+  applied, rack drawn from bag, score added, version bumped), compete turn advance,
+  and the **title** becoming the first word played.
 - `exchange` / `pass` — bag-≥7 gate, version CAS, scoreless counter, turn advance.
 - `endgame` — going-out + blocked triggers, final scoring (leftover subtraction +
-  going-out bonus, compete; team-score adjust, coop), winner determination + ties.
+  going-out bonus, compete; team-score adjust, coop), winner determination + ties,
+  and `winner_name` in the status (set on a win, NULL on a tie).
 - `rls` — own rack only mid-game / peers' revealed at terminal; bag never
   revealed (only `bag_count`); board + plays public; club-membership gates.
-- `end_game` / `submit_timeout` — uniform contract + realtime touch.
+- `end_game` / `submit_timeout` — **coop manual end forfeits** the leftover-tile
+  value (the `forfeit` log row + `5 − 11 = −6` team score), compete manual stays
+  neutral; the realtime touch.
 
 (No TS↔SQL mirror test — there's no SQL scoring to mirror. `lib/play.test.ts` is
 the single source of truth for geometry + scoring.)
@@ -522,7 +548,7 @@ the single source of truth for geometry + scoring.)
 
 ## 11. Resolved decisions
 
-Every design fork is now settled with Joel — nothing blocks starting to build:
+Every design fork below was settled before building (and is what shipped):
 
 - **Shared coop rack, no coop turns** — one rack/board/bag/score; any player
   commits anytime; private staging → shared on commit.
@@ -540,6 +566,20 @@ Every design fork is now settled with Joel — nothing blocks starting to build:
 - **Coop countdown expiry** is a gentle "time's up — here's your score," not a
   loss ([§2.7](#27-ending-the-game)).
 
-When we start coding: migration `20260627000000_scrabble.sql`, register
-`scrabble_coop` (min 1) + `scrabble_compete` (min 2) in `common.gametypes`, add
-the manifest pair to `src/games.ts`, and add the doc-table line in `CLAUDE.md`.
+All shipped in migration `20260627000000_scrabble.sql` (which registers
+`scrabble_coop` min 1 + `scrabble_compete` min 2 in `common.gametypes`), the
+`src/scrabble/` manifest pair in `src/games.ts`, and the CLAUDE.md doc-table line.
+
+### Post-build additions (from playtesting)
+
+- **Two difficulty bands** by word length, not one — `dict_2` (2-letter) /
+  `dict_3plus` (3+), the MonkeyGram split ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
+- **Coop manual end forfeits** the leftover-tile value (a `forfeit` log row,
+  red "−N tiles unplayed") instead of the uniform neutral stop — it nudges a
+  solo/coop team to play its last tiles ([§2.7](#27-ending-the-game), [§5.5](#55-end_game--submit_timeout)).
+- **Title = first three words played** ([§8](#8-title-formula)); the label adds
+  tiles-left mid-game and names the winner / "tie" at terminal ([§9](#9-status-jsonb--labels)).
+- **Word definitions** — click a word in the move log, or press `~` for the
+  free-form lookup; the shared `DefinitionView` now also shows a word's band /
+  dialects / slur-crude flags / wordle-membership (a `common` change across all
+  word games).

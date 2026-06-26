@@ -26,12 +26,15 @@
  *      definitive empty answer does.
  *
  * Response: { word, def: string | null, source: 's'|'e'|'w'|'m'|null,
- * cached: boolean, unknown?: boolean }. `source` is the one-char
+ * cached: boolean, unknown?: boolean, meta? }. `source` is the one-char
  * provenance code: seeded glosses ('s'/'e'/'m') are the custom
  * symbology (parseDefinition handles it); 'w' is plain Wiktionary
  * prose (rendered verbatim + CC BY-SA attribution). `def === null`
  * means "looked up, no definition"; `unknown` means "not a word in
- * the list."
+ * the list." `meta` (present for any IN-LIST word) carries the word's
+ * categorization — { difficulty, american, british, canadian,
+ * australian, slur, crude, wordle } — for the small tag line the FE
+ * shows under the definition.
  *
  * Secrets (all auto-injected by the Edge Runtime):
  *   - SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY

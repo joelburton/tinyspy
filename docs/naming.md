@@ -20,7 +20,7 @@ The load-bearing words and what they each mean. Internalize these; mixing them u
 
 The *registered entry* representing a game (or game variant) in the registry. One row in `common.gametypes`, one TS manifest in `src/games.ts`, one URL prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
 
-Examples: `tinyspy`, `psychicnum_coop`, `psychicnum_compete`, `wordknit_coop`, `wordknit_compete`, `freebee_coop`, `freebee_compete`, `monkeygram`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`.
+Examples: `tinyspy`, `psychicnum_coop`, `psychicnum_compete`, `wordknit_coop`, `wordknit_compete`, `freebee_coop`, `freebee_compete`, `monkeygram`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`.
 
 The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It is NOT always identical to the folder/schema name — sibling gametypes share a single folder and a single schema. See [`baseGametype`](#basegametype) below.
 
@@ -39,7 +39,7 @@ See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifes
 
 ### codename vs brand name
 
-Most games use one word for both the user-facing **brand** and the **codename** (the gametype/folder/schema): TinySpy, WordKnit, FreeBee, PsychicNum, MonkeyGram, StackDown are each both. Two split them: **SyrupSwap** (codename **`waffle`**) and **WordNerd** (codename **`wordle`**). The brand is the manifest `name`/`title` and any end-user copy; the codename — and therefore the schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable names, and the test files — is the short word that keeps the link to the original game obvious in the source. When they diverge, *code* always uses the codename.
+Most games use one word for both the user-facing **brand** and the **codename** (the gametype/folder/schema): TinySpy, WordKnit, FreeBee, PsychicNum, MonkeyGram, StackDown are each both. Three split them: **SyrupSwap** (codename **`waffle`**), **WordNerd** (codename **`wordle`**), and **RackAttack** (codename **`scrabble`**). The brand is the manifest `name`/`title` and any end-user copy; the codename — and therefore the schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable names, and the test files — is the short word that keeps the link to the original game obvious in the source. When they diverge, *code* always uses the codename.
 
 ### mode
 
@@ -214,7 +214,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The registered-entry string (`tinyspy` / `psychicnum_coop` / `psychicnum_compete` / `wordknit_coop` / `wordknit_compete` / `freebee_coop` / `freebee_compete` / `monkeygram` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
+| `gametype` | The registered-entry string (`tinyspy` / `psychicnum_coop` / `psychicnum_compete` / `wordknit_coop` / `wordknit_compete` / `freebee_coop` / `freebee_compete` / `monkeygram` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete` / `scrabble_coop` / `scrabble_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
 | `baseGametype` | The shared family root for sibling gametypes. Folder under `src/`; Postgres schema name. For single-mode games, equals `gametype`. For coop/compete pairs, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both → `psychicnum`). See [naming → baseGametype](#basegametype). |
 | `mode` | The interaction-axis declaration on a manifest (`'coop'` \| `'compete'`). Also denormalized as a column on per-game `games` tables (e.g. `psychicnum.games.mode`) so RLS can branch without joining to `common.games`. |
 | `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype. Common coop terminal values: `'won'` / `'lost'`. Common compete terminal values: `'won_compete'` / `'lost_compete'`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
