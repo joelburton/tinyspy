@@ -12,7 +12,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(24);
+select plan(33);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -152,6 +152,81 @@ select is((select current_user_id from scrabble.games where id = (select id from
   'bea22222-2222-2222-2222-222222222222', 'the turn advances to the next player');
 select is((select version from scrabble.games where id = (select id from gc)), 1,
   'compete play bumps version');
+
+-- A scoring play resets the scoreless counter (only passes/exchanges raise
+-- it). Rig a non-zero count + force ada's turn back, then a valid play zeroes
+-- it. (board now holds CAT at the center, so the second word goes elsewhere —
+-- the server trusts geometry, it only needs empty + in-bounds + in-rack.)
+reset role;
+update scrabble.games set consecutive_scoreless = 3,
+       current_user_id = 'ada11111-1111-1111-1111-111111111111'
+  where id = (select id from gc);
+select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
+  array['A','T','X','Y','Z','N','M']);
+select pg_temp.sc_bag((select id from gc), array['B','C','D','E','F','G','H']);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table creset on commit drop as
+  select scrabble.play_word((select id from gc), 1,
+    '[{"x":0,"y":0,"letter":"A","blank":false},
+      {"x":1,"y":0,"letter":"T","blank":false}]'::jsonb, array['AT'], 2) as res;
+reset role;
+select is((select res->>'result' from creset), 'accepted',
+  'compete: a second valid word is accepted');
+select is((select consecutive_scoreless from scrabble.games where id = (select id from gc)), 0,
+  'a scoring play resets the scoreless counter to 0');
+
+-- ─── Game D (coop) — blank tiles + cross-word dictionary check ──
+-- A blank plays as a DECLARED letter (scores 0 — handled FE-side) but
+-- consumes the `?` glyph from the rack and persists as {"l":<letter>,"b":true}.
+-- The dictionary check covers EVERY word in the array, so an illegal
+-- cross-word rejects even when the main word is legal.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gd on commit drop as
+  select id from scrabble.create_game((select handle from ca),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+reset role;
+-- Rack holds a blank `?`; bag is a known 3 so the refill is deterministic.
+select pg_temp.sc_coop((select id from gd),
+  array['?','A','T','S','E','R','D'], array['X','Y','Z']);
+
+-- Cross-word reject: play CAT (blank-as-C + A + T) but declare a bad
+-- cross-word alongside it. The reject persists nothing, so the blank + rack
+-- survive for the accept below.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table dcross on commit drop as
+  select scrabble.play_word((select id from gd), 0,
+    '[{"x":7,"y":7,"letter":"C","blank":true},
+      {"x":8,"y":7,"letter":"A","blank":false},
+      {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb,
+    array['CAT','ZJ'], 4) as res;
+reset role;
+select is((select res->>'result' from dcross), 'invalid',
+  'a legal main word with an illegal cross-word is rejected');
+select is((select dcross.res->'bad_words' from dcross), '["ZJ"]'::jsonb,
+  'the offending cross-word is reported, not the legal main word');
+select is((select version from scrabble.games where id = (select id from gd)), 0,
+  'the rejected blank play leaves version (and the rack) untouched');
+
+-- Accept: the same blank-as-C play, now with only the real word.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.play_word((select id from gd), 0,
+  '[{"x":7,"y":7,"letter":"C","blank":true},
+    {"x":8,"y":7,"letter":"A","blank":false},
+    {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 4);
+reset role;
+select is((select board->112 from scrabble.games where id = (select id from gd)),
+  '{"l":"C","b":true}'::jsonb,
+  'the blank persists as its declared letter C with b=true');
+select is((select board->113 from scrabble.games where id = (select id from gd)),
+  '{"l":"A","b":false}'::jsonb, 'the real A tile persists with b=false');
+select is((select shared_rack from scrabble.games where id = (select id from gd)),
+  array['S','E','R','D','X','Y','Z'],
+  'the `?` glyph (not C) is consumed from the rack, then refilled from the bag');
+select is((select version from scrabble.games where id = (select id from gd)), 1,
+  'the accepted blank play bumps version');
 
 select * from finish();
 rollback;

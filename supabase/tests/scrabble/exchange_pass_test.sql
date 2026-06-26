@@ -10,7 +10,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(10);
+select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -78,6 +78,32 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok($$
   select scrabble.pass_turn((select id from gco), 1)
 $$, 'P0001', null, 'passing is rejected in coop (no turns)');
+
+-- ─── Exchange can return a blank `?` to the bag ──────────
+-- The exchange path runs `?` through `_remove_tiles` just like a letter;
+-- the glyph must round-trip (the reshuffle may draw it straight back, so we
+-- assert CONSERVATION across rack+bag rather than its position).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gbk on commit drop as
+  select id from scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+reset role;
+select pg_temp.sc_coop((select id from gbk),
+  array['?','A','B','C','D','E','F'], array['H','I','J','K','L','M','N']);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table rbk on commit drop as
+  select scrabble.exchange_tiles((select id from gbk), 0, array['?']) as res;
+reset role;
+select is((select res->>'result' from rbk), 'exchanged',
+  'a blank `?` can be exchanged');
+select is((select count(*)::int from
+            unnest((select shared_rack from scrabble.games where id = (select id from gbk))
+                   || (select bag from scrabble.games where id = (select id from gbk))) t
+           where t = '?'),
+  1, 'the `?` is conserved in the rack+bag pool (neither lost nor duplicated)');
 
 select * from finish();
 rollback;
