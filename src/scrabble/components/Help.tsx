@@ -53,6 +53,10 @@ export function Help({ onClose }: Props) {
         your own rack, taking turns; highest score when the tiles run out
         wins.
       </p>
+      <p className="muted">
+        Click any word in the move log to see its definition, or press{' '}
+        <strong>~</strong> to look up any word.
+      </p>
     </FloatingPanel>
   )
 }

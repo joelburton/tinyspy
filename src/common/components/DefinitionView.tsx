@@ -1,6 +1,23 @@
-import { useDefinition } from '../hooks/useDefinition'
+import { useDefinition, type WordMeta } from '../hooks/useDefinition'
 import { parseDefinition } from '../lib/parseDefinition'
 import styles from './DefinitionView.module.css'
+
+/** The small muted tags under a definition: difficulty band, the dialects it's
+ *  valid in (US/CA/UK/AU), any slur/crude level, and wordle-list membership. */
+function metaTags(m: WordMeta): string[] {
+  const tags = [`band ${m.difficulty}`]
+  const dialects = [
+    m.american && 'US',
+    m.canadian && 'CA',
+    m.british && 'UK',
+    m.australian && 'AU',
+  ].filter(Boolean)
+  if (dialects.length) tags.push(dialects.join('/'))
+  if (m.slur > 0) tags.push(`slur-${m.slur}`)
+  if (m.crude > 0) tags.push(`crude-${m.crude}`)
+  if (m.wordle) tags.push('wordle')
+  return tags
+}
 
 type Props = {
   /** The word to define. `null` renders nothing (idle). */
@@ -64,6 +81,11 @@ export function DefinitionView({ word, onNavigate }: Props) {
         // CC BY-SA attribution for live Wiktionary text (see
         // docs/common.md). Seeded glosses ('s'/'e'/'m') need none.
         <div className={styles.attribution}>via Wiktionary (CC BY-SA)</div>
+      )}
+      {!loading && !error && result?.meta && (
+        // Categorization line — shown for any in-list word, even one with no
+        // definition (it's still a real word with a band / flags).
+        <div className={styles.meta}>{metaTags(result.meta).join(' · ')}</div>
       )}
     </div>
   )

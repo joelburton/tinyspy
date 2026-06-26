@@ -110,11 +110,15 @@ serve(async (req) => {
     const { data: auth } = await userClient.auth.getUser()
     if (!auth?.user) return json({ error: 'invalid or expired session' }, 401)
 
-    // Step 1: cache read against the master word list.
+    // Step 1: cache read against the master word list. Also pull the
+    // categorization columns so the FE can show the word's band / dialects /
+    // flags / wordle-membership below the definition (`meta`).
     const { data: row } = await userClient
       .schema('common')
       .from('words')
-      .select('definition, definition_source')
+      .select(
+        'definition, definition_source, difficulty, american, british, canadian, australian, slur, crude, wordle',
+      )
       .eq('word', word)
       .maybeSingle()
 
@@ -124,6 +128,18 @@ serve(async (req) => {
       return json({ word, def: null, source: null, unknown: true, cached: true })
     }
 
+    // The word's categorization (every in-list response carries it).
+    const meta = {
+      difficulty: row.difficulty,
+      american: row.american,
+      british: row.british,
+      canadian: row.canadian,
+      australian: row.australian,
+      slur: row.slur,
+      crude: row.crude,
+      wordle: row.wordle,
+    }
+
     if (row.definition !== null) {
       // Seeded gloss or a previously-cached Wiktionary entry.
       return json({
@@ -131,12 +147,13 @@ serve(async (req) => {
         def: row.definition,
         source: row.definition_source,
         cached: true,
+        meta,
       })
     }
     if (row.definition_source === 'w') {
       // Negative-cache tombstone — looked up, Wiktionary had nothing.
       // Permanent (no staleness): "don't refetch."
-      return json({ word, def: null, source: 'w', cached: true })
+      return json({ word, def: null, source: 'w', cached: true, meta })
     }
     // else: definition_source is NULL — never looked up; fall through.
 
@@ -180,7 +197,7 @@ serve(async (req) => {
       })
     if (cacheErr) console.error('cache_definition failed', cacheErr.message)
 
-    return json({ word, def, source: 'w', cached: false })
+    return json({ word, def, source: 'w', cached: false, meta })
   } catch (e) {
     console.error('define failed', e)
     return json({ error: String(e instanceof Error ? e.message : e) }, 500)

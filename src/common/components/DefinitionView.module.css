@@ -65,3 +65,11 @@
   font-size: 0.72rem;
   color: var(--color-muted);
 }
+
+/* Categorization tags (band · dialects · slur/crude · wordle). */
+.meta {
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  letter-spacing: 0.01em;
+}

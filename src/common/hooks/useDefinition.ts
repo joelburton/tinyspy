@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+/** A word's categorization from `common.words` — band, dialects, slur/crude
+ *  levels, wordle-list membership. Present on any in-list word; absent when
+ *  `unknown`. Surfaced as the small muted line under a definition. */
+export type WordMeta = {
+  difficulty: number
+  american: boolean
+  british: boolean
+  canadian: boolean
+  australian: boolean
+  slur: number
+  crude: number
+  wordle: boolean
+}
+
 /** The `define` Edge Function's response. `def === null` means
  *  "looked up, no definition found" (distinct from a fetch error);
  *  `unknown` means the word isn't in the master word list at all.
@@ -10,6 +24,7 @@ export type DefinitionResult = {
   def: string | null
   source: string | null
   unknown?: boolean
+  meta?: WordMeta
 }
 
 type State = {
