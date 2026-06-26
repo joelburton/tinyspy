@@ -1,6 +1,6 @@
 # Testing
 
-How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live in [`tinyspy.md`](games/tinyspy.md), [`psychicnum.md`](games/psychicnum.md), etc.; this file is the cross-cutting layer.
+How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live in [`codenamesduet.md`](games/codenamesduet.md), [`psychicnum.md`](games/psychicnum.md), etc.; this file is the cross-cutting layer.
 
 Audience: human contributors and AI assistants. Per the [CLAUDE.md](../CLAUDE.md) prior on alpha software, we're not aiming for production-grade test coverage — we're aiming for tests that catch real regressions and that document behavior clearly enough that a reader can predict it.
 
@@ -19,17 +19,17 @@ Use this when you're about to write a test:
 
 | If you're verifying… | Test layer | Example |
 |---|---|---|
-| An RPC returns the right value or raises the right error | pgTAP | "`tinyspy.submit_guess` returns `'G'` and decrements `turns_remaining`" |
-| RLS prevents the wrong user from seeing data | pgTAP | "dee can't `SELECT` from `tinyspy.games` she's not a player in" |
-| An RPC writes the right state transition | pgTAP | "ending a tinyspy game flips `common.games.is_terminal=true` and writes the outcome jsonb" |
+| An RPC returns the right value or raises the right error | pgTAP | "`codenamesduet.submit_guess` returns `'G'` and decrements `turns_remaining`" |
+| RLS prevents the wrong user from seeing data | pgTAP | "dee can't `SELECT` from `codenamesduet.games` she's not a player in" |
+| An RPC writes the right state transition | pgTAP | "ending a codenamesduet game flips `common.games.is_terminal=true` and writes the outcome jsonb" |
 | A check constraint rejects bad input | pgTAP | "`messages.content` must be 1–1000 chars" |
-| Server-side randomness produces the right distribution | pgTAP | tinyspy's 25-tile key-card distribution check |
+| Server-side randomness produces the right distribution | pgTAP | codenamesduet's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |
 | A React hook moves through the right states | Vitest | `useSession` flips `loading → session → null` correctly |
 | A component renders the right text given props | Vitest | `GameLog` shows "G" for revealed greens |
 | Cross-component integration in the browser | manual smoke test | "Start a game, send a clue, see it appear in partner's window" |
 
-The grey zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/tinyspy/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
+The grey zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/codenamesduet/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
 
 ### What we don't test
 
@@ -68,7 +68,7 @@ The trigger on `auth.users` materializes a `common.profiles` row + a solo club f
 
 ### Why `\ir`, not `\i`
 
-`\ir` resolves the path **relative to the including file's directory**, so the single line works from every subdirectory (`tests/common/`, `tests/tinyspy/`, `tests/psychicnum/`). `\i` would resolve relative to psql's working directory, which varies depending on how the test is invoked.
+`\ir` resolves the path **relative to the including file's directory**, so the single line works from every subdirectory (`tests/common/`, `tests/codenamesduet/`, `tests/psychicnum/`). `\i` would resolve relative to psql's working directory, which varies depending on how the test is invoked.
 
 ### Why `.psql`, not `.sql`
 
@@ -102,10 +102,10 @@ Usage:
 
 ```sql
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');  -- now I'm ada
-select tinyspy.create_game(some_club_handle);                     -- runs as ada
+select codenamesduet.create_game(some_club_handle);                     -- runs as ada
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');  -- now I'm bea
-select tinyspy.submit_clue(...);                                  -- runs as bea
+select codenamesduet.submit_clue(...);                                  -- runs as bea
 ```
 
 To drop back to the postgres superuser (e.g. to bypass RLS for a cross-user assertion):
@@ -151,7 +151,7 @@ Tests usually assert on the code, not the wording. When a test *does* pin the me
 
 ## Per-gametype test setup (future)
 
-`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in PsychicNum or tinyspy.
+`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychicnum or codenamesduet.
 
 The pattern in use:
 
@@ -159,8 +159,8 @@ The pattern in use:
 supabase/tests/
   _shared/
     setup.psql                 # ada/bea/cade/dee/eda + as_user (everyone uses this)
-  tinyspy/
-    setup.psql                 # find_position, find_position_set, tinyspy_setup
+  codenamesduet/
+    setup.psql                 # find_position, find_position_set, codenamesduet_setup
     create_game_test.sql       # \ir ../_shared/setup.psql
                                # \ir setup.psql
                                # ...test body...
@@ -172,7 +172,7 @@ We import both explicitly, rather than chaining the shared include from inside t
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Today's state: **tinyspy** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `tinyspy_setup`). **PsychicNum**'s only helper is inline target-pinning at one site — still below the promotion threshold.
+Today's state: **codenamesduet** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `codenamesduet_setup`). **psychicnum**'s only helper is inline target-pinning at one site — still below the promotion threshold.
 
 ## Frontend testing
 
@@ -184,9 +184,9 @@ Stack: [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) +
 |---|---|---|
 | [`src/common/hooks/useSession.test.ts`](../src/common/hooks/useSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
 | [`src/common/lib/router.test.ts`](../src/common/lib/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
-| [`src/tinyspy/lib/phase.test.ts`](../src/tinyspy/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
-| [`src/tinyspy/hooks/useBoard.test.ts`](../src/tinyspy/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
-| [`src/tinyspy/components/GameLog.test.tsx`](../src/tinyspy/components/GameLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
+| [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
+| [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
+| [`src/codenamesduet/components/GameLog.test.tsx`](../src/codenamesduet/components/GameLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 
 The pattern is: **mock at the lowest layer that lets you write the test simply**. For `useSession`, that's the Supabase auth API. For `useBoard`, it's the Supabase client. For a pure function, it's nothing.
 
@@ -214,7 +214,7 @@ A **deliberately narrow** Playwright suite (`e2e/`, `npm run test:e2e`) for the 
 - **pause-on-disconnect** — two players in a game; one disconnects, the other's game pauses.
 - **the auth gate** — a stale/invalidated session lands on LoginScreen (not stranded on the username gate); a valid-but-unclaimed session gets the gate, with a working sign-out.
 
-(Plus a couple of game-specific realtime smokes — chat unread, monkeygram. The list is illustrative, not a contract; add to it only for the live-stack surfaces above.)
+(Plus a couple of game-specific realtime smokes — chat unread, bananagrams. The list is illustrative, not a contract; add to it only for the live-stack surfaces above.)
 
 **Reach for e2e EARLY when triaging an integration bug — not only as a regression guard after the fix.** When a bug lives in the live-stack layer (realtime, or the auth/session boot that depends on a real JWT in localStorage + `onAuthStateChange` + a real `getUser()` round-trip), a throwaway e2e that drives the *real* flow tells you what's actually broken faster than reasoning about it or reproducing in Node — where you're guessing at supabase-js internals and error shapes. Concretely: the "stuck on the username gate" bug ate an afternoon of Node repro scripts that kept showing the code *should* work; a 30-second e2e (sign in → delete the user → reload) would have shown immediately that the deleted-user path recovers fine, redirecting to the real cause (a valid session on the gate with no escape hatch). The fixtures already exist, so the cost of standing one up is low and the signal is the real thing, not a mock. Mocked unit tests are complementary — they can pin error shapes the real backend won't produce — but they're where a *clean* mock can quietly hide the messy reality (see `useSession.test.ts`).
 
@@ -240,7 +240,7 @@ npm run test:e2e       # Playwright realtime smoke tests — see above
 Single-file pgTAP run, for tightening one test:
 
 ```bash
-supabase test db --local supabase/tests/tinyspy/create_game_test.sql
+supabase test db --local supabase/tests/codenamesduet/create_game_test.sql
 ```
 
 `supabase test db` does its own `create extension if not exists pgtap` against the local DB before invoking pg_prove, so individual test files don't need to install the extension themselves.

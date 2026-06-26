@@ -1,10 +1,10 @@
-# TinySpy
+# codenamesduet
 
-Cooperative Codenames Duet for two club members. The first registered gametype in this monorepo, and the most schema-rich. Read this file before touching anything in `tinyspy/` or `supabase/migrations/*_tinyspy_*.sql`.
+Cooperative Codenames Duet for two club members. The first registered gametype in this monorepo, and the most schema-rich. Read this file before touching anything in `codenamesduet/` or `supabase/migrations/*_codenamesduet_*.sql`.
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md).
 
-**Manifest declarations.** Single-mode family — `gametype: 'tinyspy'`, `baseGametype: 'tinyspy'`, `mode: 'coop'`. No compete variant; Codenames Duet is intrinsically cooperative and there's no natural compete reading of the rules.
+**Manifest declarations.** Single-mode family — `gametype: 'codenamesduet'`, `baseGametype: 'codenamesduet'`, `mode: 'coop'`. No compete variant; Codenames Duet is intrinsically cooperative and there's no natural compete reading of the rules.
 
 ## What the game is
 
@@ -64,7 +64,7 @@ The FE surfaces this to **both** players in the action slot so neither reads the
 - the **finished** player gets a green "all your agents have been found — `<peer>` gives every remaining clue" banner (without it: "why don't I ever get a clue turn?");
 - the **partner** gets a neutral "`<peer>` has found all their agents — you give every remaining clue now" banner (without it: "why does the clue never come back to me to guess?").
 
-Both ride two booleans from `useBoard` — `myAgentsDone` / `peerAgentsDone` — computed by the pure [`agentsAllContacted`](../../src/tinyspy/lib/agents.ts) helper (an agent is a `'G'` on that seat's key; "contacted" is the global `revealed_as = 'G'`). The partner flag uses the peer's key column, which the board fetch already pulls; we return the boolean rather than the key only because `peerKey` has a dedicated terminal-gated role feeding the post-game reveal — not for secrecy (the [trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't care). Both banners show only in normal play (not sudden death, where nobody clues, nor once terminal).
+Both ride two booleans from `useBoard` — `myAgentsDone` / `peerAgentsDone` — computed by the pure [`agentsAllContacted`](../../src/codenamesduet/lib/agents.ts) helper (an agent is a `'G'` on that seat's key; "contacted" is the global `revealed_as = 'G'`). The partner flag uses the peer's key column, which the board fetch already pulls; we return the boolean rather than the key only because `peerKey` has a dedicated terminal-gated role feeding the post-game reveal — not for secrecy (the [trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't care). Both banners show only in normal play (not sudden death, where nobody clues, nor once terminal).
 
 #### Neutrals are per-direction (the neutral-marker rule)
 
@@ -98,11 +98,11 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
-| Every guess replayable in the Game Log | one row per guess in `tinyspy.guesses` (a word can be guessed twice) |
+| Every guess replayable in the Game Log | one row per guess in `codenamesduet.guesses` (a word can be guessed twice) |
 
-The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`tinyspy.submit_guess`](../../supabase/migrations/20260615000001_tinyspy.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/tinyspy/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/tinyspy/win_test.sql).
+The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`codenamesduet.submit_guess`](../../supabase/migrations/20260615000001_codenamesduet.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/codenamesduet/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/codenamesduet/win_test.sql).
 
-## Schema: `tinyspy.*`
+## Schema: `codenamesduet.*`
 
 ### Tables
 
@@ -114,11 +114,11 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 | `guesses` | One row per guess — the append-only history the Game Log replays. A word can appear twice (once per seat), which is why this is separate from the per-word `words` row. Holds `position`, `guesser_seat`, `outcome` (`'G'`/`'N'`/`'A'`), `turn_number`. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
 
-There's no `tinyspy.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `tinyspy.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `tinyspy.games`'s seat columns answer "in which seat, with what key view."
+There's no `codenamesduet.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `codenamesduet.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `codenamesduet.games`'s seat columns answer "in which seat, with what key view."
 
 ### Play-state enum
 
-`common.games.play_state` carries tinyspy's lifecycle enum. TinySpy's accepted values are:
+`common.games.play_state` carries codenamesduet's lifecycle enum. codenamesduet's accepted values are:
 
 - **playing** — turn-based clue/guess loop. The most common state.
 - **sudden_death** — the turn budget is spent. No more clues; any wrong guess loses.
@@ -126,7 +126,7 @@ There's no `tinyspy.game_players` table. The "who played this game" record lives
 - **lost_assassin** — an assassin was revealed. Terminal.
 - **lost_clock** — sudden death ended with a non-green reveal. Terminal.
 - **lost_timeout** — the wall-clock countdown (a per-game setup option, distinct from the rulebook's turn budget) hit 0. Terminal. See [Timer](#timer-server-authoritative-ticks) below.
-- **ended** — the friends manually stopped an in-progress game via the **End game** menu item (`tinyspy.end_game`). Terminal, but *neutral* — not a loss. See the [`end_game`](#tinyspyend_gametarget_game-uuid--void) RPC below.
+- **ended** — the friends manually stopped an in-progress game via the **End game** menu item (`codenamesduet.end_game`). Terminal, but *neutral* — not a loss. See the [`end_game`](#codenamesduetend_gametarget_game-uuid--void) RPC below.
 
 The materialized `common.games.is_terminal` boolean tracks "any terminal play_state" (true for `won` / `lost_*` / `ended`, false for `playing` / `sudden_death`). Code that wants "did this end?" reads `is_terminal`; code that wants the specific outcome reads `play_state`.
 
@@ -134,24 +134,24 @@ There is **no `lobby` state** — under the club model, both members are seated 
 
 ### Key-card representation
 
-The two seats' key views live as a pair of jsonb columns on `tinyspy.games`: `key_card_a` for seat A, `key_card_b` for seat B. Each is a 25-element array of `'G' | 'N' | 'A'`, indexed 0..24 matching `tinyspy.words.position`. The two columns hold *different* views (per the Duet distribution table above) — that asymmetry is the whole point of Duet, since each player sees greens the other doesn't.
+The two seats' key views live as a pair of jsonb columns on `codenamesduet.games`: `key_card_a` for seat A, `key_card_b` for seat B. Each is a 25-element array of `'G' | 'N' | 'A'`, indexed 0..24 matching `codenamesduet.words.position`. The two columns hold *different* views (per the Duet distribution table above) — that asymmetry is the whole point of Duet, since each player sees greens the other doesn't.
 
 ```sql
 -- seat A's view of position 7 on a game
-select (key_card_a ->> 7) from tinyspy.games where id = ?;
+select (key_card_a ->> 7) from codenamesduet.games where id = ?;
 ```
 
-Why columns on the games row rather than a separate two-row child table: a single SELECT on `tinyspy.games` returns the full game state (seats, key views, turn state) in one round-trip — no join, no second query needed to render the board. The per-seat granularity that a child table would give (one row per seat, naturally row-scoped to a single player) was never load-bearing — RPCs always read both seats together (to pick the clue-giver's view vs the guesser's view during reveal resolution).
+Why columns on the games row rather than a separate two-row child table: a single SELECT on `codenamesduet.games` returns the full game state (seats, key views, turn state) in one round-trip — no join, no second query needed to render the board. The per-seat granularity that a child table would give (one row per seat, naturally row-scoped to a single player) was never load-bearing — RPCs always read both seats together (to pick the clue-giver's view vs the guesser's view during reveal resolution).
 
-The fact that both views are RLS-readable by either player (`grant select on tinyspy.games to authenticated` covers both columns; the `games_select` policy gates on club membership, not on seat) is a deliberate friends-only trade-off. The convention is that client code only ever asks for its own column; nothing forbids the partner's column from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
+The fact that both views are RLS-readable by either player (`grant select on codenamesduet.games to authenticated` covers both columns; the `games_select` policy gates on club membership, not on seat) is a deliberate friends-only trade-off. The convention is that client code only ever asks for its own column; nothing forbids the partner's column from being read but it's never queried in practice. See [`CLAUDE.md → Trust model`](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) for the wider posture on why this isn't being hardened.
 
 ## RPCs
 
-All `security definer`, granted only to `authenticated`, search_path pinned to `tinyspy, common, public, extensions`.
+All `security definer`, granted only to `authenticated`, search_path pinned to `codenamesduet, common, public, extensions`.
 
-### `tinyspy.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
+### `codenamesduet.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'tinyspy', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the tinyspy detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
@@ -161,7 +161,7 @@ The key-card generation is the algorithmically interesting bit: build the 25-ele
 
 `"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`. The two-player invariant means seats are stable across a game's life, so the formula reads as a duel ("ada-v-bea"); the 4 picked words anchor recognizing one game vs. another in a club's history.
 
-### `tinyspy.submit_clue(target_game uuid, word text, clue_count int)`
+### `codenamesduet.submit_clue(target_game uuid, word text, clue_count int)`
 
 Inserts a clue for the current turn. Reject reasons:
 
@@ -170,9 +170,9 @@ Inserts a clue for the current turn. Reject reasons:
 - a clue already exists for this `turn_number` (enforced by the `unique (game_id, turn_number)` constraint, but checked explicitly in the RPC for a cleaner error message)
 - play_state ≠ playing (no clues in sudden death — guesses come from memory only)
 
-Parameter is `clue_count` (not `count`) to avoid shadowing the SQL aggregate; the matching column on `tinyspy.clues` stays `count` since it's only referenced in column lists.
+Parameter is `clue_count` (not `count`) to avoid shadowing the SQL aggregate; the matching column on `codenamesduet.clues` stays `count` since it's only referenced in column lists.
 
-### `tinyspy.submit_guess(target_game uuid, target_position int) → text`
+### `codenamesduet.submit_guess(target_game uuid, target_position int) → text`
 
 The complex one. Returns the revealed label (`'G' | 'N' | 'A'`) for caller convenience.
 
@@ -186,7 +186,7 @@ Logic in order:
    - During `playing`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
    - During `sudden_death`: the partner's view (the seat opposite the caller).
 6. Verify the cell isn't already resolved **for this guesser** — blocked if it's globally revealed (`revealed_as` set) OR this seat already hit it as a neutral. A *partner's* neutral does not block the caller (it may be the caller's agent).
-7. Log the guess into `tinyspy.guesses`, then denormalize onto `tinyspy.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
+7. Log the guess into `codenamesduet.guesses`, then denormalize onto `codenamesduet.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
 8. Resolve the outcome:
    - Assassin → `common.end_game(target_game, 'lost_assassin', …)`, return `'A'`.
    - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`, return label.
@@ -195,11 +195,11 @@ Logic in order:
 
 Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, greens_found, turns_used}`) via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
 
-### `tinyspy.pass_turn(target_game uuid)`
+### `codenamesduet.pass_turn(target_game uuid)`
 
 Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver. Reject reasons: clue-giver can't pass; no clue this turn; play_state ≠ playing.
 
-### `tinyspy.submit_timeout(target_game uuid)`
+### `codenamesduet.submit_timeout(target_game uuid)`
 
 Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's turns-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
 
@@ -207,39 +207,39 @@ Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the term
 
 Reject reasons: not authenticated; not a game player; game not found; already terminal.
 
-### `tinyspy.end_game(target_game uuid) → void`
+### `codenamesduet.end_game(target_game uuid) → void`
 
-The friends' explicit "we're done" button — fired by the **End game** menu item (per-game, declared by tinyspy's PlayArea via `ctx.menu.setGameItems`; click → `window.confirm()` → `db.rpc('end_game', ...)`, disabled when terminal). tinyspy has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
+The friends' explicit "we're done" button — fired by the **End game** menu item (per-game, declared by codenamesduet's PlayArea via `ctx.menu.setGameItems`; click → `window.confirm()` → `db.rpc('end_game', ...)`, disabled when terminal). codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 
 The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns `outcome:'won'` (the non-red `GameOverModal` coloring) with the verdict "Game ended.", and `manifest.STATUS_LABEL.ended = 'ended'`.
 
-**Realtime touch at the tail**: `update tinyspy.games set turn_number = turn_number where id = target_game`. `common.end_game` writes only to `common.games`, but the FE's `useGame` subscribes to the `tinyspy` schema — without a write on `tinyspy.games` it would never wake up to refetch and flip into review mode. The self-set is a semantic no-op that produces a WAL entry Realtime picks up (the same trick `submit_timeout`'s `current_clue_giver = null` write incidentally provides). Tested in `tests/tinyspy/end_game_test.sql`.
+**Realtime touch at the tail**: `update codenamesduet.games set turn_number = turn_number where id = target_game`. `common.end_game` writes only to `common.games`, but the FE's `useGame` subscribes to the `codenamesduet` schema — without a write on `codenamesduet.games` it would never wake up to refetch and flip into review mode. The self-set is a semantic no-op that produces a WAL entry Realtime picks up (the same trick `submit_timeout`'s `current_clue_giver = null` write incidentally provides). Tested in `tests/codenamesduet/end_game_test.sql`.
 
-### `tinyspy.get_clue_context(target_game uuid) → jsonb`
+### `codenamesduet.get_clue_context(target_game uuid) → jsonb`
 
-Read-only RPC for the [`tinyspy-suggest-clue`](#edge-function-tinyspy-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of a playing (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
+Read-only RPC for the [`codenamesduet-suggest-clue`](#edge-function-codenamesduet-suggest-clue) Edge Function. Returns the caller's unrevealed greens/neutrals/assassin words + the history of previous clues. Authorization: caller must be the current clue-giver of a playing (or sudden-death) game; the Edge Function inherits that gate by calling this as the user.
 
 ### Helpers (not callable from the client)
 
 | function | role |
 |---|---|
-| `tinyspy._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
+| `codenamesduet._end_turn(target_game uuid)` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. Underscore-prefixed by convention to signal "internal." |
 
-TinySpy doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
+codenamesduet doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
 
 ## Row-level security
 
-Every `tinyspy.*` table has RLS enabled. SELECT policies all gate on `common.is_club_member(club_handle)` (via the game's `club_handle`, joined through `tinyspy.games` for the child tables) — history is **club-wide**: any club member can see every game in the club, whether or not they sat down at this specific one. "Is in this game" is a gameplay question handled by `common.require_game_player` at the RPC layer for *actions*, not a visibility question. No INSERT/UPDATE/DELETE policies anywhere — writes go through the RPCs.
+Every `codenamesduet.*` table has RLS enabled. SELECT policies all gate on `common.is_club_member(club_handle)` (via the game's `club_handle`, joined through `codenamesduet.games` for the child tables) — history is **club-wide**: any club member can see every game in the club, whether or not they sat down at this specific one. "Is in this game" is a gameplay question handled by `common.require_game_player` at the RPC layer for *actions*, not a visibility question. No INSERT/UPDATE/DELETE policies anywhere — writes go through the RPCs.
 
 `word_pool` has **no policies at all and no grants** for `authenticated`. Only the `create_game` security-definer RPC reads from it. There's no need for clients to see the word pool.
 
-`grant select on tinyspy.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
+`grant select on codenamesduet.games to authenticated` exposes BOTH `key_card_a` and `key_card_b` columns to any club member — a player's RLS check passes the partner's key column along with their own. Friends-only trust model (see [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat)): the convention is "read your own column, don't query the partner's," not "the partner's column is unreadable." A column-restricted grant could harden this if the audience ever grew; not planned for the friends-alpha posture.
 
 ## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — see [`wordknit.md → Timer`](wordknit.md#timer-server-authoritative-ticks) for the design rationale and drift bounds.
+Standard `<TimerField>` + `useGameTimer` setup — see [`connections.md → Timer`](connections.md#timer-server-authoritative-ticks) for the design rationale and drift bounds.
 
 **Distinct from the rulebook's turn budget.** Duet has its own clock (the 9 starting turns, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
 
@@ -250,23 +250,23 @@ Behaviors per `setup.timer.kind`:
 
 - **`none`**: no wall-clock rendered. The default, since the rulebook's pacing already comes from the turn budget.
 - **`countup`**: informational. Header shows elapsed MM:SS. Never expires.
-- **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `tinyspy.submit_timeout`, which flips status to `lost_timeout`. Idempotent on the server side — multiple peers racing to fire is fine.
+- **`countdown`**: ticks down from `setup.timer.seconds`. When it hits 0, the FE fires `codenamesduet.submit_timeout`, which flips status to `lost_timeout`. Idempotent on the server side — multiple peers racing to fire is fine.
 
 ## Pause-on-disconnect
 
-Inherited unchanged from the common shell. The only tinyspy-relevant note: PauseBoundary's child-unmount means tinyspy's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual) for the canonical write-up.
+Inherited unchanged from the common shell. The only codenamesduet-relevant note: PauseBoundary's child-unmount means codenamesduet's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`connections.md → Pause`](connections.md#pause-presence-driven--manual) for the canonical write-up.
 
-## Edge Function: `tinyspy-suggest-clue`
+## Edge Function: `codenamesduet-suggest-clue`
 
 The "Need a clue?" button in the FE calls this. The function:
 
-1. Invokes `tinyspy.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through).
+1. Invokes `codenamesduet.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through).
 2. Calls Claude Sonnet 4.6 via the Anthropic tool-use API. The tool schema asks the model for `{clue, count, agents, reasoning}` so it has to commit to specific agent words.
 3. Returns the JSON payload.
 
 Requires `ANTHROPIC_API_KEY` in the function's runtime env (set via `supabase secrets set`). Local dev uses `supabase/functions/.env` (gitignored).
 
-The function lives in [`supabase/functions/tinyspy-suggest-clue/index.ts`](../../supabase/functions/tinyspy-suggest-clue/index.ts). Naming follows the `<game>-<feature>` convention since Edge Functions are a flat namespace.
+The function lives in [`supabase/functions/codenamesduet-suggest-clue/index.ts`](../../supabase/functions/codenamesduet-suggest-clue/index.ts). Naming follows the `<game>-<feature>` convention since Edge Functions are a flat namespace.
 
 The trust model here is "we're not the gatekeeper of cheating" — a clue-giver could ask Claude themselves in another browser tab, so we're not adding friction. The function exists for convenience and for the better prompting we can do server-side (the prompt has the actual board state, not what the user typed).
 
@@ -275,14 +275,14 @@ The trust model here is "we're not the gatekeeper of cheating" — a clue-giver 
 ### Folder layout
 
 ```
-src/tinyspy/
+src/codenamesduet/
   manifest.ts             GameManifest registration. Lazy-loads ./components/PlayArea
                           directly (no Root.tsx).
-  db.ts                   export const db = supabase.schema('tinyspy')
-  theme.css               TinySpy-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
+  db.ts                   export const db = supabase.schema('codenamesduet')
+  theme.css               codenamesduet-specific color tokens (greens, reds, neutrals). Imported by PlayArea.tsx so it loads with the chunk.
 
   logo.svg                Placeholder square logo used by the GamePage header's
-                          <GameLogo gametype="tinyspy" />. Imported via ?url in manifest.ts.
+                          <GameLogo gametype="codenamesduet" />. Imported via ?url in manifest.ts.
 
   components/
     PlayArea.tsx          Two-column composition: BoardGrid on the left; status +
@@ -312,7 +312,7 @@ src/tinyspy/
     GameLog.tsx           Turn-by-turn replay. Per-turn divider line; clue
                           heading (giver name colored) above each turn's guess
                           line (guesser name colored + each guessed word colored
-                          by its reveal outcome via --tinyspy-{agent,neutral,
+                          by its reveal outcome via --codenamesduet-{agent,neutral,
                           assassin}). Chronological order, auto-scrolls to bottom.
     GameLog.module.css
     GameLog.test.tsx
@@ -343,27 +343,27 @@ src/tinyspy/
     agents.test.ts        Pure unit test of the above.
     labels.ts             KeyLabel type ('G' | 'N' | 'A') — single-letter agent /
                           neutral / assassin role.
-    setup.ts              TinySpySetup type + DEFAULT_TINYSPY_SETUP. PlayArea
-                          casts `ctx.setup as TinySpySetup` to read the turn cap.
+    setup.ts              CodenamesduetSetup type + DEFAULT_TINYSPY_SETUP. PlayArea
+                          casts `ctx.setup as CodenamesduetSetup` to read the turn cap.
 ```
 
 **Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
 
 ### Hooks: realtime patterns
 
-All three tinyspy data hooks ([`useGame`](../../src/tinyspy/hooks/useGame.ts), [`useBoard`](../../src/tinyspy/hooks/useBoard.ts), [`useClues`](../../src/tinyspy/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
+All three codenamesduet data hooks ([`useGame`](../../src/codenamesduet/hooks/useGame.ts), [`useBoard`](../../src/codenamesduet/hooks/useBoard.ts), [`useClues`](../../src/codenamesduet/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
 
-One tinyspy-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `tinyspy.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
+One codenamesduet-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `codenamesduet.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
 
 ### Phase derivation
 
-[`src/tinyspy/lib/phase.ts`](../../src/tinyspy/lib/phase.ts) takes `(game, callerSeat)` and returns a discriminated union of `'clue' | 'guess' | 'over' | 'wait'`. The decision tree is explicit and exhaustive; the test file walks through every branch.
+[`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) takes `(game, callerSeat)` and returns a discriminated union of `'clue' | 'guess' | 'over' | 'wait'`. The decision tree is explicit and exhaustive; the test file walks through every branch.
 
 Components consume the phase as a single value and render accordingly. Centralizing the derivation here means no component has to know that "active + I'm the clue-giver + no clue this turn" maps to the same UI state as "active + I'm the clue-giver + already submitted but waiting for guesses" (which it doesn't — they're different phases).
 
 ### Post-game peer-key reveal
 
-During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../../src/tinyspy/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
+During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../../src/codenamesduet/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
@@ -373,34 +373,34 @@ The implementation detail worth knowing: `peerKey` is a **derived value**, not a
 
 ### Code-splitting
 
-The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits tinyspy's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/tinyspy/<id>` fetches the chunk.
+The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits codenamesduet's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/codenamesduet/<id>` fetches the chunk.
 
-## TinySpy testing
+## codenamesduet testing
 
-See [`testing.md`](../testing.md) for the theory and shared setup. TinySpy-specific notes:
+See [`testing.md`](../testing.md) for the theory and shared setup. codenamesduet-specific notes:
 
 ### pgTAP files
 
 | file | covers |
 |---|---|
-| `tests/tinyspy/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in wordknit's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
-| `tests/tinyspy/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, turn decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
-| `tests/tinyspy/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
-| `tests/tinyspy/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
-| `tests/tinyspy/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
-| `tests/tinyspy/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
-| `tests/tinyspy/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
-| `tests/tinyspy/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.outcome='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
-| `tests/tinyspy/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
-| `tests/tinyspy/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
+| `tests/codenamesduet/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in connections's test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
+| `tests/codenamesduet/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, turn decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
+| `tests/codenamesduet/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
+| `tests/codenamesduet/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. |
+| `tests/codenamesduet/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
+| `tests/codenamesduet/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
+| `tests/codenamesduet/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.outcome plumbing. |
+| `tests/codenamesduet/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.outcome='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
+| `tests/codenamesduet/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs throw, direct INSERTs are blocked. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
+| `tests/codenamesduet/clue_context_test.sql` | `get_clue_context` auth gates + shape check (returns the expected keys). |
 
-### TinySpy-specific test helpers
+### codenamesduet-specific test helpers
 
-Three helpers shared across tinyspy tests, promoted to [`supabase/tests/tinyspy/setup.psql`](../../supabase/tests/tinyspy/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each tinyspy test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
+Three helpers shared across codenamesduet tests, promoted to [`supabase/tests/codenamesduet/setup.psql`](../../supabase/tests/codenamesduet/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each codenamesduet test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
-- **`pg_temp.tinyspy_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver and `timer.kind = 'none'`; override turns or first_user to test variations (`tinyspy_setup(11)`, `tinyspy_setup(9, bea_uuid)`). Timer-specific tests pass a literal jsonb so the timer mode is explicit.
+- **`pg_temp.codenamesduet_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver and `timer.kind = 'none'`; override turns or first_user to test variations (`codenamesduet_setup(11)`, `codenamesduet_setup(9, bea_uuid)`). Timer-specific tests pass a literal jsonb so the timer mode is explicit.
 
 ### The key-card distribution test
 
@@ -418,9 +418,9 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 | file | covers |
 |---|---|
-| `src/tinyspy/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
-| `src/tinyspy/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
-| `src/tinyspy/components/GameLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
+| `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
+| `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
+| `src/codenamesduet/components/GameLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
 
 ## Open items
 
@@ -433,10 +433,10 @@ Deferred or sketched but not built:
 
 | asking… | look at… |
 |---|---|
-| What does an RPC do | [`supabase/migrations/20260615000001_tinyspy.sql`](../../supabase/migrations/20260615000001_tinyspy.sql) |
-| What does an RPC say it does | this file + [`supabase/tests/tinyspy/*_test.sql`](../../supabase/tests/tinyspy/) |
-| What does the board look like | [`src/tinyspy/components/BoardGrid.tsx`](../../src/tinyspy/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
-| What does the page composition look like | [`src/tinyspy/components/PlayArea.tsx`](../../src/tinyspy/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| How does state flow on the FE | [`src/tinyspy/hooks/useGame.ts`](../../src/tinyspy/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
-| What's the phase logic | [`src/tinyspy/lib/phase.ts`](../../src/tinyspy/lib/phase.ts) |
-| How does the AI clue suggestion work | [`supabase/functions/tinyspy-suggest-clue/index.ts`](../../supabase/functions/tinyspy-suggest-clue/index.ts) |
+| What does an RPC do | [`supabase/migrations/20260615000001_codenamesduet.sql`](../../supabase/migrations/20260615000001_codenamesduet.sql) |
+| What does an RPC say it does | this file + [`supabase/tests/codenamesduet/*_test.sql`](../../supabase/tests/codenamesduet/) |
+| What does the board look like | [`src/codenamesduet/components/BoardGrid.tsx`](../../src/codenamesduet/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
+| What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
+| What's the phase logic | [`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) |
+| How does the AI clue suggestion work | [`supabase/functions/codenamesduet-suggest-clue/index.ts`](../../supabase/functions/codenamesduet-suggest-clue/index.ts) |

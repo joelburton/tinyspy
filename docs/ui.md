@@ -14,7 +14,7 @@ Read this before:
 
 The play surface is a laptop or desktop browser. Some games are awkward on mobile by their nature (crosswords, Boggle on a phone); even the ones that *would* play fine on mobile are most fun with a keyboard and a wider canvas. So:
 
-- **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`PlayArea.module.css`](../src/tinyspy/components/PlayArea.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
+- **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`PlayArea.module.css`](../src/codenamesduet/components/PlayArea.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
 - **Mobile gets graceful degradation, not engineering.** Phone users should be able to read the page and use the app; we don't chase pixel-perfect mobile layouts.
 - **A real mobile pass is a future project.** When the games stabilize visually, we'll do one. Locking it in now forces complexity on every component while we're still noodling shared chrome.
 
@@ -41,7 +41,7 @@ Why this matters here:
 
 ### The deliberate exception
 
-In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. WordKnit's category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
+In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. connections's category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
 
 The distinction in one line: **if it's a side effect of state changing, fix the layout; if it's the state change you're celebrating, let it happen.**
 
@@ -49,7 +49,7 @@ The other exempt case is **loading state**: "Loading game…" doesn't have to oc
 
 ### Feedback pill
 
-A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a WordKnit "wrong guess" should look like a TinySpy "clue invalid" should look like a future Boggle "not a word."
+A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a connections "wrong guess" should look like a codenamesduet "clue invalid" should look like a future Boggle "not a word."
 
 The pill lives inside `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below). When feedback is active, the pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
 
@@ -75,8 +75,8 @@ feedback: {
 
 **Dismiss modes — when to use each:**
 
-- **`timed`** for transient acknowledgment that auto-fades. WordKnit's "Already tried that," "Wrong guess." The default workhorse.
-- **`sticky`** for state-driven info the game itself will clear. TinySpy's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
+- **`timed`** for transient acknowledgment that auto-fades. connections's "Already tried that," "Wrong guess." The default workhorse.
+- **`sticky`** for state-driven info the game itself will clear. codenamesduet's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
 - **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
 
 **Semantics:**
@@ -90,7 +90,7 @@ feedback: {
 
 Game-end "you won / you lost" UI lives in a shared modal (`common/components/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
 
-The page underneath stays in *review mode*: the final board, revealed unmatched categories (wordknit), both key cards (tinyspy), the winning number (PsychicNum). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
+The page underneath stays in *review mode*: the final board, revealed unmatched categories (connections), both key cards (codenamesduet), the winning number (psychicnum). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
 
 **Auto-pop on terminal.** Each game's PlayArea opens the modal in two cases:
 
@@ -131,7 +131,7 @@ macOS-style placement, consistent across every dialog / modal / confirm: the act
 
 Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:
 
-- **TinySpy turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
+- **codenamesduet turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
 ## Page-height fits the viewport
@@ -165,7 +165,7 @@ Future targets:
 
 ## Theme: one global theme today
 
-The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`tinyspy/theme.css`](../src/tinyspy/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
+The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
 
 ### Tokens are semantic, not literal
 
@@ -175,11 +175,11 @@ Within each file, token names describe the *role* of the value, not the value it
 |---|---|
 | `--color-bg`, `--color-surface`, `--color-text` | `--color-near-black`, `--color-light-gray` |
 | `--color-accent`, `--color-error` | `--color-blue`, `--color-red` |
-| `--tinyspy-agent`, `--tinyspy-assassin` | `--tinyspy-green`, `--tinyspy-red` |
+| `--codenamesduet-agent`, `--codenamesduet-assassin` | `--codenamesduet-green`, `--codenamesduet-red` |
 
 The reason: when (not if) we add a second theme, every literal name becomes a lie — "the green is actually pink in pink mode" reads wrong. Semantic names cascade cleanly through theme swaps.
 
-This rule applies *within each namespace separately*. `--tinyspy-agent` is a tinyspy token whose name says "agent" because that's what it means inside tinyspy. It is **not** a step toward a cross-game `--color-agent` concept; see [Two vocabularies](#two-vocabularies) for why.
+This rule applies *within each namespace separately*. `--codenamesduet-agent` is a codenamesduet token whose name says "agent" because that's what it means inside codenamesduet. It is **not** a step toward a cross-game `--color-agent` concept; see [Two vocabularies](#two-vocabularies) for why.
 
 ### No `var()` fallbacks
 
@@ -189,7 +189,7 @@ The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/c
 
 ### Light-mode pass (planned, not done)
 
-The current dark theme is the test-pattern while visual direction is still moving. **Switch to light-mode as the default before adding the next non-toy game** — roughly one afternoon's work: invert the surface tokens in `common/theme.css`, retune `tinyspy/theme.css` against the new background, drop `color-scheme: dark`. Doing this *before* a new game lands means the new game's palette is tuned against the real background from day one rather than being re-tuned later.
+The current dark theme is the test-pattern while visual direction is still moving. **Switch to light-mode as the default before adding the next non-toy game** — roughly one afternoon's work: invert the surface tokens in `common/theme.css`, retune `codenamesduet/theme.css` against the new background, drop `color-scheme: dark`. Doing this *before* a new game lands means the new game's palette is tuned against the real background from day one rather than being re-tuned later.
 
 ### User-selectable themes (deferred)
 
@@ -207,15 +207,15 @@ Concepts about the *frame*, not the game. These earn global tokens / classes bec
 - `.error` — already global; validation feedback, RPC errors.
 - (Future) presence states, transient toast feedback, etc.
 
-A "you won" banner in tinyspy should be visually indistinguishable from a "you won" banner in Boggle. That's the *point*.
+A "you won" banner in codenamesduet should be visually indistinguishable from a "you won" banner in Boggle. That's the *point*.
 
-Most of these don't exist yet — psychicnum and tinyspy each render their game-end screens differently today, which is one of the things to fix as global UI-state tokens / classes emerge.
+Most of these don't exist yet — psychicnum and codenamesduet each render their game-end screens differently today, which is one of the things to fix as global UI-state tokens / classes emerge.
 
 ### Game vocabulary — per-game
 
 Concepts that belong to the game's rules and ontology:
 
-- TinySpy's **agent / neutral / assassin**.
+- codenamesduet's **agent / neutral / assassin**.
 - A future Boggle's **valid word / great word / not a word**.
 - Connections's **four difficulty colors** (yellow → green → blue → purple, themed by the game itself).
 
@@ -223,7 +223,7 @@ These stay namespaced to the game's `theme.css` and **don't get collapsed**, eve
 
 ### The error to avoid
 
-Promoting a per-game concept to a global token because two games happen to share a visual register. Calling tinyspy-agent and boggle-great-word both `--color-good` looks tidy on the surface and breaks the moment a third game's "good" wants to lean a different direction — at which point you either un-alias (admit the abstraction was wrong) or pollute the global token with game-specific exceptions.
+Promoting a per-game concept to a global token because two games happen to share a visual register. Calling codenamesduet-agent and boggle-great-word both `--color-good` looks tidy on the surface and breaks the moment a third game's "good" wants to lean a different direction — at which point you either un-alias (admit the abstraction was wrong) or pollute the global token with game-specific exceptions.
 
 The asymmetry: walking a per-game token *up* to global later (when the recurrence is real) is easy; walking a global token *back down* to per-game is hard, because consumers everywhere depend on it.
 
@@ -246,8 +246,8 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 
 - **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
-- **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (wordknit defaults to countdown 10:00; PsychicNum and tinyspy default to none), but the *option* is universal.
-- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. TinySpy's `Help.tsx` is the model; wordknit and PsychicNum carry placeholder content until they earn real copy.
+- **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
+- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
 - **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
 - **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Non-terminal games show the suspend-confirm modal first; terminal is a single-click back. Owned by `<GamePage>`.
 
@@ -272,9 +272,9 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 - **`<PauseButton />`** — pause icon (two-bar style). Click fires `sendManualPause` from `useCommonGame`. Greyed-out (disabled) when the game is already paused; the resume affordance lives on `<PauseOverlay>`, not in the header. **Always present** — manual pause is universal, not timer-gated; even an untimed game wants the "moth is making tea" affordance.
 - **Timer** — `{ displaySeconds, expired }` from `useCommonGame`. Rendered only when `commonGame.setup.timer.kind !== 'none'`. `font-variant-numeric: tabular-nums` so digits don't shift the right edge as values change.
 
-**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. wordknit's puzzle date) still lives in the club-page listing where it has room to breathe.
+**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. connections's puzzle date) still lives in the club-page listing where it has room to breathe.
 
-**Why this lives in the common shell:** the consistency goal — a player switching from TinySpy to WordKnit shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
+**Why this lives in the common shell:** the consistency goal — a player switching from codenamesduet to connections shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
 
 ### GamePage menu
 
@@ -287,7 +287,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
          │ Help                 │  ← common section
          │ Back to club         │
          ├──────────────────────┤  ← divider
-         │ Hints                │  ← per-game items (wordknit)
+         │ Hints                │  ← per-game items (connections)
          └──────────────────────┘
 ```
 
@@ -369,13 +369,13 @@ Same principle, applied to components.
 
 ## Mode pills
 
-A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `WordNerd`), distinguished by the pill.
+A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
 
 Rules:
 
 - **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
 - **Look.** An outlined chip — transparent background, with the border and text both in the mode color: co-op = teal, compete = purple (`--color-mode-*-text` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
-- **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders at all** — neither "Co-op" (no one to cooperate with) nor "Compete" (a solo member may have *enabled* a 2-player game like MonkeyGram, but "Compete" is meaningless with one player). Pass `soloClub` to `<ModePill>`; it returns `null`.
+- **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders at all** — neither "Co-op" (no one to cooperate with) nor "Compete" (a solo member may have *enabled* a 2-player game like bananagrams, but "Compete" is meaningless with one player). Pass `soloClub` to `<ModePill>`; it returns `null`.
 - **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
 
 Because the pill carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.

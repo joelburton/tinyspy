@@ -13,15 +13,15 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
-| [docs/games/tinyspy.md](docs/games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, FE, Edge Function, tests |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | PsychicNum rules + schema, the hidden-target pattern, FE, tests |
-| [docs/games/wordknit.md](docs/games/wordknit.md) | WordKnit (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
-| [docs/games/freebee.md](docs/games/freebee.md) | FreeBee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
-| [docs/games/monkeygram.md](docs/games/monkeygram.md) | MonkeyGram (Bananagrams-style) rules + schema; the FE-owned `board` / server-owned `tiles` split + derived hand, the fixed 25×25 player-board arena, snapshot-on-unmount persistence, owner-only RLS, the peel/dump bank loop, the keyboard cursor |
-| [docs/games/waffle.md](docs/games/waffle.md) | SyrupSwap (codename `waffle`; brand ≠ codename) — Waffle-style swap-to-solve rules + schema; hidden-solution color feedback (column-grant + `security_invoker` views), coop/compete sibling pair, on-demand board generation (`waffle-build-board` edge function), player-pickable difficulty band |
-| [docs/games/wordle.md](docs/games/wordle.md) | WordNerd (codename `wordle`; brand ≠ codename) — NYT-Wordle-style guess-the-word rules + schema; hidden-target color feedback + per-guess log with mode-aware RLS, on-screen keyboard, coop (shared board) / compete (fewest-guesses winner) sibling pair |
-| [docs/games/stackdown.md](docs/games/stackdown.md) | StackDown (codename `stackdown`) — mahjong-style word game: clear a stack of 30 lettered tiles by spelling six words off the exposed ones; the sequence-as-word + strict no-trap board invariant, pre-generated board library (`stackdown:import`), hidden-solution reveal, coop (shared collaborative word via Broadcast) / compete (race to clear) sibling pair |
-| [docs/games/scrabble.md](docs/games/scrabble.md) | RackAttack (codename `scrabble`; brand ≠ codename) — Scrabble-style word game on the standard 15×15 premium board with a shared 100-tile bag + blanks; the **trusting-commit** architecture (geometry/word-extraction/scoring live ONLY in `lib/play.ts`; the server `play_word` trusts the FE's words+score and does only dictionary check + bag draw + bookkeeping, with optimistic-concurrency `version` CAS for races); coop (one shared rack/board/score, no turns) / compete (turn-based, private racks, highest score wins) sibling pair |
+| [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, FE, Edge Function, tests |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-target pattern, FE, tests |
+| [docs/games/connections.md](docs/games/connections.md) | connections (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
+| [docs/games/spellingbee.md](docs/games/spellingbee.md) | spellingbee (NYT-Spelling-Bee-style) rules + schema, hidden-wordlist reveal pattern, edge-function board builder, rank ladder, manual end-game flow |
+| [docs/games/bananagrams.md](docs/games/bananagrams.md) | bananagrams (Bananagrams-style) rules + schema; the FE-owned `board` / server-owned `tiles` split + derived hand, the fixed 25×25 player-board arena, snapshot-on-unmount persistence, owner-only RLS, the peel/dump bank loop, the keyboard cursor |
+| [docs/games/waffle.md](docs/games/waffle.md) | waffle — Waffle-style swap-to-solve rules + schema; hidden-solution color feedback (column-grant + `security_invoker` views), coop/compete sibling pair, on-demand board generation (`waffle-build-board` edge function), player-pickable difficulty band |
+| [docs/games/wordle.md](docs/games/wordle.md) | wordle — NYT-Wordle-style guess-the-word rules + schema; hidden-target color feedback + per-guess log with mode-aware RLS, on-screen keyboard, coop (shared board) / compete (fewest-guesses winner) sibling pair |
+| [docs/games/stackdown.md](docs/games/stackdown.md) | stackdown — mahjong-style word game: clear a stack of 30 lettered tiles by spelling six words off the exposed ones; the sequence-as-word + strict no-trap board invariant, pre-generated board library (`stackdown:import`), hidden-solution reveal, coop (shared collaborative word via Broadcast) / compete (race to clear) sibling pair |
+| [docs/games/scrabble.md](docs/games/scrabble.md) | scrabble — Scrabble-style word game on the standard 15×15 premium board with a shared 100-tile bag + blanks; the **trusting-commit** architecture (geometry/word-extraction/scoring live ONLY in `lib/play.ts`; the server `play_word` trusts the FE's words+score and does only dictionary check + bag draw + bookkeeping, with optimistic-concurrency `version` CAS for races); coop (one shared rack/board/score, no turns) / compete (turn-based, private racks, highest score wins) sibling pair |
 
 
 ## Educational priority — clarity over brevity
@@ -80,15 +80,15 @@ Examples of where this lands:
 | Chat content length limit (1–1000 chars) | yes | constraint, not anti-abuse |
 | Chat spam / rate-limiting | no | friends won't spam each other |
 | Display-name validation | minimal | if a friend wants to call themselves "Lord Buttsworth," that's between friends |
-| AI clue suggestion (TinySpy) | server-side, but for the API key — not for cheat prevention | the clue-giver could ask Claude themselves in another tab; we're not the gatekeeper of that |
+| AI clue suggestion (codenamesduet) | server-side, but for the API key — not for cheat prevention | the clue-giver could ask Claude themselves in another tab; we're not the gatekeeper of that |
 
 ## Stack snapshot
 
-React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, PostgREST, Realtime, Auth via magic links, Edge Functions in Deno) on the backend; Netlify for FE hosting; Anthropic Claude via Edge Functions for AI features (tinyspy's clue suggester is the current example). See [README.md](README.md) for the longer narrative.
+React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, PostgREST, Realtime, Auth via magic links, Edge Functions in Deno) on the backend; Netlify for FE hosting; Anthropic Claude via Edge Functions for AI features (codenamesduet's clue suggester is the current example). See [README.md](README.md) for the longer narrative.
 
 ## Game roster — trajectory
 
-The original target was ~7–8 games; nine are live today (TinySpy, WordKnit, PsychicNum, FreeBee, MonkeyGram, SyrupSwap, WordNerd, StackDown, RackAttack [codename `scrabble`]); PsychicNum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
+The original target was ~7–8 games; nine are live today (codenamesduet, connections, psychicnum, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble); psychicnum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface — it's slated for removal after beta. Future games may include: Boggle and crosswords.
 
 **Most upcoming games are ports.** Joel has implementations of these games in other stacks (the rules / problem-space are well understood). The work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
 

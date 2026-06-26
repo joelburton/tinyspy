@@ -1,12 +1,12 @@
-# PsychicNum
+# psychicnum
 
-A tiny number-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The second gametype family registered, kept as the minimal surface for exercising the multi-game architecture — now also the minimal surface for exercising the **coop/compete sibling-manifest pattern** that wordknit and freebee will follow. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
+A tiny number-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The second gametype family registered, kept as the minimal surface for exercising the multi-game architecture — now also the minimal surface for exercising the **coop/compete sibling-manifest pattern** that connections and spellingbee will follow. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
-For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`tinyspy.md`](tinyspy.md).
+For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`codenamesduet.md`](codenamesduet.md).
 
 ## The sibling-manifest pattern
 
-PsychicNum exports two manifest entries from one folder:
+psychicnum exports two manifest entries from one folder:
 
 | field                | `psychicnumCoopGame`     | `psychicnumCompeteGame`     |
 |----------------------|--------------------------|------------------------------|
@@ -14,7 +14,7 @@ PsychicNum exports two manifest entries from one folder:
 | `schema`             | `psychicnum`              | `psychicnum`                  |
 | `baseGametype`       | `psychicnum`              | `psychicnum`                  |
 | `mode`               | `'coop'`                  | `'compete'`                   |
-| `name`               | `PsychicNum`              | `PsychicNum`                  |
+| `name`               | `psychicnum`              | `psychicnum`                  |
 | `numberOfPlayers`    | `[1, 6]`                  | `[2, 6]`                      |
 
 The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModePill>` (read from `mode`), not baked into the name string. See [ui.md → Mode pills](../ui.md#mode-pills).
@@ -73,7 +73,7 @@ A timer that runs out is NOT what makes a game "compete" — compete needs an op
 | `players` | Per-player budget tracking. One row per (game, player), with `guesses_remaining`. Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
 | `guesses` | Append-only log of every guess ever submitted. One row per guess, with `user_id`, `number`, `was_correct`, `guessed_at`. RLS in compete mode scopes visibility to caller only. |
 
-There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`tinyspy.md`](tinyspy.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table.
+There is no separate `boards` table. The only datum that fits the "board" concept (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is the target number, which is too small to warrant its own table.
 
 ### Mode column
 
@@ -112,7 +112,7 @@ The shape that's the same in both modes:
 
 ### Play-state enum
 
-`common.games.play_state` carries PsychicNum's lifecycle enum. Different vocabularies per mode:
+`common.games.play_state` carries psychicnum's lifecycle enum. Different vocabularies per mode:
 
 **Coop:**
 - **playing** — guesses being submitted. Default.
@@ -127,11 +127,11 @@ The shape that's the same in both modes:
 **Both modes:**
 - **ended** — a player chose the **End game** menu item (`psychicnum.end_game`, `outcome='manual'`). Terminal, neutral: nobody won, nobody lost, everyone's `result = {won: false}`. Deliberately the *uniform* value the other games use for manual stops (not `'lost'`/`'lost_compete'`) so the cross-game terminal vocabulary stays consistent; the FE has explicit `'ended'` branches that render it green ("Game ended") rather than as a loss.
 
-The mode-specific suffixes mirror what freebee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
+The mode-specific suffixes mirror what spellingbee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
 
 ## The hidden-target mechanic
 
-The most architecturally interesting piece of PsychicNum is how it hides `target` from clients. Two layers, working together:
+The most architecturally interesting piece of psychicnum is how it hides `target` from clients. Two layers, working together:
 
 ### Layer 1 — column-level grant (storage gate)
 
@@ -181,9 +181,9 @@ This is the canonical recipe for **"expose a column the invoker can't see direct
 3. Define a view with `security_invoker = true` so RLS still gates row visibility, and call the helper for the secret column.
 4. Point the FE at the view, not the base table.
 
-Future games with conditional-reveal state (post-game key cards in tinyspy, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
+Future games with conditional-reveal state (post-game key cards in codenamesduet, end-of-round reveals in a future Boggle, etc.) should reach for this shape first. See [`code-conventions.md` → SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) for the brief cross-reference.
 
-TinySpy doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`tinyspy.md → Row-level security`](tinyspy.md#row-level-security)).
+codenamesduet doesn't use this pattern (yet) because both players' key cards are equally readable via RLS during the game; per-player filtering is by convention rather than enforcement (see [`codenamesduet.md → Row-level security`](codenamesduet.md#row-level-security)).
 
 ## RPCs
 
@@ -271,19 +271,19 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 The start-game dialog collects two options from the players before `create_game` fires:
 
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default; 3 is hard mode; 5 medium; 9 the easy warm-up.
-- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field wordknit uses, validated server-side by `common.validate_timer`. See [Timer](#timer-server-authoritative-ticks) below.
+- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration (1 second to 60 minutes). Default is a 10-minute count-down. Rendered by the shared `<TimerField>` component in `src/common/components/` — the same field connections uses, validated server-side by `common.validate_timer`. See [Timer](#timer-server-authoritative-ticks) below.
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "timer": { "kind": "none"|"countup" } | { "kind": "countdown", "seconds": 1..3600 } }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header so end-of-game review can display "this game was played with 5 guesses and a 10-minute clock" without trying to infer either from runtime state.
 
-The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicNumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
+The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src/psychicnum/components/SetupForm.tsx` (the form body, lazy-loaded inside the common `SetupGameDialog`). The server is the canonical authority for what shapes are accepted — the TypeScript narrowing is advisory.
 
 ## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — same as wordknit; see [`wordknit.md → Timer`](wordknit.md#timer-server-authoritative-ticks) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
+Standard `<TimerField>` + `useGameTimer` setup — same as connections; see [`connections.md → Timer`](connections.md#timer-server-authoritative-ticks) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
 
 ## Pause-on-disconnect
 
-Inherited unchanged from the common shell — presence-pause + manual-pause both compose into a single `paused` flag, `PauseBoundary` unmounts children while paused. Psychic-num has no gametype-specific wiring beyond mounting the shared `<GamePage>`. See [`wordknit.md → Pause`](wordknit.md#pause-presence-driven--manual) for the canonical write-up.
+Inherited unchanged from the common shell — presence-pause + manual-pause both compose into a single `paused` flag, `PauseBoundary` unmounts children while paused. Psychic-num has no gametype-specific wiring beyond mounting the shared `<GamePage>`. See [`connections.md → Pause`](connections.md#pause-presence-driven--manual) for the canonical write-up.
 
 ## Row-level security
 
@@ -343,7 +343,7 @@ src/psychicnum/
     GuessForm.module.css
     GuessHistory.tsx      Card list of guesses with username attribution. Each
                           row gets a 10px left strip (green for correct, red for
-                          wrong) — same visual register as wordknit + tinyspy.
+                          wrong) — same visual register as connections + codenamesduet.
                           Chronological order; auto-scrolls to bottom.
     GuessHistory.module.css
     SetupForm.tsx         The setup form (guess budget + timer) mounted in the
@@ -360,7 +360,7 @@ src/psychicnum/
                           common's useCommonGame, consumed by GamePage.
 
   lib/
-    setup.ts              PsychicNumSetup type + DEFAULT_PSYCHICNUM_SETUP.
+    setup.ts              PsychicnumSetup type + DEFAULT_PSYCHICNUM_SETUP.
 ```
 
 ### `PlayArea`
@@ -377,7 +377,7 @@ The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution com
 
 ### Code-splitting
 
-Same pattern as tinyspy — the manifest's `PlayArea` is lazy-loaded. The build emits psychicnum's JS as its own chunk (~4 KB gzipped); users who only play tinyspy never download it.
+Same pattern as codenamesduet — the manifest's `PlayArea` is lazy-loaded. The build emits psychicnum's JS as its own chunk (~4 KB gzipped); users who only play codenamesduet never download it.
 
 ## Psychic-num testing
 
@@ -387,7 +387,7 @@ See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-speci
 
 | file | covers |
 |---|---|
-| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.guesses` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in wordknit's create_game test), `is_current_view` flips via `common.games`, title formula, column-level grant blocks SELECT of `target`. |
+| `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.guesses` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in connections's create_game test), `is_current_view` flips via `common.games`, title formula, column-level grant blocks SELECT of `target`. |
 | `tests/psychicnum/gameplay_test.sql` | Range guards, correct guess flips `play_state` to `won` and freezes `winner_username` into `status`, wrong guess decrements, duplicate guesses allowed, 7th wrong loses, `common.end_game` flips `is_terminal=true` on termination, `submit_timeout` happy path + idempotency + non-player rejection. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `target IS NULL` while active and the actual value once status is terminal — exercising both the `security_invoker` row-gating and the `_target_for` helper's CASE. |
 

@@ -2,13 +2,13 @@
 
 How we write code in this repo. The cross-cutting rules that aren't tied to any one gametype. Read this before writing or reviewing code in `src/` or `supabase/`.
 
-For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`tinyspy.md`](games/tinyspy.md), [`psychicnum.md`](games/psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
+For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`codenamesduet.md`](games/codenamesduet.md), [`psychicnum.md`](games/psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
 
 ## Code clarity & docstrings
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The tinyspy RPCs in [`supabase/migrations/20260615000001_tinyspy.sql`](../supabase/migrations/20260615000001_tinyspy.sql) and components like [`src/tinyspy/components/CluePanel.tsx`](../src/tinyspy/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/migrations/20260615000001_codenamesduet.sql`](../supabase/migrations/20260615000001_codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
@@ -31,29 +31,29 @@ Multi-schema layout:
 |---|---|
 | `public` | Postgres-managed stuff: `gen_random_uuid`, extension functions, anything we didn't put there. **We do not add tables here.** |
 | `common` | Shared user-data tables and helpers used by every game: profiles, clubs, clubs_members, games, messages. **Must not reference any game schema.** |
-| `tinyspy`, `psychicnum`, `<game>` | One schema per gametype; that game owns its tables, RPCs, and policies inside it. |
+| `codenamesduet`, `psychicnum`, `<game>` | One schema per gametype; that game owns its tables, RPCs, and policies inside it. |
 
-**Search path:** `extra_search_path = common, public, extensions`. Game schemas are deliberately *not* in the search path — every game reference is fully qualified (`tinyspy.games`, `psychicnum.games`) in SQL, and goes through `supabase.schema('<game>')` in the FE.
+**Search path:** `extra_search_path = common, public, extensions`. Game schemas are deliberately *not* in the search path — every game reference is fully qualified (`codenamesduet.games`, `psychicnum.games`) in SQL, and goes through `supabase.schema('<game>')` in the FE.
 
-The payoff: each game gets a clean namespace. TinySpy and a hypothetical Boggle can each have a `words` table named just `words`. The fact that you had to say which game it was tells you which one you're touching.
+The payoff: each game gets a clean namespace. codenamesduet and a hypothetical Boggle can each have a `words` table named just `words`. The fact that you had to say which game it was tells you which one you're touching.
 
 ### Tables and columns
 
-- Tables describe their role within their schema. **No game prefix.** `tinyspy.words`, not `tinyspy.tinyspy_words`.
+- Tables describe their role within their schema. **No game prefix.** `codenamesduet.words`, not `codenamesduet.codenamesduet_words`.
 - `snake_case` for tables and columns.
 - Plural for tables (`games`, `words`, `messages`).
 - FKs use `<thing>_id`: `game_id`, `user_id`, `club_handle`. Self-referential or ambiguous ones get a role prefix: `next_game_id`.
 
 ### RPC functions
 
-- Live in the schema they operate on. TinySpy RPCs are `tinyspy.create_game`, called via `db.rpc('create_game')` where `db = supabase.schema('tinyspy')`.
+- Live in the schema they operate on. codenamesduet RPCs are `codenamesduet.create_game`, called via `db.rpc('create_game')` where `db = supabase.schema('codenamesduet')`.
 - Cross-game / shared RPCs live in `common`. A `common` RPC may not reference any game schema; if it would need to, it belongs in the game.
-- Naming describes the verb: `create_game`, `submit_guess`, `send_message`. No `tinyspy_` prefix — the schema carries that.
+- Naming describes the verb: `create_game`, `submit_guess`, `send_message`. No `codenamesduet_` prefix — the schema carries that.
 - All callable RPCs are `security definer` with an explicit `set search_path = <game>, common, public, extensions`. The pinned search path neutralizes search-path hijacking; without it, a malicious unqualified table-reference inside the function could resolve against an attacker-controlled schema.
 
 ### RLS helpers
 
-The membership check that all per-game RPCs use is `common.require_game_player(target_game)` — it reads `common.game_players` (the cross-game roster the common layer maintains) and either returns the caller's `user_id` or raises. The game-specific RPCs then derive seat / role from per-game state once authorization has passed; e.g., `tinyspy.submit_guess` reads the games row and pattern-matches `caller_id` against `user_a_id` / `user_b_id` to set `caller_seat`.
+The membership check that all per-game RPCs use is `common.require_game_player(target_game)` — it reads `common.game_players` (the cross-game roster the common layer maintains) and either returns the caller's `user_id` or raises. The game-specific RPCs then derive seat / role from per-game state once authorization has passed; e.g., `codenamesduet.submit_guess` reads the games row and pattern-matches `caller_id` against `user_a_id` / `user_b_id` to set `caller_seat`.
 
 For SELECT-policy gating, games use `common.is_club_member(club_handle)` — the per-game game-id check would require querying the per-gametype games table from inside common, which is exactly the cross-coupling the removability rule forbids. Club-membership is a coarser predicate (any club member can read any of the club's games) but adequate under the friends-only trust model.
 
@@ -78,18 +78,18 @@ While we're still building (no real deploys yet), each schema is **squashed to a
 
 ```
 20260615000000_common.sql
-20260615000001_tinyspy.sql
+20260615000001_codenamesduet.sql
 20260615000002_psychicnum.sql
-20260615000003_wordknit.sql
-20260617000000_freebee.sql
-20260623000000_monkeygram.sql
+20260615000003_connections.sql
+20260617000000_spellingbee.sql
+20260623000000_bananagrams.sql
 ```
 
 These get re-squashed in place as a schema evolves (alpha — `db reset` re-runs everything from scratch, so there's no migration history to preserve). Once we deploy for real, new changes become append-only topic deltas instead:
 
 ```
 # future, post-deploy:
-20260720000000_tinyspy_add_difficulty.sql
+20260720000000_codenamesduet_add_difficulty.sql
 20260721000000_common_add_friends.sql
 ```
 
@@ -100,7 +100,7 @@ Cross-schema FKs (game → common) need `common.*` to exist first, which timesta
 Each gametype's supported player-count range is declared in **two places**:
 
 - The TypeScript manifest's `numberOfPlayers: [min, max]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club). Both ends required; `null` upper bounds aren't allowed — every game gets a hard cap so the FE rendering, realtime channel load, and chat surface stay bounded.
-- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (wordknit, PsychicNum, freebee) share `common.require_player_count_max(player_user_ids, max)`; tinyspy keeps its inline exactly-2 check.
+- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (connections, psychicnum, spellingbee) share `common.require_player_count_max(player_user_ids, max)`; codenamesduet keeps its inline exactly-2 check.
 
 These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
 
@@ -158,11 +158,11 @@ Pattern: `<topic>:<id>:<unique>`, e.g.:
 
 - `game:<game_id>` — the shared cross-cutting channel opened by `useCommonGame`. Stable name (no UUID suffix) because presence + manual-pause broadcasts must merge across every connected client. StrictMode handled by the hook's own `removeChannel` cleanup. Every gametype's `useCommonGame` opens this.
 - `<gametype>:<game_id>:<uuid>` — the per-tab postgres-changes channel each per-game `useGame` opens. UUID suffix sidesteps supabase-js's StrictMode-cache bite; postgres-changes don't need to merge across clients so per-tab rooms are fine.
-- `wordknit:<game_id>` — wordknit's stable channel for shared-selection Broadcast events (select / deselect / clear). Stable for the same reason as `game:<game_id>` — broadcast events need to merge across clients.
+- `connections:<game_id>` — connections's stable channel for shared-selection Broadcast events (select / deselect / clear). Stable for the same reason as `game:<game_id>` — broadcast events need to merge across clients.
 - `club-active:<club_handle>:<uuid>` — club active-game pointer
 - `club-chat:<club_handle>:<uuid>` — club chat messages
 
-The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/tinyspy/hooks/useGame.ts) for the canonical example.
+The per-effect-run UUID suffix is mandatory: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. See [`useGame.ts`](../src/codenamesduet/hooks/useGame.ts) for the canonical example.
 
 ### Realtime data hooks — two patterns
 
@@ -186,7 +186,7 @@ useRealtimeRefetch({
 })
 ```
 
-The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games` AND `guesses` with the same `load()`; tinyspy splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
+The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games` AND `guesses` with the same `load()`; codenamesduet splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
@@ -198,8 +198,8 @@ For hooks that need to **send and receive Broadcast events between peers** (sele
 
 Canonical examples:
 - [`common/useCommonGame`](../src/common/hooks/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
-- [`wordknit/useGame`](../src/wordknit/hooks/useGame.ts) — stable `wordknit:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `wordknit.{games, guesses}`.
-- [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts) — stable `stackdown:${gameId}` channel carrying the shared in-progress-word Broadcast (`append` / `retract` / `clear` / `commit` — the last kept distinct so peers hold an accepted word's tiles removed without a flash) AND postgres-changes on `stackdown.{games, players, submissions}`. Coop only — compete suppresses the sends (each player's word is private), like wordknit.
+- [`connections/useGame`](../src/connections/hooks/useGame.ts) — stable `connections:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `connections.{games, guesses}`.
+- [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts) — stable `stackdown:${gameId}` channel carrying the shared in-progress-word Broadcast (`append` / `retract` / `clear` / `commit` — the last kept distinct so peers hold an accepted word's tiles removed without a flash) AND postgres-changes on `stackdown.{games, players, submissions}`. Coop only — compete suppresses the sends (each player's word is private), like connections.
 - [`common/useClubPresence`](../src/common/hooks/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
@@ -228,7 +228,7 @@ useEffect(function joinRoom() {
 }, [id])
 ```
 
-Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/wordknit.md → Pause`](games/wordknit.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
+Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/connections.md → Pause`](games/connections.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
 
 #### Choosing between A and B
 
@@ -262,9 +262,9 @@ Roles, not implementations:
 | Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
-A game's main screen is `PlayArea.tsx` whether it has a literal grid (tinyspy) or just a text input (PsychicNum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
+A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet) or just a text input (psychicnum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
 
-**File name matches component name; folder context disambiguates same-named components across games.** `src/wordknit/components/PlayArea.tsx` exports `PlayArea`; `src/tinyspy/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `WordKnitPlayArea` / `TinySpySetupForm` prefixes anywhere.
+**File name matches component name; folder context disambiguates same-named components across games.** `src/connections/components/PlayArea.tsx` exports `PlayArea`; `src/codenamesduet/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `ConnectionsPlayArea` / `CodenamesduetSetupForm` prefixes anywhere.
 
 ### Shared vs game-specific
 
@@ -281,22 +281,22 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
    - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
    - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
 
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`TinySpyPlayArea`, `WordKnitSetupForm`) — the folder already says which game.
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
-The reason both rules matter: this codebase is shaped to host ~7–8 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the wordknit version of the same thing tinyspy does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+The reason both rules matter: this codebase is shaped to host ~7–8 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
 #### Per-game `useGame` shape — pick the right template
 
 When porting a new game, the per-game `useGame` hook's shape depends on whether the game has fixed seats:
 
-- **Fixed-seat games** (tinyspy is the example: two players, identified by columns `user_a_id` / `user_b_id`): the hook **fetches its own roster**. The seat ⇄ user_id mapping is intrinsic to the per-game row, so the roster has to be loaded alongside the game data — no upstream component can pre-compute it. The hook also fetches profiles (cross-schema) to embed usernames; the canonical example is `src/tinyspy/hooks/useGame.ts`.
-- **N-player open games** (psychicnum, wordknit are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `players` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
+- **Fixed-seat games** (codenamesduet is the example: two players, identified by columns `user_a_id` / `user_b_id`): the hook **fetches its own roster**. The seat ⇄ user_id mapping is intrinsic to the per-game row, so the roster has to be loaded alongside the game data — no upstream component can pre-compute it. The hook also fetches profiles (cross-schema) to embed usernames; the canonical example is `src/codenamesduet/hooks/useGame.ts`.
+- **N-player open games** (psychicnum, connections are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `players` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
-- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (wordknit + PsychicNum).
+- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PupgamesLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 ### Import-direction rules
@@ -387,32 +387,32 @@ If you see a type whose fields are snake_case but whose *name* doesn't end in `R
 
 #### Member vs Player — one type, context-driven variable names
 
-The codebase has a single canonical identity shape — `Member` in [`src/common/lib/games.ts`](../src/common/lib/games.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (tinyspy adds `seat`); the naming carries the *context*, not the type-level distinction.
+The codebase has a single canonical identity shape — `Member` in [`src/common/lib/games.ts`](../src/common/lib/games.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
 
 > **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
 
 Why both names exist for what's often the same shape:
 
 - A reader scanning `ClubPage.tsx` sees `members: Member[]` and reads "people in this club" — the chat sender lookup, the member-list rendering, the setup-form's "who picks first?" picker. Club-wide.
-- A reader scanning `wordknit/components/GuessHistory.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
+- A reader scanning `connections/components/GuessHistory.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
 
 The per-game `Player` alias earns its keep even when it's a pure re-export:
 
 ```ts
-// wordknit/hooks/useGame.ts (and psychicnum/hooks/useGame.ts)
+// connections/hooks/useGame.ts (and psychicnum/hooks/useGame.ts)
 import type { Member } from '../../common/lib/games'
 export type Player = Member
 
-// tinyspy/hooks/useGame.ts
+// codenamesduet/hooks/useGame.ts
 import type { Member } from '../../common/lib/games'
 export type Player = Member & { seat: 'A' | 'B' }
 ```
 
 Why every game declares one — even the pure-alias case:
 
-1. **Cross-game pattern parallel.** A reader scanning per-game folders sees the same `Player` symbol everywhere. They don't have to remember "tinyspy uses Player but wordknit uses Member" — every game's vocabulary is the same.
-2. **Future-proofing.** When wordknit grows per-player game state (a "tile-rate-of-correct" stat, a "you're it" turn marker), the type is already named. No cascade rename from `Member` → `Player` across call sites.
-3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a wordknit subcomponent says "this is wordknit's notion of a player" — even if the body is just `= Member`.
+1. **Cross-game pattern parallel.** A reader scanning per-game folders sees the same `Player` symbol everywhere. They don't have to remember "codenamesduet uses Player but connections uses Member" — every game's vocabulary is the same.
+2. **Future-proofing.** When connections grows per-player game state (a "tile-rate-of-correct" stat, a "you're it" turn marker), the type is already named. No cascade rename from `Member` → `Player` across call sites.
+3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a connections subcomponent says "this is connections's notion of a player" — even if the body is just `= Member`.
 
 Where to use which:
 
@@ -421,7 +421,7 @@ Where to use which:
 | Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `FloatingChat.members` |
 | Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GuessHistory players={...} />`, `computePause(presentUserIds, players)` |
 
-The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (tinyspy's seat); otherwise the rename happens at the variable-name level only.
+The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (codenamesduet's seat); otherwise the rename happens at the variable-name level only.
 
 See [`naming.md → player`](naming.md#player) for the conceptual side.
 
@@ -452,9 +452,9 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 
 ### Grid coordinates
 
-The games that let you place tiles onto a coordinate-addressed grid with a keyboard cursor — **MonkeyGram** and **RackAttack** — share one vocabulary:
+The games that let you place tiles onto a coordinate-addressed grid with a keyboard cursor — **bananagrams** and **scrabble** — share one vocabulary:
 
-> **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching RackAttack's `cellIndex`).**
+> **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching scrabble's `cellIndex`).**
 
 Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/gridCursor.ts`](../src/common/lib/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/useDragGesture.ts`](../src/common/hooks/useDragGesture.ts).
 
@@ -462,14 +462,14 @@ Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time pa
 
 | game | how a cell is addressed |
 |---|---|
-| MonkeyGram, RackAttack | `(x, y)` pair + keyboard cursor → **this convention** |
-| StackDown | tile `id`; tile *positions* are `x` / `y` / `z` (z = stack layer) — already x/y |
-| TinySpy, SyrupSwap | flat index (`position` / `pos`, 0..N) — no pair, no cursor |
-| WordKnit | the tile string itself |
+| bananagrams, scrabble | `(x, y)` pair + keyboard cursor → **this convention** |
+| stackdown | tile `id`; tile *positions* are `x` / `y` / `z` (z = stack layer) — already x/y |
+| codenamesduet, waffle | flat index (`position` / `pos`, 0..N) — no pair, no cursor |
+| connections | the tile string itself |
 
 So: a new game with a coordinate-pair grid + cursor uses this vocabulary and reaches for the shared helpers. A game that addresses cells by flat index or identity (the more common case) has no pair to name — don't invent one.
 
-The one surviving `row`/`col` is intentional: SyrupSwap's `coord(pos)` in [`waffle/lib/waffle.ts`](../src/waffle/lib/waffle.ts) builds a *spreadsheet label* like `"C3"`, where column-letter + row-number is the natural vocabulary. That's a display string, not playfield addressing — leave it.
+The one surviving `row`/`col` is intentional: waffle's `coord(pos)` in [`waffle/lib/waffle.ts`](../src/waffle/lib/waffle.ts) builds a *spreadsheet label* like `"C3"`, where column-letter + row-number is the natural vocabulary. That's a display string, not playfield addressing — leave it.
 
 ### Avoid `SELECT *`
 
@@ -584,20 +584,20 @@ Edge Functions live in a **flat namespace** at the Supabase project level — th
 
 | pattern | example |
 |---|---|
-| `<game>-<feature>` | `tinyspy-suggest-clue`, future `boggle-validate-board` |
+| `<game>-<feature>` | `codenamesduet-suggest-clue`, future `boggle-validate-board` |
 | `common-<feature>` | future `common-send-invite-email` (cross-game) |
 
-This matches the directory: `supabase/functions/tinyspy-suggest-clue/index.ts`.
+This matches the directory: `supabase/functions/codenamesduet-suggest-clue/index.ts`.
 
 ## Known gotchas
 
 ### Cross-schema embeds (PostgREST)
 
-PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `tinyspy.games.user_a_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
+PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `codenamesduet.games.user_a_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
 
 ```ts
 // This DOES NOT work cross-schema, even though the FK exists:
-supabase.schema('tinyspy').from('games')
+supabase.schema('codenamesduet').from('games')
   .select('id, user_a_id, profiles(username)')
 // → PGRST200 "Could not find a relationship between 'games'
 //             and 'profiles' in the schema cache"
@@ -605,7 +605,7 @@ supabase.schema('tinyspy').from('games')
 // The !fkname hint syntax doesn't rescue it either — same error.
 ```
 
-**Workaround:** fetch the two sides in separate queries and merge in JS. For small result sets (≤ 2 players, a few-dozen members) the extra round trip is fine. [`src/tinyspy/hooks/useGame.ts`](../src/tinyspy/hooks/useGame.ts) is the canonical example — read the inline comment there for the diagnostic story.
+**Workaround:** fetch the two sides in separate queries and merge in JS. For small result sets (≤ 2 players, a few-dozen members) the extra round trip is fine. [`src/codenamesduet/hooks/useGame.ts`](../src/codenamesduet/hooks/useGame.ts) is the canonical example — read the inline comment there for the diagnostic story.
 
 If a query genuinely needs server-side joining of cross-schema data (e.g. a complex roster + scores + history view), prefer a `security definer` RPC that does the join in SQL and returns a single payload, rather than fighting the embed layer.
 
@@ -613,7 +613,7 @@ This limitation has implications for table design: cross-game features that want
 
 ### Cross-schema TypeScript types
 
-`supabase gen types` produces a `Database` type with a top-level key per exposed schema. `supabase.schema('tinyspy').from('words')` is fully typed against `Database['tinyspy']['Tables']['words']`. Same for RPCs.
+`supabase gen types` produces a `Database` type with a top-level key per exposed schema. `supabase.schema('codenamesduet').from('words')` is fully typed against `Database['codenamesduet']['Tables']['words']`. Same for RPCs.
 
 If you add a new schema, also:
 

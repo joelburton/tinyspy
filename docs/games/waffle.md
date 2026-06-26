@@ -1,4 +1,4 @@
-# SyrupSwap (codename `waffle`)
+# waffle
 
 **Status: BUILT** — coop + compete, server + frontend. This began as the
 scoping doc and the design below still holds; it's now implemented in migration
@@ -6,11 +6,11 @@ scoping doc and the design below still holds; it's now implemented in migration
 (`supabase/tests/waffle/`) + Vitest (`src/waffle/lib/*.test.ts`) suites.
 Remaining polish is minor (recently-swapped tile flash).
 
-**Brand name vs codename.** The user-facing brand is **SyrupSwap** — it's the
+**Brand name vs codename.** The user-facing brand is **waffle** — it's the
 manifest `title` and the wording in any end-user copy (game listing, help,
 messages). Everywhere in *code* the codename is **`waffle`**: the SQL schema,
 the `src/waffle/` folder, component names, table/column names, variables, test
-files, gametype strings (`waffle_coop` / `waffle_compete`). SyrupSwap is a
+files, gametype strings (`waffle_coop` / `waffle_compete`). waffle is a
 mouthful to type, and "waffle" keeps the link to the original game obvious in
 the source — so brand and codename deliberately diverge here (the other games
 happen to share one word for both).
@@ -49,11 +49,11 @@ presence-pause, friends-on-a-Zoom-call model.
 ## Modes (sibling-manifest pair)
 
 Ships as `waffle_coop` + `waffle_compete`, the same pattern psychicnum /
-wordknit / freebee follow (a `mode` column on `waffle.games`, a `mode` arg on
+connections / spellingbee follow (a `mode` column on `waffle.games`, a `mode` arg on
 `create_game`, mode-aware RLS). Per [Joel, 2026-06-20]:
 
 - **Coop** — one shared board, one shared swap budget; **either player can
-  swap** and everyone sees it. "Like wordknit coop" — players' working rows
+  swap** and everyone sees it. "Like connections coop" — players' working rows
   move in lock-step.
 - **Compete** — both players get the **same** puzzle on their **own** board;
   **winner = fewest swaps** to solve. Tie-break: fewer swaps, then less time
@@ -109,7 +109,7 @@ piece in the game.
 
 The puzzle is shared + immutable on `waffle.games`; the **solution is hidden**
 (column-grant revoked from `authenticated`, revealed only post-terminal via the
-view — the freebee / psychicnum hidden-answer pattern).
+view — the spellingbee / psychicnum hidden-answer pattern).
 
 Working state lives in `waffle.players`, **one table for both modes**. Compete
 forces a per-player row (each player solves their own copy, with their own
@@ -117,7 +117,7 @@ forces a per-player row (each player solves their own copy, with their own
 columns on `waffle.games`, but we reuse the same per-player table and keep every
 coop player's row **identical**, updating them all on each swap ("lock-step").
 That gives one storage shape, one read path, and one view for both modes —
-exactly how `wordknit` handles its coop counters. The only cost is storing the
+exactly how `connections` handles its coop counters. The only cost is storing the
 25-char board redundantly across a handful of rows; trivial.
 
 | table | purpose |
@@ -130,7 +130,7 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 
 - **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution` only
   when `common.games.is_terminal` (via a `SECURITY DEFINER` helper, exactly the
-  freebee `_required_words_for` shape).
+  spellingbee `_required_words_for` shape).
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
@@ -140,9 +140,9 @@ exactly how `wordknit` handles its coop counters. The only cost is storing the
 ### RLS (mode-aware)
 
 Read gating on club membership (`common.is_club_member`), like every game. The
-mode-aware twist (freebee precedent): in **compete**, an opponent's
+mode-aware twist (spellingbee precedent): in **compete**, an opponent's
 `board`/`colors` are hidden mid-game — expose only their `swaps_used` + `solved`
-(a lean opponent-progress projection, like freebee's rank-only visibility) — and
+(a lean opponent-progress projection, like spellingbee's rank-only visibility) — and
 everything reveals post-terminal. **Coop** shows the shared board to all members.
 
 ## RPCs
@@ -167,7 +167,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   - **compete:** apply to the caller's row only (no log row).
   - Returns `{ colors, swaps_used, solved, terminal }`.
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
-  freebee "realtime touch" pattern so the FE wakes up on expiry.
+  spellingbee "realtime touch" pattern so the FE wakes up on expiry.
 - **`end_game(game)`** — the manual "End game" menu item (both modes). A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
   intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
@@ -177,7 +177,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   the solution. The FE renders a neutral green "Game ended" card (it reuses
   `GameOverModal` `outcome:'won'` purely for the green styling — the verdict copy
   says there's no winner). `buildOver` / `labelFor` both branch on `'ended'`
-  before their win/lose branches. Modeled exactly on `freebee.end_game`.
+  before their win/lose branches. Modeled exactly on `spellingbee.end_game`.
 
 ### Terminal logic
 
@@ -205,10 +205,10 @@ game in the club list.
 
 ## Board generation: `waffle-build-board` (edge function)
 
-**No external corpus** (unlike wordknit's found Connections collection) and **no
+**No external corpus** (unlike connections's found Connections collection) and **no
 pre-generated library** — a board is built fresh at game-start by the
 `waffle-build-board` edge function, the same on-demand pattern as
-`freebee-build-board`.
+`spellingbee-build-board`.
 
 **Why on demand, not pre-generated.** A pre-generated library bakes the word
 filters into each puzzle (you can't filter a board after the fact, only reject
@@ -221,7 +221,7 @@ word list changes, and no `waffle.puzzles` table or import step.
 **Why an edge function, not the FE or plpgsql.** Building server-side keeps the
 solution off the creating client — for a solve-the-board puzzle, a creator who
 knew the answer would have no game. (plpgsql is a poor host for the fill +
-cycle-decomposition par; same reason freebee uses an edge function.)
+cycle-decomposition par; same reason spellingbee uses an edge function.)
 
 The pure generation logic lives in
 [`supabase/functions/waffle-build-board/gen.ts`](../../supabase/functions/waffle-build-board/gen.ts)
@@ -262,23 +262,23 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 Mirrors the other game folders:
 
 - `manifest.ts` — the `waffle_coop` + `waffle_compete` sibling pair (gametype
-  strings stay codenamed; the manifest `title` is the brand **SyrupSwap**).
+  strings stay codenamed; the manifest `title` is the brand **waffle**).
 - `db.ts` — `supabase.schema('waffle')`.
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`;
   `lib/colors.ts` — render only (server is authoritative for the actual colors).
 - `components/` — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
-  drag-to-swap, colored tiles — reuse the TinySpy keycard color tokens),
+  drag-to-swap, colored tiles — reuse the codenamesduet keycard color tokens),
   `SwapLog` (the coop move log, "Swap #N — name · A (A1) ↔ B (C2)", letters
   prominent + coordinates small/light; coop only, shown during and after the
   game), `SetupForm` (timer + the extra-swaps difficulty knob), `Help`, and the
   shared `common/components/OpponentStrip` for compete (a `metricFor` returning
-  swaps-used + a ✓/✗ mark — the same strip freebee/wordknit/psychicnum use,
+  swaps-used + a ✓/✗ mark — the same strip spellingbee/connections/psychicnum use,
   differing only in the metric cell).
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
-drag-preview via Broadcast (wordknit's peer-selection trick) is a nice-to-have —
+drag-preview via Broadcast (connections's peer-selection trick) is a nice-to-have —
 defer.
 
 ## Testing
@@ -306,9 +306,9 @@ defer.
 
 ## Decisions (settled 2026-06-21)
 
-- **Name:** brand **SyrupSwap**, codename **`waffle`** (see the header).
+- **Name:** brand **waffle**, codename **`waffle`** (see the header).
 - **Coop working-state:** **(A)** one uniform `waffle.players` table for both
-  modes, coop rows kept in lock-step (matches wordknit). The rejected
+  modes, coop rows kept in lock-step (matches connections). The rejected
   alternative — a single shared board on `waffle.games` for coop — is described
   in the schema note above; flip to it only if the per-row redundancy ever bites.
 - **`max_swaps`:** default `par + 5`, **configurable in `SetupForm`** (`extra_swaps`).

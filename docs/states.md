@@ -30,13 +30,13 @@ The two sources stay as today:
 
 Play states describe the game's rules-side situation — totally independent of view state.
 
-Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is PsychicNum coop (`playing` / `won` / `lost`); the broadest today is tinyspy (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
+Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is psychicnum coop (`playing` / `won` / `lost`); the broadest today is codenamesduet (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
 
-**Convention: don't use `'active'` as a play_state value.** "Active" overloads view-state and play-state — using it for play_state invites the confusion this whole vocabulary exists to prevent. Every gametype uses `'playing'` as its standard mid-game play_state. Gametypes with additional non-terminal phases (tinyspy's `'sudden_death'`) get their own names for those.
+**Convention: don't use `'active'` as a play_state value.** "Active" overloads view-state and play-state — using it for play_state invites the confusion this whole vocabulary exists to prevent. Every gametype uses `'playing'` as its standard mid-game play_state. Gametypes with additional non-terminal phases (codenamesduet's `'sudden_death'`) get their own names for those.
 
 ### Compete-variant convention: `_compete` suffix
 
-Sibling-manifest pairs that include a compete variant (see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this convention: the terminal play_state in compete mode is the coop name plus a `_compete` suffix. PsychicNum is the canonical example:
+Sibling-manifest pairs that include a compete variant (see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this convention: the terminal play_state in compete mode is the coop name plus a `_compete` suffix. psychicnum is the canonical example:
 
 | mode    | won-terminal   | lost-terminal    |
 |---------|----------------|------------------|
@@ -45,7 +45,7 @@ Sibling-manifest pairs that include a compete variant (see [`common.md` → The 
 
 The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
 
-Freebee's eventual compete variant will follow the same suffix convention (the schema already declares `'won_compete'` as a planned play_state). Wordknit's compete will use `'solved_compete'` (matching wordknit's coop terminal naming `'solved'`).
+Freebee's eventual compete variant will follow the same suffix convention (the schema already declares `'won_compete'` as a planned play_state). Wordknit's compete will use `'solved_compete'` (matching connections's coop terminal naming `'solved'`).
 
 ### `is_terminal` is materialized
 
@@ -61,7 +61,7 @@ The schema split: `common.games` is the cross-cutting metadata; `<gametype>.game
 
 - `is_current_view` (boolean)
 - `paused` (boolean — present for any game, but only meaningful when `is_current_view = true`)
-- `play_state` (text — the gametype's enum value, e.g. `'solved'` for wordknit)
+- `play_state` (text — the gametype's enum value, e.g. `'solved'` for connections)
 - `is_terminal` (boolean — materialized, in sync with play_state)
 - `status` (jsonb — gametype-specific data needed for the club-page listing label; each gametype consumes its own shape via `manifest.labelFor`)
 - The game clock lives in a **separate table, `common.timers (game_id, ticks, last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks` is an **additive** count of whole seconds of *active play*: every actively-playing client calls `common.tick_timer` once a second, which advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s` conditional dedupes across players and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing" need **no tracking** — they're just seconds where nobody calls tick_timer, so the clock stops. This replaced the old subtractive `idle_since`/`total_idle_seconds` accumulator; `set_current_view`/`unset_current_view` are now pure pointer-flips with no timer work.
@@ -72,11 +72,11 @@ The schema split: `common.games` is the cross-cutting metadata; `<gametype>.game
 ### `foo.games` carries
 
 Only gametype-specific gameplay state — things that drive the in-game render and the gametype's own RPCs. Examples:
-- **wordknit**: `board jsonb`, `mistake_count`
-- **tinyspy**: `key_card_a`, `key_card_b`, `current_clue_giver`, `turns_remaining`, …
+- **connections**: `board jsonb`, `mistake_count`
+- **codenamesduet**: `key_card_a`, `key_card_b`, `current_clue_giver`, `turns_remaining`, …
 
 Nothing about cross-cutting state. Nothing that the listing reads. (If the listing wanted to show the
-number of mistakes in a wordknit game, we would *also* put that in the common.games.status)
+number of mistakes in a connections game, we would *also* put that in the common.games.status)
 
 ### Listing implication
 
@@ -84,7 +84,7 @@ The club page lists games entirely from `common.games`. The manifest's only list
 
 ## Suspended vs terminal — not a special case
 
-A "suspended" game is just a description for **a non-current, non-terminal game** — a crossword not yet filled, a wordknit where categories remain. Suspended games are likely candidates for the club to pick up again.
+A "suspended" game is just a description for **a non-current, non-terminal game** — a crossword not yet filled, a connections where categories remain. Suspended games are likely candidates for the club to pick up again.
 
 Terminal games are non-current and `is_terminal = true`. Clubs can still view these (to look at the solved grid, reminisce, etc.).
 

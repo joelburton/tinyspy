@@ -1,4 +1,4 @@
-# RackAttack (codename `scrabble`)
+# scrabble
 
 A Scrabble-style word game: players build interlocking words from lettered tiles
 on a 15×15 premium-square board, drawing from a shared 100-tile bag and scoring
@@ -6,18 +6,18 @@ by letter values × board premiums. The first game in the roster that is
 **turn-based with a shared, contended resource** (one board, one bag) — which is
 where almost all of its novelty lives.
 
-> **Brand ≠ codename.** User-facing name is **RackAttack**; the identifier
+> **Brand ≠ codename.** User-facing name is **scrabble**; the identifier
 > everywhere in code / DB / schema / tests is `scrabble` — the codename keeps the
-> link to the original game obvious in source, the same call SyrupSwap/`waffle`
-> and WordNerd/`wordle` make. ("Scrabble" is a trademark, so it can't be the
+> link to the original game obvious in source, the same call waffle/`waffle`
+> and wordle/`wordle` make. ("Scrabble" is a trademark, so it can't be the
 > brand, but as an internal codename it's the clearest possible name.)
 
-RackAttack is a **coop / compete sibling pair** (`scrabble_coop`,
+scrabble is a **coop / compete sibling pair** (`scrabble_coop`,
 `scrabble_compete`) and inherits the shared chrome — timer, chat, presence-pause,
 manual "End game" — through `<GamePage>` + `useCommonGame`, like every other
 multiplayer gametype.
 
-> **Status: live.** RackAttack is the **9th** registered gametype — built
+> **Status: live.** scrabble is the **9th** registered gametype — built
 > end-to-end (engine, migration, RPCs, FE) and shipping. Design forks settled in
 > §11. A few choices landed *after* the initial build, from playtesting, and are
 > reflected throughout: two difficulty bands by word length ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)),
@@ -28,8 +28,8 @@ multiplayer gametype.
 
 ## 1. The shape of the novelty
 
-Every existing game is either "any player acts whenever" (FreeBee, StackDown
-coop) or fixed two-seat (TinySpy). RackAttack is structurally different in three
+Every existing game is either "any player acts whenever" (spellingbee, stackdown
+coop) or fixed two-seat (codenamesduet). scrabble is structurally different in three
 ways that drive most of the schema:
 
 1. **One shared 15×15 board** all players mutate, sequentially.
@@ -39,7 +39,7 @@ ways that drive most of the schema:
 
 The flip side: there is **no board library and no builder edge function**. The
 board layout and tile distribution are *constants in code*; the only per-game
-randomness is the bag's shuffle order. So unlike FreeBee / SyrupSwap / StackDown,
+randomness is the bag's shuffle order. So unlike spellingbee / waffle / stackdown,
 there's nothing to pre-generate and nothing to import. The complexity instead
 lands in **move evaluation** (a single placement forms a main word *plus* every
 perpendicular cross-word) — which lives in **one place, the TS `lib/play.ts`**,
@@ -122,13 +122,13 @@ Standard Scrabble scoring:
   (a "see what you can get" practice/collaboration mode; solo is just the
   1-player case).
 
-  Mirroring StackDown coop: a player **stages tiles privately** — tentative
+  Mirroring stackdown coop: a player **stages tiles privately** — tentative
   placements are local to their client, never broadcast — and only on a
   successful **commit** does the word hit the shared board for everyone. Commits
   serialize on the game-row lock, so if two players commit at once the first wins
   and the second's staged word **resets** — and because the rack is *shared*, a
   peer's commit can pull tiles out from under your half-built word, forcing the
-  same reset (exactly StackDown's "whoever submits first claims it, the other's
+  same reset (exactly stackdown's "whoever submits first claims it, the other's
   in-progress resets," with the shared rack as the contended resource).
 
 ### 2.5 Blank tiles
@@ -181,8 +181,8 @@ Two natural end triggers, plus the universal manual / timeout paths:
   deliberate — it pushes a solo/coop team to find plays for its last tiles
   rather than just stopping, the same penalty a natural end applies.
 
-> **Deliberate deviation from the roster's timeout convention.** FreeBee/etc.
-> treat a compete timeout as *no winner*. RackAttack instead crowns the highest
+> **Deliberate deviation from the roster's timeout convention.** spellingbee/etc.
+> treat a compete timeout as *no winner*. scrabble instead crowns the highest
 > score on timeout, because a Scrabble score accumulated over real plays is
 > meaningful — voiding it would reward stalling. Only **manual** end is neutral.
 
@@ -214,7 +214,7 @@ SQL-side for the bag shuffle):
 | 8 | J×1, X×1 |
 | 10 | Q×1, Z×1 |
 
-(Unlike FreeBee, **`S` is included and plurals are legal** — they're core to
+(Unlike spellingbee, **`S` is included and plurals are legal** — they're core to
 Scrabble, not a trivializing exploit.)
 
 ### 3.3 The dictionary (difficulty bands, by word length)
@@ -225,17 +225,17 @@ The legal word set is the shared `common.words` list (see
 (`dict_2`) and one for **3+-letter** words (`dict_3plus`), both 1..6. A word is
 legal iff `difficulty ≤ the band for its length` and it's valid in the
 **american OR british** dialect (the codebase's default-play convention). The
-two-band split (the same MonkeyGram uses) exists because 2-letter words are a
+two-band split (the same bananagrams uses) exists because 2-letter words are a
 thin, separate vocabulary you usually want to gate independently of the rest. No
 clean filter — among friends, crude words are legal Scrabble plays (standard
-dictionaries include them), the same way FreeBee's *legal* tier carries no clean
+dictionaries include them), the same way spellingbee's *legal* tier carries no clean
 restriction.
 
-**The bands are the acceptance gate — RackAttack deviates from the roster default
+**The bands are the acceptance gate — scrabble deviates from the roster default
 here.** The general convention (common.md) is "validation accepts the *full* 1–6
 range; which bands a game *offers* is a UI choice" — because in most games the
-band only shapes the puzzle / required set, not what's enterable. RackAttack is
-the FreeBee-*legal*-tier case instead: the selected band **is** the bar that
+band only shapes the puzzle / required set, not what's enterable. scrabble is
+the spellingbee-*legal*-tier case instead: the selected band **is** the bar that
 `play_word` enforces (a word above its length's band is the *only* kind that's
 rejected), so picking a lower band genuinely makes a stricter game. The setup
 form offers **all six** for each (default 3 / 3). The bands are server-only
@@ -252,7 +252,7 @@ of validation that stays server-side, because that's where the word list is
 
 Built as the standard sibling pair on a per-baseGametype `scrabble` schema.
 Migration: `supabase/migrations/20260627000000_scrabble.sql` (next after
-StackDown's `20260626`).
+stackdown's `20260626`).
 
 ### 4.1 Tables
 
@@ -262,10 +262,10 @@ StackDown's `20260626`).
 | `players` | `(game_id, user_id)` → `seat` (turn order, compete), `score` (compete per-player). **Compete:** `rack` jsonb (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded |
 | `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
 
-**Why `plays` is public in both modes** (unlike FreeBee's mid-game-private
+**Why `plays` is public in both modes** (unlike spellingbee's mid-game-private
 `found_words`): every committed word is *on the shared board*, which is public —
 so a play's word + score is already visible to opponents. Only **racks** and the
-**bag** are secret. This makes RackAttack's hidden-state surface smaller than the
+**bag** are secret. This makes scrabble's hidden-state surface smaller than the
 answer-hiding games: there's no hidden *solution*, just hidden *resources*.
 
 ### 4.2 The deliberate coop/compete column asymmetry
@@ -280,7 +280,7 @@ the nulls read as intentional, not a gap.
 ### 4.3 Hidden-state pattern
 
 Same column-grant + `security_invoker` view shape the answer-hiding games use
-(StackDown's `solution`, FreeBee's `required_words`), but applied to *resources*:
+(stackdown's `solution`, spellingbee's `required_words`), but applied to *resources*:
 
 - **`bag`** is column-excluded from the `authenticated` grant and **never
   revealed**. A `scrabble.games_state` view exposes `bag_count` (via a
@@ -411,7 +411,7 @@ is handled by **optimistic concurrency**, not by re-validation. `games.version`
 is a move counter; the FE submits the `base_version` its board was read at, and
 `play_word` does a compare-and-set under the row lock: if the version moved, the
 commit is rejected as `stale` and the FE recomputes against fresh state. This is
-the explicit form of StackDown coop's "first commit wins, the other resets," and
+the explicit form of stackdown coop's "first commit wins, the other resets," and
 it *also* catches a stale client that computed against an old board (which a bare
 lock would silently clobber). Two cheap **integrity guards** (placements
 in-bounds + on empty squares; consumed tiles really in the rack) protect the
@@ -426,7 +426,7 @@ port target is exactly that one tested module — but YAGNI today.
 
 (No edge function anywhere: the dictionary check and bag draw are trivial SQL, and
 edge functions in this repo are only ever *setup-time board generation*, which
-RackAttack doesn't have.)
+scrabble doesn't have.)
 
 ---
 
@@ -437,7 +437,7 @@ Shared `PlayArea` / `SetupForm` / `Help` / `useGame`, mode-branched at render on
 a square bounded by viewport height and the width left after the fixed side
 column); the rack, action row, score, and move log sit in that fixed side column.
 
-**Placement mirrors MonkeyGram's two input modes** — its pointer-gesture system
+**Placement mirrors bananagrams's two input modes** — its pointer-gesture system
 (a press-past-threshold becomes a drag, with a floating ghost + drop highlights)
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
@@ -574,7 +574,7 @@ All shipped in migration `20260627000000_scrabble.sql` (which registers
 ### Post-build additions (from playtesting)
 
 - **Two difficulty bands** by word length, not one — `dict_2` (2-letter) /
-  `dict_3plus` (3+), the MonkeyGram split ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
+  `dict_3plus` (3+), the bananagrams split ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
 - **Coop manual end forfeits** the leftover-tile value (a `forfeit` log row,
   red "−N tiles unplayed") instead of the uniform neutral stop — it nudges a
   solo/coop team to play its last tiles ([§2.7](#27-ending-the-game), [§5.5](#55-end_game--submit_timeout)).

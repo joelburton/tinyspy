@@ -2,7 +2,7 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-The flagship game is **TinySpy** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **WordKnit** is a Connections-style word-grouping puzzle. A tiny third game (**PsychicNum**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. **FreeBee** (a Spelling-Bee-style word finder), **MonkeyGram** (Bananagrams-style), **SyrupSwap** (a Waffle-style swap-to-solve puzzle), **WordNerd** (a Wordle-style guess-the-word game), **StackDown** (a mahjong-style word game — clear a stack of lettered tiles by spelling words off the exposed ones), and **RackAttack** (a Scrabble-style game on the standard 15×15 premium board, codename `scrabble`) round out today's roster. Boggle, crosswords, and others slot in next; most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
+The flagship game is **codenamesduet** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **connections** is a Connections-style word-grouping puzzle. A tiny third game (**psychicnum**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. **spellingbee** (a Spelling-Bee-style word finder), **bananagrams** (Bananagrams-style), **waffle** (a Waffle-style swap-to-solve puzzle), **wordle** (a Wordle-style guess-the-word game), **stackdown** (a mahjong-style word game — clear a stack of lettered tiles by spelling words off the exposed ones), and **scrabble** (a Scrabble-style game on the standard 15×15 premium board) round out today's roster. Boggle, crosswords, and others slot in next; most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
 Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — a ~40-line hand-rolled router covers the flat route set.
 
@@ -25,7 +25,7 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 - **Frontend:** Vite + React 19 + TypeScript. Hand-rolled path-based router (no react-router). Each game's `Root` is a lazy chunk so the main bundle stays small as games are added.
 - **Backend:** Supabase — Postgres (with RLS), PostgREST, Realtime (WebSocket), Auth (magic links via Resend SMTP), Edge Functions (Deno).
 - **Hosting:** Netlify (FE), Supabase (everything else).
-- **AI features:** Anthropic Claude via Edge Functions (TinySpy's clue suggester is the current example).
+- **AI features:** Anthropic Claude via Edge Functions (codenamesduet's clue suggester is the current example).
 
 ## Architecture at a glance
 
@@ -33,7 +33,7 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 src/
   App.tsx, main.tsx, games.ts    # shell + the games registry
   common/                         # cross-game UI, hooks, lib, db handle
-  tinyspy/                        # Codenames Duet
+  codenamesduet/                        # Codenames Duet
   psychicnum/                     # toy second game; exercises multi-game wiring
 
 supabase/
@@ -65,7 +65,7 @@ npm run dev                # http://localhost:5173
 
 Local credentials are picked up automatically from `supabase status`; `.env.local` already points at the local API URL. Magic-link emails land in Mailpit at <http://localhost:54324> in dev — open it, click the link, and you're signed in.
 
-For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. To play TinySpy, create a club with both of you as members from `/c/new`, then click "Start TinySpy" on the club page. The other tab gets a "join this game" popup — click Join (the game waits, paused, until everyone's joined).
+For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. To play codenamesduet, create a club with both of you as members from `/c/new`, then click "Start codenamesduet" on the club page. The other tab gets a "join this game" popup — click Join (the game waits, paused, until everyone's joined).
 
 ## npm scripts
 
@@ -93,7 +93,7 @@ Two suites — pgTAP for server-authoritative game logic, Vitest for FE behavior
 npm test                                                        # both
 npm run test:fe                                                 # Vitest only; --watch for dev loop
 npm run test:db                                                 # pgTAP only; needs Docker + local stack
-supabase test db --local supabase/tests/tinyspy/win_test.sql    # one file
+supabase test db --local supabase/tests/codenamesduet/win_test.sql    # one file
 ```
 
 ## Production
@@ -125,7 +125,7 @@ A few hosted-project settings can only be configured in the dashboard (not via `
 - **Auth → URL Configuration** — `site_url` + redirect URLs must include the Netlify origin.
 - **Auth → Email rate limits** — free-tier defaults are conservative; raise if real magic-link traffic warrants it.
 - **Custom SMTP** — we use Resend on `tinyspy.joelburton.com`. Supabase's shared mailer caps at 2 emails/hour; any real magic-link traffic requires your own SMTP provider.
-- **Edge Function secrets** — set via `supabase secrets set` (CLI) rather than the dashboard for atomicity. Currently just `ANTHROPIC_API_KEY` for `tinyspy-suggest-clue`.
+- **Edge Function secrets** — set via `supabase secrets set` (CLI) rather than the dashboard for atomicity. Currently just `ANTHROPIC_API_KEY` for `codenamesduet-suggest-clue`.
 
 ## Documentation
 
@@ -137,14 +137,14 @@ The detail behind everything above lives in `docs/`. Read these by need, not in 
 | [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) — short. |
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, naming rules, "Avoid SELECT *", `useEffect` commenting, known gotchas. |
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, the games registry, removability invariant, routing, the FE shell. |
-| [docs/games/tinyspy.md](docs/games/tinyspy.md) | Codenames Duet rules + tinyspy schema, RPCs, RLS, FE components, Edge Function, tests. |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | PsychicNum rules + schema, the hidden-target column-grant pattern, FE, tests. |
+| [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, RLS, FE components, Edge Function, tests. |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-target column-grant pattern, FE, tests. |
 | [docs/testing.md](docs/testing.md) | Test theory (pgTAP vs Vitest), persona conventions, common helpers, FE testing patterns. |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations. |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen lookup for commands, table inventory, RPC summaries, key files. |
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). The multi-game architecture is complete; TinySpy plays end-to-end and PsychicNum exists as a deliberately-tiny second game to keep the architecture honest. Next games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). The multi-game architecture is complete; codenamesduet plays end-to-end and psychicnum exists as a deliberately-tiny second game to keep the architecture honest. Next games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

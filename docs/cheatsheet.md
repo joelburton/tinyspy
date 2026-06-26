@@ -14,9 +14,9 @@
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
-| `npm run wordknit:import` | populate `wordknit.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
+| `npm run connections:import` | populate `connections.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
 | `npm run words:import` | populate `common.words` (the shared master word list) from `~/src/gamelist/words.tsv` (the word-list project's working copy, read live; override with `WORDS_TSV`). Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
-| `npm run freebee:import` | rebuild `freebee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
+| `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 
@@ -47,7 +47,7 @@ supabase db dump --local --schema common        # dump one schema as SQL
 ```
 supabase gen types typescript --local           # → stdout; piped into src/types/db.ts
 supabase test db --local supabase/tests         # pgTAP suite (recurses into subfolders)
-supabase test db --local supabase/tests/tinyspy/create_game_test.sql   # one file
+supabase test db --local supabase/tests/codenamesduet/create_game_test.sql   # one file
 supabase link --project-ref <ref>               # tie this checkout to a hosted project
 supabase login                                  # one-time browser-based auth
 ```

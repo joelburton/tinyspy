@@ -1,16 +1,16 @@
-# StackDown (codename `stackdown`)
+# stackdown
 
 A mahjong-style word game. Thirty letter tiles are stacked so only "exposed"
 tiles are selectable; the player clears the board by finding six 5-letter
 words in sequence, each found word permanently removing its tiles and exposing
 the ones beneath.
 
-> **Brand = codename here.** User-facing name is **StackDown**; the identifier
-> everywhere in code / DB / schema is `stackdown`. (Unlike SyrupSwap/`waffle`
-> and WordNerd/`wordle`, the two happen to be the same word — only the casing
+> **Brand = codename here.** User-facing name is **stackdown**; the identifier
+> everywhere in code / DB / schema is `stackdown`. (Unlike waffle/`waffle`
+> and wordle/`wordle`, the two happen to be the same word — only the casing
 > differs.)
 
-StackDown is a **coop / compete sibling pair** like the other multiplayer
+stackdown is a **coop / compete sibling pair** like the other multiplayer
 games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
 — timer (or none), chat, presence-pause, manual "End game" — through
 `<GamePage>` + `useCommonGame`.
@@ -123,7 +123,7 @@ no-traps**; validate against *all* completions, not one.
 
 ### 2.5 The lexicon is a *generation-time* concern only
 
-A single word list — the **StackDown standard set** (`difficulty = 1 AND
+A single word list — the **stackdown standard set** (`difficulty = 1 AND
 american AND slur = 0 AND crude = 0 AND len = 5` in `common.words`; this may
 become configurable via `wordlist` later, no UI for that now) — is what the
 generator validates boards against: the no-trap check enumerates completions
@@ -200,7 +200,7 @@ random word-sets yield one; the rest are skipped after a bounded attempt cap).
 
 A **prototype** validated all of this — the model, the sequence-aware validator
 (BROAD-yes/BOARD-no), the generator, and a click-to-remove UI — living outside
-git in `stackdown-proto/` (gitignored, like `monkeygram-ui/`).
+git in `stackdown-proto/` (gitignored, like `bananagrams-ui/`).
 
 ---
 
@@ -265,7 +265,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   next word's **hint** (`common.words.hint` — a curated clue that points at the
   word without naming it), NULL once all six are cleared. Same gating + next-word
   math as `reveal_next_word`, but the word never reaches the client — only the
-  hint text crosses the wire. Every StackDown word is a 5-letter Wordle word, so
+  hint text crosses the wire. Every stackdown word is a 5-letter Wordle word, so
   it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
   button shows it in the header feedback slot. Logs a `kind='hint'` request row
   ("Requested hint") the same way. Both requests ride the submissions RLS, so a
@@ -278,8 +278,8 @@ per-schema subscription.
 
 ### Title formula
 
-A StackDown game is created titled **"New game"** (the gametype logo, not the
-title, identifies the game in the club list — so a static "StackDown" title
+A stackdown game is created titled **"New game"** (the gametype logo, not the
+title, identifies the game in the club list — so a static "stackdown" title
 would just be noise).
 
 **Coop** then rewrites the title to the words cleared so far, on every valid
@@ -318,7 +318,7 @@ prettier title here.
   resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
   shared Broadcast room that needed a stable name is gone.
 - **`hooks/usePeerFeedback.ts`** — coop-only narration of teammates' moves (the
-  freebee `usePeerFeedback` pattern). Diffs the `submissions` list against a
+  spellingbee `usePeerFeedback` pattern). Diffs the `submissions` list against a
   `seen` set keyed by `(user_id, seq)`, bootstrapping quietly on the first
   loaded render so a reconnect doesn't replay the backlog. Each *new* teammate
   submission fires a header feedback pill — "moth found SCARE" / "moth tried
