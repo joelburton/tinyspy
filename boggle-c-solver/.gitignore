@@ -1,0 +1,6 @@
+# Compiled benchmark / oracle binaries — build with `make` (see README.md).
+bench_before
+solver_trie
+dump_fixture
+*.o
+*.dSYM
