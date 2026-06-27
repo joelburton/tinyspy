@@ -37,29 +37,33 @@ type Props = {
  * Alphabetical list of every accepted submission, plus — post-terminal —
  * the required words nobody found.
  *
- * Coloring is uniform across modes and phases:
+ * Each row leads with a **circle marker** that carries the attribution;
+ * the word text itself is plain body-black, so finder identity reads from
+ * the dot, not the text:
  *
- *   - **Found words** render in their **finder's** color
- *     (`colorVarFor(player.color)`). Each word appears once; a word
- *     more than one player found (compete, post-terminal) is colored by
- *     the FIRST finder — buildDisplayRows dedups by earliest `found_at`.
- *     Mid-game compete shows only your own words (RLS); mid-game coop
- *     shows everyone's, each in their color.
- *   - **Unfound required words** (the post-terminal reveal) render in
- *     **medium grey** (`.unfound`) — "here's what the team / field
- *     missed." Bonus words are never revealed, so these are required-
- *     only.
+ *   - **Found words** lead with a filled ● in their **finder's** color
+ *     (`colorVarFor(player.color)`), word in black. Each word appears
+ *     once; a word more than one player found (compete, post-terminal)
+ *     is attributed to the FIRST finder — buildDisplayRows dedups by
+ *     earliest `found_at`. Mid-game compete shows only your own words
+ *     (RLS); mid-game coop shows everyone's.
+ *   - **Unfound required words** (the post-terminal reveal) lead with a
+ *     hollow ○ in **medium grey**, word also grey — "here's what the
+ *     team / field missed." The hollow ring (not the text color) is the
+ *     "missed" signal. Bonus words are never revealed, so these are
+ *     required-only.
  *
- * Two flags compose on top:
+ * Three flags compose on top:
  *
  *   - **Pangram** — emphasized via font-weight (a found one, or a
  *     missed one in grey).
  *   - **Bonus** — a trailing '•' bullet (a bonus word: legal − required;
  *     scores the same, doesn't count toward the required goal).
- *   - **Recently found** — underline in the finder's color, fades after
- *     5s (useRecentlyFound). Suppressed post-terminal: the reveal
- *     refetch makes every peer row appear at once, which would otherwise
- *     flash the whole list.
+ *   - **Recently found** — the word gets an underline in the finder's
+ *     color (set inline, since CSS can't know it), fading after 5s
+ *     (useRecentlyFound). Suppressed post-terminal: the reveal refetch
+ *     makes every peer row appear at once, which would otherwise flash
+ *     the whole list.
  *
  * Rows are interactive: clicking (or Enter/Space on) a word opens
  * the common `DefinitionPopover` anchored to that row, via the
@@ -159,7 +163,7 @@ export function WordList({
           : (
             displayRows.map((entry) => {
               // Unfound reveal entries — required words nobody found,
-              // only ever post-terminal. Rendered in medium grey.
+              // only ever post-terminal. Hollow grey ring + grey word.
               if (entry.kind === 'unfound') {
                 return (
                   <li
@@ -171,31 +175,40 @@ export function WordList({
                     )}
                     {...rowActivation(entry.word)}
                   >
-                    {entry.word.toUpperCase()}
+                    <span className={cls(styles.dot, styles.dotUnfound)} aria-hidden="true">{'○'}</span>
+                    <span className={styles.word}>{entry.word.toUpperCase()}</span>
                   </li>
                 )
               }
-              // A found word — always in its (first) finder's color,
-              // mid-game and post-terminal alike.
+              // A found word — a filled dot in its (first) finder's color,
+              // word in black, mid-game and post-terminal alike.
               const row = entry.row
               const color = colorByUser.get(row.user_id) ?? 'var(--color-text)'
+              // Recently-found flash is mid-game only — see the
+              // foundWordsOnly note + the component doc.
+              const isRecent = !reveal && recentlyFound.has(row.word)
               return (
                 <li
                   key={row.word}
                   className={cls(
                     styles.row,
                     row.is_pangram && styles.pangram,
-                    // Recently-found flash is mid-game only — see the
-                    // foundWordsOnly note + the component doc.
-                    !reveal && recentlyFound.has(row.word) && styles.recent,
+                    isRecent && styles.recent,
                   )}
-                  style={{ color }}
                   {...rowActivation(row.word)}
                 >
-                  {row.word.toUpperCase()}
+                  <span className={styles.dot} style={{ color }} aria-hidden="true">{'●'}</span>
+                  {/* Word is plain black; only the dot carries finder color. The
+                      recent-flash underline is set to the finder color inline
+                      (CSS can't know it) — see `.recent .word`. */}
+                  <span
+                    className={styles.word}
+                    style={isRecent ? { textDecorationColor: color } : undefined}
+                  >
+                    {row.word.toUpperCase()}
+                  </span>
                   {/* Bonus words get a trailing bullet. Emitted as real
-                      text (not a ::after) so it sits naturally inline +
-                      centered with the word — no vertical-align fiddling. */}
+                      text (not a ::after) so it sits naturally inline. */}
                   {row.is_bonus && <span className={styles.bonusDot}>{' •'}</span>}
                 </li>
               )

@@ -8,12 +8,14 @@ type Props = {
 }
 
 /**
- * The 7-dot Start..Genius progress bar.
+ * The 7-square Start..Genius progress bar.
  *
- * Each dot represents one rank tier. Dots at or below the
+ * Each square represents one rank tier. Squares at or below the
  * player's current rank fill with the accent color; remaining
- * dots stay hollow. Hovering or focusing a dot reveals a
- * tooltip with the rank name + points threshold.
+ * squares stay hollow. (Squares, not circles — colored circles
+ * are reserved for player identity; see RankBar.module.css.)
+ * Hovering or focusing a square reveals a tooltip with the rank
+ * name + points threshold.
  *
  * The current rank's name renders as a label above the track
  * — same idiom spellingbee-ws uses, so the player has a vocabulary
@@ -35,7 +37,7 @@ export function RankBar({ score, total }: Props) {
           return (
             <li
               key={name}
-              className={cls(styles.dot, i <= idx && styles.achieved)}
+              className={cls(styles.tier, i <= idx && styles.achieved)}
               tabIndex={0}
               aria-label={`${name}, ${pts} points`}
             >

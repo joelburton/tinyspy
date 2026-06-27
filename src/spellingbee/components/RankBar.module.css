@@ -1,10 +1,13 @@
-/* The Start..Genius progress bar — 7 dots on a horizontal line
- * with a hover tooltip per dot showing the rank name + points
+/* The Start..Genius progress bar — 7 squares on a horizontal line
+ * with a hover tooltip per square showing the rank name + points
  * needed.
  *
- * Visual idiom matches spellingbee-ws: filled dots before/equal to
- * current rank, hollow dots beyond. The current rank's name is
- * displayed as a label above the track so the player has a
+ * Idiom adapted from spellingbee-ws (which used dots): filled squares
+ * before/equal to current rank, hollow squares beyond. We deliberately
+ * use SQUARES, not circles — across this app a colored circle means
+ * "this player" (member list, chat labels, wordlist markers), so rank
+ * tiers take a different shape to avoid muddying that signal. The current
+ * rank's name is displayed as a label above the track so the player has a
  * vocabulary anchor without hovering.
  *
  * The track is intrinsically narrow (~280px) so it reads as a
@@ -55,25 +58,31 @@
   z-index: 0;
 }
 
-.dot {
+.tier {
   position: relative;
   z-index: 1;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
+  /* Squares, not circles — colored circles are reserved for player identity
+   * (see the header note). A small radius keeps the corners from reading as
+   * a harsh pixel box. */
+  border-radius: 2px;
   background: var(--color-surface);
   border: 2px solid var(--color-surface-border);
   cursor: default;
 }
 
-.dot:focus-visible {
+.tier:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
+/* Achieved tiers fill bright yellow with a darker-amber edge (not a
+ * yellow-on-yellow border) so the square stands out against the white track
+ * background without the heaviness of a near-black outline. */
 .achieved {
   background: var(--spellingbee-accent);
-  border-color: var(--spellingbee-accent);
+  border-color: var(--spellingbee-feedback-warning);
 }
 
 /* Tooltip — only renders on hover/focus of its parent dot. */
@@ -94,7 +103,7 @@
   transition: opacity 80ms ease;
 }
 
-.dot:hover .tooltip,
-.dot:focus-visible .tooltip {
+.tier:hover .tooltip,
+.tier:focus-visible .tooltip {
   opacity: 1;
 }

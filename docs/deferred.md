@@ -55,6 +55,13 @@ See [`spellingbee.md → Open / deferred`](games/spellingbee.md#open--deferred) 
 
 - **Recently-swapped tile flash.** A cosmetic cue: briefly pulse/highlight the two tiles a swap just moved, so the eye tracks the change (like spellingbee's fade-underline on a freshly-found word). Today the only change-signal is the updated color. Small `WaffleGrid` addition (diff prev vs. next board to find the two moved cells, animate them).
 
+## Wordlist markers (spellingbee + boggle)
+
+The shared `WordList` (used by both spellingbee and boggle) now leads each row with a **circle marker** carrying finder attribution — a filled ● in the finder's color for found words, a hollow ○ in light grey for post-terminal misses — with the word text itself plain black. Rationale worth keeping: a solid disc is a far better color carrier than thin colored text (bigger area, no legibility/antialiasing fight), which **decouples identity from legibility** and relaxes the member palette — colors no longer have to survive as thin text, only as a ~12px disc. The deferred ideas that fall out of having a marker vocabulary:
+
+- **◐ (U+25D0) "multiple players found this word," in the first-finder's color.** A visual "others got this too" cue. Honesty constraint: compete finds are private mid-game (RLS gates `found_words` to your own rows until terminal), so ◐ can only truthfully appear **post-terminal in compete**, though it could be **live in coop**. Not built — just the marker reserved.
+- **⦻ (U+29BB) "scored zero because multiple players found it."** This is the *authentic* Boggle rule (shared words cancel), and boggle compete today deliberately does the **opposite**: the `boggle.found_words` PK is `(game_id, user_id, word)` and dedup is per-player, so two players independently keep the same word and both score it. So ⦻ isn't just a marker — it rides along with an **optional shared-word-cancellation scoring mode** (a scoring-model change in `submit_word` / `_finalize`). The marker's value is exactly that it makes the otherwise-confusing paper rule legible. Build only if we add that scoring mode.
+
 ## Tooling
 
 - **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Not worth the machinery until we have ≥ 3 games — the dup is one line and the lint failure on a missed update is obvious.

@@ -25,12 +25,14 @@ type Props = {
 }
 
 /**
- * Alphabetical found-words list — modeled on FreeBee's. Found words render in
- * their finder's color (deduped to the first finder); a bonus word gets a
- * trailing '•'; freshly-arrived words flash a same-color underline for 5s
- * (mid-game only). Post-terminal, the required words nobody found are
- * interleaved in grey. Every row is click-to-define. Column-major grid in a
- * fixed-height box that scrolls horizontally past the third column.
+ * Alphabetical found-words list — modeled on FreeBee's. Each row leads with a
+ * circle marker carrying the attribution: a filled ● in the finder's color for
+ * found words (deduped to the first finder), with the word itself in black; a
+ * bonus word gets a trailing '•'; freshly-arrived words flash a finder-color
+ * underline on the word for 5s (mid-game only). Post-terminal, the required
+ * words nobody found are interleaved with a hollow grey ○ + grey word. Every
+ * row is click-to-define. Column-major grid in a fixed-height box that scrolls
+ * horizontally past the third column.
  */
 export function WordList({
   foundWords,
@@ -92,23 +94,30 @@ export function WordList({
                   className={cls(styles.row, styles.unfound)}
                   {...rowActivation(entry.word)}
                 >
-                  {entry.word.toUpperCase()}
+                  <span className={cls(styles.dot, styles.dotUnfound)} aria-hidden="true">{'○'}</span>
+                  <span className={styles.word}>{entry.word.toUpperCase()}</span>
                 </li>
               )
             }
             const row = entry.row
             const color = colorByUser.get(row.user_id) ?? 'var(--color-text)'
+            const isRecent = !reveal && recentlyFound.has(row.word)
             return (
               <li
                 key={row.word}
-                className={cls(
-                  styles.row,
-                  !reveal && recentlyFound.has(row.word) && styles.recent,
-                )}
-                style={{ color }}
+                className={cls(styles.row, isRecent && styles.recent)}
                 {...rowActivation(row.word)}
               >
-                {row.word.toUpperCase()}
+                <span className={styles.dot} style={{ color }} aria-hidden="true">{'●'}</span>
+                {/* Word in black; only the dot carries the finder color. The
+                    recent-flash underline is set to the finder color inline
+                    (CSS can't know it) — see `.recent .word`. */}
+                <span
+                  className={styles.word}
+                  style={isRecent ? { textDecorationColor: color } : undefined}
+                >
+                  {row.word.toUpperCase()}
+                </span>
                 {row.is_bonus && <span className={styles.bonusDot}>{' •'}</span>}
               </li>
             )

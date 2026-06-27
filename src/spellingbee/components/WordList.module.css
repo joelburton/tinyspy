@@ -1,11 +1,11 @@
 /* The found-words list. An alphabetical, column-major grid (down each
  * column, then right) in a fixed-height box that scrolls horizontally
- * once words run past the third column. Mid-game each word renders in
- * the finder's color (per-finder attribution) and the recently-found
- * state adds a thick same-color underline that fades after 5s;
- * post-terminal the list switches to the muted cat-A / cat-B review
- * styling below.
- */
+ * once words run past the third column. Each row leads with a circle
+ * marker carrying the attribution — a filled ● in the finder's color for
+ * found words, a hollow ○ in grey for post-terminal missed words — while
+ * the word text stays black (found) / grey (missed). The recently-found
+ * state adds a thick finder-color underline on the word that fades after
+ * 5s. */
 
 .wrapper {
   width: 100%;
@@ -62,10 +62,32 @@
   cursor: pointer;
 }
 
-.row:hover {
+/* The leading attribution marker: a filled ● in the finder's color (set
+ * inline in the TSX) for found words. Shrunk below the word so it reads as
+ * a marker, and middle-aligned against the (taller) word text. */
+.dot {
+  font-size: 0.7em;
+  vertical-align: middle;
+  margin-right: 7px;
+}
+
+/* Missed words (post-terminal reveal) swap in a hollow ○ — the ring, not the
+ * text color, is the "missed" signal. Lighter (divider grey) than the muted
+ * word text so the ring reads as a faint marker, not a second emphasis. */
+.dotUnfound {
+  color: var(--color-divider);
+}
+
+/* The word text itself. Plain body-black for found words; finder identity
+ * lives in the dot. Underlines (hover + recent flash) scope to this span so
+ * they don't run under the leading dot. */
+.word {
+  text-underline-offset: 2px;
+}
+
+.row:hover .word {
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
 }
 
 .row:focus-visible {
@@ -74,8 +96,7 @@
   border-radius: 2px;
 }
 
-/* Pangram — emphasized by font-weight, since color is already
- * carrying the per-finder signal. */
+/* Pangram — emphasized by font-weight (a found one, or a missed one in grey). */
 .pangram {
   font-weight: 700;
 }
@@ -88,9 +109,10 @@
   color: var(--color-muted);
 }
 
-/* Recently-found underline. Uses currentColor so the underline
- * picks up the per-finder color set as inline color. */
-.recent {
+/* Recently-found underline on the word. Thickness + offset here; the
+ * underline COLOR is set inline to the finder color in the TSX (CSS can't
+ * know it), since the word text is now black. */
+.recent .word {
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
@@ -111,9 +133,9 @@
 }
 
 /* Unfound required words (the post-terminal reveal — what the team /
- * field missed). Found words always keep their finder's color; only
- * these missed words go medium grey, so the eye reads "found = colored,
- * missed = grey." No italic — they're plain. */
+ * field missed). The hollow ○ ring (.dotUnfound) is the primary signal;
+ * the word also goes medium grey to stay de-emphasized next to the
+ * black found words. No italic — they're plain. */
 .unfound {
   color: var(--color-muted);
 }

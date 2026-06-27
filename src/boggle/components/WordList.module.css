@@ -1,6 +1,9 @@
 /* Found-words list — an alphabetical, column-major grid (down each column, then
  * right) in a fixed-height box that scrolls horizontally past the third column.
- * Modeled on FreeBee's WordList. */
+ * Modeled on FreeBee's WordList. Each row leads with a circle marker carrying
+ * the attribution (filled ● in the finder's color for found words, hollow ○ in
+ * grey for post-terminal missed words); the word text itself is black (found) /
+ * grey (missed). */
 
 .wrapper {
   width: 100%;
@@ -43,10 +46,31 @@
   cursor: pointer;
 }
 
-.row:hover {
+/* Leading attribution marker: filled ● in the finder's color (set inline in the
+ * TSX) for found words. Shrunk below the word so it reads as a marker, and
+ * middle-aligned against the (taller) word text. */
+.dot {
+  font-size: 0.7em;
+  vertical-align: middle;
+  margin-right: 7px;
+}
+
+/* Missed words (post-terminal reveal) swap in a hollow ○ — the ring, not the
+ * text color, is the "missed" signal. Lighter (divider grey) than the muted
+ * word text so the ring reads as a faint marker, not a second emphasis. */
+.dotUnfound {
+  color: var(--color-divider);
+}
+
+/* The word text. Plain body-black for found words; finder identity lives in the
+ * dot. Underlines (hover + recent flash) scope here so they don't run under it. */
+.word {
+  text-underline-offset: 2px;
+}
+
+.row:hover .word {
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
 }
 
 .row:focus-visible {
@@ -60,8 +84,9 @@
   color: var(--color-muted);
 }
 
-/* Recently-found underline — picks up the per-finder color via currentColor. */
-.recent {
+/* Recently-found underline on the word. Thickness + offset here; the underline
+ * COLOR is set inline to the finder color in the TSX (the word text is black). */
+.recent .word {
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
@@ -79,7 +104,9 @@
   padding: 16px 8px;
 }
 
-/* Unfound required words (the post-terminal reveal — what was missed). */
+/* Unfound required words (the post-terminal reveal — what was missed). The
+ * hollow ○ ring is the primary signal; the word also goes grey to stay
+ * de-emphasized next to the black found words. */
 .unfound {
   color: var(--color-muted);
 }
