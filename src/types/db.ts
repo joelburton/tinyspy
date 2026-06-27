@@ -142,6 +142,118 @@ export type Database = {
       [_ in never]: never
     }
   }
+  boggle: {
+    Tables: {
+      found_words: {
+        Row: {
+          found_at: string
+          game_id: string
+          is_bonus: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Insert: {
+          found_at?: string
+          game_id: string
+          is_bonus: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Update: {
+          found_at?: string
+          game_id?: string
+          is_bonus?: boolean
+          points?: number
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          board: string
+          club_handle: string
+          created_at: string
+          id: string
+          min_word_length: number
+          mode: string
+          n: number
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Insert: {
+          board: string
+          club_handle: string
+          created_at?: string
+          id: string
+          min_word_length: number
+          mode: string
+          n: number
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Update: {
+          board?: string
+          club_handle?: string
+          created_at?: string
+          id?: string
+          min_word_length?: number
+          mode?: string
+          n?: number
+          required_words?: Json
+          required_words_count?: number
+          required_words_score?: number
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      _finalize: {
+        Args: { outcome: string; target_game: string }
+        Returns: undefined
+      }
+      _refresh_status: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          board: Json
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: { points: number; target_game: string; word: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   codenamesduet: {
     Tables: {
       clues: {
@@ -2415,6 +2527,9 @@ export type CompositeTypes<
 
 export const Constants = {
   bananagrams: {
+    Enums: {},
+  },
+  boggle: {
     Enums: {},
   },
   codenamesduet: {

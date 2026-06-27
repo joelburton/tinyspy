@@ -284,8 +284,14 @@ copy (coop vs compete).
      (decode + band≤3 trie) **166 ms** once per isolate; warm trie 0.002 ms;
      generation per board ~0.3 ms loose, ~14 ms longest≥10, ~150 ms longest≥11.
      Worst realistic Start (cold isolate + 11-letter board) ≈ 320 ms.
-3. **Schema + RPCs** (pgTAP: found-words RLS visibility per mode, `submit_word`
-   required/bonus classification + dedup).
+3. ✅ **Schema + RPCs** — `supabase/migrations/20260628000000_boggle.sql`:
+   `boggle.games` (readable `required_words`, no hidden view) + `found_words`
+   (mode-aware RLS) + `create_game` / `submit_word` (trusting-commit) /
+   `end_game` / `submit_timeout`; gametypes registered; `boggle` added to
+   `config.toml`. pgTAP: create_game/gameplay/rls (46 assertions). Full DB suite
+   PASS (1024 tests; updated `common/clubs_gametypes_test` for the 2 new
+   gametypes). db:lint clean for boggle. **Remaining: wire auth + `create_game`
+   into the `boggle-build-board` edge function** (currently a Phase-3 TODO there).
 4. **Manifest + registry + config.toml + setup form.**
 5. **PlayArea:** board grid + input + WordList + rotate + help.
 6. **Coop/compete polish**, end-game reveal, timer, remaining tests.

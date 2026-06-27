@@ -1,0 +1,55 @@
+-- ============================================================
+-- Per-test-file boggle fixtures
+-- ============================================================
+-- Loaded by every boggle/*_test.sql via:  \ir setup.psql
+--
+-- Provides:
+--   pg_temp.boggle_board() — a valid `board` jsonb (the shape boggle.create_game
+--     accepts). The board STRING is irrelevant to the RPCs: boggle is
+--     trusting-commit, so the server never traces words on the board — it only
+--     reads required_words (membership) and common.words (bonus legality). So
+--     these "required words" are plain short words, scored on the basic ladder.
+--   pg_temp.boggle_setup() — a default coop `setup` jsonb. Override fields via
+--     `pg_temp.boggle_setup() || jsonb_build_object(...)`.
+--
+-- Required set: cat(1) car(1) arc(1) cart(1) scare(2) traces(3) → 6 words, 9 pts.
+
+create function pg_temp.boggle_board()
+returns jsonb
+language plpgsql
+as $$
+declare
+  req jsonb := '[]'::jsonb;
+  words text[] := array['cat', 'car', 'arc', 'cart', 'scare', 'traces'];
+  w text;
+  pt int;
+  total int := 0;
+begin
+  foreach w in array words loop
+    -- basic ladder: 3-4 → 1, 5 → 2, 6 → 3
+    pt := case length(w) when 5 then 2 when 6 then 3 else 1 end;
+    req := req || jsonb_build_array(jsonb_build_object('word', w, 'points', pt));
+    total := total + pt;
+  end loop;
+  return jsonb_build_object(
+    'board', 'CATRSEXOTMPLNGDB',   -- 16 raw faces (content unused by the RPCs)
+    'n', 4,
+    'required_words', req,
+    'required_words_count', jsonb_array_length(req),
+    'required_words_score', total
+  );
+end;
+$$;
+
+create function pg_temp.boggle_setup()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'timer', jsonb_build_object('kind', 'none'),
+    'dice_set', '4',
+    'band', 3,
+    'min_word_length', 3,
+    'scoring_ladder', 'basic'
+  );
+$$;
