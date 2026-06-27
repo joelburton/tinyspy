@@ -8,8 +8,9 @@
  *   - `A`–`Z` — that letter
  *   - `1`–`6` — a **multiface** tile contributing two letters at once (you can't
  *     use half a tile): 1=Qu 2=In 3=Th 4=Er 5=He 6=An
- *   - `0`     — a **blank** tile (displays as "·"); it matches no letter, so no
- *     word can pass through it. (wsboggle's C maps it to `__`.)
+ *   - `0`     — a **blank** tile (displays as a faint "?", like a scrabble
+ *     blank); it matches no letter, so no word can pass through it.
+ *     (wsboggle's C maps it to `__`.)
  */
 
 export interface DiceSet {
@@ -25,7 +26,7 @@ export interface DiceSet {
 
 /** Display text for a single raw face char. */
 const FACE_DISPLAY: Record<string, string> = {
-  '0': '·', '1': 'Qu', '2': 'In', '3': 'Th', '4': 'Er', '5': 'He', '6': 'An',
+  '0': '?', '1': 'Qu', '2': 'In', '3': 'Th', '4': 'Er', '5': 'He', '6': 'An',
 }
 
 export function faceToDisplay(face: string): string {

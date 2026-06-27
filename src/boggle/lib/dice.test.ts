@@ -24,7 +24,7 @@ describe('boggle dice sets', () => {
     expect(faceToDisplay('A')).toBe('A')
     expect(faceToDisplay('1')).toBe('Qu')
     expect(faceToDisplay('6')).toBe('An')
-    expect(faceToDisplay('0')).toBe('·')
+    expect(faceToDisplay('0')).toBe('?')
   })
 
   it('renders a board into an n×n display grid', () => {

@@ -47,6 +47,11 @@
   text-transform: uppercase;
 }
 
+/* A blank tile (face 0) renders a faint "?", matching scrabble's blank. */
+.blank {
+  opacity: 0.4;
+}
+
 .sidePanel {
   display: flex;
   flex-direction: column;

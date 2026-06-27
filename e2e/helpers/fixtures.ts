@@ -208,6 +208,7 @@ export async function createBoggleGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  boardStr = 'CATRXXXXXXXXXXXX',
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
@@ -224,7 +225,7 @@ export async function createBoggleGame(
       player_user_ids: playerUserIds,
       mode,
       board: {
-        board: 'CATRXXXXXXXXXXXX', // C A T R across the top row → "cat" traces
+        board: boardStr,
         n: 4,
         required_words: [{ word: 'cat', points: 1 }],
         required_words_count: 1,

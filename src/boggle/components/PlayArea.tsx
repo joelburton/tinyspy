@@ -133,7 +133,8 @@ export function PlayArea(ctx: GamePageCtx) {
           {view.flatMap((row, y) =>
             row.map((cell, x) => (
               <div key={`${y}-${x}`} className={styles.tile} data-boggle-tile>
-                {cell}
+                {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
+                <span className={cell === '?' ? styles.blank : undefined}>{cell}</span>
               </div>
             )),
           )}
