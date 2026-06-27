@@ -89,16 +89,17 @@ export function buildTrie(words: readonly string[]): Trie {
 }
 
 /** A board ready to solve. `first`/`second` hold letter indices (0–25) per tile;
- *  `second[cell]` is -1 for a normal tile, or the second letter of a multiface
- *  tile. `n` is the side length (board is `n × n`). */
+ *  `first[cell]` is -1 for a **blank** tile (matches nothing), and `second[cell]`
+ *  is -1 for a normal tile or the second letter of a multiface tile. `n` is the
+ *  side length (board is `n × n`). */
 export interface Board {
   n: number
   first: Int8Array
   second: Int8Array
 }
 
-/** Parse a board string (length `n²`, chars `A`–`Z` or a multiface digit) into a
- *  `Board`. Side length is inferred as `√length`. */
+/** Parse a board string (length `n²`; chars `A`–`Z`, a multiface digit `1`–`6`,
+ *  or `0` for a blank tile) into a `Board`. Side length is inferred as `√length`. */
 export function parseBoard(s: string): Board {
   const len = s.length
   const n = Math.round(Math.sqrt(len))
@@ -107,6 +108,7 @@ export function parseBoard(s: string): Board {
   const second = new Int8Array(len).fill(-1)
   for (let i = 0; i < len; i++) {
     const ch = s[i]
+    if (ch === '0') { first[i] = -1; continue } // blank tile — matches nothing
     const multi = MULTIFACE[ch]
     if (multi) {
       first[i] = multi.charCodeAt(0) - A
@@ -200,9 +202,11 @@ export function createSolver(trie: Trie) {
     for (let k = 0; k < nb.length; k++) {
       const next = nb[k]
       if (next < 32 ? (usedLo & (1 << next)) : (usedHi & (1 << (next - 32)))) continue
+      const f = first[next]
+      if (f < 0) continue // blank tile — no letter, can't extend a word
       // Descend into the next tile, consuming its one (or two, for a multiface
       // tile) letters. Inlined — a per-step function call was a real cost.
-      let node2 = children[node * 26 + first[next]]
+      let node2 = children[node * 26 + f]
       if (node2 === 0) continue
       const sec = second[next]
       let len2: number
@@ -240,6 +244,7 @@ export function createSolver(trie: Trie) {
     const cells = b.n * b.n
     for (let cell = 0; cell < cells; cell++) {
       // Start a word at this tile: descend from the root by its letter(s).
+      if (first[cell] < 0) continue // blank tile
       let node = children[first[cell]]
       if (node === 0) continue
       const sec = second[cell]
@@ -258,4 +263,78 @@ export function createSolver(trie: Trie) {
   }
 
   return { solve }
+}
+
+export interface FoundWord {
+  word: string
+  points: number
+}
+
+/** List every distinct word (≥ min length) on a board, with its score — i.e. the
+ *  actual word strings, which the hot `solve()` deliberately never builds.
+ *
+ *  Run this **once, on an accepted board**, to get its required-word list; it is
+ *  not on the rejection-sampling path, so clarity beats speed here (plain
+ *  recursion, a visited byte array, the word built as a list of letter indices).
+ *  Its `(count, longest, score)` agree with `solve()` by construction. */
+export function listWords(trie: Trie, board: Board, opts: SolveOptions = {}): FoundWord[] {
+  const { children, eow } = trie
+  const minLen = opts.minWordLength ?? 3
+  const ladder = LADDERS[opts.ladder ?? 'basic']
+  const { first, second, n } = board
+  const neighbors = neighborsFor(n)
+  const seen = new Uint8Array(trie.nNodes) // 1 once a terminal node is emitted
+  const used = new Uint8Array(n * n)
+  const letters: number[] = [] // letter indices of the in-progress word
+  const out: FoundWord[] = []
+
+  function emitIfWord(node: number): void {
+    if (letters.length >= minLen && eow[node] && !seen[node]) {
+      seen[node] = 1
+      let word = ''
+      for (const c of letters) word += String.fromCharCode(c + A)
+      out.push({ word, points: scoreFor(letters.length, ladder) })
+    }
+  }
+
+  function rec(cell: number, node: number): void {
+    used[cell] = 1
+    emitIfWord(node)
+    const nb = neighbors[cell]
+    for (let k = 0; k < nb.length; k++) {
+      const next = nb[k]
+      if (used[next]) continue
+      const f = first[next]
+      if (f < 0) continue // blank tile
+      let node2 = children[node * 26 + f]
+      if (node2 === 0) continue
+      letters.push(f)
+      const sec = second[next]
+      if (sec >= 0) {
+        node2 = children[node2 * 26 + sec]
+        if (node2 === 0) { letters.pop(); continue }
+        letters.push(sec)
+      }
+      rec(next, node2)
+      letters.pop(); if (sec >= 0) letters.pop()
+    }
+    used[cell] = 0
+  }
+
+  for (let cell = 0; cell < n * n; cell++) {
+    const f = first[cell]
+    if (f < 0) continue // blank tile
+    let node = children[f]
+    if (node === 0) continue
+    letters.push(f)
+    const sec = second[cell]
+    if (sec >= 0) {
+      node = children[node * 26 + sec]
+      if (node === 0) { letters.pop(); continue }
+      letters.push(sec)
+    }
+    rec(cell, node)
+    letters.pop(); if (sec >= 0) letters.pop()
+  }
+  return out
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTrie, createSolver, parseBoard } from './solver'
+import { buildTrie, createSolver, listWords, parseBoard } from './solver'
 import { boggleSolverFixture as fixture } from './solver.fixture'
 
 /**
@@ -71,5 +71,32 @@ describe('boggle solver — units', () => {
     const c = fixture.cases.find((x) => x.n === 4 && x.count > 5)!
     const r = solve(parseBoard(c.board), { maxWords: 1 })
     expect(r.busted).toBe(true)
+  })
+
+  it('treats a blank (0) tile as matching nothing', () => {
+    const { solve } = createSolver(buildTrie(['cat', 'dog']))
+    expect(solve(parseBoard('0000')).count).toBe(0)   // all blanks → no words
+    expect(solve(parseBoard('CAT0')).count).toBe(1)   // cat traceable; blank ignored
+  })
+})
+
+describe('boggle solver — listWords agrees with solve()', () => {
+  const trie = buildTrie(fixture.dict)
+  const opts = { minWordLength: fixture.minWordLength, ladder: fixture.ladder as 'basic' }
+
+  it('reproduces count/longest/score across all fixture boards', () => {
+    const mismatches = fixture.cases.filter((c) => {
+      const words = listWords(trie, parseBoard(c.board), opts)
+      const longest = words.reduce((m, w) => Math.max(m, w.word.length), 0)
+      const score = words.reduce((s, w) => s + w.points, 0)
+      return words.length !== c.count || longest !== c.longest || score !== c.score
+    })
+    expect(mismatches).toEqual([])
+  })
+
+  it('returns distinct words', () => {
+    const c = fixture.cases.find((x) => x.n === 4 && x.count > 5)!
+    const words = listWords(trie, parseBoard(c.board), opts).map((w) => w.word)
+    expect(new Set(words).size).toBe(words.length)
   })
 })

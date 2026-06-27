@@ -40,7 +40,8 @@ const forbidGameImports = (forbidden, fromContext) =>
   }))
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // wordlist.ts is a ~1 MB generated base64 blob (see generate-boggle-wordlist.ts).
+  globalIgnores(['dist', 'supabase/functions/boggle-build-board/wordlist.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
