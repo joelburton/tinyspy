@@ -386,4 +386,4 @@ Settled forks, recorded as fact (this is what shipped):
   Measured cold-start floors: bundled ~21 ms required / ~76 ms full; DB query
   ~48 ms / ~128 ms local, more on hosted.)
 - **Compete classic dupes-cancel** scoring as an opt-in.
-- **A "check board" / hint helper** (cf. MonkeyGram's planned one).
+- **A "check board" / hint helper** (cf. MonkeyGrams' planned one).

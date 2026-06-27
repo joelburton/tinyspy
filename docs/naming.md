@@ -49,7 +49,7 @@ Every game has two names:
 | `codenamesduet` | TinySpy | | `waffle` | SyrupSwap |
 | `connections` | WordKnit | | `wordle` | WordNerd |
 | `spellingbee` | FreeBee | | `scrabble` | RackAttack |
-| `bananagrams` | MonkeyGram | | `stackdown` | StackDown |
+| `bananagrams` | MonkeyGrams | | `stackdown` | StackDown |
 | `psychicnum` | PsychicNum | | | |
 
 The brand and codename coincide as a word only for `stackdown`/StackDown and `psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is the display-cased token).

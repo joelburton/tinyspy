@@ -27,7 +27,7 @@ import logoUrl from './logo.svg?url'
 // `name` and the start-game error both read it, so a fork rebrands by
 // editing this one line. The codename (`bananagrams`) is unrelated and
 // stays lowercase everywhere in code.
-const BRAND = 'MonkeyGram'
+const BRAND = 'MonkeyGrams'
 
 export const bananagramsGame: GameManifest = {
   gametype: 'bananagrams',
