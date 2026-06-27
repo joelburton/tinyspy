@@ -12,6 +12,13 @@ import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
+/** Rotate a square grid 90° clockwise — repositions tiles; the letters
+ *  themselves render upright (no spin). new[i][j] = old[n-1-j][i]. */
+function rotateCW(g: string[][]): string[][] {
+  const n = g.length
+  return g.map((_, i) => g.map((_, j) => g[n - 1 - j][i]))
+}
+
 /**
  * MothCubes play surface — two fixed-height columns (board left, input +
  * found-words list right), no full-page scroll (docs/ui.md). The board is shipped
@@ -27,13 +34,21 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const [word, setWord] = useState('')
   const [lastWord, setLastWord] = useState('')
-  const [rotation, setRotation] = useState(0)
+  const [turns, setTurns] = useState(0) // number of 90° clockwise turns applied
 
   const ladder: LadderName = ((setup.scoring_ladder as LadderName) ?? 'basic')
   const grid = useMemo(
     () => (game ? boardToDisplay(game.board, game.n) : null),
     [game],
   )
+  // Rotating the board repositions the tiles but keeps each letter upright (a
+  // matrix rotation, not a visual spin) — so it stays readable from any side.
+  const view = useMemo(() => {
+    if (!grid) return null
+    let g = grid
+    for (let i = 0; i < turns; i++) g = rotateCW(g)
+    return g
+  }, [grid, turns])
   const foundSet = useMemo(() => new Set(foundWords.map((f) => f.word)), [foundWords])
   const distinctFoundCount = foundSet.size
 
@@ -100,7 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
-  if (!game || !grid) return <div className={styles.loading}>Loading…</div>
+  if (!game || !view) return <div className={styles.loading}>Loading…</div>
 
   // Post-terminal reveal: required words nobody found.
   const revealWords = isTerminal
@@ -112,9 +127,9 @@ export function PlayArea(ctx: GamePageCtx) {
       <div className={styles.boardCol}>
         <div
           className={styles.board}
-          style={{ gridTemplateColumns: `repeat(${game.n}, 1fr)`, transform: `rotate(${rotation}deg)` }}
+          style={{ gridTemplateColumns: `repeat(${game.n}, 1fr)` }}
         >
-          {grid.flatMap((row, y) =>
+          {view.flatMap((row, y) =>
             row.map((cell, x) => (
               <div key={`${y}-${x}`} className={styles.tile}>
                 {cell}
@@ -122,7 +137,7 @@ export function PlayArea(ctx: GamePageCtx) {
             )),
           )}
         </div>
-        <ShuffleButton onShuffle={() => setRotation((r) => (r + 90) % 360)} label="Rotate board" />
+        <ShuffleButton onShuffle={() => setTurns((t) => (t + 1) % 4)} label="Rotate board" />
       </div>
 
       <div className={styles.sidePanel}>
