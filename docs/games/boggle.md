@@ -1,359 +1,388 @@
-# boggle — MothCubes (PLAN / design decisions)
+# boggle
 
-> Status: **built (phases 1–6 complete, verified).** This doc is the design +
-> build record. Codename `boggle`; user-facing brand **MothCubes** (lives only in the
-> manifest `BRAND` const — see [[feedback_codename_brand_naming]] conventions in
-> `docs/naming.md`). Ported from `~/src/wsboggle` (the rules/spec) and
-> `~/src/cboggle` (the DAWG builder only).
+A find-words-in-a-grid game (Boggle): players trace words through a grid of
+letter tiles, stepping between orthogonally **or** diagonally adjacent tiles and
+never reusing a tile within one word. The board is pre-solved at creation, so the
+game knows every word that's *findable* — which is what makes the "did you find
+them all?" reveal and the board-difficulty constraints possible.
 
-A find-words-in-a-grid game (Boggle): players trace words through orthogonally
-or diagonally adjacent letter tiles, no tile reused within a word. Coop + compete
-sibling pair, like spellingbee.
+> **Brand ≠ codename.** The user-facing brand is **MothCubes** (it lives only in
+> the manifest `BRAND` const — see [docs/naming.md](../naming.md) and
+> [[feedback_codename_brand_naming]]). Everywhere in *code / DB / schema / tests*
+> the codename is `boggle`. Ported from `~/src/wsboggle` (the rules/spec) and
+> `~/src/cboggle/make-dawg` (consulted only while building the solver).
 
----
+boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`) and
+inherits the shared chrome — timer, chat, presence-pause, manual "End game" —
+through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
-## 1. Locked decisions
-
-| area | decision |
-|---|---|
-| Shape | `boggle_coop` + `boggle_compete` sibling pair; one `boggle` schema; one `src/boggle/` folder. Modeled on spellingbee. |
-| Board generation | **On-demand** edge function `boggle-build-board` (rolls + solves + rejection-samples to meet constraints, then creates the game). |
-| Solver | **Pure TypeScript**, flat typed-array trie + generation-stamp dedup. Runs natively in the Deno edge function — **no WASM**. (Why: see §6 + `boggle-c-solver/README.md`.) |
-| Dictionary source | `common.words` (NOT wsboggle's word list). |
-| Dictionary delivery | **Ship a bundled word-list asset** with the edge function; build the trie at cold start, reuse across warm invocations. (See §5 + the Storage fallback in §9.) |
-| Required vs legal | The solver and all board constraints consider **required words only**. Legal/bonus words are **never** precomputed — guesses are validated at play time. |
-| Required difficulty | **Per-game pick** via the shared difficulty-band component (full precise band list, `universal…expert`). Required = `difficulty ≤ chosen band` + clean filter (`american, crude=0, slur=0, slang=0`). Default **familiar (≤3)**. Cheap: ~9–30 ms to build the band trie per game-start. |
-| Legal (bonus) difficulty | **A second per-game pick**, the ceiling for words that aren't required but still score. Legal = in `common.words` at `difficulty ≤ legal_band` — **difficulty-only** filter (any dialect us/uk/au/ca + slurs/crude/slang all qualify), distinct from the required band's clean filter. Must be `≥` the required band (every required word is also legal); the setup UI pulls it up with the required band and disables sub-required options. Default **≤5**. |
-| Dice sets | **All wsboggle sets** (4×4 Classic/Revised, four 5×5 sets, two 6×6 sets), ported verbatim from `~/src/wsboggle/.../dice.py`, including multiface faces (Qu/In/Th/Er/He/An). Sets are integral to the game; the solver supports 4×4/5×5/**6×6**. |
-| Guess validation | The **required list is shipped to the FE** (trust model: we don't withhold it for anti-cheat). The FE classifies instantly: in the required set → **required**; not in it but traces on the board → candidate **bonus**; not traceable → reject — all client-side. Only **bonus legality** ("is this obscure word real *and within the legal band*?") needs the server (`common.words` lookup at `difficulty ≤ legal_band`, any dialect incl. slurs/crude/slang — the FE doesn't carry the full dictionary). Required-ness is a **set-membership** test, *not* a difficulty check. Traceability + points are FE-side (shared TS `scoreFor`); the RPC trusts them, per the scrabble precedent. |
-| Scoring | wsboggle's scoring **ladders** (flat / basic / fib / big), **player-chosen in setup**; default **basic**. The chosen ladder drives generation scoring, the min/max-score constraint, and per-word points. |
-| Timer | FreeBee's `TimerField` exactly (none / count-up / count-down MM:SS). **Default none**; if countdown is chosen, the player picks the duration. |
-| Compete scoring | Independent per-player (each scores their own found words; no dupes-cancel). Classic dupes-cancel deferred as a possible later option. |
-| Reveal | Missed **required** words shown at end (the easier list). Bonus words never listed when unfound. |
-| Parity oracle | `boggle-c-solver/` (in repo root) — the C solver reproduces the TS solver's exact output; used as a golden-master test. |
-
-### Resolved in review
-
-- **Rotate button** = a *cosmetic* 90° rotation of the displayed grid, **local to
-  this player in both modes** (state lives only in that player's client; never
-  written to the server, never seen by others).
-- **All dice sets ship** — they're integral to the game (and the 4×4/5×5 families
-  have several distinct cube sets; see wsboggle's `dice.py`). The solver therefore
-  must handle 6×6, so it uses a **board-size-agnostic used-tile representation**
-  (a small visited array, or a two-word 64-bit mask) rather than a single
-  32-bit JS-number bitmask (which tops out at 32 tiles). See §6.
-- **Legal-guess dictionary is unfiltered** — a guess counts if it's any row in
-  `common.words` (any dialect us/uk/au/ca, any difficulty, incl. slurs/crude/slang)
-  + meets min length + traces on the board. The *required* list stays clean
-  (`american, crude=0, slur=0, slang=0, difficulty ≤ band`); only the required list
-  is ever surfaced (constraints, missed-words reveal).
-- **Guess traceability is trusted from the FE** — no server DFS. The FE traces the
-  path locally before submitting.
-- **The required list is shipped to the FE** (not hidden). Hiding it would be
-  anti-cheat contortion the trust model rejects, and exposing it makes the FE
-  simpler: instant required/off-board feedback, client-side missed-words reveal,
-  and scoring stays in one shared TS function. Deliberate divergence from
-  spellingbee's hidden-solution pattern. `submit_word` only does the **bonus**
-  legality lookup + dedup; required is trusted, scoring is FE-side.
-- **Band picker** uses the shared difficulty-band component showing the full,
-  precisely-labeled list (`universal…expert`).
+> **Status: live.** boggle is the **10th** registered gametype, built end-to-end
+> (solver, generator edge function, migration, RPCs, FE) and shipping. Design
+> forks are recorded in [§11](#11-resolved-decisions).
 
 ---
 
-## 2. Concepts: required / legal / bonus
+## 1. The game
 
-- **Required words** — the *easier* list the board is built and judged against
-  (`difficulty ≤ chosen band`, plus `american, crude=0, slur=0, slang=0`,
-  `len ≥ min_word_length`). The solver finds these at board creation; the
-  min/max-word-count, min/max-score, and longest-word constraints are all measured
-  **only** against required words. Unfound required words are the "missed words"
-  revealed at game end.
+A square board of `n × n` lettered tiles (`n` ∈ 4 / 5 / 6, set by the dice set).
+A word is legal when you can trace it as a path of adjacent tiles — each step to
+one of the up-to-8 neighbours, no tile visited twice — and the word clears the
+minimum length.
 
-  A word is "required" **iff it is a member of this precomputed set** — which folds
-  together the clean filter, the band, traceability on *this* board, and the
-  solver's dedup. It is **not** recoverable from a word's difficulty alone;
-  required-vs-bonus is a **set-membership** test. The required list **is shipped to
-  the FE**, so it classifies required guesses and computes the missed-words reveal
-  itself (per the trust model we don't withhold it for anti-cheat). The only thing
-  the FE can't do is judge an *unknown* word's legality — it doesn't carry the full
-  dictionary — so bonus candidates go to the server for a `common.words` lookup.
-- **Bonus words** — real words that aren't on the required list but are still
-  within the **legal band** and traceable on the board. Scored normally, **never
+- **Dice sets.** All eight wsboggle sets ship (4×4 Classic/Revised, four 5×5
+  sets, two 6×6 sets), ported verbatim from `dice.py`. A board is rolled from the
+  chosen set's bag of dice. Some faces are **multiface** — a single tile that
+  contributes two letters at once: `Qu In Th Er He An` (you can't use half a
+  tile). One face on the 6×6 super set is a **blank** that matches no letter, so
+  no word can path through it (rendered as a faint `?`, like a scrabble blank).
+- **Scoring ladders.** wsboggle's four ladders — `flat` (every word 1),
+  `basic` (1–11 by length), `fib` (Fibonacci, 1–377), `big` (prefer-big, 1–50) —
+  picked in setup, default `basic`. The chosen ladder drives generation scoring,
+  the score constraint, and per-word points.
+- **Minimum word length.** 3 / 4 / 5, default 3. A guess shorter than this is
+  rejected.
+- **Timer.** The shared `TimerField` (none / count-up / count-down MM:SS),
+  default none; a countdown lets the player pick the duration.
+- **Ending.** There's no intrinsic win threshold — you hunt until the timer
+  expires, a player hits **End game**, or (compete) everyone's done. The
+  end-of-game reveal lists the **required** words nobody found.
+
+### Modes (sibling-manifest pair)
+
+- **Coop** (`boggle_coop`, 1–8 players, solo-capable): one shared board, one
+  shared found-words list — every teammate's accepted word piles into the same
+  pool, scored once for the team.
+- **Compete** (`boggle_compete`, 2–8 players): everyone hunts the **same** board
+  independently. You see only your **own** words until the game ends; an
+  `OpponentStrip` shows peers' live word counts + scores (not their words). Most
+  points wins. Scoring is **independent per player** — no classic dupes-cancel
+  (deferred, [§12](#12-deferred--future)).
+
+---
+
+## 2. Required / legal / bonus words — the core model
+
+The single most important concept in boggle is the split between the *required*
+set (precomputed, surfaced) and *legal* guesses (validated live, never listed).
+Two independent difficulty bands govern them.
+
+- **Required words** — the set the board is **built and judged against**:
+  `difficulty ≤ band` plus the **clean filter** (`american, crude=0, slur=0,
+  slang=0`) and `len ≥ min_word_length`. The solver finds them all at board
+  creation; every board constraint (word count, score, longest word) is measured
+  **only** against this set, and the unfound ones are the "missed words" reveal.
+  Membership is a precomputed **set test** — it folds together the clean filter,
+  the band, traceability on *this* board, and the solver's dedup, so it is *not*
+  recoverable from a word's difficulty alone. **The required list is shipped to
+  the FE** (it isn't hidden — see [§6](#6-schema-boggle)).
+
+- **Bonus words** — real words that aren't required but are still within the
+  **legal band** and traceable on the board. Scored normally; **never
   precomputed** and **never listed** when unfound.
-- **Legal words** = required ∪ bonus. We never materialize this set; a guess is
-  legal iff it (a) is in `common.words` at **`difficulty ≤ legal_band`** (a
-  difficulty-only filter — any dialect us/uk/au/ca + slurs/crude/slang qualify),
-  (b) meets `min_word_length`, and (c) traces a valid path on the board (the FE
-  checks this; the server trusts it).
 
-Rationale for not precomputing legal words: it keeps the board generator small and
-fast (it only cares about the required list), and a per-word trace on the FE is
-trivially cheap. This is the user's explicit model.
+- **Legal words** = required ∪ bonus. We never materialize this set: a guess is
+  legal iff it (a) is in `common.words` at `difficulty ≤ legal_band`, (b) meets
+  `min_word_length`, and (c) traces a valid path (the FE checks the trace; the
+  server trusts it).
 
-Note the deliberate asymmetry between the two bands. The **required** band carries
-the **clean filter** (`american, crude=0, slur=0, slang=0`) because it's the only
-set ever *surfaced* (constraints + missed-words reveal). The **legal** band filters
-on **difficulty only** — friends can play whatever real word they can find within
-the chosen obscurity ceiling, regardless of dialect or register. The two bands are
-independent picks (`legal_band ≥ band`): raise the legal band to reward digging up
-rarer finds, lower it to keep bonuses close to the required difficulty.
+**The two bands and their deliberate asymmetry.** Setup picks *both* a required
+band and a legal band, with `legal_band ≥ band` (every required word is also
+legal). The required band carries the clean filter because it's the only set ever
+*surfaced* (constraints, missed-words reveal). The legal band filters on
+**difficulty only** — any dialect (us/uk/au/ca) and any register (slurs, crude,
+slang) qualifies — because among friends a bonus is "any real word you can dig
+up" within the chosen obscurity ceiling. Raise the legal band to reward rarer
+finds; lower it to keep bonuses close to the required difficulty. Defaults:
+required ≤3 (familiar), legal ≤5.
+
+Not precomputing the legal set keeps the generator small and fast (it only cares
+about required words), and a per-word trace on the FE is trivially cheap.
 
 ---
 
-## 3. Board generation (`boggle-build-board` edge function)
+## 3. The solver (`lib/solver.ts`)
 
-1. Verify JWT; read `{ target_club, setup, player_user_ids, mode }`.
+The generator needs to find every required word on a candidate board, fast enough
+to reject-sample boards interactively. The solver is **pure TypeScript** running
+natively in the Deno edge function — no WASM, no FFI.
+
+- **Algorithm.** A **flat typed-array trie** plus a **generation-stamp** on each
+  terminal node: each solve bumps a counter and stamps a word's node when found,
+  so dedup needs no word-string building and no hash set. This algorithm — not
+  the language — is the lever; it's ~2× faster than the original C's DAWG +
+  hash-table approach, and in V8 a TS port of it beats that original C.
+- **Board sizes.** Because the 6×6 sets ship (36 tiles), the DFS tracks visited
+  tiles with a **two-word 64-bit mask** (`usedLo` / `usedHi`) — one code path for
+  4×4 / 5×5 / 6×6. A single 32-bit JS-number bitmask tops out at 32 tiles.
+- **Multiface + blanks.** Multiface faces expand to their letter pairs during the
+  trace; the blank face matches nothing, so paths can't cross it.
+- **Shape.** A `createSolver(trie)` factory returns `{ solve }`; a fresh solver
+  per generation means concurrent games share no mutable state. (A module-global
+  singleton was measured and is *identical* in the shipping runtimes — Deno
+  ~38k solves/sec either way — so the clean factory wins.)
+
+`boggle-c-solver/` (repo root) holds the original C, the improved C, and a
+six-way native/WASM × C/TS benchmark, all reproducing an identical correctness
+tuple. It stays as the **golden-master parity oracle**: the shipping TS solver is
+tested against a fixture (`solver.fixture.ts`, 90 boards across all sizes incl.
+multiface) generated from that C.
+
+---
+
+## 4. Board generation (`boggle-build-board` edge function)
+
+A board is built **on demand** at "Start game" — there is no pre-generated board
+library and no import step. The edge function (running as the caller) rolls,
+solves, and reject-samples until a board meets the setup's constraints, then
+creates the game in one round-trip:
+
+1. Verify the JWT; read `{ target_club, setup, player_user_ids, mode }`.
 2. Get the **required trie** for `difficulty ≤ setup.band` (built from the bundled
-   word list — see §5; memoized per band at module scope).
-3. Loop up to `max_tries`:
-   - Roll the chosen dice set (Fisher–Yates positions + a random face per die;
-     multiface faces like **Qu** / In / Th / Er / He / An carried through).
-   - Solve for required words (flat-trie DFS, gen-stamp dedup, `max`-constraint
-     fail-fast).
-   - Accept iff it meets every constraint: word count in `[minWords,maxWords]`,
-     score (per the chosen ladder) in `[minScore,maxScore]`, longest ≥
-     `minLongest`, min word length.
-4. On accept → call `boggle.create_game` with board + required-word list (each with
-   length/points/difficulty). On exhaustion → return a friendly **"constraints too
-   strict, relax them"** error (the FE surfaces it on the setup dialog).
+   word list — [§5](#5-dictionary-delivery) — memoized per band at module scope).
+3. Loop up to a try budget (also wall-clock-bounded so impossible constraints
+   fail fast instead of crashing the worker):
+   - Roll the chosen dice set (random die order + a random face per die,
+     multiface faces carried through).
+   - Solve for required words (flat-trie DFS, gen-stamp dedup, with a `max`
+     fail-fast so an over-rich board is abandoned early).
+   - Accept iff it meets **every** constraint: word count in `[minWords,
+     maxWords]`, score (per the chosen ladder) in `[minScore, maxScore]`, longest
+     word in `[minLongest, maxLongest]`, all measured over the required set.
+4. On accept → call `boggle.create_game` with the board + the required-word list
+   (`[{word, points}]`). On exhaustion → return a friendly **"constraints too
+   strict, relax them"** error, which the FE surfaces on the setup dialog.
 
-**Measured cost** (one accepted board, the hard case = require an 11-letter word):
-~60–110 ms for typical bands; ~286 ms for the extreme corner (Easy band + an
-11-letter word). Comfortably within an on-demand "Start game" action. Most boards
-are far cheaper. Full numbers in `boggle-c-solver/README.md`.
+`legal_band` rides through to `create_game` untouched — generation never needs it
+(it only shapes guess-time bonus acceptance, not the board). The `scoring_ladder`
+is validated at the API boundary before generation.
+
+**Measured cost** (one accepted board): ~60–110 ms for typical bands; ~286 ms for
+the extreme corner (an easy band *and* a required 11-letter word). Cold start
+(decode the asset + build the first band trie) is a one-time ~166 ms per isolate.
+Both sit comfortably inside an on-demand "Start game" action.
 
 ---
 
-## 4. Schema + RPCs (`boggle` schema)
+## 5. Dictionary delivery
 
-Found-words visibility mirrors spellingbee's mode-aware RLS. The required list is
-**not** hidden (deliberate divergence — see below).
+The required-word source is the shared `common.words` list (see
+[common.md → The word list](../common.md#the-word-list-commonwords)), **not**
+wsboggle's word list. It's shipped to the edge function as a **bundled asset**
+rather than queried at cold start:
 
-**`boggle.games`**
-- `id uuid pk references common.games(id)`, `club_handle`, `mode ('coop'|'compete')`
-- `dice_set text`, `board text` (row-major raw faces; multiface encoded), `board_w`, `board_h`
-- denormalized setup bits the submit RPC needs: `min_word_length`, `legal_band`
-  (the bonus-word difficulty ceiling). The rest of setup (`band`, `scoring_ladder`,
-  `timer`, constraint bounds) lives in `common.games.setup`.
-- `required_words jsonb` — `[{word, len, points}]` (readable by players)
-- `required_words_count int`, `required_words_score int`
+- **Build step:** `npm run boggle:wordlist` queries `common.words` for the clean
+  required-eligible rows (`american, crude=0, slur=0, slang=0, len ≥ 3`),
+  selecting `(word, difficulty)` for **all** bands (so any pickable band can be
+  built), and writes `boggle-build-board/wordlist.ts` as a gzip+base64 blob
+  (~273k words, ~1.2 MB). It reads the **table**, not `~/src/gamelist/words.tsv`
+  (that file is only the `common.words` importer's input).
+- **Generated, not committed.** The asset is git- and eslint-ignored, and
+  **regenerated by `npm run deploy`** before `supabase functions deploy` (and by
+  `import-to-hosted.sh` before its deploy, from the local stack — the hosted DB
+  isn't seeded yet at that point). Run it manually before `supabase functions
+  serve` locally.
+- **Cold start (once per isolate):** decode the blob into a module-scope
+  `[word, difficulty][]`. **Per game-start:** build the band-filtered trie
+  (~9–30 ms), memoized by band.
+- **Why bundle vs query the DB:** ~2×+ faster cold start than bulk-reading
+  88k–267k rows, network-independent, and no Postgres load on every isolate
+  spin-up. The dictionary is stable, so "redeploy to update it" costs nothing
+  today. (The Supabase Storage middle-ground, if staleness ever bites, is in
+  [§12](#12-deferred--future).)
 
-**No hidden-solution view.** Deliberate divergence from spellingbee/waffle: boggle
-ships the required list to the FE from the start (hiding it would be anti-cheat
-contortion the trust model rejects). This removes the column-grant exclusion + the
-`games_state` `security_invoker` reveal view; the **missed-words reveal is computed
-client-side** (`required − found`).
+---
+
+## 6. Schema (`boggle.*`)
+
+Migration `supabase/migrations/20260628000000_boggle.sql`. The standard sibling
+pair on one `boggle` schema.
+
+**`boggle.games`** → `common.games(id)`:
+
+- `club_handle`, `mode` (`coop` / `compete`) — denormalized so RLS checks
+  membership without a join and the FE reads the whole board in one query.
+- `board text` — the rolled board as a row-major raw-face string (A–Z, a
+  multiface digit `1`–`6`, or `0` for a blank), length `n²`; `n int` (4–6).
+- `min_word_length int`, `legal_band int` — the two setup bits `submit_word`
+  needs at guess time. The rest of setup (`band`, `scoring_ladder`, `timer`,
+  constraint bounds) lives in `common.games.setup`.
+- `required_words jsonb` (`[{word, points}]`, **readable** by club members),
+  `required_words_count int`, `required_words_score int`.
+
+**No hidden-solution view.** A deliberate divergence from spellingbee / waffle,
+which hide their answer behind a column-grant + `security_invoker` reveal view.
+boggle ships the required list to the FE from the start — hiding it would be
+anti-cheat contortion the trust model rejects, and exposing it makes the FE
+simpler (instant required/off-board feedback, client-side missed-words reveal,
+scoring in one shared TS function). So there's no reveal view: the **missed-words
+list is computed client-side** as `required − found`.
 
 **`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus, found_at)`,
-PK `(game_id, user_id, word)`. Mode-aware RLS: coop → everyone sees all found words;
-compete → you see only your own until terminal, then all.
+PK `(game_id, user_id, word)`. **Mode-aware RLS** (the spellingbee pattern):
+coop → everyone sees all found words; compete → you see only your own until the
+game is terminal, then all.
 
-**RPCs**
-- `create_game(...)` — called by the edge function; inserts `common.games` + `boggle.games`.
-- `submit_word(game_id, word, points)` — **trusting-commit**. The FE has already
-  traced the word and classified it (it holds the required list); the RPC records it
-  and does the one check the FE can't:
-  1. reject non-alpha (server-side too); enforce `min_word_length`;
+---
+
+## 7. RPCs (all `security definer`)
+
+- **`create_game(target_club, setup, player_user_ids, mode, board)`** — called by
+  the edge function. Validates club membership, player count, timer, `band`
+  (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9), and
+  the board structure; inserts the `common.games` header + the `boggle.games`
+  row; titles the game `Boggle n×n`.
+- **`submit_word(target_game, word, points)`** — the **trusting commit**. The FE
+  has already traced the word and classified it (it holds the required list); the
+  RPC records it and does the one check the FE can't (the dictionary lookup):
+  1. reject non-alpha; enforce `min_word_length`;
   2. dedup against the caller's scope (coop = team, compete = self);
-  3. **required** (`word` ∈ the game's `required_words`) → store, trusting FE points;
-  4. **otherwise** → look up `common.words` at **`difficulty ≤ legal_band`** (any
-     dialect incl. slurs/crude/slang — difficulty is the only filter) → store as
-     **bonus** (FE points) if found, else reject as not-a-word; return the verdict.
-  - No scoring in plpgsql — points come from the shared TS `scoreFor`; the RPC
-    trusts them (scrabble precedent).
-- `end_game` / `submit_timeout` — flip terminal; `submit_timeout` mirrors
-  spellingbee's timer-expiry handler. No reveal view — the FE renders missed words
-  as `required − found` from data it already holds.
+  3. **required** (`word` ∈ the game's `required_words`) → store, trusting the
+     FE's points;
+  4. else look up `common.words` at `difficulty ≤ legal_band` (any
+     dialect/register — difficulty is the only filter) → store as **bonus** with
+     the FE's points if found, else reject as not-a-word.
+
+  No scoring in plpgsql — points come from the shared TS `scoreFor`, trusted per
+  the scrabble precedent.
+- **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
+  mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
+  missed words from data it already holds.
+
+### Where validation lives
+
+The work splits by **where the data is**, so nothing intricate is written twice:
+
+| piece | needs | lives |
+|---|---|---|
+| board generation + required solve | the dictionary trie | **edge function** (`lib/solver` + `generate`) |
+| guess traceability (path on the board) | the board (FE has it) | **FE** `lib/boardTrace` |
+| required-vs-bonus classification | the required list (FE has it) | **FE** |
+| scoring (`scoreFor`) | the ladder (FE has it) | **FE** `lib/solver` |
+| bonus dictionary legality | `common.words` | **server** `submit_word` |
+
+The server is authoritative only for the one thing the FE genuinely can't do —
+judge an unknown word against the full `common.words` dictionary. Everything else is FE-side
+and trusted, exactly the scrabble trusting-commit model.
 
 ---
 
-## 5. Dictionary delivery (decision: ship a bundled word list)
+## 8. Frontend (`src/boggle/`)
 
-- **Build step:** `npm run boggle:wordlist` queries the **`common.words` table**
-  for the clean required-eligible rows (`american, crude=0, slur=0, slang=0,
-  len≥3`), selecting `word, difficulty`, all bands present (so any pickable band
-  can be built), and writes the asset `boggle-build-board/wordlist.ts`
-  (gzip+base64). It reads the **table**, **not** `~/src/gamelist/words.tsv` — that
-  file is solely the `common.words` importer's input.
-- **Generated, not committed.** The asset is git-ignored (~1.2 MB) and
-  **regenerated by `npm run deploy`** before `supabase functions deploy` (and run
-  manually before local `supabase functions serve`). This is the bundle-it option;
-  the §9 Storage route remains the fallback if staleness ever matters.
-- **Cold start (once per isolate):** parse the asset into a module-scope
-  `[word, difficulty][]`.
-- **Per game-start:** build the required trie for `difficulty ≤ band` (~9–30 ms),
-  memoized by band.
-- **Why ship vs query the DB:** building from the bundled file is ~2×+ faster at
-  cold start than bulk-reading 88k–267k rows from `common.words`, is
-  network-independent, and doesn't hammer Postgres on every isolate spin-up. The
-  dictionary is stable, so "redeploy to update it" is a non-issue. (Measured
-  comparison preserved below in §9.)
+**Layout: two fixed-height columns, no full-page scroll** (per
+[docs/ui.md](../ui.md)).
 
----
-
-## 6. Why pure TS (no WASM) — summary
-
-The board generator could run as C→WASM in the edge function, but the exploration
-showed a TS solver is the better fit and **not** a performance compromise:
-
-- The big lever is the **algorithm, not the language**: a flat trie + a
-  generation-stamp on the terminal node (dedup without building word strings or
-  hashing) is ~2× faster than the original C's DAWG + hash-table approach.
-- With that algorithm, native C is fastest, but TS-in-V8 still beats the *original*
-  C, and the worst-case board is tens-to-low-hundreds of ms regardless.
-- TS builds its required trie from the bundled word list (sourced from
-  `common.words`), filtered to the game's band — needs no FFI/WASM glue in Deno and
-  is readable, matching the repo's ethos.
-- **Board sizes:** because all dice sets ship (incl. 6×6 = 36 tiles), the DFS uses
-  a **two-word 64-bit used-tile mask** (`usedLo`/`usedHi`) — one code path for
-  4×4/5×5/6×6. A single 32-bit JS-number bitmask, like the throwaway benchmark used
-  for 4×4, can't address >32 tiles.
-- **Measured (Phase 1):** ~**38k solves/sec in Deno** (the edge runtime), ~34k
-  under Vitest/Vite — one required-dict 4×4 solve. A standalone-script benchmark
-  hit ~55k, but that was an artifact of plain-`node` top-level code: in the
-  runtimes we actually ship to, a module-global singleton and the closure factory
-  measure **identical** (Deno: 38.5k vs 39.3k — factory even marginally ahead), so
-  there is no micro-structure win to chase. We use the **clean factory**
-  (`createSolver(trie)`); a fresh solver per generation also means concurrent games
-  share no mutable state (no reentrancy concerns). ~34–38k is ample — worst case
-  (an 11-letter required word) ≈ 150 ms for one board, typical boards milliseconds.
-  The real win was the **algorithm** (trie + generation-stamp dedup), not the
-  micro-structure.
-
-`boggle-c-solver/` holds the original C, the improved C, and the full six-way
-benchmark (native/WASM × C/TS), all reproducing an identical correctness tuple. It
-stays as the **golden-master parity oracle** for the shipping TS solver.
-
----
-
-## 7. Frontend (`src/boggle/`)
-
-Layout: **two fixed-height columns, no full-page scroll** (per `docs/ui.md`).
-- **Left:** the board grid (CSS-grid, variable size; multiface tiles render "Qu" etc.).
-- **Right info panel:** the `<input type=text>` + the found-words list.
+- **Left:** the board grid (CSS-grid, `n`-aware; multiface tiles render "Qu" etc.,
+  the blank a faint `?`). Below it, the shared `ShuffleButton` (⟲) does a
+  **cosmetic 90° matrix rotation** of the displayed grid — the tiles reposition
+  but each letter stays upright (a matrix rotation, not a CSS spin), so the board
+  is readable from any side. It's **local to this player in both modes**: never
+  persisted, never seen by others.
+- **Right:** an `<input type="text">` over the found-words list.
   - **Input:** Enter submits; **Up arrow** recalls the last submitted word for
-    editing; non-alpha characters are rejected at the input so global `?`/`/`
-    shortcuts still fire. Typed only — no click-to-trace.
-  - **WordList:** reuse FreeBee/spellingbee's component look & behavior (finder
-    color in coop, 5 s new-word flash, click-to-define via `common.defs`).
-  - **Rotate button:** the shared `ShuffleButton` (⟲) → cosmetic 90° rotation of the
-    grid, **local to this player only in both modes** (never persisted, never seen
-    by others).
-  - **Guess flow:** the FE holds the required list + board + shared `scoreFor`. A
-    guess in the required set → instant **required +N**; not in it but traced by
-    `lib/boardTrace` → sent to `submit_word` for the bonus legality check; not
-    traceable → instant **not-on-board** reject. Instant feedback for the common
-    cases (required words, off-board input); the server is hit only for genuine
-    bonus-or-not-a-word candidates. Missed words at end = `required − found`,
-    rendered client-side.
-- **Coop:** shared found-words list (teammates' accepted words, not attempts/fails).
-  **Compete:** own words only until terminal; leaderboard by points; missed required
-  words revealed at end.
-- Files: `manifest.ts` (two manifests, `BRAND='MothCubes'`, `startGameInClub` →
-  invoke `boggle-build-board`), `db.ts`, `theme.css`, `logo.svg`,
-  `components/{PlayArea,SetupForm,Help}.tsx`, `hooks/{useGame,useGlobalKeyHandler}`,
-  `lib/{setup, boardTrace, displayRows}`. Register in `src/games.ts`; add `boggle`
-  to `supabase/config.toml` schemas. Inherits pause-on-disconnect via `GamePage` +
-  `useCommonGame` ([[feedback_pause_on_disconnect]]).
+    editing; non-A–Z characters are filtered at the input (and it carries
+    `data-game-input`) so the global `?` / `/` / `~` shortcuts still fire while
+    it's focused. Typed only — no click-to-trace.
+  - **`WordList`:** the FreeBee/spellingbee look — finder color (coop), a bonus
+    dot, a 5 s new-word flash (`useRecentlyFound`), click-to-define via the shared
+    `DefinitionPopover`, and the post-terminal missed-words reveal.
+  - **Compete only:** the shared `OpponentStrip` above the list, showing peers'
+    live counts + scores from `status.leaderboard`.
 
-### Setup form options
-dice set (full wsboggle list) · required difficulty (the **shared difficulty-band
-component**, full precisely-labeled `universal…expert` list) · **scoring ladder
-(flat / basic / fib / big, default basic)** · min word length (3/4/5) · optional
-board constraints (min/max words, min/max score, longest-word) · timer (FreeBee
-`TimerField`; **default none**, countdown lets you pick the duration). Mode-aware
-copy (coop vs compete).
+**Guess flow.** Because the FE holds the board, the required list, and `scoreFor`,
+most guesses resolve instantly with no round-trip: a word in the required set →
+**required +N**; not required but traced by `lib/boardTrace` → sent to
+`submit_word` for the bonus check; not traceable → instant **not-on-board**
+reject; too short / duplicate → instant info. Only a genuine bonus candidate
+touches the server.
+
+**Setup form.** Dice set · required difficulty (the shared `DifficultyField`,
+full `universal…expert` list) · legal/bonus difficulty (a second `DifficultyField`
+whose minimum tracks the required band) · scoring ladder · minimum word length ·
+an optional collapsible **Board constraints** min/max grid (words / score /
+longest) · timer. Mode-aware copy (coop vs compete).
+
+Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
+`startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `labelFor`),
+`db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
+`boggle.{games, found_words}`), `lib/{setup, boardTrace, displayRows}`. Registered
+in `src/games.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
+`GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
+([[feedback_pause_on_disconnect]]).
 
 ---
 
-## 8. Build order & testing
+## 9. Tests
 
-1. ✅ **TS solver module** (`src/boggle/lib/solver.ts`) + Vitest parity test vs the
-   C oracle. Done: `buildTrie` / `parseBoard` / `createSolver`; trie + gen-stamp
-   dedup; multiface tiles; basic/flat/fib/big ladders; two-word mask for 4×4/5×5/6×6;
-   max fail-fast. Parity fixture (`solver.fixture.ts`, 90 boards across all sizes
-   incl. multiface) generated from `libwords.c` via `boggle-c-solver/dump_fixture.c`;
-   8/8 tests pass. Perf measured ~34k solves/sec (see §6).
-2. **Generation logic + dictionary asset + edge function.**
-   - ✅ `src/boggle/lib/dice.ts` — all 8 dice sets (verbatim from wsboggle), incl.
-     multiface (1–6) + blank (0) faces; display helpers. Tested.
-   - ✅ `src/boggle/lib/generate.ts` — seeded `mulberry32` + `rollBoard` +
-     synchronous `generateBoard` (roll→solve→reject, max fail-fast, max_tries →
-     null). `solver.listWords` materialises the required-word list once on accept.
-     Solver now handles blank tiles. Tested (20 boggle tests pass total).
-   - ✅ `supabase/scripts/generate-boggle-wordlist.ts` (`npm run boggle:wordlist`)
-     — queries `common.words` → bundled gzip+base64 asset
-     `supabase/functions/boggle-build-board/wordlist.ts` (272,914 words, 1.18 MB;
-     **git-ignored + eslint-ignored**, regenerated by `npm run deploy`).
-   - ✅ `boggle-build-board/dict.ts` (decode once + band-trie cache) + `index.ts`
-     (handler: build band trie → `generateBoard` → return board; **auth +
-     `create_game` are Phase 3 TODOs**). **Latency proven in Deno:** cold start
-     (decode + band≤3 trie) **166 ms** once per isolate; warm trie 0.002 ms;
-     generation per board ~0.3 ms loose, ~14 ms longest≥10, ~150 ms longest≥11.
-     Worst realistic Start (cold isolate + 11-letter board) ≈ 320 ms.
-3. ✅ **Schema + RPCs** — `supabase/migrations/20260628000000_boggle.sql`:
-   `boggle.games` (readable `required_words`, no hidden view) + `found_words`
-   (mode-aware RLS) + `create_game` / `submit_word` (trusting-commit) /
-   `end_game` / `submit_timeout`; gametypes registered; `boggle` added to
-   `config.toml`. pgTAP: create_game/gameplay/rls (46 assertions). Full DB suite
-   PASS (1024 tests; updated `common/clubs_gametypes_test` for the 2 new
-   gametypes). db:lint clean for boggle.
-   - ✅ Edge function **wired**: `boggle-build-board/index.ts` now verifies the
-     caller, generates the board, and calls `boggle.create_game` over PostgREST
-     (mirrors `spellingbee-build-board`). `dict.ts` Deno-type-checks; both lint
-     clean. *Unverified:* the full HTTP round-trip (needs `supabase functions
-     serve` + a JWT + a seeded club — a `/verify`-style step before shipping).
-4. ✅ **Manifest + registry.** `src/boggle/`: `manifest.ts` (two sibling
-   manifests, `BRAND='MothCubes'`, `startGameInClub` → invoke `boggle-build-board`,
-   `submitTimeout`, `labelFor`), `db.ts`, `lib/setup.ts` (types/defaults/validate),
-   `theme.css`, `logo.svg`, and **stub** `components/{PlayArea,SetupForm,Help}`
-   (PlayArea renders the real board read-only — proves Start→edge→DB→render).
-   Registered in `src/games.ts`; `boggle` appended to eslint `GAMETYPES`. tsc +
-   eslint clean; FE suite 366 passing (schema-exposure guard incl.).
-5. ✅ **PlayArea (playable core).** Two-column layout (board + rotate left;
-   input + WordList right, no full-page scroll). `hooks/useGame` (realtime
-   refetch on `boggle.{games,found_words}`), `lib/boardTrace` (client-side guess
-   tracing, tested vs the solver), `lib/displayRows` + `WordList` + `useRecentlyFound`
-   (FreeBee look: finder color, bonus dot, 5s flash, click-to-define, missed-words
-   reveal), `<input data-game-input>` (Enter submits, ↑ recalls, A–Z filter, so
-   `?`/`/` shortcuts still fire), rotate via shared `ShuffleButton` (cosmetic 90°),
-   instant feedback for required/off-board guesses + server check for bonus,
-   End-game menu item, GameOverModal on terminal. tsc + eslint + FE suite (369) +
-   build green.
-   ✅ **5b:** real SetupForm (dice set, shared `DifficultyField`, ladder, word
-   length, optional constraints, `TimerField`); fuller Help; **live `/verify`** —
-   `e2e/boggle.e2e.ts` drives the running app: board renders, a required word
-   lands, an off-board word is rejected. Passes.
-6. ✅ **Coop/compete polish + tests.** Compete `OpponentStrip` (live counts/scores
-   from `status.leaderboard`, not words). End-game reveal + timer already wired
-   (Phase 5 + the shared GamePage timer). Tests: `displayRows`, `setup`
-   validation (Vitest); the e2e above. (Found+fixed pre-existing e2e fixture rot:
-   `claim_username` needs `chosen_color`.)
+**Vitest** (`src/boggle/lib/`):
+- `solver.test.ts` — parity against the C oracle fixture (90 boards, all sizes,
+  multiface + blanks) and the ladders.
+- `dice.test.ts` — the eight sets (n² dice of valid faces), multiface + blank
+  display.
+- `generate.test.ts`, `boardTrace.test.ts` (traces validated against the solver),
+  `displayRows.test.ts`, `setup.test.ts` (the cross-field band guard).
+
+**pgTAP** (`supabase/tests/boggle/`):
+- `create_game_test` — board validation, band / `legal_band` (rejects below the
+  required band) / ladder / player-count guards, stale `setup.mode` rejection.
+- `gameplay_test` — required vs bonus classification, the `legal_band` ceiling (a
+  real word above it → `notAWord`), dedup, soft rejections, manual end →
+  terminal.
+- `rls_test` — coop sees all / compete own-only-until-terminal.
+
+**e2e** (`e2e/boggle.e2e.ts`) — drives the running app: the board renders, a
+required word lands, an off-board word is rejected.
 
 ---
 
-## 9. Deferred / future notes
+## 10. Deployment notes
 
-### Word-list freshness via Supabase Storage (if "stale bundled list" ever bites)
-We chose to **bundle** the word list with the edge function (§5). The downside is
-it's frozen at deploy — updating the dictionary means redeploying the function.
-Since `common.words` is stable, that's fine today. **If frequent dictionary updates
-ever matter**, the middle-ground option is: put the gzipped word list in a
-**Supabase Storage** bucket and `fetch` it at cold start. That keeps cold start
-cheap (~0.27 MB gz transfer + ~10 ms gunzip + build), avoids any deploy-bundle size
-limit, and lets you refresh the dictionary by **re-uploading one file** — no
-function redeploy and no 88k-row DB scan. It sits between "bundle" (fastest, stale)
-and "query the DB at startup" (always fresh, slowest + DB load).
+boggle has **no data import** (it generates boards on demand), but its edge
+function needs the bundled `wordlist.ts` asset, which is git-ignored. Both deploy
+paths regenerate it first:
 
-### Measured: ship-bundled vs query-`common.words` at cold start (one per isolate)
-| | ship bundled list | query `common.words` |
-|---|---:|---:|
-| required (88k) | ~21 ms | ~48 ms local floor (hosted ~100–200 ms w/ conn+driver) |
-| full (267k) | ~76 ms | ~128 ms local floor (hosted ~250–500 ms) |
+- `npm run deploy` → `npm run boggle:wordlist && supabase functions deploy && …`.
+- `import-to-hosted.sh` step 6 regenerates the asset **from the local stack**
+  (the hosted `common.words` isn't seeded until a later step) before deploying
+  functions, and step 3 includes `boggle` in the PostgREST exposed-schemas
+  allowlist.
 
-(`parse+build` ~20/72 ms is common to both; the difference is local file read vs
-DB connection + bulk transfer + row-object parsing.)
+---
 
-### Other deferreds
-- Compete classic **dupes-cancel** scoring as an opt-in.
-- A "check board" / hint helper (cf. MonkeyGram's planned one).
+## 11. Resolved decisions
+
+Settled forks, recorded as fact (this is what shipped):
+
+- **On-demand generation, no library.** Boards are rolled + solved at game-start
+  by `boggle-build-board`, not pre-generated — player-selectable constraints would
+  make a pre-generated set multiply combinatorially (the waffle rationale).
+- **Pure-TS solver, no WASM** — the algorithm (flat trie + gen-stamp dedup) is
+  the win, not the language ([§3](#3-the-solver-libsolverts)).
+- **The required list is shipped to the FE, not hidden** — a deliberate
+  divergence from the hidden-solution games; the trust model makes hiding it
+  pointless and exposing it simpler ([§6](#6-schema-boggle)).
+- **Trusting commit** — traceability + classification + scoring are FE-side and
+  trusted; `submit_word` only does the bonus dictionary lookup
+  ([§7](#7-rpcs-all-security-definer)).
+- **Two difficulty bands** — a clean required band and a difficulty-only legal
+  band, independently picked with `legal_band ≥ band`
+  ([§2](#2-required--legal--bonus-words--the-core-model)).
+- **All dice sets ship**, including 6×6 — which forced the 64-bit used-tile mask.
+- **Rotate is cosmetic and local** to each player, never persisted.
+- **Compete scoring is independent** per player (dupes-cancel deferred).
+- **Missed-words reveal** lists the **required** words nobody found; bonus words
+  are never listed when unfound.
+
+---
+
+## 12. Deferred / future
+
+- **Word-list freshness via Supabase Storage.** The bundled list is frozen at
+  deploy; updating the dictionary means redeploying the function. Since
+  `common.words` is stable that's fine today. If frequent updates ever matter, the
+  middle ground is a gzipped list in a Storage bucket, `fetch`ed at cold start —
+  refresh by re-uploading one file, no redeploy and no DB scan. (Sits between
+  "bundle": fastest/stale, and "query the DB at startup": always-fresh/slowest.
+  Measured cold-start floors: bundled ~21 ms required / ~76 ms full; DB query
+  ~48 ms / ~128 ms local, more on hosted.)
+- **Compete classic dupes-cancel** scoring as an opt-in.
+- **A "check board" / hint helper** (cf. MonkeyGram's planned one).
