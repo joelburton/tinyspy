@@ -9,9 +9,10 @@
   display: flex;
   gap: 32px;
   align-items: flex-start;
-  justify-content: center;
+  /* Left-aligned (like scrabble's .layout) — NOT centered. Centering clips the
+   * board's left edge off-screen if the row ever overflows; flex-start anchors
+   * the board to the left so it's always fully visible. */
   flex-wrap: wrap;
-  margin: 0 auto;
   padding: 16px;
 }
 
