@@ -16,7 +16,8 @@ boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`) an
 inherits the shared chrome — timer, chat, presence-pause, manual "End game" —
 through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
-> **Status: live.** boggle is the **10th** registered gametype, built end-to-end
+> **Status: live.** boggle is the **10th** game (its `boggle_coop` / `boggle_compete`
+> are the gametypes), built end-to-end
 > (solver, generator edge function, migration, RPCs, FE) and shipping. Design
 > forks are recorded in [§11](#11-resolved-decisions).
 

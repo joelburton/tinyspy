@@ -1,4 +1,7 @@
-/* boggle setup-form tweaks layered on the shared setupForm.module.css. */
+/* boggle-specific setup bits. The form scaffold (.setup / .fieldset / legend /
+ * .radioRow / .radio) comes from the shared common/components/setupForm.module.css;
+ * only what's unique to boggle lives here — the labeled-control .field/.fieldLabel,
+ * the dice-set <select>, and the collapsible constraints grid (.disclosure/.grid). */
 
 /* A labeled control: bold label stacked over the input, with breathing room
  * before the next control in the fieldset. Mirrors DifficultyField's .field. */

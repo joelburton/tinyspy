@@ -124,8 +124,8 @@ export function PlayArea(ctx: GamePageCtx) {
     : null
 
   return (
-    <div className={styles.playArea}>
-      <div className={styles.boardCol}>
+    <div className={styles.layout}>
+      <div className={styles.boardArea}>
         <div
           className={styles.board}
           style={{
@@ -145,7 +145,7 @@ export function PlayArea(ctx: GamePageCtx) {
         <ShuffleButton onShuffle={() => setTurns((t) => (t + 1) % 4)} label="Rotate board" />
       </div>
 
-      <div className={styles.sidePanel}>
+      <div className={styles.sideCol}>
         <form
           className={styles.inputRow}
           onSubmit={(e) => {

@@ -17,9 +17,4 @@
    * side column (420) + gap (32) + play-area padding (32) + body padding (64)
    * + breathing room — so the board + side column never overflow horizontally. */
   --boggle-board-size: min(calc(100vh - 250px), calc(100vw - 560px));
-
-  /* Submission feedback pill colors (match the other word games' semantics). */
-  --boggle-feedback-success: #2c6e2c;  /* accepted / bonus */
-  --boggle-feedback-warning: #a86b00;  /* alreadyFound / tooShort */
-  --boggle-feedback-error:   #b3261e;  /* notAWord / not on board */
 }

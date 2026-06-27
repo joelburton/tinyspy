@@ -1,6 +1,12 @@
+/* OpponentStrip — the compete-only awareness strip above the WordList: a
+ * one-line "name: Nw · Mp" tally per player (count + score, not the words they
+ * found — those stay private until the game ends). It's the top band of the
+ * play column's right side, so it sits on a divider and wraps to extra rows
+ * when a club has many players. */
+
 .strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap;        /* many players spill onto extra rows rather than clip */
   gap: 4px 16px;
   font-size: 13px;
   font-weight: 600;
@@ -9,5 +15,5 @@
 }
 
 .player {
-  white-space: nowrap;
+  white-space: nowrap;    /* keep each "name: Nw · Mp" entry on one line */
 }

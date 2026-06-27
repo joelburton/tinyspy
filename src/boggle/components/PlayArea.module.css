@@ -1,7 +1,7 @@
 /* Two fixed-height columns — board left, input + found-words right. No
  * full-page scroll (docs/ui.md); the found-words list owns the only scroll. */
 
-.playArea {
+.layout {
   /* Flex (not grid) so the board can grow to a viewport-sized square on the left
    * while the side column stays a FIXED width on the right — the scrabble layout.
    * A content-sized grid here shrank the whole area to its min-content width,
@@ -21,7 +21,7 @@
   color: var(--color-text);
 }
 
-.boardCol {
+.boardArea {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -72,7 +72,7 @@
   opacity: 0.4;
 }
 
-.sidePanel {
+.sideCol {
   /* Fixed width (never re-sizes as the word list fills); as tall as the board so
    * the found-words list fills the leftover height and scrolls inside itself.
    * `min-width: 0` is essential: without it a flex item's auto minimum lets the
