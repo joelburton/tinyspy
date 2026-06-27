@@ -137,7 +137,7 @@ SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 # Schemas to expose via the Data API. `public` + `graphql_public`
 # are Supabase defaults that we keep so other features that read
 # from them don't break.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble,boggle"
 
 # Extra search path. Strictly speaking we don't NEED this (every
 # common.* reference in our RLS and RPCs is fully qualified — see
@@ -565,15 +565,28 @@ echo
 # ════════════════════════════════════════════════════════════════
 # 6. Deploy edge functions
 # ════════════════════════════════════════════════════════════════
-# All three: spellingbee-build-board, codenamesduet-suggest-clue, and define
-# (the word-definition lookup). `supabase functions deploy` with no
-# args pushes every function under supabase/functions/, so new ones
-# are picked up automatically — nothing to edit here when adding a
+# `supabase functions deploy` with no args pushes every function under
+# supabase/functions/ (codenamesduet-suggest-clue, define, and the
+# *-build-board generators for spellingbee, waffle, and boggle), so new
+# ones are picked up automatically — nothing to edit here when adding a
 # function. (define needs no extra secret: SUPABASE_URL / ANON /
 # SERVICE_ROLE keys are auto-injected by the Edge Runtime, and it
 # calls the public Wiktionary API with no key.)
+#
+# FIRST regenerate boggle's bundled dictionary asset. wordlist.ts is
+# gitignored (it's a build artifact, ~1.2 MB) and the boggle-build-board
+# function won't compile without it. We generate from the LOCAL stack —
+# NOT the hosted DB this script targets — because the wordlist is derived
+# from the canonical dictionary (words.tsv → local common.words) and
+# hosted common.words isn't populated until step 8, several steps later.
+# This mirrors `npm run deploy`, which also regenerates from local before
+# `supabase functions deploy`. Requires the local stack up + words:import
+# already run (psql against 127.0.0.1:54322).
 
 echo "═══ 6. Deploying edge functions ═══"
+echo "       Regenerating boggle wordlist asset (from LOCAL common.words)..."
+SUPABASE_DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres' \
+  npm run boggle:wordlist
 supabase functions deploy
 echo
 
@@ -617,11 +630,12 @@ echo
 # gamelist working copy ~/src/gamelist/words.tsv — see import-words.ts; it
 # isn't vendored into this repo.)
 #
-# waffle, wordle, and scrabble have NO import step — waffle generates
-# boards on demand via its edge function, wordle picks a random target
-# from common.words at create-game time, and scrabble's bag + board are
-# constants in code. They just need their schema migrated (step 2) and
-# exposed (step 3).
+# waffle, wordle, scrabble, and boggle have NO data import step — waffle
+# and boggle generate boards on demand via their edge functions, wordle
+# picks a random target from common.words at create-game time, and
+# scrabble's bag + board are constants in code. They just need their schema
+# migrated (step 2) and exposed (step 3). (boggle's edge function does need
+# its bundled wordlist asset, which step 6 regenerates before deploy.)
 #
 # ORDER MATTERS: common.words is the shared master word list, and the
 # spellingbee pangram seeds are DERIVED from it — so the word list (which
