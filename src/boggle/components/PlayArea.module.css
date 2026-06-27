@@ -1,14 +1,25 @@
-.wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
+/* Two fixed-height columns — board left, input + found-words right. No
+ * full-page scroll (docs/ui.md); the found-words list owns the only scroll. */
+
+.playArea {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(340px, 1fr);
+  gap: 32px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
 .loading {
   padding: 2rem;
-  color: var(--boggle-tile-text);
+  color: var(--color-text);
+}
+
+.boardCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .board {
@@ -17,11 +28,12 @@
   padding: 10px;
   background: var(--boggle-board-bg);
   border-radius: 12px;
+  transition: transform 0.3s ease; /* cosmetic rotate (local to this player) */
 }
 
 .tile {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,12 +43,38 @@
   /* inherit the app's system-ui sans-serif (common/theme.css), like every other
    * game's tiles — don't set a font-family here. */
   font-weight: 700;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   line-height: 1;
   text-transform: uppercase;
 }
 
-.note {
-  color: #888;
-  font-size: 0.9rem;
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 220px);
+  min-height: 280px;
+}
+
+.inputRow {
+  display: flex;
+  margin: 0;
+}
+
+.input {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  border: 2px solid var(--color-control-border);
+  border-radius: 8px;
+  background: var(--color-control-bg);
+  color: var(--color-text);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--boggle-accent);
 }

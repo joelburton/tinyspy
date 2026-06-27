@@ -303,10 +303,19 @@ copy (coop vs compete).
    (PlayArea renders the real board read-only — proves Start→edge→DB→render).
    Registered in `src/games.ts`; `boggle` appended to eslint `GAMETYPES`. tsc +
    eslint clean; FE suite 366 passing (schema-exposure guard incl.).
-5. **PlayArea (Phase 5):** flesh out the stubs — two-column grid + typed input +
-   WordList (FreeBee reuse) + rotate (`ShuffleButton`) + `lib/boardTrace`; real
-   SetupForm (dice set, shared difficulty band, ladder, word length, constraints,
-   `TimerField`); fuller Help.
+5. ✅ **PlayArea (playable core).** Two-column layout (board + rotate left;
+   input + WordList right, no full-page scroll). `hooks/useGame` (realtime
+   refetch on `boggle.{games,found_words}`), `lib/boardTrace` (client-side guess
+   tracing, tested vs the solver), `lib/displayRows` + `WordList` + `useRecentlyFound`
+   (FreeBee look: finder color, bonus dot, 5s flash, click-to-define, missed-words
+   reveal), `<input data-game-input>` (Enter submits, ↑ recalls, A–Z filter, so
+   `?`/`/` shortcuts still fire), rotate via shared `ShuffleButton` (cosmetic 90°),
+   instant feedback for required/off-board guesses + server check for bonus,
+   End-game menu item, GameOverModal on terminal. tsc + eslint + FE suite (369) +
+   build green.
+   **Remaining (Phase 5b):** real SetupForm (dice set, shared difficulty band,
+   ladder, word length, constraints, `TimerField`); fuller Help; a live
+   `/verify` of the play loop in the running app.
 6. **Coop/compete polish**, end-game reveal, timer, remaining tests.
 
 ---

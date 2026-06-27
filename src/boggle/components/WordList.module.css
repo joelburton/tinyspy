@@ -1,0 +1,85 @@
+/* Found-words list — an alphabetical, column-major grid (down each column, then
+ * right) in a fixed-height box that scrolls horizontally past the third column.
+ * Modeled on FreeBee's WordList. */
+
+.wrapper {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  --wl-row-height: 26px;
+  display: grid;
+  grid-template-rows: repeat(auto-fill, var(--wl-row-height));
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 2 * 16px) / 3);
+  column-gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.row {
+  font-size: 17px;
+  line-height: var(--wl-row-height);
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.row:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* Bonus indicator — a trailing '•' bullet (emitted as text in the TSX). */
+.bonusDot {
+  color: var(--color-muted);
+}
+
+/* Recently-found underline — picks up the per-finder color via currentColor. */
+.recent {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.listEmpty {
+  display: block;
+  overflow: hidden;
+}
+
+.empty {
+  font-style: italic;
+  color: var(--color-muted);
+  text-align: center;
+  padding: 16px 8px;
+}
+
+/* Unfound required words (the post-terminal reveal — what was missed). */
+.unfound {
+  color: var(--color-muted);
+}
