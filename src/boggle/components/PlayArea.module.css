@@ -28,7 +28,11 @@
   background: var(--boggle-tile);
   color: var(--boggle-tile-text);
   border-radius: 8px;
-  font: 700 1.6rem/1 Georgia, 'Times New Roman', serif;
+  /* inherit the app's system-ui sans-serif (common/theme.css), like every other
+   * game's tiles — don't set a font-family here. */
+  font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1;
   text-transform: uppercase;
 }
 
