@@ -1,0 +1,38 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.loading {
+  padding: 2rem;
+  color: var(--boggle-tile-text);
+}
+
+.board {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  background: var(--boggle-board-bg);
+  border-radius: 12px;
+}
+
+.tile {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--boggle-tile);
+  color: var(--boggle-tile-text);
+  border-radius: 8px;
+  font: 700 1.6rem/1 Georgia, 'Times New Roman', serif;
+  text-transform: uppercase;
+}
+
+.note {
+  color: #888;
+  font-size: 0.9rem;
+}

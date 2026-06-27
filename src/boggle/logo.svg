@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="18" fill="#2b2622"/>
+  <!-- two stacked lettered cubes (MothCubes) -->
+  <rect x="20" y="22" width="42" height="42" rx="8" fill="#c0563b"/>
+  <rect x="38" y="36" width="42" height="42" rx="8" fill="#f3ede1"/>
+  <text x="41" y="54" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" fill="#f3ede1">M</text>
+  <text x="52" y="69" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" fill="#2b2622">C</text>
+</svg>

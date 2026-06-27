@@ -1,0 +1,17 @@
+/* MothCubes (boggle) color tokens. Loaded with this game's chunk (imported from
+ * PlayArea.tsx) so they only ship when boggle is being played.
+ *
+ * Semantic names tied to boggle's vocabulary (`tile`, `accent`) rather than
+ * literal colors — see docs/ui.md "two vocabularies".
+ */
+:root {
+  --boggle-tile:        #f3ede1;  /* resting letter tile (warm ivory, dice-ish) */
+  --boggle-tile-text:   #1a1a1a;
+  --boggle-accent:      #c0563b;  /* highlight / selected path (moth red-brown) */
+  --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
+
+  /* Submission feedback pill colors (match the other word games' semantics). */
+  --boggle-feedback-success: #2c6e2c;  /* accepted / bonus */
+  --boggle-feedback-warning: #a86b00;  /* alreadyFound / tooShort */
+  --boggle-feedback-error:   #b3261e;  /* notAWord / not on board */
+}

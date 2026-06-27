@@ -296,8 +296,17 @@ copy (coop vs compete).
      (mirrors `spellingbee-build-board`). `dict.ts` Deno-type-checks; both lint
      clean. *Unverified:* the full HTTP round-trip (needs `supabase functions
      serve` + a JWT + a seeded club — a `/verify`-style step before shipping).
-4. **Manifest + registry + config.toml + setup form.**
-5. **PlayArea:** board grid + input + WordList + rotate + help.
+4. ✅ **Manifest + registry.** `src/boggle/`: `manifest.ts` (two sibling
+   manifests, `BRAND='MothCubes'`, `startGameInClub` → invoke `boggle-build-board`,
+   `submitTimeout`, `labelFor`), `db.ts`, `lib/setup.ts` (types/defaults/validate),
+   `theme.css`, `logo.svg`, and **stub** `components/{PlayArea,SetupForm,Help}`
+   (PlayArea renders the real board read-only — proves Start→edge→DB→render).
+   Registered in `src/games.ts`; `boggle` appended to eslint `GAMETYPES`. tsc +
+   eslint clean; FE suite 366 passing (schema-exposure guard incl.).
+5. **PlayArea (Phase 5):** flesh out the stubs — two-column grid + typed input +
+   WordList (FreeBee reuse) + rotate (`ShuffleButton`) + `lib/boardTrace`; real
+   SetupForm (dice set, shared difficulty band, ladder, word length, constraints,
+   `TimerField`); fuller Help.
 6. **Coop/compete polish**, end-game reveal, timer, remaining tests.
 
 ---

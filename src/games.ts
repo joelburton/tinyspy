@@ -17,6 +17,7 @@ import { waffleCoopGame, waffleCompeteGame } from './waffle/manifest'
 import { wordleCoopGame, wordleCompeteGame } from './wordle/manifest'
 import { stackdownCoopGame, stackdownCompeteGame } from './stackdown/manifest'
 import { scrabbleCoopGame, scrabbleCompeteGame } from './scrabble/manifest'
+import { boggleCoopGame, boggleCompeteGame } from './boggle/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -65,4 +66,6 @@ export const games: GameManifest[] = [
   stackdownCompeteGame,
   scrabbleCoopGame,
   scrabbleCompeteGame,
+  boggleCoopGame,
+  boggleCompeteGame,
 ]
