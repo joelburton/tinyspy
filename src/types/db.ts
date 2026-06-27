@@ -185,6 +185,7 @@ export type Database = {
           club_handle: string
           created_at: string
           id: string
+          legal_band: number
           min_word_length: number
           mode: string
           n: number
@@ -197,6 +198,7 @@ export type Database = {
           club_handle: string
           created_at?: string
           id: string
+          legal_band: number
           min_word_length: number
           mode: string
           n: number
@@ -209,6 +211,7 @@ export type Database = {
           club_handle?: string
           created_at?: string
           id?: string
+          legal_band?: number
           min_word_length?: number
           mode?: string
           n?: number

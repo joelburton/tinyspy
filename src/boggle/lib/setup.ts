@@ -13,8 +13,13 @@ import { DICE_BY_NAME } from './dice'
 export interface BoggleSetup {
   timer: TimerMode
   dice_set: string
-  /** required-word difficulty band, 1 (universal) … 6 (expert) */
+  /** required-word difficulty band, 1 (universal) … 6 (expert) — the words the
+   *  board generator guarantees are findable (clean: american, no slur/crude/slang) */
   band: number
+  /** legal (bonus) difficulty band, `band`…6 — the ceiling for words that aren't
+   *  required but still score. Filters on difficulty ONLY (any dialect/slur/
+   *  crude/slang qualifies), so it's the wider net of "real words you might find". */
+  legal_band: number
   min_word_length: number
   scoring_ladder: LadderName
   constraints?: BoardConstraints
@@ -25,6 +30,7 @@ export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
   timer: { kind: 'none' },
   dice_set: '4',
   band: 3,
+  legal_band: 5,
   min_word_length: 3,
   scoring_ladder: 'basic',
 }
@@ -37,6 +43,7 @@ export const DEFAULT_BOGGLE_SETUP_COMPETE: BoggleSetup = { ...DEFAULT_BOGGLE_SET
 export function boggleLegalError(s: BoggleSetup): string | null {
   if (!DICE_BY_NAME[s.dice_set]) return `Unknown dice set: ${s.dice_set}`
   if (s.band < 1 || s.band > 6) return 'Difficulty band must be 1–6'
+  if (s.legal_band < s.band || s.legal_band > 6) return 'Legal-word band must be between the required band and 6'
   if (s.min_word_length < 3 || s.min_word_length > 9) return 'Minimum word length must be 3–9'
   if (!(s.scoring_ladder in LADDERS)) return `Unknown scoring ladder: ${s.scoring_ladder}`
   return null

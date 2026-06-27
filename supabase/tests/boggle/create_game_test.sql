@@ -8,7 +8,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(16);
+select plan(17);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -85,6 +85,15 @@ select throws_ok(
        array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
        'coop', pg_temp.boggle_board()) $$,
   'P0001', null, 'rejects band out of range');
+
+-- legal_band must sit between the required band and 6. Default band is 3, so a
+-- legal_band of 2 is below it and must be rejected.
+select throws_ok(
+  $$ select boggle.create_game((select handle from club),
+       pg_temp.boggle_setup() || '{"legal_band": 2}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
+       'coop', pg_temp.boggle_board()) $$,
+  'P0001', null, 'rejects legal_band below the required band');
 
 select throws_ok(
   $$ select boggle.create_game((select handle from club),

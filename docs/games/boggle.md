@@ -22,9 +22,10 @@ sibling pair, like spellingbee.
 | Dictionary source | `common.words` (NOT wsboggle's word list). |
 | Dictionary delivery | **Ship a bundled word-list asset** with the edge function; build the trie at cold start, reuse across warm invocations. (See §5 + the Storage fallback in §9.) |
 | Required vs legal | The solver and all board constraints consider **required words only**. Legal/bonus words are **never** precomputed — guesses are validated at play time. |
-| Required difficulty | **Per-game pick** via the shared difficulty-band component (full precise band list, `universal…expert`). Required = `difficulty ≤ chosen band`. Default **familiar (≤3)**. Cheap: ~9–30 ms to build the band trie per game-start. |
+| Required difficulty | **Per-game pick** via the shared difficulty-band component (full precise band list, `universal…expert`). Required = `difficulty ≤ chosen band` + clean filter (`american, crude=0, slur=0, slang=0`). Default **familiar (≤3)**. Cheap: ~9–30 ms to build the band trie per game-start. |
+| Legal (bonus) difficulty | **A second per-game pick**, the ceiling for words that aren't required but still score. Legal = in `common.words` at `difficulty ≤ legal_band` — **difficulty-only** filter (any dialect us/uk/au/ca + slurs/crude/slang all qualify), distinct from the required band's clean filter. Must be `≥` the required band (every required word is also legal); the setup UI pulls it up with the required band and disables sub-required options. Default **≤5**. |
 | Dice sets | **All wsboggle sets** (4×4 Classic/Revised, four 5×5 sets, two 6×6 sets), ported verbatim from `~/src/wsboggle/.../dice.py`, including multiface faces (Qu/In/Th/Er/He/An). Sets are integral to the game; the solver supports 4×4/5×5/**6×6**. |
-| Guess validation | The **required list is shipped to the FE** (trust model: we don't withhold it for anti-cheat). The FE classifies instantly: in the required set → **required**; not in it but traces on the board → candidate **bonus**; not traceable → reject — all client-side. Only **bonus legality** ("is this obscure word real?") needs the server (`common.words` lookup, any dialect/difficulty incl. slurs/crude/slang — the FE doesn't carry the full dictionary). Required-ness is a **set-membership** test, *not* a difficulty check. Traceability + points are FE-side (shared TS `scoreFor`); the RPC trusts them, per the scrabble precedent. |
+| Guess validation | The **required list is shipped to the FE** (trust model: we don't withhold it for anti-cheat). The FE classifies instantly: in the required set → **required**; not in it but traces on the board → candidate **bonus**; not traceable → reject — all client-side. Only **bonus legality** ("is this obscure word real *and within the legal band*?") needs the server (`common.words` lookup at `difficulty ≤ legal_band`, any dialect incl. slurs/crude/slang — the FE doesn't carry the full dictionary). Required-ness is a **set-membership** test, *not* a difficulty check. Traceability + points are FE-side (shared TS `scoreFor`); the RPC trusts them, per the scrabble precedent. |
 | Scoring | wsboggle's scoring **ladders** (flat / basic / fib / big), **player-chosen in setup**; default **basic**. The chosen ladder drives generation scoring, the min/max-score constraint, and per-word points. |
 | Timer | FreeBee's `TimerField` exactly (none / count-up / count-down MM:SS). **Default none**; if countdown is chosen, the player picks the duration. |
 | Compete scoring | Independent per-player (each scores their own found words; no dupes-cancel). Classic dupes-cancel deferred as a possible later option. |
@@ -76,22 +77,26 @@ sibling pair, like spellingbee.
   itself (per the trust model we don't withhold it for anti-cheat). The only thing
   the FE can't do is judge an *unknown* word's legality — it doesn't carry the full
   dictionary — so bonus candidates go to the server for a `common.words` lookup.
-- **Bonus words** — real words more obscure than the required band but still
-  traceable on the board. Legal guesses, scored normally, **never precomputed** and
-  **never listed** when unfound.
+- **Bonus words** — real words that aren't on the required list but are still
+  within the **legal band** and traceable on the board. Scored normally, **never
+  precomputed** and **never listed** when unfound.
 - **Legal words** = required ∪ bonus. We never materialize this set; a guess is
-  legal iff it (a) is **any** row in `common.words` (any dialect us/uk/au/ca, any
-  difficulty, including slurs/crude/slang), (b) meets `min_word_length`, and
-  (c) traces a valid path on the board (the FE checks this; the server trusts it).
+  legal iff it (a) is in `common.words` at **`difficulty ≤ legal_band`** (a
+  difficulty-only filter — any dialect us/uk/au/ca + slurs/crude/slang qualify),
+  (b) meets `min_word_length`, and (c) traces a valid path on the board (the FE
+  checks this; the server trusts it).
 
 Rationale for not precomputing legal words: it keeps the board generator small and
 fast (it only cares about the required list), and a per-word trace on the FE is
 trivially cheap. This is the user's explicit model.
 
-Note the deliberate asymmetry: the **required** list is filtered clean
-(`american, crude=0, slur=0, slang=0`) because it's the only set ever *surfaced*
-(constraints + missed-words reveal), whereas **legal guesses** accept any real
-word — friends can play whatever they can find.
+Note the deliberate asymmetry between the two bands. The **required** band carries
+the **clean filter** (`american, crude=0, slur=0, slang=0`) because it's the only
+set ever *surfaced* (constraints + missed-words reveal). The **legal** band filters
+on **difficulty only** — friends can play whatever real word they can find within
+the chosen obscurity ceiling, regardless of dialect or register. The two bands are
+independent picks (`legal_band ≥ band`): raise the legal band to reward digging up
+rarer finds, lower it to keep bonuses close to the required difficulty.
 
 ---
 
@@ -127,7 +132,9 @@ Found-words visibility mirrors spellingbee's mode-aware RLS. The required list i
 **`boggle.games`**
 - `id uuid pk references common.games(id)`, `club_handle`, `mode ('coop'|'compete')`
 - `dice_set text`, `board text` (row-major raw faces; multiface encoded), `board_w`, `board_h`
-- setup echo: `band`, `min_word_length`, `scoring_ladder`, `timer`, constraint bounds
+- denormalized setup bits the submit RPC needs: `min_word_length`, `legal_band`
+  (the bonus-word difficulty ceiling). The rest of setup (`band`, `scoring_ladder`,
+  `timer`, constraint bounds) lives in `common.games.setup`.
 - `required_words jsonb` — `[{word, len, points}]` (readable by players)
 - `required_words_count int`, `required_words_score int`
 
@@ -149,9 +156,9 @@ compete → you see only your own until terminal, then all.
   1. reject non-alpha (server-side too); enforce `min_word_length`;
   2. dedup against the caller's scope (coop = team, compete = self);
   3. **required** (`word` ∈ the game's `required_words`) → store, trusting FE points;
-  4. **otherwise** → look up `common.words` (**any** row: any dialect/difficulty
-     incl. slurs/crude/slang) → store as **bonus** (FE points) if found, else reject
-     as not-a-word; return the verdict.
+  4. **otherwise** → look up `common.words` at **`difficulty ≤ legal_band`** (any
+     dialect incl. slurs/crude/slang — difficulty is the only filter) → store as
+     **bonus** (FE points) if found, else reject as not-a-word; return the verdict.
   - No scoring in plpgsql — points come from the shared TS `scoreFor`; the RPC
     trusts them (scrabble precedent).
 - `end_game` / `submit_timeout` — flip terminal; `submit_timeout` mirrors

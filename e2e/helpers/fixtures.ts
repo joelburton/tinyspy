@@ -219,6 +219,7 @@ export async function createBoggleGame(
         timer: { kind: 'none' },
         dice_set: '4',
         band: 3,
+        legal_band: 5,
         min_word_length: 3,
         scoring_ladder: 'basic',
       },

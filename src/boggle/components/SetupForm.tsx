@@ -84,9 +84,11 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <fieldset className={shared.fieldset}>
         <legend>Difficulty</legend>
         <p className="muted">
-          The required words — what the board is built around and what the
-          end-of-game reveal lists. Rarer real words you find still score as
-          bonuses.
+          <strong>Required words</strong> are what the board is built around and
+          what the end-of-game reveal lists. <strong>Legal words</strong> set how
+          obscure a non-required word can be and still score as a bonus — these
+          filter on difficulty only (any spelling/dialect counts), so a higher
+          band rewards digging up rarer finds.
         </p>
         <DifficultyField
           label="Required words"
@@ -94,7 +96,17 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           minDifficulty={1}
           maxDifficulty={6}
           value={s.band}
-          onChange={(band) => onChange({ ...s, band })}
+          // The legal band can never sit below the required band (every required
+          // word is also legal) — pull it up with the required band when needed.
+          onChange={(band) => onChange({ ...s, band, legal_band: Math.max(band, s.legal_band) })}
+        />
+        <DifficultyField
+          label="Legal (bonus) words"
+          length={null}
+          minDifficulty={s.band}
+          maxDifficulty={6}
+          value={s.legal_band}
+          onChange={(legal_band) => onChange({ ...s, legal_band })}
         />
       </fieldset>
 

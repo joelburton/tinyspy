@@ -10,7 +10,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(24);
+select plan(25);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -71,6 +71,16 @@ select is(boggle.submit_word((select id from g), 'ca7', 1)->>'result', 'invalid'
   'non-alpha input → invalid');
 select is(boggle.submit_word((select id from g), 'qwxz', 1)->>'result', 'notAWord',
   'not required and not in common.words → notAWord');
+-- A word that IS in common.words but ABOVE the legal band (difficulty 6 >
+-- legal_band 5) is not a legal bonus → notAWord. ('qzzxvy' is synthetic so the
+-- insert deterministically sets difficulty 6 regardless of import state.)
+reset role; select set_config('request.jwt.claims', '', true);
+insert into common.words (word, difficulty, american, british, canadian, australian, len)
+  values ('qzzxvy', 6, true, true, true, true, 6)
+  on conflict do nothing;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(boggle.submit_word((select id from g), 'qzzxvy', 1)->>'result', 'notAWord',
+  'real word above the legal band → notAWord');
 
 -- ── (5) end_game (manual) → terminal ──────────────────────
 select lives_ok($$ select boggle.end_game((select id from g)) $$, 'end_game: a player can end the game');

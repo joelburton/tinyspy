@@ -34,9 +34,16 @@ create table boggle.games (
   -- or 0 for a blank tile) of length n². The FE expands faces for display.
   board text not null,
   n int not null check (n between 4 and 6),
-  -- Denormalized setup bit the submit RPC needs (rest of setup lives in
-  -- common.games.setup): the minimum length a guess must reach.
+  -- Denormalized setup bits the submit RPC needs (rest of setup lives in
+  -- common.games.setup): the minimum length a guess must reach, and the
+  -- difficulty band for LEGAL (bonus) guesses. A typed word counts as a bonus
+  -- when it's in common.words at difficulty <= legal_band — with NO
+  -- dialect/slur/crude/slang filter (legal words filter on difficulty ONLY).
+  -- Distinct from the *required* band: required words are the clean,
+  -- difficulty<=band words the board generator guarantees are findable; the
+  -- legal band is the (usually wider) net of what else a player may discover.
   min_word_length int not null,
+  legal_band int not null check (legal_band between 1 and 6),
   -- The required-word list this board is judged against: a jsonb array of
   -- { "word": text, "points": int }. READABLE by club members (not hidden) —
   -- the FE classifies guesses + renders the missed-words reveal from it.
@@ -140,6 +147,7 @@ declare
   effective_gametype text;
   s_min_word_length int;
   s_band int;
+  s_legal_band int;
   s_ladder text;
   b_board text;
   b_n int;
@@ -173,6 +181,15 @@ begin
   s_band := (setup->>'band')::int;
   if s_band is null or s_band < 1 or s_band > 6 then
     raise exception 'setup.band must be 1..6 (got %)', setup->>'band' using errcode = 'P0001';
+  end if;
+
+  -- The legal (bonus) band is the difficulty ceiling for words that aren't on
+  -- the required list but still score. It must be at least the required band
+  -- (every required word is, by definition, also legal) and at most 6.
+  s_legal_band := (setup->>'legal_band')::int;
+  if s_legal_band is null or s_legal_band < s_band or s_legal_band > 6 then
+    raise exception 'setup.legal_band must be band..6 (got %)', setup->>'legal_band'
+      using errcode = 'P0001';
   end if;
 
   s_ladder := setup->>'scoring_ladder';
@@ -212,11 +229,11 @@ begin
   );
 
   insert into boggle.games (
-    id, club_handle, mode, board, n, min_word_length,
+    id, club_handle, mode, board, n, min_word_length, legal_band,
     required_words, required_words_count, required_words_score
   )
   values (
-    new_id, target_club, mode, b_board, b_n, s_min_word_length,
+    new_id, target_club, mode, b_board, b_n, s_min_word_length, s_legal_band,
     board->'required_words', b_required_count, b_required_score
   );
 
@@ -303,6 +320,7 @@ declare
   caller_id uuid;
   g_mode text;
   g_minlen int;
+  g_legal_band int;
   g_required jsonb;
   g_playstate text;
   w_lower text;
@@ -313,8 +331,8 @@ declare
 begin
   caller_id := common.require_game_player(target_game);
 
-  select bg.mode, bg.min_word_length, bg.required_words, cg.play_state
-    into g_mode, g_minlen, g_required, g_playstate
+  select bg.mode, bg.min_word_length, bg.legal_band, bg.required_words, cg.play_state
+    into g_mode, g_minlen, g_legal_band, g_required, g_playstate
     from boggle.games bg join common.games cg on cg.id = bg.id
    where bg.id = target_game;
   if not found then
@@ -345,8 +363,11 @@ begin
     return jsonb_build_object('result', 'alreadyFound', 'points', 0);
   end if;
 
-  -- Classify: required (membership in this board's list) vs bonus (any real
-  -- word in common.words) vs not-a-word. Traceability is trusted from the FE.
+  -- Classify: required (membership in this board's list) vs bonus (a word in
+  -- common.words within the legal band) vs not-a-word. The legal-band check
+  -- filters on difficulty ONLY — any dialect/slur/crude/slang qualifies, since
+  -- bonus words are the wide net of "real words a player might dig up."
+  -- Traceability is trusted from the FE.
   select rw into required_entry
     from jsonb_array_elements(g_required) rw
    where rw->>'word' = w_lower
@@ -354,7 +375,10 @@ begin
   if found then
     is_bonus := false;
     pts := (required_entry->>'points')::int;       -- authoritative stored points
-  elsif exists (select 1 from common.words cw where cw.word = w_lower) then
+  elsif exists (
+    select 1 from common.words cw
+     where cw.word = w_lower and cw.difficulty <= g_legal_band
+  ) then
     is_bonus := true;
     pts := coalesce(points, 0);                     -- FE-supplied (trusted) bonus points
   else

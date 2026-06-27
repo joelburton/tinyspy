@@ -21,7 +21,7 @@
  * Calling shape (FE):
  *   POST /functions/v1/boggle-build-board
  *   { target_club, mode, player_user_ids,
- *     setup: { timer, dice_set, band, min_word_length, scoring_ladder, constraints } }
+ *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder, constraints } }
  *   → { id }   ·   → { error } (400/401/422/500)
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The caller's
@@ -51,7 +51,9 @@ interface BoggleSetup {
   min_word_length?: number
   scoring_ladder?: LadderName
   constraints?: BoardConstraints
-  // timer etc. validated by create_game
+  // legal_band, timer etc. ride through to create_game, which validates them.
+  // Generation only needs the *required* band (legal_band never affects the
+  // board — it's purely the bonus-word ceiling enforced at guess time).
 }
 
 serve(async (req: Request): Promise<Response> => {
