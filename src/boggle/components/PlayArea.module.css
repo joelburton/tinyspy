@@ -3,7 +3,11 @@
 
 .playArea {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(340px, 1fr);
+  /* Right column is a FIXED width so it never re-resolves as the found-words
+   * list fills up (a `1fr` right column gets re-sized by its own content, which
+   * shifted both columns mid-game). The board column takes the remaining space
+   * and centers the grid inside it. */
+  grid-template-columns: minmax(300px, 1fr) 420px;
   gap: 32px;
   max-width: 920px;
   margin: 0 auto;
