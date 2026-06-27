@@ -64,14 +64,21 @@ export interface GeneratedBoard {
   tries: number
 }
 
-/** Roll + solve until a board meets every constraint, or `null` if `maxTries` is
- *  exhausted (the caller should relax the constraints and tell the player). */
+/** Roll + solve until a board meets every constraint, or `null` if it can't (the
+ *  caller should relax the constraints and tell the player).
+ *
+ *  Two bounds: `maxTries` (a deterministic count — what tests use) and the
+ *  optional `maxMs` (a wall-clock budget). The edge function passes `maxMs`
+ *  because its worker has a CPU ceiling: an impossible constraint would otherwise
+ *  busy-loop to `maxTries` and get the worker killed instead of returning null.
+ *  Leaving `maxMs` undefined skips all clock reads, so tests stay pure. */
 export function generateBoard(
   trie: Trie,
   set: DiceSet,
   constraints: BoardConstraints,
   seed: number,
   maxTries = 200_000,
+  maxMs?: number,
 ): GeneratedBoard | null {
   const { solve } = createSolver(trie)
   const rand = mulberry32(seed)
@@ -87,7 +94,11 @@ export function generateBoard(
   // max-words/max-score fail-fast inside the solver; the rest are post-checks.
   const solveOpts = { minWordLength, ladder, maxWords, maxScore }
 
+  const startMs = maxMs !== undefined ? performance.now() : 0
   for (let tries = 1; tries <= maxTries; tries++) {
+    // Wall-clock budget (edge only): check occasionally to bound the busy loop
+    // without paying a clock read every iteration.
+    if (maxMs !== undefined && (tries & 1023) === 0 && performance.now() - startMs > maxMs) break
     const boardStr = rollBoard(set, rand)
     const board = parseBoard(boardStr)
     const r = solve(board, solveOpts)

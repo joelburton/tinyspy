@@ -33,7 +33,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { generateBoard, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
-import type { LadderName } from '../../../src/boggle/lib/solver.ts'
+import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie } from './dict.ts'
 
 const cors: Record<string, string> = {
@@ -78,16 +78,23 @@ serve(async (req: Request): Promise<Response> => {
     if (!set) return json({ error: `unknown dice_set: ${setup.dice_set}` }, 400)
     const band = setup.band ?? 3
     if (band < 1 || band > 6) return json({ error: `band out of range: ${band}` }, 400)
+    // Validate the ladder here (the trust boundary): it comes from untyped JSON
+    // and flows straight into the solver's scoring, which would crash on an
+    // unknown key. create_game re-validates, but generation runs first.
+    const ladder = setup.scoring_ladder ?? 'basic'
+    if (!(ladder in LADDERS)) return json({ error: `unknown scoring_ladder: ${ladder}` }, 400)
 
     // ─── Generate the board (cached band trie + synchronous solve loop) ─────
     const trie = await requiredTrie(band)
     const constraints: BoardConstraints = {
-      minWordLength: setup.min_word_length ?? 3,
-      ladder: setup.scoring_ladder ?? 'basic',
       ...setup.constraints,
+      minWordLength: setup.min_word_length ?? 3,
+      ladder: ladder as LadderName,
     }
     const seed = (Math.random() * 0x1_0000_0000) >>> 0 // server-chosen → reproducible, fresh each game
-    const board = generateBoard(trie, set, constraints, seed)
+    // maxMs bounds the busy loop under the edge worker's CPU ceiling; an
+    // unsatisfiable constraint returns null → 422 instead of killing the worker.
+    const board = generateBoard(trie, set, constraints, seed, 200_000, 1000)
     if (!board) return json({ error: 'No board met those constraints — please relax them.' }, 422)
 
     // ─── Create the game as the caller ────────────────────────────────────
