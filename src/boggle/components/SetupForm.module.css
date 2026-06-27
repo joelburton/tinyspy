@@ -1,20 +1,47 @@
 /* boggle setup-form tweaks layered on the shared setupForm.module.css. */
 
-/* Vertical breathing room between stacked controls within a fieldset (the
- * ladder select and the minimum-word-length row were cramped together). */
+/* A labeled control: bold label stacked over the input, with breathing room
+ * before the next control in the fieldset. Mirrors DifficultyField's .field. */
 .field {
-  display: block;
-  margin: 0.45rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
 }
 
-/* Collapsible "Board constraints" min/max grid — mirrors wsboggle's
- * GameConstraints, in our theme tokens. */
-.constraints {
-  border-top: 1px solid var(--color-divider);
-  margin-top: 0.75rem;
-  padding-top: 0.5rem;
+.fieldLabel {
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
+/* A restyled native <select> matching the shared difficulty-band dropdown
+ * (DifficultyField.module.css): control tokens + a painted chevron, so boggle's
+ * dice-set / ladder dropdowns sit flush with the app's other controls. */
+.select {
+  font: inherit;
+  width: 100%;
+  padding: 0.6rem 2.2rem 0.6rem 0.9rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-control-bg);
+  color: inherit;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23555555' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+}
+
+.select:hover {
+  border-color: var(--color-control-border-2);
+}
+
+.select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+/* Collapsible "Board constraints" — the legend is the disclosure toggle. */
 .discHeader {
   background: transparent;
   border: 0;
@@ -22,8 +49,8 @@
   font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
-  padding: 0.2rem 0;
-  display: flex;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
 }

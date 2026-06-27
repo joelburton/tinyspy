@@ -66,8 +66,12 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <fieldset className={shared.fieldset}>
         <legend>Board</legend>
         <label className={styles.field}>
-          Dice set{' '}
-          <select value={s.dice_set} onChange={(e) => onChange({ ...s, dice_set: e.target.value })}>
+          <span className={styles.fieldLabel}>Dice set</span>
+          <select
+            className={styles.select}
+            value={s.dice_set}
+            onChange={(e) => onChange({ ...s, dice_set: e.target.value })}
+          >
             {DICE_SETS.map((d) => (
               <option key={d.name} value={d.name}>
                 {d.desc}
@@ -97,8 +101,9 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <fieldset className={shared.fieldset}>
         <legend>Scoring</legend>
         <label className={styles.field}>
-          Ladder{' '}
+          <span className={styles.fieldLabel}>Ladder</span>
           <select
+            className={styles.select}
             value={s.scoring_ladder}
             onChange={(e) => onChange({ ...s, scoring_ladder: e.target.value as LadderName })}
           >
@@ -125,17 +130,19 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         </div>
       </fieldset>
 
-      <div className={styles.constraints}>
-        <button
-          type="button"
-          className={styles.discHeader}
-          onClick={() => setConstraintsOpen((o) => !o)}
-          aria-expanded={constraintsOpen}
-        >
-          <span className={styles.disclosure}>{constraintsOpen ? '▾' : '▸'}</span>
-          Board constraints
-          {!constraintsOpen && constraintsActive(c) && <span className={styles.active}>active</span>}
-        </button>
+      <fieldset className={shared.fieldset}>
+        <legend>
+          <button
+            type="button"
+            className={styles.discHeader}
+            onClick={() => setConstraintsOpen((o) => !o)}
+            aria-expanded={constraintsOpen}
+          >
+            <span className={styles.disclosure}>{constraintsOpen ? '▾' : '▸'}</span>
+            Board constraints
+            {!constraintsOpen && constraintsActive(c) && <span className={styles.active}>active</span>}
+          </button>
+        </legend>
         {constraintsOpen && (
           <div className={styles.grid}>
             <span />
@@ -146,7 +153,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             ))}
           </div>
         )}
-      </div>
+      </fieldset>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>
