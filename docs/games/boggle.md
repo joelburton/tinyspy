@@ -290,8 +290,12 @@ copy (coop vs compete).
    `end_game` / `submit_timeout`; gametypes registered; `boggle` added to
    `config.toml`. pgTAP: create_game/gameplay/rls (46 assertions). Full DB suite
    PASS (1024 tests; updated `common/clubs_gametypes_test` for the 2 new
-   gametypes). db:lint clean for boggle. **Remaining: wire auth + `create_game`
-   into the `boggle-build-board` edge function** (currently a Phase-3 TODO there).
+   gametypes). db:lint clean for boggle.
+   - ✅ Edge function **wired**: `boggle-build-board/index.ts` now verifies the
+     caller, generates the board, and calls `boggle.create_game` over PostgREST
+     (mirrors `spellingbee-build-board`). `dict.ts` Deno-type-checks; both lint
+     clean. *Unverified:* the full HTTP round-trip (needs `supabase functions
+     serve` + a JWT + a seeded club — a `/verify`-style step before shipping).
 4. **Manifest + registry + config.toml + setup form.**
 5. **PlayArea:** board grid + input + WordList + rotate + help.
 6. **Coop/compete polish**, end-game reveal, timer, remaining tests.
