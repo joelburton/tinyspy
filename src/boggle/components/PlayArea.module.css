@@ -28,25 +28,39 @@
 
 .board {
   display: grid;
+  /* grid-template-columns/rows (repeat(n, 1fr)) are set inline since n varies. */
   gap: 6px;
   padding: 10px;
   background: var(--boggle-board-bg);
   border-radius: 12px;
+  box-sizing: border-box;
+  /* Grow to fill the left column, but never taller than the no-scroll column
+   * leaves room for (board + the rotate button below it). `aspect-ratio: 1`
+   * keeps the board square, and the n×n 1fr tracks make every tile square too —
+   * so a 4×4 board gets big roomy tiles and a 6×6 packs the same space. */
+  width: min(100%, calc(100vh - 280px));
+  aspect-ratio: 1;
 }
 
 .tile {
-  width: 60px;
-  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--boggle-tile);
   color: var(--boggle-tile-text);
   border-radius: 8px;
+  min-width: 0;
+  min-height: 0;
+  /* A sizing container so the letter scales with the tile (cqmin below),
+   * staying proportional whether the board is a roomy 4×4 or a dense 6×6. */
+  container-type: size;
+}
+
+.tile span {
   /* inherit the app's system-ui sans-serif (common/theme.css), like every other
    * game's tiles — don't set a font-family here. */
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 42cqmin;
   line-height: 1;
   text-transform: uppercase;
 }

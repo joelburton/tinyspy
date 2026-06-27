@@ -128,7 +128,10 @@ export function PlayArea(ctx: GamePageCtx) {
       <div className={styles.boardCol}>
         <div
           className={styles.board}
-          style={{ gridTemplateColumns: `repeat(${game.n}, 1fr)` }}
+          style={{
+            gridTemplateColumns: `repeat(${game.n}, 1fr)`,
+            gridTemplateRows: `repeat(${game.n}, 1fr)`,
+          }}
         >
           {view.flatMap((row, y) =>
             row.map((cell, x) => (
