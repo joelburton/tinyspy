@@ -1,7 +1,7 @@
 # boggle — MothCubes (PLAN / design decisions)
 
-> Status: **plan, not yet built.** This doc is the agreed design we'll implement
-> against. Codename `boggle`; user-facing brand **MothCubes** (lives only in the
+> Status: **built (phases 1–6 complete, verified).** This doc is the design +
+> build record. Codename `boggle`; user-facing brand **MothCubes** (lives only in the
 > manifest `BRAND` const — see [[feedback_codename_brand_naming]] conventions in
 > `docs/naming.md`). Ported from `~/src/wsboggle` (the rules/spec) and
 > `~/src/cboggle` (the DAWG builder only).
@@ -313,10 +313,15 @@ copy (coop vs compete).
    instant feedback for required/off-board guesses + server check for bonus,
    End-game menu item, GameOverModal on terminal. tsc + eslint + FE suite (369) +
    build green.
-   **Remaining (Phase 5b):** real SetupForm (dice set, shared difficulty band,
-   ladder, word length, constraints, `TimerField`); fuller Help; a live
-   `/verify` of the play loop in the running app.
-6. **Coop/compete polish**, end-game reveal, timer, remaining tests.
+   ✅ **5b:** real SetupForm (dice set, shared `DifficultyField`, ladder, word
+   length, optional constraints, `TimerField`); fuller Help; **live `/verify`** —
+   `e2e/boggle.e2e.ts` drives the running app: board renders, a required word
+   lands, an off-board word is rejected. Passes.
+6. ✅ **Coop/compete polish + tests.** Compete `OpponentStrip` (live counts/scores
+   from `status.leaderboard`, not words). End-game reveal + timer already wired
+   (Phase 5 + the shared GamePage timer). Tests: `displayRows`, `setup`
+   validation (Vitest); the e2e above. (Found+fixed pre-existing e2e fixture rot:
+   `claim_username` needs `chosen_color`.)
 
 ---
 
