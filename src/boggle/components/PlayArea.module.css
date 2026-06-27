@@ -2,14 +2,15 @@
  * full-page scroll (docs/ui.md); the found-words list owns the only scroll. */
 
 .playArea {
-  display: grid;
-  /* Right column is a FIXED width so it never re-resolves as the found-words
-   * list fills up (a `1fr` right column gets re-sized by its own content, which
-   * shifted both columns mid-game). The board column takes the remaining space
-   * and centers the grid inside it. */
-  grid-template-columns: minmax(300px, 1fr) 420px;
+  /* Flex (not grid) so the board can grow to a viewport-sized square on the left
+   * while the side column stays a FIXED width on the right — the scrabble layout.
+   * A content-sized grid here shrank the whole area to its min-content width,
+   * wasting the viewport; sizing the board explicitly (var below) avoids that. */
+  display: flex;
   gap: 32px;
-  max-width: 920px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
   margin: 0 auto;
   padding: 16px;
 }
@@ -20,6 +21,7 @@
 }
 
 .boardCol {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -34,11 +36,10 @@
   background: var(--boggle-board-bg);
   border-radius: 12px;
   box-sizing: border-box;
-  /* Grow to fill the left column, but never taller than the no-scroll column
-   * leaves room for (board + the rotate button below it). `aspect-ratio: 1`
-   * keeps the board square, and the n×n 1fr tracks make every tile square too —
-   * so a 4×4 board gets big roomy tiles and a 6×6 packs the same space. */
-  width: min(100%, calc(100vh - 280px));
+  /* A square sized to grow as large as the layout allows (see --boggle-board-size
+   * in theme.css). `aspect-ratio: 1` keeps it square; the n×n 1fr tracks make
+   * every tile square too — a 4×4 gets big roomy tiles, a 6×6 packs the space. */
+  width: var(--boggle-board-size);
   aspect-ratio: 1;
 }
 
@@ -71,10 +72,13 @@
 }
 
 .sidePanel {
+  /* Fixed width (never re-sizes as the word list fills); as tall as the board so
+   * the found-words list fills the leftover height and scrolls inside itself. */
+  flex: 0 0 420px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: calc(100vh - 220px);
+  height: var(--boggle-board-size);
   min-height: 280px;
 }
 

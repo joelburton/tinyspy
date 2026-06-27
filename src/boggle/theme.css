@@ -10,6 +10,13 @@
   --boggle-accent:      #c0563b;  /* highlight / selected path (moth red-brown) */
   --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
 
+  /* The play board is a square sized to grow as large as the layout allows:
+   * bounded by viewport HEIGHT (the play column doesn't scroll, and the rotate
+   * button sits below the board) and by the WIDTH left after the fixed side
+   * column. Mirrors scrabble's --scrabble-board-size. The 520px width budget =
+   * side column (420) + gap (32) + body padding + breathing room. */
+  --boggle-board-size: min(calc(100vh - 250px), calc(100vw - 520px));
+
   /* Submission feedback pill colors (match the other word games' semantics). */
   --boggle-feedback-success: #2c6e2c;  /* accepted / bonus */
   --boggle-feedback-warning: #a86b00;  /* alreadyFound / tooShort */
