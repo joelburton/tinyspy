@@ -1,18 +1,34 @@
-/**
- * Phase-4 rules modal. Expanded (scoring ladder, required vs bonus words, the
- * missed-words reveal) in Phase 5.
- */
+/** MothCubes rules modal. */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (
     <div>
       <h2>How to play {brand}</h2>
       <p>
         Find words by linking adjacent letter tiles — horizontally, vertically, or
-        diagonally. A tile can be used once per word. Longer words score more.
+        diagonally. Each tile can be used once per word. A “Qu” tile counts as both
+        letters. Type a word and press <kbd>Enter</kbd>; press <kbd>↑</kbd> to bring
+        back your last word and edit it.
       </p>
       <p>
-        Words the board is built around are <strong>required</strong>; rarer real
-        words you find are <strong>bonus</strong> words and still score.
+        <strong>Required words</strong> are the ones the board was built around —
+        they’re what the end-of-game reveal lists as “missed.”{' '}
+        <strong>Bonus words</strong> are rarer real words you find; they still
+        score (marked with a •) but aren’t part of the goal.
+      </p>
+      <p>
+        Longer words score more (the exact ladder is a setup choice — Standard
+        gives 1 point for 3–4 letters, ramping up to 11 for 8+). Click any found
+        word to look up its definition.
+      </p>
+      <p>
+        <strong>Coop:</strong> the whole club hunts the same board and shares one
+        score. <strong>Compete:</strong> everyone races the same board on their
+        own — most points wins; you see each other’s counts, not the words.
+      </p>
+      <p>
+        Use <strong>Rotate board</strong> to turn the grid a quarter-turn (letters
+        stay upright) so it faces whoever’s reading — it’s just your view, nobody
+        else’s.
       </p>
       <button type="button" onClick={onClose}>
         Got it

@@ -1,0 +1,13 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.player {
+  white-space: nowrap;
+}

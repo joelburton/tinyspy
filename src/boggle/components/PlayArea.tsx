@@ -8,6 +8,7 @@ import { traceableStr } from '../lib/boardTrace'
 import { LADDERS, scoreFor, type LadderName } from '../lib/solver'
 import { useGame } from '../hooks/useGame'
 import { WordList } from './WordList'
+import { OpponentStrip } from './OpponentStrip'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -131,7 +132,7 @@ export function PlayArea(ctx: GamePageCtx) {
         >
           {view.flatMap((row, y) =>
             row.map((cell, x) => (
-              <div key={`${y}-${x}`} className={styles.tile}>
+              <div key={`${y}-${x}`} className={styles.tile} data-boggle-tile>
                 {cell}
               </div>
             )),
@@ -167,6 +168,13 @@ export function PlayArea(ctx: GamePageCtx) {
             }}
           />
         </form>
+        {game.mode === 'compete' && (
+          <OpponentStrip
+            leaderboard={(ctx.status?.leaderboard as LeaderRow[]) ?? []}
+            players={players}
+            myId={myId}
+          />
+        )}
         <WordList
           foundWords={foundWords}
           players={players}
