@@ -1,0 +1,68 @@
+/* boggle setup-form tweaks layered on the shared setupForm.module.css. */
+
+/* Vertical breathing room between stacked controls within a fieldset (the
+ * ladder select and the minimum-word-length row were cramped together). */
+.field {
+  display: block;
+  margin: 0.45rem 0;
+}
+
+/* Collapsible "Board constraints" min/max grid — mirrors wsboggle's
+ * GameConstraints, in our theme tokens. */
+.constraints {
+  border-top: 1px solid var(--color-divider);
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.discHeader {
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 0.2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.disclosure {
+  display: inline-block;
+  width: 1em;
+  color: var(--color-muted);
+}
+
+.active {
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+  align-items: center;
+  max-width: 360px;
+}
+
+.colHead {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.rowLabel {
+  color: var(--color-text);
+}
+
+.numInput {
+  width: 100%;
+  text-align: right;
+}
