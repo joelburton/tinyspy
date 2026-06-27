@@ -64,7 +64,7 @@ async function createMembers(names: string[]): Promise<E2EMember[]> {
 
     const claimed = await asUser(session.access_token)
       .schema('common')
-      .rpc('claim_username', { desired: username })
+      .rpc('claim_username', { desired: username, chosen_color: 'blue' })
     if (claimed.error) throw new Error(`claim_username(${username}): ${claimed.error.message}`)
 
     members.push({ username, userId: session.user.id, session })
@@ -196,6 +196,44 @@ export async function createBananagramsGame(
   if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: 'bananagrams' }
+}
+
+/**
+ * Start a boggle game in the club. Bypasses the board-generating edge function
+ * (verified separately) and calls `boggle.create_game` directly with a fixed
+ * board whose single required word, "cat", traces along the top row — so an
+ * e2e can type a known-good word and watch it land. Returns id + gametype.
+ */
+export async function createBoggleGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('boggle')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: {
+        timer: { kind: 'none' },
+        dice_set: '4',
+        band: 3,
+        min_word_length: 3,
+        scoring_ladder: 'basic',
+      },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        board: 'CATRXXXXXXXXXXXX', // C A T R across the top row → "cat" traces
+        n: 4,
+        required_words: [{ word: 'cat', points: 1 }],
+        required_words_count: 1,
+        required_words_score: 1,
+      },
+    })
+  if (res.error) throw new Error(`boggle.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `boggle_${mode}` }
 }
 
 /** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
