@@ -10,6 +10,9 @@ type Props = {
    * Defaults to `'secondary'` — the common case.
    */
   variant?: 'primary' | 'secondary'
+  /** Short form — renders "club" instead of "Back to club" (the chevron makes
+   *  the meaning clear). For tight spots like an in-column terminal row. */
+  compact?: boolean
   autoFocus?: boolean
 }
 
@@ -22,12 +25,14 @@ type Props = {
  * everywhere. The chevron is `aria-hidden` so a screen reader just
  * announces "Back to club", not the icon.
  *
- * `variant` only swaps the fill (the global `secondary` class vs the
- * default accent button); the label + chevron never vary.
+ * `variant` swaps the fill (the global `secondary` class vs the default accent
+ * button); `compact` swaps the visible label to just "club" (the chevron
+ * carries the rest). The accessible label stays "Back to club" either way.
  */
 export function BackToClubButton({
   onClick,
   variant = 'secondary',
+  compact,
   autoFocus,
 }: Props) {
   return (
@@ -35,10 +40,11 @@ export function BackToClubButton({
       type="button"
       className={cls(styles.button, variant === 'secondary' && 'secondary')}
       onClick={onClick}
+      aria-label={compact ? 'Back to club' : undefined}
       autoFocus={autoFocus}
     >
       <ChevronLeft size={16} aria-hidden />
-      Back to club
+      {compact ? 'club' : 'Back to club'}
     </button>
   )
 }

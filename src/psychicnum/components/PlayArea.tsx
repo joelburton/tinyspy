@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Eye, Lightbulb } from 'lucide-react'
+import { Eye, Flag, Lightbulb } from 'lucide-react'
 import { cls } from '../../common/lib/cls'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx } from '../../common/lib/games'
+import type { PsychicnumSetup } from '../lib/setup'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -58,9 +59,10 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  setup,
+  status,
   feedback,
   goToClub,
-  menu,
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
@@ -200,17 +202,6 @@ export function PlayArea({
     }
   }, [playerBudgets, mode, players, session.user.id, feedback])
 
-  // ─── End-game action (per-game menu item) ──────────────
-  // Available in both modes. A manual end isn't a "you lose"
-  // punishment — it's the friends agreeing they're done. The RPC
-  // writes the neutral 'ended' terminal with everyone {won:false}.
-  useEndGameMenu({
-    isTerminal,
-    menu,
-    feedback,
-    endGame: () => db.rpc('end_game', { target_game: gameId }),
-  })
-
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading) return <p>Loading game…</p>
@@ -226,11 +217,13 @@ export function PlayArea({
   // winners get the "you won the race" vs "Bea won the race"
   // distinction, while coop stays the simple team verdict. In compete the
   // winner is the one who completed the set (their secrets_found hit 3).
+  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   const over = isTerminal ? buildOver({
     mode: game.mode,
     playState,
     timerExpired: timer.expired,
     selfWon: game.mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true,
+    winnerName,
   }) : null
 
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
@@ -246,6 +239,12 @@ export function PlayArea({
     guesses.filter((g) => g.kind === 'guess' && g.was_correct).map((g) => g.word),
   ).size
   const found = game.mode === 'coop' ? teamFound : selfSecretsFound
+
+  // ─── Info-column readouts (setup choices + live state) ──
+  const psychicnumSetup = setup as PsychicnumSetup
+  const totalGuesses = psychicnumSetup.guesses
+  const guessesUsed = totalGuesses - selfBudget
+  const difficultyLabel = DIFFICULTY_LABELS[psychicnumSetup.difficulty - 1] ?? '—'
 
   // Picking a tile or typing in the form both drive this one pending guess word.
   // (A partially-typed word won't equal any board word, so the board only
@@ -302,6 +301,14 @@ export function PlayArea({
     if (error) flashEntry('bad', error.message)
   }
 
+  // Manual end — the friends agreeing they're done (neutral terminal, nobody
+  // wins/loses). Confirmed because it's irreversible.
+  const endGame = async () => {
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) flashEntry('bad', error.message)
+  }
+
   return (
     <div className={styles.layout}>
       {/* The board column hugs the board's width (the board has a definite size),
@@ -312,6 +319,15 @@ export function PlayArea({
           results={results}
           selected={selected}
           onPick={canGuess ? (w) => setPending(w) : undefined}
+        />
+        {/* Shuffle floats over the board's top-right — it's purely visual (a
+            fresh scan of the SAME board), not a turn action, so it lives on the
+            board, not in the info-column action row. Always present, even at
+            terminal ("could I have found that with a reshuffle?"). */}
+        <ShuffleButton
+          onShuffle={handleShuffle}
+          label="Shuffle the words"
+          className={styles.floatingShuffle}
         />
         {/* The slot below the board: the guess entry during play, the secret
             reveal once over — same place the player's eyes already are, and it
@@ -332,72 +348,98 @@ export function PlayArea({
         ) : null}
       </div>
       <div className={styles.infoCol}>
+        {/* The non-log info column — four recurring kinds of info, named classes
+            (.infoSetup / .infoState / .infoHelp / .infoActions) so they're
+            consistent across games and can be promoted to common/ later. Which
+            ones survive into the terminal state differs per kind — see below. */}
         <div className={styles.actionSlot}>
+          {/* Setup — shown in BOTH states, behind a disclosure. Open, it grows
+              (which we normally avoid), but it's closable so it reclaims the
+              space — "what did I pick at setup?" without it taking room by
+              default. (See docs/ui.md → Layout stability.) */}
+          <details className={styles.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{game.words.length} tiles on the board</li>
+              <li>{SECRET_COUNT} secret words</li>
+              <li>{difficultyLabel} difficulty</li>
+            </ul>
+          </details>
+
+          {/* State — shown in both states. */}
+          <p className={styles.infoState}>
+            <strong>{found}/{SECRET_COUNT}</strong> found ·{' '}
+            <strong>{guessesUsed}/{totalGuesses}</strong> guesses used
+          </p>
+          {game.mode === 'compete' && (
+            <OpponentStrip
+              players={players}
+              selfId={session.user.id}
+              metricFor={(p) =>
+                playerBudgets.find((b) => b.user_id === p.user_id)
+                  ?.guesses_remaining ?? 0
+              }
+            />
+          )}
+
+          {/* Help — playing only (hidden once over). */}
+          {!over && (
+            <p className={styles.infoHelp}>
+              {canGuess
+                ? 'Click on or type a word and hit submit.'
+                : 'No guesses left — waiting on the rest.'}
+            </p>
+          )}
+
+          {/* Action buttons. Playing: Hint / Reveal / Shuffle / End. Terminal:
+              the play buttons hide; a bold, outcome-colored result line shows
+              with a compact back-to-club button. */}
           {over ? (
-            <div className={styles.gameOverIndicator}>
-              <span>
-                <span className="muted">Game over:</span> {over.status}
+            <div className={cls(styles.infoActions, styles.terminalActions)}>
+              <span
+                className={cls(styles.outcome, styles[`outcome_${over.tone}`])}
+              >
+                {over.message}
               </span>
-              <BackToClubButton onClick={goToClub} />
+              <BackToClubButton onClick={goToClub} compact />
             </div>
           ) : (
-            <>
-              {game.mode === 'coop' ? (
-                <p className="muted">
-                  Find the {SECRET_COUNT} secret words.{' '}
-                  <strong>{found}</strong> of {SECRET_COUNT} found ·{' '}
-                  <strong>{selfBudget}</strong>{' '}
-                  {selfBudget === 1 ? 'guess' : 'guesses'} left.
-                </p>
-              ) : (
+            <div className={styles.infoActions}>
+              {canGuess && (
                 <>
-                  <p className="muted">
-                    Race to find the {SECRET_COUNT} secret words. You've found{' '}
-                    <strong>{found}</strong> of {SECRET_COUNT}.
-                  </p>
-                  <OpponentStrip
-                    players={players}
-                    selfId={session.user.id}
-                    metricFor={(p) =>
-                      playerBudgets.find((b) => b.user_id === p.user_id)
-                        ?.guesses_remaining ?? 0
-                    }
-                  />
+                  {/* Hint = a clue (common.words.hint); Reveal = the answer
+                      word. Both log to the turn log, cost nothing. */}
+                  <button
+                    type="button"
+                    className={cls('secondary', styles.helperButton)}
+                    onClick={getHint}
+                    disabled={hinting}
+                  >
+                    <Lightbulb size={15} aria-hidden />
+                    Hint
+                  </button>
+                  <button
+                    type="button"
+                    className={cls('secondary', styles.helperButton)}
+                    onClick={getReveal}
+                    disabled={revealing}
+                  >
+                    <Eye size={15} aria-hidden />
+                    Reveal
+                  </button>
                 </>
               )}
-              <div className={styles.actions}>
-                {canGuess && (
-                  <>
-                    {/* Hint = a clue (common.words.hint); Reveal = the answer
-                        word. Both log to the turn log, cost nothing. */}
-                    <button
-                      type="button"
-                      className={cls('secondary', styles.helperButton)}
-                      onClick={getHint}
-                      disabled={hinting}
-                    >
-                      <Lightbulb size={15} aria-hidden />
-                      Hint
-                    </button>
-                    <button
-                      type="button"
-                      className={cls('secondary', styles.helperButton)}
-                      onClick={getReveal}
-                      disabled={revealing}
-                    >
-                      <Eye size={15} aria-hidden />
-                      Reveal
-                    </button>
-                  </>
-                )}
-                {/* Reorders the tiles for a fresh visual scan — local, harmless,
-                    so it's available even when you're out of guesses. */}
-                <ShuffleButton onShuffle={handleShuffle} label="Shuffle the words" />
-              </div>
-              {selfBudget === 0 && (
-                <p className="muted">No guesses left — waiting on the rest.</p>
-              )}
-            </>
+              {/* End is a turn/game-altering action (like Hint + Reveal), so it
+                  sits with them in the action row. Confirmed. */}
+              <button
+                type="button"
+                className={cls('secondary', styles.helperButton)}
+                onClick={endGame}
+              >
+                <Flag size={15} aria-hidden />
+                End
+              </button>
+            </div>
           )}
         </div>
         <GuessHistory guesses={guesses} players={players} />
@@ -415,61 +457,63 @@ export function PlayArea({
   )
 }
 
-/** Per-status modal + indicator copy. */
+/**
+ * Per-status terminal copy. `outcome` + `verdict` drive the GameOverModal;
+ * `message` + `tone` drive the short, bold, color-coded line in the info column
+ * (won = green, lost = red, manual end = neutral).
+ */
 function buildOver({
   mode,
   playState,
   timerExpired,
   selfWon,
+  winnerName,
 }: {
   mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
   /** Compete: did the caller complete the set? (Coop verdicts ignore it.) */
   selfWon: boolean
+  /** Compete: the winner's frozen username (for the "X won" message). */
+  winnerName: string
 }): {
   outcome: 'won' | 'lost'
   verdict: string
-  status: string
+  message: string
+  tone: 'won' | 'lost' | 'neutral'
 } {
   // Manual end ('ended', written by psychicnum.end_game) is the
   // uniform neutral terminal shared with the other games: nobody
   // won, nobody lost — the friends just stopped. We render it with
   // outcome:'won' so GameOverModal uses its green treatment (the
-  // modal only knows 'won'/'lost'); the verdict copy stays neutral.
+  // modal only knows 'won'/'lost'); the info-column message is neutral.
   if (playState === 'ended') {
     return mode === 'coop'
-      ? { outcome: 'won', verdict: 'Game ended.', status: 'ended' }
-      : { outcome: 'won', verdict: 'Game ended — no winner.', status: 'ended' }
+      ? { outcome: 'won', verdict: 'Game ended.', message: 'Game over', tone: 'neutral' }
+      : { outcome: 'won', verdict: 'Game ended — no winner.', message: 'Game over', tone: 'neutral' }
   }
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'You found all three!', status: 'won' }
+      return { outcome: 'won', verdict: 'You found all three!', message: 'You won!', tone: 'won' }
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired
-        ? 'You lost: out of time'
-        : 'You lost: out of guesses',
-      status: timerExpired ? 'out of time' : 'out of guesses',
+      verdict: timerExpired ? 'You lost: out of time' : 'You lost: out of guesses',
+      message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+      tone: 'lost',
     }
   }
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'You won the race!', status: 'you won' }
-      : {
-          outcome: 'lost',
-          verdict: 'Beaten to the punch.',
-          status: 'opponent won',
-        }
+      ? { outcome: 'won', verdict: 'You won the race!', message: 'You won!', tone: 'won' }
+      : { outcome: 'lost', verdict: 'Beaten to the punch.', message: `${winnerName} won`, tone: 'lost' }
   }
   // lost_compete (all exhausted OR timeout in compete)
   return {
     outcome: 'lost',
-    verdict: timerExpired
-      ? 'Out of time — nobody won.'
-      : 'Out of guesses — nobody won.',
-    status: timerExpired ? 'out of time' : 'out of guesses',
+    verdict: timerExpired ? 'Out of time — nobody won.' : 'Out of guesses — nobody won.',
+    message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+    tone: 'lost',
   }
 }

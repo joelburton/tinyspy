@@ -130,7 +130,7 @@ The shape that's the same in both modes:
 - **lost_compete** — all players exhausted their budgets OR timer expired with nobody having completed the set. Terminal. Everyone's `result = {won: false}`.
 
 **Both modes:**
-- **ended** — a player chose the **End game** menu item (`psychicnum.end_game`, `outcome='manual'`). Terminal, neutral: nobody won, nobody lost, everyone's `result = {won: false}`. Deliberately the *uniform* value the other games use for manual stops (not `'lost'`/`'lost_compete'`) so the cross-game terminal vocabulary stays consistent; the FE has explicit `'ended'` branches that render it green ("Game ended") rather than as a loss.
+- **ended** — a player pressed the **End** button (`psychicnum.end_game`, `outcome='manual'`). Terminal, neutral: nobody won, nobody lost, everyone's `result = {won: false}`. Deliberately the *uniform* value the other games use for manual stops (not `'lost'`/`'lost_compete'`) so the cross-game terminal vocabulary stays consistent; the FE has explicit `'ended'` branches that render it green ("Game ended") rather than as a loss.
 
 The mode-specific suffixes mirror what spellingbee did for its planned compete mode. Future games' compete-mode terminal states should follow this convention.
 
@@ -278,7 +278,7 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 
 ### `psychicnum.end_game(target_game uuid)`
 
-The **End game** menu item (per-game item declared by `PlayArea` via `ctx.menu.setGameItems`, both modes) fires this. It's the explicit manual stop — any current game player can decide the group is done.
+The **End** button in the info-column action row (both modes) fires this, behind a `window.confirm`. It's the explicit manual stop — any current game player can decide the group is done. (Unlike most games, which put end-game on the GamePage menu via `useEndGameMenu`, psychicnum surfaces it as a visible button — so it does NOT register a per-game menu item.)
 
 Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
 
@@ -351,9 +351,11 @@ src/psychicnum/
                             WordBoard (grid of word tiles; guessed tiles
                               permanently green=secret / red=miss)
                             GuessForm (capture-input word entry + submit_guess RPC) — during play
-                            Hint / Reveal / Shuffle buttons (request_hint /
-                              request_reveal RPCs; local shuffle) — during play
-                            "Game over: <status> [Back to club]" indicator — terminal
+                            info readouts (setup details / state / help) +
+                              action row: Hint / Reveal / End — playing
+                            Shuffle button — FLOATS over the board top-right
+                              (board-visual, not a turn action); always live
+                            terminal: outcome line + "‹ club" button (in action row)
                             GuessHistory (chronological guess + hint log, auto-scroll)
                             GameOverModal (shared) — pops on terminal entry
                           Mounted by <GamePage> as its render-prop child; receives
@@ -392,7 +394,7 @@ src/psychicnum/
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Find the 3 secret words. X of 3 found · N guesses left." status line and a **Hint** / **Reveal** / **Shuffle** action row (Hint shows a clue, Reveal shows an answer word, Shuffle reorders the tiles); on terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE" — so it lands where the player was already looking, and the infoCol's action slot shows a "Game over: `<status>` [Back to club]" indicator. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" in the entry box (local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `goToClub`, `feedback` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../ui.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE"; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" in the entry box (local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 

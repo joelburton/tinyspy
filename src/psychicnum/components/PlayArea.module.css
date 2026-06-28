@@ -49,7 +49,21 @@
   flex-direction: column;
   justify-content: flex-start;
   gap: 0.75rem;
+  /* Positioning context for the floating shuffle button (top-right of the
+   * board). The board card fills this column's width and sits at its top, so
+   * the column's top-right corner IS the board's. */
+  position: relative;
   background: rgba(40, 120, 255, 0.07); /* TEMP debug — remove later */
+}
+
+/* Shuffle floats over the board's top-right corner — on top of the tiles, with
+ * a drop shadow so it reads as hovering above the board. */
+.floatingShuffle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 /* Info column: FIXED width (never grows during play). Action slot at the top,
@@ -77,7 +91,7 @@
   min-height: 6rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   /* Don't shrink: this slot's height anchors the infoCol's
    * top region; the GuessHistory below takes everything else
@@ -89,39 +103,85 @@
   margin: 0;
 }
 
-/* Terminal-state indicator inside the action slot — replaces the
- * input/status pair once the game is over. "Game over: <status>"
- * on the left, Back-to-club button on the right. Once the
- * GameOverModal is dismissed, this is the lasting cue. */
-.gameOverIndicator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
+/* The four recurring kinds of .infoCol info. Named (not raw `muted`) so they
+ * read consistently and can be promoted to a common stylesheet when a 2nd game
+ * adopts them — see docs/ui.md. SETUP (the choices made at game creation) and
+ * STATE (the important live state) are both important, so full text color;
+ * HELP (UI instructions) is muted; ACTIONS is the button row. */
+
+/* SETUP is a <details> disclosure ("Setup options"). Closed by default so it
+ * doesn't claim space; opening it grows the slot (an allowed exception to the
+ * no-growth rule precisely because it's closable). */
+.infoSetup {
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.infoSetup summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.infoSetup ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.infoState {
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
-/* The action row: the two helper buttons (Hint, Reveal) grow to share the
- * width, the fixed-size shuffle pill sits at the end (wrapping below only if
- * the column is too narrow for all three). When the helpers are hidden — out
- * of guesses — the pill is the lone item. */
-.actions {
+.infoHelp {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+/* The action row. Playing: Hint / Reveal share the width, the shuffle pill +
+ * End wrap as needed. Terminal (.terminalActions): the bold outcome message
+ * (grows) + the compact back-to-club button. */
+.infoActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* A helper button (Hint / Reveal) — the Lucide icon + label, centered. Grows
- * to share the row; nowrap so the label stays on one line. */
+.terminalActions {
+  flex-wrap: nowrap;
+}
+
+/* A helper button (Hint / Reveal) — the Lucide icon + label, centered. A real
+ * flex-basis (not 0) so Hint + Reveal + Shuffle fill row 1 and End wraps to its
+ * own line rather than squeezing on and squishing the labels; they still grow
+ * to share row 1. nowrap so the label stays on one line. */
 .helperButton {
-  flex: 1 1 8rem;
+  flex: 1 1 6rem;
   min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4em;
   white-space: nowrap;
+}
+
+/* The terminal outcome line — bold, color-coded by result; grows so the
+ * back-to-club button sits at the right. */
+.outcome {
+  flex: 1;
+  font-weight: 700;
+}
+
+.outcome_won {
+  color: var(--color-outcome-won-strong);
+}
+
+.outcome_lost {
+  color: var(--color-outcome-lost-strong);
+}
+
+.outcome_neutral {
+  color: var(--color-text);
 }
 
 /* The end-game secret reveal, shown in the slot the guess entry occupied

@@ -458,12 +458,13 @@ shells until we reach them).
   column's inner edge, with symmetric breathing room (the layout `gap` on the
   board side, the info column's `padding-left` on the other).
 - **Info column = fixed width, never grows during play** (the *one* fixed column;
-  the board grows, this doesn't). Holds score/status, setup info, and the **turn
-  log** (chronological, one entry per turn) or **word list** (alphabetical
-  found-words; boggle/spellingbee). It's the **mobile-secondary** column — on
-  small screens it may collapse to a popup — so anything *critical to playing*
-  goes in the board column instead. (That's why the word/number **entry** lives
-  below the board, not here — and it's the capture model, not an `<input>`; see
+  the board grows, this doesn't). Holds the four **info readouts** (see
+  [Info-column readouts](#info-column-readouts) below) above the **turn log**
+  (chronological, one entry per turn) or **word list** (alphabetical found-words;
+  boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
+  may collapse to a popup — so anything *critical to playing* goes in the board
+  column instead. (That's why the word/number **entry** lives below the board,
+  not here — and it's the capture model, not an `<input>`; see
   [Text entry](#text-entry--capture-not-input).)
 - **Board column grows to fill the space the fixed info column leaves.** Two ways
   to realize that (see [Board sizing](#board-sizing) for which to pick): the
@@ -492,6 +493,39 @@ doc), not yet a shared component — the layout has no behavior, just CSS, so a
 shared `playArea.module.css` scaffold (like `setupForm.module.css`) is the
 intended home once a second game adopts it. `<TurnLog>` *is* a shared component
 (it has behavior); the two-column shell is not.
+
+### Info-column readouts
+
+The non-log part of the info column converges on **four recurring kinds of
+info**, each a **named class** (not raw `muted`) so it reads the same across
+games and can promote to a common stylesheet. Validated on psychicnum; reuse
+these names when a new game's info column needs the same.
+
+| class | what it is | style | terminal? |
+|---|---|---|---|
+| **`.infoSetup`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default | **shown** (still useful in review) |
+| **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
+| **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
+| **`.infoActions`** | the action-button row | — | **swaps** (see below) |
+
+- **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
+  so opening it grows the column but it *reclaims* the space — the rationale
+  that earns the exception to [Layout stability](#layout-stability): "what did I
+  pick at setup? — but I don't want it taking room the whole game."
+- **Action row = turn/game-altering actions only.** Hint, Reveal, End (all
+  change the game/turn). A control that's *purely visual and about the board
+  itself* does **not** go here — psychicnum's **Shuffle** (reorders the same
+  tiles, changes nothing about the game) **floats over the board** (top-right)
+  instead, and stays live even at terminal ("could I have found that with a
+  reshuffle?"). The test: changes game state/turn → action row; board-only view
+  aid → on the board.
+- **Terminal swap.** Setup + state stay; help hides; the action row replaces the
+  play buttons with a **bold, outcome-colored result line** (won = green / lost =
+  red / manual-end = neutral, via the `--color-outcome-*-strong` tones) + a
+  **compact** back-to-club button (`<BackToClubButton compact>` → just "‹ club").
+
+Currently psychicnum-local; promote the classes to `common/` on the second
+adopter (alongside the PlayArea shell + `setupForm.module.css`).
 
 ## Text entry — capture, not `<input>`
 
