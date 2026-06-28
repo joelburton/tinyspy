@@ -25,7 +25,7 @@ PERSONAL_ACCESS_TOKEN="REPLACE-WITH-PERSONAL-ACCESS-TOKEN"
 PROJECT_REF="REPLACE-WITH-EXISTING-PROJECT-REF-OR-LEAVE-PLACEHOLDER"
 
 # Used only when creating a new project.
-PROJECT_NAME="pupgames"
+PROJECT_NAME="puzpuzpuz"
 PROJECT_REGION="us-west-1"
 PROJECT_PLAN="free"
 
@@ -62,13 +62,13 @@ ANTHROPIC_API_KEY="REPLACE-WITH-ANTHROPIC-API-KEY-OR-LEAVE-PLACEHOLDER"
 # The Netlify URL where the FE is hosted — magic-link redirect target
 # and the only allowed redirect URL. Leave placeholdered to skip the
 # auth-config step until the FE is deployed.
-SITE_URL="REPLACE-WITH-SITE-URL"            # e.g. https://pupgames.netlify.app
+SITE_URL="REPLACE-WITH-SITE-URL"            # e.g. https://puzpuzpuz.netlify.app
 
 # Resend dashboard → API Keys → one with email:send permission.
 RESEND_API_KEY="REPLACE-WITH-RESEND-API-KEY-OR-LEAVE-PLACEHOLDER"
 
 # The "From:" address — must be at a domain verified in Resend.
-SMTP_SENDER_EMAIL="REPLACE-WITH-SENDER-EMAIL"   # e.g. noreply@pupgames.io
+SMTP_SENDER_EMAIL="REPLACE-WITH-SENDER-EMAIL"   # e.g. noreply@puzpuzpuz.io
 
 # Display name in the From header.
-SMTP_SENDER_NAME="PupGames"
+SMTP_SENDER_NAME="PuzPuzPuz"

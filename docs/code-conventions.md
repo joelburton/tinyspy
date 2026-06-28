@@ -297,7 +297,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
 - Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum).
-- Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PupgamesLogo` — each used by multiple call sites with the per-game variability flowing through props.
+- Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 ### Import-direction rules
 

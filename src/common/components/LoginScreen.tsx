@@ -94,7 +94,7 @@ export function LoginScreen() {
 
   return (
     <div className="card">
-      <h1>PupGames</h1>
+      <h1>PuzPuzPuz</h1>
 
       {status === 'sent' ? (
         <p>

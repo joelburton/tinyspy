@@ -16,7 +16,7 @@
 -- TypeScript / folder names are all `spellingbee`. Ported from the
 -- standalone codebase at ~/spellingbee-ws; this monorepo replaces the
 -- websocket / session / chat / presence machinery with Supabase
--- Realtime + the pupgames common shell.
+-- Realtime + the PuzPuzPuz common shell.
 --
 -- This file is the squashed, build-from-scratch form of the
 -- spellingbee schema: the full final state (schema, RLS, hidden-

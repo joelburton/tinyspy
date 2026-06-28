@@ -84,9 +84,9 @@ describe('chatOpenStore — direct API', () => {
 
   it('mirrors changes to localStorage', () => {
     setChatOpen(true)
-    expect(window.localStorage.getItem('pupgames:chat:open')).toBe('true')
+    expect(window.localStorage.getItem('puzpuzpuz:chat:open')).toBe('true')
     setChatOpen(false)
-    expect(window.localStorage.getItem('pupgames:chat:open')).toBe('false')
+    expect(window.localStorage.getItem('puzpuzpuz:chat:open')).toBe('false')
   })
 
   it('setChatOpen with the same value is a no-op (skips notify + write)', () => {

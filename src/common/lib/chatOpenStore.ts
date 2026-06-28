@@ -26,7 +26,7 @@ import { useSyncExternalStore } from 'react'
  * module load).
  */
 
-const KEY = 'pupgames:chat:open'
+const KEY = 'puzpuzpuz:chat:open'
 
 function readInitial(): boolean {
   try {

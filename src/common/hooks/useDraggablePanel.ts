@@ -10,7 +10,7 @@ export type PanelRect = {
 
 type PanelOpts = {
   /** localStorage key under which the rect is saved. Keys are
-   *  unique per panel kind (e.g. `pupgames:chat`, `pupgames:
+   *  unique per panel kind (e.g. `puzpuzpuz:chat`, `puzpuzpuz:
    *  scratchpad:<gameId>`); the hook does NOT namespace for you. */
   persistKey: string
   /** Initial rect on the first mount when nothing is stored.

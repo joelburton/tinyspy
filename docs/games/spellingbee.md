@@ -1,6 +1,6 @@
 # spellingbee
 
-A NYT-Spelling-Bee-style word-finding game. The fourth registered gametype in this monorepo, ported from the standalone `~/spellingbee-ws` codebase (websocket + Node backend, rich React FE). The port preserves the gameplay loop and the honeycomb-board visual layout; the websocket / session / chat / presence machinery is replaced by Supabase Realtime + the pupgames common shell.
+A NYT-Spelling-Bee-style word-finding game. The fourth registered gametype in this monorepo, ported from the standalone `~/spellingbee-ws` codebase (websocket + Node backend, rich React FE). The port preserves the gameplay loop and the honeycomb-board visual layout; the websocket / session / chat / presence machinery is replaced by Supabase Realtime + the PuzPuzPuz common shell.
 
 "spellingbee" is the codename. User-facing copy is "spellingbee"; folder / schema / RPC names are all `spellingbee`.
 
@@ -80,7 +80,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
 | **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/DefinitionPopover` anchored to that row; the `~` key opens `common/components/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/define` edge function. |
 | **Sounds** | out of scope | spellingbee-ws doesn't have them either. |
-| **Mid-session "new board" affordance** | out of scope | Pupgames path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
+| **Mid-session "new board" affordance** | out of scope | PuzPuzPuz path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
 
 ## Compete mode
 
@@ -428,7 +428,7 @@ src/spellingbee/
 
 ### Routes & shell
 
-Standard pupgames route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
+Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 

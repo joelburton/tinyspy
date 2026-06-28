@@ -37,7 +37,7 @@ type Props = {
  *     sessions via `useDraggablePanel`'s localStorage glue.
  *
  * Open/closed state ALSO persists (localStorage key
- * `pupgames:chat:open`) so the panel feels continuous as the
+ * `puzpuzpuz:chat:open`) so the panel feels continuous as the
  * user moves between pages.
  *
  * **Force-open for important messages.** A message that starts
@@ -165,7 +165,7 @@ export function FloatingChat({
     <FloatingPanel
       title="Chat"
       onClose={() => setChatOpen(false)}
-      persistKey="pupgames:chat:rect"
+      persistKey="puzpuzpuz:chat:rect"
       zIndex={10000}
       defaultPosition="center"
       defaultSize={{ width: 340, height: 460 }}

@@ -24,7 +24,7 @@ import { signIn } from './helpers/session'
  *   - a genuinely-unclaimed (valid) session DOES get the username gate — and
  *     can always sign out of it.
  *
- * LoginScreen is identified by its "PupGames" heading, ClaimHandleScreen by
+ * LoginScreen is identified by its "PuzPuzPuz" heading, ClaimHandleScreen by
  * "Pick a username".
  */
 test.describe('auth gate: a stale session never strands you on the username screen', () => {
@@ -39,7 +39,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
     const page = await ctx.newPage()
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { name: 'PupGames' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
     await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
 
     await ctx.close()
@@ -59,7 +59,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
     const page = await ctx.newPage()
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { name: 'PupGames' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
     await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
 
     await ctx.close()
@@ -82,7 +82,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
     await expect(page.getByRole('heading', { name: /pick a username/i })).toBeVisible()
 
     await page.getByRole('button', { name: /sign out/i }).click()
-    await expect(page.getByRole('heading', { name: 'PupGames' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
     await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
 
     await ctx.close()

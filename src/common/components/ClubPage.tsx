@@ -12,7 +12,7 @@ import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { EditClubDialog } from './EditClubDialog'
 import { Menu, type MenuHandle } from './Menu'
-import { PupgamesLogo } from './PupgamesLogo'
+import { PuzpuzpuzLogo } from './PuzpuzpuzLogo'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
 import { StatusSlot } from './StatusSlot'
@@ -542,7 +542,7 @@ export function ClubPage({ handle, session }: Props) {
       <header className={styles.header}>
         <Menu
           ref={menuRef}
-          trigger={<PupgamesLogo />}
+          trigger={<PuzpuzpuzLogo />}
           sections={menuSections}
           triggerLabel="Club menu"
         />

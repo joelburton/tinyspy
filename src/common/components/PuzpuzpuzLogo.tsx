@@ -1,8 +1,8 @@
-import pupgamesLogo from '../pupgames.svg?url'
-import styles from './PupgamesLogo.module.css'
+import puzpuzpuzLogo from '../puzpuzpuz.svg?url'
+import styles from './PuzpuzpuzLogo.module.css'
 
 /**
- * The generic pupgames logo, used as the leftmost element of the
+ * The generic PuzPuzPuz logo, used as the leftmost element of the
  * ClubPage header. Parallels `<GameLogo>` on the game page — but
  * gametype-agnostic, since the club page lives above any specific
  * game.
@@ -10,14 +10,14 @@ import styles from './PupgamesLogo.module.css'
  * Pure presentational. The click semantics (open the club menu)
  * live on the `<Menu>` wrapper at the call site — see ClubPage.
  *
- * Source SVG is at `src/common/pupgames.svg`, imported as `?url`
+ * Source SVG is at `src/common/puzpuzpuz.svg`, imported as `?url`
  * so Vite hashes the asset and the URL works in build output.
  */
-export function PupgamesLogo() {
+export function PuzpuzpuzLogo() {
   return (
     <img
-      src={pupgamesLogo}
-      alt="pupgames"
+      src={puzpuzpuzLogo}
+      alt="PuzPuzPuz"
       className={styles.logo}
       width={32}
       height={32}
