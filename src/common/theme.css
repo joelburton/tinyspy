@@ -137,13 +137,14 @@
   --radius-lg:                8px;   /* cards, modals */
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from 100vh so
-     it fills to the bottom without overflowing. Now that body padding is
-     removed, this is just the GamePage header (~3.75rem) + the 1rem gap between
-     the header and the play area ≈ 4.75rem, set a hair higher to stay off the
-     bottom edge. Centralized so a header redesign moves one number, not three.
-     See docs/ui.md → "Page-height fits the viewport"; consumed by the
-     viewport-bound games' PlayArea.module.css. */
-  --game-chrome-height:       5rem;
+     it fills to the bottom without overflowing. Comprises the body padding
+     (1rem top + 1rem bottom = 2rem), the GamePage header (~3.25rem with its
+     reduced padding), and the 1rem gap between the header and the play area
+     ≈ 6.25rem, set a hair higher to stay off the bottom edge. Centralized so a
+     header/padding change moves one number, not several. See docs/ui.md →
+     "Page-height fits the viewport"; consumed by the viewport-bound games'
+     PlayArea.module.css. */
+  --game-chrome-height:       6.5rem;
 
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
@@ -155,8 +156,8 @@
 /* ---------- Element resets ---------- */
 
 /* Universal border-box so padding doesn't get added on top of widths
-   and heights — without this `body { min-height: 100vh; padding: 2rem }`
-   totals to `100vh + 64px` and the page scrolls even when content fits. */
+   and heights — without this `body { min-height: 100vh; padding: 1rem }`
+   totals to `100vh + 32px` and the page scrolls even when content fits. */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -164,6 +165,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  padding: 1rem;
   display: grid;
   place-items: start center;
 }

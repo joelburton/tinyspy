@@ -392,6 +392,13 @@ clearly on top of any of them.
 Both are box-shadow rings sitting in the inter-tile gap, so they don't shift
 layout and compose cleanly with the tile's own border/fill.
 
+**Resting depth.** Tiles should read as physical tiles, and a board as a board:
+give a tile a slightly darker border than a flat panel (`--color-divider`) plus a
+small drop shadow (`0 1px 2px rgba(0,0,0,.18)`), and frame the board in a heavier
+"tray" — a thicker, darker border (`2px solid --color-muted`) around the tile
+area. Keep the shadow in the hover/selected box-shadow (`…, var(--tile-shadow)`)
+so the depth persists when the ring is on.
+
 ## PlayArea layout
 
 The shape every game's play surface converges on. Validated on **psychicnum**
@@ -402,8 +409,8 @@ shells until we reach them).
 
 - **No whole-page scroll.** The play area fills the viewport —
   `height: calc(100vh - var(--game-chrome-height))` — and only inner regions
-  (the turn log / word list, chat) scroll. The chrome token is the header + the
-  header→play-area gap (body padding is 0); see [Page-height fits the viewport](#page-height-fits-the-viewport).
+  (the turn log / word list, chat) scroll. The chrome token covers the body
+  padding (1rem) + the header + the header→play-area gap; see [Page-height fits the viewport](#page-height-fits-the-viewport).
 - **Two columns, no chrome around them.** A **board column** (`.boardCol`, left)
   and an **info column** (`.infoCol`, right). No border / margin / padding around
   the play area or around either column — the *only* thing between them is a
@@ -458,12 +465,16 @@ alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
   frame, not a hairline, so it reads as scrollable) that stays the same height
   whether empty or full and auto-snaps to the newest row; the table scrolls
   inside it.
-- **Outcome bar — every entry, every game.** A narrow first cell carries the
-  outcome color: `good` / `bad` / `partial` / `neutral` → the shared
-  `--color-outcome-*` palette, so a "bad" turn reads the same everywhere. The
-  color fills only the cell's content box (`background-clip: content-box`), so
-  vertical padding insets it and the bars read as individual segments, not one
-  strip.
+- **Outcome bar — every entry, every game.** The first cell holds a colored bar
+  (`good` / `bad` / `partial` / `neutral` → the shared `--color-outcome-*`
+  palette, so a "bad" turn reads the same everywhere). It's a real `<span>`, not
+  a styled empty cell: **an empty table cell collapses (its `width` is ignored)
+  and has no content box to paint**, so neither a cell background nor
+  `background-clip: content-box` shows anything — the span is what makes it
+  reliable. The cell's padding does the spacing — `padding-left` is the bar's
+  left margin, `padding-right` the gap to the next cell, and the vertical padding
+  insets the bar (so adjacent rows' bars don't touch and read as individual
+  segments). The bar tracks the row height.
 - **Flat rows, not cards.** No per-row border or margin — rows are separated by a
   single horizontal **divider line** (the cells' shared `border-bottom`), which
   spans the full width (reaches the left edge) and, with symmetric cell padding,
@@ -498,19 +509,24 @@ questions about the *column*.
   **definite size**, because a flex column can only hug a child whose size is
   already known (it can't hug a `flex:1`/`%`-height + `aspect-ratio` child, and
   `container-type: size` *collapses* a shrink-to-content column). The definite
-  size comes from the viewport:
-  `min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>))`
-  — height × aspect, capped by the width the side column leaves. The column is
-  `flex: 0 0 auto` (hugs it), the card hugs the board with even padding, and
-  anything stacked below (an input row) stretches to the column = board width.
-  scrabble, boggle, and psychicnum do this. The viewport offsets here aren't
-  accidental brittleness — subtracting the sibling column + chrome is *inherent*
-  to "make the column hug the board." (Keep them in terms of the shared
-  `--game-chrome-height` token where possible, and revisit when chrome changes.)
+  size comes from the viewport — height × aspect, capped by both the width the
+  side column leaves *and* an optional per-game **max tile size** (so a small
+  board doesn't dominate a big screen):
+  `min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>), <maxTile>*cols + gap*(cols-1))`
+  (psychicnum caps tiles at 125px; `<below>` ≈ the card padding + any stacked
+  input row). The column is `flex: 0 0 auto` (hugs it), the card hugs the board
+  with even padding, and anything stacked below (an input row) stretches to the
+  column = board width. scrabble, boggle, and psychicnum do this. The viewport
+  offsets here aren't accidental brittleness — subtracting the sibling column +
+  chrome is *inherent* to "make the column hug the board." (Keep them in terms of
+  the shared `--game-chrome-height` token where possible, and revisit when chrome
+  changes.)
 
-  Either way: tiles/gaps/fonts scale in `cqmin`, prefer **tile-relative** `cqmin`
-  for the glyph (so it shrinks as the tile count grows), and keep a `cap` so a
-  small board doesn't blow up on a large screen.
+  Either way: scale the **glyph** with the tile via **tile-relative** `cqmin`
+  (`container-type: size` on the tile) so it shrinks as the tile count grows. The
+  gap can be `cqmin` too (the fill-a-pane case), but use a **fixed** gap when a
+  max-tile cap is in play — the cap's `<maxTile>*cols + gap*(cols-1)` math needs
+  the gap to be a known length.
 
 scrabble + boggle still use the viewport-math form; migrating them is deferred.
 
