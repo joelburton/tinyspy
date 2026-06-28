@@ -1,6 +1,9 @@
-/* The chevron (U+2039) before the label. JSX collapses the whitespace
- * between the span and the text, so the gap comes from this margin —
- * keeping spacing identical regardless of the surrounding font. */
-.chevron {
-  margin-right: 0.35em;
+/* Lay the Lucide ChevronLeft icon + the label on one centered line, with a
+ * small gap between them (replaces the old glyph's margin). The `secondary`
+ * variant's fill/border come from the global class; this just handles the
+ * icon+label alignment. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
 }

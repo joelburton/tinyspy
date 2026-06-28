@@ -1,3 +1,4 @@
+import { Pause } from 'lucide-react'
 import styles from './PauseButton.module.css'
 
 type Props = {
@@ -29,24 +30,9 @@ export function PauseButton({ paused, onPause }: Props) {
       aria-label={paused ? 'Game paused' : 'Pause game'}
       title={paused ? 'Game paused' : 'Pause game'}
     >
-      <PauseIcon />
+      {/* Lucide pause glyph — inherits `currentColor` from the button. The
+       *  button carries the label, so the icon is decorative. */}
+      <Pause size={20} aria-hidden />
     </button>
-  )
-}
-
-/** Two-bar pause icon — DVD-player convention. Inline SVG so it
- *  inherits `currentColor` from the button. */
-function PauseIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <rect x="6" y="5" width="4" height="14" rx="1" />
-      <rect x="14" y="5" width="4" height="14" rx="1" />
-    </svg>
   )
 }

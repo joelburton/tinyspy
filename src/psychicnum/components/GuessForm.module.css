@@ -19,3 +19,10 @@
   min-width: 0;
   text-transform: uppercase;
 }
+
+/* Submit button: the Lucide Play icon + label on one centered line. */
+.submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}

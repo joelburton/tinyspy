@@ -652,6 +652,56 @@ Rules:
 
 Because the pill carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.
 
+## Button iconography
+
+Recurring action buttons share an **icon language** so a player learns a glyph
+once and reads it everywhere ([Consistency across games](#consistency-across-games)).
+
+**We use [Lucide](https://lucide.dev) SVG icon components (`lucide-react`) — not
+an icon font, not color emoji.** Why:
+
+- **Not an icon font.** Fonts put glyphs at private-use codepoints (a11y/SEO
+  hacks), ship a whole file or need subsetting, and can FOUT. The dated approach.
+- **Not color emoji** (`💡 🔑 ♻️ 🏁`). They render *differently per platform* and
+  as **color stickers** that clash with our monochrome line-art — and many
+  icons we need (hint, answer) have no good monochrome unicode at all.
+- **Lucide SVG components** are tree-shakeable (import per icon, only ship what
+  you use), monochrome line-art that inherits `currentColor` and scales with
+  `size`, one consistent 2px stroke — and it's the same *form* we already use
+  for the logos / chat bubble, just finished.
+
+**The map** (decided; roll out game-by-game):
+
+| button | Lucide | button | Lucide |
+|---|---|---|---|
+| Rotate / shuffle | `RotateCw` | Pass | `SkipForward` |
+| Back to club | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
+| Submit | `Play` | Recall | `Undo2` |
+| Get hint | `Lightbulb` | Trash / dump | `Recycle` |
+| Get answer / reveal | `Eye` | Pause | `Pause` |
+| End game | `Flag` | Peel | **`🍌` kept** (see below) |
+
+**Conventions:**
+
+- **The icon is decorative; the button carries the label** (visible text, or
+  `aria-label`/`title` on icon-only buttons). So the icon is `aria-hidden`.
+- **Sizing:** ~`size={15-16}` for an icon beside a text label, ~`size={20-24}`
+  for an icon-only pill. An icon-and-label button is `display: inline-flex;
+  align-items: center; gap: ~0.4em`.
+- **Decided picks worth noting:** **Submit = `Play`** (keeps the solid
+  right-triangle we'd used). **Shuffle/rotate = `RotateCw`** (read clearer than
+  the crossing-arrows `Shuffle`, and spins nicely on the existing hover-spin).
+
+**The one deliberate exception:** bananagrams's **Peel** stays `🍌` for now — it's
+MonkeyGrams brand flavor, not generic chrome; revisit when we reach bananagrams.
+
+**Rollout.** Shared components (`PauseButton`, `ShuffleButton`,
+`BackToClubButton`) and psychicnum (Submit, Get hint) are migrated; everything
+else moves game-by-game (don't retrofit per-game buttons ad hoc). Still on their
+old glyphs / pending: the chat bubble, the `×` close, the `✓`/`✗` marks, and
+**End game** (in psychicnum it's a *menu item*, not a button — wiring icons into
+menu items is a separate, shared-`<Menu>` decision).
+
 ## Explicitly deferred
 
 - **Responsive mobile layouts** beyond graceful degradation.

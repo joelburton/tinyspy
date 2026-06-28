@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { Play } from 'lucide-react'
 import { EntryBox } from '../../common/components/EntryBox'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import styles from './GuessForm.module.css'
@@ -102,7 +103,8 @@ export function GuessForm({ value, onChange, onSubmit, submitting, error, disabl
           className={styles.entry}
           result={shownResult}
         />
-        <button type="submit" disabled={locked || value === ''}>
+        <button type="submit" className={styles.submit} disabled={locked || value === ''}>
+          <Play size={15} aria-hidden />
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </form>

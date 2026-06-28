@@ -101,6 +101,15 @@
   font-size: 0.95rem;
 }
 
+/* "Get a hint" — the Lucide Lightbulb icon + label, centered (the button
+ * stretches full-width in the action slot). */
+.hintButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+}
+
 /* The end-game secret reveal, shown in the slot the guess entry occupied
  * during play (see PlayArea). Lands where the player was already looking and
  * explains the missing entry; sitting BELOW the top-anchored board, it never

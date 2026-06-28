@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Lightbulb } from 'lucide-react'
+import { cls } from '../../common/lib/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -327,10 +329,11 @@ export function PlayArea({
               {canGuess && (
                 <button
                   type="button"
-                  className="secondary"
+                  className={cls('secondary', styles.hintButton)}
                   onClick={getHint}
                   disabled={hinting}
                 >
+                  <Lightbulb size={15} aria-hidden />
                   {hinting ? 'Revealing…' : 'Get a hint'}
                 </button>
               )}
