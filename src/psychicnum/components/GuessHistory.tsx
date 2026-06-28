@@ -1,5 +1,6 @@
 import { colorVarFor } from '../../common/lib/memberColor'
-import { HistoryPanel, HistoryRow } from '../../common/components/HistoryPanel'
+import { TurnLog, TurnLogEntry } from '../../common/components/TurnLog'
+import turnLog from '../../common/components/TurnLog.module.css'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
 import styles from './GuessHistory.module.css'
 
@@ -8,62 +9,58 @@ type Props = {
   players: Player[]
 }
 
+// TEMP: cycle the four outcome colors so we can preview the palette. REMOVE —
+// revert the TurnLogEntry outcome below to `g.was_correct ? 'good' : 'bad'`.
+const TEMP_OUTCOMES = ['good', 'bad', 'partial', 'neutral'] as const
+
 /**
- * The append-only log of guesses for this game.
+ * The append-only log of guesses, rendered with the shared `<TurnLog>` table.
  *
- * Stateless and presentational — owns no state, makes no RPC
- * calls, just renders the rows from the props it's given.
+ * Stateless and presentational — owns no state, makes no RPC calls, just renders
+ * the rows from the props it's given, newest snapping into view.
  *
- * **Visual style** mirrors connections's GuessHistory: each row is
- * a small card with a 10px-wide colored strip on the left
- * (green for correct, red for wrong), the rest transparent.
- * Same semantic palette across games — "wrong guess" reads the
- * same in connections as it does here.
+ * Columns (after the shared outcome-bar cell): the turn number (muted), the
+ * guessed number (bold — the important part), the result, and the guesser
+ * (right-aligned with their identity dot, so the dots line up down the column).
+ * Cells use `<TurnLog>`'s content classes so they match other games' logs.
  *
- * **Chronological order** (oldest at top, latest at bottom).
- * The list scrolls inside its own frame (see the `.list` styles
- * + the parent column's bounded height in PlayArea.module.css)
- * and auto-snaps to the bottom on every new guess via the
- * effect below — same UX as a chat panel.
- *
- * The pattern carries forward to harder games: codenamesduet's clue +
- * guess log, future game move lists. When those land, each
- * `<XHistory>` can adopt this same shape — pure render from a
- * list + the member roster needed to resolve attribution.
+ * In compete mode RLS scopes `guesses` to the caller, so this shows only the
+ * viewer's own attempts.
  */
 export function GuessHistory({ guesses, players }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
 
   return (
-    <HistoryPanel
+    <TurnLog
       heading="Guesses"
       empty={guesses.length === 0}
+      emptyText="No guesses yet."
       scrollKey={guesses}
       className={styles.history}
     >
-      {guesses.map((g) => {
+      {guesses.map((g, i) => {
         const guesser = playerFor(g.user_id)
         return (
-          <HistoryRow
-            key={g.id}
-            verdict={g.was_correct ? 'correct' : 'wrong'}
-            className={styles.itemRow}
-          >
-            <div className={styles.number}>{g.number}</div>
-            <div className={styles.meta}>
-              <span
-                className={styles.user}
-                style={{ color: colorVarFor(guesser?.color) }}
-              >
+          <TurnLogEntry key={g.id} outcome={TEMP_OUTCOMES[i % 4]}>
+            <td className={turnLog.meta}>#{i + 1}</td>
+            <td className={turnLog.primary}>{g.number}</td>
+            <td>{g.was_correct ? 'Correct' : 'Incorrect'}</td>
+            <td className={turnLog.who}>
+              <span className={turnLog.actor}>
                 {guesser?.username ?? 'someone'}
               </span>
-              <span className={styles.separator}>·</span>
-              <span>{g.was_correct ? 'Correct!' : 'Not the number'}</span>
-            </div>
-          </HistoryRow>
+              <span
+                className={turnLog.dot}
+                style={{ color: colorVarFor(guesser?.color) }}
+                aria-hidden="true"
+              >
+                ●
+              </span>
+            </td>
+          </TurnLogEntry>
         )
       })}
-    </HistoryPanel>
+    </TurnLog>
   )
 }

@@ -1,47 +1,9 @@
-/* psychicnum-specific bits of the guess-history sidebar. The panel chrome
- * (heading + scrolling list + verdict-strip cards) comes from the shared
- * common/components/HistoryPanel; only the column flex and the row content
- * (the guessed number laid out beside its meta line) are psychicnum's. */
+/* The guess log's column sizing. The panel chrome (heading + scroll box) and
+ * the row look (outcome bar, divider lines) + content classes all come from the
+ * shared common/components/TurnLog; only how the column grows is psychicnum's. */
 
-/* Grow to fill the right column (the PlayArea's bounded-height layout caps it,
- * so the shared panel's inner list scrolls rather than growing the page). */
+/* Grow to fill the info column's remaining height (the PlayArea's bounded-height
+ * layout caps it, so TurnLog's inner box scrolls rather than growing the page). */
 .history {
   flex: 1;
-}
-
-/* This game's row lays the big number beside the meta line. */
-.itemRow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-/* The guessed number — bigger and bolder so the row reads "this is what they
- * guessed" at a glance. */
-.number {
-  font-weight: 600;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
-  /* Tabular-nums so single- and two-digit guesses share a left edge. */
-  font-variant-numeric: tabular-nums;
-  min-width: 1.4rem;
-  text-align: center;
-}
-
-.meta {
-  font-size: 0.85rem;
-  color: var(--color-text);
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0;
-}
-
-.user {
-  font-weight: 600;
-}
-
-.separator {
-  color: var(--color-muted);
-  margin: 0 0.35rem;
 }

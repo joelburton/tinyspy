@@ -442,6 +442,44 @@ shared `playArea.module.css` scaffold (like `setupForm.module.css`) is the
 intended home once a second game adopts it. `<TurnLog>` *is* a shared component
 (it has behavior); the two-column shell is not.
 
+## Turn log
+
+The shared **`<TurnLog>`** + **`<TurnLogEntry outcome>`** (`common/components/TurnLog.tsx`)
+is a game's per-turn history — one entry per turn (= per guess for most games; a
+TinySpy turn can span several guesses). It's the chronological counterpart to the
+alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
+
+- **It's a `<table>`.** Rows are `<tr>`s and each game supplies its own `<td>`
+  cells, so the pieces line up in **columns across rows** (the number column, the
+  who column, etc. all align) — which a flex/grid-of-rows can't do, and which is
+  the point once rows carry several pieces of info. `<TurnLogEntry>` prepends the
+  shared outcome-bar cell; the game passes the rest.
+- **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
+  frame, not a hairline, so it reads as scrollable) that stays the same height
+  whether empty or full and auto-snaps to the newest row; the table scrolls
+  inside it.
+- **Outcome bar — every entry, every game.** A narrow first cell carries the
+  outcome color: `good` / `bad` / `partial` / `neutral` → the shared
+  `--color-outcome-*` palette, so a "bad" turn reads the same everywhere. The
+  color fills only the cell's content box (`background-clip: content-box`), so
+  vertical padding insets it and the bars read as individual segments, not one
+  strip.
+- **Flat rows, not cards.** No per-row border or margin — rows are separated by a
+  single horizontal **divider line** (the cells' shared `border-bottom`), which
+  spans the full width (reaches the left edge) and, with symmetric cell padding,
+  sits centered between rows. No vertical borders between cells.
+- **Content library, not ad-hoc.** Cell *content* is game-specific, but games
+  compose it from `TurnLog.module.css`'s content classes — `.primary` (the lead
+  value), `.meta` (minor/de-emphasized info), `.actor` (who; plain text), `.dot`
+  (the member-colored identity disc), `.who` (a right-aligned cell that absorbs
+  the row's slack so the dots line up on the right) — so similar pieces look the
+  same across games. The set grows as new shapes recur; reach for an existing
+  class before inventing one.
+
+The older `HistoryPanel` is the predecessor (still used by connections; scrabble's
+`PlayLog` is separate). Migrating those onto `<TurnLog>` is pending — done
+game-by-game as we reach them.
+
 ## Board sizing
 
 A game board grows as large as the space allows. There are **two layouts**, each
