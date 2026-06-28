@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { FeedbackTone, GamePageCtx } from '../../common/lib/games'
+import { Eraser, Flag, Lightbulb, Play } from 'lucide-react'
+import { cls } from '../../common/lib/cls'
+import type { FeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -8,6 +10,7 @@ import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
+import type { ConnectionsSetup } from '../lib/setup'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import { CategoryBands } from './CategoryBands'
@@ -15,8 +18,25 @@ import { GuessHistory } from './GuessHistory'
 import { HintModal } from './HintModal'
 import { MistakeDots } from './MistakeDots'
 import { TileGrid } from './TileGrid'
+import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
+
+/** Four categories to find, four mistakes allowed — the NYT Connections
+ *  constants, shown in the setup disclosure + the "N/4 found" state line. */
+const CATEGORY_COUNT = 4
+const MISTAKE_BUDGET = 4
+
+/** One-line timer summary for the setup disclosure. */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
 
 /**
  * connections's play surface, shared between the coop and compete
@@ -63,8 +83,8 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  setup,
   feedback,
-  menu,
   goToClub,
 }: GamePageCtx) {
   const {
@@ -123,12 +143,12 @@ export function PlayArea({
     [feedback],
   )
 
-  // ─── End-game action (per-game menu item) ──────────────
+  // ─── End-game action (info-column action-row button) ───
   // Available in both modes. Manual end terminates the game with
   // everyone {won:false} and a NEUTRAL green "Game ended" modal —
   // friends agreeing to stop is a valid outcome, not a "you lose"
-  // punishment. Mirrors spellingbee.handleEndGame; the only difference
-  // is showFeedback's (tone, text) arg order (see note above).
+  // punishment. Fired by the End button in the info column (like
+  // psychicnum), not a GamePage-menu item.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm('End the game now? You can\'t undo this.')) return
@@ -138,34 +158,9 @@ export function PlayArea({
     }
   }, [gameId, isTerminal, showFeedback])
 
-  // Register the per-game menu items: "Hints" (opens the HintModal)
-  // and "End game" (this is the only place that fires end_game).
-  //
-  // setGameItems REPLACES the whole per-game list, so both items
-  // must be registered in this single effect — a second effect
-  // would clobber the first.
-  //
-  // Hints is disabled when the game is over OR (in compete) when the
-  // caller is eliminated — hints don't help a player who can't submit
-  // anymore. End game is disabled once the game is terminal (nothing
-  // left to end).
-  useEffect(function syncMenuItems() {
-    menu.setGameItems([
-      {
-        id: 'hints',
-        label: 'Hints',
-        onClick: () => setHintsOpen(true),
-        disabled: isTerminal || isEliminated,
-      },
-      {
-        id: 'end-game',
-        label: 'End game',
-        onClick: () => void handleEndGame(),
-        disabled: isTerminal,
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, isTerminal, isEliminated, handleEndGame])
+  // Hints + End now live in the info-column action row (buttons), not the
+  // GamePage menu — see the .infoActions block below. Hints opens the HintModal
+  // (disabled once the caller can't submit); End fires handleEndGame.
 
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
@@ -267,35 +262,98 @@ export function PlayArea({
     selfMatched: matchedCategories.length,
   }) : null
 
+  const connSetup = setup as ConnectionsSetup
+  const found = matchedCategories.length
+
   return (
-    <div className={styles.boardArea}>
-      <div className={styles.layout}>
-        <div className={styles.boardCol}>
-          <HintModal
-            categories={game.board.categories}
-            open={hintsOpen}
-            onClose={() => setHintsOpen(false)}
+    <div className={shared.layout}>
+      <div className={cls(shared.boardCol, styles.connBoard)}>
+        <HintModal
+          categories={game.board.categories}
+          open={hintsOpen}
+          onClose={() => setHintsOpen(false)}
+        />
+
+        <CategoryBands matched={matchedCategories} unmatched={unmatched} />
+
+        {showInput && (
+          <TileGrid
+            tiles={displayedTiles}
+            ownerByTile={ownerByTile}
+            selfUserId={session.user.id}
+            onToggle={toggleTile}
+            shakingTiles={shakingTiles}
+            colorByUserId={colorByUserId}
           />
+        )}
 
-          <CategoryBands matched={matchedCategories} unmatched={unmatched} />
+        {/* Shuffle floats over the board's top-right — a fresh visual scan of
+            the SAME tiles (not a turn action), like psychicnum. Only while the
+            grid is shown: at terminal the bands replace the tiles, so there's
+            nothing to reshuffle. */}
+        {showInput && (
+          <ShuffleButton
+            onShuffle={handleShuffle}
+            disabled={displayedTiles.length === 0}
+            label="Shuffle tiles"
+            className={shared.floatingShuffle}
+          />
+        )}
 
-          {showInput && (
-            <TileGrid
-              tiles={displayedTiles}
-              ownerByTile={ownerByTile}
-              selfUserId={session.user.id}
-              onToggle={toggleTile}
-              shakingTiles={shakingTiles}
-              colorByUserId={colorByUserId}
-            />
-          )}
+        {/* The commit row below the board: clicking tiles is the input, these
+            commit the current 4-tile selection. Sits below the top-anchored
+            board, like psychicnum's entry row. */}
+        {showInput && (
+          <div className={styles.commit}>
+            <button
+              type="button"
+              className={cls('secondary', styles.commitButton)}
+              onClick={handleClear}
+              disabled={unionTiles.length === 0}
+            >
+              <Eraser size={15} aria-hidden />
+              Clear
+            </button>
+            <button
+              type="button"
+              className={styles.commitButton}
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+            >
+              <Play size={15} aria-hidden />
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
+          </div>
+        )}
+      </div>
 
-          {/* Compete: opponent-mistakes strip above the action row.
-              Visible during play and after the game ends (post-game
-              review still benefits from the per-player snapshot).
-              Hidden in coop where the single shared dot row covers
-              everything. */}
-          {game.mode === 'compete' && (
+      <div className={shared.infoCol}>
+        <div className={shared.actionSlot}>
+          {/* Setup — the choices made at game creation, behind a disclosure
+              (closed by default so it doesn't claim space). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{game.board.tileOrder.length} words</li>
+              <li>{CATEGORY_COUNT} categories to find</li>
+              <li>{MISTAKE_BUDGET} mistakes allowed</li>
+              <li>{timerLabel(connSetup.timer)}</li>
+            </ul>
+          </details>
+
+          {/* Live state: categories found. */}
+          <p className={shared.infoState}>
+            <strong>{found}/{CATEGORY_COUNT}</strong> categories found
+          </p>
+
+          {/* Mistakes. Coop: a single shared dot row. Compete: the
+              OpponentStrip carries every player's dots (the caller's included),
+              so no separate coop-style line. */}
+          {game.mode === 'coop' ? (
+            <p className={shared.infoState}>
+              Mistakes remaining <MistakeDots used={mistakeCount} />
+            </p>
+          ) : (
             <OpponentStrip
               players={players}
               selfId={session.user.id}
@@ -306,74 +364,61 @@ export function PlayArea({
                 return (
                   <>
                     <MistakeDots used={mistakes} />
-                    {mistakes >= 4 && <span className="muted"> out</span>}
+                    {mistakes >= MISTAKE_BUDGET && (
+                      <span className="muted"> out</span>
+                    )}
                   </>
                 )
               }}
             />
           )}
 
-          {isTerminal && over ? (
-            <div className={styles.gameOverIndicator}>
-              <span>
-                <span className="muted">Game over:</span> {over.status}
+          {/* Help — playing only. The eliminated spectator gets their status
+              here (input is frozen; the rest race on). */}
+          {!over && (
+            <p className={shared.infoHelp}>
+              {isEliminated
+                ? "You're out — the rest are still racing."
+                : 'Pick 4 tiles that share a connection, then Submit.'}
+            </p>
+          )}
+
+          {/* Action row. Playing / eliminated: Hints + End buttons. Terminal:
+              the bold outcome line + a compact back-to-club button. */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
               </span>
-              <BackToClubButton onClick={goToClub} />
-            </div>
-          ) : isEliminated ? (
-            // Compete spectator state: caller's out, others race on.
-            // No "back to club" button here — leaving while the game
-            // is non-terminal triggers the suspend-confirm flow via
-            // the GamePage menu, which is the right path. Sitting
-            // and watching is the intended UX.
-            <div className={styles.gameOverIndicator}>
-              <span>
-                <span className="muted">You're out:</span> the rest are
-                still racing
-              </span>
+              <BackToClubButton onClick={goToClub} compact />
             </div>
           ) : (
-            <div className={styles.actions}>
-              {/* Coop: shared mistakes dots. In compete the
-                  OpponentStrip above carries the caller's
-                  count alongside opponents', so this slot stays
-                  blank for visual focus on the buttons. */}
-              <div className={styles.actionsLeft}>
-                {game.mode === 'coop' && (
-                  <>
-                    Mistakes remaining{' '}
-                    <MistakeDots used={mistakeCount} />
-                  </>
-                )}
-              </div>
-              <ShuffleButton
-                onShuffle={handleShuffle}
-                disabled={displayedTiles.length === 0}
-                label="Shuffle tiles"
-              />
+            <div className={shared.infoActions}>
+              {/* Hints opens the per-player HintModal; disabled once the caller
+                  can't submit (eliminated). */}
               <button
                 type="button"
-                className="secondary"
-                onClick={handleClear}
-                disabled={unionTiles.length === 0}
+                className={cls('secondary', shared.helperButton)}
+                onClick={() => setHintsOpen(true)}
+                disabled={isEliminated}
               >
-                Clear
+                <Lightbulb size={15} aria-hidden />
+                Hints
               </button>
               <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={!canSubmit}
+                className={cls('secondary', shared.helperButton)}
+                onClick={() => void handleEndGame()}
               >
-                {submitting ? 'Submitting…' : 'Submit'}
+                <Flag size={15} aria-hidden />
+                End
               </button>
             </div>
           )}
-
         </div>
 
-        {/* History sidebar: in coop shows every player's guesses;
-            in compete RLS already filters to caller's own so the
-            FE doesn't need to do anything special. */}
+        {/* Guess log: coop shows every player's guesses; in compete RLS already
+            filters to the caller's own, so the FE does nothing special. */}
         <GuessHistory
           guesses={guesses}
           matchedCategories={matchedCategories}
@@ -393,12 +438,16 @@ export function PlayArea({
   )
 }
 
-/** Per-status modal + indicator copy. Coop verdicts are team-wide;
- *  compete distinguishes the racer who hit 4 matches (the winner)
- *  from everyone else (beaten to the punch). Detail-on-page
- *  intentionally: matched vs. unmatched categories show on the
- *  CategoryBands, mistake counts on the strip; the modal stays
- *  focused on the verdict. */
+/**
+ * Per-status terminal copy. `outcome` + `verdict` drive the GameOverModal;
+ * `message` + `tone` drive the short, bold, color-coded line in the info-column
+ * action row (won = green, lost = red, manual end = neutral). Same shape as
+ * psychicnum's buildOver. Coop verdicts are team-wide; compete distinguishes
+ * the racer who hit 4 matches (the winner) from everyone else (beaten to the
+ * punch). Detail-on-page intentionally: the matched/unmatched categories show
+ * on the CategoryBands and mistake counts on the strip; the modal + line stay
+ * focused on the verdict.
+ */
 function buildOver({
   mode,
   playState,
@@ -412,7 +461,8 @@ function buildOver({
 }): {
   outcome: 'won' | 'lost'
   verdict: string
-  status: string
+  message: string
+  tone: 'won' | 'lost' | 'neutral'
 } {
   // Manual end (connections.end_game) — NEUTRAL terminal in BOTH modes.
   // play_state='ended' means the friends chose to stop: nobody won,
@@ -423,30 +473,28 @@ function buildOver({
     return {
       outcome: 'won',
       verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      status: 'ended',
+      message: 'Game over',
+      tone: 'neutral',
     }
   }
   if (mode === 'coop') {
     if (playState === 'solved') {
-      return { outcome: 'won', verdict: 'You win!', status: 'won' }
+      return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
     }
     return {
       outcome: 'lost',
       verdict: timerExpired
         ? 'You lost: out of time'
         : 'You lost: out of mistakes',
-      status: timerExpired ? 'out of time' : 'out of mistakes',
+      message: timerExpired ? 'Out of time' : 'Out of mistakes',
+      tone: 'lost',
     }
   }
   // compete
   if (playState === 'solved_compete') {
-    return selfMatched >= 4
-      ? { outcome: 'won', verdict: 'You won the race!', status: 'you won' }
-      : {
-          outcome: 'lost',
-          verdict: 'Beaten to the punch.',
-          status: 'opponent won',
-        }
+    return selfMatched >= CATEGORY_COUNT
+      ? { outcome: 'won', verdict: 'You won the race!', message: 'You won!', tone: 'won' }
+      : { outcome: 'lost', verdict: 'Beaten to the punch.', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete (everyone eliminated OR timeout)
   return {
@@ -454,6 +502,7 @@ function buildOver({
     verdict: timerExpired
       ? 'Out of time — nobody won.'
       : 'Everyone eliminated — nobody won.',
-    status: timerExpired ? 'out of time' : 'all eliminated',
+    message: timerExpired ? 'Out of time' : 'All eliminated',
+    tone: 'lost',
   }
 }

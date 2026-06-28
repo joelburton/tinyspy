@@ -384,36 +384,58 @@ Two rules keep the signal clean:
 
 ## Interactive tile states
 
-Board tiles a player can act on (psychicnum's word tiles today; the pattern for
-every game's tiles) signal hover and selection with **outline rings in the
-standard accent blue (`--color-accent`) — never a background change.** Keeping the
-tile's *fill* free means it stays available to carry content and game semantics
-(a spent/dimmed tile, a finder color, a Wordle-style result), and the ring reads
-clearly on top of any of them.
+Board tiles a player can act on (psychicnum's word tiles, connections's category
+tiles; the pattern every game's tiles share) converge on **one look**, driven
+entirely by the `--tile-*` tokens in [`common/theme.css`](../src/common/theme.css)
+and the shared `.tile` / `.tileWord` classes in
+[`common/components/playArea.module.css`](../src/common/components/playArea.module.css).
+A player who learns the board in one game reads it in the next.
 
-- **Hover** — a thin accent ring (`box-shadow: 0 0 0 2px var(--color-accent)`).
-- **Selected** — a *thicker* accent ring than hover (the persistent state outranks
-  the transient one).
+- **Resting** — a warm **beige** fill (`--tile-bg`, the NYT-Connections idiom
+  kept as the *one* shared tile color), a tan border a step darker
+  (`--tile-border`), near-black ink (`--tile-text`), and a small drop shadow
+  (`--tile-shadow`) so a tile reads as a physical tile.
+- **Hover** — a **dark** ring (`box-shadow: 0 0 0 2px var(--tile-selected-bg)`,
+  composed with the resting shadow). Not accent-blue, not a fill change.
+- **Selected** — a **dark fill** with light ink (`--tile-selected-bg` /
+  `--tile-selected-text`): the recognizable "I picked this" state, shared by
+  both games (single-select in psychicnum, multi-select in connections).
 
-Both are box-shadow rings sitting in the inter-tile gap, so they don't shift
-layout and compose cleanly with the tile's own border/fill.
+> **This reverses the earlier rule** ("accent-blue rings, never a fill change").
+> The NYT dark-fill select reads more clearly than a ring, and going dark-fill
+> for *both* games let them share their entire tile CSS. Hover stays a ring (so
+> it composes on top of any fill) but goes dark to match.
 
-**Resting depth.** Tiles should read as physical tiles, and a board as a board:
-give a tile a slightly darker border than a flat panel (`--color-divider`) plus a
-small drop shadow (`0 1px 2px rgba(0,0,0,.18)`), and frame the board in a heavier
-"tray" — a thicker, darker border (`2px solid --color-muted`) around the tile
-area. Keep the shadow in the hover/selected box-shadow (`…, var(--tile-shadow)`)
-so the depth persists when the ring is on.
+The hover ring is a box-shadow in the inter-tile gap, so it never shifts layout.
+Crucially, **every state that changes a tile's color does so by re-setting the
+`--tile-*` tokens on the element** (or drawing an inset frame) — *not* by trying
+to out-cascade the shared `.tile` rule. `.tile` reads only the tokens for its
+colors, so a `.selected` / result / peer override that re-sets a token always
+wins, regardless of which stylesheet loaded last. (This is what makes the shared
+base safe to compose with per-game modules.)
+
+**Resting depth + the board frame.** Tiles read as physical tiles via the
+token-driven border + `--tile-shadow`. Whether the *board* gets a heavier "tray"
+frame (a `2px solid --color-muted` border around the tile area) is **per-game**:
+psychicnum frames its grid in a tray; connections does **not** — its full-width
+colored bands need to sit edge-to-edge with the tiles, and a tray around the
+grid would fight them.
 
 **Result fill — permanent, not a flash.** When a tile's outcome is *known and
 fixed* (psychicnum's guessed words: green = a secret, red = a miss), color the
-tile **permanently** with the outcome palette (`--color-outcome-won-bg` /
-`-lost-bg` + the matching `-border`) and drop any spent/dim/grey treatment — the
-color *is* the "already tried" signal and doubles as a record of what's found vs
-ruled out. This is the fill carrying game semantics (above); the ring still
-composes on top for hover/select. A *transient* flash (a brief tile pop on a
-just-made move) is a different thing — prefer the permanent fill when the result
-is durable, and don't run both for the same event.
+tile **permanently** by re-setting `--tile-bg` / `--tile-border` to the outcome
+palette and drop any spent/dim/grey treatment — the color *is* the "already
+tried" signal and a record of found-vs-ruled-out. It's mutually exclusive with
+the selected dark-fill (a committed tile is `disabled`, so it's never both). A
+*transient* flash (a brief pop on a just-made move) is a different thing — prefer
+the permanent fill when the result is durable.
+
+**Peer-identity frame.** In a shared-selection game (connections coop), a
+*teammate's* selected tile is the resting beige + an inset ring in their member
+color (drawn inline), while the player's *own* selection is the dark fill. So the
+fill says "mine," the colored edge says "whose" — the
+[colored-disc identity rule](#player-identity--a-colored-disc) applied to a tile
+edge.
 
 ### Tile content: letter vs word (A vs B games)
 
@@ -427,23 +449,28 @@ Two kinds of tile, by what they carry:
 
 **For B games, auto-fit the font to the tile** — pure CSS, no JS measuring (it
 reacts to the tile's real size, so it composes with the layout-constraint
-system). The heuristic connections established and psychicnum now shares: make
-the tile a `container-type: inline-size` query container and size the label
-`font-size: clamp(MIN, calc(100cqi / (var(--len) * FACTOR)), MAX)`, where `--len`
-is the content's character count (set inline by the component) and `100cqi` is
-the tile's inner width. The three knobs: **`FACTOR`** ≈ width-per-char in `em`
-for the bold-uppercase glyphs (~0.9 — raise to shrink/loosen, lower to enlarge,
-risking overflow); **`MIN`** the floor so long content stays legible; **`MAX`**
-the ceiling so short content doesn't go cartoonish (and the band between MIN and
-MAX is where length differences actually *show* — too low a MAX makes every word
-clamp to the same size). `container-type: inline-size` is font-fitting
-infrastructure, layout-safe — it doesn't change the tile's size.
+system). The heuristic lives **once**, in the shared `.tileWord`: the tile is a
+`container-type: inline-size` query container and the label is
+`font-size: clamp(var(--tile-font-min), calc(100cqi / (var(--len) *
+var(--tile-font-factor))), var(--tile-font-max))`, where `--len` is the content's
+character count (set inline by the board component) and `100cqi` is the tile's
+inner width. Each game tunes the **three knobs** by setting
+`--tile-font-{min,factor,max}` on *its* grid: **`factor`** ≈ width-per-char in
+`em` for the bold-uppercase glyphs (~0.9 — raise to shrink, lower to enlarge);
+**`min`** the floor so long content stays legible; **`max`** the ceiling so short
+content doesn't go cartoonish (the band between is where length differences
+*show* — too low a max makes every word clamp to one size). `container-type:
+inline-size` is font-fitting infrastructure, layout-safe — it doesn't change the
+tile's size.
 
 ## PlayArea layout
 
-The shape every game's play surface converges on. Validated on **psychicnum**
-first; being rolled out game-by-game (others not yet migrated keep their old
-shells until we reach them).
+The shape every game's play surface converges on. Validated on **psychicnum**,
+now also adopted by **connections** — so the scaffold + readout classes are
+**promoted to [`common/components/playArea.module.css`](../src/common/components/playArea.module.css)**
+(a CSS-only module imported the way `setupForm.module.css` is, composed with a
+thin per-game module via `cls()`). Other games keep their old shells until we
+reach them.
 
 **The contract:**
 
@@ -488,11 +515,14 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 [a colored disc](#player-identity--a-colored-disc); feedback splits
 [local vs group](deferred.md#feedback-channels-local-vs-group).
 
-**Shared vs per-game:** the *rules* are a convention (these class names + this
-doc), not yet a shared component — the layout has no behavior, just CSS, so a
-shared `playArea.module.css` scaffold (like `setupForm.module.css`) is the
-intended home once a second game adopts it. `<TurnLog>` *is* a shared component
-(it has behavior); the two-column shell is not.
+**Shared vs per-game:** the shell + readout classes now live in the shared
+`common/components/playArea.module.css` (a CSS-only scaffold, like
+`setupForm.module.css` — no behavior, so a stylesheet rather than a component).
+What stays in each game's own module: the board **grid** (psychicnum grows tiles
+to fill; connections fixes their height — same purpose, different behavior), any
+result/semantic tile fills, the board tray frame, and game-specific readout
+copy. `<TurnLog>` *is* a shared component (it has behavior); the two-column shell
+is just shared CSS. The shared **`.tile`** chrome lives in the same module.
 
 ### Info-column readouts
 
@@ -524,8 +554,12 @@ these names when a new game's info column needs the same.
   red / manual-end = neutral, via the `--color-outcome-*-strong` tones) + a
   **compact** back-to-club button (`<BackToClubButton compact>` → just "‹ club").
 
-Currently psychicnum-local; promote the classes to `common/` on the second
-adopter (alongside the PlayArea shell + `setupForm.module.css`).
+Now shared in `common/components/playArea.module.css` (promoted when connections
+became the second adopter) — `.infoSetup` / `.infoState` / `.infoHelp` /
+`.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*`. connections
+fills them with: setup = puzzle words / categories / mistakes / timer; state =
+"N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
+buttons (both moved off the GamePage menu into the action row).
 
 ## Text entry — capture, not `<input>`
 
@@ -614,9 +648,11 @@ alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
   same across games. The set grows as new shapes recur; reach for an existing
   class before inventing one.
 
-The older `HistoryPanel` is the predecessor (still used by connections; scrabble's
-`PlayLog` is separate). Migrating those onto `<TurnLog>` is pending — done
-game-by-game as we reach them.
+psychicnum + connections both use `<TurnLog>`. The older `HistoryPanel`
+predecessor it replaced has been **deleted** (it had no other consumers — scrabble's
+framed `PlayLog` is separate and unaffected). A connections row stacks the four
+guessed tiles + a verdict sub-line in one cell while the turn-number and who
+columns still align across rows.
 
 ## Board sizing
 
@@ -673,6 +709,16 @@ scrabble + boggle still use the viewport-math (shrink-wrap) form; migrating them
 is deferred. psychicnum moved to the flex-fill form above (it was on the
 viewport-math form when its board was square number tiles).
 
+**connections is a third variant: a fixed-height grid in a fill column.** Its
+board column is the shared `flex: 1` pane, but the grid does **not** grow tiles
+to fill — `grid-auto-rows` is pinned to a fixed `--wknit-tile-h` (~1.75× a
+content-sized tile). Two reasons it can't grow: a solved category collapses into
+a colored **band** that must occupy exactly the height of the tile row it
+replaced (so band-height and tile-height are one locked value), and the row count
+shrinks as categories match (16 → 12 → 8 → 4), so `1fr` rows would balloon the
+survivors. The board is top-anchored with slack below — the commit row (Clear /
+Submit) sits under it, like psychicnum's entry row.
+
 ## Mode pills
 
 A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
@@ -714,6 +760,7 @@ an icon font, not color emoji.** Why:
 | Get hint | `Lightbulb` | Trash / dump | `Recycle` |
 | Get answer / reveal | `Eye` | Pause | `Pause` |
 | End game | `Flag` | Peel | **`🍌` kept** (see below) |
+| Clear selection | `Eraser` | | |
 
 **Conventions:**
 
@@ -730,11 +777,13 @@ an icon font, not color emoji.** Why:
 MonkeyGrams brand flavor, not generic chrome; revisit when we reach bananagrams.
 
 **Rollout.** Shared components (`PauseButton`, `ShuffleButton`,
-`BackToClubButton`) and psychicnum (Submit, Get hint) are migrated; everything
-else moves game-by-game (don't retrofit per-game buttons ad hoc). Still on their
-old glyphs / pending: the chat bubble, the `×` close, the `✓`/`✗` marks, and
-**End game** (in psychicnum it's a *menu item*, not a button — wiring icons into
-menu items is a separate, shared-`<Menu>` decision).
+`BackToClubButton`), psychicnum (Submit, Hint, Reveal, End), and connections
+(Submit, Clear, Hints, End, floating Shuffle) are migrated; everything else moves
+game-by-game (don't retrofit per-game buttons ad hoc). In both psychicnum and
+connections, **End** is now an info-column action-row *button* (with the `Flag`
+icon), not a GamePage-menu item. Still on their old glyphs / pending: the chat
+bubble, the `×` close, the `✓`/`✗` marks, and any End game that's still a menu
+item elsewhere (wiring icons into `<Menu>` items is a separate decision).
 
 ## Explicitly deferred
 

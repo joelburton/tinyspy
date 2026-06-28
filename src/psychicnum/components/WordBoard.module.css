@@ -1,10 +1,14 @@
-/* psychicnum's board surface: a card framing the word grid. It FILLS the board
- * column (`flex: 1`) — its height above the entry row, its width what the fixed
- * info column leaves — so the grid grows to the available space (docs/ui.md →
- * the board grows to fill). A per-tile HEIGHT cap is applied via an inline
- * `max-height` here (see WordBoard.tsx — rows of MAX_TILE + gaps + padding), so
- * tiles top out at ~150px tall; width is uncapped. The grid stretches inside
- * the card's even padding. */
+/* psychicnum's board surface: a card framing the word grid. The tile CHROME
+ * (fill, border, shadow, hover, selected, label auto-fit) is the shared
+ * `.tile` / `.tileWord` from common/components/playArea.module.css; only the
+ * board's tray frame, the grid layout, and the guessed-result fills are
+ * psychicnum's. */
+
+/* The board card FILLS the board column (`flex: 1`) — its height above the
+ * entry row, its width what the fixed info column leaves — so the grid grows to
+ * the available space (docs/ui.md → "Board sizing"). A per-tile HEIGHT cap is
+ * applied via an inline max-height (see WordBoard.tsx). A thicker, darker frame
+ * so it reads as a board/tray, not just a panel. */
 .board {
   flex: 1 1 0;
   min-height: 0;
@@ -12,100 +16,40 @@
   flex-direction: column;
   padding: 1rem;
   background: var(--color-surface);
-  /* A thicker, darker frame so it reads as a board/tray, not just a panel. */
   border: 2px solid var(--color-muted);
   border-radius: var(--radius-md);
 }
 
-/* The word grid fills the card. The column AND row counts are set inline
- * (they depend on the word count), and both are `1fr` tracks, so the tiles
- * divide the available width × height evenly — growing as the board grows.
- * Fixed gap. */
+/* The word grid fills the card. Column AND row counts are set inline (they
+ * depend on the word count), both `1fr` tracks, so the tiles divide the
+ * available width × height evenly and grow with the board. Fixed gap. The
+ * --tile-font-* knobs tune the shared `.tileWord` auto-fit for psychicnum's
+ * wider, larger words. */
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
   gap: 0.5rem;
-}
-
-/* A clickable word tile (a <button>) that fills its grid cell. Darker border +
- * a small drop shadow give it perceived depth, so it reads as a physical tile
- * rather than a flat cell. The word is uppercased for legibility and wraps if
- * it's long. */
-.tile {
-  --tile-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.4rem 0.5rem;
-  font: inherit;
-  color: var(--color-text);
-  background: var(--color-bg);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-  box-shadow: var(--tile-shadow);
-  cursor: pointer;
-  /* A query container (width axis) so the word can auto-fit the tile — see
-   * .tile span. This is font-fitting infrastructure; it doesn't change the
-   * tile's size (inline-size containment is layout-safe). */
-  container-type: inline-size;
-}
-
-.tile span {
-  font-weight: 600;
-  /* Auto-fit the word to the tile width — same heuristic connections uses, so
-   * a short word and a long one both read as large as they can without
-   * overflowing. `--len` is the word's char count (set inline by WordBoard);
-   * 100cqi is the tile's inner width; ~0.9 width-per-char for our bold
-   * uppercase. Clamped so short words don't get cartoonish and long ones on a
-   * narrow tile stay legible. */
-  font-size: clamp(0.85rem, calc(100cqi / (var(--len) * 0.9)), 2.6rem);
-  line-height: 1.15;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  /* Long words wrap inside the tile rather than overflowing. */
-  overflow-wrap: anywhere;
-}
-
-/* Hover + selected are OUTLINE rings in the standard accent blue — never a
- * background change — so the tile's fill stays free for content/semantics. The
- * selected ring is thicker: the persistent state outranks the transient hover.
- * House pattern for interactive board tiles — see docs/ui.md → "Interactive
- * tile states". */
-.tile:hover:not(:disabled) {
-  box-shadow: 0 0 0 2px var(--color-accent), var(--tile-shadow);
-}
-
-.tile:disabled {
-  cursor: default;
-}
-
-/* The currently-picked tile (kept in sync with the word entry). */
-.selected {
-  box-shadow: 0 0 0 3px var(--color-accent), var(--tile-shadow);
+  --tile-font-min: 0.85rem;
+  --tile-font-factor: 0.9;
+  --tile-font-max: 2.6rem;
 }
 
 /* Guessed tiles color PERMANENTLY by result — green if the word was a secret,
- * red if not — using the shared outcome palette so it matches the rest of the
- * game's feedback. No dimming/grey: the color IS the "already tried" signal,
- * and it doubles as a record of what's found vs ruled out. (In compete RLS
- * scopes the viewer's board to their own guesses, so this never leaks what
- * opponents have tried.) */
-.correct,
-.incorrect {
-  color: var(--color-text);
+ * red if not — by re-setting the shared tile's --tile-* tokens (so the fill
+ * wins regardless of stylesheet order). No dimming/grey: the color IS the
+ * "already tried" signal and doubles as a record of found vs ruled out. The
+ * tile is also `disabled` once guessed, so it never shows the hover ring. (In
+ * compete RLS scopes the viewer's board to their own guesses, so this never
+ * leaks what opponents tried.) */
+.correct {
+  --tile-bg: var(--color-outcome-won-bg);
+  --tile-border: var(--color-outcome-won-border);
   font-weight: 700;
 }
 
-.correct {
-  background: var(--color-outcome-won-bg);
-  border-color: var(--color-outcome-won-border);
-}
-
 .incorrect {
-  background: var(--color-outcome-lost-bg);
-  border-color: var(--color-outcome-lost-border);
+  --tile-bg: var(--color-outcome-lost-bg);
+  --tile-border: var(--color-outcome-lost-border);
+  font-weight: 700;
 }

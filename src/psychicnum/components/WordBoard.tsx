@@ -1,4 +1,5 @@
 import { cls } from '../../common/lib/cls'
+import shared from '../../common/components/playArea.module.css'
 import styles from './WordBoard.module.css'
 
 type Props = {
@@ -64,16 +65,18 @@ export function WordBoard({ words, results, selected, onPick }: Props) {
               key={word}
               type="button"
               className={cls(
-                styles.tile,
+                shared.tile,
                 guessed && (correct ? styles.correct : styles.incorrect),
-                selected === word && styles.selected,
+                selected === word && shared.selected,
               )}
               disabled={guessed || !onPick}
               aria-pressed={selected === word || undefined}
               onClick={onPick ? () => onPick(word) : undefined}
             >
-              {/* --len drives the auto-fit font heuristic in CSS (.tile span). */}
-              <span style={{ ['--len' as string]: word.length }}>{word}</span>
+              {/* --len drives the shared .tileWord auto-fit font heuristic. */}
+              <span className={shared.tileWord} style={{ ['--len' as string]: word.length }}>
+                {word}
+              </span>
             </button>
           )
         })}

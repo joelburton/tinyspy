@@ -15,6 +15,7 @@ import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GuessHistory } from './GuessHistory'
 import { WordBoard } from './WordBoard'
+import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
@@ -310,11 +311,11 @@ export function PlayArea({
   }
 
   return (
-    <div className={styles.layout}>
+    <div className={shared.layout}>
       {/* The board column FILLS the width the fixed info column leaves (flex:1);
           the board card grows to fill it, and the entry row below stretches to
-          match the board width. */}
-      <div className={styles.boardCol}>
+          match the board width. (styles.boardColTint is a TEMP debug bg.) */}
+      <div className={cls(shared.boardCol, styles.boardColTint)}>
         <WordBoard
           words={shuffledWords}
           results={results}
@@ -328,7 +329,7 @@ export function PlayArea({
         <ShuffleButton
           onShuffle={handleShuffle}
           label="Shuffle the words"
-          className={styles.floatingShuffle}
+          className={shared.floatingShuffle}
         />
         {/* The slot below the board: the guess entry during play, the secret
             reveal once over — same place the player's eyes already are, and it
@@ -348,17 +349,18 @@ export function PlayArea({
           </p>
         ) : null}
       </div>
-      <div className={styles.infoCol}>
-        {/* The non-log info column — four recurring kinds of info, named classes
-            (.infoSetup / .infoState / .infoHelp / .infoActions) so they're
-            consistent across games and can be promoted to common/ later. Which
-            ones survive into the terminal state differs per kind — see below. */}
-        <div className={styles.actionSlot}>
+      <div className={shared.infoCol}>
+        {/* The non-log info column — four recurring kinds of info, the shared
+            named classes (.infoSetup / .infoState / .infoHelp / .infoActions)
+            from common/components/playArea.module.css so they're consistent
+            across games. Which survive into the terminal state differs per kind
+            — see below. */}
+        <div className={shared.actionSlot}>
           {/* Setup — shown in BOTH states, behind a disclosure. Open, it grows
               (which we normally avoid), but it's closable so it reclaims the
               space — "what did I pick at setup?" without it taking room by
               default. (See docs/ui.md → Layout stability.) */}
-          <details className={styles.infoSetup}>
+          <details className={shared.infoSetup}>
             <summary>Setup options</summary>
             <ul>
               <li>{game.words.length} tiles on the board</li>
@@ -368,7 +370,7 @@ export function PlayArea({
           </details>
 
           {/* State — shown in both states. */}
-          <p className={styles.infoState}>
+          <p className={shared.infoState}>
             <strong>{found}/{SECRET_COUNT}</strong> found ·{' '}
             <strong>{guessesUsed}/{totalGuesses}</strong> guesses used
           </p>
@@ -385,7 +387,7 @@ export function PlayArea({
 
           {/* Help — playing only (hidden once over). */}
           {!over && (
-            <p className={styles.infoHelp}>
+            <p className={shared.infoHelp}>
               {canGuess
                 ? 'Click on or type a word and hit submit.'
                 : 'No guesses left — waiting on the rest.'}
@@ -396,23 +398,23 @@ export function PlayArea({
               the play buttons hide; a bold, outcome-colored result line shows
               with a compact back-to-club button. */}
           {over ? (
-            <div className={cls(styles.infoActions, styles.terminalActions)}>
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span
-                className={cls(styles.outcome, styles[`outcome_${over.tone}`])}
+                className={cls(shared.outcome, shared[`outcome_${over.tone}`])}
               >
                 {over.message}
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
           ) : (
-            <div className={styles.infoActions}>
+            <div className={shared.infoActions}>
               {canGuess && (
                 <>
                   {/* Hint = a clue (common.words.hint); Reveal = the answer
                       word. Both log to the turn log, cost nothing. */}
                   <button
                     type="button"
-                    className={cls('secondary', styles.helperButton)}
+                    className={cls('secondary', shared.helperButton)}
                     onClick={getHint}
                     disabled={hinting}
                   >
@@ -421,7 +423,7 @@ export function PlayArea({
                   </button>
                   <button
                     type="button"
-                    className={cls('secondary', styles.helperButton)}
+                    className={cls('secondary', shared.helperButton)}
                     onClick={getReveal}
                     disabled={revealing}
                   >
@@ -434,7 +436,7 @@ export function PlayArea({
                   sits with them in the action row. Confirmed. */}
               <button
                 type="button"
-                className={cls('secondary', styles.helperButton)}
+                className={cls('secondary', shared.helperButton)}
                 onClick={endGame}
               >
                 <Flag size={15} aria-hidden />

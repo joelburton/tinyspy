@@ -67,7 +67,7 @@ In scope today:
 - Compete OpponentStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
-- Hint dialog (reveal-on-demand modal: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; opened from the GamePage menu)
+- Hint dialog (reveal-on-demand modal: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; opened from the **Hints button** in the info-column action row)
 - Pause-on-disconnect overlay via Presence
 - Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
 
@@ -214,7 +214,7 @@ Idempotent — a second concurrent call on the already-terminal game raises `P00
 
 ### `connections.end_game(target_game uuid) → void`
 
-The "End game" menu item fires this — the manual, **neutral** stop available in both modes. Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders the green "Game ended" `GameOverModal` (outcome `'won'` with neutral copy), not the red loss modal; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
+The **End button** in the info-column action row fires this — the manual, **neutral** stop available in both modes. Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders the green "Game ended" `GameOverModal` (outcome `'won'` with neutral copy), not the red loss modal; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
 
 Same shape as `submit_timeout` but with one extra wrinkle: a **Realtime touch** at the tail (`update connections.games set club_handle = club_handle where id = target_game`). `submit_guess`/`submit_timeout` each also write a `connections` table on their way to `common.end_game`, so the FE's `useGame` subscription (postgres_changes on `connections.{games,guesses,players}`) wakes naturally. `end_game` writes *only* `common.games` via `common.end_game`, so without the self-set WAL entry the FE would never refetch and the modal would never pop until a reload. Same trick `spellingbee.end_game`/`spellingbee.submit_timeout` use. Idempotent — a second call raises `P0001 "game is not in progress"`, which the FE swallows.
 
@@ -291,16 +291,22 @@ src/connections/
                           numberOfPlayers, and the mode passed to startGameInClub. See the
                           sibling-manifest pattern section above.
   db.ts                   export const db = supabase.schema('connections')
-  theme.css               NYT rank palette (yellow/green/blue/purple = --connections-rank-0..3).
-                          Imported by PlayArea.tsx so it loads with the chunk.
+  theme.css               JUST the NYT rank palette (yellow/green/blue/purple =
+                          --connections-rank-0..3). The tile chrome (beige resting, dark hover
+                          ring, dark selected fill) is the SHARED --tile-* system in
+                          common/theme.css. Imported by PlayArea.tsx so it loads with the chunk.
   logo.svg                connections's game-tile / launcher icon, referenced from the manifest.
 
   components/
-    PlayArea.tsx          Shared between the two manifests. Branches on game.mode for the
-                          shared <OpponentStrip> (common/components/OpponentStrip, compete-only)
-                          and the eliminated-spectator state. Loads via useGame, derives
-                          remaining-tiles and ownerByTile, mounts the pieces, owns the
-                          submit/clear handlers. Mounted by <GamePage> as its render-prop child.
+    PlayArea.tsx          Shared between the two manifests. Uses the SHARED PlayArea scaffold
+                          (common/components/playArea.module.css, imported as `shared`): a
+                          board column (bands + tile grid + floating Shuffle + the Clear/Submit
+                          commit row) and a fixed info column (setup disclosure, "N/4 categories
+                          found" state, mistakes [coop dots / compete OpponentStrip], help,
+                          Hints+End action row → terminal outcome line, and the TurnLog below).
+                          No outer card — the only divider is the info column's left border.
+                          Branches on game.mode for the OpponentStrip + eliminated-spectator
+                          state. Mounted by <GamePage> as its render-prop child.
     PlayArea.module.css
     CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
                           unmatched-revealed bands rendered on game-over loss OR on compete
@@ -313,13 +319,16 @@ src/connections/
     MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
                           mistake, filled for remaining and dimmed for used (default budget 4).
     MistakeDots.module.css
-    GuessHistory.tsx      The append-only log of this game's guesses, rendered beside the
-                          board. Stateless/presentational; mirrors psychicnum's <GuessHistory>.
+    GuessHistory.tsx      The append-only log of this game's guesses, in the info column,
+                          rendered with the shared <TurnLog> table (one row = the 4 tiles +
+                          a verdict sub-line + the actor's identity dot). Stateless/
+                          presentational; same shape as psychicnum's <GuessHistory>.
     GuessHistory.module.css
     HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
                           a "Reveal" button that surfaces that category's first tile. Purely
                           client-side per-player state (a Set of revealed ranks) — never
-                          broadcast or persisted. Uses the shared <FloatingPanel> shell.
+                          broadcast or persisted. Uses the shared <FloatingPanel> shell; opened
+                          from the Hints button in the info-column action row.
     HintModal.module.css
     SetupForm.tsx         Puzzle date picker + timer-mode field. Fetches the puzzle list +
                           (mode-scoped) club_game_status for the calendar overlay. Defaults

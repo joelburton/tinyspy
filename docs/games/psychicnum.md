@@ -346,10 +346,12 @@ src/psychicnum/
                           <GameLogo gametype="psychicnum" />. Imported via ?url in manifest.ts.
 
   components/
-    PlayArea.tsx          Two-column composition (WordBoard on the left;
-                          action slot + guess history on the right):
-                            WordBoard (grid of word tiles; guessed tiles
-                              permanently green=secret / red=miss)
+    PlayArea.tsx          Two-column composition on the SHARED PlayArea scaffold
+                          (common/components/playArea.module.css, imported as `shared`;
+                          shell + info-column readout classes + the shared .tile chrome —
+                          PlayArea.module.css now holds only .reveal + a temp debug tint):
+                            WordBoard (grid of word tiles on the shared beige --tile-*
+                              system; guessed tiles permanently green=secret / red=miss)
                             GuessForm (capture-input word entry + submit_guess RPC) — during play
                             info readouts (setup details / state / help) +
                               action row: Hint / Reveal / End — playing

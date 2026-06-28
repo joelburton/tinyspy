@@ -7,7 +7,7 @@
   min-height: 0;
 }
 /* Bold heading, consistent with the other games' side-column logs (the shared
- * HistoryPanel + codenamesduet/waffle). Was muted-uppercase — accidental drift. */
+ * TurnLog + codenamesduet/waffle). Was muted-uppercase — accidental drift. */
 .heading {
   margin: 0;
   font-size: 0.95rem;

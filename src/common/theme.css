@@ -144,6 +144,28 @@
      than red, the way a pink should. */
   --color-member-pink:   #ec407a;
 
+  /* Board-tile palette — the canonical look every game's word / letter tiles
+     converge on (psychicnum + connections today; other games adopt it as we
+     reach them — see docs/ui.md → "Interactive tile states"). One shared fill
+     so a player switching games reads the same board.
+
+     Resting is the warm NYT-Connections BEIGE (kept as the single shared tile
+     color), a tan border a step darker, near-black ink, and a small drop
+     shadow so a tile reads as a physical tile. Hover + selected are DARK (not
+     accent-blue): hover rings the tile in the selected tone; selected fills it
+     dark with light ink — the recognizable "I picked this" state. A game's own
+     result fills (psychicnum green/red) and peer-identity frames (connections)
+     layer on top by re-setting these tokens / drawing an inset frame — see the
+     per-game tile CSS. The shared `.tile` (common/components/playArea.module.css)
+     reads ONLY these tokens for its colors, so a state class overrides by
+     re-setting a token, not by out-cascading another stylesheet. */
+  --tile-bg:                  #f0e6d2;  /* warm beige — the shared resting fill */
+  --tile-border:              #e0d4b8;  /* a tan one step darker than the fill */
+  --tile-text:                #1a1a1a;  /* near-black ink on the beige */
+  --tile-shadow:              0 1px 2px rgba(0, 0, 0, 0.18);
+  --tile-selected-bg:         #5a594e;  /* dark warm-gray — selected fill + hover ring */
+  --tile-selected-text:       #ffffff;  /* light ink on the dark selected fill */
+
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */
   --radius-md:                6px;   /* buttons, inputs, panels */

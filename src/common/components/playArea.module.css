@@ -1,0 +1,253 @@
+/* Shared PlayArea scaffold — the two-column play surface every game converges
+ * on. Validated on psychicnum, adopted by connections. CSS-only (no behavior),
+ * imported directly by a game's PlayArea/board components the same way
+ * setupForm.module.css is (`import shared from '.../playArea.module.css'`), and
+ * composed with a thin per-game module via `cls()`. See docs/ui.md →
+ * "PlayArea layout".
+ *
+ * Three things live here:
+ *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .actionSlot /
+ *      .floatingShuffle);
+ *   2. the four info-column READOUT kinds (.infoSetup / .infoState / .infoHelp /
+ *      .infoActions) + the terminal swap (.terminalActions / .outcome*);
+ *   3. the shared TILE chrome (.tile / .tileWord + hover + .selected).
+ *
+ * What stays PER-GAME (see each game's module): the board GRID (psychicnum
+ * grows tiles to fill; connections fixes their height so bands can collapse in
+ * — same purpose, different behavior), any result/semantic tile fills, the
+ * board "tray" frame, and the game-specific readout copy. */
+
+/* ─── Shell ──────────────────────────────────────────────────────────────
+ * Layout fills to the viewport bottom (docs/ui.md → "Page-height fits the
+ * viewport"); --game-chrome-height (common/theme.css) is the body-padding +
+ * header + gap offset so a header redesign moves one number.
+ *
+ * The board column FILLS the slack the fixed info column leaves, so the pair
+ * always spans the full width; `justify-content: center` is inert in this
+ * fill model (kept for the hug model scrabble/boggle will share). The ONLY
+ * thing between the columns is the info column's left border (the divider),
+ * with symmetric breathing room (the layout gap on the board side, the info
+ * column's padding-left on the other) — no card around either column. */
+.layout {
+  height: calc(100vh - var(--game-chrome-height));
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+/* Board column: `flex: 1` so it grows to fill the width the fixed info column
+ * leaves. Top-aligned, so the board sits at the top and anything stacked below
+ * (an entry/commit row, a terminal reveal) follows it. `position: relative` is
+ * the positioning context for the floating shuffle button (top-right). */
+.boardCol {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  position: relative;
+}
+
+/* Shuffle floats over the board's top-right corner — purely a fresh visual
+ * scan of the SAME board (not a turn action), so it lives on the board, not in
+ * the info-column action row. A drop shadow so it reads as hovering above. */
+.floatingShuffle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* Info column: FIXED width (never grows during play — the board is the one
+ * that grows). Action slot at the top, scrolling log below. The thin left
+ * border IS the divider between the columns; padding-left keeps content off it.
+ * `min-height: 0` is essential — without it the column grows to fit content
+ * and the log's `overflow-y: auto` never engages. */
+.infoCol {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--color-divider);
+  padding-left: 1.5rem;
+}
+
+/* The info column's top region — same height whether the game is in play
+ * (readouts + action buttons) or terminal (readouts + outcome line), so
+ * swapping between them doesn't shift the log below (docs/ui.md → "Layout
+ * stability"). `flex-shrink: 0` anchors it; the log takes the rest via its own
+ * flex: 1 + overflow. */
+.actionSlot {
+  min-height: 6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.actionSlot p {
+  margin: 0;
+}
+
+/* ─── Info-column readouts ───────────────────────────────────────────────
+ * Four recurring kinds of info, each a named class (not raw `muted`) so they
+ * read the same across games — see docs/ui.md → "Info-column readouts".
+ * SETUP (choices made at game creation) + STATE (the live state) are both
+ * important → full text color; HELP (UI instructions) is muted; ACTIONS is the
+ * button row. */
+
+/* SETUP is a <details> disclosure ("Setup options"). Closed by default so it
+ * doesn't claim space; opening it grows the slot — an allowed exception to the
+ * no-growth rule precisely because it's closable and reclaims the space. */
+.infoSetup {
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.infoSetup summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.infoSetup ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.infoState {
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.infoHelp {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+/* The action row — turn/game-altering buttons only (Hint / Reveal / End; a
+ * board-visual control like Shuffle floats over the board instead). The
+ * buttons share the row and wrap as needed. Terminal (.terminalActions): the
+ * play buttons are replaced by the bold outcome line + a compact back-to-club
+ * button (kept on one line). */
+.infoActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.terminalActions {
+  flex-wrap: nowrap;
+}
+
+/* A labelled action button (Lucide icon + label, centered). A real flex-basis
+ * (not 0) so a couple share a row and the rest wrap as a unit rather than all
+ * squeezing on and squishing the labels; they still grow to share the row.
+ * nowrap so a label stays on one line. */
+.helperButton {
+  flex: 1 1 6rem;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+
+/* The terminal outcome line — bold, color-coded by result; grows so the
+ * back-to-club button sits at the right edge. */
+.outcome {
+  flex: 1;
+  font-weight: 700;
+}
+
+.outcome_won {
+  color: var(--color-outcome-won-strong);
+}
+
+.outcome_lost {
+  color: var(--color-outcome-lost-strong);
+}
+
+.outcome_neutral {
+  color: var(--color-text);
+}
+
+/* ─── Shared tile ────────────────────────────────────────────────────────
+ * The board tile every game's clickable word/letter tiles use. Resting look
+ * comes ENTIRELY from the --tile-* tokens (common/theme.css), so a state class
+ * (a result fill, the selected state) overrides by re-setting a token on the
+ * same element — robust against stylesheet insertion order, unlike trying to
+ * out-cascade another module. See docs/ui.md → "Interactive tile states". */
+.tile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  color: var(--tile-text);
+  background: var(--tile-bg);
+  border: 1px solid var(--tile-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--tile-shadow);
+  cursor: pointer;
+  /* A query container (width axis) so the label can auto-fit the tile — see
+   * .tileWord. Font-fitting infrastructure; layout-safe (doesn't resize the
+   * tile). */
+  container-type: inline-size;
+}
+
+/* The tile's label. Auto-fit to the tile WIDTH via one shared clamp formula;
+ * each game tunes the three knobs by setting --tile-font-{min,factor,max} on
+ * its grid (psychicnum's words run wider/larger; connections' tiles are
+ * bigger). `--len` is the word's char count (set inline by the board), 100cqi
+ * the tile's inner width, the factor ≈ width-per-char in em for bold
+ * uppercase. See docs/ui.md → "Tile content: letter vs word". */
+.tileWord {
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+  font-size: clamp(
+    var(--tile-font-min, 0.95rem),
+    calc(100cqi / (var(--len) * var(--tile-font-factor, 0.9))),
+    var(--tile-font-max, 2.2rem)
+  );
+}
+
+/* Hover + selected are DARK and shared across games (replacing psychicnum's
+ * old accent-blue ring and connections' bg-darken). Hover rings the tile in
+ * the selected tone via box-shadow (so layout doesn't shift, and it composes
+ * with the resting drop shadow). Selected fills the tile dark with light ink —
+ * the NYT "I picked this" idiom, now canonical everywhere. Selected re-sets the
+ * tokens the resting `.tile` reads, so the dark fill wins regardless of module
+ * order. */
+.tile:hover:not(:disabled) {
+  box-shadow: 0 0 0 2px var(--tile-selected-bg), var(--tile-shadow);
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
+.selected {
+  --tile-bg: var(--tile-selected-bg);
+  --tile-text: var(--tile-selected-text);
+}
+
+.selected:hover:not(:disabled) {
+  /* Keep the dark fill; the ring still reads on top of it. */
+  box-shadow: 0 0 0 2px var(--tile-selected-bg), var(--tile-shadow);
+}

@@ -1,36 +1,22 @@
-/* connections-specific bits of the guess-history sidebar. The panel chrome
- * (heading + scrolling list + verdict-strip cards) comes from the shared
- * common/components/HistoryPanel; only the column width and the row content
- * (the guessed tiles + the meta line) are connections's. */
+/* connections-specific bits of the guess log. The panel chrome (heading +
+ * scroll box), the row look (outcome bar, divider lines), and the content
+ * classes (.meta / .who / .actor / .dot) all come from the shared
+ * common/components/TurnLog; only the column's height and the tiles cell are
+ * connections's. */
 
-/* Fixed-basis column so its width doesn't depend on what it holds. 18rem fits a
- * typical 4-tile guess (ALPHA · BANANA · CASTLE · DAGGER) on one line; longer
- * tile sets soft-wrap inside the row (see `.tiles`). The shared panel supplies
- * the flex-column + min-height:0 that lets the inner list scroll. */
+/* Fill the info column's remaining height (the bounded-height layout caps it,
+ * so TurnLog's inner box scrolls rather than growing the page). */
 .history {
-  flex: 0 0 18rem;
+  flex: 1;
 }
 
+/* The four guessed tiles. UPPERCASE to read as "the words I clicked"; soft-wrap
+ * on long sets (the dot separator gives natural break points), with the verdict
+ * sub-line just below. */
 .tiles {
-  /* Tiles read as UPPERCASE on the board; keep the convention here so the line
-     reads as "these are the words I clicked." */
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 0.2rem;
-  /* Soft wrap on long tile sets — the dot separator gives natural break points. */
   word-break: break-word;
-}
-
-.meta {
-  font-size: 0.8rem;
-  color: var(--color-text);
-}
-
-.user {
-  font-weight: 600;
-}
-
-.separator {
-  color: var(--color-muted);
+  margin-bottom: 0.15rem;
 }

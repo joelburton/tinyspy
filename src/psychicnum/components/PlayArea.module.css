@@ -1,199 +1,24 @@
-/* psychicnum play surface — two-column layout that mimics the
- * shape of a real game (board on the left, controls + history on
- * the right). The left (board) column is the WordBoard (a grid of
- * word tiles, guessed tiles permanently green=secret / red=miss)
- * with the guess entry below it; the right (info) column carries
- * the readouts/action slot plus the append-only guess + hint log.
+/* psychicnum play surface. The two-column SHELL, the info-column READOUTS, and
+ * the TILE chrome all come from the shared common/components/playArea.module.css
+ * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
+ * to psychicnum live here:
+ *   - .boardColTint — a TEMP debug background composed onto the shared boardCol.
+ *   - .reveal       — the end-game secret reveal in the slot the entry vacated.
  *
- * Terminal state keeps the two-column shape — the action row swaps
- * from the play buttons to a bold outcome line + compact "‹ club"
- * button, the entry slot below the board swaps to the secret
- * reveal, and the shared GameOverModal pops on terminal entry.
- * See docs/ui.md → "Modals for terminal results." */
+ * The board tray + grid + guessed-result fills live in WordBoard.module.css.
+ * See docs/ui.md → "PlayArea layout" and "Modals for terminal results." */
 
-/* Layout extends to the viewport bottom, per docs/ui.md →
- * "Page-height fits the viewport." The chrome-height offset (body
- * padding + GamePage header + header-to-play-area gap) lives as
- * a token on common/theme.css so a header redesign only touches
- * one number — see --game-chrome-height there.
- *
- * The info column is a FIXED width; the board column FILLS the slack it leaves
- * (`flex: 1` — see .boardCol), so the pair always spans the full play-area width.
- * `justify-content: center` is the shared-PlayArea default — it centers the pair
- * in the *hug* model scrabble/boggle use (board has a definite size, the columns
- * are narrower than the area); in psychicnum's *fill* model the board absorbs the
- * slack, so there's nothing to center and it's inert. Kept for parity with the
- * documented contract (docs/ui.md → "PlayArea layout"). `align-items: stretch`
- * makes both columns full-height (the divider spans, the history scrolls internally).
- *
- * No card around either column — the only thing dividing them is a thin border
- * on the infoCol's inner edge, with symmetric breathing room (this gap on the
- * board side, the infoCol's padding-left on the other). */
-.layout {
-  height: calc(100vh - var(--game-chrome-height));
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 1.5rem;
-  align-items: stretch;
+/* TEMP debug tint on the board column so its bounds are visible during the
+ * layout work — remove later. Composed with the shared .boardCol. */
+.boardColTint {
+  background: rgba(40, 120, 255, 0.07);
 }
 
-/* Board column: `flex: 1` so it GROWS to fill the width the fixed info column
- * leaves (per docs/ui.md → the board grows to available space; the side panel
- * is the fixed one). The board card inside fills the column's height (above the
- * entry row), so the tiles grow with the available space — see
- * WordBoard.module.css. The entry row below stretches to match the board width.
- * It's the mobile-critical column (the info column may collapse to a popup),
- * which is why the word entry lives here. */
-.boardCol {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 0.75rem;
-  /* Positioning context for the floating shuffle button (top-right of the
-   * board). The board card fills this column's width and sits at its top, so
-   * the column's top-right corner IS the board's. */
-  position: relative;
-  background: rgba(40, 120, 255, 0.07); /* TEMP debug — remove later */
-}
-
-/* Shuffle floats over the board's top-right corner — on top of the tiles, with
- * a drop shadow so it reads as hovering above the board. */
-.floatingShuffle {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-}
-
-/* Info column: FIXED width (never grows during play). Action slot at the top,
- * history below. The thin left border IS the divider between the two columns
- * (no card around the column itself); the padding-left keeps content off that
- * line. `min-height: 0` is essential — without it the column grows to fit
- * content and the GuessHistory's `overflow-y: auto` never kicks in. */
-.infoCol {
-  flex: 0 0 340px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-width: 0;
-  min-height: 0;
-  border-left: 1px solid var(--color-divider);
-  padding-left: 1.5rem;
-}
-
-/* The right column's "action slot" — same physical space whether
- * the game is in play (status line + input row) or terminal
- * (game-over indicator). Fixed min-height so swapping content
- * between the two states doesn't shift the guess history below
- * (per docs/ui.md → "Layout stability"). */
-.actionSlot {
-  min-height: 6rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  /* Don't shrink: this slot's height anchors the infoCol's
-   * top region; the GuessHistory below takes everything else
-   * via its own flex: 1 + overflow-y: auto. */
-  flex-shrink: 0;
-}
-
-.actionSlot p {
-  margin: 0;
-}
-
-/* The four recurring kinds of .infoCol info. Named (not raw `muted`) so they
- * read consistently and can be promoted to a common stylesheet when a 2nd game
- * adopts them — see docs/ui.md. SETUP (the choices made at game creation) and
- * STATE (the important live state) are both important, so full text color;
- * HELP (UI instructions) is muted; ACTIONS is the button row. */
-
-/* SETUP is a <details> disclosure ("Setup options"). Closed by default so it
- * doesn't claim space; opening it grows the slot (an allowed exception to the
- * no-growth rule precisely because it's closable). */
-.infoSetup {
-  color: var(--color-text);
-  font-size: 0.85rem;
-}
-
-.infoSetup summary {
-  cursor: pointer;
-  user-select: none;
-}
-
-.infoSetup ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.25rem;
-}
-
-.infoState {
-  color: var(--color-text);
-  font-size: 0.95rem;
-}
-
-.infoHelp {
-  color: var(--color-muted);
-  font-size: 0.9rem;
-}
-
-/* The action row — turn/game-altering buttons only (Hint / Reveal / End; the
- * board-visual Shuffle floats over the board instead, see .floatingShuffle).
- * Playing: the buttons share row 1 and wrap as needed. Terminal
- * (.terminalActions): the bold outcome message (grows) + the compact
- * back-to-club button. */
-.infoActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.terminalActions {
-  flex-wrap: nowrap;
-}
-
-/* A helper button (Hint / Reveal / End) — the Lucide icon + label, centered. A
- * real flex-basis (not 0) so Hint + Reveal fill row 1 and End wraps to its own
- * line rather than all three squeezing on and squishing the labels; they still
- * grow to share the row. nowrap so the label stays on one line. */
-.helperButton {
-  flex: 1 1 6rem;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
-  white-space: nowrap;
-}
-
-/* The terminal outcome line — bold, color-coded by result; grows so the
- * back-to-club button sits at the right. */
-.outcome {
-  flex: 1;
-  font-weight: 700;
-}
-
-.outcome_won {
-  color: var(--color-outcome-won-strong);
-}
-
-.outcome_lost {
-  color: var(--color-outcome-lost-strong);
-}
-
-.outcome_neutral {
-  color: var(--color-text);
-}
-
-/* The end-game secret reveal, shown in the slot the guess entry occupied
- * during play (see PlayArea). Lands where the player was already looking and
- * explains the missing entry; sitting BELOW the top-anchored board, it never
- * shifts the board when it appears. Stretches to the board width (it's a flex
- * child of the board column) and centers its text. */
+/* The end-game secret reveal, shown in the slot the guess entry occupied during
+ * play (see PlayArea). Lands where the player was already looking and explains
+ * the missing entry; sitting BELOW the top-anchored board, it never shifts the
+ * board when it appears. Stretches to the board width (it's a flex child of the
+ * board column) and centers its text. */
 .reveal {
   margin: 0;
   text-align: center;
@@ -205,4 +30,3 @@
 .reveal strong {
   color: var(--color-text);
 }
-

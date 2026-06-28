@@ -1,4 +1,5 @@
 import { cls } from '../../common/lib/cls'
+import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {
@@ -75,8 +76,8 @@ export function TileGrid({
             key={tile}
             type="button"
             className={cls(
-              styles.tile,
-              isMine && styles.tileSelected,
+              shared.tile,
+              isMine && shared.selected,
               isShaking && styles.tileShaking,
             )}
             style={
@@ -90,10 +91,9 @@ export function TileGrid({
             }
             onClick={() => onToggle(tile)}
           >
-            {/* --len drives the auto-fit font heuristic in CSS (.tileWord):
-                the label scales to fill the tile width, shrinking for
-                longer words. */}
-            <span className={styles.tileWord} style={{ ['--len' as string]: tile.length }}>
+            {/* --len drives the shared .tileWord auto-fit: the label scales to
+                fill the tile width, shrinking for longer words. */}
+            <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>
               {tile}
             </span>
           </button>
