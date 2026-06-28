@@ -24,6 +24,13 @@ export type PsychicnumSetup = {
    */
   guesses: 3 | 5 | 7 | 9
   /**
+   * Highest number on the board: the board shows 1..max_number and
+   * the secret is somewhere in that range. 5..20 — a bigger range
+   * means more number tiles and a harder guess. Validated
+   * server-side by `psychicnum.create_game`.
+   */
+  max_number: number
+  /**
    * Browser-side timer mode. `none` and `countup` are
    * informational; `countdown` flips the game to `lost` when the
    * clock hits 0 (via psychicnum.submit_timeout). Validated
@@ -41,8 +48,19 @@ export type PsychicnumSetup = {
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   guesses: 7,
+  max_number: 10,
   timer: { kind: 'countdown', seconds: 15 },
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */
 export const GUESS_OPTIONS = [3, 5, 7, 9] as const
+
+/** Inclusive bounds for the board's highest number (the setup picker range). */
+export const MAX_NUMBER_MIN = 5
+export const MAX_NUMBER_MAX = 20
+
+/** The selectable highest-number values, `MAX_NUMBER_MIN`..`MAX_NUMBER_MAX`. */
+export const MAX_NUMBER_OPTIONS = Array.from(
+  { length: MAX_NUMBER_MAX - MAX_NUMBER_MIN + 1 },
+  (_, i) => MAX_NUMBER_MIN + i,
+)

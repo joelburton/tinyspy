@@ -31,18 +31,35 @@
   gap: 0.75rem;
 }
 
+/* A clickable number tile (a <button>, reset to look like the old div). */
 .tile {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
+  font: inherit;
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--color-text);
   background: var(--color-bg);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.tile:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
+/* The currently-picked tile (kept in sync with the text input). */
+.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent);
 }
 
 /* Spent tile: a number that's already been guessed. Dimmed and

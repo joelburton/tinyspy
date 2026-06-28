@@ -1111,6 +1111,7 @@ export type Database = {
           club_handle: string
           created_at: string
           id: string
+          max_number: number
           mode: string
           target: number
         }
@@ -1118,6 +1119,7 @@ export type Database = {
           club_handle: string
           created_at?: string
           id: string
+          max_number: number
           mode: string
           target: number
         }
@@ -1125,6 +1127,7 @@ export type Database = {
           club_handle?: string
           created_at?: string
           id?: string
+          max_number?: number
           mode?: string
           target?: number
         }
@@ -1212,6 +1215,7 @@ export type Database = {
           club_handle: string | null
           created_at: string | null
           id: string | null
+          max_number: number | null
           mode: string | null
           target: number | null
         }
@@ -1219,6 +1223,7 @@ export type Database = {
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
+          max_number?: number | null
           mode?: string | null
           target?: never
         }
@@ -1226,6 +1231,7 @@ export type Database = {
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
+          max_number?: number | null
           mode?: string | null
           target?: never
         }

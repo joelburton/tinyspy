@@ -19,7 +19,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(23);
+select plan(25);
 
 \ir ../_shared/setup.psql
 
@@ -33,7 +33,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select psychicnum.create_game(
        'placeholder-club',
-       '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+       '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'coop'
@@ -59,7 +59,7 @@ select common.create_club('test club', array['ada','bea']) as handle;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -76,7 +76,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'bogus') $$,
     (select handle from club)
@@ -95,7 +95,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$,
     (select handle from club)
   ),
@@ -113,7 +113,7 @@ select throws_ok(
 
 select lives_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
     (select handle from club)
   ),
@@ -127,7 +127,7 @@ select lives_ok(
 -- guesses out of range
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 4, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 4, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -150,10 +150,36 @@ select throws_ok(
   'missing guesses is rejected'
 );
 
+-- max_number missing (board range is required)
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid,
+             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.max_number is required',
+  'missing max_number is rejected'
+);
+
+-- max_number out of range (must be 5..20)
+select throws_ok(
+  format(
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 4, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid,
+             'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.max_number must be 5..20 (got 4)',
+  'max_number out of range is rejected'
+);
+
 -- timer missing entirely (timer is required for every game)
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -170,7 +196,7 @@ select throws_ok(
 create temp table coop_game on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 5, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -232,7 +258,7 @@ select throws_ok(
 create temp table compete_game on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 3, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'

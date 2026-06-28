@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -48,6 +48,13 @@ export function PlayArea({
 
   // Track the id of the last guess we've already-pilled-for.
   const lastSeenGuessIdRef = useRef<string | null>(null)
+
+  // The pending guess, shared by the board tiles and the text input below the
+  // board (string so the number input can be empty). PlayArea owns it — and
+  // the submit RPC — so a tile click and a keystroke drive the same guess.
+  const [pending, setPending] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [guessError, setGuessError] = useState<string | null>(null)
 
   useEffect(function pillEachNewWrongGuess() {
     if (guesses.length === 0) return
@@ -104,10 +111,50 @@ export function PlayArea({
   // RLS scopes `guesses` to the caller, so this is the viewer's own.
   const guessedNumbers = new Set(guesses.map((g) => g.number))
 
+  // Picking a tile or typing in the form both drive this one pending guess.
+  const selected = pending === '' ? null : Number(pending)
+  const canGuess = !over && selfBudget > 0
+
+  async function submitGuess() {
+    const n = Number.parseInt(pending, 10)
+    if (Number.isNaN(n) || n < 1 || n > game.max_number) {
+      setGuessError(`Number must be between 1 and ${game.max_number}.`)
+      return
+    }
+    setGuessError(null)
+    setSubmitting(true)
+    const { error } = await db.rpc('submit_guess', {
+      target_game: gameId,
+      guess: n,
+    })
+    setSubmitting(false)
+    if (error) {
+      setGuessError(error.message)
+      return
+    }
+    setPending('')
+  }
+
   return (
     <div className={styles.layout}>
       <div className={styles.boardArea}>
-        <NumberBoard heading={boardHeading} guessed={guessedNumbers} />
+        <NumberBoard
+          heading={boardHeading}
+          max={game.max_number}
+          guessed={guessedNumbers}
+          selected={selected}
+          onPick={canGuess ? (n) => setPending(String(n)) : undefined}
+        />
+        {canGuess && (
+          <GuessForm
+            value={pending}
+            onChange={setPending}
+            onSubmit={submitGuess}
+            submitting={submitting}
+            max={game.max_number}
+            error={guessError}
+          />
+        )}
       </div>
       <div className={styles.rightCol}>
         <div className={styles.actionSlot}>
@@ -118,35 +165,29 @@ export function PlayArea({
               </span>
               <BackToClubButton onClick={goToClub} />
             </div>
+          ) : game.mode === 'coop' ? (
+            <p className="muted">
+              Guess the number (1–{game.max_number}).{' '}
+              <strong>{selfBudget}</strong>{' '}
+              {selfBudget === 1 ? 'guess' : 'guesses'} left.
+            </p>
           ) : (
             <>
-              {game.mode === 'coop' ? (
-                <p className="muted">
-                  Guess the number (1–10).{' '}
-                  <strong>{selfBudget}</strong>{' '}
-                  {selfBudget === 1 ? 'guess' : 'guesses'} left.
-                </p>
-              ) : (
-                <>
-                  <p className="muted">
-                    Guess the number (1–10) — first one wins.
-                  </p>
-                  <OpponentStrip
-                    players={players}
-                    selfId={session.user.id}
-                    metricFor={(p) =>
-                      playerBudgets.find((b) => b.user_id === p.user_id)
-                        ?.guesses_remaining ?? 0
-                    }
-                  />
-                </>
-              )}
-              {selfBudget > 0 ? (
-                <GuessForm gameId={gameId} />
-              ) : (
-                <p className="muted">No guesses left — waiting on the rest.</p>
-              )}
+              <p className="muted">
+                Guess the number (1–{game.max_number}) — first one wins.
+              </p>
+              <OpponentStrip
+                players={players}
+                selfId={session.user.id}
+                metricFor={(p) =>
+                  playerBudgets.find((b) => b.user_id === p.user_id)
+                    ?.guesses_remaining ?? 0
+                }
+              />
             </>
+          )}
+          {!over && selfBudget === 0 && (
+            <p className="muted">No guesses left — waiting on the rest.</p>
           )}
         </div>
         <GuessHistory guesses={guesses} players={players} />

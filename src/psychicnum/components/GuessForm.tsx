@@ -1,89 +1,63 @@
-import { useEffect, useRef, useState, type SubmitEvent } from 'react'
-import { db } from '../db'
+import { useEffect, useRef } from 'react'
 import styles from './GuessForm.module.css'
 
 type Props = {
-  gameId: string
+  /** The pending guess (a string so the number input can be empty). Lifted to
+   *  PlayArea so clicking a board tile and typing here stay in sync. */
+  value: string
+  onChange: (value: string) => void
+  /** Submit the current value — PlayArea owns validation + the RPC. */
+  onSubmit: () => void
+  submitting: boolean
+  /** Highest number on the board, for the input's `max` attr. */
+  max: number
+  error: string | null
+  /** True when the viewer can't guess (out of budget) — greys the controls. */
+  disabled?: boolean
 }
 
 /**
- * The number-entry form. A self-contained component because it
- * owns state (input value, in-flight flag, validation/RPC error)
- * that nothing else in PlayArea cares about — keeping it here
- * trims PlayArea's mental load to "compose the play surface,"
- * not "track three form variables."
- *
- * Owns the `submit_guess` RPC call too. The form IS the act of
- * submitting; threading a callback up to PlayArea just to dispatch
- * the RPC would split a single concept across two files for no
- * gain. Realtime echo refreshes the game row on the parent
- * automatically — no need to lift result handling.
- *
- * Range gating is duplicated client-side (the `<input min/max>`
- * attrs + the Number.parseInt check) and server-side (the RPC's
- * `guess must be between 1 and 10` check). Client gate is for
- * snappy feedback; server gate is the source of truth.
+ * The number-entry row that sits **below the board**: a text input + Submit
+ * button. Presentational and fully controlled — `value` is lifted to PlayArea,
+ * which also owns the `submit_guess` RPC, so picking a board tile and typing
+ * here drive the same pending guess. Range gating is duplicated client-side
+ * (the `<input min/max>` + PlayArea's parse check) and server-side (the RPC);
+ * the client gate is for snappy feedback, the server gate is the source of truth.
  */
-export function GuessForm({ gameId }: Props) {
-  const [entry, setEntry] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function GuessForm({ value, onChange, onSubmit, submitting, max, error, disabled }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Refocus the input whenever `submitting` flips back to false —
-  // covers both initial mount (submitting starts false; effect
-  // focuses on first render, in concert with the input's
-  // autoFocus) and the post-submit re-focus the player wants so
-  // they can type the next guess without reaching for the mouse.
-  //
-  // Why an effect rather than calling `inputRef.current?.focus()`
-  // in handleSubmit after `setSubmitting(false)`: React hasn't
-  // re-rendered yet at that point, so the input still has its
-  // disabled attribute and a synchronous .focus() silently fails.
-  // The effect runs after the disabled-prop change lands in the
-  // DOM.
+  // Refocus the input whenever `submitting` flips back to false (post-submit),
+  // so the player can type the next guess without reaching for the mouse. An
+  // effect, not a synchronous focus in the handler: the input is still
+  // `disabled` at that point, so a sync .focus() silently fails — the effect
+  // runs after the disabled-prop change lands in the DOM.
   useEffect(function refocusInputAfterSubmit() {
-    if (!submitting) inputRef.current?.focus()
-  }, [submitting])
-
-  async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const n = Number.parseInt(entry, 10)
-    if (Number.isNaN(n) || n < 1 || n > 10) {
-      setError('Number must be between 1 and 10.')
-      return
-    }
-    setError(null)
-    setSubmitting(true)
-    const { error: rpcError } = await db.rpc('submit_guess', {
-      target_game: gameId,
-      guess: n,
-    })
-    setSubmitting(false)
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-    setEntry('')
-  }
+    if (!submitting && !disabled) inputRef.current?.focus()
+  }, [submitting, disabled])
 
   return (
     <>
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form
+        className={styles.form}
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSubmit()
+        }}
+      >
         <input
           ref={inputRef}
           className={styles.input}
           type="number"
           min={1}
-          max={10}
-          value={entry}
-          onChange={(e) => setEntry(e.target.value)}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           // Game input: "/" and "?" still open chat / menu while typing here.
           data-game-input
-          autoFocus
-          disabled={submitting}
+          disabled={submitting || disabled}
         />
-        <button type="submit" disabled={submitting || entry === ''}>
+        <button type="submit" disabled={submitting || disabled || value === ''}>
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </form>

@@ -36,7 +36,10 @@ export type PsychicnumGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
-  /** The 1..10 secret. Null while non-terminal (gated by the
+  /** Highest number on the board; the board shows 1..max_number. Chosen at
+   *  setup (5..20), fixed for the game. */
+  max_number: number
+  /** The 1..max_number secret. Null while non-terminal (gated by the
    *  view's helper function); the real value once terminal. */
   target: number | null
   created_at: string
@@ -113,7 +116,7 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data: gameData } = await db
         .from('games_state')
-        .select('id, club_handle, mode, target, created_at')
+        .select('id, club_handle, mode, max_number, target, created_at')
         .eq('id', gameId)
         .maybeSingle()
       if (!mounted()) return
@@ -143,6 +146,7 @@ export function useGame(gameId: string): {
         id: gameData.id as string,
         club_handle: gameData.club_handle as string,
         mode: gameData.mode as 'coop' | 'compete',
+        max_number: gameData.max_number as number,
         target: gameData.target as number | null,
         created_at: gameData.created_at as string,
       })

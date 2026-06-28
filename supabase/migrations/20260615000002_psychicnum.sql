@@ -2,8 +2,9 @@
 -- psychicnum schema — baseline
 -- ============================================================
 --
--- psychicnum is a tiny number-guessing game (target 1..10, hidden
--- server-side) that exists in two modes:
+-- psychicnum is a tiny number-guessing game (target hidden in
+-- 1..max_number, where max_number is 5..20 and chosen at setup) that
+-- exists in two modes:
 --
 --   psychicnum_coop    — players share a single guess budget,
 --                        see each other's guesses live, win OR
@@ -87,8 +88,15 @@ create table psychicnum.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   mode text not null check (mode in ('coop', 'compete')),
-  target int not null check (target between 1 and 10),
-  created_at timestamptz not null default now()
+  -- The highest number on the board: the board shows 1..max_number and the
+  -- secret target lives somewhere in that range. Chosen at setup, 5..20 — a
+  -- bigger range means more number tiles to show and a harder guess.
+  max_number int not null check (max_number between 5 and 20),
+  -- The secret, 1..max_number. The column-grant below excludes it from
+  -- authenticated SELECT; it's revealed only post-terminal via games_state.
+  target int not null,
+  created_at timestamptz not null default now(),
+  check (target between 1 and max_number)
 );
 
 create index psychicnum_games_club_handle_idx on psychicnum.games (club_handle);
@@ -136,7 +144,7 @@ create table psychicnum.guesses (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references psychicnum.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
-  number int not null check (number between 1 and 10),
+  number int not null check (number between 1 and 20),
   was_correct boolean not null,
   guessed_at timestamptz not null default now()
 );
@@ -198,7 +206,7 @@ create policy guesses_select on psychicnum.guesses
 -- below is the only authenticated read path for `target`.
 
 grant select
-  (id, club_handle, mode, created_at)
+  (id, club_handle, mode, max_number, created_at)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.players to authenticated;
@@ -243,6 +251,7 @@ as
     id,
     club_handle,
     mode,
+    max_number,
     created_at,
     psychicnum._target_for(id) as target
   from psychicnum.games;
@@ -306,6 +315,7 @@ as $$
 declare
   new_id uuid;
   s_guesses int;
+  s_max int;
   s_target int;
   game_title text;
   effective_gametype text;
@@ -343,9 +353,19 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- ─── Validate the number range (board shows 1..max_number) ──
+  if (setup->>'max_number') is null then
+    raise exception 'setup.max_number is required' using errcode = 'P0001';
+  end if;
+  s_max := (setup->>'max_number')::int;
+  if s_max < 5 or s_max > 20 then
+    raise exception 'setup.max_number must be 5..20 (got %)', s_max
+      using errcode = 'P0001';
+  end if;
+
   perform common.validate_timer(setup->'timer');
 
-  s_target := 1 + floor(random() * 10)::int;
+  s_target := 1 + floor(random() * s_max)::int;
 
   -- The title is purely a human-readable label for the game row;
   -- it must NOT carry the target (that would put the secret in the
@@ -370,8 +390,8 @@ begin
   );
 
   -- Insert the gametype-specific row.
-  insert into psychicnum.games (id, club_handle, mode, target)
-  values (new_id, target_club, mode, s_target);
+  insert into psychicnum.games (id, club_handle, mode, max_number, target)
+  values (new_id, target_club, mode, s_max, s_target);
 
   -- One player row per player_user_ids entry, all seeded with
   -- the same initial guess budget. Coop will decrement all of
@@ -440,16 +460,18 @@ declare
   terminal_state text;
   terminal_outcome text;
 begin
-  if guess is null or guess < 1 or guess > 10 then
-    raise exception 'guess must be between 1 and 10' using errcode = 'P0001';
-  end if;
-
-  -- Lock the gametype row for serialization of concurrent submits.
+  -- Lock the gametype row for serialization of concurrent submits. We read it
+  -- first so the guess-range check can use this game's max_number.
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  if guess is null or guess < 1 or guess > g.max_number then
+    raise exception 'guess must be between 1 and %', g.max_number
+      using errcode = 'P0001';
   end if;
 
   -- Auth + game-player gate.

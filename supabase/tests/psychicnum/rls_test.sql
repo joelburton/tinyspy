@@ -37,7 +37,7 @@ select common.create_club('test club', array['ada','bea']) as handle;
 create temp table coop_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -80,7 +80,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 5, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'

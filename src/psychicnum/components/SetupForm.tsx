@@ -2,6 +2,7 @@ import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
+  MAX_NUMBER_OPTIONS,
   type PsychicnumSetup,
 } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
@@ -61,6 +62,24 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             </label>
           ))}
         </div>
+      </fieldset>
+      <fieldset className={styles.fieldset}>
+        <legend>Highest number</legend>
+        {/* The board shows 1..max_number; a bigger range means more number
+            tiles and a harder guess. Same meaning in both modes. */}
+        <p className="muted">
+          The board runs 1–{s.max_number}; the secret is somewhere in that range.
+        </p>
+        <select
+          value={s.max_number}
+          onChange={(e) => onChange({ ...s, max_number: Number(e.target.value) })}
+        >
+          {MAX_NUMBER_OPTIONS.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
       </fieldset>
       <TimerField
         value={s.timer}
