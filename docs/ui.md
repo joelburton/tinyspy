@@ -384,7 +384,7 @@ Two rules keep the signal clean:
 
 ## Interactive tile states
 
-Board tiles a player can act on (psychicnum's number tiles today; the pattern for
+Board tiles a player can act on (psychicnum's word tiles today; the pattern for
 every game's tiles) signal hover and selection with **outline rings in the
 standard accent blue (`--color-accent`) — never a background change.** Keeping the
 tile's *fill* free means it stays available to carry content and game semantics

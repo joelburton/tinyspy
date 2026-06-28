@@ -12,8 +12,6 @@ type Props = {
   /** Submit the current value — PlayArea owns validation + the RPC. */
   onSubmit: () => void
   submitting: boolean
-  /** True when the viewer can't guess (out of budget) — greys the controls. */
-  disabled?: boolean
   /** A transient flash shown **in the entry box** (green/red border + label):
    *  a guess result ("Correct"/"Incorrect") or a validation error ("Not on the
    *  board"). Owned + cleared by PlayArea; lives in the entry's own space so
@@ -37,8 +35,7 @@ type Props = {
  * Fully controlled — `value` is lifted to PlayArea, which validates the word is
  * on the board and owns the `submit_guess` RPC (the source of truth).
  */
-export function GuessForm({ value, onChange, onSubmit, submitting, disabled, result }: Props) {
-  const locked = submitting || disabled === true
+export function GuessForm({ value, onChange, onSubmit, submitting, result }: Props) {
   // The result flash shows only while the entry is empty: the box clears to ''
   // on submit, so "Incorrect" fills the empty box for its ~1s — but the moment
   // the player starts typing the next guess, their letters take over.
@@ -67,7 +64,7 @@ export function GuessForm({ value, onChange, onSubmit, submitting, disabled, res
           e.preventDefault()
           return
         }
-        if (locked) return
+        if (submitting) return
         // A single letter → append (stored lowercase; the board words are
         // lowercase, displayed uppercased via CSS).
         if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
@@ -85,30 +82,28 @@ export function GuessForm({ value, onChange, onSubmit, submitting, disabled, res
           onSubmit()
         }
       },
-      [value, locked, onChange, onSubmit],
+      [value, submitting, onChange, onSubmit],
     ),
   )
 
   return (
-    <>
-      <form
-        className={styles.form}
-        onSubmit={(e) => {
-          e.preventDefault()
-          onSubmit()
-        }}
-      >
-        <EntryBox
-          value={value}
-          placeholder="type a word"
-          className={styles.entry}
-          result={shownResult}
-        />
-        <button type="submit" className={styles.submit} disabled={locked || value === ''}>
-          <Play size={15} aria-hidden />
-          {submitting ? 'Submitting…' : 'Submit'}
-        </button>
-      </form>
-    </>
+    <form
+      className={styles.form}
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit()
+      }}
+    >
+      <EntryBox
+        value={value}
+        placeholder="type a word"
+        className={styles.entry}
+        result={shownResult}
+      />
+      <button type="submit" className={styles.submit} disabled={submitting || value === ''}>
+        <Play size={15} aria-hidden />
+        {submitting ? 'Submitting…' : 'Submit'}
+      </button>
+    </form>
   )
 }

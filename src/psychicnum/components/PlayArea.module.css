@@ -1,15 +1,15 @@
 /* psychicnum play surface — two-column layout that mimics the
  * shape of a real game (board on the left, controls + history on
- * the right). The left column is the NumberBoard (a 1–max_number
- * tile grid, guessed tiles permanently green/red) with the guess
- * entry below it; the right column carries the status/action slot
- * plus the append-only guess + hint history.
+ * the right). The left (board) column is the WordBoard (a grid of
+ * word tiles, guessed tiles permanently green=secret / red=miss)
+ * with the guess entry below it; the right (info) column carries
+ * the readouts/action slot plus the append-only guess + hint log.
  *
- * Terminal state keeps the two-column shape — the action slot
- * swaps from the play form to a "Game over: <status> [Back to
- * club]" indicator, and a shared GameOverModal pops via
- * PlayArea on terminal entry. See docs/ui.md → "Modals for
- * terminal results." */
+ * Terminal state keeps the two-column shape — the action row swaps
+ * from the play buttons to a bold outcome line + compact "‹ club"
+ * button, the entry slot below the board swaps to the secret
+ * reveal, and the shared GameOverModal pops on terminal entry.
+ * See docs/ui.md → "Modals for terminal results." */
 
 /* Layout extends to the viewport bottom, per docs/ui.md →
  * "Page-height fits the viewport." The chrome-height offset (body
@@ -17,11 +17,14 @@
  * a token on common/theme.css so a header redesign only touches
  * one number — see --game-chrome-height there.
  *
- * Both columns are sized to content, not to the viewport width: the info column
- * is a fixed width and the board column hugs the board. Together they're usually
- * narrower than the play area, so `justify-content: center` centers the PAIR,
- * leaving equal margin on both outer edges. `align-items: stretch` makes both
- * full-height (the divider spans, the history scrolls internally).
+ * The info column is a FIXED width; the board column FILLS the slack it leaves
+ * (`flex: 1` — see .boardCol), so the pair always spans the full play-area width.
+ * `justify-content: center` is the shared-PlayArea default — it centers the pair
+ * in the *hug* model scrabble/boggle use (board has a definite size, the columns
+ * are narrower than the area); in psychicnum's *fill* model the board absorbs the
+ * slack, so there's nothing to center and it's inert. Kept for parity with the
+ * documented contract (docs/ui.md → "PlayArea layout"). `align-items: stretch`
+ * makes both columns full-height (the divider spans, the history scrolls internally).
  *
  * No card around either column — the only thing dividing them is a thin border
  * on the infoCol's inner edge, with symmetric breathing room (this gap on the
@@ -137,9 +140,11 @@
   font-size: 0.9rem;
 }
 
-/* The action row. Playing: Hint / Reveal share the width, the shuffle pill +
- * End wrap as needed. Terminal (.terminalActions): the bold outcome message
- * (grows) + the compact back-to-club button. */
+/* The action row — turn/game-altering buttons only (Hint / Reveal / End; the
+ * board-visual Shuffle floats over the board instead, see .floatingShuffle).
+ * Playing: the buttons share row 1 and wrap as needed. Terminal
+ * (.terminalActions): the bold outcome message (grows) + the compact
+ * back-to-club button. */
 .infoActions {
   display: flex;
   flex-wrap: wrap;
@@ -151,10 +156,10 @@
   flex-wrap: nowrap;
 }
 
-/* A helper button (Hint / Reveal) — the Lucide icon + label, centered. A real
- * flex-basis (not 0) so Hint + Reveal + Shuffle fill row 1 and End wraps to its
- * own line rather than squeezing on and squishing the labels; they still grow
- * to share row 1. nowrap so the label stays on one line. */
+/* A helper button (Hint / Reveal / End) — the Lucide icon + label, centered. A
+ * real flex-basis (not 0) so Hint + Reveal fill row 1 and End wraps to its own
+ * line rather than all three squeezing on and squishing the labels; they still
+ * grow to share the row. nowrap so the label stays on one line. */
 .helperButton {
   flex: 1 1 6rem;
   min-width: 0;
@@ -187,8 +192,8 @@
 /* The end-game secret reveal, shown in the slot the guess entry occupied
  * during play (see PlayArea). Lands where the player was already looking and
  * explains the missing entry; sitting BELOW the top-anchored board, it never
- * shifts the board when it appears. Stretches to the board width (the column
- * hugs the board) and centers its text. */
+ * shifts the board when it appears. Stretches to the board width (it's a flex
+ * child of the board column) and centers its text. */
 .reveal {
   margin: 0;
   text-align: center;

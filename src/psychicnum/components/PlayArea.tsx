@@ -311,8 +311,9 @@ export function PlayArea({
 
   return (
     <div className={styles.layout}>
-      {/* The board column hugs the board's width (the board has a definite size),
-          and the input row stretches to match it. */}
+      {/* The board column FILLS the width the fixed info column leaves (flex:1);
+          the board card grows to fill it, and the entry row below stretches to
+          match the board width. */}
       <div className={styles.boardCol}>
         <WordBoard
           words={shuffledWords}
