@@ -136,20 +136,18 @@
   --radius-md:                6px;   /* buttons, inputs, panels */
   --radius-lg:                8px;   /* cards, modals */
 
-  /* Chrome height that a viewport-bound game PlayArea has to
-     subtract from 100vh to fit. Comprises body padding (2rem top
-     + 2rem bottom = 4rem), GamePage header (~3.75rem), and the
-     1rem gap between header and play area = ~9rem total.
-     Centralized so a header redesign moves one number, not three.
-     See docs/ui.md → "Page-height fits the viewport"; consumed
-     today by codenamesduet/PlayArea.module.css and psychicnum/PlayArea.
-     module.css (connections conversion pending). */
-  --game-chrome-height:       9rem;
+  /* Chrome height that a viewport-bound game PlayArea subtracts from 100vh so
+     it fills to the bottom without overflowing. Now that body padding is
+     removed, this is just the GamePage header (~3.75rem) + the 1rem gap between
+     the header and the play area ≈ 4.75rem, set a hair higher to stay off the
+     bottom edge. Centralized so a header redesign moves one number, not three.
+     See docs/ui.md → "Page-height fits the viewport"; consumed by the
+     viewport-bound games' PlayArea.module.css. */
+  --game-chrome-height:       5rem;
 
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
 
-  background: var(--color-bg);
   color: var(--color-text);
   color-scheme: light;
 }
@@ -166,7 +164,6 @@
 body {
   margin: 0;
   min-height: 100vh;
-  padding: 2rem;
   display: grid;
   place-items: start center;
 }

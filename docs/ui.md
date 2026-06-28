@@ -376,6 +376,106 @@ Two rules keep the signal clean:
 - **Identity rides the disc, never the text.** Don't encode a player by coloring a *word* — a colored disc is a far better color carrier (bigger area, no legibility/antialiasing fight), and it discriminates better between palette hues. Keep text legible/neutral and let the disc carry color. The payoff is that any space-constrained surface (think mobile, where there's no room for a name) can fall back to **circle-only** with zero loss — players have already been trained that the circle *is* the person. This is why the `<WordList>` redesign moved color off the word and onto a leading ●, with the word itself black.
 - **Don't spend a colored circle on anything that isn't a player.** If a colored circle would read as "a player" where none is meant, pick a different shape or a non-palette color. Two existing instances of this discipline: the chat unread pill is **black**, not a player hue, so it doesn't read as a sender (see [GamePage header](#gamepage-header)); and the spellingbee rank ladder uses **squares**, not circles, for its tiers — a bright-yellow *circle* would muddy the "circle = player" signal, so rank tiers take a different shape (`RankBar.module.css`).
 
+## Interactive tile states
+
+Board tiles a player can act on (psychicnum's number tiles today; the pattern for
+every game's tiles) signal hover and selection with **outline rings in the
+standard accent blue (`--color-accent`) — never a background change.** Keeping the
+tile's *fill* free means it stays available to carry content and game semantics
+(a spent/dimmed tile, a finder color, a Wordle-style result), and the ring reads
+clearly on top of any of them.
+
+- **Hover** — a thin accent ring (`box-shadow: 0 0 0 2px var(--color-accent)`).
+- **Selected** — a *thicker* accent ring than hover (the persistent state outranks
+  the transient one).
+
+Both are box-shadow rings sitting in the inter-tile gap, so they don't shift
+layout and compose cleanly with the tile's own border/fill.
+
+## PlayArea layout
+
+The shape every game's play surface converges on. Validated on **psychicnum**
+first; being rolled out game-by-game (others not yet migrated keep their old
+shells until we reach them).
+
+**The contract:**
+
+- **No whole-page scroll.** The play area fills the viewport —
+  `height: calc(100vh - var(--game-chrome-height))` — and only inner regions
+  (the turn log / word list, chat) scroll. The chrome token is the header + the
+  header→play-area gap (body padding is 0); see [Page-height fits the viewport](#page-height-fits-the-viewport).
+- **Two columns, no chrome around them.** A **board column** (`.boardCol`, left)
+  and an **info column** (`.infoCol`, right). No border / margin / padding around
+  the play area or around either column — the *only* thing between them is a
+  single thin **divider**: a `border-left` (`--color-divider`) on the info
+  column's inner edge, with symmetric breathing room (the layout `gap` on the
+  board side, the info column's `padding-left` on the other).
+- **Info column = fixed width, never grows during play.** Holds score/status,
+  the text input (for games that type into it), setup info, and the **turn log**
+  (chronological, one entry per turn) or **word list** (alphabetical found-words;
+  boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
+  may collapse to a popup — so anything *critical to playing* goes in the board
+  column instead. (That's why psychicnum's number entry lives below the board,
+  not in the info column.)
+- **Board column = hugs the board.** The board has a definite size (see
+  [Board sizing](#board-sizing)) and grows as large as the space allows, capped
+  by an optional **max tile size** (so a small board — a 4×4 — doesn't dominate a
+  big screen). The column shrink-wraps to that board width (`flex: 0 0 auto`),
+  and anything stacked below (the input row) stretches to match the board width.
+  The column is **top-aligned** (`justify-content: flex-start`) — the board sits
+  at the top, not floated to the middle.
+- **The pair is centered.** Board column (board-width) + info column (fixed) are
+  usually narrower than the play area, so `justify-content: center` on the layout
+  centers them with equal outer margins. `align-items: stretch` makes both
+  full-height (the divider spans; the log scrolls inside).
+
+**Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
+divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
+**word list** (`<WordList>` — alphabetical, circle markers). Tiles follow
+[Interactive tile states](#interactive-tile-states); identity uses
+[a colored disc](#player-identity--a-colored-disc); feedback splits
+[local vs group](deferred.md#feedback-channels-local-vs-group).
+
+**Shared vs per-game:** the *rules* are a convention (these class names + this
+doc), not yet a shared component — the layout has no behavior, just CSS, so a
+shared `playArea.module.css` scaffold (like `setupForm.module.css`) is the
+intended home once a second game adopts it. `<TurnLog>` *is* a shared component
+(it has behavior); the two-column shell is not.
+
+## Board sizing
+
+A game board grows as large as the space allows. There are **two layouts**, each
+with the right sizing tool — they're not better/worse, they answer different
+questions about the *column*.
+
+- **The board fills a known pane** — the board column is `flex: 1` (or fixed)
+  and the board centers inside it. Make the column a `container-type: size` box
+  and size the board with **container-query units**: `min(100cqw, 100cqh, cap)`
+  for a square (waffle). No viewport offsets; survives any chrome change. Use
+  this when the column's width is decided independently of the board.
+
+- **The board drives the column width** — the column shrink-wraps to the board,
+  a fixed-width info/side column sits beside it, and the pair is centered
+  (`justify-content: center` on the layout). This needs the board to have a
+  **definite size**, because a flex column can only hug a child whose size is
+  already known (it can't hug a `flex:1`/`%`-height + `aspect-ratio` child, and
+  `container-type: size` *collapses* a shrink-to-content column). The definite
+  size comes from the viewport:
+  `min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>))`
+  — height × aspect, capped by the width the side column leaves. The column is
+  `flex: 0 0 auto` (hugs it), the card hugs the board with even padding, and
+  anything stacked below (an input row) stretches to the column = board width.
+  scrabble, boggle, and psychicnum do this. The viewport offsets here aren't
+  accidental brittleness — subtracting the sibling column + chrome is *inherent*
+  to "make the column hug the board." (Keep them in terms of the shared
+  `--game-chrome-height` token where possible, and revisit when chrome changes.)
+
+  Either way: tiles/gaps/fonts scale in `cqmin`, prefer **tile-relative** `cqmin`
+  for the glyph (so it shrinks as the tile count grows), and keep a `cap` so a
+  small board doesn't blow up on a large screen.
+
+scrabble + boggle still use the viewport-math form; migrating them is deferred.
+
 ## Mode pills
 
 A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.

@@ -42,29 +42,33 @@ export function HistoryPanel({
   className?: string
   children: ReactNode
 }) {
-  const listRef = useRef<HTMLOListElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
 
   // Snap the list to the latest row whenever the rows change — same UX as
   // ChatBody. Simple: doesn't preserve a manual scroll-up (rarely felt, since
   // the player is usually watching their own action land).
   useEffect(
     function scrollToLatest() {
-      const el = listRef.current
+      const el = boxRef.current
       if (el) el.scrollTop = el.scrollHeight
     },
     [scrollKey],
   )
 
+  // The list lives in an always-present, bordered, fixed-height scroll box (it
+  // fills the column's remaining height regardless of how many rows there are,
+  // so the panel doesn't grow/shrink with the guess count). Empty state renders
+  // the muted placeholder inside that same box, so the box height never changes.
   return (
     <section className={cls(styles.panel, className)}>
       <h3 className={styles.heading}>{heading}</h3>
-      {empty ? (
-        <p className="muted">{emptyText}</p>
-      ) : (
-        <ol ref={listRef} className={styles.list}>
-          {children}
-        </ol>
-      )}
+      <div ref={boxRef} className={styles.listBox}>
+        {empty ? (
+          <p className="muted">{emptyText}</p>
+        ) : (
+          <ol className={styles.list}>{children}</ol>
+        )}
+      </div>
     </section>
   )
 }

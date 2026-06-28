@@ -29,9 +29,22 @@
   flex-shrink: 0;
 }
 
-/* The list IS the scrolling sub-frame: `flex: 1` + `min-height: 0` claim the
- * column's remaining height and scroll internally once rows pile up, so the
- * heading stays pinned and the page never grows past the viewport. */
+/* The scroll box: a bordered frame that claims the column's remaining height
+ * (`flex: 1` + `min-height: 0`) and scrolls internally once rows pile up — so
+ * the heading stays pinned, the box is the same height whether empty or full,
+ * and the page never grows past the viewport. The border is deliberately
+ * EVIDENT (a 2px medium-grey frame, not a hairline) so players read it as a
+ * contained, scrollable region rather than the content floating on the page. */
+.listBox {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+}
+
+/* The list of rows inside the box. */
 .list {
   list-style: none;
   margin: 0;
@@ -39,9 +52,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 /* Card body: thin surface border on three sides for definition, a thick (10px)

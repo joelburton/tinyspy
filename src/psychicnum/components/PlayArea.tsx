@@ -103,9 +103,11 @@ export function PlayArea({
     selfWon: didSelfWin(guesses, session.user.id, game.mode),
   }) : null
 
+  // No mid-game prompt — the board IS the prompt. Post-terminal the heading
+  // reveals the answer.
   const boardHeading = isTerminal && game.target !== null
     ? `The number was ${game.target}`
-    : "What's your guess?"
+    : ''
 
   // Numbers already tried — their board tiles render spent. In compete
   // RLS scopes `guesses` to the caller, so this is the viewer's own.
@@ -114,6 +116,15 @@ export function PlayArea({
   // Picking a tile or typing in the form both drive this one pending guess.
   const selected = pending === '' ? null : Number(pending)
   const canGuess = !over && selfBudget > 0
+
+  // TEMP prototyping: 15 fake guesses to preview a long guess list. REMOVE.
+  const fakeGuesses = Array.from({ length: 15 }, (_, i) => ({
+    id: `fake-${i}`,
+    user_id: session.user.id,
+    number: (i % game.max_number) + 1,
+    was_correct: false,
+    guessed_at: `2020-01-01T00:00:${String(i).padStart(2, '0')}Z`,
+  }))
 
   async function submitGuess() {
     const n = Number.parseInt(pending, 10)
@@ -137,7 +148,9 @@ export function PlayArea({
 
   return (
     <div className={styles.layout}>
-      <div className={styles.boardArea}>
+      {/* The board column hugs the board's width (the board has a definite size),
+          and the input row stretches to match it. */}
+      <div className={styles.boardCol}>
         <NumberBoard
           heading={boardHeading}
           max={game.max_number}
@@ -156,7 +169,7 @@ export function PlayArea({
           />
         )}
       </div>
-      <div className={styles.rightCol}>
+      <div className={styles.infoCol}>
         <div className={styles.actionSlot}>
           {over ? (
             <div className={styles.gameOverIndicator}>
@@ -190,7 +203,8 @@ export function PlayArea({
             <p className="muted">No guesses left — waiting on the rest.</p>
           )}
         </div>
-        <GuessHistory guesses={guesses} players={players} />
+        {/* TEMP prototyping: fakeGuesses prepended to preview a long list. */}
+        <GuessHistory guesses={[...fakeGuesses, ...guesses]} players={players} />
       </div>
 
       {showModal && over && (

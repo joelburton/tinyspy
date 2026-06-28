@@ -1,55 +1,78 @@
-/* psychicnum's board surface: prompt text stacked above a 1–10 tile
- * grid. Fills the left column (the boardArea wrapper stretches it to
- * the right column's height), so the page reads as a real game surface
- * rather than a thin form-with-a-list. */
+/* psychicnum's board surface: a card framing the 1..max number grid. It HUGS
+ * the grid — even `padding` all around, no stretching to fill the column — so
+ * the frame sits a uniform distance from the tiles. (The grid itself is what
+ * grows; see below.) */
 .board {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  min-height: 16rem;
-  padding: 2rem;
+  gap: 1rem;
+  padding: 1rem;
   background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  /* A thicker, darker frame so it reads as a board/tray, not just a panel. */
+  border: 2px solid var(--color-muted);
   border-radius: var(--radius-md);
 }
 
+/* Only shown post-terminal ("The number was N"); no mid-game prompt. */
 .heading {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--color-muted);
   text-align: center;
+  flex-shrink: 0;
 }
 
-/* 5×2 grid of number tiles. */
+/* The number grid is the thing that grows. Its width + grid-template +
+ * aspect-ratio are set inline (they depend on the number count + viewport) to a
+ * DEFINITE size — as big as the available height allows — so the card hugs it
+ * and the board column hugs the card. The gap scales with the grid. See
+ * docs/ui.md → "Board sizing". */
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.75rem;
+  /* Fixed gap (not %) so the max-tile cap in the inline width math is exact. */
+  gap: 0.4rem;
 }
 
-/* A clickable number tile (a <button>, reset to look like the old div). */
+/* A clickable number tile (a <button>) that fills its square grid cell. Darker
+ * border + a small drop shadow give it a bit of perceived depth, so it reads as
+ * a physical tile rather than a flat cell. */
 .tile {
+  --tile-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
+  padding: 0;
   font: inherit;
-  font-size: 1.5rem;
-  font-weight: 600;
   color: var(--color-text);
   background: var(--color-bg);
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
+  box-shadow: var(--tile-shadow);
   cursor: pointer;
+  /* A sizing container so the digit scales with the tile (cqmin below) — kept
+   * tile-relative (not grid-relative) so the digit shrinks as the tile count
+   * grows. */
+  container-type: size;
 }
 
+/* The digit scales with the tile, so big tiles get big numbers. */
+.tile span {
+  font-weight: 600;
+  font-size: 45cqmin;
+  line-height: 1;
+}
+
+/* Hover + selected are OUTLINE rings in the standard accent blue — never a
+ * background change — so the tile's fill stays free for content/semantics
+ * (spent, etc.). Selected is the thicker ring: the persistent state outranks
+ * the transient hover. House pattern for interactive board tiles — see
+ * docs/ui.md → "Interactive tile states". */
 .tile:hover:not(:disabled) {
-  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent), var(--tile-shadow);
 }
 
 .tile:disabled {
@@ -58,8 +81,7 @@
 
 /* The currently-picked tile (kept in sync with the text input). */
 .selected {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent), var(--tile-shadow);
 }
 
 /* Spent tile: a number that's already been guessed. Dimmed and
