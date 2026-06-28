@@ -10,7 +10,7 @@
 #
 # What this script does, in order:
 #   0. (if PROJECT_REF is unset) Create the hosted project via the
-#      Management API — name "pupgames", region us-west-1, free
+#      Management API — name "puzpuzpuz", region us-west-1, free
 #      plan. Generates a DB password if none is provided, then
 #      polls until ACTIVE_HEALTHY, then fetches the service_role
 #      key from the API.
@@ -495,9 +495,9 @@ else
   # string with embedded newlines. The single quotes mean nothing
   # inside expands, which is exactly what we want for the
   # {{ }} template placeholders.
-  magic_link_html='<h2>Sign in to PupGames</h2>
+  magic_link_html='<h2>Sign in to PuzPuzPuz</h2>
 <p>Click the link to sign in:</p>
-<p><a href="{{ .ConfirmationURL }}">Sign in to PupGames</a></p>
+<p><a href="{{ .ConfirmationURL }}">Sign in to PuzPuzPuz</a></p>
 <p>Or enter this code on the sign-in page:</p>
 <p style="font-size: 24px; font-family: monospace; letter-spacing: 4px;">{{ .Token }}</p>
 <p style="color: #666; font-size: 12px;">
@@ -533,9 +533,9 @@ This code expires in 1 hour. If you did not request this, ignore the email.
       smtp_pass: $smtp_pass,
       smtp_sender_name: $smtp_sender_name,
       smtp_max_frequency: 60,
-      mailer_subjects_magic_link:           "Sign in to PupGames",
+      mailer_subjects_magic_link:           "Sign in to PuzPuzPuz",
       mailer_templates_magic_link_content:  $magic_template,
-      mailer_subjects_confirmation:          "Sign in to PupGames",
+      mailer_subjects_confirmation:          "Sign in to PuzPuzPuz",
       mailer_templates_confirmation_content: $magic_template
     }')
 
@@ -573,6 +573,14 @@ echo
 # SERVICE_ROLE keys are auto-injected by the Edge Runtime, and it
 # calls the public Wiktionary API with no key.)
 #
+# --use-api bundles the functions server-side instead of inside the local
+# `edge-runtime` Docker image. That avoids the ECR-Public image pull (and
+# its anonymous rate limits — `docker: toomanyrequests`, which broke this
+# step) plus the Docker dependency entirely. We keep prod-faithful local
+# execution via `supabase functions serve` (still Docker) + the solver's
+# Vitest/C-oracle tests, so we don't lose meaningful parity by bundling
+# server-side at deploy time.
+#
 # FIRST regenerate boggle's bundled dictionary asset. wordlist.ts is
 # gitignored (it's a build artifact, ~1.2 MB) and the boggle-build-board
 # function won't compile without it. We generate from the LOCAL stack —
@@ -587,7 +595,7 @@ echo "═══ 6. Deploying edge functions ═══"
 echo "       Regenerating boggle wordlist asset (from LOCAL common.words)..."
 SUPABASE_DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres' \
   npm run boggle:wordlist
-supabase functions deploy
+supabase functions deploy --use-api
 echo
 
 # ════════════════════════════════════════════════════════════════
