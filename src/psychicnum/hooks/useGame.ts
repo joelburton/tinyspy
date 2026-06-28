@@ -75,12 +75,14 @@ export type PsychicnumPlayer = {
 export type PsychicnumGuess = {
   id: string
   user_id: string
-  /** The guessed (or hinted) word, lowercase — always a board word. */
+  /** The text this row carries. For 'guess'/'reveal' it's a board word
+   *  (lowercase); for 'hint' it's the CLUE text (or "No hint available"). */
   word: string
   was_correct: boolean
   /** 'guess' = a real guess (colors the board, counts toward the win);
-   *  'hint' = a revealed secret, shown amber in the turn log only. */
-  kind: 'guess' | 'hint'
+   *  'reveal' = a revealed secret word (the answer), amber in the turn log;
+   *  'hint' = a clue for a secret, amber in the turn log. */
+  kind: 'guess' | 'hint' | 'reveal'
   guessed_at: string
 }
 

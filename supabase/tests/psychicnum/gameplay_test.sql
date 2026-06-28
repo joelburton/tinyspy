@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: psychicnum.submit_guess + request_hint + submit_timeout
+-- Test: psychicnum.submit_guess + request_hint/reveal + submit_timeout
 -- ============================================================
 --
 -- The computer hides THREE secret WORDS among the board words;
@@ -18,8 +18,9 @@
 --   - finding a secret (not the last) returns 'correct', game continues,
 --     and bumps the caller's players.secrets_found
 --   - re-guessing a taken word (game-wide) is rejected
---   - request_hint reveals an unfound secret as a kind='hint' row,
---     without decrementing the budget
+--   - request_hint logs a kind='hint' row with the secret's CLUE (or the
+--     "No hint available" fallback); request_reveal logs a kind='reveal' row
+--     with the answer WORD; neither spends budget or finds the secret
 --   - finding the LAST secret returns 'won', play_state='won', team won
 --   - last-budget wrong guess → 'lost', play_state='lost'
 --   - submit_timeout flips to 'lost'
@@ -34,7 +35,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(31);
+select plan(34);
 
 \ir ../_shared/setup.psql
 
@@ -124,11 +125,14 @@ select throws_ok(
   'coop: re-guessing a word another player took is rejected'
 );
 
--- (7) request_hint reveals an unfound secret (bravo or charlie — alpha found)
+-- (7) request_hint returns the secret's CLUE (common.words.hint), or the
+-- "No hint available" fallback when it has none. Our pinned secrets are fake
+-- (not in common.words), so the fallback fires. (The real-clue path is
+-- exercised in its own block below.)
 select is(
-  (select psychicnum.request_hint((select id from coop_g)) = any(array['bravo','charlie'])),
-  true,
-  'coop: request_hint returns an as-yet-unfound secret'
+  psychicnum.request_hint((select id from coop_g)),
+  'No hint available',
+  'coop: request_hint falls back to "No hint available" for a word with no clue'
 );
 
 -- (8) the hint is logged as a kind='hint' row...
@@ -140,12 +144,30 @@ select is(
   'coop: request_hint logs a kind=hint row'
 );
 
--- (9) ...and does NOT spend any budget (still 3 each: one wrong + one find)
+-- (9) request_reveal returns an unfound secret WORD (the answer)...
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select psychicnum.request_reveal((select id from coop_g)) = any(array['bravo','charlie'])),
+  true,
+  'coop: request_reveal returns an as-yet-unfound secret word'
+);
+
+-- (10) ...logged as a kind='reveal' row (and it does NOT find the secret —
+-- bea still guesses bravo + charlie below to win)
+reset role;
+select is(
+  (select count(*)::int from psychicnum.guesses
+    where game_id = (select id from coop_g) and kind = 'reveal'),
+  1,
+  'coop: request_reveal logs a kind=reveal row'
+);
+
+-- (11) neither helper spent any budget (still 3 each: one wrong + one find)
 select is(
   (select array_agg(guesses_remaining order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
   array[3, 3],
-  'coop: request_hint does not decrement the budget'
+  'coop: request_hint / request_reveal do not decrement the budget'
 );
 
 -- (10) bea finds bravo, then charlie (the last) → team wins
@@ -356,6 +378,49 @@ select is(
   (select play_state from common.games where id = (select id from comp_loss)),
   'lost_compete',
   'compete: all-exhausted flips play_state to lost_compete'
+);
+
+-- ============================================================
+-- request_hint — the real-clue path
+-- ============================================================
+-- The asserts above use fake secrets (no dictionary entry), so they exercise
+-- the "No hint available" fallback. Here we pin the board to REAL words that
+-- HAVE a clue and confirm request_hint returns an actual clue.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- Five real, clean, 5-letter words that each have a clue (deterministic order).
+create temp table hinted on commit drop as
+  select array_agg(word order by word) as words
+    from (
+      select word from common.words
+       where hint is not null and len = 5 and slur = 0 and crude = 0
+         and american and not slang
+       order by word
+       limit 5
+    ) s;
+
+create temp table hint_g on commit drop as
+select * from psychicnum.create_game(
+  (select handle from club),
+  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop'
+);
+reset role;
+-- Board = the 5 hinted words; secrets = the first 3 (all have clues).
+update psychicnum.games
+   set words = (select words from hinted),
+       secrets = (select words[1:3] from hinted)
+ where id = (select id from hint_g);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select ok(
+  psychicnum.request_hint((select id from hint_g)) in (
+    select hint from common.words
+     where word in (select unnest(words[1:3]) from hinted)
+  ),
+  'request_hint returns the actual clue for a word that has one'
 );
 
 -- ============================================================

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Lightbulb } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Eye, Lightbulb } from 'lucide-react'
 import { cls } from '../../common/lib/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -18,8 +19,18 @@ import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /** The computer hides this many secret words; players win by finding all. */
 const SECRET_COUNT = 3
-/** How long the player's own-guess result flash (the entry box) stays up. */
-const LOCAL_RESULT_MS = 1000
+
+/** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
+function shuffled<T>(arr: readonly T[]): T[] {
+  const out = arr.slice()
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+/** How long an entry-box flash (a guess result, or a validation error) stays up. */
+const ENTRY_FLASH_MS = 1400
 
 /**
  * psychicnum's play surface, shared between coop and compete
@@ -65,32 +76,52 @@ export function PlayArea({
   const [pending, setPending] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [hinting, setHinting] = useState(false)
-  const [guessError, setGuessError] = useState<string | null>(null)
+  const [revealing, setRevealing] = useState(false)
 
-  // ─── Own-guess local feedback ──────────────────────────
-  // A transient "Correct"/"Incorrect" flash in the entry box for the player's
-  // OWN last guess. Set straight from the submit RPC (an event handler, so no
-  // set-state-in-effect), cleared after a beat. The *tile* color is now
-  // permanent (derived from the guess log), so this is the only flash. Local
-  // channel: near my eyes, about what I just did (docs/deferred.md → Feedback).
-  const [localResult, setLocalResult] = useState<{ correct: boolean } | null>(null)
-  const localResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ─── Board shuffle (a fresh visual scan, local only) ────
+  // A counter the Shuffle button bumps; the board's display order is derived
+  // from it. We key the memo on the words STRING, not `game.words` — useGame
+  // returns a fresh array on every realtime refetch, so depending on the array
+  // identity would re-shuffle the tiles on every guess. (Same trick spellingbee
+  // uses for its letter shuffle.) Reshuffling only reorders the tiles for a
+  // fresh look — results/selection are keyed by word, so they're unaffected.
+  const [shuffleSeed, setShuffleSeed] = useState(0)
+  // '\n' joins/splits the words — it never appears inside a dictionary word.
+  const wordsKey = game ? game.words.join('\n') : ''
+  const shuffledWords = useMemo(() => {
+    if (wordsKey === '') return []
+    void shuffleSeed
+    return shuffled(wordsKey.split('\n'))
+  }, [wordsKey, shuffleSeed])
+  const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
-  const flashOwnResult = useCallback((correct: boolean) => {
-    setLocalResult({ correct })
-    if (localResultTimerRef.current !== null) {
-      clearTimeout(localResultTimerRef.current)
+  // ─── Entry-box flash (own-action feedback) ─────────────
+  // A transient message shown *inside the entry box* for the player's own
+  // action: "Correct"/"Incorrect" after a guess, or a validation error
+  // ("Not on the board") when the typed word isn't a tile. It lives in the
+  // entry's already-claimed space (never a new line below the form, which would
+  // shrink the board — docs/ui.md → Layout stability). Set from event handlers
+  // (no set-state-in-effect), cleared after a beat. Local channel: near my
+  // eyes, about what I just did (docs/deferred.md → Feedback channels).
+  const [entryFlash, setEntryFlash] =
+    useState<{ tone: 'good' | 'bad'; label: string } | null>(null)
+  const entryFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const flashEntry = useCallback((tone: 'good' | 'bad', label: string) => {
+    setEntryFlash({ tone, label })
+    if (entryFlashTimerRef.current !== null) {
+      clearTimeout(entryFlashTimerRef.current)
     }
-    localResultTimerRef.current = setTimeout(() => {
-      setLocalResult(null)
-      localResultTimerRef.current = null
-    }, LOCAL_RESULT_MS)
+    entryFlashTimerRef.current = setTimeout(() => {
+      setEntryFlash(null)
+      entryFlashTimerRef.current = null
+    }, ENTRY_FLASH_MS)
   }, [])
 
-  useEffect(function clearLocalResultTimerOnUnmount() {
+  useEffect(function clearEntryFlashTimerOnUnmount() {
     return () => {
-      if (localResultTimerRef.current !== null) {
-        clearTimeout(localResultTimerRef.current)
+      if (entryFlashTimerRef.current !== null) {
+        clearTimeout(entryFlashTimerRef.current)
       }
     }
   }, [])
@@ -118,13 +149,17 @@ export function PlayArea({
     const name = member?.username ?? 'Someone'
     const dot = colorVarFor(member?.color)
 
-    if (latest.kind === 'hint') {
-      // Amber — important, but neither good nor bad.
+    // Helper actions (hint / reveal) → amber: important, but neither good nor
+    // bad. (A reveal logs the answer word, but we narrate it without naming the
+    // word — "revealed a word", not which one.)
+    if (latest.kind === 'hint' || latest.kind === 'reveal') {
       feedback.show({
         tone: 'warning',
         variant: 'outline',
         dot,
-        text: `${name} asked for a hint`,
+        text: latest.kind === 'hint'
+          ? `${name} asked for a hint`
+          : `${name} revealed a word`,
         dismiss: { kind: 'timed', ms: 3000 },
       })
       return
@@ -220,14 +255,17 @@ export function PlayArea({
 
   // const arrow (not a hoisted `function`) so the `if (!game) return` narrowing
   // above still applies inside — a function declaration is hoisted above it.
+  // Every submit clears the entry and shows a flash IN the box (success or
+  // error) — so feedback always lands in the entry's already-claimed space,
+  // never a new line that would reflow the board.
   const submitGuess = async () => {
     const guess = pending.trim().toLowerCase()
+    setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!game.words.includes(guess)) {
-      setGuessError(`"${pending}" isn't on the board.`)
+      flashEntry('bad', 'Not on the board')
       return
     }
-    setGuessError(null)
     setSubmitting(true)
     // submit_guess returns 'won' | 'correct' | 'wrong' | 'lost'. 'won'/'correct'
     // both mean the guess hit a secret; the terminal transition we observe via
@@ -238,21 +276,30 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      setGuessError(error.message)
+      flashEntry('bad', error.message)
       return
     }
-    setPending('')
-    flashOwnResult(data === 'won' || data === 'correct')
+    flashEntry(
+      data === 'won' || data === 'correct' ? 'good' : 'bad',
+      data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
+    )
   }
 
+  // Hint (a clue) and reveal (the answer word) both land in the turn log via
+  // realtime; coop teammates get a header pill. Nothing to do with the return
+  // value here — the helper rows arrive over the subscription.
   const getHint = async () => {
-    setGuessError(null)
     setHinting(true)
-    // The revealed word lands in the turn log (amber) via realtime; coop
-    // teammates get a header pill. Nothing to do with the return value here.
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) setGuessError(error.message)
+    if (error) flashEntry('bad', error.message)
+  }
+
+  const getReveal = async () => {
+    setRevealing(true)
+    const { error } = await db.rpc('request_reveal', { target_game: gameId })
+    setRevealing(false)
+    if (error) flashEntry('bad', error.message)
   }
 
   return (
@@ -261,7 +308,7 @@ export function PlayArea({
           and the input row stretches to match it. */}
       <div className={styles.boardCol}>
         <WordBoard
-          words={game.words}
+          words={shuffledWords}
           results={results}
           selected={selected}
           onPick={canGuess ? (w) => setPending(w) : undefined}
@@ -276,15 +323,7 @@ export function PlayArea({
             onChange={setPending}
             onSubmit={submitGuess}
             submitting={submitting}
-            error={guessError}
-            result={
-              localResult
-                ? {
-                    tone: localResult.correct ? 'good' : 'bad',
-                    label: localResult.correct ? 'Correct' : 'Incorrect',
-                  }
-                : null
-            }
+            result={entryFlash}
           />
         ) : over && game.secrets ? (
           <p className={styles.reveal}>
@@ -326,17 +365,35 @@ export function PlayArea({
                   />
                 </>
               )}
-              {canGuess && (
-                <button
-                  type="button"
-                  className={cls('secondary', styles.hintButton)}
-                  onClick={getHint}
-                  disabled={hinting}
-                >
-                  <Lightbulb size={15} aria-hidden />
-                  {hinting ? 'Revealing…' : 'Get a hint'}
-                </button>
-              )}
+              <div className={styles.actions}>
+                {canGuess && (
+                  <>
+                    {/* Hint = a clue (common.words.hint); Reveal = the answer
+                        word. Both log to the turn log, cost nothing. */}
+                    <button
+                      type="button"
+                      className={cls('secondary', styles.helperButton)}
+                      onClick={getHint}
+                      disabled={hinting}
+                    >
+                      <Lightbulb size={15} aria-hidden />
+                      Hint
+                    </button>
+                    <button
+                      type="button"
+                      className={cls('secondary', styles.helperButton)}
+                      onClick={getReveal}
+                      disabled={revealing}
+                    >
+                      <Eye size={15} aria-hidden />
+                      Reveal
+                    </button>
+                  </>
+                )}
+                {/* Reorders the tiles for a fresh visual scan — local, harmless,
+                    so it's available even when you're out of guesses. */}
+                <ShuffleButton onShuffle={handleShuffle} label="Shuffle the words" />
+              </div>
               {selfBudget === 0 && (
                 <p className="muted">No guesses left — waiting on the rest.</p>
               )}

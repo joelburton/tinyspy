@@ -1246,6 +1246,13 @@ export type Database = {
     }
     Functions: {
       _secrets_for: { Args: { g_id: string }; Returns: string[] }
+      _unfound_secret: {
+        Args: {
+          caller_id: string
+          g: Database["psychicnum"]["Tables"]["games"]["Row"]
+        }
+        Returns: string
+      }
       create_game: {
         Args: {
           mode: string
@@ -1259,6 +1266,7 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       request_hint: { Args: { target_game: string }; Returns: string }
+      request_reveal: { Args: { target_game: string }; Returns: string }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: string

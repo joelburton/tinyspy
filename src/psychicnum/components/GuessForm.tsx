@@ -12,12 +12,13 @@ type Props = {
   /** Submit the current value — PlayArea owns validation + the RPC. */
   onSubmit: () => void
   submitting: boolean
-  error: string | null
   /** True when the viewer can't guess (out of budget) — greys the controls. */
   disabled?: boolean
-  /** A transient "Correct" / "Incorrect" flash for the player's own last
-   *  guess, shown in the entry box (green/red border). Owned + cleared by
-   *  PlayArea. Suppressed the moment the player types again (see below). */
+  /** A transient flash shown **in the entry box** (green/red border + label):
+   *  a guess result ("Correct"/"Incorrect") or a validation error ("Not on the
+   *  board"). Owned + cleared by PlayArea; lives in the entry's own space so
+   *  feedback never adds a line that reflows the board. Suppressed the moment
+   *  the player types again (see below). */
   result?: { tone: 'good' | 'bad'; label: string } | null
 }
 
@@ -36,7 +37,7 @@ type Props = {
  * Fully controlled — `value` is lifted to PlayArea, which validates the word is
  * on the board and owns the `submit_guess` RPC (the source of truth).
  */
-export function GuessForm({ value, onChange, onSubmit, submitting, error, disabled, result }: Props) {
+export function GuessForm({ value, onChange, onSubmit, submitting, disabled, result }: Props) {
   const locked = submitting || disabled === true
   // The result flash shows only while the entry is empty: the box clears to ''
   // on submit, so "Incorrect" fills the empty box for its ~1s — but the moment
@@ -108,7 +109,6 @@ export function GuessForm({ value, onChange, onSubmit, submitting, error, disabl
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </form>
-      {error && <p className="error">{error}</p>}
     </>
   )
 }

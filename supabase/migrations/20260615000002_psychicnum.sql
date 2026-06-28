@@ -5,8 +5,9 @@
 -- psychicnum is a tiny word-guessing game: the board shows N
 -- words (N = 5..20, chosen at setup) drawn from a dictionary at a
 -- chosen difficulty; THREE of them are secret, and players win by
--- finding all three (by clicking a word or typing it). A "get
--- hint" affordance reveals an unfound secret. Two modes:
+-- finding all three (by clicking a word or typing it). Two helper
+-- affordances: "reveal" shows an unfound secret WORD (the answer);
+-- "hint" shows its CLUE (common.words.hint). Two modes:
 --
 --   psychicnum_coop    — players share a single guess budget and
 --                        a single board, see each other's guesses
@@ -164,16 +165,22 @@ create table psychicnum.guesses (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references psychicnum.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
-  -- The guessed (or hinted) word, lowercase. Always one of the board words.
+  -- The text this row carries. For 'guess' / 'reveal' rows it's a board word
+  -- (lowercase). For 'hint' rows it's the CLUE text (a sentence, or
+  -- "No hint available") — NOT the secret word, so a hint never leaks the
+  -- answer into the row data.
   word text not null,
   was_correct boolean not null,
-  -- 'guess' = a real guess (counts toward finding the secrets, colors the
-  -- board tile green/red, can't be repeated). 'hint' = a hint the player
-  -- asked for: request_hint reveals an unfound secret and logs it here so it
-  -- shows in the turn log (amber). A hint does NOT find the secret, color a
-  -- tile, or block re-guessing — it's purely a log entry; everything that
-  -- computes from real guesses filters `kind = 'guess'`.
-  kind text not null default 'guess' check (kind in ('guess', 'hint')),
+  -- 'guess'  = a real guess (counts toward finding the secrets, colors the
+  --            board tile green/red, can't be repeated).
+  -- 'reveal' = the player asked to reveal an answer: request_reveal picks an
+  --            unfound secret and logs the WORD here (shown in the turn log).
+  -- 'hint'   = the player asked for a hint: request_hint picks an unfound
+  --            secret and logs its CLUE (from common.words.hint) here.
+  -- Neither helper finds the secret, colors a tile, or blocks re-guessing —
+  -- they're log entries; everything that computes from real guesses filters
+  -- `kind = 'guess'`.
+  kind text not null default 'guess' check (kind in ('guess', 'hint', 'reveal')),
   guessed_at timestamptz not null default now()
 );
 
@@ -727,23 +734,42 @@ revoke execute on function psychicnum.submit_guess(uuid, text) from public;
 grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
 
 -- ============================================================
--- psychicnum.request_hint — reveal an unfound secret
+-- psychicnum._unfound_secret — pick an as-yet-unfound secret
 -- ============================================================
--- A toy "hint" that's really just the answer: it reveals one of
--- the secrets the player (compete) / team (coop) hasn't found
--- yet. Logged as a `kind = 'hint'` row in psychicnum.guesses so
--- it flows into the turn log over realtime (rendered amber), and
--- so coop teammates can be told "X asked for a hint" (in compete
--- the guesses RLS scopes the row to the caller — hints are
--- private there). Costs nothing: no budget decrement, and it does
--- NOT find the secret (the player still has to guess it).
---
--- Returns the revealed word. Unfound is scoped like the win
--- check (coop = team, compete = caller); during play there's
--- always at least one unfound secret (else the game would be
--- won), but we guard defensively and raise if somehow none.
+-- Shared by request_hint + request_reveal: a secret the player
+-- (compete) / team (coop) hasn't found yet, at random. NULL when
+-- all are found (shouldn't happen mid-game — the game would be
+-- won — but the callers guard for it).
+create function psychicnum._unfound_secret(g psychicnum.games, caller_id uuid)
+returns text
+language sql
+stable
+set search_path = psychicnum, common, public, extensions
+as $$
+  select s
+    from unnest(g.secrets) as s
+   where s not in (
+     select word from psychicnum.guesses
+      where game_id = g.id and kind = 'guess' and was_correct
+        and (g.mode = 'coop' or user_id = caller_id)
+   )
+   order by random()
+   limit 1
+$$;
 
-create function psychicnum.request_hint(target_game uuid)
+-- ============================================================
+-- psychicnum.request_reveal — show an answer (a secret word)
+-- ============================================================
+-- Reveals one of the player's (compete) / team's (coop) unfound
+-- secret WORDS — the answer. Logged as a `kind = 'reveal'` row so
+-- it flows into the turn log over realtime (amber), and so coop
+-- teammates get a "X revealed a word" pill (in compete the guesses
+-- RLS scopes the row to the caller — reveals are private there).
+-- Costs nothing and does NOT find the secret: it just shows it, so
+-- the player still has to guess (or doesn't bother — it's a cheat).
+-- Returns the revealed word.
+
+create function psychicnum.request_reveal(target_game uuid)
 returns text
 language plpgsql
 security definer
@@ -753,7 +779,7 @@ declare
   caller_id uuid;
   g psychicnum.games%rowtype;
   current_play_state text;
-  hint_word text;
+  reveal_word text;
 begin
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
@@ -770,26 +796,75 @@ begin
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
-  -- An as-yet-unfound secret (in scope), picked at random.
-  select s into hint_word
-    from unnest(g.secrets) as s
-   where s not in (
-     select word from psychicnum.guesses
-      where game_id = target_game and kind = 'guess' and was_correct
-        and (g.mode = 'coop' or user_id = caller_id)
-   )
-   order by random()
-   limit 1;
-
-  if hint_word is null then
-    -- All secrets already found — shouldn't happen mid-game.
-    raise exception 'nothing left to hint' using errcode = 'P0001';
+  reveal_word := psychicnum._unfound_secret(g, caller_id);
+  if reveal_word is null then
+    raise exception 'nothing left to reveal' using errcode = 'P0001';
   end if;
 
   insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
-  values (target_game, caller_id, hint_word, true, 'hint');
+  values (target_game, caller_id, reveal_word, true, 'reveal');
 
-  return hint_word;
+  return reveal_word;
+end;
+$$;
+
+revoke execute on function psychicnum.request_reveal(uuid) from public;
+grant execute on function psychicnum.request_reveal(uuid) to authenticated;
+
+-- ============================================================
+-- psychicnum.request_hint — show a clue for an unfound secret
+-- ============================================================
+-- Picks an unfound secret (like request_reveal) but logs its CLUE
+-- (`common.words.hint`) rather than the word — a nudge, not the
+-- answer. Many words have no clue (the hint set is roughly
+-- 5-letter common words), so a missing clue logs the literal
+-- "No hint available". The `kind = 'hint'` row carries the clue
+-- text (NOT the secret word — a hint never leaks the answer into
+-- the row). Coop teammates get a "X asked for a hint" pill;
+-- compete scopes it to the caller via RLS. Returns the clue text.
+
+create function psychicnum.request_hint(target_game uuid)
+returns text
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g psychicnum.games%rowtype;
+  current_play_state text;
+  secret_word text;
+  clue_text text;
+begin
+  select * into g from psychicnum.games
+   where psychicnum.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not active' using errcode = 'P0001';
+  end if;
+
+  secret_word := psychicnum._unfound_secret(g, caller_id);
+  if secret_word is null then
+    raise exception 'nothing left to hint' using errcode = 'P0001';
+  end if;
+
+  -- The clue for that word, or the literal fallback when it has none.
+  select coalesce(hint, 'No hint available') into clue_text
+    from common.words where word = secret_word;
+  clue_text := coalesce(clue_text, 'No hint available');  -- word not in dict
+
+  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  values (target_game, caller_id, clue_text, true, 'hint');
+
+  return clue_text;
 end;
 $$;
 

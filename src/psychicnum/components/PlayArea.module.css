@@ -101,13 +101,27 @@
   font-size: 0.95rem;
 }
 
-/* "Get a hint" — the Lucide Lightbulb icon + label, centered (the button
- * stretches full-width in the action slot). */
-.hintButton {
+/* The action row: the two helper buttons (Hint, Reveal) grow to share the
+ * width, the fixed-size shuffle pill sits at the end (wrapping below only if
+ * the column is too narrow for all three). When the helpers are hidden — out
+ * of guesses — the pill is the lone item. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* A helper button (Hint / Reveal) — the Lucide icon + label, centered. Grows
+ * to share the row; nowrap so the label stays on one line. */
+.helperButton {
+  flex: 1 1 8rem;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4em;
+  white-space: nowrap;
 }
 
 /* The end-game secret reveal, shown in the slot the guess entry occupied

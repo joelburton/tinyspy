@@ -34,7 +34,9 @@ A timer that runs out is NOT what makes a game "compete" — compete needs an op
 - A **board of N words** (N = `word_count`, 5–20, chosen at setup), sampled from `common.words` at create-game time under a clean (`crude=0 AND slur=0`) + `american` + non-`slang` + `difficulty ≤ band` filter. **Three of the board words are secret**; the same three for everyone, and players win by finding **all three** (by clicking a word tile or typing the word).
 - The board words are **public** (you see and click them). The three secrets are **hidden server-side** — clients can't tell which words are secret during play even with devtools open — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic) below.
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
-- **Get a hint:** any player can reveal an as-yet-unfound secret word (`request_hint`). It's logged in the turn log (amber) and costs nothing — it doesn't decrement the budget or auto-find the secret (you still have to guess it). A toy "hint that's really the answer."
+- **Two helpers, both free + logged amber in the turn log, neither finds the secret or decrements the budget:**
+  - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
+  - **Reveal** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer."
 - Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DifficultyField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 
@@ -74,7 +76,7 @@ A timer that runs out is NOT what makes a game "compete" — compete needs an op
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `secrets_found` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
-| `guesses` | Append-only log of every guess **and hint**. One row per event, with `user_id`, `number`, `was_correct`, `kind` ('guess' \| 'hint'), `guessed_at`. A `kind='hint'` row is a revealed secret (shown amber in the turn log); everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
+| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `was_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); both render amber in the turn log. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
 
@@ -255,9 +257,12 @@ Reject reasons:
 - word already guessed (in scope)
 - caller has 0 guesses remaining
 
-### `psychicnum.request_hint(target_game uuid) → text`
+### `psychicnum.request_hint(target_game uuid) → text` and `request_reveal(target_game uuid) → text`
 
-Reveals one of the as-yet-unfound secret words (scoped like the win check: coop = the team's, compete = the caller's), picked at random. Logs it as a `kind='hint'` row in `psychicnum.guesses` so it flows into the turn log (rendered amber) over realtime, and so coop teammates get a "X asked for a hint" header pill (in compete the guesses RLS scopes the row to the caller — hints are private there). Costs nothing: **no budget decrement**, and it does **not** find the secret (the player still has to guess it). Returns the revealed word. Guarded like a move (game player, status = playing).
+Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
+
+- **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer) and returns it. Teammate pill: "X revealed a word".
+- **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word), and returns the clue. Teammate pill: "X asked for a hint".
 
 ### `psychicnum.submit_timeout(target_game uuid)`
 
@@ -346,7 +351,8 @@ src/psychicnum/
                             WordBoard (grid of word tiles; guessed tiles
                               permanently green=secret / red=miss)
                             GuessForm (capture-input word entry + submit_guess RPC) — during play
-                            "Get a hint" button (request_hint RPC) — during play
+                            Hint / Reveal / Shuffle buttons (request_hint /
+                              request_reveal RPCs; local shuffle) — during play
                             "Game over: <status> [Back to club]" indicator — terminal
                             GuessHistory (chronological guess + hint log, auto-scroll)
                             GameOverModal (shared) — pops on terminal entry
@@ -362,7 +368,8 @@ src/psychicnum/
                           drive the same pending word.
     GuessForm.module.css
     GuessHistory.tsx      The shared <TurnLog> table — one row per guess or hint
-                          (outcome bar green=correct / red=wrong / amber=hint),
+                          (outcome bar green=correct / red=wrong / amber=
+                            hint+reveal; a hint row is a colspan "Hint: <clue>"),
                           word + result + actor with their identity dot.
     GuessHistory.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
@@ -385,7 +392,7 @@ src/psychicnum/
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Find the 3 secret words. X of 3 found · N guesses left." status line and a "Get a hint" button; on terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE" — so it lands where the player was already looking, and the infoCol's action slot shows a "Game over: `<status>` [Back to club]" indicator. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" in the entry box (local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `goToClub`, `feedback`, `menu` from `GamePageCtx`. During play, renders `<GuessForm>` plus a "Find the 3 secret words. X of 3 found · N guesses left." status line and a **Hint** / **Reveal** / **Shuffle** action row (Hint shows a clue, Reveal shows an answer word, Shuffle reorders the tiles); on terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE" — so it lands where the player was already looking, and the infoCol's action slot shows a "Game over: `<status>` [Back to club]" indicator. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" in the entry box (local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
@@ -408,7 +415,7 @@ See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-speci
 | file | covers |
 |---|---|
 | `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.{guesses,word_count}` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in connections's create_game test), `is_current_view` flips via `common.games`, title formula, `word_count` board words + three secrets drawn from them, column-level grant blocks SELECT of `secrets`. |
-| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `secrets_found`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` reveals an unfound secret as a `kind='hint'` row without spending budget, budget-exhausted loss, `submit_timeout` happy path. |
+| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `secrets_found`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` logs the clue (or "No hint available" fallback) and `request_reveal` logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `secrets IS NULL` while active and the actual array once status is terminal — exercising both the `security_invoker` row-gating and the `_secrets_for` helper's CASE. |
 
 ### Pinning the board + secrets in tests

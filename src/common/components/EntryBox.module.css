@@ -40,6 +40,13 @@
 
 .result {
   font-weight: 600;
+  /* Keep the flash on ONE line so the box height never changes (a wrapped
+   * message would grow the box and reflow whatever sits around it). A label
+   * too long for the box truncates rather than wrapping. */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Simulated text cursor — stands in for the blinking caret a real <input>
