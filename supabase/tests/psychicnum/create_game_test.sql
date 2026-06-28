@@ -9,10 +9,10 @@
 --   4. Setup-shape validation: guesses + timer
 --   5. Happy path (coop): writes psychicnum_coop gametype,
 --      seeds per-player budget rows, mode='coop' on the row,
---      target is a 1..10 int
+--      word_count board words + three distinct secrets drawn from them
 --   6. Happy path (compete): same, with psychicnum_compete
 --      gametype string and mode='compete'
---   7. The `target` column is NOT readable to authenticated
+--   7. The `secrets` column is NOT readable to authenticated
 -- ============================================================
 
 begin;
@@ -33,7 +33,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select psychicnum.create_game(
        'placeholder-club',
-       '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+       '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid],
        'coop'
@@ -59,7 +59,7 @@ select common.create_club('test club', array['ada','bea']) as handle;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -76,7 +76,7 @@ select throws_ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'bogus') $$,
     (select handle from club)
@@ -95,7 +95,7 @@ select throws_ok(
 
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$,
     (select handle from club)
   ),
@@ -113,7 +113,7 @@ select throws_ok(
 
 select lives_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
     (select handle from club)
   ),
@@ -127,7 +127,7 @@ select lives_ok(
 -- guesses out of range
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 4, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 4, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -150,36 +150,36 @@ select throws_ok(
   'missing guesses is rejected'
 );
 
--- max_number missing (board range is required)
+-- word_count missing (board size is required)
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.max_number is required',
-  'missing max_number is rejected'
+  'setup.word_count is required',
+  'missing word_count is rejected'
 );
 
--- max_number out of range (must be 5..20)
+-- word_count out of range (must be 5..20)
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 4, "timer": {"kind": "none"}}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.max_number must be 5..20 (got 4)',
-  'max_number out of range is rejected'
+  'setup.word_count must be 5..20 (got 4)',
+  'word_count out of range is rejected'
 );
 
 -- timer missing entirely (timer is required for every game)
 select throws_ok(
   format(
-    $$ select psychicnum.create_game(%L, '{"guesses": 7, "max_number": 10}'::jsonb,
+    $$ select psychicnum.create_game(%L, '{"guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
@@ -196,7 +196,7 @@ select throws_ok(
 create temp table coop_game on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -234,21 +234,25 @@ select is(
 -- (10) Target is a 1..10 int
 reset role;
 select ok(
-  (select target between 1 and 10 from psychicnum.games
-    where id = (select id from coop_game)),
-  'coop: target is in 1..10'
+  (select array_length(words, 1) = 8                       -- the word_count
+        and array_length(secrets, 1) = 3                   -- three secrets
+        and (select count(distinct s) = 3 from unnest(secrets) s)
+        and secrets <@ words                               -- secrets ⊆ board
+     from psychicnum.games where id = (select id from coop_game)),
+  'coop: 8 board words, three distinct secrets drawn from them'
 );
 
--- (11) target is not visible to authenticated SELECT
+-- (11) secrets is not visible to authenticated SELECT (words IS — it's the
+-- public board)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format(
-    $$ select target from psychicnum.games where id = %L::uuid $$,
+    $$ select secrets from psychicnum.games where id = %L::uuid $$,
     (select id from coop_game)
   ),
   '42501',
   null,
-  'target column SELECT is blocked for authenticated'
+  'secrets column SELECT is blocked for authenticated'
 );
 
 -- ============================================================
@@ -258,7 +262,7 @@ select throws_ok(
 create temp table compete_game on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'

@@ -29,6 +29,18 @@
   text-overflow: ellipsis;
 }
 
+/* Leading identity disc (the actor's player color), same dimensions as the
+ * PlayersStrip dot so the two read as the same convention. The pill's `gap`
+ * spaces it from the text. */
+.dot {
+  box-sizing: border-box;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
 .close {
   /* Reset button defaults — we want a tight × glyph button. */
   background: transparent;
@@ -65,6 +77,14 @@
   border-color: var(--color-error);
 }
 
+/* Amber — the "important, but not good/bad" tone (a hint was asked for, an
+ * opponent made progress). Distinct from success/error so it never reads as
+ * a result. */
+.warning {
+  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
+  border-color: var(--color-outcome-near-strong);
+}
+
 .neutral {
   background: var(--color-surface);
   border-color: var(--color-surface-border);
@@ -73,4 +93,37 @@
 .info {
   background: color-mix(in oklab, var(--color-accent) 8%, var(--color-surface));
   border-color: color-mix(in oklab, var(--color-accent) 50%, var(--color-surface-border));
+}
+
+/* Outline variant — colored border, NO background tint. For group/identity
+ * (peer) messages: a tinted fill fights the leading player-color disc, so we
+ * drop the fill and color only the border. With no pastel fill behind it the
+ * border carries the whole signal, so it's a hair THICKER and uses the
+ * saturated 800-level outcome "strong" tones (the 400-level `-border` looked
+ * pale as a bare outline) — green for "correct", red for "not it", matching
+ * the board's own result flashes. Defined after the tone rules so the
+ * compound `.outline.<tone>` border-color and the `.outline` rules win. */
+.outline {
+  background: var(--color-surface);
+  border-width: 2px;
+}
+
+.outline.success {
+  border-color: var(--color-outcome-won-strong);
+}
+
+.outline.error {
+  border-color: var(--color-outcome-lost-strong);
+}
+
+.outline.warning {
+  border-color: var(--color-outcome-near-strong);
+}
+
+.outline.neutral {
+  border-color: var(--color-surface-border);
+}
+
+.outline.info {
+  border-color: var(--color-accent);
 }

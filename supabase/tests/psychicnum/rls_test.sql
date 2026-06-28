@@ -8,14 +8,14 @@
 -- What we check:
 --   - dee's SELECTs against any psychicnum table return zero rows
 --   - dee's mutating RPCs throw
---   - games_state hides target while playing, surfaces post-terminal
+--   - games_state hides secrets while playing, surfaces post-terminal
 --   - **Mode-aware guess RLS**:
 --       coop:    ada sees bea's guesses and vice versa
 --       compete: each player sees ONLY their own guesses
 --   - players table is club-wide visible in BOTH modes (the
 --     "opponents see my budget but not my guesses" property)
 --
--- The column-level grant on `target` (storage-layer protection)
+-- The column-level grant on `secrets` (storage-layer protection)
 -- is checked in create_game_test.sql; not duplicated here.
 
 begin;
@@ -37,17 +37,20 @@ select common.create_club('test club', array['ada','bea']) as handle;
 create temp table coop_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 7, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
 );
 
--- ada guesses 1 (wrong).
+-- ada guesses a wrong word.
 reset role;
-update psychicnum.games set target = 7 where id = (select id from coop_g);
+update psychicnum.games
+   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
+       secrets = array['alpha','bravo','charlie']
+ where id = (select id from coop_g);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.submit_guess((select id from coop_g), 1);
+select psychicnum.submit_guess((select id from coop_g), 'delta');
 
 -- (1) ada sees her own guess
 select is(
@@ -80,20 +83,23 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
 );
 
 reset role;
-update psychicnum.games set target = 7 where id = (select id from comp_g);
+update psychicnum.games
+   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
+       secrets = array['alpha','bravo','charlie']
+ where id = (select id from comp_g);
 
 -- Both ada and bea submit one wrong guess each.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.submit_guess((select id from comp_g), 1);
+select psychicnum.submit_guess((select id from comp_g), 'delta');
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select psychicnum.submit_guess((select id from comp_g), 2);
+select psychicnum.submit_guess((select id from comp_g), 'echo');
 
 -- (4) ada sees only HER own guess (1 row)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -178,34 +184,36 @@ select is(
   'dee cannot SELECT games_state (RLS through underlying table)'
 );
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 7) $$, (select id from comp_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'alpha') $$, (select id from comp_g)),
   '42501',
   'not playing this game',
   'dee cannot call submit_guess (require_game_player gate)'
 );
 
 -- ============================================================
--- games_state.target gate
+-- games_state.secrets gate
 -- ============================================================
--- NULL during play (even for members); the real value after
--- terminal. End the coop_g game (ada guesses 7 → correct) and
--- check target surfaces for the OTHER member (bea), not just
--- the caller who ended it.
+-- NULL during play (even for members); the real array after
+-- terminal. End the coop_g game (ada finds all three secrets) and
+-- check secrets surfaces for the OTHER member (bea), not just the
+-- caller who ended it.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select target from psychicnum.games_state where id = (select id from coop_g)),
-  null::int,
-  'games_state.target is NULL while playing'
+  (select secrets from psychicnum.games_state where id = (select id from coop_g)),
+  null::text[],
+  'games_state.secrets is NULL while playing'
 );
 
-select psychicnum.submit_guess((select id from coop_g), 7);
+select psychicnum.submit_guess((select id from coop_g), 'alpha');
+select psychicnum.submit_guess((select id from coop_g), 'bravo');
+select psychicnum.submit_guess((select id from coop_g), 'charlie');
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select target from psychicnum.games_state where id = (select id from coop_g)),
-  7,
-  'games_state.target surfaces to ANY club member once terminal'
+  (select secrets from psychicnum.games_state where id = (select id from coop_g)),
+  array['alpha', 'bravo', 'charlie'],
+  'games_state.secrets surfaces to ANY club member once terminal'
 );
 
 -- ============================================================

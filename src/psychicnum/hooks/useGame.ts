@@ -36,12 +36,12 @@ export type PsychicnumGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
-  /** Highest number on the board; the board shows 1..max_number. Chosen at
-   *  setup (5..20), fixed for the game. */
-  max_number: number
-  /** The 1..max_number secret. Null while non-terminal (gated by the
-   *  view's helper function); the real value once terminal. */
-  target: number | null
+  /** The board: the 5..20 words shown as tiles (PUBLIC). Players click these
+   *  to guess; three of them are the secrets. Lowercase. */
+  words: string[]
+  /** The three secret words (a subset of `words`). Null while non-terminal
+   *  (gated by the view's helper); the real array once terminal (the reveal). */
+  secrets: string[] | null
   created_at: string
 }
 
@@ -60,6 +60,9 @@ export type PsychicnumGame = {
 export type PsychicnumPlayer = {
   user_id: string
   guesses_remaining: number
+  /** How many distinct secrets this player has found (0..3). Public to the
+   *  club; drives the compete opponent-progress feedback. */
+  secrets_found: number
 }
 
 /**
@@ -72,8 +75,12 @@ export type PsychicnumPlayer = {
 export type PsychicnumGuess = {
   id: string
   user_id: string
-  number: number
+  /** The guessed (or hinted) word, lowercase — always a board word. */
+  word: string
   was_correct: boolean
+  /** 'guess' = a real guess (colors the board, counts toward the win);
+   *  'hint' = a revealed secret, shown amber in the turn log only. */
+  kind: 'guess' | 'hint'
   guessed_at: string
 }
 
@@ -116,7 +123,7 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data: gameData } = await db
         .from('games_state')
-        .select('id, club_handle, mode, max_number, target, created_at')
+        .select('id, club_handle, mode, words, secrets, created_at')
         .eq('id', gameId)
         .maybeSingle()
       if (!mounted()) return
@@ -132,11 +139,11 @@ export function useGame(gameId: string): {
       const [{ data: playerRows }, { data: guessRows }] = await Promise.all([
         db
           .from('players')
-          .select('user_id, guesses_remaining')
+          .select('user_id, guesses_remaining, secrets_found')
           .eq('game_id', gameId),
         db
           .from('guesses')
-          .select('id, user_id, number, was_correct, guessed_at')
+          .select('id, user_id, word, was_correct, kind, guessed_at')
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
       ])
@@ -146,8 +153,8 @@ export function useGame(gameId: string): {
         id: gameData.id as string,
         club_handle: gameData.club_handle as string,
         mode: gameData.mode as 'coop' | 'compete',
-        max_number: gameData.max_number as number,
-        target: gameData.target as number | null,
+        words: gameData.words as string[],
+        secrets: gameData.secrets as string[] | null,
         created_at: gameData.created_at as string,
       })
       setPlayers((playerRows ?? []) as PsychicnumPlayer[])

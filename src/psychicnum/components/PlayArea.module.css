@@ -1,9 +1,9 @@
 /* psychicnum play surface — two-column layout that mimics the
  * shape of a real game (board on the left, controls + history on
- * the right). The left column is the NumberBoard (prompt text +
- * a 1–10 tile grid, guessed numbers dimmed); the right column
- * carries the input + submit row plus the append-only guess
- * history.
+ * the right). The left column is the NumberBoard (a 1–max_number
+ * tile grid, guessed tiles permanently green/red) with the guess
+ * entry below it; the right column carries the status/action slot
+ * plus the append-only guess + hint history.
  *
  * Terminal state keeps the two-column shape — the action slot
  * swaps from the play form to a "Game over: <status> [Back to
@@ -35,15 +35,15 @@
   align-items: stretch;
 }
 
-/* Board column: `flex: 0 0 auto` so it HUGS the board — the board (NumberBoard)
- * has a definite size (a viewport-derived calc, see NumberBoard.module.css), so
- * that width is what this column takes, and the input row below stretches to
- * match it (not the other way round). Top-aligned (`flex-start`) — the board
- * sits at the top of the full-height column, not floated to its middle. It's the
- * mobile-critical column (the info column may collapse to a popup), which is why
- * the number entry lives here. */
+/* Board column: `flex: 1` so it GROWS to fill the width the fixed info column
+ * leaves (per docs/ui.md → the board grows to available space; the side panel
+ * is the fixed one). The board card inside fills the column's height (above the
+ * entry row), so the tiles grow with the available space — see
+ * WordBoard.module.css. The entry row below stretches to match the board width.
+ * It's the mobile-critical column (the info column may collapse to a popup),
+ * which is why the word entry lives here. */
 .boardCol {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -99,5 +99,22 @@
   align-items: center;
   gap: 1rem;
   font-size: 0.95rem;
+}
+
+/* The end-game secret reveal, shown in the slot the guess entry occupied
+ * during play (see PlayArea). Lands where the player was already looking and
+ * explains the missing entry; sitting BELOW the top-anchored board, it never
+ * shifts the board when it appears. Stretches to the board width (the column
+ * hugs the board) and centers its text. */
+.reveal {
+  margin: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  color: var(--color-muted);
+  padding: 0.6rem 0;
+}
+
+.reveal strong {
+  color: var(--color-text);
 }
 

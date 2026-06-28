@@ -1111,25 +1111,25 @@ export type Database = {
           club_handle: string
           created_at: string
           id: string
-          max_number: number
           mode: string
-          target: number
+          secrets: string[]
+          words: string[]
         }
         Insert: {
           club_handle: string
           created_at?: string
           id: string
-          max_number: number
           mode: string
-          target: number
+          secrets: string[]
+          words: string[]
         }
         Update: {
           club_handle?: string
           created_at?: string
           id?: string
-          max_number?: number
           mode?: string
-          target?: number
+          secrets?: string[]
+          words?: string[]
         }
         Relationships: []
       }
@@ -1138,25 +1138,28 @@ export type Database = {
           game_id: string
           guessed_at: string
           id: string
-          number: number
+          kind: string
           user_id: string
           was_correct: boolean
+          word: string
         }
         Insert: {
           game_id: string
           guessed_at?: string
           id?: string
-          number: number
+          kind?: string
           user_id: string
           was_correct: boolean
+          word: string
         }
         Update: {
           game_id?: string
           guessed_at?: string
           id?: string
-          number?: number
+          kind?: string
           user_id?: string
           was_correct?: boolean
+          word?: string
         }
         Relationships: [
           {
@@ -1179,16 +1182,19 @@ export type Database = {
         Row: {
           game_id: string
           guesses_remaining: number
+          secrets_found: number
           user_id: string
         }
         Insert: {
           game_id: string
           guesses_remaining: number
+          secrets_found?: number
           user_id: string
         }
         Update: {
           game_id?: string
           guesses_remaining?: number
+          secrets_found?: number
           user_id?: string
         }
         Relationships: [
@@ -1215,31 +1221,31 @@ export type Database = {
           club_handle: string | null
           created_at: string | null
           id: string | null
-          max_number: number | null
           mode: string | null
-          target: number | null
+          secrets: string[] | null
+          words: string[] | null
         }
         Insert: {
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
-          max_number?: number | null
           mode?: string | null
-          target?: never
+          secrets?: never
+          words?: string[] | null
         }
         Update: {
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
-          max_number?: number | null
           mode?: string | null
-          target?: never
+          secrets?: never
+          words?: string[] | null
         }
         Relationships: []
       }
     }
     Functions: {
-      _target_for: { Args: { g_id: string }; Returns: number }
+      _secrets_for: { Args: { g_id: string }; Returns: string[] }
       create_game: {
         Args: {
           mode: string
@@ -1252,8 +1258,9 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      request_hint: { Args: { target_game: string }; Returns: string }
       submit_guess: {
-        Args: { guess: number; target_game: string }
+        Args: { guess: string; target_game: string }
         Returns: string
       }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }

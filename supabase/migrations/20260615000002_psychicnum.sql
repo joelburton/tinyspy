@@ -2,22 +2,27 @@
 -- psychicnum schema — baseline
 -- ============================================================
 --
--- psychicnum is a tiny number-guessing game (target hidden in
--- 1..max_number, where max_number is 5..20 and chosen at setup) that
--- exists in two modes:
+-- psychicnum is a tiny word-guessing game: the board shows N
+-- words (N = 5..20, chosen at setup) drawn from a dictionary at a
+-- chosen difficulty; THREE of them are secret, and players win by
+-- finding all three (by clicking a word or typing it). A "get
+-- hint" affordance reveals an unfound secret. Two modes:
 --
---   psychicnum_coop    — players share a single guess budget,
---                        see each other's guesses live, win OR
---                        lose together. First correct = team wins.
---                        Budget exhausted = team loses.
+--   psychicnum_coop    — players share a single guess budget and
+--                        a single board, see each other's guesses
+--                        live, win OR lose together. Find all
+--                        three (as a team) = team wins. Budget
+--                        exhausted first = team loses.
 --
 --   psychicnum_compete — players each have their own guess
---                        budget, can see opponents' remaining
---                        budget (but NOT their guesses or results),
---                        race to be first-correct. First correct
---                        = caller wins, everyone else loses
---                        immediately. All-exhausted or timer-
---                        expired = everyone loses.
+--                        budget + private board, and race to find
+--                        all three themselves. Opponents see each
+--                        other's remaining budget AND a count of
+--                        how many secrets each has found (for
+--                        tension) — but NOT the guesses, results,
+--                        or which words. First to all three
+--                        wins; everyone else loses. All-exhausted
+--                        or timer-expired = everyone loses.
 --
 -- Both modes share this one schema. The mode is denormalized onto
 -- psychicnum.games.mode so RLS can branch without joining to
@@ -41,12 +46,15 @@
 --
 -- What this still exercises that codenamesduet doesn't:
 --   - N-player, no turns (anyone-acts-any-time)
---   - A genuine server-side secret (the target), hidden from the
---     client even with devtools open via a column-level grant
---     that excludes `target` from authenticated SELECT
---   - The hidden-wordlist-style reveal pattern (target column
+--   - Genuine server-side secrets (the three words), hidden
+--     from the client even with devtools open via a column-level
+--     grant that excludes `secrets` from authenticated SELECT
+--   - The hidden-wordlist-style reveal pattern (secrets column
 --     gated through a SECURITY DEFINER helper called inside a
 --     security_invoker view)
+--   - A public per-player progress counter (players.secrets_found)
+--     that leaks the COUNT but not the values — the smallest
+--     "show opponents your progress, not your answers" surface
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- is_club_member, gametypes). Per the removability invariant,
@@ -62,11 +70,12 @@ grant usage on schema psychicnum to authenticated;
 -- ============================================================
 -- psychicnum.games — one row per playing
 -- ============================================================
--- `target` is the secret 1..10; column-grant excludes it from
--- authenticated SELECT (see grants below). RPCs run as postgres
--- under SECURITY DEFINER and can read it freely; the FE only
--- learns it once the game is terminal, via the
--- `psychicnum.games_state` view + `_target_for` helper pattern.
+-- `secrets` holds the three secret words; column-grant excludes
+-- it from authenticated SELECT (see grants below) while `words`
+-- (the public board) is granted. RPCs run as postgres under
+-- SECURITY DEFINER and read `secrets` freely; the FE only learns
+-- it once the game is terminal, via the `psychicnum.games_state`
+-- view + `_secrets_for` helper pattern.
 --
 -- `mode` is denormalized from `common.games.gametype`
 -- ('psychicnum_coop' → mode='coop', etc.). The column lets the
@@ -88,15 +97,19 @@ create table psychicnum.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   mode text not null check (mode in ('coop', 'compete')),
-  -- The highest number on the board: the board shows 1..max_number and the
-  -- secret target lives somewhere in that range. Chosen at setup, 5..20 — a
-  -- bigger range means more number tiles to show and a harder guess.
-  max_number int not null check (max_number between 5 and 20),
-  -- The secret, 1..max_number. The column-grant below excludes it from
-  -- authenticated SELECT; it's revealed only post-terminal via games_state.
-  target int not null,
-  created_at timestamptz not null default now(),
-  check (target between 1 and max_number)
+  -- The board: 5..20 distinct words drawn from common.words at create-game
+  -- time under a clean, american, difficulty-≤-band filter (see create_game).
+  -- PUBLIC — players see and click these to guess. The count is the setup's
+  -- "how many words" choice.
+  words text[] not null check (array_length(words, 1) between 5 and 20),
+  -- The THREE secret words, distinct, a subset of `words`. The column-grant
+  -- below excludes this from authenticated SELECT; it's revealed only
+  -- post-terminal via games_state. Players win by finding all three (coop: as
+  -- a team; compete: each on their own). The CHECK only asserts the count;
+  -- distinctness + the subset property come from construction (create_game
+  -- samples three of the board words) — a CHECK can't hold a subquery.
+  secrets text[] not null check (array_length(secrets, 1) = 3),
+  created_at timestamptz not null default now()
 );
 
 create index psychicnum_games_club_handle_idx on psychicnum.games (club_handle);
@@ -127,6 +140,13 @@ create table psychicnum.players (
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   guesses_remaining int not null
     check (guesses_remaining between 0 and 9),
+  -- How many distinct secrets THIS player has found (0..3). Public to the
+  -- club (like guesses_remaining) — it's the count, never the numbers. In
+  -- compete it's what powers opponent tension: the FE watches an opponent's
+  -- count tick up and announces "X guessed a secret number" without leaking
+  -- which one. (In coop it's incidental — coop shows the actual guesses.)
+  secrets_found int not null default 0
+    check (secrets_found between 0 and 3),
   primary key (game_id, user_id)
 );
 
@@ -144,8 +164,16 @@ create table psychicnum.guesses (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references psychicnum.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
-  number int not null check (number between 1 and 20),
+  -- The guessed (or hinted) word, lowercase. Always one of the board words.
+  word text not null,
   was_correct boolean not null,
+  -- 'guess' = a real guess (counts toward finding the secrets, colors the
+  -- board tile green/red, can't be repeated). 'hint' = a hint the player
+  -- asked for: request_hint reveals an unfound secret and logs it here so it
+  -- shows in the turn log (amber). A hint does NOT find the secret, color a
+  -- tile, or block re-guessing — it's purely a log entry; everything that
+  -- computes from real guesses filters `kind = 'guess'`.
+  kind text not null default 'guess' check (kind in ('guess', 'hint')),
   guessed_at timestamptz not null default now()
 );
 
@@ -206,7 +234,7 @@ create policy guesses_select on psychicnum.guesses
 -- below is the only authenticated read path for `target`.
 
 grant select
-  (id, club_handle, mode, max_number, created_at)
+  (id, club_handle, mode, words, created_at)
   on psychicnum.games to authenticated;
 
 grant select on psychicnum.players to authenticated;
@@ -216,9 +244,9 @@ grant select on psychicnum.guesses to authenticated;
 -- psychicnum.games_state — FE-ready read view
 -- ============================================================
 -- One read for "the gametype-specific fields of this game,
--- including the target IFF the game is terminal."
+-- including the secrets IFF the game is terminal."
 --
--- Mode-agnostic: the target reveal gates on
+-- Mode-agnostic: the secrets reveal gates on
 -- common.games.is_terminal, which becomes true at game-end in
 -- BOTH modes. Coop end (team won/lost) and compete end (someone
 -- won, or everyone lost) both write is_terminal=true via
@@ -228,21 +256,21 @@ grant select on psychicnum.guesses to authenticated;
 -- play_state itself lives on common.games and is read by the FE
 -- via useCommonGame — this view does NOT include it.
 
-create function psychicnum._target_for(g_id uuid)
-returns int
+create function psychicnum._secrets_for(g_id uuid)
+returns text[]
 language sql
 stable
 security definer
 set search_path = psychicnum, common, public, extensions
 as $$
-  select case when c.is_terminal then p.target else null end
+  select case when c.is_terminal then p.secrets else null end
     from psychicnum.games p
     join common.games c on c.id = p.id
    where p.id = g_id
 $$;
 
-revoke execute on function psychicnum._target_for(uuid) from public;
-grant execute on function psychicnum._target_for(uuid) to authenticated;
+revoke execute on function psychicnum._secrets_for(uuid) from public;
+grant execute on function psychicnum._secrets_for(uuid) to authenticated;
 
 create view psychicnum.games_state
   with (security_invoker = true)
@@ -251,9 +279,9 @@ as
     id,
     club_handle,
     mode,
-    max_number,
+    words,
     created_at,
-    psychicnum._target_for(id) as target
+    psychicnum._secrets_for(id) as secrets
   from psychicnum.games;
 
 grant select on psychicnum.games_state to authenticated;
@@ -264,7 +292,7 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- ============================================================
 -- Three tables broadcast so the FE can subscribe to:
 --   - games   — terminal-state flip (used to re-fetch the view
---                with target now revealed)
+--                with secrets now revealed)
 --   - players — guesses_remaining decrement (drives the budget
 --                strip's live update + own-budget UI in compete)
 --   - guesses — new entry (in coop everyone sees; in compete
@@ -286,9 +314,15 @@ alter publication supabase_realtime add table psychicnum.guesses;
 --   - is validated by a CHECK constraint regardless
 --
 -- Setup shape (same in both modes):
---   { "guesses": 3 | 5 | 7 | 9,
+--   { "guesses":    3 | 5 | 7 | 9,
+--     "word_count": 5..20,           -- how many words on the board
+--     "difficulty": 1..6,            -- dictionary band (common.words.difficulty)
 --     "timer":   { "kind": "none" | "countup" }
 --             |  { "kind": "countdown", "seconds": 1..3600 } }
+--
+-- The board is `word_count` distinct words sampled from common.words under a
+-- clean + american + difficulty-≤-band filter; three of them become the
+-- hidden secrets.
 --
 -- guesses meaning:
 --   - coop: shared budget (every player row gets the same
@@ -315,8 +349,10 @@ as $$
 declare
   new_id uuid;
   s_guesses int;
-  s_max int;
-  s_target int;
+  s_word_count int;
+  s_difficulty int;
+  s_words text[];
+  s_secrets text[];
   game_title text;
   effective_gametype text;
 begin
@@ -353,26 +389,67 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- ─── Validate the number range (board shows 1..max_number) ──
-  if (setup->>'max_number') is null then
-    raise exception 'setup.max_number is required' using errcode = 'P0001';
+  -- ─── Validate the board size (how many words) ──────────────
+  if (setup->>'word_count') is null then
+    raise exception 'setup.word_count is required' using errcode = 'P0001';
   end if;
-  s_max := (setup->>'max_number')::int;
-  if s_max < 5 or s_max > 20 then
-    raise exception 'setup.max_number must be 5..20 (got %)', s_max
+  s_word_count := (setup->>'word_count')::int;
+  if s_word_count < 5 or s_word_count > 20 then
+    raise exception 'setup.word_count must be 5..20 (got %)', s_word_count
+      using errcode = 'P0001';
+  end if;
+
+  -- ─── Validate the dictionary difficulty band ───────────────
+  if (setup->>'difficulty') is null then
+    raise exception 'setup.difficulty is required' using errcode = 'P0001';
+  end if;
+  s_difficulty := (setup->>'difficulty')::int;
+  if s_difficulty < 1 or s_difficulty > 6 then
+    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
       using errcode = 'P0001';
   end if;
 
   perform common.validate_timer(setup->'timer');
 
-  s_target := 1 + floor(random() * s_max)::int;
+  -- The board: `word_count` distinct words sampled from the dictionary under a
+  -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter.
+  -- TEMP (texture for font-sizing): all 5-letter words EXCEPT one 9-letter
+  -- word, so the board shows differing word widths while we tune the font.
+  -- Revert to the plain length-agnostic sample (just the 5-letter branch's
+  -- filter, no `len` clause, limit s_word_count) once the font work is done.
+  select array_agg(word order by random()) into s_words
+    from (
+      (select word from common.words
+        where slur = 0 and crude = 0 and american and not slang
+          and difficulty <= s_difficulty and len = 5
+        order by random() limit s_word_count - 1)
+      union all
+      (select word from common.words
+        where slur = 0 and crude = 0 and american and not slang
+          and difficulty <= s_difficulty and len = 9
+        order by random() limit 1)
+    ) picked;
+
+  if coalesce(array_length(s_words, 1), 0) < s_word_count then
+    -- Effectively impossible (the band-1 clean set is large), but guard so a
+    -- short board never silently ships.
+    raise exception 'not enough words for that difficulty' using errcode = 'P0001';
+  end if;
+
+  -- Three DISTINCT secrets sampled from the board words.
+  select array_agg(w) into s_secrets
+    from (
+      select unnest(s_words) as w
+       order by random()
+       limit 3
+    ) picked;
 
   -- The title is purely a human-readable label for the game row;
-  -- it must NOT carry the target (that would put the secret in the
+  -- it must NOT carry the secrets (that would put them in the
   -- club-wide-readable common.games.title). Use a random short
   -- numeric id so games are distinguishable in lists without
   -- leaking anything. The column-level grant on
-  -- psychicnum.games.target stays the canonical "true server-side
+  -- psychicnum.games.secrets stays the canonical "true server-side
   -- secret" — title is just a label.
   game_title := '#' || lpad((floor(random() * 1000000))::int::text, 6, '0');
 
@@ -390,8 +467,8 @@ begin
   );
 
   -- Insert the gametype-specific row.
-  insert into psychicnum.games (id, club_handle, mode, max_number, target)
-  values (new_id, target_club, mode, s_max, s_target);
+  insert into psychicnum.games (id, club_handle, mode, words, secrets)
+  values (new_id, target_club, mode, s_words, s_secrets);
 
   -- One player row per player_user_ids entry, all seeded with
   -- the same initial guess budget. Coop will decrement all of
@@ -408,40 +485,46 @@ revoke execute on function psychicnum.create_game(text, jsonb, uuid[], text) fro
 grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
--- psychicnum.submit_guess — the only mid-game action
+-- psychicnum.submit_guess — the only mid-game guess action
 -- ============================================================
--- Returns one of: 'correct' (caller won; game terminal),
--- 'wrong' (game continues), 'lost' (the guess that exhausted
--- the last available budget anywhere in the game).
+-- There are THREE secret WORDS (hidden among the board words);
+-- players win by finding all three. So a correct guess no longer
+-- ends the game by itself — only the guess that completes the set
+-- does.
 --
--- Mode branching:
+-- The guess must be one of the board words (the player clicks a
+-- tile or types a word that's on the board). Compared case-folded.
 --
---   coop:
---     - Caller's budget must be > 0 (everyone shares; if anyone
---       has 0 then everyone does — game would already be terminal).
---     - Decrement every player_row's guesses_remaining by 1.
---     - If correct: end_game('won'), all players' result = won:true.
---     - If wrong AND all rows now at 0: end_game('lost'), all
---       players' result = won:false.
---     - If wrong: update_state and return 'wrong'.
+-- Returns one of:
+--   'won'     — this guess found the last needed secret; the
+--               caller (compete) / team (coop) wins. Terminal.
+--   'correct' — found a secret, but more remain. Game continues.
+--   'wrong'   — missed. Game continues.
+--   'lost'    — the guess (right or wrong) that exhausted the
+--               last available budget without completing the
+--               set. Collective loss. Terminal.
+-- The FE flashes green for 'won'/'correct', red for 'wrong'; the
+-- terminal transition itself it observes via realtime, not the
+-- return value.
 --
---   compete:
---     - Caller's row's budget must be > 0 (P0001 if not).
---     - Decrement ONLY the caller's row.
---     - If correct: end_game('won_compete'), caller result=
---       won:true, everyone else result=won:false. Game ends
---       for everyone.
---     - If wrong AND every player row is now at 0: end_game(
---       'lost_compete'), all results = won:false.
---     - Else: update_state and return 'wrong'.
+-- "Found all three" is scoped per mode:
+--   coop    — the TEAM's distinct correct guesses (everyone's).
+--   compete — the CALLER's own distinct correct guesses; each
+--             racer must find all three themselves.
+--
+-- A correct guess bumps the caller's players.secrets_found (the
+-- public per-player count that drives compete opponent tension).
+--
+-- A word already guessed (in scope) is rejected — the FE disables
+-- guessed tiles, this is the server guard. Hint rows don't count,
+-- so a hinted word can still be guessed.
 --
 -- Concurrency: SELECT FOR UPDATE on the game row serializes
--- concurrent compete submits. Two simultaneous correct guesses
--- in compete: first transaction commits with that player as
--- winner; second sees play_state != 'playing' on the second
--- read and raises 'game is not active'.
+-- concurrent submits. Two simultaneous set-completing guesses in
+-- compete: first commits the winner; the second sees play_state
+-- != 'playing' and raises 'game is not active'.
 
-create function psychicnum.submit_guess(target_game uuid, guess int)
+create function psychicnum.submit_guess(target_game uuid, guess text)
 returns text
 language plpgsql
 security definer
@@ -450,18 +533,21 @@ as $$
 declare
   caller_id uuid;
   g psychicnum.games%rowtype;
+  w text;
   current_play_state text;
   initial_guesses int;
   is_correct boolean;
   caller_remaining int;
   total_remaining int;
+  found_count int;
+  total_secrets int;
   player_results jsonb;
   winner_name text;
   terminal_state text;
   terminal_outcome text;
 begin
   -- Lock the gametype row for serialization of concurrent submits. We read it
-  -- first so the guess-range check can use this game's max_number.
+  -- first so the board-word check can use this game's words.
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
    for update;
@@ -469,9 +555,12 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  if guess is null or guess < 1 or guess > g.max_number then
-    raise exception 'guess must be between 1 and %', g.max_number
-      using errcode = 'P0001';
+  -- Normalize and require the guess to be one of the board words (the player
+  -- can only meaningfully guess a word that's shown — the words analogue of
+  -- the old 1..max range check).
+  w := lower(trim(coalesce(guess, '')));
+  if not (w = any(g.words)) then
+    raise exception 'not a word on the board' using errcode = 'P0001';
   end if;
 
   -- Auth + game-player gate.
@@ -498,10 +587,20 @@ begin
     raise exception 'no guesses remaining' using errcode = 'P0001';
   end if;
 
-  is_correct := (guess = g.target);
+  -- Reject a word already taken (in scope: coop = anyone's, compete =
+  -- caller's). Hint rows are excluded — a hinted word can still be guessed.
+  if exists (
+    select 1 from psychicnum.guesses
+     where game_id = target_game and kind = 'guess' and word = w
+       and (g.mode = 'coop' or user_id = caller_id)
+  ) then
+    raise exception 'word already guessed' using errcode = 'P0001';
+  end if;
 
-  insert into psychicnum.guesses (game_id, user_id, number, was_correct)
-  values (target_game, caller_id, guess, is_correct);
+  is_correct := (w = any(g.secrets));
+
+  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  values (target_game, caller_id, w, is_correct, 'guess');
 
   -- ─── Budget decrement: coop = everyone, compete = caller ─
   if g.mode = 'coop' then
@@ -514,17 +613,30 @@ begin
      where game_id = target_game and user_id = caller_id;
   end if;
 
-  -- Total remaining budget across the whole game. Drives the
-  -- "all-exhausted" terminal branch in both modes (coop: equal
-  -- to N × current value of any row; compete: sum of independent
-  -- counters).
+  -- A correct guess found a new secret (the already-guessed guard above means
+  -- it's genuinely new) — bump the caller's public found-count.
+  if is_correct then
+    update psychicnum.players
+       set secrets_found = secrets_found + 1
+     where game_id = target_game and user_id = caller_id;
+  end if;
+
+  -- Total remaining budget across the whole game (coop: N × the shared value;
+  -- compete: sum of independent counters). Drives the all-exhausted loss.
   select sum(guesses_remaining) into total_remaining
     from psychicnum.players
    where game_id = target_game;
 
-  -- ─── Correct guess: caller wins; game terminal in both modes ─
-  if is_correct then
-    -- Frozen-username for the listing label.
+  -- Distinct secrets found in scope (coop: the team; compete: the caller).
+  -- Counting real guesses keeps this independent of the secrets_found tally.
+  select count(distinct word) into found_count
+    from psychicnum.guesses
+   where game_id = target_game and kind = 'guess' and was_correct
+     and (g.mode = 'coop' or user_id = caller_id);
+  total_secrets := array_length(g.secrets, 1);
+
+  -- ─── All three found: caller (compete) / team (coop) wins ─
+  if found_count >= total_secrets then
     select username into winner_name
       from common.profiles where user_id = caller_id;
 
@@ -537,7 +649,7 @@ begin
       terminal_state := 'won';
       terminal_outcome := 'won';
     else
-      -- Compete: caller wins, everyone else loses.
+      -- Compete: the caller who completed the set wins; everyone else loses.
       select jsonb_object_agg(
                user_id::text,
                case when user_id = caller_id
@@ -556,15 +668,16 @@ begin
       terminal_state,
       jsonb_build_object(
         'outcome', terminal_outcome,
-        'guesses_used', initial_guesses - caller_remaining + 1,
         'winner_username', winner_name
       ),
       player_results
     );
-    return 'correct';
+    return 'won';
   end if;
 
-  -- ─── Wrong guess + every player at 0 = collective loss ───
+  -- ─── Budget exhausted before completing the set = loss ───
+  -- Applies to the guess (right or wrong) that drops the last available
+  -- budget anywhere in the game without the set being complete.
   if total_remaining <= 0 then
     if g.mode = 'coop' then
       select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -594,9 +707,9 @@ begin
     return 'lost';
   end if;
 
-  -- ─── Wrong guess, game continues ─────────────────────────
-  -- For the listing label, surface (coop) the shared remaining
-  -- value, or (compete) the caller's own remaining value.
+  -- ─── Game continues ──────────────────────────────────────
+  -- For the listing label, surface (coop) the shared remaining value, or
+  -- (compete) the caller's own remaining value.
   perform common.update_state(
     target_game,
     'playing',
@@ -606,12 +719,82 @@ begin
            else total_remaining
       end)
   );
-  return 'wrong';
+  return case when is_correct then 'correct' else 'wrong' end;
 end;
 $$;
 
-revoke execute on function psychicnum.submit_guess(uuid, int) from public;
-grant execute on function psychicnum.submit_guess(uuid, int) to authenticated;
+revoke execute on function psychicnum.submit_guess(uuid, text) from public;
+grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
+
+-- ============================================================
+-- psychicnum.request_hint — reveal an unfound secret
+-- ============================================================
+-- A toy "hint" that's really just the answer: it reveals one of
+-- the secrets the player (compete) / team (coop) hasn't found
+-- yet. Logged as a `kind = 'hint'` row in psychicnum.guesses so
+-- it flows into the turn log over realtime (rendered amber), and
+-- so coop teammates can be told "X asked for a hint" (in compete
+-- the guesses RLS scopes the row to the caller — hints are
+-- private there). Costs nothing: no budget decrement, and it does
+-- NOT find the secret (the player still has to guess it).
+--
+-- Returns the revealed word. Unfound is scoped like the win
+-- check (coop = team, compete = caller); during play there's
+-- always at least one unfound secret (else the game would be
+-- won), but we guard defensively and raise if somehow none.
+
+create function psychicnum.request_hint(target_game uuid)
+returns text
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g psychicnum.games%rowtype;
+  current_play_state text;
+  hint_word text;
+begin
+  select * into g from psychicnum.games
+   where psychicnum.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not active' using errcode = 'P0001';
+  end if;
+
+  -- An as-yet-unfound secret (in scope), picked at random.
+  select s into hint_word
+    from unnest(g.secrets) as s
+   where s not in (
+     select word from psychicnum.guesses
+      where game_id = target_game and kind = 'guess' and was_correct
+        and (g.mode = 'coop' or user_id = caller_id)
+   )
+   order by random()
+   limit 1;
+
+  if hint_word is null then
+    -- All secrets already found — shouldn't happen mid-game.
+    raise exception 'nothing left to hint' using errcode = 'P0001';
+  end if;
+
+  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  values (target_game, caller_id, hint_word, true, 'hint');
+
+  return hint_word;
+end;
+$$;
+
+revoke execute on function psychicnum.request_hint(uuid) from public;
+grant execute on function psychicnum.request_hint(uuid) to authenticated;
 
 -- ============================================================
 -- psychicnum.submit_timeout — countdown expired

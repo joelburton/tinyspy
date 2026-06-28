@@ -118,7 +118,7 @@ export const psychicnumCoopGame: GameManifest = {
   baseGametype: 'psychicnum',
   mode: 'coop',
   name: BRAND,
-  shortDescription: 'Guess the secret number together',
+  shortDescription: 'Find the three secret words together',
   logoUrl,
 
   help: helpLoader,
@@ -161,7 +161,7 @@ export const psychicnumCompeteGame: GameManifest = {
   baseGametype: 'psychicnum',
   mode: 'compete',
   name: BRAND,
-  shortDescription: 'Race to guess the secret number',
+  shortDescription: 'Race to find the three secret words',
   logoUrl,
 
   help: helpLoader,

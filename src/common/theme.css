@@ -73,6 +73,19 @@
   --color-outcome-won-border: #66bb6a;   /* green 400 */
   --color-outcome-lost-bg:    #ffcdd2;   /* red 100 */
   --color-outcome-lost-border:#ef5350;   /* red 400 */
+  /* "Strong" companions — saturated 800-level green/red for when the outcome
+     color carries a border/text on the white surface with NO pastel fill
+     behind it (the outline FeedbackPill). The 400-level `-border` tones above
+     read fine as a strip ON a pastel `-bg`, but look pale as a bare 2px
+     outline; these are the legible-on-surface tier (same reasoning as the
+     ModePill 800-level chip tones below). */
+  --color-outcome-won-strong: #2e7d32;   /* green 800 */
+  --color-outcome-lost-strong:#c62828;   /* red 800 */
+  --color-outcome-near-strong:#ef6c00;   /* orange 800 — the "dark amber"
+                                            companion to near-border; the
+                                            important-but-not-good/bad signal
+                                            (hint asked for, opponent progress)
+                                            as a legible border/text on white */
   --color-outcome-active-bg:  #fff9c4;   /* yellow 100 */
   --color-outcome-active-border: #fdd835; /* yellow 600 */
   /* "Near miss" — a partial-credit signal distinct from active-

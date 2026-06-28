@@ -56,11 +56,15 @@ The pill lives inside `<StatusSlot>` in the GamePage header (see [GamePage heade
 **API on `GamePageCtx`:**
 
 ```ts
-type FeedbackTone = 'success' | 'error' | 'neutral' | 'info'
+type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info'
+//                                       ▲ amber — "important, but not good/bad"
+//                                         (a hint asked for, an opponent's progress)
 
 type FeedbackMsg = {
   tone: FeedbackTone
   text: string
+  dot?: string                          // leading player-color disc (from colorVarFor) — identity anchor for peer messages
+  variant?: 'fill' | 'outline'          // 'fill' (default) tints bg by tone; 'outline' colors only the border (no fill)
   dismiss:
     | { kind: 'timed'; ms?: number }   // self-dismiss after delay (default ~2200ms)
     | { kind: 'sticky' }                // persists until caller's next show()/clear()
@@ -78,6 +82,8 @@ feedback: {
 - **`timed`** for transient acknowledgment that auto-fades. connections's "Already tried that," "Wrong guess." The default workhorse.
 - **`sticky`** for state-driven info the game itself will clear. codenamesduet's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
 - **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
+
+**Fill vs outline (`variant`).** Local validation ("not a word") uses the default `fill` — a tone-tinted background. **Group/peer (identity) messages** ("● leah found APPLE") set `variant: 'outline'` + a `dot`: a tinted fill would fight the leading player-color disc, so outline colors only the *border*, in the green/red/amber **outcome** palette (the same colors the per-game board uses — so "correct" reads green, "not it" red, a hint amber, across surfaces). The outline border uses the saturated `--color-outcome-*-strong` (800-level) tier so it stays legible as a bare 2px border on the white surface (the pastel `-border` tones look pale outline-only). This is the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc) applied to the header slot.
 
 **Semantics:**
 
@@ -399,6 +405,40 @@ small drop shadow (`0 1px 2px rgba(0,0,0,.18)`), and frame the board in a heavie
 area. Keep the shadow in the hover/selected box-shadow (`…, var(--tile-shadow)`)
 so the depth persists when the ring is on.
 
+**Result fill — permanent, not a flash.** When a tile's outcome is *known and
+fixed* (psychicnum's guessed words: green = a secret, red = a miss), color the
+tile **permanently** with the outcome palette (`--color-outcome-won-bg` /
+`-lost-bg` + the matching `-border`) and drop any spent/dim/grey treatment — the
+color *is* the "already tried" signal and doubles as a record of what's found vs
+ruled out. This is the fill carrying game semantics (above); the ring still
+composes on top for hover/select. A *transient* flash (a brief tile pop on a
+just-made move) is a different thing — prefer the permanent fill when the result
+is durable, and don't run both for the same event.
+
+### Tile content: letter vs word (A vs B games)
+
+Two kinds of tile, by what they carry:
+
+- **A — one letter per tile** (boggle, waffle, wordle, scrabble, spellingbee,
+  bananagrams). A fixed character; sizing is uniform.
+- **B — multi-character content per tile** (codenamesduet, psychicnum,
+  connections). The content varies in length, so a fixed font can't fit every
+  tile.
+
+**For B games, auto-fit the font to the tile** — pure CSS, no JS measuring (it
+reacts to the tile's real size, so it composes with the layout-constraint
+system). The heuristic connections established and psychicnum now shares: make
+the tile a `container-type: inline-size` query container and size the label
+`font-size: clamp(MIN, calc(100cqi / (var(--len) * FACTOR)), MAX)`, where `--len`
+is the content's character count (set inline by the component) and `100cqi` is
+the tile's inner width. The three knobs: **`FACTOR`** ≈ width-per-char in `em`
+for the bold-uppercase glyphs (~0.9 — raise to shrink/loosen, lower to enlarge,
+risking overflow); **`MIN`** the floor so long content stays legible; **`MAX`**
+the ceiling so short content doesn't go cartoonish (and the band between MIN and
+MAX is where length differences actually *show* — too low a MAX makes every word
+clamp to the same size). `container-type: inline-size` is font-fitting
+infrastructure, layout-safe — it doesn't change the tile's size.
+
 ## PlayArea layout
 
 The shape every game's play surface converges on. Validated on **psychicnum**
@@ -417,24 +457,28 @@ shells until we reach them).
   single thin **divider**: a `border-left` (`--color-divider`) on the info
   column's inner edge, with symmetric breathing room (the layout `gap` on the
   board side, the info column's `padding-left` on the other).
-- **Info column = fixed width, never grows during play.** Holds score/status,
-  the text input (for games that type into it), setup info, and the **turn log**
-  (chronological, one entry per turn) or **word list** (alphabetical found-words;
-  boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
-  may collapse to a popup — so anything *critical to playing* goes in the board
-  column instead. (That's why psychicnum's number entry lives below the board,
-  not in the info column.)
-- **Board column = hugs the board.** The board has a definite size (see
-  [Board sizing](#board-sizing)) and grows as large as the space allows, capped
-  by an optional **max tile size** (so a small board — a 4×4 — doesn't dominate a
-  big screen). The column shrink-wraps to that board width (`flex: 0 0 auto`),
-  and anything stacked below (the input row) stretches to match the board width.
-  The column is **top-aligned** (`justify-content: flex-start`) — the board sits
-  at the top, not floated to the middle.
-- **The pair is centered.** Board column (board-width) + info column (fixed) are
-  usually narrower than the play area, so `justify-content: center` on the layout
-  centers them with equal outer margins. `align-items: stretch` makes both
-  full-height (the divider spans; the log scrolls inside).
+- **Info column = fixed width, never grows during play** (the *one* fixed column;
+  the board grows, this doesn't). Holds score/status, setup info, and the **turn
+  log** (chronological, one entry per turn) or **word list** (alphabetical
+  found-words; boggle/spellingbee). It's the **mobile-secondary** column — on
+  small screens it may collapse to a popup — so anything *critical to playing*
+  goes in the board column instead. (That's why the word/number **entry** lives
+  below the board, not here — and it's the capture model, not an `<input>`; see
+  [Text entry](#text-entry--capture-not-input).)
+- **Board column grows to fill the space the fixed info column leaves.** Two ways
+  to realize that (see [Board sizing](#board-sizing) for which to pick): the
+  column **hugs** a definite, viewport-sized board (`flex: 0 0 auto`;
+  scrabble/boggle), or the column **fills** the remaining width (`flex: 1`) and
+  the board fills it (psychicnum's word board). Either way the column is
+  **top-aligned** (`justify-content: flex-start`) — the board at the top — and
+  anything stacked below (the entry row, or the terminal reveal) stretches to the
+  board width. A board may cap its growth with an optional **max tile size** so a
+  small board doesn't dominate a big screen.
+- **`align-items: stretch`** makes both columns full-height (the divider spans;
+  the log scrolls inside). In the **hug** case the board-column + info-column pair
+  is usually narrower than the play area, so `justify-content: center` centers
+  them with equal outer margins; in the **fill** case the board column absorbs the
+  slack and there's nothing to center.
 
 **Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
 divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
@@ -448,6 +492,55 @@ doc), not yet a shared component — the layout has no behavior, just CSS, so a
 shared `playArea.module.css` scaffold (like `setupForm.module.css`) is the
 intended home once a second game adopts it. `<TurnLog>` *is* a shared component
 (it has behavior); the two-column shell is not.
+
+## Text entry — capture, not `<input>`
+
+For **single-token entry** (a word, a number — psychicnum, and the path
+boggle/spellingbee should converge on), the play surface does **not** use a real
+`<input>`. These are board-first games: the board is where the eyes and clicks
+go, and a focused `<input>` loses focus the instant you click a board tile, so
+typing silently stops. Instead we **capture keystrokes off the window** (the
+shared `useGlobalKeyHandler`) and show the pending value in a read-only display
+box (the shared **`<EntryBox>`**), so there's no focus to lose — typing and
+tile-clicks both feed one pending value, and clicking anywhere never interrupts
+entry.
+
+**Free-text / phrase entry** (codenamesduet's clue — arbitrary words, spaces,
+mid-string editing) is the exception: it stays a real `<input data-game-input>`,
+where native cursor/selection/editing earns its keep. The rule: *single token →
+capture; free text → `<input>`.*
+
+The contract for the capture model:
+
+- **Simulated caret = honesty.** `<EntryBox>` draws a blinking caret to say "type
+  here" (recovering the one thing a real input's cursor gave). It blinks **only
+  while the game owns the keyboard** — gated on `useGameHasKeyboard` (no
+  `<input>`/`<textarea>`/`<select>`/contenteditable focused), the *same*
+  condition under which `useGlobalKeyHandler` routes keys to the game. So **caret
+  visible ⟺ keystrokes land in the game**; it never duels with the chat box's
+  cursor.
+- **No tabbing between controls.** While the entry is live, `Tab` is swallowed —
+  these games are navigated by clicks + typing, not by tabbing focus between
+  buttons, and a caret blinking on the board while focus sits on some button reads
+  as two cursors. (Focused text fields like chat keep their own `Tab`.)
+- **Modified keystrokes pass through.** Bail before capturing anything when a
+  `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
+  the browser's.
+- **What can be entered is per-game** (digits vs letters vs length caps); the
+  shared pieces are the display + caret + focus-gating. The Backspace/Enter/Tab
+  key boilerplate is a candidate to lift into a shared helper once a second game
+  adopts `<EntryBox>`.
+
+`<EntryBox>` also carries a transient **result flash** (`result?: { tone:
+'good'|'bad'; label }`) — a green/red border + label shown in place of the entry
+("Correct" / "Incorrect") for the player's own last move, the *local* half of the
+feedback split (see [Feedback pill](#feedback-pill) for the *group* half).
+
+**Terminal reveal goes where the entry was.** When the game ends, render the
+reveal ("The words were …") in the slot the entry vacated — *below* the
+top-anchored board, never as a heading above it (a heading shifts the board down
+on state change — [Layout stability](#layout-stability)). It lands where the
+player was already looking and explains why the entry is gone.
 
 ## Turn log
 
@@ -498,10 +591,21 @@ with the right sizing tool — they're not better/worse, they answer different
 questions about the *column*.
 
 - **The board fills a known pane** — the board column is `flex: 1` (or fixed)
-  and the board centers inside it. Make the column a `container-type: size` box
-  and size the board with **container-query units**: `min(100cqw, 100cqh, cap)`
-  for a square (waffle). No viewport offsets; survives any chrome change. Use
-  this when the column's width is decided independently of the board.
+  and the board fills/centers inside it. No viewport offsets; survives any chrome
+  change. Use this when the column's width is decided independently of the board.
+  Two realizations:
+  - *Container-query units* (waffle): make the column a `container-type: size`
+    box and size the board `min(100cqw, 100cqh, cap)` for a square.
+  - *Flex-fill + `1fr` tracks* (psychicnum's word board): the column is `flex: 1`
+    (fills the width the fixed info column leaves), the board card is `flex: 1`
+    (fills the column height above the entry row), and the grid is `1fr` columns
+    **and** rows, so the tiles divide that width × height evenly and grow with it.
+    A per-tile **max size** here is a `max-height` on the *card*
+    (`rows*maxTile + gaps + padding`, set inline since it depends on the row
+    count): the `1fr` rows then top out at `maxTile` yet still shrink below it on
+    short screens. (psychicnum caps tile height ≈150px; width is uncapped — words
+    are horizontal. The word font then auto-fits the tile width — see
+    [Tile content](#tile-content-letter-vs-word-a-vs-b-games).)
 
 - **The board drives the column width** — the column shrink-wraps to the board,
   a fixed-width info/side column sits beside it, and the pair is centered
@@ -513,22 +617,27 @@ questions about the *column*.
   side column leaves *and* an optional per-game **max tile size** (so a small
   board doesn't dominate a big screen):
   `min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>), <maxTile>*cols + gap*(cols-1))`
-  (psychicnum caps tiles at 125px; `<below>` ≈ the card padding + any stacked
-  input row). The column is `flex: 0 0 auto` (hugs it), the card hugs the board
-  with even padding, and anything stacked below (an input row) stretches to the
-  column = board width. scrabble, boggle, and psychicnum do this. The viewport
+  (`<below>` ≈ the card padding + any stacked input row). The column is
+  `flex: 0 0 auto` (hugs it), the card hugs the board with even padding, and
+  anything stacked below (an input row) stretches to the column = board width.
+  scrabble + boggle do this. The viewport
   offsets here aren't accidental brittleness — subtracting the sibling column +
   chrome is *inherent* to "make the column hug the board." (Keep them in terms of
   the shared `--game-chrome-height` token where possible, and revisit when chrome
   changes.)
 
-  Either way: scale the **glyph** with the tile via **tile-relative** `cqmin`
-  (`container-type: size` on the tile) so it shrinks as the tile count grows. The
-  gap can be `cqmin` too (the fill-a-pane case), but use a **fixed** gap when a
-  max-tile cap is in play — the cap's `<maxTile>*cols + gap*(cols-1)` math needs
+  Either way, for a **single glyph** (a digit, an A-game letter) scale it with
+  the tile via **tile-relative** `cqmin` (`container-type: size` on the tile) so
+  it shrinks as the tile count grows. For **multi-char content** (B-game words)
+  use the width-fit instead — `cqi` + `--len` (see
+  [Tile content](#tile-content-letter-vs-word-a-vs-b-games)). The gap can be
+  `cqmin` too (the fill-a-pane case), but use a **fixed** gap when a max-tile cap
+  is in play — the cap's `<maxTile>*cols + gap*(cols-1)` (or `*rows`) math needs
   the gap to be a known length.
 
-scrabble + boggle still use the viewport-math form; migrating them is deferred.
+scrabble + boggle still use the viewport-math (shrink-wrap) form; migrating them
+is deferred. psychicnum moved to the flex-fill form above (it was on the
+viewport-math form when its board was square number tiles).
 
 ## Mode pills
 

@@ -29,14 +29,18 @@ export function Help({ onClose, brand }: Props) {
       minHeight={200}
     >
       <p>
-        <strong>Guess the secret number 1–10.</strong> Everyone in
-        the game can guess; you share seven tries total.
+        <strong>Find the three secret words.</strong> The board shows
+        a set of words; click one or type it to guess. A correct guess
+        turns green, a miss turns red. Stuck? <strong>Get a hint</strong>{' '}
+        to reveal one of the secret words — it shows up in the guess log.
       </p>
 
       <p>
-        First correct guess wins for the whole group. Run out of
-        tries — or the timer — and the number is revealed and the
-        game ends.
+        <strong>Co-op:</strong> the group shares one board and one
+        budget — find all three together to win.{' '}
+        <strong>Compete:</strong> everyone races on their own board;
+        first to find all three wins. Run out of guesses — or the
+        timer — and the numbers are revealed and the game ends.
       </p>
 
       <div style={{ marginTop: '1rem', textAlign: 'right' }}>

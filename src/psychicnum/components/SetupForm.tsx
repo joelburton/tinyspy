@@ -1,19 +1,22 @@
 import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/DifficultyField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
-  MAX_NUMBER_OPTIONS,
+  WORD_COUNT_OPTIONS,
   type PsychicnumSetup,
 } from '../lib/setup'
 import styles from '../../common/components/setupForm.module.css'
 
 /**
  * psychicnum's per-game setup form, rendered inside the common
- * `SetupGameDialog`. One choice for the players:
+ * `SetupGameDialog`. Choices for the players:
  *
- *   - **Guesses** — total guess budget shared across all members,
- *     one of {3, 5, 7, 9}. 7 is the historical default; 3 is the
- *     hard mode, 5 medium, 9 the easy warm-up.
+ *   - **Guesses** — guess budget, one of {3, 5, 7, 9}.
+ *   - **Words on the board** — how many words (5..20); three are secret.
+ *   - **Word difficulty** — the dictionary band the board is drawn from
+ *     (the shared `<DifficultyField>`).
+ *   - **Timer** — the shared `<TimerField>`.
  *
  * No member-aware UI (every guess is interchangeable; no seats),
  * no auto-seeding logic — the manifest's defaults already cover
@@ -64,22 +67,37 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         </div>
       </fieldset>
       <fieldset className={styles.fieldset}>
-        <legend>Highest number</legend>
-        {/* The board shows 1..max_number; a bigger range means more number
-            tiles and a harder guess. Same meaning in both modes. */}
+        <legend>Words on the board</legend>
+        {/* The board shows this many words; three of them are the hidden
+            secrets, so a bigger board is more haystack. Same in both modes. */}
         <p className="muted">
-          The board runs 1–{s.max_number}; the secret is somewhere in that range.
+          {s.word_count} words on the board — find the 3 secrets among them.
         </p>
         <select
-          value={s.max_number}
-          onChange={(e) => onChange({ ...s, max_number: Number(e.target.value) })}
+          value={s.word_count}
+          onChange={(e) => onChange({ ...s, word_count: Number(e.target.value) })}
         >
-          {MAX_NUMBER_OPTIONS.map((n) => (
+          {WORD_COUNT_OPTIONS.map((n) => (
             <option key={n} value={n}>
               {n}
             </option>
           ))}
         </select>
+      </fieldset>
+      <fieldset className={styles.fieldset}>
+        <legend>Word difficulty</legend>
+        {/* Dictionary band: board words are drawn from common.words at
+            difficulty ≤ this (harder bands add more obscure words). */}
+        <p className="muted">
+          How obscure the board words can get.
+        </p>
+        <DifficultyField
+          length={null}
+          minDifficulty={1}
+          maxDifficulty={6}
+          value={s.difficulty}
+          onChange={(difficulty) => onChange({ ...s, difficulty })}
+        />
       </fieldset>
       <TimerField
         value={s.timer}

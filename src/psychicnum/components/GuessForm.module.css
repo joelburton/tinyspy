@@ -1,9 +1,6 @@
-/* The number-entry form. Horizontal row: input grows, submit
- * button at fixed width. Replaces the previous .actions usage
- * (which was a vertical-stack class meant for primary action
- * piles); psychicnum's input + submit pair reads better as a
- * single row so the user's eye lands on "type a number, hit
- * submit" without a line break in between.
+/* The word-entry row. Horizontal: the entry display grows, the submit button
+ * sits at fixed width — so the eye lands on "type a word, hit submit" without a
+ * line break in between.
  */
 
 .form {
@@ -13,9 +10,12 @@
   align-items: center;
 }
 
-/* The input fills the available horizontal space; the submit
- * button keeps its intrinsic width. */
-.input {
+/* Appearance override for the shared <EntryBox>: fill the row's free width
+ * (the submit button keeps its intrinsic size). The box's look — border,
+ * padding, caret — comes from EntryBox.module.css. Uppercased to match the
+ * board tiles (the value is stored lowercase). */
+.entry {
   flex: 1;
   min-width: 0;
+  text-transform: uppercase;
 }

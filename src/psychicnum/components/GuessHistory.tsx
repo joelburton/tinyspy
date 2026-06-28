@@ -9,23 +9,24 @@ type Props = {
   players: Player[]
 }
 
-// TEMP: cycle the four outcome colors so we can preview the palette. REMOVE —
-// revert the TurnLogEntry outcome below to `g.was_correct ? 'good' : 'bad'`.
-const TEMP_OUTCOMES = ['good', 'bad', 'partial', 'neutral'] as const
-
 /**
- * The append-only log of guesses, rendered with the shared `<TurnLog>` table.
+ * The append-only log of guesses and hints, rendered with the shared
+ * `<TurnLog>` table.
  *
  * Stateless and presentational — owns no state, makes no RPC calls, just renders
  * the rows from the props it's given, newest snapping into view.
  *
  * Columns (after the shared outcome-bar cell): the turn number (muted), the
- * guessed number (bold — the important part), the result, and the guesser
- * (right-aligned with their identity dot, so the dots line up down the column).
- * Cells use `<TurnLog>`'s content classes so they match other games' logs.
+ * number (bold — the important part), the result, and the actor (right-aligned
+ * with their identity dot, so the dots line up down the column). Cells use
+ * `<TurnLog>`'s content classes so they match other games' logs.
  *
- * In compete mode RLS scopes `guesses` to the caller, so this shows only the
- * viewer's own attempts.
+ * Two row kinds:
+ *   - a **guess** → green (correct) / red (incorrect) outcome bar.
+ *   - a **hint** (a revealed secret) → amber (`partial`) bar, labeled "Hint".
+ *
+ * In compete mode RLS scopes both to the caller, so this shows only the
+ * viewer's own attempts + hints.
  */
 export function GuessHistory({ guesses, players }: Props) {
   const playerFor = (userId: string) =>
@@ -40,19 +41,23 @@ export function GuessHistory({ guesses, players }: Props) {
       className={styles.history}
     >
       {guesses.map((g, i) => {
-        const guesser = playerFor(g.user_id)
+        const actor = playerFor(g.user_id)
+        const isHint = g.kind === 'hint'
         return (
-          <TurnLogEntry key={g.id} outcome={TEMP_OUTCOMES[i % 4]}>
+          <TurnLogEntry
+            key={g.id}
+            outcome={isHint ? 'partial' : g.was_correct ? 'good' : 'bad'}
+          >
             <td className={turnLog.meta}>#{i + 1}</td>
-            <td className={turnLog.primary}>{g.number}</td>
-            <td>{g.was_correct ? 'Correct' : 'Incorrect'}</td>
+            <td className={turnLog.primary}>{g.word.toUpperCase()}</td>
+            <td>{isHint ? 'Hint' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
             <td className={turnLog.who}>
               <span className={turnLog.actor}>
-                {guesser?.username ?? 'someone'}
+                {actor?.username ?? 'someone'}
               </span>
               <span
                 className={turnLog.dot}
-                style={{ color: colorVarFor(guesser?.color) }}
+                style={{ color: colorVarFor(actor?.color) }}
                 aria-hidden="true"
               >
                 ●

@@ -34,13 +34,13 @@ select common.create_club('test club', array['ada','bea']) as handle;
 create temp table coop_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
 );
 reset role;
-update psychicnum.games set target = 7 where id = (select id from coop_g);
+update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id = (select id from coop_g);
 
 -- (1) Non-player (dee) cannot end the game
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -103,13 +103,13 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "max_number": 10, "timer": {"kind": "none"}}'::jsonb,
+  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
 );
 reset role;
-update psychicnum.games set target = 7 where id = (select id from comp_g);
+update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id = (select id from comp_g);
 
 -- (8) A game player ends the compete game — succeeds
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

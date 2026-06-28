@@ -30,10 +30,25 @@ type Props = {
  * like a codenamesduet "clue invalid" pill should look like a future
  * Boggle "not a word" pill. Same component, same tone, same
  * paint.
+ *
+ * Two extras serve group/peer (identity) messages — see docs/ui.md →
+ * "Player identity = a colored disc":
+ *   - `msg.dot`: a leading player-color disc (the actor's identity).
+ *   - `msg.variant === 'outline'`: colored border, no fill — so the disc
+ *     isn't fighting a tinted background. The outline uses the green/red
+ *     outcome palette, matching the board's own result flashes.
  */
 export function FeedbackPill({ msg, onClose }: Props) {
+  const outline = msg.variant === 'outline'
   return (
-    <div className={cls(styles.pill, styles[msg.tone])}>
+    <div className={cls(styles.pill, styles[msg.tone], outline && styles.outline)}>
+      {msg.dot && (
+        <span
+          className={styles.dot}
+          style={{ background: msg.dot, borderColor: msg.dot }}
+          aria-hidden
+        />
+      )}
       <span className={styles.text}>{msg.text}</span>
       {msg.dismiss.kind === 'closeable' && (
         <button

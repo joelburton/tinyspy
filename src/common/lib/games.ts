@@ -106,7 +106,7 @@ export type GamePageCtx = {
 
 /** Tone variants the feedback pill renders. See docs/ui.md →
  *  Feedback pill. */
-export type FeedbackTone = 'success' | 'error' | 'neutral' | 'info'
+export type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info'
 
 /** A single feedback message. The `dismiss` mode picks how it
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
@@ -114,6 +114,16 @@ export type FeedbackTone = 'success' | 'error' | 'neutral' | 'info'
 export type FeedbackMsg = {
   tone: FeedbackTone
   text: string
+  /** Optional leading identity disc — a player-color CSS value (from
+   *  `colorVarFor`). Renders a small filled circle before the text, the
+   *  identity anchor for group/peer messages ("● leah found APPLE"). See
+   *  docs/ui.md → "Player identity = a colored disc". */
+  dot?: string
+  /** Pill style. `'fill'` (default) tints the background by tone — for local
+   *  validation. `'outline'` colors only the border (no fill), using the
+   *  green/red outcome palette — for identity/peer messages, where a tinted
+   *  fill would clash with the leading `dot`. */
+  variant?: 'fill' | 'outline'
   dismiss:
     | { kind: 'timed'; ms?: number }
     | { kind: 'sticky' }

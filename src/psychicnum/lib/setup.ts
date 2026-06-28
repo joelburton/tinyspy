@@ -24,12 +24,18 @@ export type PsychicnumSetup = {
    */
   guesses: 3 | 5 | 7 | 9
   /**
-   * Highest number on the board: the board shows 1..max_number and
-   * the secret is somewhere in that range. 5..20 — a bigger range
-   * means more number tiles and a harder guess. Validated
-   * server-side by `psychicnum.create_game`.
+   * How many words sit on the board (5..20). Three of them are the
+   * hidden secrets; a bigger board means more haystack around the
+   * three needles. Validated server-side by `psychicnum.create_game`.
    */
-  max_number: number
+  word_count: number
+  /**
+   * Dictionary difficulty band (1..6 = Universal..Expert), a
+   * `common.words.difficulty` value. The board words are sampled from
+   * the dictionary at `difficulty ≤ this` (plus a clean + american +
+   * non-slang filter). Validated server-side.
+   */
+  difficulty: number
   /**
    * Browser-side timer mode. `none` and `countup` are
    * informational; `countdown` flips the game to `lost` when the
@@ -41,26 +47,26 @@ export type PsychicnumSetup = {
 
 /**
  * Initial setup the manifest hands the SetupGameDialog wrapper
- * as `defaults`. Guesses=7 keeps parity with the previous
- * hardcoded value; the timer defaults to a count-down — a
- * "casual game with stakes" baseline that players can dial up or
- * down (or turn off entirely) before starting.
+ * as `defaults`. A 10-word board at the Familiar band (3) is a
+ * gentle baseline; the timer defaults to a count-down — a "casual
+ * game with stakes" the players can dial up or down (or off).
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   guesses: 7,
-  max_number: 10,
+  word_count: 10,
+  difficulty: 3,
   timer: { kind: 'countdown', seconds: 15 },
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */
 export const GUESS_OPTIONS = [3, 5, 7, 9] as const
 
-/** Inclusive bounds for the board's highest number (the setup picker range). */
-export const MAX_NUMBER_MIN = 5
-export const MAX_NUMBER_MAX = 20
+/** Inclusive bounds for the board's word count (the setup picker range). */
+export const WORD_COUNT_MIN = 5
+export const WORD_COUNT_MAX = 20
 
-/** The selectable highest-number values, `MAX_NUMBER_MIN`..`MAX_NUMBER_MAX`. */
-export const MAX_NUMBER_OPTIONS = Array.from(
-  { length: MAX_NUMBER_MAX - MAX_NUMBER_MIN + 1 },
-  (_, i) => MAX_NUMBER_MIN + i,
+/** The selectable board-size values, `WORD_COUNT_MIN`..`WORD_COUNT_MAX`. */
+export const WORD_COUNT_OPTIONS = Array.from(
+  { length: WORD_COUNT_MAX - WORD_COUNT_MIN + 1 },
+  (_, i) => WORD_COUNT_MIN + i,
 )
