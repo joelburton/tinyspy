@@ -23,20 +23,45 @@
  * auto-fit) is the SHARED `.tile`/`.tileWord` from common (imported as `shared`
  * in BoardGrid.tsx); only the bits unique to codenamesduet live below. */
 
+/* ─── Tile size caps — TINKER HERE ───────────────────────────────────────────
+ * The board grows to fill the space, but a tile never exceeds these. Relative
+ * units (rem). codenamesduet ships UNCAPPED (both commented out) → the 5×5 fills
+ * the column as before. To impose a cap, uncomment a line; comment it back out
+ * for no cap on that axis (the calc falls back to "unlimited", 999rem):
+ *     no width cap  → leave --max-tile-width commented
+ *     no height cap → leave --max-tile-height commented                         */
 .board {
+   --max-tile-width: 9rem;
+   --max-tile-height: 7rem;
+  --grid-gap: 0.5rem;
+  --cols: 5;
+  --rows: 5;
+
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Cap the board height so each 1fr row tops out at --max-tile-height; rows
+   * still shrink on short screens. Uncapped by default → no effective cap. */
+  max-height: calc(
+    var(--rows) * var(--max-tile-height, 999rem) + (var(--rows) - 1) * var(--grid-gap)
+  );
 }
 
+/* HUGS: as wide as the tiles+gaps need, capped per tile, never past --avail-w
+ * (the width left beside the info column — the shared scaffold token on .layout).
+ * With no width cap it fills --avail-w (today's look). */
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--grid-gap);
+  width: min(
+    var(--avail-w),
+    calc(var(--cols) * var(--max-tile-width, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+  );
   /* Tune the shared `.tileWord` auto-fit (clamp by `--len`) for a 5-col board of
    * single words. Starting values — adjust during manual verification. */
   --tile-font-min: 0.8rem;

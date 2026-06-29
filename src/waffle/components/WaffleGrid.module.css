@@ -1,80 +1,107 @@
-/* The 5×5 lattice. Sizes to the largest square that fits the parent
- * (a `container-type: size` box — see PlayArea.module.css .boardArea):
- * `min(100cqw, 100cqh)` is the smaller of the parent's two dimensions,
- * capped so it doesn't get absurd on huge screens. The five columns/
- * rows are `1fr`, so tiles grow and shrink together; gap and font
- * scale with the grid via `cqmin` (the grid is itself a size container
- * for its tiles). */
+/* waffle's 5×5 lattice. It lives in a `.board` wrapper inside the shared
+ * `.boardCol` (common PlayArea.module.css), like every converged game; the
+ * wrapper carries NO border/background (the inter-tile gaps show the column
+ * behind, matching psychicnum/connections). Unlike those games — whose boards
+ * FILL the column with `1fr` tracks and so go rectangular — waffle stays a
+ * SQUARE (it's a waffle, with holes): the grid sizes to the largest square that
+ * fits, and sits TOP-aligned in the column. The tile CHROME (box, radius,
+ * shadow, hover ring, centering, the un-faded disabled look) is the SHARED
+ * `.tile` from common (imported as `shared` in WaffleGrid.tsx); only the
+ * per-color fills, the letter, the pickup selection, and the holes are waffle's.
+ */
+
+/* Board wrapper: hugs the square grid (the grid carries the definite `--side`
+ * below); top of the column, with the local-feedback slot beneath it.
+ *
+ * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
+ * waffle is the SQUARE board (the other games cap width + height independently),
+ * so it has ONE knob: the max tile SIZE. It ships UNCAPPED (commented out) → the
+ * largest square that fits. Uncomment to cap; comment back out for no cap (the
+ * calc falls back to "unlimited", 999rem). Relative units (rem). */
+.board {
+  /* --max-tile-size: 6rem; */
+  --grid-gap: 0.5rem;
+  --cols: 5;
+  --rows: 5;
+  /* Vertical counterpart of the shared --avail-w (on .layout): the height left
+   * for the board = viewport − chrome − the below-board slot (its min-height
+   * 2.75rem + the board column's 0.75rem gap = 3.5rem). Waffle needs this because
+   * a square is bounded by height too — the rectangular games flex-fill height
+   * and don't. */
+  --avail-h: calc(100vh - var(--game-chrome-height) - 3.5rem);
+
+  flex: 0 0 auto;
+}
+
+/* The square grid: the largest square that fits — the smaller of the width left
+ * beside the info column (--avail-w, the shared scaffold token), the height left
+ * for the board (--avail-h), and the per-tile caps. The board column hugs this
+ * definite size (the boardCol is `flex: 0 0 auto`), so a container-query square
+ * isn't usable here (a shrink-wrapped size container collapses) — hence the
+ * viewport math. Gap + letter size derive from `--side` as concrete lengths. */
 .grid {
-  --side: min(100cqw, 100cqh, 34rem);
+  --side: min(
+    var(--avail-w),
+    var(--avail-h),
+    calc(var(--cols) * var(--max-tile-size, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+  );
+  /* ≈ 8% of the side — matches the prior single-glyph look. */
+  --letter-size: calc(var(--side) / 12);
   width: var(--side);
   height: var(--side);
-  container-type: size;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: 2.5cqmin;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--grid-gap);
 }
 
-.disabled {
-  opacity: 0.85;
-}
-
-/* A hole — an interior cell in no word. Just empty space (the `1fr`
- * track gives it size). */
+/* A hole — an interior cell in no word. Just empty space (the 1fr track sizes
+ * it); no tile chrome. */
 .hole {
   width: 100%;
   height: 100%;
 }
 
-.tile {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* ~0.43 of a tile, matching the original 1.5rem-on-3.5rem look
-   * (a tile is ~18% of the grid side, so ~8% of the side per glyph). */
-  font-size: 8cqmin;
+/* The letter on a tile. Sized from the grid's `--letter-size` (inherited), so it
+ * scales with the board without relying on the tile being a query container. */
+.letter {
+  font-size: var(--letter-size);
   font-weight: 700;
-  text-transform: uppercase;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.06s ease, box-shadow 0.1s ease;
-  /* override the global button hover/accent treatment */
-  background: var(--waffle-gray);
+  line-height: 1;
 }
 
-.tile:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.tile:disabled {
-  cursor: default;
-}
-
-/* Feedback colors (Wordle-ish). Tokens live in theme.css. */
+/* Per-tile feedback fill = the shared "Wordle colors" (common/theme.css),
+ * applied by RE-SETTING the shared `.tile`'s `--tile-*` tokens (so the fill wins
+ * regardless of stylesheet order — the codenamesduet pattern). Border matches the
+ * fill so each reads as one solid color chip; white ink on the saturated three,
+ * dark ink on the neutral blank. */
 .green {
-  background: var(--waffle-green);
+  --tile-bg: var(--wordle-green);
+  --tile-border: var(--wordle-green);
+  --tile-text: #fff;
 }
 .yellow {
-  background: var(--waffle-yellow);
+  --tile-bg: var(--wordle-yellow);
+  --tile-border: var(--wordle-yellow);
+  --tile-text: #fff;
 }
 .gray {
-  background: var(--waffle-gray);
+  --tile-bg: var(--wordle-gray);
+  --tile-border: var(--wordle-gray);
+  --tile-text: #fff;
 }
-/* Pre-load / no color yet — neutral. */
 .blank {
-  background: var(--waffle-blank);
-  color: var(--color-text);
+  --tile-bg: var(--wordle-blank);
+  --tile-border: var(--wordle-blank);
+  --tile-text: var(--color-text);
 }
 
-/* Picked-up tile, waiting for its swap partner. */
+/* Picked-up tile, waiting for its swap partner. NOT the shared dark `.selected`
+ * fill (that would bury the tile's Wordle color) — instead a warm ring + a small
+ * lift. Drawn with `outline` (which the shared `.tile` never sets) so it's
+ * order-independent, unlike a box-shadow override. */
 .selected {
-  border-color: var(--color-text);
-  box-shadow: 0 0 0 3px var(--waffle-select-ring);
+  outline: 3px solid var(--waffle-select-ring);
+  outline-offset: 2px;
   transform: translateY(-2px);
 }

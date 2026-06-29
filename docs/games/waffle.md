@@ -168,7 +168,8 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   - Returns `{ colors, swaps_used, solved, terminal }`.
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   spellingbee "realtime touch" pattern so the FE wakes up on expiry.
-- **`end_game(game)`** — the manual "End game" menu item (both modes). A
+- **`end_game(game)`** — the manual "End" action-row button in the info column
+  (both modes; players only). A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
   intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
   `status = {outcome:'manual', mode}`. Any game player can call it; idempotent
@@ -266,16 +267,35 @@ Mirrors the other game folders:
 - `db.ts` — `supabase.schema('waffle')`.
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
-- `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`;
-  `lib/colors.ts` — render only (server is authoritative for the actual colors).
-- `components/` — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
-  drag-to-swap, colored tiles — reuse the codenamesduet keycard color tokens),
-  `SwapLog` (the coop move log, "Swap #N — name · A (A1) ↔ B (C2)", letters
-  prominent + coordinates small/light; coop only, shown during and after the
-  game), `SetupForm` (timer + the extra-swaps difficulty knob), `Help`, and the
-  shared `common/components/OpponentStrip` for compete (a `metricFor` returning
-  swaps-used + a ✓/✗ mark — the same strip spellingbee/connections/psychicnum use,
-  differing only in the metric cell).
+- `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
+  rendering is the shared `common/lib/tileColor.ts` (server code → class key);
+  the server is authoritative for the actual colors.
+
+The PlayArea sits on the **shared two-column scaffold**
+(`common/components/PlayArea.module.css` — the same one psychicnum / connections /
+codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout)):
+
+- **Board column** — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
+  drag-to-swap) in a no-chrome `.board` wrapper. Unlike the other games' boards,
+  which fill the column rectangularly, waffle stays a **top-aligned square** (it's
+  a waffle, with holes), sized via container-query units. Tiles use the shared
+  `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
+  `common/theme.css`, shared with wordle); a picked-up tile gets waffle's own
+  ring (the shared dark `.selected` fill would bury the color). Below it a
+  **local-feedback slot** holds an own-action error flash during play and the
+  `SolutionReveal` answer at terminal.
+- **Info column** — the shared readouts (`.infoSetup` disclosure / `.infoState`
+  swap tally + par / `.infoHelp`) and an action row (just **End** during play →
+  the bold outcome line + compact back-to-club at terminal), over the coop
+  `GameTurnLog` (the swap log on the shared `<TurnLog>` table — "Swap #N" + the
+  swapper's `<ActorTag>`, then "A (A1) ↔ B (C2)" with letters prominent +
+  coordinates small/light; every row's outcome bar is `neutral`; coop only).
+  Compete shows the shared `common/components/OpponentStrip` instead (a
+  `metricFor` returning swaps-used + a ✓/✗ mark).
+- **Feedback split** — own errors (rejected swap / failed End) flash **locally**
+  below the board; the header pill carries **peer** news (compete: an opponent
+  solved or ran out of swaps; coop needs none — the swap log shows every move).
+- `SetupForm` (timer + the extra-swaps difficulty knob) and `Help` round it out.
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (connections's peer-selection trick) is a nice-to-have —
@@ -289,7 +309,8 @@ defer.
   `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
   `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
   idempotency, non-player rejected).
-- **Vitest:** `waffle.ts` geometry, `colors.ts` render, `manifest`. The
+- **Vitest:** `waffle.ts` geometry, `manifest` (color rendering is the shared
+  `common/lib/tileColor.ts`, covered by its own test). The
   generator's `minSwaps` par lives in the edge function, covered by
   `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 

@@ -33,16 +33,33 @@
   display: flex;
   flex-direction: row;
   justify-content: center;
-  gap: 1.5rem;
+  /* The gap between the board column and the info column. Shared (same for every
+   * game) but a named token so a game's available-width math can subtract it
+   * without re-stating the literal. */
+  --layout-gap: 1.5rem;
+  gap: var(--layout-gap);
   align-items: stretch;
+
+  /* Width left for the board column beside the fixed info column — the input to
+   * every game's HUG board sizing. The board column can't be *handed* a width
+   * (it hugs its board), so each game's board computes its width as
+   * `min(--avail-w, <its tile caps>)`. Built from the shared tokens, so changing
+   * the info-column width / layout gap / page padding flows through to every
+   * board automatically. See docs/ui.md → "Board sizing". */
+  --avail-w: calc(100vw - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding));
 }
 
-/* Board column: `flex: 1` so it grows to fill the width the fixed info column
- * leaves. Top-aligned, so the board sits at the top and anything stacked below
+/* Board column: HUGS its board (`flex: 0 0 auto`). The board grows to fill up to
+ * its max tile size and the column is only as wide as that, so the board+info
+ * pair centers via the layout's `justify-content: center`. A board with NO max
+ * simply grows to the full available width, so this still reads as "fills" for
+ * games without a tile cap — fill is just the no-cap case of hug. Each game gives
+ * its board a definite width via `min(--avail-w, <caps>)` (see its board module +
+ * docs/ui.md → "Board sizing"). Top-aligned, so anything stacked below the board
  * (an entry/commit row, a terminal reveal) follows it. `position: relative` is
  * the positioning context for the floating shuffle button (top-right). */
 .boardCol {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -52,7 +69,7 @@
   /* Debug tint so the board column's bounds (and the gaps between tiles) are
    * visible during layout work. Deliberately kept — do NOT remove until Joel
    * asks. */
-  background: rgba(40, 120, 255, 0.00);
+  background: rgba(40, 120, 255, 0.30);
 }
 
 /* Shuffle floats over the board's top-right corner — purely a fresh visual
@@ -66,13 +83,18 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
-/* Info column: FIXED width (never grows during play — the board is the one
- * that grows). Action slot at the top, scrolling log below. The thin left
- * border IS the divider between the columns; padding-left keeps content off it.
- * `min-height: 0` is essential — without it the column grows to fit content
- * and the log's `overflow-y: auto` never engages. */
+/* Info column: a fixed column — `flex: 0 0` means it never grows or shrinks (the
+ * board is the one that flexes). Its WIDTH is GAME-SPECIFIC: each game sets
+ * `--info-col-width` on its own `.layout` (see that game's PlayArea.module.css),
+ * since the right column's needs differ (psychicnum's words want a narrow column,
+ * spellingbee's word list a wide one). NO shared default on purpose, so a game
+ * using this scaffold must declare the var (the value is a rem, never a pixel
+ * lock). Action slot at the top, scrolling log below. The thin left border IS the
+ * divider between the columns; padding-left keeps content off it. `min-height: 0`
+ * is essential — without it the column grows to fit content and the log's
+ * `overflow-y: auto` never engages. */
 .infoCol {
-  flex: 0 0 340px;
+  flex: 0 0 var(--info-col-width);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

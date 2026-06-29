@@ -4,33 +4,54 @@
  * board wrapper, the grid layout, and the guessed-result fills are
  * psychicnum's. */
 
-/* The board FILLS the board column (`flex: 1`) — its height above the entry
- * row, its width what the fixed info column leaves — so the grid grows to the
- * available space (docs/ui.md → "Board sizing"). A per-tile HEIGHT cap is
- * applied via an inline max-height (see WordBoard.tsx).
+/* ─── Tile size caps — TINKER HERE ───────────────────────────────────────────
+ * The board grows to fill the space, but a tile never exceeds these. Relative
+ * units (rem). These are the only knobs; everything below derives from them.
  *
- * NO border / background today: the beige tiles carry the board's look
- * themselves, and the inter-tile gaps show the column behind. This `.board`
- * wrapper + class exist in every game (connections's matches) precisely so a
- * future game that wants a FRAMED board — border, surface fill, padding — adds
- * it HERE, in one place, with the structure already in shape. */
+ * To REMOVE a cap, comment its line out — that axis then fills the available
+ * space (the calc falls back to "unlimited", 999rem):
+ *     no width cap  → comment out --max-tile-width
+ *     no height cap → comment out --max-tile-height
+ * Example alternative caps:
+ *     --max-tile-width: 8rem;
+ *     --max-tile-height: 12rem;                                                */
 .board {
+  --max-tile-width: 12.5rem;   /* ≈ 200px */
+  --max-tile-height: 9.5rem;
+  --grid-gap: 0.5rem;
+
+  /* The board fills the column HEIGHT (flex:1) but each 1fr row tops out at
+   * --max-tile-height; rows still shrink on short screens. --rows is set inline
+   * (it depends on the word count). NO border/background — the beige tiles carry
+   * the look; this wrapper exists so a future framed board adds it in one place. */
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  max-height: calc(
+    var(--rows) * var(--max-tile-height, 999rem) + (var(--rows) - 1) * var(--grid-gap)
+  );
 }
 
-/* The word grid fills the card. Column AND row counts are set inline (they
- * depend on the word count), both `1fr` tracks, so the tiles divide the
- * available width × height evenly and grow with the board. Fixed gap. The
- * --tile-font-* knobs tune the shared `.tileWord` auto-fit for psychicnum's
- * wider, larger words. */
+/* The word grid. Column/row counts are 1fr (set inline) so tiles divide the
+ * board evenly with a FIXED gap. The WIDTH is the key: it HUGS — as wide as the
+ * tiles+gaps need, capped per tile by --max-tile-width, and never wider than the
+ * space left beside the info column. The board column hugs this width (see
+ * PlayArea.module.css .boardCol), so the board+info pair centers instead of the
+ * board floating in a full-width column. With no width cap, the cap term goes
+ * huge and the grid simply fills --avail-w (the old "fill" look — hug of the
+ * full width). --avail-w (the width left beside the info column) is the shared
+ * scaffold token, set on .layout in common/components/PlayArea.module.css — every
+ * hug game reads the same one. --cols is set inline. */
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
-  gap: 0.5rem;
+  gap: var(--grid-gap);
+  width: min(
+    var(--avail-w),
+    calc(var(--cols) * var(--max-tile-width, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+  );
   --tile-font-min: 0.85rem;
   --tile-font-factor: 0.9;
   --tile-font-max: 2.6rem;

@@ -76,15 +76,11 @@ export function Board({
     // gaps show the column behind, matching psychicnum. The wrapper + class
     // exist in both games so a future game frames its board (border / fill /
     // padding) in one place. See WordBoard's .board for the twin.
-    <div className={styles.board}>
-      <div
-        className={styles.grid}
-        // `rows` 1fr tracks, so the grid grows to fill the .board (no per-row
-        // cap yet — unlike psychicnum's WordBoard, which caps tile height; one
-        // may be added here later). A band is one of these rows spanning all 4
-        // columns.
-        style={{ gridTemplateRows: `repeat(${rows}, 1fr)` }}
-      >
+    // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
+    // board's max-height (both computed in CSS from the --max-tile-* caps — see
+    // PlayArea.module.css). A band is one of these rows spanning all columns.
+    <div className={styles.board} style={{ ['--rows' as string]: rows }}>
+      <div className={styles.grid}>
         {sortedMatched.map((mc) => band(mc, false))}
         {unmatched.map((c) => band(c, true))}
         {tiles.map((tile) => {

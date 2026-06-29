@@ -526,20 +526,17 @@ Other games keep their old shells until we reach them.
   column instead. (That's why the word/number **entry** lives below the board,
   not here — and it's the capture model, not an `<input>`; see
   [Text entry](#text-entry--capture-not-input).)
-- **Board column grows to fill the space the fixed info column leaves.** Two ways
-  to realize that (see [Board sizing](#board-sizing) for which to pick): the
-  column **hugs** a definite, viewport-sized board (`flex: 0 0 auto`;
-  scrabble/boggle), or the column **fills** the remaining width (`flex: 1`) and
-  the board fills it (psychicnum's word board). Either way the column is
-  **top-aligned** (`justify-content: flex-start`) — the board at the top — and
-  anything stacked below (the entry row, or the terminal reveal) stretches to the
-  board width. A board may cap its growth with an optional **max tile size** so a
-  small board doesn't dominate a big screen.
+- **Board column HUGS its board.** The four redesigned games converge on one
+  model: `.boardCol` is `flex: 0 0 auto` and only as wide as its board, which
+  grows to fill *up to* a per-game max tile size (see [Board sizing](#board-sizing)).
+  **Fill is the no-cap case** — with no cap the board grows to the full available
+  width, so a capless game still reads as "fills." The column is **top-aligned**
+  (`justify-content: flex-start`) — the board at the top — and anything stacked
+  below (the entry row, or the terminal reveal) stretches to the board width.
+  (scrabble + boggle still use the older viewport-math shrink-wrap; deferred.)
 - **`align-items: stretch`** makes both columns full-height (the divider spans;
-  the log scrolls inside). In the **hug** case the board-column + info-column pair
-  is usually narrower than the play area, so `justify-content: center` centers
-  them with equal outer margins; in the **fill** case the board column absorbs the
-  slack and there's nothing to center.
+  the log scrolls inside). The board-column + info-column pair is narrower than the
+  play area, so `justify-content: center` centers them with equal outer margins.
 
 **Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
 divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
@@ -731,72 +728,96 @@ columns still align across rows.
 
 ## Board sizing
 
-A game board grows as large as the space allows. There are **two layouts**, each
-with the right sizing tool — they're not better/worse, they answer different
-questions about the *column*.
+A game board grows as large as the space allows. The **four redesigned games**
+(psychicnum, connections, codenamesduet, waffle) share **one model: the board
+column HUGS its board.** The column is only as wide as the board, and the
+board+info pair centers (`justify-content: center` on `.layout`). **"Fill" is
+just the no-cap case of hug** — with no max tile size the board grows to the full
+available width, so a capless game reads exactly like the old fill model. (Each
+of the four exposes a max-tile-size knob; psychicnum caps, the others ship
+uncapped today — so connections/codenamesduet/waffle still *look* like they fill,
+but they're on the hug structure.) scrabble + boggle are still on the older
+viewport-math shrink-wrap form ([below](#the-older-shrink-wrap-form-scrabble--boggle)); migrating them is deferred.
 
-- **The board fills a known pane** — the board column is `flex: 1` (or fixed)
-  and the board fills/centers inside it. No viewport offsets; survives any chrome
-  change. Use this when the column's width is decided independently of the board.
-  Two realizations:
-  - *Container-query units* (waffle): make the column a `container-type: size`
-    box and size the board `min(100cqw, 100cqh, cap)` for a square.
-  - *Flex-fill + `1fr` tracks* (psychicnum's word board): the column is `flex: 1`
-    (fills the width the fixed info column leaves), the board card is `flex: 1`
-    (fills the column height above the entry row), and the grid is `1fr` columns
-    **and** rows, so the tiles divide that width × height evenly and grow with it.
-    A per-tile **max size** here is a `max-height` on the *card*
-    (`rows*maxTile + gaps + padding`, set inline since it depends on the row
-    count): the `1fr` rows then top out at `maxTile` yet still shrink below it on
-    short screens. (psychicnum caps tile height ≈150px; width is uncapped — words
-    are horizontal. The word font then auto-fits the tile width — see
-    [Tile content](#tile-content-letter-vs-word-a-vs-b-games).)
+### The shared scaffold
 
-- **The board drives the column width** — the column shrink-wraps to the board,
-  a fixed-width info/side column sits beside it, and the pair is centered
-  (`justify-content: center` on the layout). This needs the board to have a
-  **definite size**, because a flex column can only hug a child whose size is
-  already known (it can't hug a `flex:1`/`%`-height + `aspect-ratio` child, and
-  `container-type: size` *collapses* a shrink-to-content column). The definite
-  size comes from the viewport — height × aspect, capped by both the width the
-  side column leaves *and* an optional per-game **max tile size** (so a small
-  board doesn't dominate a big screen):
-  `min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>), <maxTile>*cols + gap*(cols-1))`
-  (`<below>` ≈ the card padding + any stacked input row). The column is
-  `flex: 0 0 auto` (hugs it), the card hugs the board with even padding, and
-  anything stacked below (an input row) stretches to the column = board width.
-  scrabble + boggle do this. The viewport
-  offsets here aren't accidental brittleness — subtracting the sibling column +
-  chrome is *inherent* to "make the column hug the board." (Keep them in terms of
-  the shared `--game-chrome-height` token where possible, and revisit when chrome
-  changes.)
+In `common/components/PlayArea.module.css`:
+- **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
+- **`.layout`** defines **`--avail-w`** = `calc(100vw - var(--info-col-width) -
+  var(--layout-gap) - 2 * var(--page-padding))` — the width left beside the fixed
+  info column, built from shared tokens (so a change to the info-column width, the
+  layout gap, or the page padding flows through to every board automatically).
+  This is the *input* to each game's board width — see [Why the width is
+  computed](#why-the-width-is-computed) for why it can't just flex.
 
-  Either way, for a **single glyph** (a digit, an A-game letter) scale it with
-  the tile via **tile-relative** `cqmin` (`container-type: size` on the tile) so
-  it shrinks as the tile count grows. For **multi-char content** (B-game words)
-  use the width-fit instead — `cqi` + `--len` (see
-  [Tile content](#tile-content-letter-vs-word-a-vs-b-games)). The gap can be
-  `cqmin` too (the fill-a-pane case), but use a **fixed** gap when a max-tile cap
-  is in play — the cap's `<maxTile>*cols + gap*(cols-1)` (or `*rows`) math needs
-  the gap to be a known length.
+### Each game's board
 
-scrabble + boggle still use the viewport-math (shrink-wrap) form; migrating them
-is deferred. psychicnum moved to the flex-fill form above (it was on the
-viewport-math form when its board was square number tiles).
+A board computes a **definite width** and hugs it; its **height flex-fills** the
+column, capped:
 
-**connections uses the exact same flex-fill grid as psychicnum.** The only two
-differences: (a) a solved category is **"one long tile"** — a grid cell spanning
-all four columns (`grid-column: 1 / -1`) instead of four single-column tiles, so
-it occupies exactly the row its tiles did with the same height, padding, depth,
-and grid gap; and (b) psychicnum gives its tiles a **max height**, connections
-doesn't (yet) — connections' `1fr` rows simply grow to fill the column. Because
-every category is four tiles, `bands + ceil(remaining / 4)` is always the same
-row count (4 for a 16-tile board), so it's genuinely one grid (`gridTemplateRows:
-repeat(rows, 1fr)`, set inline by `Board.tsx`) that fills the column. This
-replaced an earlier fixed-row-height design whose separately-flex-stacked bands
-had a different gap than the tiles — the single grid removes that drift. The
-board is top-anchored with slack below — the commit row (Clear / Submit) sits
-under it, like psychicnum's entry row.
+```css
+.grid  { width: min(var(--avail-w),
+                     calc(var(--cols) * var(--max-tile-width, 999rem)
+                          + (var(--cols) - 1) * var(--grid-gap))); }
+.board { flex: 1 1 0;            /* fills the column height; grid's 1fr rows fill it */
+         max-height: calc(var(--rows) * var(--max-tile-height, 999rem)
+                          + (var(--rows) - 1) * var(--grid-gap)); }
+```
+
+The grid is `repeat(var(--cols), 1fr) / repeat(var(--rows), 1fr)` with a fixed
+`var(--grid-gap)`, so tiles divide the definite size evenly with **constant gaps**
+(capping a tile no longer stretches the spacing). `--cols`/`--rows` are per game —
+static in CSS where the board shape is fixed (codenamesduet/waffle 5×5), or set
+inline where they vary (psychicnum `ceil(√N)`; connections `bands + tile-rows`,
+set on `.board` in `Board.tsx`).
+
+**The tinker knobs.** Each game's board module carries a `─── TINKER HERE ───`
+block with **`--max-tile-width`**, **`--max-tile-height`**, and **`--grid-gap`**
+(rem). **Comment a cap line out → that axis is uncapped** (the `999rem` fallback
+wins, so the board fills the available space on that axis). The knob lives
+wherever the game keeps its board CSS — psychicnum `WordBoard.module.css`,
+connections `PlayArea.module.css`, codenamesduet `BoardGrid.module.css`, waffle
+`WaffleGrid.module.css` (a known inconsistency — consolidating them onto `.layout`
+is a possible follow-up).
+
+**`--info-col-width` is game-specific** — set per game on its `.layout` (the
+shared scaffold has **no default**, so each game must declare it), since the right
+column's needs differ (psychicnum narrow; spellingbee wide when it converts). It
+feeds both the shared `.infoCol` width and `--avail-w`. The value is a **rem**:
+"fixed-width" means `flex: 0 0` (never grows/shrinks), *not* a pixel lock.
+
+**Waffle is the square variant.** A square is bounded by *both* dimensions, so it
+can't size by width alone: `side = min(var(--avail-w), var(--avail-h), <cap>)`,
+where **`--avail-h`** = `calc(100vh - var(--game-chrome-height) - <its
+below-board slot>)` is the vertical counterpart of `--avail-w` (only waffle needs
+it — the rectangular games flex-fill height). Its `.board` is `flex: 0 0 auto`
+(the grid is definite in both dims) and its tinker knob is a single
+**`--max-tile-size`** (square → one cap, not separate width/height). A solved
+connections category is still **"one long tile"** (`grid-column: 1 / -1`) — a band
+spanning all columns at the same row height/padding/depth as a tile.
+
+### Why the width is computed
+
+A shrink-wrapped flex column can only hug a child whose width is *already known*.
+A square's width comes from its height; a `flex:1` / `container-type: size`
+board's width comes from the column — both circular, so the column **collapses**.
+Computing the width from the viewport (`--avail-w`, plus `--avail-h` for waffle)
+breaks the cycle. (This is exactly why the container-query square waffle used
+before couldn't be hugged: the size container collapsed in a hugging column.)
+
+**Single-glyph vs word tiles** is unchanged: scale a single glyph (a digit, an
+A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
+`cqi` + `--len` (see [Tile content](#tile-content-letter-vs-word-a-vs-b-games)).
+
+### The older shrink-wrap form (scrabble + boggle)
+
+scrabble + boggle still **drive the column width from the board** (the precursor
+to the hug model above): the board has a **definite viewport size** and the column
+shrink-wraps to it, the pair centered.
+`min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>), <maxTile>*cols + gap*(cols-1))`.
+The viewport offsets there aren't accidental brittleness — subtracting the sibling
+column + chrome is *inherent* to hugging. Migrating them onto the shared scaffold
+(which now expresses the same idea via `--avail-w`) is deferred.
 
 ## Mode pills
 

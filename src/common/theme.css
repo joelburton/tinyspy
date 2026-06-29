@@ -169,10 +169,28 @@
   --tile-selected-bg:         #5a594e;  /* dark warm-gray — selected fill + hover ring */
   --tile-selected-text:       #ffffff;  /* light ink on the dark selected fill */
 
+  /* The "Wordle colors" — the per-letter feedback palette shared by the
+     letter-coloring games (waffle today, wordle as it converges). The server
+     computes the feedback (it holds the secret); the FE only paints it, mapping
+     each code to a class via common/lib/tileColor.ts. Kept here, not per-game,
+     because the recognizable green/yellow/gray is one palette across games —
+     a player reads the same colors in waffle and wordle. Game-specific chrome
+     (wordle's filled-tile border, waffle's pickup ring) stays in that game. */
+  --wordle-green:             #6aaa64;  /* right letter, right spot */
+  --wordle-yellow:            #c9b458;  /* in the word, wrong spot */
+  --wordle-gray:              #787c7e;  /* not in the word */
+  --wordle-blank:             #d3d6da;  /* un-evaluated / neutral surface */
+
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */
   --radius-md:                6px;   /* buttons, inputs, panels */
   --radius-lg:                8px;   /* cards, modals */
+
+  /* Page padding — the breathing room on every page (the body's padding, all
+     sides). Single source: `body` applies it, and a game PlayArea's
+     available-width math subtracts 2× of it. (The vertical 2× is also part of
+     the --game-chrome-height lump below.) */
+  --page-padding:             1rem;
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from 100vh so
      it fills to the bottom without overflowing. Comprises the body padding
@@ -203,7 +221,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  padding: 1rem;
+  padding: var(--page-padding);
   display: grid;
   place-items: start center;
 }

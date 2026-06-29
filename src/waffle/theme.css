@@ -1,16 +1,11 @@
 /*
- * waffle (codename `waffle`) theme tokens — the per-tile feedback
- * palette, kept here so the grid + any future swatch share one source.
- * Wordle-ish greens/yellows/grays, plus a selection ring. Imported by
+ * waffle (codename `waffle`) theme tokens. The per-tile feedback palette is
+ * the shared "Wordle colors" in common/theme.css
+ * (`--wordle-green/yellow/gray/blank`) — waffle paints its tiles with those.
+ * Only waffle's own pickup affordance lives here: the warm ring drawn on a
+ * tile that's been tapped and is waiting for its swap partner. Imported by
  * the PlayArea (which mounts the grid).
  */
 :root {
-  --waffle-green: #6aaa64;
-  --waffle-yellow: #c9b458;
-  --waffle-gray: #787c7e;
-  /* Neutral fill for a tile with no color feedback yet (pre-load /
-   * a freshly-placed tile before its color resolves). The light
-   * Wordle-empty gray, kept here so it themes with the palette. */
-  --waffle-blank: #d3d6da;
   --waffle-select-ring: rgba(120, 90, 40, 0.35);
 }

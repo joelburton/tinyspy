@@ -350,7 +350,7 @@ export function PlayArea({
   const found = matchedCategories.length
 
   return (
-    <div className={shared.layout}>
+    <div className={cls(shared.layout, styles.layout)}>
       <div className={shared.boardCol}>
         <HintModal
           categories={game.board.categories}

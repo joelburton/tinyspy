@@ -1,0 +1,41 @@
+/* waffle-specific bits of the turn log. The panel chrome (heading + scroll box),
+ * the row look (outcome bar, divider lines), and the `.meta` content class come
+ * from the shared common/components/TurnLog (the swapper name + disc is the
+ * shared <ActorTag>); only the two-line row body — "Swap #N" on top, the move
+ * below — is waffle's. */
+
+/* Top line: "Swap #N" on the left, the swapper's <ActorTag> on the right
+ * (space-between), the same shape codenamesduet's clueRow uses. */
+.swapRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Second line: the move itself, "A (A1) ↔ B (C2)". */
+.move {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+/* Swapped letters lead — bigger, bolder, full body color. */
+.letter {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text);
+}
+
+/* Coordinates recede — smaller and lighter so the letters lead. */
+.coord {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.arrow {
+  color: var(--color-muted);
+  margin: 0 0.15rem;
+}

@@ -21,29 +21,62 @@
  * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
  */
 
-/* The board wrapper. Fills the board column (`flex: 1 1 0`) and is a flex column
- * so the grid inside fills it. Visually empty TODAY — no border, no background,
- * no padding — so it reads identically to psychicnum's board (gaps show the
- * column behind). It's the deliberate single place a future game adds a framed
- * look; the twin lives in psychicnum's WordBoard.module.css (`.board`). */
+/* The info column's width — game-specific (the shared scaffold has no default, so
+ * each game declares its own). connections' right column (setup + "N/4 found" +
+ * mistakes + the turn log) fits a narrow column; the shared `.infoCol` reads
+ * this. A rem, never a pixel lock. */
+.layout {
+  --info-col-width: 22rem;
+}
+
+/* The board wrapper. Visually empty TODAY — no border, no background, no padding
+ * — so it reads identically to psychicnum's board (gaps show the column behind).
+ * It's the deliberate single place a future game adds a framed look; the twin
+ * lives in psychicnum's WordBoard.module.css (`.board`).
+ *
+ * ─── Tile size caps — TINKER HERE ────────────────────────────────────────────
+ * The board grows to fill the space, but a tile never exceeds these. Relative
+ * units (rem). connections ships UNCAPPED (both commented out) → the board fills
+ * the column as before. To impose a cap, uncomment a line; comment it back out
+ * for no cap on that axis (the calc falls back to "unlimited", 999rem):
+ *     no width cap  → leave --max-tile-width commented
+ *     no height cap → leave --max-tile-height commented                         */
 .board {
+   --max-tile-width: 12rem;
+   --max-tile-height: 9rem;
+  --grid-gap: 0.5rem;
+  --cols: 4;            /* connections is always 4 columns */
+
+  /* Fills the column HEIGHT (the grid's `flex: 1` + 1fr rows fill it, capped by
+   * max-height); its WIDTH comes from the grid's definite hug width. */
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Cap the board height so each 1fr row tops out at --max-tile-height; rows
+   * still shrink on short screens. --rows (bands + tile-rows) is set inline by
+   * Board.tsx. Uncapped by default → the calc is huge → no effective cap. */
+  max-height: calc(
+    var(--rows) * var(--max-tile-height, 999rem) + (var(--rows) - 1) * var(--grid-gap)
+  );
 }
 
-/* The board grid. Fills the `.board` wrapper (`flex: 1`) and grows to fill the
- * height; the row count is applied inline by Board.tsx as `repeat(rows, 1fr)`
- * (rows = bands + tile-rows; always 4 for a 16-tile board). No per-row height
- * cap yet (psychicnum's WordBoard has one; connections may add one later). Four
- * columns; the --tile-font-* knobs tune the shared .tileWord auto-fit. */
+/* The board grid. HUGS: as wide as the tiles+gaps need, capped per tile, never
+ * past --avail-w (the width left beside the info column — the shared scaffold
+ * token on .layout). With no width cap it simply fills --avail-w (today's look).
+ * --cols/--rows drive the 1fr tracks; the bands span all columns (`grid-column:
+ * 1 / -1`). The --tile-font-* knobs tune the shared .tileWord auto-fit. */
 .grid {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--grid-gap);
+  width: min(
+    var(--avail-w),
+    calc(var(--cols) * var(--max-tile-width, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+  );
   --tile-font-min: 1rem;
   --tile-font-factor: 0.94;
   --tile-font-max: 1.95rem;

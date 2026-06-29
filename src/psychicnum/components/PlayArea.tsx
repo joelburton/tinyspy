@@ -292,11 +292,12 @@ export function PlayArea({
   }
 
   return (
-    <div className={shared.layout}>
-      {/* The board column FILLS the width the fixed info column leaves (flex:1);
-          the board grows to fill it, and the entry row below stretches to
-          match the board width. */}
-      <div className={shared.boardCol}>
+    <div className={cls(shared.layout, styles.layout)}>
+      {/* The board column HUGS the board (styles.boardCol overrides the shared
+          flex:1 to flex:0 0 auto): the board grows to fill up to its max tile
+          size, the column is only as wide as that, and the board+info pair
+          centers. The entry row below stretches to the board width. */}
+      <div className={cls(shared.boardCol, styles.boardCol)}>
         <WordBoard
           words={shuffledWords}
           results={results}

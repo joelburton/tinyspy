@@ -5,10 +5,21 @@
  *   - .inputMessage — the message that fills the input row when the entry is
  *     gone (the end-game secret reveal, or the "out of guesses" waiting line).
  *     Shared name with connections; see docs/ui.md → "Text entry".
+ *   - .layout — psychicnum's info-column width (see below).
  *
- * The board wrapper + grid + guessed-result fills live in WordBoard.module.css.
- * (The board-column debug tint lives on the shared `.boardCol` itself.)
+ * The board column HUGS its board (`flex: 0 0 auto`) — now the shared default in
+ * common/components/PlayArea.module.css, so no per-game override here. The board
+ * wrapper + grid + guessed-result fills live in WordBoard.module.css. (The
+ * board-column debug tint lives on the shared `.boardCol` itself.)
  * See docs/ui.md → "PlayArea layout" and "Modals for terminal results." */
+
+/* The info column's width — game-specific (the shared scaffold has no default).
+ * psychicnum's right column holds short readouts + the turn log, so a narrow
+ * column suffices. Both the shared `.infoCol` and this game's `.grid` --avail-w
+ * math read it (it cascades from `.layout` to both columns). */
+.layout {
+  --info-col-width: 22rem;
+}
 
 /* The message shown in the slot the guess entry occupied during play (see
  * PlayArea) — the end-game secret reveal, or the "out of guesses, waiting on the

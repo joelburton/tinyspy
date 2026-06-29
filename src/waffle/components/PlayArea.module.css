@@ -1,40 +1,42 @@
-/* Two-pane play surface that fills the viewport (per docs/ui.md →
- * "Page-height fits the viewport"): the board grows to fill the left
- * pane, the controls + swap log sit in a fixed-width right pane. The
- * chrome-height offset is the shared token (body padding + GamePage
- * header + gap). */
+/* waffle play surface. The two-column SHELL (.layout / .boardCol / .infoCol),
+ * the info-column READOUTS (.infoSetup / .infoState / .infoHelp / .infoActions +
+ * the terminal swap), and the shared .tile chrome all come from the shared
+ * common/components/PlayArea.module.css (imported as `shared`), the same scaffold
+ * psychicnum / connections / codenamesduet use. The square board grid lives in
+ * WaffleGrid.module.css. Only the below-board local-feedback slot is here.
+ *
+ * waffle has no text entry (the board IS the input — tap two tiles), so this
+ * slot mostly sits empty during play; it holds the own-action error flash (a
+ * rejected swap / failed End — the LOCAL half of the feedback split) for a beat,
+ * and at terminal the SolutionReveal (the answer goes where the entry would be —
+ * docs/ui.md → "Text entry"). A reserved height keeps the top-anchored board from
+ * shifting when the flash swaps in. */
+
+/* The info column's width — game-specific (the shared scaffold has no default, so
+ * each game declares its own). waffle's right column (setup + swap state + the
+ * swap log) fits a narrow column; the shared `.infoCol` reads this. A rem, never
+ * a pixel lock. */
 .layout {
-  height: calc(100vh - var(--game-chrome-height));
-  display: flex;
-  gap: 2rem;
-  align-items: stretch;
-  padding: 1.5rem 1rem;
+  --info-col-width: 22rem;
 }
 
-/* Left pane. `container-type: size` exposes its width/height as cqw/cqh
- * so the WaffleGrid can size itself to the largest square that fits.
- * flex: 1 + min-* let it take (and give back) space freely. */
-.boardArea {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  container-type: size;
-  display: grid;
-  place-items: center;
-}
-
-.rightCol {
-  flex: 0 0 20rem;
+.inputRow {
+  flex-shrink: 0;
+  min-height: 2.75rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-height: 0;
-  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
 }
 
-.gameOver {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: flex-start;
+/* The own-action error flash in this column slot. The shared <ResultFlash>'s
+ * `.flash` sets `flex: 1` (for a horizontal input ROW); in this COLUMN slot that
+ * makes it fill the height and read too tall. Override to a short, content-height
+ * bar centered in the reserved slot. The descendant selector (`.inputRow
+ * .actionFlash`, specificity 0,2,0) beats `.flash` (0,1,0) regardless of
+ * stylesheet order. */
+.inputRow .actionFlash {
+  flex: 0 0 auto;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 }

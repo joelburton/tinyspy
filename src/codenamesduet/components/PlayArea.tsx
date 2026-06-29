@@ -346,7 +346,7 @@ export function PlayArea({
   const peerFinished = bannerEligible && peerAgentsDone
 
   return (
-    <div className={shared.layout}>
+    <div className={cls(shared.layout, styles.layout)}>
       <div className={shared.boardCol}>
         <BoardGrid
           words={words}

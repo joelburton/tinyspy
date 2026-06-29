@@ -31,24 +31,15 @@ type Props = {
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
  */
-/** Per-tile height cap (≈150px). The board fills available space, but a tile
- *  shouldn't get taller than this — words are horizontal, so very tall tiles
- *  just waste space. Applied as a board max-height (rows of this + gaps) so the
- *  1fr rows top out here yet still shrink on short screens. */
-const MAX_TILE = '9.5rem'
-
 export function WordBoard({ words, results, selected, onPick }: Props) {
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)
   return (
     <div
       className={styles.board}
-      // Cap the card height so each 1fr row tops out at MAX_TILE. The `0.5rem`
-      // gap here must match WordBoard.module.css. (No padding term — the board
-      // has no tray padding.)
-      style={{
-        maxHeight: `calc(${rows} * ${MAX_TILE} + ${rows - 1} * 0.5rem)`,
-      }}
+      // The column/row counts drive the board's hug WIDTH + max-HEIGHT, both
+      // computed in CSS from the --max-tile-* caps. See WordBoard.module.css.
+      style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
       <div
         className={styles.grid}

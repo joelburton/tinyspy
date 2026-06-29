@@ -15,6 +15,14 @@
  * and made the board jump. Instead it shows in the header pill, the below-board
  * CluePanel notice, and the info-column help (the red tag below). */
 
+/* The info column's width — game-specific (the shared scaffold has no default, so
+ * each game declares its own). codenamesduet's right column (setup + agent/turn
+ * state + the clue log) fits a narrow column; the shared `.infoCol` reads this. A
+ * rem, never a pixel lock. */
+.layout {
+  --info-col-width: 22rem;
+}
+
 /* The red "SUDDEN DEATH:" lead-in on the otherwise-muted info-column help, so a
  * player skimming past "the help hasn't changed" still catches that it has. */
 .suddenDeathTag {

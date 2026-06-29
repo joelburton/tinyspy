@@ -11,10 +11,12 @@
  *   'x' gray   — not in the word
  *   anything else → 'blank' (an un-evaluated tile, or a hole/absent cell)
  *
- * The color *values* deliberately stay per-game (`--wordle-green` vs
- * `--waffle-green`) — only this code→key mapping is identical, so only
- * it is shared. Game-specific helpers (wordle's reveal-animation var and
- * keyboard color-rank) live in that game's own `lib/colors.ts`.
+ * The color *values* are the shared "Wordle colors" in common/theme.css
+ * (`--wordle-green/yellow/gray/blank`) — one palette across the
+ * letter-coloring games, so a player reads the same green/yellow/gray in
+ * waffle and wordle. This code→key mapping is shared too; only each game's
+ * own chrome (wordle's reveal-animation var + keyboard color-rank, waffle's
+ * pickup ring) stays per-game.
  */
 export type TileColor = 'green' | 'yellow' | 'gray' | 'blank'
 
