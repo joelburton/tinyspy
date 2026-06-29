@@ -79,13 +79,22 @@ test.describe('codenamesduet below-board layout stability', () => {
     await pageAlice.getByRole('button', { name: /clue hint/i }).click()
     // The dialog pops up (its own panel) — the form is still there underneath.
     await expect(pageAlice.getByText('Clue suggestion')).toBeVisible({ timeout: 10000 })
-    // DEBUG: where does the panel actually render?
-    console.log('VIEWPORT', pageAlice.viewportSize())
-    console.log('PANEL TITLE BOX', await pageAlice.getByText('Clue suggestion').boundingBox())
-    console.log(
-      'PANEL ROOT BOX',
-      await pageAlice.locator('.react-draggable, [class*="rnd"]').first().boundingBox(),
-    )
+
+    // …and it must render fully ON-SCREEN. Regression guard: it once mounted at
+    // y≈898 (below the viewport) because react-rnd positions from the static
+    // flow position and the panel sat deep in the flex-column board; it now
+    // mounts at the .layout level. Assert the whole panel is inside the viewport.
+    const viewport = pageAlice.viewportSize()!
+    const panel = await pageAlice
+      .locator('.react-draggable, [class*="rnd"]')
+      .first()
+      .boundingBox()
+    expect(panel).not.toBeNull()
+    expect(panel!.x).toBeGreaterThanOrEqual(0)
+    expect(panel!.y).toBeGreaterThanOrEqual(0)
+    expect(panel!.x + panel!.width).toBeLessThanOrEqual(viewport.width)
+    expect(panel!.y + panel!.height).toBeLessThanOrEqual(viewport.height)
+
     await expect(countInput).toBeVisible()
     const aError = await boardHeight(pageAlice)
     // Dismiss the dialog so it can't overlap the form for the submit below.
