@@ -14,11 +14,12 @@
 /* Per-game layout vars the shared scaffold reads. The info column runs wider than
  * the other games' — the word list wants room for several columns — so start at
  * 33rem and tune. --avail-h is the vertical space left for the hex board (bounded
- * by height too, like waffle's square): viewport − chrome − the below-board
- * input/feedback stack. */
+ * by height too, like waffle's square): viewport − chrome − the single below-board
+ * slot (the input row / feedback pill / terminal status, ~2.75rem) and the board
+ * column's gap above it (~0.75rem). */
 .layout {
   --info-col-width: 33rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 9.5rem);
+  --avail-h: calc(100vh - var(--game-chrome-height) - 3.5rem);
 }
 
 /* The board column. Hoists `--side` (the hex board's edge length) here — rather
@@ -36,15 +37,17 @@
   --side: min(var(--avail-w), var(--avail-h), var(--max-hex-board-size, 999rem));
 }
 
-/* The below-board region, stacked: the full-width entry box, then the
- * Delete/Enter button row, then the feedback slot. Width pinned to the board's
- * --side so a long typed word can't widen the column and shift the centered
- * board. */
+/* The below-board slot — holds exactly ONE of: the input row, the own-action
+ * feedback pill, or the terminal status (they replace each other, the same swap
+ * the other redesigned games do). A reserved min-height (the input row's) keeps
+ * the top-anchored board from shifting as they swap. Width pinned to --side so a
+ * long typed word can't widen the column and shift the centered board. */
 .belowBoard {
   width: var(--side);
+  min-height: 2.75rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
 }
 
 /* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
@@ -71,31 +74,12 @@
   grid-column: 1 / -1;
 }
 
-/* The terminal indicator that replaces the Feedback row once
- * the game has ended (and the GameOverModal has been
- * dismissed). One line of copy + a Back-to-club button — same
- * idiom psychicnum uses. The Back-to-club here skips the
- * suspend-confirm modal (the game is terminal, no progress to
- * lose); wired by GamePage via `ctx.goToClub`.
- */
+/* The terminal status that REPLACES the input area at game over — the detailed
+ * line ("Game over — Genius! 12/93 points"). Just centered text now; the
+ * back-to-club button moved to the info-column action row. */
 .terminalIndicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 28px;
+  text-align: center;
   font-size: 14px;
   font-weight: 600;
-}
-
-.terminalIndicator button {
-  font: inherit;
-  font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--color-surface-border);
-  background: var(--color-surface);
-  color: var(--spellingbee-hex-text);
-  cursor: pointer;
 }
 

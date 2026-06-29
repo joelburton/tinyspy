@@ -7,6 +7,7 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { DeleteButton } from '../../common/components/buttons/DeleteButton'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
@@ -100,7 +101,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, menu, playState, players, session, status,
+    gameId, isTerminal, playState, players, session, status,
     setup, goToClub,
     // The COMMON header feedback slot. Aliased so it doesn't clash with the
     // local in-body `feedback` state below — the two are different surfaces:
@@ -314,10 +315,12 @@ export function PlayArea(ctx: GamePageCtx) {
     ),
   )
 
-  // ─── End-game action (per-game menu item) ──────────────
-  // Available in both modes. In compete, manual end terminates
-  // the race with everyone {won:false} — friends agreeing to stop
-  // the race is a valid outcome, not a "you lose" punishment.
+  // ─── End-game action (info-column button) ──────────────
+  // The manual "we're done" stop — an info-column action-row button now (like
+  // psychicnum / waffle), off the GamePage menu. Available in both modes; in
+  // compete it terminates the race with everyone {won:false} — friends agreeing
+  // to stop is a valid outcome, not a "you lose" punishment. Confirmed (it's
+  // irreversible); a failure flashes the local feedback.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm('End the game now? You can\'t undo this.')) return
@@ -326,18 +329,6 @@ export function PlayArea(ctx: GamePageCtx) {
       showFeedback(`End game failed: ${error.message}`, 'error')
     }
   }, [gameId, isTerminal, showFeedback])
-
-  useEffect(function syncMenuItems() {
-    menu.setGameItems([
-      {
-        id: 'end-game',
-        label: 'End game',
-        onClick: () => void handleEndGame(),
-        disabled: isTerminal,
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [handleEndGame, isTerminal, menu])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -425,40 +416,46 @@ export function PlayArea(ctx: GamePageCtx) {
             one line, with the own-action feedback (or terminal line) beneath. The
             board itself is the letter input; this row commits/edits it. */}
         <div className={styles.belowBoard}>
-          {/* The entry row: icon-only Delete (left) flanking the chrome-less
-              capture-input box, icon-only Submit (right). The shared purpose
-              buttons bake in the glyph, icon-size, tone, and the focus-guard
-              (the click must not steal focus from the window keyboard-capture). */}
-          <div className={styles.inputRow}>
-            <DeleteButton
-              iconOnly
-              onClick={handleDelete}
-              disabled={word.length === 0 || isTerminal}
-            />
-            {/* The shared capture-input box (chrome-less, large, centered; no
-                <input>). spellingbee's per-character illegal-letter dim rides in
-                as the box's children via <TypedWord>. */}
-            <EntryBox
-              value={word}
-              placeholder="Type or click letters"
-              className={styles.entry}
-            >
-              <TypedWord word={word} allowedLetters={allowedLetters} />
-            </EntryBox>
-            <SubmitButton
-              iconOnly
-              onClick={() => void handleSubmit()}
-              disabled={word.length === 0 || isTerminal}
-            />
-          </div>
-          {isTerminal && over
-            ? (
-              <div className={styles.terminalIndicator}>
-                <span>Game over — {over.indicator}</span>
-                <BackToClubButton onClick={goToClub} />
-              </div>
-            )
-            : <Feedback message={feedback.message} tone={feedback.tone} />}
+          {isTerminal && over ? (
+            /* Terminal: the game-ended status REPLACES the input area. The
+               back-to-club button is NOT here — it's in the info-column action
+               row now. */
+            <div className={styles.terminalIndicator}>Game over — {over.indicator}</div>
+          ) : feedback.message && word === '' ? (
+            /* Own-action local feedback REPLACES the input row for its beat (a
+               word result / validation message) — the same swap the other
+               redesigned games do, instead of a line below the input. Gated on
+               word === '' so the moment the player types the next word their
+               letters reclaim the slot (the pill also auto-clears on its timer). */
+            <Feedback message={feedback.message} tone={feedback.tone} />
+          ) : (
+            /* The entry row: icon-only Delete (left) flanking the chrome-less
+               capture-input box, icon-only Submit (right). The shared purpose
+               buttons bake in the glyph, icon-size, tone, and the focus-guard
+               (a click must not steal focus from the window keyboard-capture). */
+            <div className={styles.inputRow}>
+              <DeleteButton
+                iconOnly
+                onClick={handleDelete}
+                disabled={word.length === 0 || isTerminal}
+              />
+              {/* The shared capture-input box (chrome-less, large, centered; no
+                  <input>). spellingbee's per-character illegal-letter dim rides in
+                  as the box's children via <TypedWord>. */}
+              <EntryBox
+                value={word}
+                placeholder="Type or click letters"
+                className={styles.entry}
+              >
+                <TypedWord word={word} allowedLetters={allowedLetters} />
+              </EntryBox>
+              <SubmitButton
+                iconOnly
+                onClick={() => void handleSubmit()}
+                disabled={word.length === 0 || isTerminal}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -499,6 +496,25 @@ export function PlayArea(ctx: GamePageCtx) {
           foundWordsCount={foundWordsCount}
           requiredWordsCount={game.required_words_count}
         />
+
+        {/* Action row (above Setup): the End-game button during play; at terminal
+            it's replaced by the bold, outcome-colored result line + a compact
+            back-to-club button. */}
+        {over ? (
+          <div className={cls(shared.infoActions, shared.terminalActions)}>
+            <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+              {over.message}
+            </span>
+            <BackToClubButton onClick={goToClub} compact />
+          </div>
+        ) : (
+          <div className={shared.infoActions}>
+            <EndGameButton
+              className={shared.helperButton}
+              onClick={() => void handleEndGame()}
+            />
+          </div>
+        )}
 
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the status above; it
@@ -552,9 +568,10 @@ function timerLabel(t: TimerMode): string {
  * Maps the terminal play_state to:
  *   - `outcome` — the GameOverModal's green/red color cue.
  *   - `verdict` — the centered large-font line in the modal.
- *   - `indicator` — short copy for the in-PlayArea terminal
- *     indicator (the line that replaces the Feedback row once
- *     the modal is dismissed).
+ *   - `indicator` — the detailed status line that replaces the input area
+ *     below the board (e.g. "Genius! 12/93 points").
+ *   - `message` + `tone` — the short, bold, color-coded line in the
+ *     info-column action row (won = green, lost = red, neutral = plain).
  *
  * Coop:
  *   - `playState='ended'` + Genius rank → "Genius! N/M points."
@@ -597,6 +614,8 @@ function buildOver({
   outcome: 'won' | 'lost'
   verdict: string
   indicator: string
+  message: string
+  tone: 'won' | 'lost' | 'neutral'
 } {
   const rankName = RANKS[selfRankIdx]
 
@@ -613,6 +632,8 @@ function buildOver({
           outcome: 'won',
           verdict: `You won the race — reached ${targetRankName}!`,
           indicator: `you won at ${targetRankName}`,
+          message: 'You won!',
+          tone: 'won',
         }
       }
       const winnerName =
@@ -621,6 +642,8 @@ function buildOver({
         outcome: 'lost',
         verdict: `${winnerName} beat you to ${targetRankName}.`,
         indicator: `${winnerName} won at ${targetRankName}`,
+        message: `${winnerName} won`,
+        tone: 'lost',
       }
     }
 
@@ -632,12 +655,16 @@ function buildOver({
         outcome: 'lost',
         verdict: `Time's up — no winner at ${targetRankName}.`,
         indicator: `time up — no winner at ${targetRankName}`,
+        message: 'Time up',
+        tone: 'lost',
       }
     }
     return {
       outcome: 'lost',
       verdict: `Game ended — no winner at ${targetRankName}.`,
       indicator: `ended — no winner at ${targetRankName}`,
+      message: 'Game ended',
+      tone: 'neutral',
     }
   }
 
@@ -647,11 +674,15 @@ function buildOver({
       outcome: 'won',
       verdict: `Genius! ${foundWordsScore}/${requiredWordsScore} points.`,
       indicator: `Genius! ${foundWordsScore}/${requiredWordsScore} points`,
+      message: 'Genius!',
+      tone: 'won',
     }
   }
   return {
     outcome: 'won',
     verdict: `Stopped at ${rankName} — ${foundWordsScore}/${requiredWordsScore} points.`,
     indicator: `stopped at ${rankName}`,
+    message: `Stopped at ${rankName}`,
+    tone: 'neutral',
   }
 }
