@@ -116,8 +116,12 @@
  * tabletop: my card near me, my opponent's across the table. */
 .keySquare {
   position: absolute;
-  width: clamp(24px, 18cqi, 36px);
-  height: clamp(24px, 18cqi, 36px);
+  /* Scale with the tile (cqi = % of the tile's width, via the shared tile's
+   * container-type) so the square shrinks on small tiles instead of crowding the
+   * word. A low floor is the key fix: the old 24px min held the square too big on
+   * a small-laptop board, where it collided with longer words. */
+  width: clamp(12px, 13cqi, 28px);
+  height: clamp(12px, 13cqi, 28px);
   border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.28);
 }

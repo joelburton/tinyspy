@@ -1,75 +1,111 @@
 /* The CluePanel renders inside PlayArea's below-board `.inputRow` slot, which
- * already sets a reserved height + vertical centering (so swapping clue states
- * doesn't shift the board). The panel itself carries no surface chrome (border,
- * background, vertical margin) — its container is the chrome. This stylesheet
- * just lays out the contents of whichever state is rendered. */
+ * reserves a single control-row's height + vertical-centers its child (so
+ * swapping clue states doesn't shift the board). The slot is board-wide, so each
+ * state lays its pieces out on ONE horizontal line rather than stacking them.
+ * The panel carries no surface chrome of its own (except sudden death) — the
+ * slot is the container. */
 
+/* The one-line states (clue display + Pass / waiting copy / sudden death).
+ * Centered cluster, kept on ONE line (no wrap) — a wrapping state would be
+ * taller than the others and make the board above reflow as turns change
+ * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
+ * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
+ * on a desktop-width board. */
 .cluePanel {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.5rem 0.75rem;
 }
 
-/* Sudden death is the one state that still carries its own
- * visual — a tinted background + accent border — to drive the
- * "things just got real" beat. */
+/* Sudden death is the one state that still carries its own visual — a tinted
+ * background + accent border — to drive the "things just got real" beat. */
 .cluePanel.suddenDeath {
   border: 1px solid var(--codenamesduet-assassin);
   background: var(--codenamesduet-assassin-soft);
   border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  font-size: 1.05rem;
+  padding: 0.6rem 1rem;
 }
 
+/* "Your clue:" lead-in, muted so the WORD beside it carries the emphasis. */
+.clueLabel {
+  color: var(--color-muted);
+}
+
+/* The active clue, inline — prominent but sized to sit on the control line. */
 .clueDisplay {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 
-.clueFormHeader {
+/* "Waiting for <peer> to …" — muted; the <ActorTag> inside carries the peer's
+ * identity disc. */
+.waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* The clue-giver's form: the one-line control row, with the suggestion reasoning
+ * / submit error wrapping below it (centered). */
+.clueForm {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-}
-
-.clueFormRow {
-  display: grid;
-  /* A single-digit count, then the word field (fills), then the compact
-     up-arrow submit. Matches the rendered clue order (e.g. "3 vehicles"). */
-  grid-template-columns: 2rem 1fr auto;
+  flex-direction: column;
+  align-items: center;
   gap: 0.4rem;
 }
 
-/* All three fields trim their default L/R padding and drop their intrinsic
- * min-width, so the row fits the (now narrow) right column instead of
- * overflowing it. */
-.countInput {
-  text-align: center;
-  min-width: 0;
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+/* The control row stays on ONE line (label, count, word, submit, Clue Hint) —
+ * no wrap, so the Clue Hint button never drops below the inputs. When space is
+ * tight the word field shrinks (flex-shrink) rather than the row breaking. */
+.clueLine {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
+/* "Clue for <peer>" — the label + the peer's <ActorTag> on one baseline. Hold
+ * its own width (no shrink) + keep the text on one line, so the row never
+ * compresses "Clue for" onto two lines — the word field absorbs width pressure
+ * instead. */
+.clueFor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Single-digit count — fixed narrow box, centered text. */
+.countInput {
+  width: 2.5rem;
+  text-align: center;
+}
+
+/* The clue word — a comfortable fixed-ish width (shrinks on narrow viewports);
+ * NOT full board-width, so the row reads as a compact cluster. */
 .wordInput {
-  min-width: 0;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  flex: 0 1 14rem;
+  min-width: 6rem;
 }
 
 /* Compact icon submit — just the up-arrow glyph, minimal side padding. */
 .submitBtn {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
   font-size: 1rem;
   line-height: 1;
 }
 
-.suggestBtn {
-  font-size: 0.85rem;
-}
-
-.suggestReasoning {
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
-  font-style: italic;
+/* The "Clue Hint" button (AI suggestion) — icon + label via the global
+ * `.icon-button`. Hold its width (no shrink) + keep the label on one line, so
+ * "Clue Hint" never wraps onto two lines. */
+.hintBtn {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }

@@ -1,7 +1,8 @@
 import { useState, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
-import { colorVarFor } from '../../common/lib/memberColor'
+import { ActorTag } from '../../common/components/ActorTag'
+import { IconHint } from '../../common/components/icons'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
@@ -18,29 +19,38 @@ type CluePanelProps = {
   currentClue: Clue | null
   /** True if game.status === 'sudden_death'. */
   inSuddenDeath: boolean
-  /** The other seated player. Used to render "Give a clue for
-   *  <name>" / "Waiting for <name>…" — replaces the previous
-   *  "your partner" copy. May be undefined briefly during the
-   *  initial roster fetch, in which case the copy falls back to
-   *  "your partner" so the panel always reads cleanly. */
+  /** The other seated player. Used to render "Clue for <name>" /
+   *  "Waiting for <name>…". May be undefined briefly during the initial roster
+   *  fetch, in which case the copy falls back to "your partner". */
   peer: Player | undefined
+  /** Report an own-action error (a failed clue submit / suggestion / pass). Goes
+   *  to PlayArea's local <ResultFlash> — NOT an inline line, so the slot height
+   *  (and the board above) never changes. */
+  onError: (message: string) => void
+  /** Report the AI clue suggestion's reasoning. Goes to the header pill (it'd
+   *  grow the one-line slot if shown inline). */
+  onReasoning: (text: string) => void
 }
 
 /**
- * The action slot in the right column. Its content depends on
- * which player is looking and where in the turn cycle we are:
+ * The codenamesduet clue UI, rendered in the below-board input slot (PlayArea's
+ * `.inputRow`). Each state is a single horizontal line — the slot is board-wide,
+ * so there's room to lay the pieces out in a row rather than stacking them.
+ * Which line shows depends on who's looking + where in the turn cycle we are:
  *
- *   sudden death    → "any non-green reveal loses" notice
+ *   sudden death    → "Sudden death — any non-green reveal loses" notice
  *   guess phase &&
- *     guesser       → clue display + "Pass" button (legal any time)
- *     clue-giver    → clue display + "waiting for <peer> to guess" hint
+ *     guesser       → "Your clue: WORD · N" + Pass button
+ *     clue-giver    → "Your clue: WORD · N" + "waiting for <peer> to guess"
  *   clue phase &&
- *     clue-giver    → ClueForm (count + word + submit + suggest)
- *     guesser       → "waiting for <peer> to give a clue" hint
+ *     clue-giver    → "Clue for <peer>" + count + word + Submit + Clue Hint
+ *     guesser       → "waiting for <peer> to give a clue"
  *
- * All four shapes render in the same fixed-height slot (set by the
- * parent's `.actionSlot` styles) — switching between them doesn't
- * shift the game log below, per docs/ui.md → "Layout stability."
+ * Every state is exactly ONE line, so the reserved-height slot is constant and
+ * the board above never shifts (docs/ui.md → "Layout stability"). Anything that
+ * would add a second line — a submit/suggest error, the AI reasoning — is
+ * reported up via `onError` / `onReasoning` (to the local flash / header pill)
+ * rather than rendered inline.
  */
 export function CluePanel({
   gameId,
@@ -49,12 +59,13 @@ export function CluePanel({
   currentClue,
   inSuddenDeath,
   peer,
+  onError,
+  onReasoning,
 }: CluePanelProps) {
   if (inSuddenDeath) {
     return (
       <div className={cls(styles.cluePanel, styles.suddenDeath)}>
-        <strong>Sudden death.</strong> No more clues. Any non-green reveal
-        loses.
+        <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
       </div>
     )
   }
@@ -62,18 +73,23 @@ export function CluePanel({
   if (isGuessPhase && currentClue) {
     return (
       <div className={styles.cluePanel}>
-        <div className="muted">Current clue</div>
-        <div className={styles.clueDisplay}>
-          <strong>{currentClue.word.toUpperCase()}</strong> · {currentClue.count}
-        </div>
-        {!isClueGiver && <PassButton gameId={gameId} />}
+        <span className={styles.clueLabel}>Your clue:</span>
+        <ClueDisplay clue={currentClue} />
+        {!isClueGiver && <PassButton gameId={gameId} onError={onError} />}
         {isClueGiver && <PeerWaiting peer={peer} action="guess" />}
       </div>
     )
   }
 
   if (isClueGiver) {
-    return <ClueForm gameId={gameId} peer={peer} />
+    return (
+      <ClueForm
+        gameId={gameId}
+        peer={peer}
+        onError={onError}
+        onReasoning={onReasoning}
+      />
+    )
   }
   return (
     <div className={styles.cluePanel}>
@@ -82,10 +98,18 @@ export function CluePanel({
   )
 }
 
-/** Render "Waiting for <peer>…" with the peer's name in their
- *  profile color so the waiting copy reinforces who you're
- *  waiting on. Falls back to "your partner" when the peer
- *  hasn't loaded yet so the panel never reads "Waiting for …" */
+/** The active clue, inline: "WORD · N" (the word bold + prominent). */
+function ClueDisplay({ clue }: { clue: Clue }) {
+  return (
+    <span className={styles.clueDisplay}>
+      <strong>{clue.word.toUpperCase()}</strong> · {clue.count}
+    </span>
+  )
+}
+
+/** "Waiting for <peer> to <action>…" — the peer's identity via the shared
+ *  <ActorTag> (name + colored disc); falls back to "your partner" when the peer
+ *  hasn't loaded yet. */
 function PeerWaiting({
   peer,
   action,
@@ -93,58 +117,47 @@ function PeerWaiting({
   peer: Player | undefined
   action: string
 }) {
-  if (!peer) {
-    return <p className="muted">Waiting for your partner to {action}…</p>
-  }
   return (
-    <p className="muted">
-      Waiting for{' '}
-      <strong style={{ color: colorVarFor(peer.color) }}>
-        {peer.username}
-      </strong>{' '}
-      to {action}…
-    </p>
+    <span className={cls('muted', styles.waiting)}>
+      Waiting for <ActorTag actor={peer} fallback="your partner" /> to {action}…
+    </span>
   )
 }
 
 /**
- * Inline form rendered to the active clue-giver during the clue
- * phase.
+ * The clue-giver's inline clue form: "Clue for <peer>  [#]  [word]  ▲  Clue Hint"
+ * on ONE line. Errors + the AI reasoning are reported up (onError / onReasoning)
+ * rather than rendered below, so the row never grows a second line.
  *
- * The server (submit_clue RPC) enforces all the actual preconditions
- * (right seat, no existing clue this turn, game is active). We only
- * do lightweight UX validation here — a non-empty word and a non-
- * negative count.
+ * The server (submit_clue RPC) enforces the real preconditions (right seat, no
+ * existing clue this turn, game active); we only do lightweight UX validation —
+ * a non-empty word + a count.
  *
- * **Uppercase as typed.** The word input transforms input to
- * uppercase on every onChange. Codenames convention: clues are
- * shown in all-caps both in the game ("BIRD 3") and in pop
- * culture; making the input live-uppercase matches the
- * convention and saves the clue-giver a step. Also applies to
- * the Claude suggestion, so the inputs look consistent after
- * "Need a clue?" lands its picks.
+ * **Uppercase as typed.** Codenames convention shows clues in all-caps ("BIRD
+ * 3"); the word input uppercases on every change (and so does the Claude
+ * suggestion) to match.
  */
 function ClueForm({
   gameId,
   peer,
+  onError,
+  onReasoning,
 }: {
   gameId: string
   peer: Player | undefined
+  onError: (message: string) => void
+  onReasoning: (text: string) => void
 }) {
-  // Count is stored as a string (not a number) so the input can
-  // start empty — defaulting to a digit would tempt the clue-giver
-  // into pressing Submit before consciously picking one. The
+  // Count is a string (not a number) so the input can start empty — defaulting
+  // to a digit would tempt a Submit before the giver consciously picks one. The
   // submit guard rejects empty.
   const [count, setCount] = useState('')
   const [word, setWord] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
-  const [reasoning, setReasoning] = useState<string | null>(null)
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError(null)
     setBusy(true)
     const { error } = await db.rpc('submit_clue', {
       target_game: gameId,
@@ -153,30 +166,21 @@ function ClueForm({
     })
     setBusy(false)
     if (error) {
-      setError(error.message)
+      onError(error.message)
       return
     }
-    // Clear the form on success; the panel will swap to the
-    // guess-phase view automatically once Realtime propagates the
-    // new clue row.
+    // Clear on success; the panel swaps to the guess-phase view once Realtime
+    // propagates the new clue row.
     setCount('')
     setWord('')
-    setReasoning(null)
   }
 
-  // Calls the codenamesduet-suggest-clue Edge Function, which:
-  //   1. invokes get_clue_context as the current user (the RPC
-  //      enforces the "you are the clue-giver in an active game"
-  //      check)
-  //   2. asks Claude to pick a clue via tool-use for structured
-  //      output
-  // The returned suggestion fills the inputs — the user can edit
-  // before submitting. The clue is uppercased to match the
-  // capitalize-as-typed convention; the reasoning text is shown
-  // as a small line below.
+  // Calls the codenamesduet-suggest-clue Edge Function (which enforces the
+  // "you are the clue-giver in an active game" check, then asks Claude for a
+  // structured clue). The suggestion fills the inputs — editable before submit;
+  // the clue is uppercased to match the type-as-caps convention, the reasoning
+  // surfaced via the header pill.
   async function onSuggest() {
-    setError(null)
-    setReasoning(null)
     setSuggesting(true)
     const { data, error } = await supabase.functions.invoke(
       'codenamesduet-suggest-clue',
@@ -184,47 +188,25 @@ function ClueForm({
     )
     setSuggesting(false)
     if (error || data?.error) {
-      setError(error?.message ?? data?.error ?? 'failed to fetch suggestion')
+      onError(error?.message ?? data?.error ?? 'failed to fetch suggestion')
       return
     }
-    const s = data.suggestion as {
-      clue: string
-      count: number
-      reasoning: string
-    }
+    const s = data.suggestion as { clue: string; count: number; reasoning: string }
     setWord(s.clue.toUpperCase())
     setCount(String(s.count))
-    setReasoning(s.reasoning)
+    if (s.reasoning) onReasoning(s.reasoning)
   }
 
   const submittable = count !== '' && word.trim().length > 0
   const eitherBusy = busy || suggesting
 
   return (
-    <form className={styles.cluePanel} onSubmit={onSubmit}>
-      <div className={styles.clueFormHeader}>
-        <span className="muted">
-          Give a clue for{' '}
-          {peer ? (
-            <strong style={{ color: colorVarFor(peer.color) }}>
-              {peer.username}
-            </strong>
-          ) : (
-            <strong>your partner</strong>
-          )}
+    <form className={styles.clueForm} onSubmit={onSubmit}>
+      <div className={styles.clueLine}>
+        <span className={styles.clueFor}>
+          Clue for <ActorTag actor={peer} fallback="your partner" />
         </span>
-        <button
-          type="button"
-          className={cls('link-button', styles.suggestBtn)}
-          onClick={onSuggest}
-          disabled={eitherBusy}
-        >
-          {suggesting ? 'Thinking…' : 'Need a clue?'}
-        </button>
-      </div>
-      <div className={styles.clueFormRow}>
-        {/* Digit-only text input rather than type=number — no spinner chrome,
-            and a clue count is a single digit. */}
+        {/* Digit-only text input (not type=number — no spinner chrome). */}
         <input
           type="text"
           inputMode="numeric"
@@ -259,21 +241,33 @@ function ClueForm({
         >
           {busy ? '…' : '▲'}
         </button>
+        {/* AI clue suggestion — the hint (lightbulb) icon + "Clue Hint". */}
+        <button
+          type="button"
+          className={cls('secondary', 'icon-button', styles.hintBtn)}
+          onClick={onSuggest}
+          disabled={eitherBusy}
+        >
+          <IconHint size={15} aria-hidden />
+          {suggesting ? 'Thinking…' : 'Clue Hint'}
+        </button>
       </div>
-      {reasoning && (
-        <p className={cls('muted', styles.suggestReasoning)}>{reasoning}</p>
-      )}
-      {error && <p className="error">{error}</p>}
     </form>
   )
 }
 
 /**
- * Voluntarily end the turn without making (another) guess. Rule-
- * legal at any point during the guess phase — even before the
- * first guess. Costs one turn like any other turn end.
+ * Voluntarily end the turn without making (another) guess. Rule-legal at any
+ * point during the guess phase — even before the first guess. Costs one turn
+ * like any other turn end.
  */
-function PassButton({ gameId }: { gameId: string }) {
+function PassButton({
+  gameId,
+  onError,
+}: {
+  gameId: string
+  onError: (message: string) => void
+}) {
   const [busy, setBusy] = useState(false)
   return (
     <button
@@ -284,7 +278,7 @@ function PassButton({ gameId }: { gameId: string }) {
         setBusy(true)
         const { error } = await db.rpc('pass_turn', { target_game: gameId })
         setBusy(false)
-        if (error) console.error(error)
+        if (error) onError(error.message)
       }}
     >
       Pass (end turn)

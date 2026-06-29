@@ -342,7 +342,11 @@ export function PlayArea({
           {over ? (
             <p className={styles.inputMessage}>{over.verdict}</p>
           ) : actionFlash ? (
-            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} />
+            <ResultFlash
+              tone={actionFlash.tone}
+              label={actionFlash.label}
+              className={styles.actionFlash}
+            />
           ) : (
             <CluePanel
               gameId={gameId}
@@ -351,6 +355,17 @@ export function PlayArea({
               currentClue={currentTurnClue}
               inSuddenDeath={inSuddenDeath}
               peer={peer}
+              // Own-action errors → the local flash (replaces the slot for a
+              // beat, never grows it); the AI reasoning → the header pill (an
+              // inline line would grow the one-line slot, shifting the board).
+              onError={(m) => flashAction('bad', m)}
+              onReasoning={(t) =>
+                feedback.show({
+                  tone: 'info',
+                  text: `Clue Hint: ${t}`,
+                  dismiss: { kind: 'timed', ms: 8000 },
+                })
+              }
             />
           )}
         </div>

@@ -23,18 +23,33 @@
 }
 
 /* The below-board move-input slot — holds the CluePanel (clue form / clue
- * display + Pass / waiting copy) during play, or the terminal verdict echo. A
- * reserved min-height (the clue form is the tallest state) + vertical centering
- * keeps the top-anchored board from shifting as the clue state swaps (docs/ui.md
- * → "Layout stability"). The shared below-board `.inputRow` concept; here it's
- * taller and column-oriented because codenamesduet's clue UI is richer than the
- * single control row psychicnum/connections use. */
+ * display + Pass / waiting copy, each on one line), the own-action error flash,
+ * or the terminal verdict echo. A FIXED height (not min-height) so the slot is
+ * immutable: every state's content fits within it and centers, and NOTHING can
+ * grow it — so the top-anchored board never shifts as the state swaps
+ * (docs/ui.md → "Layout stability"). `3rem` clears codenamesduet's clue-form
+ * controls (taller than a single button/entry). Errors + the AI reasoning are
+ * routed to the flash / header pill rather than rendered inline, so no state
+ * adds a second line. */
 .inputRow {
   flex-shrink: 0;
-  min-height: 8rem;
+  height: 3rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+/* The own-action error flash in this slot. The shared <ResultFlash>'s `.flash`
+ * sets `flex: 1` (meant for a horizontal input ROW, where it fills the width);
+ * in this COLUMN slot that makes it fill the height and read taller than the
+ * inputs. Override it to a short, content-height bar — clearly shorter than the
+ * clue controls — centered in the fixed slot. The descendant selector
+ * (`.inputRow .actionFlash`, specificity 0,2,0) beats `.flash` (0,1,0)
+ * regardless of stylesheet order. */
+.inputRow .actionFlash {
+  flex: 0 0 auto;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
 }
 
 /* The terminal verdict echo shown in the below-board slot once the game's over —
