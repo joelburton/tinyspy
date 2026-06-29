@@ -105,7 +105,7 @@ test.describe('codenamesduet below-board layout stability', () => {
     //    bob to guess".
     await countInput.fill('1')
     await wordInput.fill('BREAD')
-    await pageAlice.getByRole('button', { name: /submit clue/i }).click()
+    await pageAlice.getByRole('button', { name: /submit/i }).click()
     await expect(pageAlice.getByText(/waiting for/i).first()).toBeVisible({ timeout: 15000 })
     const aGuess = await boardHeight(pageAlice)
 

@@ -59,7 +59,7 @@ The clue-giver does **not** strictly alternate. From the rulebook: *"If all 9 wo
 
 At turn end this means: hand the clue to the alternation candidate only if that seat still has an unfound agent; otherwise the current giver keeps it. "Both seats finished" never arises at turn end — a turn ends on a neutral or a voluntary pass, never on the 15th green (which wins first), so at least one seat always has an agent left.
 
-The FE surfaces this to **both** players in the action slot so neither reads the lopsided turn flow as a bug:
+The FE surfaces this to **both** players as a prominent colored banner in the info column (below the agent/turn state readout) so neither reads the lopsided turn flow as a bug:
 
 - the **finished** player gets a green "all your agents have been found — `<peer>` gives every remaining clue" banner (without it: "why don't I ever get a clue turn?");
 - the **partner** gets a neutral "`<peer>` has found all their agents — you give every remaining clue now" banner (without it: "why does the clue never come back to me to guess?").
@@ -258,11 +258,11 @@ Inherited unchanged from the common shell. The only codenamesduet-relevant note:
 
 ## Edge Function: `codenamesduet-suggest-clue`
 
-The "Need a clue?" button in the FE calls this. The function:
+The "Clue Hint" button in the FE calls this. The function:
 
-1. Invokes `codenamesduet.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through).
-2. Calls Claude Sonnet 4.6 via the Anthropic tool-use API. The tool schema asks the model for `{clue, count, agents, reasoning}` so it has to commit to specific agent words.
-3. Returns the JSON payload.
+1. Invokes `codenamesduet.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through). The RPC lives in the `codenamesduet` schema, so the call is `.schema('codenamesduet').rpc('get_clue_context', …)` — an un-qualified `rpc()` hits `public`, misses, and 403s.
+2. Calls Claude Sonnet 4.6 via the Anthropic tool-use API. The tool schema asks for `{thinking, clue, count, agents, reasoning}`: `thinking` is a **discarded scratchpad** (required + first, so the model's chain-of-thought lands there and the returned `reasoning` stays a clean final explanation, not stream-of-consciousness), and the model must commit to specific agent words. `max_tokens` is generous (the scratchpad must not starve the tool JSON). A `console.log` of the raw Anthropic response is kept intentionally as a debugging aid.
+3. Strips `thinking` and returns the JSON payload.
 
 Requires `ANTHROPIC_API_KEY` in the function's runtime env (set via `supabase secrets set`). Local dev uses `supabase/functions/.env` (gitignored).
 
@@ -285,37 +285,62 @@ src/codenamesduet/
                           <GameLogo gametype="codenamesduet" />. Imported via ?url in manifest.ts.
 
   components/
-    PlayArea.tsx          Two-column composition: BoardGrid on the left; status +
-                          action slot (CluePanel ↔ terminal indicator) + GameLog
-                          on the right. Loads via the three hooks, derives phase,
-                          mounts the pieces. Mounted by <GamePage> as its
-                          render-prop child; receives the full GamePageCtx
-                          ({ session, gameId, players, playState, isTerminal,
-                          timer, setup, goToClub, feedback, menu }). Cross-cutting
-                          chrome (logo, chat-bubble, players strip, pause,
-                          timer, suspend-confirm, the global UserMenu) lives on
-                          <GamePage> / App.
+    PlayArea.tsx          The shared two-column play shell — imports the common
+                          `playArea.module.css` scaffold (`shared.layout` /
+                          `.boardCol` / `.infoCol`). BoardGrid fills the board
+                          column; the info column carries the shared readouts
+                          (`.infoSetup` = turn cap + first clue-giver, `.infoState`
+                          = "{green}/15 agents · turn n/cap", `.infoHelp` = phase
+                          copy, `.infoActions` = End) above the GameTurnLog. The
+                          clue move-zone sits BELOW the board (see CluePanel).
+                          Loads via the three hooks, derives phase, and owns the
+                          guess move: `pendingPos` + the `submit_guess` RPC (lifted
+                          up out of BoardGrid) + the own-action `<ResultFlash>`. A
+                          local `useTurnPill` drives the header peer-status pill.
+                          Pops the shared `<GameOverModal>` on terminal and renders
+                          the AI `<ClueSuggestionPanel>` at the `.layout` level (a
+                          floating panel must mount high — see ui.md → Components).
+                          Mounted by <GamePage> as its render-prop child;
+                          cross-cutting chrome (logo, chat-bubble, players strip,
+                          pause, timer, suspend-confirm, the global UserMenu) lives
+                          on <GamePage> / App.
     PlayArea.module.css
-    BoardGrid.tsx         The 5×5 tile grid + per-tile tint/click/post-game-stripe logic.
-                          Fills available column height via grid-template-rows:
-                          repeat(5, 1fr); tile word centered with font-size that
-                          scales via container queries. Owns pendingPos +
-                          guessError + the submit_guess RPC dispatch.
-                          The TILE_BG (KeyLabel → CSS class) map lives here.
+    BoardGrid.tsx         The 5×5 board, now PRESENTATIONAL: receives `pendingPos`
+                          + an `onGuess(position)` callback (PlayArea owns the
+                          submit). Each tile composes the shared `.tile`/`.tileWord`
+                          chrome with a per-game `.overlayTile` (adds
+                          `position: relative` for the corner overlays) + a
+                          token-override fill class (`.bgWhite`/`.bgNeutral`/
+                          `.bgAgent`/`.bgAssassin` re-set the `--tile-*` tokens —
+                          the TILE_BG KeyLabel→class map lives here). The keycard
+                          squares, neutral triangles, and pending "…" are
+                          absolutely-positioned overlays that scale with the tile
+                          (cqi). Fills the column height via the shared grid
+                          (repeat(5, 1fr)); word auto-fits via container queries.
+                          See Board tile colors below.
     BoardGrid.module.css
-    CluePanel.tsx         The clue-giver's input area + "Need a clue?" button +
-                          AI suggestion display. Live-uppercases the clue input
-                          (codenames convention). Uses the peer's username +
-                          profile color in waiting copy ("Waiting for moth to
-                          give a clue…").
+    CluePanel.tsx         The below-board move-zone — rendered into PlayArea's
+                          `.inputRow` slot (NOT the info column). ONE horizontal
+                          line per state: the clue FORM (count + word `<input>` +
+                          Submit + "Clue Hint") for the giver; the active clue +
+                          Pass for the guesser; a muted "Waiting for moth…" line
+                          otherwise; the sudden-death notice. Live-uppercases the
+                          clue. "Clue Hint" calls the edge function and opens the
+                          AI suggestion in a <FloatingPanel> (the exported
+                          `ClueSuggestionPanel`, mounted by PlayArea at `.layout`
+                          level); errors surface in that dialog or the local flash,
+                          never as a second row (the slot is fixed-height — the
+                          board must not reflow).
     CluePanel.module.css
-    GameLog.tsx           Turn-by-turn replay. Per-turn divider line; clue
-                          heading (giver name colored) above each turn's guess
-                          line (guesser name colored + each guessed word colored
-                          by its reveal outcome via --codenamesduet-{agent,neutral,
-                          assassin}). Chronological order, auto-scrolls to bottom.
-    GameLog.module.css
-    GameLog.test.tsx
+    GameTurnLog.tsx       Turn-by-turn replay on the shared <TurnLog>: one
+                          <TurnLogItem outcome=…> per turn (a turn = one clue + its
+                          0..N guesses), grouped client-side by turn_number. Top
+                          line = the clue ({count} {WORD}); bottom line = the
+                          guesses (each colored by reveal outcome) + the clue-giver
+                          via the shared <ActorTag>. Outcome bar from
+                          lib/turnOutcome.ts.
+    GameTurnLog.module.css
+    GameTurnLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
     SetupForm.module.css
     Help.tsx              Per-game rules modal — opened from the common "Help"
@@ -345,9 +370,26 @@ src/codenamesduet/
                           neutral / assassin role.
     setup.ts              CodenamesduetSetup type + DEFAULT_CODENAMESDUET_SETUP. PlayArea
                           casts `ctx.setup as CodenamesduetSetup` to read the turn cap.
+    turnOutcome.ts        Pure per-turn outcome verdict for the GameTurnLog bar:
+                          any assassin → 'bad'; only neutrals → 'bad' (a wasted
+                          turn is a setback); mixed agent+neutral → 'partial'; all
+                          agents (≥1) → 'good'; no guesses (passed) → 'neutral'.
+    turnOutcome.test.ts   Pure unit test of the above.
 ```
 
-**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." The action slot also shows a "Game over: `<status>` [Back to club]" indicator that stays after the modal closes.
+**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." After the modal closes the result stays visible the shared way: the info-column action row swaps the End button for a bold outcome-colored line + a compact back-to-club button ([ui.md → Info-column readouts](../ui.md#info-column-readouts)), and the below-board slot echoes the verdict where the clue UI was.
+
+### Board tile colors
+
+The board sits on the shared `.tile` / `--tile-*` system ([ui.md → Interactive tile states](../ui.md#interactive-tile-states)): each cell re-sets the `--tile-*` tokens for its state rather than fighting the shared `.tile` rule. The **revealed** states use codenamesduet's own result palette (`--codenamesduet-{agent,neutral,assassin}`, see `theme.css`): agent = green, assassin = red, and **neutral/bystander = a warm tan (`#b4986e`)**.
+
+The **never-selected** (unrevealed) cell is a **deliberate exception** to the project default. Every other game leaves an untouched tile at the shared resting beige (`--tile-bg`, `#f0e6d2`) — codenamesduet does **not**, because that beige is close enough to the neutral tan that an unrevealed beige tile would read as "already guessed neutral." So an unrevealed cell instead uses a **lighter, greyer warm off-white** (`#f4f1ec` fill / `#e6e1d7` border): still in the tile-color family (a hint of warmth, not flat grey), but clearly "not touched yet" against the tan. It's set on `.bgWhite` in `BoardGrid.module.css`. This is the one place we override the standard tile color; the default elsewhere stays the shared beige.
+
+### Feedback: header pill (peer) vs local flash (you), and sudden death
+
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<ResultFlash>` in the below-board slot (a rejected guess / clue, or an end-game error). The GamePage **header pill** reports what the **other** player is doing — "● moth is writing a clue", "● moth is making guesses", "● moth is waiting for your guess" — *sticky*, *neutral*-toned, with a **leading** player-color disc (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
+
+**Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 
 ### Hooks: realtime patterns
 
@@ -419,15 +461,18 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | file | covers |
 |---|---|
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
+| `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
-| `src/codenamesduet/components/GameLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
+| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
+
+**Plus one Playwright e2e** — [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — a deliberate, narrow exception to the "e2e = realtime/presence only" charter. It guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
 
 ## Open items
 
 Deferred or sketched but not built:
 
 - **Mission / campaign mode.** Variable starting turn counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
-- **Tile `aria-label` for screen readers.** Board tiles in `BoardGrid.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the GameLog rewrite (colored words don't need text labels); a narrower helper would come back for this.
+- **Tile `aria-label` for screen readers.** Board tiles in `BoardGrid.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the turn-log rewrite (colored words don't need text labels); a narrower helper would come back for this.
 
 ## File locations
 
@@ -435,8 +480,8 @@ Deferred or sketched but not built:
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000001_codenamesduet.sql`](../../supabase/migrations/20260615000001_codenamesduet.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/codenamesduet/*_test.sql`](../../supabase/tests/codenamesduet/) |
-| What does the board look like | [`src/codenamesduet/components/BoardGrid.tsx`](../../src/codenamesduet/components/BoardGrid.tsx) (per-tile render + the submit_guess dispatch) |
-| What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
+| What does the board look like | [`src/codenamesduet/components/BoardGrid.tsx`](../../src/codenamesduet/components/BoardGrid.tsx) (presentational per-tile render + corner overlays; calls `onGuess`) |
+| What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx; owns the `submit_guess` dispatch, the header pill, and the terminal modal) |
 | How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/codenamesduet-suggest-clue/index.ts`](../../supabase/functions/codenamesduet-suggest-clue/index.ts) |

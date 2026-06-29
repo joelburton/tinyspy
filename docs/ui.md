@@ -370,6 +370,7 @@ Same principle, applied to components.
 - `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
 - `<UserMenu>` is mounted once at the App level (after the auth check), so it appears above every authenticated screen with zero per-page wiring. Fixed at the top-right of the viewport (in the body's empty 2rem padding zone above any page header); shows the current user's username + a small chevron, opens a dropdown for **user-focused** items only — **Edit profile** and **Log out**. **Never** carries club- or game-specific items; those belong on the ClubPage or GamePage menu off the logo. Hidden behind `<LoginScreen>` when there's no session.
 - `<EditProfileDialog>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Held in App-level state next to `<UserMenu>`; the menu item flips it open. Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
+- `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileDialog>`, the `<GameOverModal>`, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level (beside `<GameOverModal>`) or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
 - `<ColorChoiceList>` — the shared player-color picker: the 8-entry palette (`MEMBER_COLORS`) as a grid of swatches, each its actual color circle + capitalized name, the selected one ringed. Controlled (`value` / `onChange`). Used by both `<EditProfileDialog>` and the first-run `<ClaimHandleScreen>` (where it sits beside the username field, pre-selected from a deterministic FE hash of the username — `defaultColorFor` — so a new player isn't picking from a blank slate; the chosen color is sent to `claim_username`).
 - `.card`, `.muted`, `.error`, `.link-button`, `.actions` are universal utility classes in `common/theme.css`.
 
@@ -448,6 +449,16 @@ different, weaker signal than its own guess outcomes — fixed.)
 A *transient* flash (a brief pop on a just-made move) is a different thing —
 prefer the permanent fill when the result is durable.
 
+**Override the resting fill when it collides with a result color.** The beige
+resting fill (the default for an untouched tile everywhere) assumes a game's
+*result* colors read as distinct from it. codenamesduet is the one deliberate
+exception: its neutral (bystander) result is a warm tan (`#b4986e`) close enough
+to the beige that an unrevealed beige tile would read as "guessed neutral," so it
+sets never-revealed tiles to a lighter, greyer warm off-white (`#f4f1ec`) — still
+in the tile-color family, just clearly distinct from the tan. Default everywhere
+else stays the shared beige; deviate only when a result color forces it. See
+[codenamesduet.md → Board tile colors](games/codenamesduet.md#board-tile-colors).
+
 **Peer-identity frame.** In a shared-selection game (connections coop), a
 *teammate's* selected tile is the resting beige + an inset ring in their member
 color (drawn inline), while the player's *own* selection is the dark fill. So the
@@ -484,11 +495,15 @@ tile's size.
 ## PlayArea layout
 
 The shape every game's play surface converges on. Validated on **psychicnum**,
-now also adopted by **connections** — so the scaffold + readout classes are
+then **connections** — so the scaffold + readout classes are
 **promoted to [`common/components/playArea.module.css`](../src/common/components/playArea.module.css)**
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a
-thin per-game module via `cls()`). Other games keep their old shells until we
-reach them.
+thin per-game module via `cls()`). **codenamesduet** is now the third adopter and
+the rule-of-three stress test: it's the structural odd-one-out — turn-based, one
+clue then several guesses, per-viewer keycard overlays, and a real free-text
+`<input>` rather than capture-entry — so fitting it onto the *same* shell proves
+the pieces are general, not just "what the two similar games happened to share."
+Other games keep their old shells until we reach them.
 
 **The contract:**
 
@@ -577,7 +592,14 @@ became the second adopter) — `.infoSetup` / `.infoState` / `.infoHelp` /
 `.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*`. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
 "N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
-buttons (both moved off the GamePage menu into the action row).
+buttons (both moved off the GamePage menu into the action row). codenamesduet
+fills them with: setup = turn cap + first clue-giver; state = "{green}/15 agents ·
+turn {n}/{cap}"; help = the current phase instruction — and in **sudden death** a
+leading red **SUDDEN DEATH:** before the explanation; actions = **End** (also off
+the menu). codenamesduet's *move* controls are deliberately **not** here — the
+clue form / active clue + Pass / waiting line live in the below-board input row
+(critical-to-playing belongs in the board column; see
+[Text entry](#text-entry--capture-not-input)).
 
 ## Text entry — capture, not `<input>`
 
@@ -698,7 +720,10 @@ alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
   disc), so similar pieces look the same across games. The set grows as new
   shapes recur; reach for an existing class/component before inventing one.
 
-psychicnum + connections both use `<TurnLog>`. The older `HistoryPanel`
+psychicnum, connections, and codenamesduet all use `<TurnLog>` — codenamesduet's
+`GameTurnLog` is the **multi-guess** case the "item, not guess" vocabulary was
+named for: one item spans a clue + its several guesses (its outcome bar is
+derived per turn in `codenamesduet/lib/turnOutcome.ts`). The older `HistoryPanel`
 predecessor it replaced has been **deleted** (it had no other consumers — scrabble's
 framed `PlayLog` is separate and unaffected). A connections row stacks the four
 guessed tiles + a verdict sub-line in one cell while the turn-number and who
@@ -818,7 +843,7 @@ icon buttons).
 |---|---|---|---|
 | Rotate / shuffle | `RotateCw` | Pass | `SkipForward` |
 | Back to club | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
-| Submit | `Play` | Recall | `Undo2` |
+| Submit a move | `Triangle` (points up) | Recall | `Undo2` |
 | Get hint | `Lightbulb` | Trash / dump | `Recycle` |
 | Get answer / reveal | `Eye` | Pause | `Pause` |
 | End game | `Flag` | Peel | **`🍌` kept** (see below) |
@@ -839,9 +864,14 @@ icon buttons).
   `.helperButton`'s flex-grow). **Not** for icon-only pills (`ShuffleButton`,
   `PauseButton`) — those are a separate round, fixed-size, label-less shape that
   styles itself.
-- **Decided picks worth noting:** **Submit = `Play`** (keeps the solid
-  right-triangle we'd used). **Shuffle/rotate = `RotateCw`** (read clearer than
-  the crossing-arrows `Shuffle`, and spins nicely on the existing hover-spin).
+- **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
+  A move-submit "sends" the move up to the other players (our boards put YOU at
+  the bottom, others above — codenamesduet's keycards literally so), and pointing
+  up keeps the RIGHT-pointing play triangle reserved for the play/resume idiom.
+  Same triangle family, direction = meaning. This is ONLY for sending a game
+  move/guess/clue — NOT the setup dialog or other form submits. **Shuffle/rotate
+  = `RotateCw`** (read clearer than the crossing-arrows `Shuffle`, and spins
+  nicely on the existing hover-spin).
 
 **The one deliberate exception:** bananagrams's **Peel** stays `🍌` for now — it's
 MonkeyGrams brand flavor, not generic chrome; revisit when we reach bananagrams.

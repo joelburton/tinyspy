@@ -81,12 +81,12 @@
   min-width: 6rem;
 }
 
-/* Compact icon submit — just the up-arrow glyph, minimal side padding. */
+/* Submit button — the shared icon+label look (via the global `.icon-button`).
+ * Holds its width + stays one line in the no-wrap row, like the Clue Hint
+ * button beside it. */
 .submitBtn {
-  padding-left: 0.6rem;
-  padding-right: 0.6rem;
-  font-size: 1rem;
-  line-height: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* The "Clue Hint" button (AI suggestion) — icon + label via the global

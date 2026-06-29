@@ -3,7 +3,7 @@ import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
 import { ActorTag } from '../../common/components/ActorTag'
 import { FloatingPanel } from '../../common/components/FloatingPanel'
-import { IconHint } from '../../common/components/icons'
+import { IconHint, IconSubmit } from '../../common/components/icons'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
@@ -137,8 +137,9 @@ export type SuggestState =
   | { status: 'ready'; word: string; count: number; reasoning: string }
 
 /**
- * The clue-giver's inline clue form: "Clue for <peer>  [#]  [word]  ▲  Clue Hint"
- * on ONE line. Errors are reported up via `onError` (to the local flash) so the
+ * The clue-giver's inline clue form: "[#]  [word]  [△ Submit]  [💡 Clue Hint]"
+ * on ONE line (the submit's up-triangle "sends" the clue to the partner). Errors
+ * are reported up via `onError` (to the local flash) so the
  * row never grows a second line; an AI suggestion fills the inputs AND opens a
  * draggable/resizable <FloatingPanel> with its reasoning (it's the requester's
  * own helper output — too long for, and the wrong channel for, the header pill).
@@ -256,16 +257,15 @@ function ClueForm({
           className={styles.wordInput}
           data-game-input
         />
-        {/* Up-arrow (the same "peer" marker the board uses) — points toward the
-            partner, reading as "send this to them." */}
+        {/* Submit — the shared icon+label look (IconSubmit is the up-pointing
+            triangle: "send this clue up to your partner"). */}
         <button
           type="submit"
-          className={styles.submitBtn}
+          className={cls('icon-button', styles.submitBtn)}
           disabled={eitherBusy || !submittable}
-          aria-label="Submit clue"
-          title="Submit clue"
         >
-          {busy ? '…' : '▲'}
+          <IconSubmit size={15} aria-hidden />
+          {busy ? 'Submitting…' : 'Submit'}
         </button>
         {/* AI clue suggestion — the hint (lightbulb) icon + "Clue Hint". */}
         <button
