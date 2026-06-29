@@ -3,6 +3,7 @@ import { FloatingPanel } from '../../common/components/FloatingPanel'
 import { cls } from '../../common/lib/cls'
 import type { Board, CategoryRank } from '../lib/board'
 import { RANK_TOKEN } from '../lib/rankColors'
+import actionRow from '../../common/components/modalActions.module.css'
 import styles from './HintModal.module.css'
 
 type Props = {
@@ -98,7 +99,7 @@ export function HintModal({ categories, open, onClose }: Props) {
         })}
       </ul>
 
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <button type="button" autoFocus onClick={onClose}>
           Close
         </button>

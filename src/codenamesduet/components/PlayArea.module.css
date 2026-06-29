@@ -1,7 +1,7 @@
 /* codenamesduet play surface. The two-column SHELL (.layout / .boardCol /
  * .infoCol), the info-column READOUTS (.infoSetup / .infoState / .infoHelp /
  * .infoActions + the terminal swap), and the tile chrome all come from the
- * shared common/components/playArea.module.css (imported as `shared`), the same
+ * shared common/components/PlayArea.module.css (imported as `shared`), the same
  * scaffold psychicnum and connections use. Only the bits unique to codenamesduet
  * live here:
  *   - .inputRow / .inputMessage — the below-board move-input slot (the clue UI

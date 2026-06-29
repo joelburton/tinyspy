@@ -1,21 +1,7 @@
 /* Setup-specific styles. The chrome (surface, padding, backdrop,
- * drag-handle, close X) lives on <FloatingPanel>; this stylesheet
- * owns only the horizontal Cancel | Start action row.
- *
- * Overrides the global .actions class from theme.css, which
- * stacks buttons vertically inside cards.
- */
-
-.actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  justify-content: flex-end;
-}
-
-.actions button {
-  min-width: 6rem;
-}
+ * drag-handle, close X) lives on <FloatingPanel>, and the Cancel | Start
+ * action row is the shared modalActions.module.css; this stylesheet owns
+ * the per-game setup-body wrappers below. */
 
 /* Player picker — a checkbox list of club members, all checked by
  * default. Sits above the game-specific setup body. */

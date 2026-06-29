@@ -1,6 +1,7 @@
 /* Hint-row styles. Panel chrome (surface, padding, header, close
- * X) lives on <FloatingPanel>; this stylesheet owns the rank-by-
- * rank row layout + the swatch + the Close action row. */
+ * X) lives on <FloatingPanel>, and the Close action row is the shared
+ * modalActions.module.css; this stylesheet owns the rank-by-rank row
+ * layout + the swatch. */
 
 .rows {
   list-style: none;
@@ -42,11 +43,3 @@
   letter-spacing: 0.04em;
 }
 
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
-.actions button {
-  min-width: 5rem;
-}

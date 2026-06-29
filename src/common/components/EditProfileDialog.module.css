@@ -27,14 +27,4 @@
   font-size: 1.05rem;
 }
 
-/* Save / Cancel — right-justified, macOS order (Cancel left, default
- * rightmost). See docs/ui.md → Dialog buttons. */
-.actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  margin-top: 0.5rem;
-}
-.actions button {
-  min-width: 6rem;
-}
+/* Save / Cancel action row is the shared modalActions.module.css. */

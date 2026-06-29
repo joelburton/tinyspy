@@ -3,6 +3,7 @@ import { db as commonDb } from '../db'
 import { games } from '../../games'
 import { FloatingPanel } from './FloatingPanel'
 import { ModePill } from './ModePill'
+import actionRow from './modalActions.module.css'
 import styles from './EditClubDialog.module.css'
 
 type Props = {
@@ -115,7 +116,7 @@ export function EditClubDialog({
       </fieldset>
 
       {error && <p className="error">{error}</p>}
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <button
           type="button"
           className="secondary"

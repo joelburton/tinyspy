@@ -1,6 +1,7 @@
 import { cls } from '../lib/cls'
 import { BackToClubButton } from './BackToClubButton'
 import { FloatingPanel } from './FloatingPanel'
+import actionRow from './modalActions.module.css'
 import styles from './GameOverModal.module.css'
 
 type Props = {
@@ -71,7 +72,7 @@ export function GameOverModal({
       <div className={cls(styles.verdict, styles[outcome])}>
         {verdict}
       </div>
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <BackToClubButton variant="primary" autoFocus onClick={onBackToClub} />
       </div>
     </FloatingPanel>

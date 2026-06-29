@@ -1,5 +1,5 @@
 /* psychicnum play surface. The two-column SHELL, the info-column READOUTS, and
- * the TILE chrome all come from the shared common/components/playArea.module.css
+ * the TILE chrome all come from the shared common/components/PlayArea.module.css
  * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
  * to psychicnum live here:
  *   - .inputMessage — the message that fills the input row when the entry is

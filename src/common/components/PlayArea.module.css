@@ -1,7 +1,7 @@
 /* Shared PlayArea scaffold — the two-column play surface every game converges
  * on. Validated on psychicnum, adopted by connections. CSS-only (no behavior),
  * imported directly by a game's PlayArea/board components the same way
- * setupForm.module.css is (`import shared from '.../playArea.module.css'`), and
+ * setupForm.module.css is (`import shared from '.../PlayArea.module.css'`), and
  * composed with a thin per-game module via `cls()`. See docs/ui.md →
  * "PlayArea layout".
  *

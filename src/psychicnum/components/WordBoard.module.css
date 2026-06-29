@@ -1,6 +1,6 @@
 /* psychicnum's board: a wrapper framing the word grid. The tile CHROME
  * (fill, border, shadow, hover, selected, label auto-fit) is the shared
- * `.tile` / `.tileWord` from common/components/playArea.module.css; only the
+ * `.tile` / `.tileWord` from common/components/PlayArea.module.css; only the
  * board wrapper, the grid layout, and the guessed-result fills are
  * psychicnum's. */
 

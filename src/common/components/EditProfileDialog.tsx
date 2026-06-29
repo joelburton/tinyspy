@@ -4,6 +4,7 @@ import { db as commonDb } from '../db'
 import { useProfile, setProfileColor } from '../hooks/useProfile'
 import { ColorChoiceList } from './ColorChoiceList'
 import { FloatingPanel } from './FloatingPanel'
+import actionRow from './modalActions.module.css'
 import styles from './EditProfileDialog.module.css'
 
 type Props = {
@@ -78,7 +79,7 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
 
         {error && <p className="error">{error}</p>}
 
-        <div className={styles.actions}>
+        <div className={actionRow.modalActions}>
           <button
             type="button"
             className="secondary"

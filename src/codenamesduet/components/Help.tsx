@@ -1,4 +1,5 @@
 import { FloatingPanel } from '../../common/components/FloatingPanel'
+import actionRow from '../../common/components/modalActions.module.css'
 import styles from './Help.module.css'
 
 type Props = {
@@ -61,7 +62,7 @@ export function Help({ onClose, brand }: Props) {
         any wrong reveal loses the game.
       </p>
 
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <button type="button" autoFocus onClick={onClose}>
           Got it
         </button>

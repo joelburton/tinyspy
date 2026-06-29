@@ -1,19 +1,8 @@
 /* Edit-club dialog styles. The chrome (surface, padding, backdrop,
- * drag-handle, close X) lives on <FloatingPanel>; this stylesheet
- * owns the games checkbox list + the Cancel | Save action row.
- * Mirrors SetupGameDialog's fieldset/actions treatment so the two
- * dialogs read as siblings. */
-
-.actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  justify-content: flex-end;
-}
-
-.actions button {
-  min-width: 6rem;
-}
+ * drag-handle, close X) lives on <FloatingPanel>, and the Cancel | Save
+ * action row is the shared modalActions.module.css; this stylesheet owns
+ * the games checkbox list. Mirrors SetupGameDialog's fieldset treatment so
+ * the two dialogs read as siblings. */
 
 /* Scrollable checkbox list — one row per registered gametype. */
 .games {

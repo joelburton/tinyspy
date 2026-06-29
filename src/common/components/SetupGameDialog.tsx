@@ -2,6 +2,7 @@ import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member } from '../lib/games'
 import { colorVarFor } from '../lib/memberColor'
 import { FloatingPanel } from './FloatingPanel'
+import actionRow from './modalActions.module.css'
 import styles from './SetupGameDialog.module.css'
 
 type Props = {
@@ -242,7 +243,7 @@ export function SetupGameDialog({
           fix-this hint, same muted register as the player-count hint. */}
       {setupError && <p className={styles.playerHint}>{setupError}</p>}
       {error && <p className="error">{error}</p>}
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <button
           type="button"
           className="secondary"

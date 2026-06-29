@@ -21,7 +21,7 @@ import { Board } from './Board'
 import { GameTurnLog } from './GameTurnLog'
 import { HintModal } from './HintModal'
 import { MistakeDots } from './MistakeDots'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 

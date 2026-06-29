@@ -159,7 +159,7 @@
      dark with light ink — the recognizable "I picked this" state. A game's own
      result fills (psychicnum green/red) and peer-identity frames (connections)
      layer on top by re-setting these tokens / drawing an inset frame — see the
-     per-game tile CSS. The shared `.tile` (common/components/playArea.module.css)
+     per-game tile CSS. The shared `.tile` (common/components/PlayArea.module.css)
      reads ONLY these tokens for its colors, so a state class overrides by
      re-setting a token, not by out-cascading another stylesheet. */
   --tile-bg:                  #f0e6d2;  /* warm beige — the shared resting fill */

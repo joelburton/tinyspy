@@ -18,7 +18,7 @@ import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
 import { GameTurnLog } from './GameTurnLog'
 import { WordBoard } from './WordBoard'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
@@ -342,7 +342,7 @@ export function PlayArea({
       <div className={shared.infoCol}>
         {/* The non-log info column — four recurring kinds of info, the shared
             named classes (.infoSetup / .infoState / .infoHelp / .infoActions)
-            from common/components/playArea.module.css so they're consistent
+            from common/components/PlayArea.module.css so they're consistent
             across games. Which survive into the terminal state differs per kind
             — see below. */}
         <div className={shared.actionSlot}>

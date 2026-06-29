@@ -1,5 +1,5 @@
 import { cls } from '../../common/lib/cls'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './WordBoard.module.css'
 
 type Props = {

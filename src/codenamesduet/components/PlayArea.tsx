@@ -17,9 +17,9 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
-import { CluePanel, ClueSuggestionPanel, type SuggestState } from './CluePanel'
+import { CluePanel, ClueSuggestionModal, type SuggestState } from './CluePanel'
 import { GameTurnLog } from './GameTurnLog'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
 
@@ -247,7 +247,7 @@ export function PlayArea({
     useResultFlash()
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
-  // so the <ClueSuggestionPanel> renders at the `.layout` level — a panel
+  // so the <ClueSuggestionModal> renders at the `.layout` level — a panel
   // rendered deep in the flex-column board lands off-screen (react-rnd positions
   // from the static flow position). ClueForm drives it via onSuggestionChange.
   const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
@@ -394,7 +394,7 @@ export function PlayArea({
 
       <div className={shared.infoCol}>
         {/* The non-log info column — the shared named readouts (.infoSetup /
-            .infoState / .infoHelp / .infoActions) from playArea.module.css, so
+            .infoState / .infoHelp / .infoActions) from PlayArea.module.css, so
             they read the same across games. */}
         <div className={shared.actionSlot}>
           <details className={shared.infoSetup}>
@@ -496,7 +496,7 @@ export function PlayArea({
           (a flex row), like GameOverModal — so react-rnd places it on-screen.
           (Deep inside the flex-column board column it lands below the viewport.) */}
       {clueSuggestion && (
-        <ClueSuggestionPanel
+        <ClueSuggestionModal
           state={clueSuggestion}
           onClose={() => setClueSuggestion(null)}
         />

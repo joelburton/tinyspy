@@ -1,0 +1,30 @@
+/* Shared modal / dialog action row — the right-aligned footer of buttons every
+ * dialog ends with (Cancel / Save, Got it, Close, Back to club). One canonical
+ * look so the dialogs stop drifting: a horizontal row pinned to the right, a
+ * consistent gap between buttons, a shared button floor width, and the same
+ * spacing above it. The panel/surface chrome stays on <FloatingPanel> (or each
+ * dialog's own shell); this owns only the button row.
+ *
+ * Imported directly the same way setupForm.module.css / PlayArea.module.css are
+ * (`import actionRow from '.../modalActions.module.css'`) and applied as
+ * `actionRow.modalActions`. Replaces the per-dialog `.actions` blocks that had
+ * each re-stated this with slightly different gaps / margins / button widths.
+ *
+ * Distinct from the GLOBAL `.actions` utility in theme.css (a vertical stack);
+ * this is the horizontal dialog footer.
+ *
+ * Button ORDER is the caller's JSX, in macOS convention: Cancel on the left,
+ * the default/confirm action rightmost (see docs/ui.md → Dialog buttons). */
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* A floor width so a lone "Got it" / "Close" button doesn't read as cramped,
+ * and a Cancel/Save pair sit at matched widths. Floor only — wider buttons
+ * (a long "Back to club") keep their natural width. */
+.modalActions button {
+  min-width: 6rem;
+}

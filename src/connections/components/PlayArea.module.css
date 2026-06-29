@@ -1,5 +1,5 @@
 /* connections board surface. The two-column SHELL, the info-column READOUTS,
- * and the TILE chrome come from the shared common/components/playArea.module.css
+ * and the TILE chrome come from the shared common/components/PlayArea.module.css
  * (imported as `shared`); only what's specific to connections lives here:
  *   - .board      — the board wrapper that fills the column. NO border/
  *                   background today (the gaps show the column behind, matching

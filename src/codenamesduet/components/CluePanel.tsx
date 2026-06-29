@@ -29,7 +29,7 @@ type CluePanelProps = {
    *  (and the board above) never changes. */
   onError: (message: string) => void
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
-   *  state and renders the <ClueSuggestionPanel> HIGH in the tree: the board
+   *  state and renders the <ClueSuggestionModal> HIGH in the tree: the board
    *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
    *  static flow position, so a panel rendered deep in the column lands
    *  off-screen. Rendered up at the `.layout` level (like GameOverModal) it
@@ -293,14 +293,14 @@ function ClueForm({
  * GameOverModal, at the `.layout` flex-row level) so react-rnd positions it
  * on-screen; rendered deep in the flex-column board it lands below the viewport.
  */
-export function ClueSuggestionPanel({
+export function ClueSuggestionModal({
   state,
   onClose,
 }: {
   state: SuggestState
   onClose: () => void
 }) {
-  console.log('[ClueHint] ClueSuggestionPanel rendering — status:', state.status)
+  console.log('[ClueHint] ClueSuggestionModal rendering — status:', state.status)
   return (
     <FloatingPanel
       title="Clue suggestion"

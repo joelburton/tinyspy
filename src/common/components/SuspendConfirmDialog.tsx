@@ -1,5 +1,5 @@
 import { FloatingPanel } from './FloatingPanel'
-import styles from './SuspendConfirmDialog.module.css'
+import actionRow from './modalActions.module.css'
 
 type Props = {
   /** The game's user-facing title, woven into the modal copy
@@ -44,7 +44,7 @@ export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
         Everyone in this game will return to the club page; you can
         resume from there later.
       </p>
-      <div className={styles.actions}>
+      <div className={actionRow.modalActions}>
         <button type="button" className="secondary" onClick={onCancel}>
           Keep playing
         </button>

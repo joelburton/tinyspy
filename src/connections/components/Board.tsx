@@ -2,7 +2,7 @@ import { cls } from '../../common/lib/cls'
 import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import { RANK_TOKEN } from '../lib/rankColors'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4

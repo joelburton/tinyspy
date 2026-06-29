@@ -2,7 +2,7 @@ import { cls } from '../../common/lib/cls'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
-import shared from '../../common/components/playArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './BoardGrid.module.css'
 
 /**
