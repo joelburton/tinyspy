@@ -407,8 +407,8 @@ export function PlayArea({
                 mirrors psychicnum's entry-box flash;
               - once input goes away (terminal / eliminated), the outcome
                 message fills it, the way psychicnum's reveal does.
-            The `.commit` min-height keeps every state the same height. */}
-        <div className={styles.commit}>
+            The `.inputRow` min-height keeps every state the same height. */}
+        <div className={styles.inputRow}>
           {showInput ? (
             commitFlash ? (
               <ResultFlash tone={commitFlash.tone} label={commitFlash.label} />
@@ -423,7 +423,7 @@ export function PlayArea({
                 )}
                 <button
                   type="button"
-                  className={cls('secondary', styles.commitButton)}
+                  className={cls('secondary', styles.inputButton)}
                   onClick={handleClear}
                   disabled={unionTiles.length === 0}
                 >
@@ -432,7 +432,7 @@ export function PlayArea({
                 </button>
                 <button
                   type="button"
-                  className={styles.commitButton}
+                  className={styles.inputButton}
                   onClick={handleSubmit}
                   disabled={!canSubmit}
                 >
@@ -442,7 +442,7 @@ export function PlayArea({
               </>
             )
           ) : (
-            <span className={styles.commitOutcome}>
+            <span className={styles.inputMessage}>
               {over ? over.verdict : "You're out — the rest are still racing."}
             </span>
           )}

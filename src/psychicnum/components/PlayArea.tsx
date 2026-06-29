@@ -328,7 +328,7 @@ export function PlayArea({
             result={entryFlash}
           />
         ) : (
-          <p className={styles.reveal}>
+          <p className={styles.inputMessage}>
             {!over ? (
               'Out of guesses — waiting on the rest.'
             ) : game.secrets ? (

@@ -13,7 +13,9 @@
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
  *                   same height as a tile row and sharing the one grid gap.
  *   - .tileShaking — the wrong-guess shake.
- *   - .commit / .commitButton / .mistakesInline — the row below the board.
+ *   - .inputRow / .inputButton / .inputMessage / .mistakesInline — the input row
+ *     below the board (shared names with psychicnum; see docs/ui.md → "Text
+ *     entry").
  *
  * The shared dark hover-ring + dark selected fill (a player's own pick) come
  * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
@@ -108,7 +110,7 @@
   }
 }
 
-/* Coop "Mistakes remaining ●●●○" — left-justified on the commit row below the
+/* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
  * board (margin-right:auto pushes the Clear/Submit buttons to the right). The
  * old NYT-style placement: the mistake dots on the same line as the buttons.
  * (Compete shows the per-player OpponentStrip in its own row instead; the
@@ -124,11 +126,12 @@
   font-size: 1rem;
 }
 
-/* The commit row below the board (the board-side commit affordance — selecting
- * tiles is the input, these commit it). Buttons sit at the RIGHT; in coop the
- * mistakes group pushes them there via margin-right:auto. Mirrors psychicnum's
- * entry row position. */
-.commit {
+/* The input row below the board (`.inputRow` — the shared name psychicnum uses
+ * too; here the board-side commit affordance — selecting tiles is the input,
+ * these buttons commit it). Buttons sit at the RIGHT; in coop the mistakes group
+ * pushes them there via margin-right:auto. Mirrors psychicnum's entry row
+ * position. */
+.inputRow {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -140,11 +143,13 @@
   min-height: 2.75rem;
 }
 
-/* The outcome message that replaces the input once the game's over (or this
- * player is out): "You win!", "You lost: out of time", etc. Centered + bold,
- * filling the slot the buttons vacated — gives the player looking there an
- * explanation, the way psychicnum's reveal does. */
-.commitOutcome {
+/* The message that replaces the input once the game's over (or this player is
+ * out): "You win!", "You lost: out of time", etc. Centered + bold, filling the
+ * slot the buttons vacated — gives the player looking there an explanation, the
+ * way psychicnum's reveal does. (`.inputMessage` — the shared name psychicnum
+ * uses for the same slot; the two games still style it differently today, see
+ * docs/ui.md.) */
+.inputMessage {
   flex: 1;
   text-align: center;
   font-weight: 700;
@@ -154,13 +159,14 @@
 /* The own-result flash that replaces the commit buttons for ~1.4s after my
  * guess resolves is the shared <ResultFlash> (common/components/ResultFlash) —
  * the same bar psychicnum swaps in for its entry row, so the two games' local
- * feedback is identical. It reserves no height of its own: the `.commit` row's
- * min-height (below) keeps the slot stable whether it holds the buttons, the
+ * feedback is identical. It reserves no height of its own: the `.inputRow`'s
+ * min-height (above) keeps the slot stable whether it holds the buttons, the
  * flash, or the terminal outcome. */
 
-/* Each commit button: a Lucide icon + label on one centered line, natural
- * width with a sensible floor. */
-.commitButton {
+/* A button in the input row (`.inputButton` — the shared name psychicnum uses
+ * for its Submit too): a Lucide icon + label on one centered line, natural width
+ * with a sensible floor. Here it's the Clear + Submit pair. */
+.inputButton {
   min-width: 7rem;
   display: inline-flex;
   align-items: center;

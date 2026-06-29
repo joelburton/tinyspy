@@ -15,7 +15,7 @@ type Props = {
   submitting: boolean
   /** A transient flash that **replaces the whole entry bar** (the shared
    *  <ResultFlash>): a guess result ("Correct"/"Incorrect") or a validation
-   *  error ("Not on the board"). Owned + cleared by PlayArea; the `.form`
+   *  error ("Not on the board"). Owned + cleared by PlayArea; the `.inputRow`
    *  reserves the bar height so the swap never reflows the board. Suppressed the
    *  moment the player types again (see below) — same bar connections swaps in
    *  for its commit row, so the two games' local feedback is identical.
@@ -97,7 +97,7 @@ export function GuessForm({ value, onChange, onSubmit, submitting, result }: Pro
 
   return (
     <form
-      className={styles.form}
+      className={styles.inputRow}
       onSubmit={(e) => {
         e.preventDefault()
         onSubmit()
@@ -112,7 +112,7 @@ export function GuessForm({ value, onChange, onSubmit, submitting, result }: Pro
           <EntryBox value={value} placeholder="type a word" className={styles.entry} />
           <button
             type="submit"
-            className={styles.submit}
+            className={styles.inputButton}
             disabled={submitting || value === ''}
           >
             <IconSubmit size={15} aria-hidden />

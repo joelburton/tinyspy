@@ -1,16 +1,17 @@
-/* The word-entry row. Horizontal: the entry display grows, the submit button
- * sits at fixed width — so the eye lands on "type a word, hit submit" without a
- * line break in between.
+/* The input row below the board (`.inputRow` — the shared name connections uses
+ * too; see docs/ui.md → "Text entry"). Horizontal: the entry display grows, the
+ * submit button sits at fixed width — so the eye lands on "type a word, hit
+ * submit" without a line break in between.
  */
 
-.form {
+.inputRow {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
   align-items: center;
   /* Reserve the bar height so swapping the entry + Submit for the full-width
    * <ResultFlash> never changes the row height — the board above can't reflow
-   * (docs/ui.md → Layout stability). 2.75rem matches connections' commit row,
+   * (docs/ui.md → Layout stability). 2.75rem matches connections' input row,
    * so the two games' input bars are the same height too. */
   min-height: 2.75rem;
 }
@@ -25,9 +26,14 @@
   text-transform: uppercase;
 }
 
-/* Submit button: the Lucide Play icon + label on one centered line. */
-.submit {
+/* A button in the input row (`.inputButton` — the shared name connections uses
+ * for its Clear/Submit too): a Lucide icon + label on one centered line, with a
+ * floor width so it matches connections' input-row buttons. Here it's just the
+ * Submit button (the EntryBox beside it is the other half of the row). */
+.inputButton {
+  min-width: 7rem;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4em;
 }

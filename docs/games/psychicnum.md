@@ -349,7 +349,7 @@ src/psychicnum/
     PlayArea.tsx          Two-column composition on the SHARED PlayArea scaffold
                           (common/components/playArea.module.css, imported as `shared`;
                           shell + info-column readout classes + the shared .tile chrome —
-                          PlayArea.module.css now holds only .reveal + a temp debug tint):
+                          PlayArea.module.css now holds only .inputMessage):
                             WordBoard (grid of word tiles on the shared beige --tile-*
                               system; guessed tiles permanently green=secret / red=miss)
                             GuessForm (capture-input word entry + submit_guess RPC) — during play

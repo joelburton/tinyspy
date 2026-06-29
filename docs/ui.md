@@ -637,6 +637,17 @@ top-anchored board, never as a heading above it (a heading shifts the board down
 on state change — [Layout stability](#layout-stability)). It lands where the
 player was already looking and explains why the entry is gone.
 
+**Locked names for the input row.** The row below the board and its parts use
+one vocabulary across games (each still in the game's *own* module — same names,
+not yet a shared stylesheet): **`.inputRow`** (the reserved-height row that holds
+the move controls — psychicnum's word entry + Submit, connections' Clear /
+Submit), **`.inputButton`** (a Lucide-icon + label button in it; `min-width:
+7rem`, centered), and **`.inputMessage`** (what fills the row when the controls
+are gone — the terminal reveal, or an "out of guesses / you're out" waiting
+line). Reuse these when a new game grows the same row. *(The two `.inputMessage`
+treatments still differ cosmetically — psychicnum muted, connections bold;
+unifying that is open.)*
+
 ## Turn log
 
 The shared **`<TurnLog>`** + **`<TurnLogItem outcome>`** (`common/components/TurnLog.tsx`)

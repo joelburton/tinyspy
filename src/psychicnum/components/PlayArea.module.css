@@ -2,18 +2,21 @@
  * the TILE chrome all come from the shared common/components/playArea.module.css
  * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
  * to psychicnum live here:
- *   - .reveal — the end-game secret reveal in the slot the entry vacated.
+ *   - .inputMessage — the message that fills the input row when the entry is
+ *     gone (the end-game secret reveal, or the "out of guesses" waiting line).
+ *     Shared name with connections; see docs/ui.md → "Text entry".
  *
  * The board wrapper + grid + guessed-result fills live in WordBoard.module.css.
  * (The board-column debug tint lives on the shared `.boardCol` itself.)
  * See docs/ui.md → "PlayArea layout" and "Modals for terminal results." */
 
-/* The end-game secret reveal, shown in the slot the guess entry occupied during
- * play (see PlayArea). Lands where the player was already looking and explains
- * the missing entry; sitting BELOW the top-anchored board, it never shifts the
- * board when it appears. Stretches to the board width (it's a flex child of the
- * board column) and centers its text. */
-.reveal {
+/* The message shown in the slot the guess entry occupied during play (see
+ * PlayArea) — the end-game secret reveal, or the "out of guesses, waiting on the
+ * rest" line. Lands where the player was already looking and explains the
+ * missing entry; sitting BELOW the top-anchored board, it never shifts the board
+ * when it appears. Stretches to the board width (it's a flex child of the board
+ * column) and centers its text. */
+.inputMessage {
   margin: 0;
   text-align: center;
   font-size: 1.15rem;
@@ -21,6 +24,6 @@
   padding: 0.6rem 0;
 }
 
-.reveal strong {
+.inputMessage strong {
   color: var(--color-text);
 }
