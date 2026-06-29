@@ -124,11 +124,17 @@ function buildOver(
 
 /**
  * Surface the current turn-state in the header feedback pill, firing once each
- * time it CHANGES (so a player doesn't miss "it's your turn now"). The two
- * "your move" states (give a clue / make your guesses) are sticky — they sit
- * there as a reminder until you act; the "waiting on your partner" states (and
- * sudden death) auto-dismiss after a few seconds. Self-contained so it can be
- * called unconditionally before PlayArea's loading early-return.
+ * time it CHANGES. The header describes **what the PEER is doing** — never what
+ * YOU should do (your own to-do is conveyed by the below-board clue UI). So all
+ * four turn states read as "{peer} is …", neutral and sticky (they describe an
+ * ongoing peer state, not a transient nudge, so they persist until it changes).
+ *
+ * The one exception is **sudden death** — a standing danger warning, not a peer
+ * action — which stays here in `error` tone (and is also shown, persistently,
+ * below the board via the CluePanel notice).
+ *
+ * Self-contained so it can be called unconditionally before PlayArea's loading
+ * early-return.
  */
 function useTurnPill(args: {
   game: { current_clue_giver: string | null; turn_number: number } | null | undefined
@@ -143,7 +149,11 @@ function useTurnPill(args: {
 
   let text: string | null = null
   let tone: FeedbackTone = 'neutral'
-  let sticky = false
+  // The leading player-color disc for peer-status messages ("● Moth is …"),
+  // via the FeedbackPill's `dot` + outline variant — same identity treatment
+  // psychicnum/connections use for their peer pills. Undefined for sudden death
+  // (a warning, not a peer message).
+  let dot: string | undefined
   if (game && !gameOver) {
     const me = players.find((p) => p.user_id === sessionUserId)
     const peer = players.find((p) => p.user_id !== sessionUserId)
@@ -157,20 +167,26 @@ function useTurnPill(args: {
     if (inSuddenDeath) {
       text = 'Sudden death — any non-green reveal loses'
       tone = 'error'
-    } else if (!isGuessPhase) {
-      // Clue phase.
-      if (isClueGiver) { text = `Give a clue to ${peerName}`; tone = 'info'; sticky = true }
-      else text = `${peerName} is writing a clue`
     } else {
-      // Guess phase.
-      if (!isClueGiver) { text = 'Make your guesses'; tone = 'info'; sticky = true }
-      else text = `${peerName} is guessing`
+      dot = colorVarFor(peer?.color)
+      if (!isGuessPhase) {
+        // Clue phase — what the peer is doing about the clue.
+        text = isClueGiver
+          ? `${peerName} is waiting for your clue`
+          : `${peerName} is writing a clue`
+      } else {
+        // Guess phase — the guesser is the NON-clue-giver, so if I'm the
+        // clue-giver the peer is guessing; otherwise the peer is waiting on me.
+        text = isClueGiver
+          ? `${peerName} is making guesses`
+          : `${peerName} is waiting for your turn to complete`
+      }
     }
   }
 
   // Fire only on an actual change (the ref also absorbs StrictMode's double
   // effect-invoke). Clearing when there's no state (game over / loading) tidies
-  // up any lingering sticky pill.
+  // up the pill. Every message is sticky — it's an ongoing state, not a nudge.
   const prev = useRef<string | null | undefined>(undefined)
   useEffect(() => {
     if (text === prev.current) return
@@ -182,9 +198,12 @@ function useTurnPill(args: {
     feedback.show({
       tone,
       text,
-      dismiss: sticky ? { kind: 'sticky' } : { kind: 'timed', ms: 6000 },
+      // Peer-status pills carry the leading identity disc (outline so the disc
+      // isn't fighting a fill); sudden death is a plain filled warning.
+      ...(dot ? { variant: 'outline' as const, dot } : {}),
+      dismiss: { kind: 'sticky' },
     })
-  }, [text, tone, sticky, feedback])
+  }, [text, tone, dot, feedback])
 }
 
 export function PlayArea({
@@ -327,7 +346,7 @@ export function PlayArea({
   const peerFinished = bannerEligible && peerAgentsDone
 
   return (
-    <div className={cls(shared.layout, inSuddenDeath && styles.suddenDeath)}>
+    <div className={shared.layout}>
       <div className={shared.boardCol}>
         <BoardGrid
           words={words}
@@ -429,10 +448,21 @@ export function PlayArea({
           )}
 
           {/* Help — a stable orienting line during play (the per-phase guidance
-              lives below the board + in the header pill). */}
+              lives below the board + in the header pill). In sudden death it
+              switches to the sudden-death rules; the help is muted and easily
+              skimmed-past as "unchanged", so it leads with a RED "SUDDEN DEATH:"
+              tag to flag that it's different now. */}
           {!over && (
             <p className={shared.infoHelp}>
-              Give clues for your agents; guess the clues your partner gives you.
+              {inSuddenDeath ? (
+                <>
+                  <strong className={styles.suddenDeathTag}>SUDDEN DEATH:</strong>{' '}
+                  no clues left — every reveal must be an agent. One non-green
+                  guess (a bystander or the assassin) ends the game.
+                </>
+              ) : (
+                'Give clues for your agents; guess the clues your partner gives you.'
+              )}
             </p>
           )}
 

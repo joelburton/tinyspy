@@ -4,22 +4,21 @@
  * shared common/components/playArea.module.css (imported as `shared`), the same
  * scaffold psychicnum and connections use. Only the bits unique to codenamesduet
  * live here:
- *   - .suddenDeath  — the whole-layout red frame for the sudden-death phase;
  *   - .inputRow / .inputMessage — the below-board move-input slot (the clue UI
  *     during play, a verdict echo at terminal);
  *   - .finishedNote / .peerDoneNote — the finished-player banners in the info
- *     column.
+ *     column;
+ *   - .suddenDeathTag — the red "SUDDEN DEATH:" lead-in on the info-column help.
  *
- * Sudden death — game.status === 'sudden_death' — wraps the whole layout in an
- * accent red border + tinted background. Real game-state distinction; the visual
- * is the "any non-green reveal loses" warning made visceral. Composed alongside
- * the shared `.layout`, so it's a standalone modifier here. */
+ * Sudden death (game.status === 'sudden_death') is signalled WITHOUT a
+ * whole-layout frame — that border + padding shrank the viewport-height layout
+ * and made the board jump. Instead it shows in the header pill, the below-board
+ * CluePanel notice, and the info-column help (the red tag below). */
 
-.suddenDeath {
-  padding: 1rem;
-  border: 2px solid var(--codenamesduet-assassin);
-  border-radius: var(--radius-lg);
-  background: var(--codenamesduet-assassin-soft-dim);
+/* The red "SUDDEN DEATH:" lead-in on the otherwise-muted info-column help, so a
+ * player skimming past "the help hasn't changed" still catches that it has. */
+.suddenDeathTag {
+  color: var(--codenamesduet-assassin);
 }
 
 /* The below-board move-input slot — holds the CluePanel (clue form / clue

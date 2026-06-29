@@ -68,18 +68,6 @@
   gap: 0.5rem;
 }
 
-/* "Clue for <peer>" — the label + the peer's <ActorTag> on one baseline. Hold
- * its own width (no shrink) + keep the text on one line, so the row never
- * compresses "Clue for" onto two lines — the word field absorbs width pressure
- * instead. */
-.clueFor {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
 /* Single-digit count — fixed narrow box, centered text. */
 .countInput {
   width: 2.5rem;

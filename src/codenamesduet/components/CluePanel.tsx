@@ -90,7 +90,6 @@ export function CluePanel({
     return (
       <ClueForm
         gameId={gameId}
-        peer={peer}
         onError={onError}
         onSuggestionChange={onSuggestionChange}
       />
@@ -154,12 +153,10 @@ export type SuggestState =
  */
 function ClueForm({
   gameId,
-  peer,
   onError,
   onSuggestionChange,
 }: {
   gameId: string
-  peer: Player | undefined
   onError: (message: string) => void
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
@@ -231,10 +228,10 @@ function ClueForm({
 
   return (
     <form className={styles.clueForm} onSubmit={onSubmit}>
+      {/* No "Clue for <peer>" label — the inputs (a count + a word + the send
+          arrow) make it obvious you're composing a clue, and the header pill
+          already says whose turn it is. */}
       <div className={styles.clueLine}>
-        <span className={styles.clueFor}>
-          Clue for <ActorTag actor={peer} fallback="your partner" />
-        </span>
         {/* Digit-only text input (not type=number — no spinner chrome). */}
         <input
           type="text"
