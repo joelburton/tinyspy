@@ -368,11 +368,7 @@ export function PlayArea({
           {over ? (
             <p className={styles.inputMessage}>{over.verdict}</p>
           ) : actionFlash ? (
-            <ResultFlash
-              tone={actionFlash.tone}
-              label={actionFlash.label}
-              className={styles.actionFlash}
-            />
+            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} compact />
           ) : (
             <CluePanel
               gameId={gameId}

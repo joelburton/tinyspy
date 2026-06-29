@@ -16,6 +16,20 @@
   text-overflow: ellipsis;
 }
 
+/* The COMPACT variant — for a board-input game (waffle, codenamesduet) whose
+ * below-board slot is a `flex-direction: column` centering region, not the
+ * horizontal input bar `.flash` was built to fill. In a column, the resting
+ * `flex: 1` would stretch the bar to the slot's full HEIGHT (too tall); this
+ * pins it to its content height and trims the padding so it reads as a short
+ * centered notice. The games that REPLACE a horizontal controls row
+ * (connections, psychicnum) don't set this — there `flex: 1` correctly fills the
+ * width the controls vacated. See docs/ui.md → "Text entry" / Layout stability. */
+.compact {
+  flex: 0 0 auto;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
 /* Outcome tints — the shared won/lost/near palette (the SAME green/red/amber the
  * TurnLog outcome bars and decided tiles use), so a result reads the same
  * wherever it appears. */

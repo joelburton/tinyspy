@@ -38,25 +38,17 @@
  * controls (taller than a single button/entry). Errors + the AI reasoning are
  * routed to the flash / header pill rather than rendered inline, so no state
  * adds a second line. */
+/* The below-board slot is a fixed-height COLUMN holding the CluePanel, a terminal
+ * verdict echo, or the own-action flash. The flash is the shared <ResultFlash
+ * compact> — `compact` pins it to its content height (clearly shorter than the
+ * clue controls), so the default `flex: 1` doesn't stretch it to fill this slot
+ * (see ResultFlash.module.css → `.compact`). */
 .inputRow {
   flex-shrink: 0;
   height: 3rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-
-/* The own-action error flash in this slot. The shared <ResultFlash>'s `.flash`
- * sets `flex: 1` (meant for a horizontal input ROW, where it fills the width);
- * in this COLUMN slot that makes it fill the height and read taller than the
- * inputs. Override it to a short, content-height bar — clearly shorter than the
- * clue controls — centered in the fixed slot. The descendant selector
- * (`.inputRow .actionFlash`, specificity 0,2,0) beats `.flash` (0,1,0)
- * regardless of stylesheet order. */
-.inputRow .actionFlash {
-  flex: 0 0 auto;
-  padding-top: 0.3rem;
-  padding-bottom: 0.3rem;
 }
 
 /* The terminal verdict echo shown in the below-board slot once the game's over —

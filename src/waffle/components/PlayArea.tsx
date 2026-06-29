@@ -172,11 +172,7 @@ export function PlayArea({
             column's .terminalExtra instead. */}
         <div className={styles.inputRow}>
           {actionFlash ? (
-            <ResultFlash
-              tone={actionFlash.tone}
-              label={actionFlash.label}
-              className={styles.actionFlash}
-            />
+            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} compact />
           ) : null}
         </div>
       </div>
