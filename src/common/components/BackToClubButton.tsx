@@ -1,4 +1,4 @@
-import { ChevronLeft } from 'lucide-react'
+import { IconBack } from './icons'
 import { cls } from '../lib/cls'
 import styles from './BackToClubButton.module.css'
 
@@ -20,8 +20,8 @@ type Props = {
  * The app-wide "‹ Back to club" button.
  *
  * Every exit-to-club affordance (the GameOverModal's CTA, each game's
- * post-terminal indicator) routes through here so the icon (Lucide
- * `ChevronLeft`), its spacing, and the accessible label are identical
+ * post-terminal indicator) routes through here so the icon (`IconBack`, the
+ * chevron-left glyph), its spacing, and the accessible label are identical
  * everywhere. The chevron is `aria-hidden` so a screen reader just
  * announces "Back to club", not the icon.
  *
@@ -43,7 +43,7 @@ export function BackToClubButton({
       aria-label={compact ? 'Back to club' : undefined}
       autoFocus={autoFocus}
     >
-      <ChevronLeft size={16} aria-hidden />
+      <IconBack size={16} aria-hidden />
       {compact ? 'club' : 'Back to club'}
     </button>
   )

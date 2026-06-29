@@ -63,7 +63,7 @@
      Five matched `-bg` / `-border` pairs form a deliberate
      vocabulary (won / lost / active / near / current). A few of
      the `-bg` tokens are unused today — the current chrome leans
-     on the `-border` left-strip pattern (see GuessHistory) and
+     on the `-border` left-strip pattern (see TurnLog) and
      the corner-flag triangle (see ClubGameCard) rather than full
      pastel fills. Kept anyway so the vocabulary stays complete:
      a reader who sees `-border` should reasonably expect its
@@ -91,7 +91,10 @@
   /* "Near miss" — a partial-credit signal distinct from active-
      yellow. For any "you were close" row state in a guess
      history; amber/orange to read as warning-flavored rather
-     than wait-flavored. */
+     than wait-flavored. The `-bg` completes the won/lost/near
+     trio the filled outcome boxes lean on (connections's one-away
+     commit flash); `-border` is the outcome-bar amber. */
+  --color-outcome-near-bg:     #ffe0b2;  /* amber 100 */
   --color-outcome-near-border: #ffb74d;  /* amber 300 */
   /* "Current" — the now-playing / join-this-one signal. Used by
      ClubGameCard's active-game corner flag (a saturated orange,

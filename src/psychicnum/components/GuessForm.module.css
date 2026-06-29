@@ -8,6 +8,11 @@
   flex-direction: row;
   gap: 0.5rem;
   align-items: center;
+  /* Reserve the bar height so swapping the entry + Submit for the full-width
+   * <ResultFlash> never changes the row height — the board above can't reflow
+   * (docs/ui.md → Layout stability). 2.75rem matches connections' commit row,
+   * so the two games' input bars are the same height too. */
+  min-height: 2.75rem;
 }
 
 /* Appearance override for the shared <EntryBox>: fill the row's free width

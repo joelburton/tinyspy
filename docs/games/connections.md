@@ -144,7 +144,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
-| **FE GuessHistory**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
+| **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
 | **GameOverModal verdict**                  | "You win!" / "You lost: out of mistakes/time" (team)        | "You won the race!" / "Beaten to the punch." / "Everyone eliminated — nobody won." |
 
 The shape that's the same in both modes:
@@ -307,6 +307,13 @@ src/connections/
                           No outer card — the only divider is the info column's left border.
                           Branches on game.mode for the OpponentStrip + eliminated-spectator
                           state. Mounted by <GamePage> as its render-prop child.
+                          **Feedback splits local vs group** (like psychicnum; see ui.md +
+                          deferred.md → Feedback channels): my OWN guess result flashes
+                          green/amber/red via the shared <ResultFlash>, which replaces the
+                          Clear/Submit commit row for ~1.4s (the SAME bar psychicnum swaps in
+                          for its entry row), dismissed on the next tile click; a teammate's
+                          guess is a header pill ("Bea found ANIMALS!"). Only coop reaches the
+                          header — compete's guesses log is RLS-scoped to the caller.
     PlayArea.module.css
     Board.tsx             The board as ONE grid: solved/revealed categories as full-width
                           colored band rows (grid-column: 1 / -1, sorted by rank — the
@@ -320,11 +327,11 @@ src/connections/
     MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
                           mistake, filled for remaining and dimmed for used (default budget 4).
     MistakeDots.module.css
-    GuessHistory.tsx      The append-only log of this game's guesses, in the info column,
+    GameTurnLog.tsx      The append-only log of this game's guesses, in the info column,
                           rendered with the shared <TurnLog> table (one row = the 4 tiles +
                           a verdict sub-line + the actor's identity dot). Stateless/
-                          presentational; same shape as psychicnum's <GuessHistory>.
-    GuessHistory.module.css
+                          presentational; same shape as psychicnum's <GameTurnLog>.
+    GameTurnLog.module.css
     HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
                           a "Reveal" button that surfaces that category's first tile. Purely
                           client-side per-player state (a Set of revealed ranks) — never

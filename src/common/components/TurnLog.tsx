@@ -15,7 +15,7 @@ export type TurnOutcome = 'good' | 'bad' | 'partial' | 'neutral'
  * It's a **`<table>`** so each game's row pieces line up in columns *across*
  * rows (the number column, the who column, etc. all align) — which a flex/grid-
  * of-rows can't do. Each game supplies its own `<td>` cells inside a
- * {@link TurnLogEntry}; the entry prepends the shared outcome-bar cell. Compose
+ * {@link TurnLogItem}; the item prepends the shared outcome-bar cell. Compose
  * the cells from the content classes in `TurnLog.module.css` (`.primary` /
  * `.meta` / `.actor` / `.dot` / `.who`) rather than inventing ad-hoc ones, so
  * similar pieces read the same across games.
@@ -38,7 +38,9 @@ export function TurnLog({
   /** Changes whenever the rows change (e.g. the rows array, or its length);
    *  drives the scroll-to-latest effect. */
   scrollKey: unknown
-  /** Merged onto the `<section>` — each game passes its own column flex/width. */
+  /** Optional extra class merged onto the root. The panel already fills its
+   *  flex parent (`flex: 1` on `.turnLog`); this is only for a rare per-game
+   *  override (a different width/flex). */
   className?: string
   children: ReactNode
 }) {
@@ -56,13 +58,13 @@ export function TurnLog({
   )
 
   return (
-    <section className={cls(styles.panel, className)}>
-      <h3 className={styles.heading}>{heading}</h3>
-      <div ref={boxRef} className={styles.listBox}>
+    <section className={cls(styles.turnLog, className)}>
+      <h3 className={styles.turnLogHeading}>{heading}</h3>
+      <div ref={boxRef} className={styles.turnLogBox}>
         {empty ? (
-          <p className={cls('muted', styles.empty)}>{emptyText}</p>
+          <p className={cls('muted', styles.turnLogEmpty)}>{emptyText}</p>
         ) : (
-          <table className={styles.table}>
+          <table className={styles.turnLogTable}>
             <tbody>{children}</tbody>
           </table>
         )}
@@ -72,13 +74,17 @@ export function TurnLog({
 }
 
 /**
- * One row in a {@link TurnLog}: a `<tr>` that prepends the shared **outcome-bar
- * cell** (a colored bar on the left, by outcome) and then renders the game's own
- * `<td>` cells (`children`). Rows are separated by a horizontal divider line
- * (the cells' shared bottom border); there are no vertical borders between
- * cells. `className` lets a game tweak the row if needed.
+ * One row (**item**) in a {@link TurnLog}: a `<tr>` that prepends the shared
+ * **outcome-bar cell** (a colored bar on the left, by outcome) and then renders
+ * the game's own `<td>` cells (`children`). Rows are separated by a horizontal
+ * divider line (the cells' shared bottom border); there are no vertical borders
+ * between cells. `className` lets a game tweak the row if needed.
+ *
+ * Named "item", not "guess" — a turn-log row is one *turn*, and a turn can hold
+ * several guesses (codenamesduet's clue-then-multiple-guesses), so "guess" is
+ * reserved for the game-specific case where a row genuinely is a single guess.
  */
-export function TurnLogEntry({
+export function TurnLogItem({
   outcome,
   className,
   children,
@@ -88,11 +94,11 @@ export function TurnLogEntry({
   children: ReactNode
 }) {
   return (
-    <tr className={cls(styles.entry, styles[`outcome_${outcome}`], className)}>
+    <tr className={cls(styles.turnLogItem, styles[`outcome_${outcome}`], className)}>
       {/* Real element (not just a styled empty cell) so the cell's width is
           honored and the bar can be sized/positioned reliably. */}
-      <td className={styles.bar}>
-        <span className={styles.barInner} />
+      <td className={styles.turnLogBar}>
+        <span className={styles.turnLogBarInner} />
       </td>
       {children}
     </tr>

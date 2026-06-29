@@ -16,14 +16,6 @@ type Props = {
   children?: ReactNode
   /** Appended to the base box class for per-game appearance (size, layout). */
   className?: string
-  /**
-   * A transient pass/fail result shown *in place of* the entry — e.g. a
-   * "Correct" / "Incorrect" flash after a guess. When set, the box shows
-   * `label` with a green (`good`) / red (`bad`) border and **hides the
-   * caret**: the entry is reporting a result, not awaiting input. The caller
-   * owns the lifetime (typically a ~1s timer, then back to null).
-   */
-  result?: { tone: 'good' | 'bad'; label: ReactNode } | null
 }
 
 /**
@@ -46,24 +38,8 @@ type Props = {
  *   - **appearance** (size, how the box sits in its row) → `className`;
  *   - **value rendering** (plain vs per-character styling) → `children`.
  */
-export function EntryBox({ value, placeholder, children, className, result }: Props) {
+export function EntryBox({ value, placeholder, children, className }: Props) {
   const gameHasKeyboard = useGameHasKeyboard()
-
-  // A result flash takes over the box entirely — colored border, the result
-  // label, no caret (we're not awaiting input during the flash).
-  if (result) {
-    return (
-      <div
-        className={cls(
-          styles.box,
-          result.tone === 'good' ? styles.resultGood : styles.resultBad,
-          className,
-        )}
-      >
-        <span className={styles.result}>{result.label}</span>
-      </div>
-    )
-  }
 
   const empty = value === ''
 

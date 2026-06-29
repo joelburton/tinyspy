@@ -1,10 +1,14 @@
 /* connections board surface. The two-column SHELL, the info-column READOUTS,
  * and the TILE chrome come from the shared common/components/playArea.module.css
  * (imported as `shared`); only what's specific to connections lives here:
- *   - .grid       — the one board grid: 4 columns, grows to fill the column (the
- *                   same flex-fill layout psychicnum's WordBoard uses, minus the
- *                   max tile-height cap — none here yet). Holds BOTH the tiles
- *                   and the solved-category bands (see Board.tsx + docs/ui.md →
+ *   - .board      — the board wrapper that fills the column. NO border/
+ *                   background today (the gaps show the column behind, matching
+ *                   psychicnum); the shared shape both games carry so a future
+ *                   game frames its board here in one place.
+ *   - .grid       — the one board grid: 4 columns, fills the .board (the same
+ *                   flex-fill layout psychicnum's WordBoard uses, minus the max
+ *                   tile-height cap — none here yet). Holds BOTH the tiles and
+ *                   the solved-category bands (see Board.tsx + docs/ui.md →
  *                   "Board sizing").
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
  *                   same height as a tile row and sharing the one grid gap.
@@ -15,13 +19,25 @@
  * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
  */
 
-/* The board grid. Fills the board column (`flex: 1`) and grows to fill the
+/* The board wrapper. Fills the board column (`flex: 1 1 0`) and is a flex column
+ * so the grid inside fills it. Visually empty TODAY — no border, no background,
+ * no padding — so it reads identically to psychicnum's board (gaps show the
+ * column behind). It's the deliberate single place a future game adds a framed
+ * look; the twin lives in psychicnum's WordBoard.module.css (`.board`). */
+.board {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The board grid. Fills the `.board` wrapper (`flex: 1`) and grows to fill the
  * height; the row count is applied inline by Board.tsx as `repeat(rows, 1fr)`
  * (rows = bands + tile-rows; always 4 for a 16-tile board). No per-row height
  * cap yet (psychicnum's WordBoard has one; connections may add one later). Four
  * columns; the --tile-font-* knobs tune the shared .tileWord auto-fit. */
 .grid {
-  flex: 1 1 0;
+  flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -85,8 +101,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Strip the animation; the wrong-guess feedback still lands via the header's
-   * feedback pill + the mistake-dot fill. */
+  /* Strip the animation; the wrong-guess feedback still lands via the
+   * commit-slot "Incorrect" flash + the mistake-dot fill. */
   .tileShaking {
     animation: none;
   }
@@ -134,6 +150,13 @@
   font-weight: 700;
   margin: 0;
 }
+
+/* The own-result flash that replaces the commit buttons for ~1.4s after my
+ * guess resolves is the shared <ResultFlash> (common/components/ResultFlash) —
+ * the same bar psychicnum swaps in for its entry row, so the two games' local
+ * feedback is identical. It reserves no height of its own: the `.commit` row's
+ * min-height (below) keeps the slot stable whether it holds the buttons, the
+ * flash, or the terminal outcome. */
 
 /* Each commit button: a Lucide icon + label on one centered line, natural
  * width with a sensible floor. */

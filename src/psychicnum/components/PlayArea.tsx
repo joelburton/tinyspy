@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Eye, Flag, Lightbulb } from 'lucide-react'
+import { IconEnd, IconHint, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -8,12 +8,15 @@ import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { memberById } from '../../common/lib/peers'
+import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { GuessForm } from './GuessForm'
-import { GuessHistory } from './GuessHistory'
+import { GameTurnLog } from './GameTurnLog'
 import { WordBoard } from './WordBoard'
 import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -31,8 +34,6 @@ function shuffled<T>(arr: readonly T[]): T[] {
   }
   return out
 }
-/** How long an entry-box flash (a guess result, or a validation error) stays up. */
-const ENTRY_FLASH_MS = 1400
 
 /**
  * psychicnum's play surface, shared between coop and compete
@@ -41,7 +42,7 @@ const ENTRY_FLASH_MS = 1400
  *
  *   - Header copy + progress: coop shows the team's "found X of 3";
  *     compete shows the caller's own progress + opponents' budgets.
- *   - GuessHistory: coop shows everyone's guesses (and hints);
+ *   - GameTurnLog: coop shows everyone's guesses (and hints);
  *     compete is RLS-scoped to the caller.
  *   - Feedback: coop narrates teammates' guesses (green/red) and
  *     hint requests (amber) in the header; compete narrates an
@@ -98,36 +99,16 @@ export function PlayArea({
   }, [wordsKey, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
-  // ─── Entry-box flash (own-action feedback) ─────────────
-  // A transient message shown *inside the entry box* for the player's own
+  // ─── Entry-bar flash (own-action feedback) ─────────────
+  // A transient message that replaces the entry bar for the player's own
   // action: "Correct"/"Incorrect" after a guess, or a validation error
-  // ("Not on the board") when the typed word isn't a tile. It lives in the
-  // entry's already-claimed space (never a new line below the form, which would
-  // shrink the board — docs/ui.md → Layout stability). Set from event handlers
-  // (no set-state-in-effect), cleared after a beat. Local channel: near my
-  // eyes, about what I just did (docs/deferred.md → Feedback channels).
-  const [entryFlash, setEntryFlash] =
-    useState<{ tone: 'good' | 'bad'; label: string } | null>(null)
-  const entryFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const flashEntry = useCallback((tone: 'good' | 'bad', label: string) => {
-    setEntryFlash({ tone, label })
-    if (entryFlashTimerRef.current !== null) {
-      clearTimeout(entryFlashTimerRef.current)
-    }
-    entryFlashTimerRef.current = setTimeout(() => {
-      setEntryFlash(null)
-      entryFlashTimerRef.current = null
-    }, ENTRY_FLASH_MS)
-  }, [])
-
-  useEffect(function clearEntryFlashTimerOnUnmount() {
-    return () => {
-      if (entryFlashTimerRef.current !== null) {
-        clearTimeout(entryFlashTimerRef.current)
-      }
-    }
-  }, [])
+  // ("Not on the board") when the typed word isn't a tile. The shared
+  // <ResultFlash> lives in the entry's already-claimed space (never a new line
+  // that would shrink the board — docs/ui.md → Layout stability). Local channel:
+  // near my eyes, about what I just did (docs/deferred.md → Feedback channels).
+  // GuessForm hides it the moment the player types again (dismiss-on-input), so
+  // psychicnum never needs the hook's `clear`.
+  const { flash: entryFlash, show: flashEntry } = useResultFlash()
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess (green correct / red not) or hint request (amber) is
@@ -148,7 +129,7 @@ export function PlayArea({
 
     if (latest.user_id === session.user.id) return  // mine → local
     if (mode !== 'coop') return
-    const member = players.find((p) => p.user_id === latest.user_id)
+    const member = memberById(players, latest.user_id)
     const name = member?.username ?? 'Someone'
     const dot = colorVarFor(member?.color)
 
@@ -191,7 +172,7 @@ export function PlayArea({
       seenOpponentFoundRef.current.set(p.user_id, p.secrets_found)
       if (prev === undefined) continue  // first sighting — seed, don't announce
       if (p.secrets_found <= prev) continue
-      const member = players.find((m) => m.user_id === p.user_id)
+      const member = memberById(players, p.user_id)
       const name = member?.username ?? 'Someone'
       feedback.show({
         tone: 'warning',
@@ -313,9 +294,9 @@ export function PlayArea({
   return (
     <div className={shared.layout}>
       {/* The board column FILLS the width the fixed info column leaves (flex:1);
-          the board card grows to fill it, and the entry row below stretches to
-          match the board width. (styles.boardColTint is a TEMP debug bg.) */}
-      <div className={cls(shared.boardCol, styles.boardColTint)}>
+          the board grows to fill it, and the entry row below stretches to
+          match the board width. */}
+      <div className={shared.boardCol}>
         <WordBoard
           words={shuffledWords}
           results={results}
@@ -427,7 +408,7 @@ export function PlayArea({
                     onClick={getHint}
                     disabled={hinting}
                   >
-                    <Lightbulb size={15} aria-hidden />
+                    <IconHint size={15} aria-hidden />
                     Hint
                   </button>
                   <button
@@ -436,7 +417,7 @@ export function PlayArea({
                     onClick={getReveal}
                     disabled={revealing}
                   >
-                    <Eye size={15} aria-hidden />
+                    <IconReveal size={15} aria-hidden />
                     Reveal
                   </button>
                 </>
@@ -448,13 +429,13 @@ export function PlayArea({
                 className={cls('secondary', shared.helperButton)}
                 onClick={endGame}
               >
-                <Flag size={15} aria-hidden />
+                <IconEnd size={15} aria-hidden />
                 End
               </button>
             </div>
           )}
         </div>
-        <GuessHistory guesses={guesses} players={players} />
+        <GameTurnLog guesses={guesses} players={players} />
       </div>
 
       {showModal && over && (
@@ -488,22 +469,10 @@ function buildOver({
   selfWon: boolean
   /** Compete: the winner's frozen username (for the "X won" message). */
   winnerName: string
-}): {
-  outcome: 'won' | 'lost'
-  verdict: string
-  message: string
-  tone: 'won' | 'lost' | 'neutral'
-} {
-  // Manual end ('ended', written by psychicnum.end_game) is the
-  // uniform neutral terminal shared with the other games: nobody
-  // won, nobody lost — the friends just stopped. We render it with
-  // outcome:'won' so GameOverModal uses its green treatment (the
-  // modal only knows 'won'/'lost'); the info-column message is neutral.
-  if (playState === 'ended') {
-    return mode === 'coop'
-      ? { outcome: 'won', verdict: 'Game ended.', message: 'Game over', tone: 'neutral' }
-      : { outcome: 'won', verdict: 'Game ended — no winner.', message: 'Game over', tone: 'neutral' }
-  }
+}): TerminalCopy {
+  // Manual end ('ended', written by psychicnum.end_game) is the uniform neutral
+  // terminal shared with the other games — the shared endedCopy() owns it.
+  if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { outcome: 'won', verdict: 'You found all three!', message: 'You won!', tone: 'won' }

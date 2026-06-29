@@ -19,3 +19,16 @@ export function orderSelfFirst<T extends { user_id: string; username: string }>(
     return a.username.localeCompare(b.username)
   })
 }
+
+/**
+ * Find a member in a roster by user id — the "who is this `user_id`?" lookup
+ * every game does to attribute a guess / turn to its actor. Generic over
+ * anything Member-shaped so per-game `Player` aliases work without a cast;
+ * returns `undefined` for an unknown id (a departed member, an unloaded row).
+ */
+export function memberById<T extends { user_id: string }>(
+  members: readonly T[],
+  userId: string,
+): T | undefined {
+  return members.find((m) => m.user_id === userId)
+}

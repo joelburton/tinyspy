@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
-import { Play } from 'lucide-react'
+import { IconSubmit } from '../../common/components/icons'
 import { EntryBox } from '../../common/components/EntryBox'
+import { ResultFlash, type ResultTone } from '../../common/components/ResultFlash'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import styles from './GuessForm.module.css'
 
@@ -12,23 +13,30 @@ type Props = {
   /** Submit the current value — PlayArea owns validation + the RPC. */
   onSubmit: () => void
   submitting: boolean
-  /** A transient flash shown **in the entry box** (green/red border + label):
-   *  a guess result ("Correct"/"Incorrect") or a validation error ("Not on the
-   *  board"). Owned + cleared by PlayArea; lives in the entry's own space so
-   *  feedback never adds a line that reflows the board. Suppressed the moment
-   *  the player types again (see below). */
-  result?: { tone: 'good' | 'bad'; label: string } | null
+  /** A transient flash that **replaces the whole entry bar** (the shared
+   *  <ResultFlash>): a guess result ("Correct"/"Incorrect") or a validation
+   *  error ("Not on the board"). Owned + cleared by PlayArea; the `.form`
+   *  reserves the bar height so the swap never reflows the board. Suppressed the
+   *  moment the player types again (see below) — same bar connections swaps in
+   *  for its commit row, so the two games' local feedback is identical.
+   *  (psychicnum only ever flashes `good`/`bad`; the tone is the full
+   *  `ResultTone` since it forwards straight to `<ResultFlash>`.) */
+  result?: { tone: ResultTone; label: string } | null
 }
 
 /**
  * The word-entry row that sits **below the board** — a *capture-only* entry
- * (no `<input>`) + a Submit button.
+ * (no `<input>`) + a Submit button. When a result flash is active, the **whole
+ * row** is replaced by the shared <ResultFlash> bar (matching how connections
+ * swaps its commit row); the `<form>` stays mounted throughout, so its key
+ * handler keeps capturing — the first keystroke of the next guess clears the
+ * flash and brings the entry + Submit back.
  *
- * The shared <EntryBox> owns the display + the blinking caret (and keeps the
- * caret honest about keyboard ownership). This component owns the part that's
- * specific to psychicnum: **what may be typed** — letters only, forming a word
- * — plus Backspace / Enter, and Tab-suppression while the entry is live. Keys
- * are read off the window, so clicking a board tile never blurs a field and
+ * The shared <EntryBox> owns the entry display + the blinking caret (and keeps
+ * the caret honest about keyboard ownership). This component owns the part
+ * that's specific to psychicnum: **what may be typed** — letters only, forming a
+ * word — plus Backspace / Enter, and Tab-suppression while the entry is live.
+ * Keys are read off the window, so clicking a board tile never blurs a field and
  * stops your typing; typing and tile-clicks both feed PlayArea's one `pending`
  * value (a lowercase word).
  *
@@ -36,9 +44,10 @@ type Props = {
  * on the board and owns the `submit_guess` RPC (the source of truth).
  */
 export function GuessForm({ value, onChange, onSubmit, submitting, result }: Props) {
-  // The result flash shows only while the entry is empty: the box clears to ''
-  // on submit, so "Incorrect" fills the empty box for its ~1s — but the moment
-  // the player starts typing the next guess, their letters take over.
+  // The result flash shows only while the entry is empty: the entry clears to ''
+  // on submit, so "Incorrect" fills the bar for its ~1s — but the moment the
+  // player starts typing the next guess, their letters take over and the entry
+  // returns.
   const shownResult = value === '' ? result : null
 
   // Capture letters / Backspace / Enter / Tab off the window. The form only
@@ -94,16 +103,23 @@ export function GuessForm({ value, onChange, onSubmit, submitting, result }: Pro
         onSubmit()
       }}
     >
-      <EntryBox
-        value={value}
-        placeholder="type a word"
-        className={styles.entry}
-        result={shownResult}
-      />
-      <button type="submit" className={styles.submit} disabled={submitting || value === ''}>
-        <Play size={15} aria-hidden />
-        {submitting ? 'Submitting…' : 'Submit'}
-      </button>
+      {shownResult ? (
+        // The flash takes over the WHOLE bar (entry + Submit), not just the
+        // entry box — the form stays mounted so typing still dismisses it.
+        <ResultFlash tone={shownResult.tone} label={shownResult.label} />
+      ) : (
+        <>
+          <EntryBox value={value} placeholder="type a word" className={styles.entry} />
+          <button
+            type="submit"
+            className={styles.submit}
+            disabled={submitting || value === ''}
+          >
+            <IconSubmit size={15} aria-hidden />
+            {submitting ? 'Submitting…' : 'Submit'}
+          </button>
+        </>
+      )}
     </form>
   )
 }

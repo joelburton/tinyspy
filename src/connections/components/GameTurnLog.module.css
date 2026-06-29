@@ -1,0 +1,26 @@
+/* connections-specific bits of the turn log. The panel chrome (heading + scroll
+ * box), the column-fill (`flex: 1` on `.turnLog`), the row look (outcome bar,
+ * divider lines), and the content class (`.meta`) come from the shared
+ * common/components/TurnLog (the actor name + disc is the shared <ActorTag>);
+ * only the two-line row body (words on top, verdict + who below) is
+ * connections's. */
+
+/* Top line: the four guessed tiles, full width (no who-column squishing them
+ * into a narrow wrapping strip). UPPERCASE to read as "the words I clicked";
+ * soft-wrap on long sets (the dot separator gives natural break points). */
+.words {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  word-break: break-word;
+}
+
+/* Second line: the verdict on the left, the actor (<ActorTag>) right-justified
+ * by the space-between. */
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}

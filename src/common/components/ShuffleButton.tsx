@@ -1,4 +1,4 @@
-import { RotateCw } from 'lucide-react'
+import { IconShuffle } from './icons'
 import { cls } from '../lib/cls'
 import styles from './ShuffleButton.module.css'
 
@@ -44,10 +44,11 @@ export function ShuffleButton({ onShuffle, disabled, label = 'Shuffle', classNam
       title={label}
     >
       {/* The glyph spins on hover via the .glyph span (rotating the button
-       *  would spin the whole pill). Lucide rotate icon — chosen over the
-       *  crossing-arrows `Shuffle` as the visually clearer "fresh look". */}
+       *  would spin the whole pill). IconShuffle is the rotate glyph — chosen
+       *  over the crossing-arrows `Shuffle` as the visually clearer "fresh
+       *  look" (see the registry / docs/ui.md). */}
       <span className={styles.glyph}>
-        <RotateCw size={24} aria-hidden />
+        <IconShuffle size={24} aria-hidden />
       </span>
     </button>
   )

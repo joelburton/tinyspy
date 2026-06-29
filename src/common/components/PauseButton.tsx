@@ -1,4 +1,4 @@
-import { Pause } from 'lucide-react'
+import { IconPause } from './icons'
 import styles from './PauseButton.module.css'
 
 type Props = {
@@ -30,9 +30,9 @@ export function PauseButton({ paused, onPause }: Props) {
       aria-label={paused ? 'Game paused' : 'Pause game'}
       title={paused ? 'Game paused' : 'Pause game'}
     >
-      {/* Lucide pause glyph — inherits `currentColor` from the button. The
-       *  button carries the label, so the icon is decorative. */}
-      <Pause size={20} aria-hidden />
+      {/* Pause glyph — inherits `currentColor` from the button. The button
+       *  carries the label, so the icon is decorative. */}
+      <IconPause size={20} aria-hidden />
     </button>
   )
 }

@@ -23,32 +23,6 @@
   color: var(--color-muted);
 }
 
-/* Result flash (the `result` prop): the box briefly reports a pass/fail in
- * place of the entry — a colored border + tint matching the shared outcome
- * palette (same green/red the TurnLog outcome bars use), so "Correct" /
- * "Incorrect" reads the same as the rest of the game's feedback. The caller
- * clears it after a beat. */
-.resultGood {
-  border-color: var(--color-outcome-won-border);
-  background: var(--color-outcome-won-bg);
-}
-
-.resultBad {
-  border-color: var(--color-outcome-lost-border);
-  background: var(--color-outcome-lost-bg);
-}
-
-.result {
-  font-weight: 600;
-  /* Keep the flash on ONE line so the box height never changes (a wrapped
-   * message would grow the box and reflow whatever sits around it). A label
-   * too long for the box truncates rather than wrapping. */
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* Simulated text cursor — stands in for the blinking caret a real <input>
  * would give, supplying the "type here" affordance without a focusable
  * field. Sits after the typed value (or before the placeholder when empty).

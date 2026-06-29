@@ -1,0 +1,35 @@
+/* The own-result flash bar — see ResultFlash.tsx. A full-width, centered,
+ * semibold label tinted by outcome, sized to drop into a game's input row in
+ * place of its controls. Padding matches the shared <EntryBox> (0.6rem 0.9rem)
+ * so the bar reads at the same vertical rhythm as the input it replaces. Held
+ * to one line (no wrap) so the row height never changes. */
+.flash {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-control-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Outcome tints — the shared won/lost/near palette (the SAME green/red/amber the
+ * TurnLog outcome bars and decided tiles use), so a result reads the same
+ * wherever it appears. */
+.good {
+  border-color: var(--color-outcome-won-border);
+  background: var(--color-outcome-won-bg);
+}
+
+.bad {
+  border-color: var(--color-outcome-lost-border);
+  background: var(--color-outcome-lost-bg);
+}
+
+.near {
+  border-color: var(--color-outcome-near-border);
+  background: var(--color-outcome-near-bg);
+}

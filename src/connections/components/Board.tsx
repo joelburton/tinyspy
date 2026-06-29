@@ -34,9 +34,10 @@ type Props = {
  * "one long tile" spanning the row instead of four, so it's the same height,
  * padding, and depth as a tile and shares the one grid gap. Because every
  * category is four tiles, `bands + ceil(remaining / 4)` is always the same row
- * count, so the board is one grid that grows to fill the column — the same
- * layout psychicnum's WordBoard uses (psychicnum caps tile height; connections
- * doesn't yet).
+ * count, so it's one grid that grows to fill its `.board` wrapper (which fills
+ * the column) — the same layout psychicnum's WordBoard uses (psychicnum caps
+ * tile height; connections doesn't yet). The `.board` wrapper is a shared shape
+ * across games (no border/background today; the slot for a future framed board).
  *
  * Tiles carry the shared `.tile` chrome; a player's own pick is the shared
  * `.selected` dark fill, a peer's is an inline color frame, a rejected guess
@@ -71,47 +72,54 @@ export function Board({
   )
 
   return (
-    <div
-      className={styles.grid}
-      // `rows` 1fr tracks, so the grid grows to fill the column (no per-row cap
-      // yet — unlike psychicnum's WordBoard, which caps tile height; one may be
-      // added here later). A band is one of these rows spanning all 4 columns.
-      style={{ gridTemplateRows: `repeat(${rows}, 1fr)` }}
-    >
-      {sortedMatched.map((mc) => band(mc, false))}
-      {unmatched.map((c) => band(c, true))}
-      {tiles.map((tile) => {
-        const ownerId = ownerByTile.get(tile)
-        const isMine = ownerId === selfUserId
-        const isPeer = ownerId !== undefined && !isMine
-        const isShaking = shakingTiles?.has(tile) ?? false
-        return (
-          <button
-            key={tile}
-            type="button"
-            className={cls(
-              shared.tile,
-              isMine && shared.selected,
-              isShaking && styles.tileShaking,
-            )}
-            style={
-              isPeer && ownerId
-                ? {
-                    boxShadow: `inset 0 0 0 4px ${
-                      colorByUserId.get(ownerId) ?? 'transparent'
-                    }`,
-                  }
-                : undefined
-            }
-            onClick={() => onToggle(tile)}
-          >
-            {/* --len drives the shared .tileWord auto-fit. */}
-            <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>
-              {tile}
-            </span>
-          </button>
-        )
-      })}
+    // The .board wrapper carries NO border/background today — the inter-tile
+    // gaps show the column behind, matching psychicnum. The wrapper + class
+    // exist in both games so a future game frames its board (border / fill /
+    // padding) in one place. See WordBoard's .board for the twin.
+    <div className={styles.board}>
+      <div
+        className={styles.grid}
+        // `rows` 1fr tracks, so the grid grows to fill the .board (no per-row
+        // cap yet — unlike psychicnum's WordBoard, which caps tile height; one
+        // may be added here later). A band is one of these rows spanning all 4
+        // columns.
+        style={{ gridTemplateRows: `repeat(${rows}, 1fr)` }}
+      >
+        {sortedMatched.map((mc) => band(mc, false))}
+        {unmatched.map((c) => band(c, true))}
+        {tiles.map((tile) => {
+          const ownerId = ownerByTile.get(tile)
+          const isMine = ownerId === selfUserId
+          const isPeer = ownerId !== undefined && !isMine
+          const isShaking = shakingTiles?.has(tile) ?? false
+          return (
+            <button
+              key={tile}
+              type="button"
+              className={cls(
+                shared.tile,
+                isMine && shared.selected,
+                isShaking && styles.tileShaking,
+              )}
+              style={
+                isPeer && ownerId
+                  ? {
+                      boxShadow: `inset 0 0 0 4px ${
+                        colorByUserId.get(ownerId) ?? 'transparent'
+                      }`,
+                    }
+                  : undefined
+              }
+              onClick={() => onToggle(tile)}
+            >
+              {/* --len drives the shared .tileWord auto-fit. */}
+              <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>
+                {tile}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

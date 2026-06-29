@@ -80,36 +80,47 @@ note the `warning` tone the header palette lacks.
 
 ---
 
-## connections (brand WordKnit)
+## connections (brand WordKnit) — split done (mirrors psychicnum)
 
-### Header feedback (ctx.feedback → FeedbackPill)
+connections now follows the local-vs-group split: my own guess result is a
+local flash that replaces the commit buttons; a teammate's guess is a header
+pill. Only coop reaches the header — the compete guesses log is RLS-scoped to
+the caller, so there are no peer events to narrate.
+
+### Header feedback (ctx.feedback → FeedbackPill) — group events only (coop)
 | trigger | message | tone → color | dismiss |
 |---|---|---|---|
-| Duplicate guess | `You already tried that` | error → red | closeable |
-| Submit-guess RPC fails | `<error.message>` | error → red | closeable |
-| Result: one away | `One away!` | neutral → grey | closeable |
-| Result: incorrect | `Incorrect` | error → red | closeable |
-| End-game RPC fails | `End game failed: <error.message>` | error → red | closeable |
+| Teammate correct (coop) | `<user> found <CATEGORY>!` | success → green (outline + dot) | timed 3000ms |
+| Teammate one-away (coop) | `<user> was one away` | warning → amber (outline + dot) | timed 3000ms |
+| Teammate wrong (coop) | `<user> guessed wrong` | error → red (outline + dot) | timed 3000ms |
 
 ### Local feedback
 | where | trigger | message | color | how it clears |
 |---|---|---|---|---|
-| TileGrid `.tileShaking` | wrong guess (`verdict.kind==='wrong'`) | — (visual) | horizontal shake ±4px, 0.4s | setTimeout 500ms resets shaking set |
+| `<ResultFlash>` (replaces commit row) | own guess correct | `Correct!` | green | timed 1400ms / on next tile click |
+| `<ResultFlash>` | own guess one-away | `One away!` | amber (shared near/partial outcome color) | timed 1400ms / on next tile click |
+| `<ResultFlash>` | own guess wrong | `Incorrect` | red | timed 1400ms / on next tile click |
+| `<ResultFlash>` | duplicate guess | `You already tried that` | red | timed 1400ms / on next tile click |
+| `<ResultFlash>` | submit/end-game RPC fails | `<error.message>` | red | timed 1400ms / on next tile click |
+| Board `.tileShaking` | wrong guess (`verdict.kind==='wrong'`) | — (visual) | horizontal shake ±4px, 0.4s | setTimeout 500ms resets shaking set |
 
 ---
 
-## psychicnum (brand PsychicNum)
+## psychicnum (brand PsychicNum) — split done (shares `<ResultFlash>` with connections)
 
-### Header feedback (ctx.feedback → FeedbackPill)
+### Header feedback (ctx.feedback → FeedbackPill) — group events only
 | trigger | message | tone → color | dismiss |
 |---|---|---|---|
-| Wrong guess | `<number> — not the number` | error → red | closeable |
+| Teammate guess (coop) | `<user> found a secret — <WORD>!` / `<user> guessed <WORD> — not it` | success/error (outline + dot) | timed 3000ms |
+| Teammate hint/reveal (coop) | `<user> asked for a hint` / `<user> revealed a word` | warning → amber (outline + dot) | timed 3000ms |
+| Opponent found a secret (compete) | `<user> guessed a secret word` | warning → amber (outline + dot) | timed 3000ms |
 
 ### Local feedback
 | where | trigger | message | color | how it clears |
 |---|---|---|---|---|
-| GuessForm `.error` | out-of-range validation | `Number must be between 1 and 10.` | red text (--color-error) | next submit / on success |
-| GuessForm `.error` | submit RPC fails | `<error.message>` | red text | next submit / on success |
+| `<ResultFlash>` (replaces the entry + Submit bar) | own guess correct | `Correct` | green | timed 1400ms / on next keystroke |
+| `<ResultFlash>` | own guess wrong | `Incorrect` | red | timed 1400ms / on next keystroke |
+| `<ResultFlash>` | not a board word / RPC error | `Not on the board` / `<error.message>` | red | timed 1400ms / on next keystroke |
 
 ---
 

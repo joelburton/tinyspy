@@ -2,17 +2,11 @@
  * the TILE chrome all come from the shared common/components/playArea.module.css
  * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
  * to psychicnum live here:
- *   - .boardColTint — a TEMP debug background composed onto the shared boardCol.
- *   - .reveal       — the end-game secret reveal in the slot the entry vacated.
+ *   - .reveal — the end-game secret reveal in the slot the entry vacated.
  *
- * The board tray + grid + guessed-result fills live in WordBoard.module.css.
+ * The board wrapper + grid + guessed-result fills live in WordBoard.module.css.
+ * (The board-column debug tint lives on the shared `.boardCol` itself.)
  * See docs/ui.md → "PlayArea layout" and "Modals for terminal results." */
-
-/* TEMP debug tint on the board column so its bounds are visible during the
- * layout work — remove later. Composed with the shared .boardCol. */
-.boardColTint {
-  background: rgba(40, 120, 255, 0.07);
-}
 
 /* The end-game secret reveal, shown in the slot the guess entry occupied during
  * play (see PlayArea). Lands where the player was already looking and explains

@@ -1,0 +1,21 @@
+/* The actor tag — a person's name + trailing identity disc. See ActorTag.tsx.
+ * An inline cluster that drops into any row; the caller positions it. (Moved
+ * here from TurnLog's content library so it's reusable outside the log.) */
+.actorTag {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* The name — plain text (font-weight 500); identity rides the dot, not the
+ * text, so a colored name never competes with the disc. */
+.name {
+  font-weight: 500;
+}
+
+/* The identity disc — a colored ● in the member color (set inline) — the
+ * app-wide "this player" marker. See docs/ui.md → "Player identity = a colored
+ * disc". */
+.dot {
+  margin-left: 0.4rem;
+}

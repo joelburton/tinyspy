@@ -1,8 +1,9 @@
-import { colorVarFor } from '../../common/lib/memberColor'
-import { TurnLog, TurnLogEntry, type TurnOutcome } from '../../common/components/TurnLog'
+import { ActorTag } from '../../common/components/ActorTag'
+import { memberById } from '../../common/lib/peers'
+import { TurnLog, TurnLogItem, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
-import styles from './GuessHistory.module.css'
+import styles from './GameTurnLog.module.css'
 
 type Props = {
   guesses: GuessRow[]
@@ -18,9 +19,11 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
 }
 
 /**
- * The append-only log of this connections game's guesses, rendered with the
- * shared `<TurnLog>` table (same chrome psychicnum uses, so a player reads the
- * same log shape across games).
+ * connections's turn log — its guesses rendered with the shared `<TurnLog>`
+ * table (same chrome psychicnum uses, so a player reads the same log shape
+ * across games). (Named GameTurnLog, not GuessHistory — see TurnLog.tsx on why
+ * a turn-log row isn't "a guess" in the shared vocabulary, even though here it
+ * happens to be.)
  *
  * Stateless and presentational. One row per guess: the shared outcome bar
  * (green correct / amber one-away / red wrong), the four tiles guessed on top
@@ -34,10 +37,7 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * In compete mode RLS scopes `guesses` to the caller, so this shows only the
  * viewer's own attempts.
  */
-export function GuessHistory({ guesses, matchedCategories, players }: Props) {
-  const playerFor = (userId: string) =>
-    players.find((m) => m.user_id === userId)
-
+export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
   // rank → name, for the matched-category attribution. Each rank appears at
   // most once in matchedCategories (one band per rank), so a Map is the honest
   // shape and the per-row lookup reads cleanly.
@@ -45,22 +45,11 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
     matchedCategories.map((m) => [m.rank, m.name]),
   )
 
-  // The actor's identity — name + colored dot, right-justified on the meta line.
-  const whoInline = (userId: string) => {
-    const actor = playerFor(userId)
-    return (
-      <span className={styles.who}>
-        <span className={turnLog.actor}>{actor?.username ?? 'someone'}</span>
-        <span
-          className={turnLog.dot}
-          style={{ color: colorVarFor(actor?.color) }}
-          aria-hidden="true"
-        >
-          ●
-        </span>
-      </span>
-    )
-  }
+  // The actor's identity — the shared <ActorTag> (name + colored disc),
+  // right-justified on the meta line by the metaRow's space-between.
+  const whoInline = (userId: string) => (
+    <ActorTag actor={memberById(players, userId)} />
+  )
 
   return (
     <TurnLog
@@ -68,10 +57,9 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
       empty={guesses.length === 0}
       emptyText="No guesses yet."
       scrollKey={guesses}
-      className={styles.history}
     >
       {guesses.map((g) => (
-        <TurnLogEntry key={g.id} outcome={OUTCOME[g.result]}>
+        <TurnLogItem key={g.id} outcome={OUTCOME[g.result]}>
           {/* One content cell beside the outcome bar: the four guessed tiles on
               top (full width — not squished by a who-column), then the verdict
               (left) and the actor (right) below. */}
@@ -82,7 +70,7 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
               {whoInline(g.user_id)}
             </div>
           </td>
-        </TurnLogEntry>
+        </TurnLogItem>
       ))}
     </TurnLog>
   )

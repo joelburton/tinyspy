@@ -381,6 +381,8 @@ Same principle, applied to components.
 
 A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PlayersStrip>` presence dots, the `<ChatBubble>` unread fill, the `<ColorChoiceList>` swatches, and now the per-finder markers in the spellingbee / boggle `<WordList>`. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
+**The name + disc cluster is `<ActorTag>`** (`common/components/ActorTag`): a person's name followed by their identity disc, the "who did this" marker the turn logs drop beside each row. Pass it the resolved member (`<ActorTag actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. (Reach for it before re-rolling a name-span + ● by hand. Note that several older logs still encode the actor by *coloring the name text* instead — a deliberate-or-not divergence from the disc rule below, tracked as a consistency follow-up.)
+
 Two rules keep the signal clean:
 
 - **Identity rides the disc, never the text.** Don't encode a player by coloring a *word* — a colored disc is a far better color carrier (bigger area, no legibility/antialiasing fight), and it discriminates better between palette hues. Keep text legible/neutral and let the disc carry color. The payoff is that any space-constrained surface (think mobile, where there's no room for a name) can fall back to **circle-only** with zero loss — players have already been trained that the circle *is* the person. This is why the `<WordList>` redesign moved color off the word and onto a leading ●, with the word itself black.
@@ -615,10 +617,19 @@ The contract for the capture model:
   key boilerplate is a candidate to lift into a shared helper once a second game
   adopts `<EntryBox>`.
 
-`<EntryBox>` also carries a transient **result flash** (`result?: { tone:
-'good'|'bad'; label }`) — a green/red border + label shown in place of the entry
-("Correct" / "Incorrect") for the player's own last move, the *local* half of the
-feedback split (see [Feedback pill](#feedback-pill) for the *group* half).
+**Own-result flash — the shared `<ResultFlash>`.** The player's own last move
+flashes a result for the *local* half of the feedback split (see [Feedback
+pill](#feedback-pill) for the *group* half): "Correct!" / "Incorrect" / "One
+away!" or a validation error, in the green/red/amber outcome palette. It's the
+shared **`<ResultFlash tone label />`** (`common/components/ResultFlash`), which
+**replaces the whole input bar** for ~1.4s — psychicnum swaps it in for the
+entry + Submit row, connections for the Clear/Submit commit row, so the two read
+identically. The host reserves the bar height (its input row's `min-height`) so
+the swap never reflows the board, and owns the flash's lifetime (a timer, cleared
+early when the player starts the next move — the next keystroke for psychicnum, a
+tile click for connections). The capture-input games keep their `<form>` mounted
+under the flash so the key handler keeps capturing while it shows. (`tone: 'near'`
+— the one-away amber — is connections-only; psychicnum has no near-miss state.)
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the
@@ -628,16 +639,24 @@ player was already looking and explains why the entry is gone.
 
 ## Turn log
 
-The shared **`<TurnLog>`** + **`<TurnLogEntry outcome>`** (`common/components/TurnLog.tsx`)
-is a game's per-turn history — one entry per turn (= per guess for most games; a
-TinySpy turn can span several guesses). It's the chronological counterpart to the
+The shared **`<TurnLog>`** + **`<TurnLogItem outcome>`** (`common/components/TurnLog.tsx`)
+is a game's per-turn history — one **item** per turn (= per guess for most games; a
+TinySpy turn can span several guesses, so the row is an "item"/"turn", never a
+"guess" in the shared vocabulary). It's the chronological counterpart to the
 alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
 
 - **It's a `<table>`.** Rows are `<tr>`s and each game supplies its own `<td>`
   cells, so the pieces line up in **columns across rows** (the number column, the
   who column, etc. all align) — which a flex/grid-of-rows can't do, and which is
-  the point once rows carry several pieces of info. `<TurnLogEntry>` prepends the
+  the point once rows carry several pieces of info. `<TurnLogItem>` prepends the
   shared outcome-bar cell; the game passes the rest.
+- **Class vocabulary.** The structure is `turnLog`-prefixed (`.turnLog` /
+  `.turnLogBox` / `.turnLogItem` / `.turnLogBar`); `.turnLog` carries the shared
+  `flex: 1` column-fill so a consumer needs no `className` for the common case.
+  The small composable **content classes** (`.primary` / `.meta` / `.who`) keep
+  bare names — read as `turnLog.primary` at the call site, already namespaced by
+  the import alias. (The actor name + identity disc is the shared
+  [`<ActorTag>`](#player-identity--a-colored-disc), not a TurnLog class.)
 - **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
   frame, not a hairline, so it reads as scrollable) that stays the same height
   whether empty or full and auto-snaps to the newest row; the table scrolls
@@ -658,11 +677,11 @@ alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
   sits centered between rows. No vertical borders between cells.
 - **Content library, not ad-hoc.** Cell *content* is game-specific, but games
   compose it from `TurnLog.module.css`'s content classes — `.primary` (the lead
-  value), `.meta` (minor/de-emphasized info), `.actor` (who; plain text), `.dot`
-  (the member-colored identity disc), `.who` (a right-aligned cell that absorbs
-  the row's slack so the dots line up on the right) — so similar pieces look the
-  same across games. The set grows as new shapes recur; reach for an existing
-  class before inventing one.
+  value), `.meta` (minor/de-emphasized info), `.who` (a right-aligned cell that
+  absorbs the row's slack so the discs line up on the right) — plus the shared
+  [`<ActorTag>`](#player-identity--a-colored-disc) for the actor (name + identity
+  disc), so similar pieces look the same across games. The set grows as new
+  shapes recur; reach for an existing class/component before inventing one.
 
 psychicnum + connections both use `<TurnLog>`. The older `HistoryPanel`
 predecessor it replaced has been **deleted** (it had no other consumers — scrabble's
@@ -769,6 +788,14 @@ an icon font, not color emoji.** Why:
   you use), monochrome line-art that inherits `currentColor` and scales with
   `size`, one consistent 2px stroke — and it's the same *form* we already use
   for the logos / chat bubble, just finished.
+
+**The map lives in code** as the semantic icon registry `common/components/icons.ts`
+— each action re-exported under a semantic name (`Lightbulb as IconHint`, …), so
+components import `<IconHint />` and never `lucide-react` directly. Change a glyph
+once there and every button follows. Today's full set of direct importers is the
+registry itself; psychicnum + connections + the shared `ShuffleButton` /
+`BackToClubButton` / `PauseButton` consume it (other games adopt it as they grow
+icon buttons).
 
 **The map** (decided; roll out game-by-game):
 

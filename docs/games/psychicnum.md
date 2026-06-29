@@ -102,7 +102,7 @@ A consolidated comparison. Anything not listed here is identical across modes.
 | **`submit_timeout` terminal**          | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
 | **listing-label `status.guesses_remaining`** | Shared value (all rows have it; any row works)        | Sum of all rows (the listing label reflects "total remaining budget across the game") |
 | **FE PlayArea header**                 | "X guesses left" (single shared number)                     | Budget strip: "You: X · Bea: Y · Cade: Z"                            |
-| **FE GuessHistory**                    | Every guess shown with username                             | Only caller's guesses shown (RLS filters server-side; FE doesn't need to filter) |
+| **FE GameTurnLog**                    | Every guess shown with username                             | Only caller's guesses shown (RLS filters server-side; FE doesn't need to filter) |
 | **GameOverModal verdict copy**         | "You win!" / "You lost: out of guesses" (team)              | "You won the race!" / "Beaten to the punch." (per-self)              |
 
 The shape that's the same in both modes:
@@ -358,7 +358,7 @@ src/psychicnum/
                             Shuffle button — FLOATS over the board top-right
                               (board-visual, not a turn action); always live
                             terminal: outcome line + "‹ club" button (in action row)
-                            GuessHistory (chronological guess + hint log, auto-scroll)
+                            GameTurnLog (chronological guess + hint log, auto-scroll)
                             GameOverModal (shared) — pops on terminal entry
                           Mounted by <GamePage> as its render-prop child; receives
                           the GamePageCtx ({ session, gameId, players, playState,
@@ -371,11 +371,11 @@ src/psychicnum/
                           + submit_guess dispatch. Clicking a board tile and typing
                           drive the same pending word.
     GuessForm.module.css
-    GuessHistory.tsx      The shared <TurnLog> table — one row per guess or hint
+    GameTurnLog.tsx      The shared <TurnLog> table — one row per guess or hint
                           (outcome bar green=correct / red=wrong / amber=
                             hint+reveal; a hint row is a colspan "Hint: <clue>"),
                           word + result + actor with their identity dot.
-    GuessHistory.module.css
+    GameTurnLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
                           mounted in the common SetupGameDialog.
     SetupForm.module.css
@@ -396,7 +396,7 @@ src/psychicnum/
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `goToClub`, `feedback` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../ui.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE"; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GuessHistory>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" in the entry box (local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `goToClub`, `feedback` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../ui.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE"; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GameTurnLog>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" by **replacing the whole entry bar** with the shared `<ResultFlash>` (the same bar connections swaps in for its commit row — local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
@@ -404,7 +404,7 @@ Reads from `psychicnum.games_state` (the view that exposes `secrets` conditional
 
 Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
-The `members` array used by `GuessHistory` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
+The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 
 ### Code-splitting
 
@@ -459,6 +459,6 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GuessHistory.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GameTurnLog.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Are the secrets really hidden? | column-level grant + `psychicnum.games_state` view with `_secrets_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

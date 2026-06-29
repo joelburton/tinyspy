@@ -1,22 +1,24 @@
-/* psychicnum's board surface: a card framing the word grid. The tile CHROME
+/* psychicnum's board: a wrapper framing the word grid. The tile CHROME
  * (fill, border, shadow, hover, selected, label auto-fit) is the shared
  * `.tile` / `.tileWord` from common/components/playArea.module.css; only the
- * board's tray frame, the grid layout, and the guessed-result fills are
+ * board wrapper, the grid layout, and the guessed-result fills are
  * psychicnum's. */
 
 /* The board FILLS the board column (`flex: 1`) — its height above the entry
  * row, its width what the fixed info column leaves — so the grid grows to the
  * available space (docs/ui.md → "Board sizing"). A per-tile HEIGHT cap is
- * applied via an inline max-height (see WordBoard.tsx). No tray border or
- * padding: the beige tiles carry the board's look themselves, and the grid fills
- * edge to edge (its inter-tile gaps show this surface). */
+ * applied via an inline max-height (see WordBoard.tsx).
+ *
+ * NO border / background today: the beige tiles carry the board's look
+ * themselves, and the inter-tile gaps show the column behind. This `.board`
+ * wrapper + class exist in every game (connections's matches) precisely so a
+ * future game that wants a FRAMED board — border, surface fill, padding — adds
+ * it HERE, in one place, with the structure already in shape. */
 .board {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
 }
 
 /* The word grid fills the card. Column AND row counts are set inline (they

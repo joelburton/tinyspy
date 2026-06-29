@@ -1,20 +1,24 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Eraser, Flag, Lightbulb, Play } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { IconClear, IconEnd, IconHint, IconSubmit } from '../../common/components/icons'
 import { cls } from '../../common/lib/cls'
-import type { FeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
-import { colorByUserIdMap } from '../../common/lib/memberColor'
+import type { GamePageCtx, TimerMode } from '../../common/lib/games'
+import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { ResultFlash } from '../../common/components/ResultFlash'
 import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { memberById } from '../../common/lib/peers'
+import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import { Board } from './Board'
-import { GuessHistory } from './GuessHistory'
+import { GameTurnLog } from './GameTurnLog'
 import { HintModal } from './HintModal'
 import { MistakeDots } from './MistakeDots'
 import shared from '../../common/components/playArea.module.css'
@@ -57,6 +61,13 @@ function timerLabel(t: TimerMode): string {
  *   - **Terminal copy**: coop says "you win/lose" (team verdict);
  *     compete distinguishes "you won the race" from "beaten to
  *     the punch" using the caller's matched-count.
+ *   - **Feedback split** (docs/deferred.md → Feedback channels;
+ *     mirrors psychicnum): my OWN guess result flashes green/red
+ *     in the commit slot below the board (local — near my eyes,
+ *     about what I just did); a teammate's guess is narrated in
+ *     the GamePage header pill (group). Compete reaches neither
+ *     header branch — the guesses log is RLS-scoped to the caller,
+ *     so there are no peer events to announce.
  *
  * Submission flow (unchanged from baseline):
  *   1. FE evaluates the guess locally against board.categories
@@ -122,25 +133,74 @@ export function PlayArea({
     return () => clearTimeout(t)
   }, [shakingTiles])
 
-  // Local helper: every connections feedback today is `closeable`.
-  //
-  // NOTE the arg order is (tone, text) — the OPPOSITE of spellingbee's
-  // showFeedback(text, tone). Don't copy a spellingbee call site verbatim.
-  //
-  // Defined here (above the menu-sync effect) because handleEndGame
-  // below closes over it, and that closure is in turn referenced by
-  // the syncMenuItems effect. Keeping the declaration order
-  // feedback-helper → handleEndGame → effect avoids any
-  // temporal-dead-zone / hooks-order problem.
-  // Memoized (like spellingbee's showFeedback) so handleEndGame's dep
-  // array stays stable across renders — an un-memoized function here
-  // would make the useCallback below rebuild every render.
-  const showFeedback = useCallback(
-    (tone: FeedbackTone, text: string) => {
-      feedback.show({ tone, text, dismiss: { kind: 'closeable' } })
-    },
-    [feedback],
-  )
+  // ─── Commit-slot flash (own-action feedback, local) ─────
+  // A transient message shown *in place of the commit buttons* for the
+  // player's own guess: "Correct!" (green) / "One away!" (amber) /
+  // "Incorrect" (red), or a validation/RPC error (red). It lives in the
+  // commit row's already-reserved height (never a new line that would
+  // reflow the board — docs/ui.md → Layout stability), and `clearCommitFlash`
+  // dismisses it the moment the player clicks a tile to start a fresh selection
+  // (handleToggle below) — the tile-click analog of psychicnum's "typing
+  // dismisses the flash". Local channel: near my eyes, about what I just did
+  // (docs/deferred.md → Feedback channels). Shared machinery; the host owns
+  // where it renders + when it clears early.
+  const {
+    flash: commitFlash,
+    show: flashCommit,
+    clear: clearCommitFlash,
+  } = useResultFlash()
+
+  // ─── Coop peer events (group feedback) ─────────────────
+  // A teammate's guess is narrated in the GamePage header: correct →
+  // "Bea found ANIMALS!" (green), one-away → "Bea was one away" (amber),
+  // wrong → "Bea guessed wrong" (red). My own guesses are excluded — they
+  // get the local commit flash above; my guess also already shows in the
+  // turn log. Compete never reaches here: the guesses log is RLS-scoped to
+  // the caller server-side, so no foreign rows arrive, and we gate on coop
+  // besides. feedback.show is a prop callback, so no local set-state here.
+  const lastSeenGuessIdRef = useRef<string | null>(null)
+  useEffect(function announcePeerGuess() {
+    if (guesses.length === 0) return
+    const latest = guesses[guesses.length - 1]
+    // First load / refetch: adopt the latest as seen without replaying it.
+    if (lastSeenGuessIdRef.current === null) {
+      lastSeenGuessIdRef.current = latest.id
+      return
+    }
+    if (latest.id === lastSeenGuessIdRef.current) return
+    lastSeenGuessIdRef.current = latest.id
+
+    if (latest.user_id === session.user.id) return  // mine → local flash
+    if (game?.mode !== 'coop') return
+    const member = memberById(players, latest.user_id)
+    const name = member?.username ?? 'Someone'
+    const dot = colorVarFor(member?.color)
+
+    if (latest.result === 'correct') {
+      // Name the solved category — coop reveals its band to everyone anyway,
+      // so there's nothing to hide.
+      const cat = game.board.categories.find(
+        (c) => c.rank === latest.matched_category_rank,
+      )
+      feedback.show({
+        tone: 'success',
+        variant: 'outline',
+        dot,
+        text: cat ? `${name} found ${cat.name.toUpperCase()}!` : `${name} found a category!`,
+        dismiss: { kind: 'timed', ms: 3000 },
+      })
+    } else {
+      feedback.show({
+        tone: latest.result === 'oneAway' ? 'warning' : 'error',
+        variant: 'outline',
+        dot,
+        text: latest.result === 'oneAway'
+          ? `${name} was one away`
+          : `${name} guessed wrong`,
+        dismiss: { kind: 'timed', ms: 3000 },
+      })
+    }
+  }, [guesses, game, players, session.user.id, feedback])
 
   // ─── End-game action (info-column action-row button) ───
   // Available in both modes. Manual end terminates the game with
@@ -153,9 +213,9 @@ export function PlayArea({
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showFeedback('error', `End game failed: ${error.message}`)
+      flashCommit('bad', `End game failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, showFeedback])
+  }, [gameId, isTerminal, flashCommit])
 
   // Hints + End now live in the info-column action row (buttons), not the
   // GamePage menu — see the .infoActions block below. Hints opens the HintModal
@@ -170,9 +230,10 @@ export function PlayArea({
     if (submitting) return
     if (unionTiles.length !== 4 || !game) return
 
-    // Dup detection (FE-side per the FE-knows model).
+    // Dup detection (FE-side per the FE-knows model). My own action, so it
+    // flashes locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showFeedback('error', 'You already tried that')
+      flashCommit('bad', 'You already tried that')
       return
     }
 
@@ -188,12 +249,16 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      showFeedback('error', error.message)
+      flashCommit('bad', error.message)
       return
     }
-    if (verdict.kind === 'oneAway') showFeedback('neutral', 'One away!')
-    else if (verdict.kind === 'wrong') {
-      showFeedback('error', 'Incorrect')
+    // Own-result flash in the commit slot (green/neutral/red). sendClear()
+    // empties the selection below, so the flash fills the vacated row until
+    // it times out or the player clicks a tile.
+    if (verdict.kind === 'correct') flashCommit('good', 'Correct!')
+    else if (verdict.kind === 'oneAway') flashCommit('near', 'One away!')
+    else {
+      flashCommit('bad', 'Incorrect')
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -201,6 +266,15 @@ export function PlayArea({
 
   function handleClear() {
     sendClear()
+  }
+
+  // Tile click: dismiss any lingering own-result flash first (the commit
+  // buttons return), then toggle the tile. This is connections's analog of
+  // psychicnum's "typing dismisses the entry flash" — the player has moved on
+  // to the next selection, so the last guess's result should clear at once.
+  function handleToggle(tile: string) {
+    clearCommitFlash()
+    toggleTile(tile)
   }
 
   function handleShuffle() {
@@ -282,7 +356,7 @@ export function PlayArea({
           tiles={showInput ? displayedTiles : []}
           ownerByTile={ownerByTile}
           selfUserId={session.user.id}
-          onToggle={toggleTile}
+          onToggle={handleToggle}
           shakingTiles={shakingTiles}
           colorByUserId={colorByUserId}
         />
@@ -325,41 +399,48 @@ export function PlayArea({
         )}
 
         {/* The slot below the board: during play it's the commit row (clicking
-            tiles is the input; these commit the current 4-tile selection). When
-            input goes away it's REPLACED — same slot, same reserved height — by
-            an outcome message, so the flex:1 board above can't grow into it AND
-            the player looking where the buttons were gets an explanation
-            (docs/ui.md → Layout stability; mirrors psychicnum's reveal). The
-            `.commit` min-height keeps the two states the same height. */}
+            tiles is the input; these commit the current 4-tile selection). Two
+            things can REPLACE the buttons in the SAME reserved height (so the
+            flex:1 board above never shifts — docs/ui.md → Layout stability):
+              - while input is live, my own guess result flashes here for ~1.4s
+                (green/neutral/red), the local half of the feedback split —
+                mirrors psychicnum's entry-box flash;
+              - once input goes away (terminal / eliminated), the outcome
+                message fills it, the way psychicnum's reveal does.
+            The `.commit` min-height keeps every state the same height. */}
         <div className={styles.commit}>
           {showInput ? (
-            <>
-              {/* Coop: "Mistakes remaining ●●●○" left-justified (margin-right:
-                  auto pushes the buttons to the right). */}
-              {game.mode === 'coop' && (
-                <div className={styles.mistakesInline}>
-                  Mistakes remaining <MistakeDots used={mistakeCount} />
-                </div>
-              )}
-              <button
-                type="button"
-                className={cls('secondary', styles.commitButton)}
-                onClick={handleClear}
-                disabled={unionTiles.length === 0}
-              >
-                <Eraser size={15} aria-hidden />
-                Clear
-              </button>
-              <button
-                type="button"
-                className={styles.commitButton}
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-              >
-                <Play size={15} aria-hidden />
-                {submitting ? 'Submitting…' : 'Submit'}
-              </button>
-            </>
+            commitFlash ? (
+              <ResultFlash tone={commitFlash.tone} label={commitFlash.label} />
+            ) : (
+              <>
+                {/* Coop: "Mistakes remaining ●●●○" left-justified (margin-right:
+                    auto pushes the buttons to the right). */}
+                {game.mode === 'coop' && (
+                  <div className={styles.mistakesInline}>
+                    Mistakes remaining <MistakeDots used={mistakeCount} />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={cls('secondary', styles.commitButton)}
+                  onClick={handleClear}
+                  disabled={unionTiles.length === 0}
+                >
+                  <IconClear size={15} aria-hidden />
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  className={styles.commitButton}
+                  onClick={handleSubmit}
+                  disabled={!canSubmit}
+                >
+                  <IconSubmit size={15} aria-hidden />
+                  {submitting ? 'Submitting…' : 'Submit'}
+                </button>
+              </>
+            )
           ) : (
             <span className={styles.commitOutcome}>
               {over ? over.verdict : "You're out — the rest are still racing."}
@@ -418,7 +499,7 @@ export function PlayArea({
                 onClick={() => setHintsOpen(true)}
                 disabled={isEliminated}
               >
-                <Lightbulb size={15} aria-hidden />
+                <IconHint size={15} aria-hidden />
                 Hints
               </button>
               <button
@@ -426,16 +507,16 @@ export function PlayArea({
                 className={cls('secondary', shared.helperButton)}
                 onClick={() => void handleEndGame()}
               >
-                <Flag size={15} aria-hidden />
+                <IconEnd size={15} aria-hidden />
                 End
               </button>
             </div>
           )}
         </div>
 
-        {/* Guess log: coop shows every player's guesses; in compete RLS already
+        {/* Turn log: coop shows every player's guesses; in compete RLS already
             filters to the caller's own, so the FE does nothing special. */}
-        <GuessHistory
+        <GameTurnLog
           guesses={guesses}
           matchedCategories={matchedCategories}
           players={players}
@@ -474,25 +555,11 @@ function buildOver({
   playState: string
   timerExpired: boolean
   selfMatched: number
-}): {
-  outcome: 'won' | 'lost'
-  verdict: string
-  message: string
-  tone: 'won' | 'lost' | 'neutral'
-} {
-  // Manual end (connections.end_game) — NEUTRAL terminal in BOTH modes.
-  // play_state='ended' means the friends chose to stop: nobody won,
-  // nobody lost. We render the green "won"-style modal (outcome:'won')
-  // with neutral copy, NOT the red loss modal. This branch must come
-  // first because 'ended' is mode-independent.
-  if (playState === 'ended') {
-    return {
-      outcome: 'won',
-      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      message: 'Game over',
-      tone: 'neutral',
-    }
-  }
+}): TerminalCopy {
+  // Manual end (connections.end_game) — NEUTRAL terminal in BOTH modes: the
+  // friends chose to stop, nobody won or lost. The shared endedCopy() owns it
+  // (green modal, neutral copy). Must come first — 'ended' is mode-independent.
+  if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'solved') {
       return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }

@@ -1,8 +1,9 @@
-import { colorVarFor } from '../../common/lib/memberColor'
-import { TurnLog, TurnLogEntry } from '../../common/components/TurnLog'
+import { ActorTag } from '../../common/components/ActorTag'
+import { memberById } from '../../common/lib/peers'
+import { TurnLog, TurnLogItem } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
-import styles from './GuessHistory.module.css'
+import styles from './GameTurnLog.module.css'
 
 type Props = {
   guesses: PsychicnumGuess[]
@@ -10,8 +11,9 @@ type Props = {
 }
 
 /**
- * The append-only log of guesses and hints, rendered with the shared
- * `<TurnLog>` table.
+ * psychicnum's turn log — its turns (guesses, hints, reveals) rendered with the
+ * shared `<TurnLog>` table. (Named GameTurnLog, not GuessHistory: it's this
+ * game's turn log, and a turn isn't always a guess — see TurnLog.tsx.)
  *
  * Stateless and presentational — owns no state, makes no RPC calls, just renders
  * the rows from the props it's given, newest snapping into view.
@@ -31,26 +33,15 @@ type Props = {
  * In compete mode RLS scopes all to the caller, so this shows only the viewer's
  * own attempts + helpers.
  */
-export function GuessHistory({ guesses, players }: Props) {
-  const playerFor = (userId: string) =>
-    players.find((m) => m.user_id === userId)
-
-  // The actor's identity cell — shared by every row kind.
-  const whoCell = (userId: string) => {
-    const actor = playerFor(userId)
-    return (
-      <td className={turnLog.who}>
-        <span className={turnLog.actor}>{actor?.username ?? 'someone'}</span>
-        <span
-          className={turnLog.dot}
-          style={{ color: colorVarFor(actor?.color) }}
-          aria-hidden="true"
-        >
-          ●
-        </span>
-      </td>
-    )
-  }
+export function GameTurnLog({ guesses, players }: Props) {
+  // The actor's identity cell — shared by every row kind. The shared <ActorTag>
+  // is the name + identity disc; the right-aligned `turnLog.who` column aligns
+  // the discs down the log.
+  const whoCell = (userId: string) => (
+    <td className={turnLog.who}>
+      <ActorTag actor={memberById(players, userId)} />
+    </td>
+  )
 
   return (
     <TurnLog
@@ -58,26 +49,25 @@ export function GuessHistory({ guesses, players }: Props) {
       empty={guesses.length === 0}
       emptyText="No guesses yet."
       scrollKey={guesses}
-      className={styles.history}
     >
       {guesses.map((g, i) => {
         // Hint: the word + result columns collapse into one colspan cell, since
         // the row carries a clue sentence, not a word + a one-word result.
         if (g.kind === 'hint') {
           return (
-            <TurnLogEntry key={g.id} outcome="partial">
+            <TurnLogItem key={g.id} outcome="partial">
               <td className={turnLog.meta}>#{i + 1}</td>
               <td colSpan={2} className={styles.hint}>
                 <span className={turnLog.meta}>Hint:</span> {g.word}
               </td>
               {whoCell(g.user_id)}
-            </TurnLogEntry>
+            </TurnLogItem>
           )
         }
         // Guess (good/bad) or reveal (amber, the answer).
         const isReveal = g.kind === 'reveal'
         return (
-          <TurnLogEntry
+          <TurnLogItem
             key={g.id}
             outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'}
           >
@@ -85,7 +75,7 @@ export function GuessHistory({ guesses, players }: Props) {
             <td className={turnLog.primary}>{g.word.toUpperCase()}</td>
             <td>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
-          </TurnLogEntry>
+          </TurnLogItem>
         )
       })}
     </TurnLog>
