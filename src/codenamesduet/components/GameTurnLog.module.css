@@ -1,0 +1,42 @@
+/* codenamesduet-specific bits of the turn log. The panel chrome (heading +
+ * scroll box), the row look (outcome bar, divider lines), and the `.meta`
+ * content class come from the shared common/components/TurnLog; the clue-giver
+ * name + disc is the shared <ActorTag>. Only the two-line row body — the clue on
+ * top, the turn's guesses below — is codenamesduet's. */
+
+/* Top line: turn # + clue on the left, the clue-giver's <ActorTag> on the right
+ * (space-between), the same shape connections' metaRow uses. */
+.clueRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clueWord {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* Second line: the guesses made on that clue, slightly indented so they read as
+ * "what happened because of the clue above." */
+.guessLine {
+  margin-top: 0.15rem;
+  padding-left: 0.75rem;
+}
+
+/* Each guessed word, colored by its reveal outcome — the same agent-green /
+ * neutral-tan / assassin-red vocabulary the board uses for revealed tiles. */
+.guessWord {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.guessWord_G {
+  color: var(--codenamesduet-agent);
+}
+.guessWord_N {
+  color: var(--codenamesduet-neutral-text);
+}
+.guessWord_A {
+  color: var(--codenamesduet-assassin);
+}

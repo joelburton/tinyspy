@@ -16,7 +16,7 @@ import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
-import { GameLog } from './GameLog'
+import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
@@ -31,7 +31,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  *         GameOverIndicator (status + Back-to-club button) when
  *         terminal. Fixed minimum height so swapping between
  *         states doesn't shift the log below.
- *       - GameLog: scrolls internally.
+ *       - GameTurnLog: the shared TurnLog table, scrolls internally.
  *
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
  * lives on `<GamePage>` above this component.
@@ -339,7 +339,7 @@ export function PlayArea({
         </div>
 
         <div className={styles.gameLogSlot}>
-          <GameLog clues={clues} guesses={guesses} players={players} />
+          <GameTurnLog clues={clues} guesses={guesses} players={players} />
         </div>
       </div>
 

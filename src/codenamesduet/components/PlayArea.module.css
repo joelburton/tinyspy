@@ -38,7 +38,7 @@
 /* Action slot — the fixed-height region that holds either the
  * CluePanel (clue form / clue display / waiting copy / sudden-
  * death notice) or the terminal-state indicator. Constant
- * height so the GameLog below it never shifts as the action
+ * height so the GameTurnLog below it never shifts as the action
  * changes — per docs/ui.md → "Layout stability." */
 .actionSlot {
   flex-shrink: 0;
@@ -49,9 +49,9 @@
 }
 
 /* The game-log region — takes the remaining column height and
- * scrolls internally when turns pile up. The component's own
- * styles (see GameLog.module.css) handle the inner list's flex
- * + min-height + overflow-y. */
+ * scrolls internally when turns pile up. The shared <TurnLog>
+ * (rendered by GameTurnLog) handles the inner box's flex +
+ * min-height + overflow-y; this slot just gives it the space. */
 .gameLogSlot {
   flex: 1;
   min-height: 0;
