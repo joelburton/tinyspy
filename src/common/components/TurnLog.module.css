@@ -54,23 +54,34 @@
   border-bottom: none;
 }
 
-/* The bar cell is just an anchor: a fixed width (its left margin + the 7px bar +
- * the gap to the next cell) and `position: relative` so the bar can stretch to
- * the cell's full height absolutely. We can't use a percentage height — the
- * table has no definite height, so `height: 100%` resolves to auto and the bar
- * collapses to its content. Absolute top/bottom sidesteps that and fills the
- * row height for any number of lines. */
+/* The outcome bar lives in its own column, decoupled from whatever the next
+ * cell holds (#n, words, …). Two pieces make that reliable:
+ *   - `position: relative` + an absolutely-positioned bar that stretches between
+ *     top/bottom → full cell height for any number of lines. (A percentage
+ *     height can't work: the table has no definite height, so `height: 100%`
+ *     resolves to auto and collapses.)
+ *   - a zero-height in-flow `::before` spacer that reserves the 7px column
+ *     width. Without it the (content-less) bar column has min-width 0, and a
+ *     content-rich row's table layout squeezes it to nothing — the absolute bar
+ *     then spills into the next cell (the psychicnum #n overlap).
+ * The cell's padding sets the spacing: left padding = the bar's left margin,
+ * right padding = the gap to the next cell. */
 .entry .bar {
   position: relative;
-  width: calc(0.4rem + 7px + 0.5rem);
-  padding: 0;
+  padding: 0 0.3rem 0 0.4rem;
+}
+
+.entry .bar::before {
+  content: '';
+  display: block;
+  width: 7px;
+  height: 0;
 }
 
 .barInner {
   position: absolute;
   /* Inset top/bottom so adjacent rows' bars read as separate segments; left
-   * aligns the bar after its margin. Stretches between top and bottom → full
-   * cell height, every line. */
+   * aligns the bar with its column (after the cell's left padding). */
   top: 0.3rem;
   bottom: 0.3rem;
   left: 0.4rem;

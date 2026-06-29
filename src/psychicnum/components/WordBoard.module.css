@@ -4,19 +4,18 @@
  * board's tray frame, the grid layout, and the guessed-result fills are
  * psychicnum's. */
 
-/* The board card FILLS the board column (`flex: 1`) — its height above the
- * entry row, its width what the fixed info column leaves — so the grid grows to
- * the available space (docs/ui.md → "Board sizing"). A per-tile HEIGHT cap is
- * applied via an inline max-height (see WordBoard.tsx). A thicker, darker frame
- * so it reads as a board/tray, not just a panel. */
+/* The board FILLS the board column (`flex: 1`) — its height above the entry
+ * row, its width what the fixed info column leaves — so the grid grows to the
+ * available space (docs/ui.md → "Board sizing"). A per-tile HEIGHT cap is
+ * applied via an inline max-height (see WordBoard.tsx). No tray border or
+ * padding: the beige tiles carry the board's look themselves, and the grid fills
+ * edge to edge (its inter-tile gaps show this surface). */
 .board {
   flex: 1 1 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
   background: var(--color-surface);
-  border: 2px solid var(--color-muted);
   border-radius: var(--radius-md);
 }
 

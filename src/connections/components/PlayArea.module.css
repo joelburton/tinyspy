@@ -117,6 +117,22 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+  /* Reserve the button-row height so the slot is the SAME height whether it
+   * holds the buttons (play) or the outcome message (terminal/eliminated) — the
+   * board above can't shift when one swaps for the other (docs/ui.md → Layout
+   * stability). */
+  min-height: 2.75rem;
+}
+
+/* The outcome message that replaces the input once the game's over (or this
+ * player is out): "You win!", "You lost: out of time", etc. Centered + bold,
+ * filling the slot the buttons vacated — gives the player looking there an
+ * explanation, the way psychicnum's reveal does. */
+.commitOutcome {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  margin: 0;
 }
 
 /* Each commit button: a Lucide icon + label on one centered line, natural

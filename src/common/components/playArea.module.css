@@ -240,6 +240,11 @@
 
 .tile:disabled {
   cursor: default;
+  /* A decided/locked tile is NOT faded — unlike a normal disabled button. Its
+   * fill carries the result (psychicnum's green/red, a spent state) and its text
+   * reads at full contrast; the color IS the message, so it must show at full
+   * strength. Overrides the global `button:disabled { opacity: 0.5 }`. */
+  opacity: 1;
 }
 
 .selected {

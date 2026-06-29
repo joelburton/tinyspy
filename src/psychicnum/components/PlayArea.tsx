@@ -331,10 +331,13 @@ export function PlayArea({
           label="Shuffle the words"
           className={shared.floatingShuffle}
         />
-        {/* The slot below the board: the guess entry during play, the secret
-            reveal once over — same place the player's eyes already are, and it
-            explains why the entry is gone. Below the board (never a heading
-            above it) so the board never shifts when the game ends. */}
+        {/* The slot below the board: the guess entry during play, else an
+            explanatory line — same place the player's eyes already are. Below
+            the board (never a heading above it) so the board never shifts. The
+            non-play branch ALWAYS renders (never null), so the slot can't
+            collapse and let the flex:1 board grow (docs/ui.md → Layout
+            stability): terminal → the secret reveal; out-of-guesses-but-not-over
+            (compete, others still playing) → a waiting line. */}
         {canGuess ? (
           <GuessForm
             value={pending}
@@ -343,11 +346,17 @@ export function PlayArea({
             submitting={submitting}
             result={entryFlash}
           />
-        ) : over && game.secrets ? (
+        ) : (
           <p className={styles.reveal}>
-            The words were <strong>{game.secrets.join(', ').toUpperCase()}</strong>
+            {!over ? (
+              'Out of guesses — waiting on the rest.'
+            ) : game.secrets ? (
+              <>The words were <strong>{game.secrets.join(', ').toUpperCase()}</strong></>
+            ) : (
+              'Game over.'
+            )}
           </p>
-        ) : null}
+        )}
       </div>
       <div className={shared.infoCol}>
         {/* The non-log info column — four recurring kinds of info, the shared

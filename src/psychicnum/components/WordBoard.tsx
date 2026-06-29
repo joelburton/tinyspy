@@ -33,8 +33,8 @@ type Props = {
  */
 /** Per-tile height cap (≈150px). The board fills available space, but a tile
  *  shouldn't get taller than this — words are horizontal, so very tall tiles
- *  just waste space. Applied as a board max-height (rows of this + gaps +
- *  padding) so the 1fr rows top out here yet still shrink on short screens. */
+ *  just waste space. Applied as a board max-height (rows of this + gaps) so the
+ *  1fr rows top out here yet still shrink on short screens. */
 const MAX_TILE = '9.5rem'
 
 export function WordBoard({ words, results, selected, onPick }: Props) {
@@ -44,10 +44,10 @@ export function WordBoard({ words, results, selected, onPick }: Props) {
     <div
       className={styles.board}
       // Cap the card height so each 1fr row tops out at MAX_TILE. The `0.5rem`
-      // gap and `2rem` (1rem × 2) vertical padding here must match
-      // WordBoard.module.css.
+      // gap here must match WordBoard.module.css. (No padding term — the board
+      // has no tray padding.)
       style={{
-        maxHeight: `calc(${rows} * ${MAX_TILE} + ${rows - 1} * 0.5rem + 2rem)`,
+        maxHeight: `calc(${rows} * ${MAX_TILE} + ${rows - 1} * 0.5rem)`,
       }}
     >
       <div

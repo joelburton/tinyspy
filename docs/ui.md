@@ -36,6 +36,10 @@ Why this matters here:
 - **Scrollable regions for unbounded lists.** Guess history, clue history, chat. The outer container is fixed; the inner content scrolls. The game frame doesn't grow with the history.
 - **Modal for rare-and-rich.** "You won!" / postgame summary / "Play again?" → modal that overlays the static layout. The play surface below stays visible in review mode; the modal carries the high-content celebration.
 - **Disabled in place, not removed.** The clue-input field is always rendered; greyed out when it's not your turn. Same shape, different state.
+
+> **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <EntryRow/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
+>
+> **Mechanical check, every time you write `{cond && <X>}` or a state ternary in a PlayArea:** does `<X>` take layout space, and is a sibling grow-to-fill (the board)? If yes, **don't remove it** — keep it mounted and (a) toggle `visibility: hidden` (exact height kept even under wrapping — connections' `.commitFrozen`), or (b) rotate the *content* in a fixed-height slot (psychicnum swaps the entry for the terminal reveal in the same slot), or (c) give the slot a mount-time `min-height`. The board's bottom boundary (the input/commit row) is where this bites most.
 - **Mono-width digits for ticking values.** Timer in a `font-variant-numeric: tabular-nums` slot so `0:09 → 0:10` doesn't shift the header.
 - **PauseOverlay is the canonical example.** Absolutely positioned over a frozen play surface; the layout underneath doesn't reflow when pause flips on or off. New chrome should follow the same pattern.
 
@@ -414,12 +418,13 @@ colors, so a `.selected` / result / peer override that re-sets a token always
 wins, regardless of which stylesheet loaded last. (This is what makes the shared
 base safe to compose with per-game modules.)
 
-**Resting depth + the board frame.** Tiles read as physical tiles via the
-token-driven border + `--tile-shadow`. Whether the *board* gets a heavier "tray"
-frame (a `2px solid --color-muted` border around the tile area) is **per-game**:
-psychicnum frames its grid in a tray; connections does **not** — its full-width
-colored bands need to sit edge-to-edge with the tiles, and a tray around the
-grid would fight them.
+**Resting depth, no board frame.** Tiles read as physical tiles via the
+token-driven border + `--tile-shadow` — that's enough on its own. Neither
+psychicnum nor connections wraps the grid in a "tray" frame (a heavier border +
+inner padding): now that the tiles carry their own beige fill and depth, an outer
+frame is redundant, and connections' full-width bands want to sit edge-to-edge
+anyway. The grid fills its column edge-to-edge. (A tray remains available as a
+per-game option if a future board wants one.)
 
 **The decided tile — a permanent result fill.** A tile is *decided* once its
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red

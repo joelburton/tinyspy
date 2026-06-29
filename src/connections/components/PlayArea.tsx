@@ -324,38 +324,48 @@ export function PlayArea({
           />
         )}
 
-        {/* The commit row below the board: clicking tiles is the input, these
-            commit the current 4-tile selection. Sits below the top-anchored
-            board, like psychicnum's entry row. */}
-        {showInput && (
-          <div className={styles.commit}>
-            {/* Coop: "Mistakes remaining ●●●○" left-justified on this row
-                (margin-right:auto pushes the buttons to the right). */}
-            {game.mode === 'coop' && (
-              <div className={styles.mistakesInline}>
-                Mistakes remaining <MistakeDots used={mistakeCount} />
-              </div>
-            )}
-            <button
-              type="button"
-              className={cls('secondary', styles.commitButton)}
-              onClick={handleClear}
-              disabled={unionTiles.length === 0}
-            >
-              <Eraser size={15} aria-hidden />
-              Clear
-            </button>
-            <button
-              type="button"
-              className={styles.commitButton}
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-            >
-              <Play size={15} aria-hidden />
-              {submitting ? 'Submitting…' : 'Submit'}
-            </button>
-          </div>
-        )}
+        {/* The slot below the board: during play it's the commit row (clicking
+            tiles is the input; these commit the current 4-tile selection). When
+            input goes away it's REPLACED — same slot, same reserved height — by
+            an outcome message, so the flex:1 board above can't grow into it AND
+            the player looking where the buttons were gets an explanation
+            (docs/ui.md → Layout stability; mirrors psychicnum's reveal). The
+            `.commit` min-height keeps the two states the same height. */}
+        <div className={styles.commit}>
+          {showInput ? (
+            <>
+              {/* Coop: "Mistakes remaining ●●●○" left-justified (margin-right:
+                  auto pushes the buttons to the right). */}
+              {game.mode === 'coop' && (
+                <div className={styles.mistakesInline}>
+                  Mistakes remaining <MistakeDots used={mistakeCount} />
+                </div>
+              )}
+              <button
+                type="button"
+                className={cls('secondary', styles.commitButton)}
+                onClick={handleClear}
+                disabled={unionTiles.length === 0}
+              >
+                <Eraser size={15} aria-hidden />
+                Clear
+              </button>
+              <button
+                type="button"
+                className={styles.commitButton}
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+              >
+                <Play size={15} aria-hidden />
+                {submitting ? 'Submitting…' : 'Submit'}
+              </button>
+            </>
+          ) : (
+            <span className={styles.commitOutcome}>
+              {over ? over.verdict : "You're out — the rest are still racing."}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className={shared.infoCol}>
