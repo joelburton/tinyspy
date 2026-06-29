@@ -238,6 +238,28 @@ export async function createBoggleGame(
   return { id: (row as { id: string }).id, gametype: `boggle_${mode}` }
 }
 
+/**
+ * Start a codenamesduet game in the club (exactly 2 players — it's a fixed-seat
+ * game). `firstClueGiverUserId` is seated as A (opens the game); the other
+ * member is B. Returns id + gametype for `/g/codenamesduet/<id>`.
+ */
+export async function createCodenamesduetGame(
+  club: E2EClub,
+  firstClueGiverUserId: string = club.members[0].userId,
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('codenamesduet')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { turns: 9, firstClueGiverUserId, timer: { kind: 'none' } },
+      player_user_ids: club.members.map((m) => m.userId),
+    })
+  if (res.error) throw new Error(`codenamesduet.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: 'codenamesduet' }
+}
+
 /** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
  *  select to their own player_boards row. Useful when a test needs to place a
  *  player's REAL tiles (the FE derives the hand by letter, so placing arbitrary

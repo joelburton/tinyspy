@@ -74,7 +74,10 @@ export function BoardGrid({
   // keycard/triangle/pending OVERLAYS layered on via `.overlayTile` (which makes
   // the tile a positioning context for them).
   return (
-    <div className={styles.board}>
+    // data-board: a stable handle for the e2e layout-stability test, which
+    // measures this element's height across below-board states (it must not
+    // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
+    <div className={styles.board} data-board>
       <div className={styles.grid}>
         {words.map((w) => {
           const myLabel = myKey[w.position]

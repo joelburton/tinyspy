@@ -8,6 +8,12 @@ import { defineConfig, devices } from '@playwright/test'
  * is exactly what they don't exercise). It is NOT for routine game
  * logic; that stays in Vitest + pgTAP.
  *
+ * One deliberate exception to "not for UI": codenamesduet.e2e.ts is a layout
+ * guard (the below-board clue slot must not reflow the board as it swaps
+ * states). That invariant is unreachable in Vitest/jsdom (no layout engine —
+ * getBoundingClientRect is all zeros), so a real browser is the only place it
+ * can be checked.
+ *
  * Requires the local Supabase stack running (`supabase start`) — the
  * fixtures create users/clubs/games through its admin API + RPCs, and
  * the app talks to it via `.env.local`.
