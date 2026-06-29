@@ -1,8 +1,8 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
-import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
 
@@ -49,12 +49,8 @@ export function FoundWords({
     )
   }
 
-  // The word currently being defined + the element it anchors under.
-  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(
-    null,
-  )
-  const openDefine = (word: string, el: HTMLElement) =>
-    setDefining({ word, rect: el.getBoundingClientRect() })
+  // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
+  const { define: openDefine, popover } = useDefinePopover()
 
   // Click / keyboard activation for a clickable word chip (mirrors
   // spellingbee's WordList — same "Click to define" affordance).
@@ -133,13 +129,7 @@ export function FoundWords({
         </ol>
       )}
 
-      {defining && (
-        <DefinitionPopover
-          initialWord={defining.word}
-          anchorRect={defining.rect}
-          onClose={() => setDefining(null)}
-        />
-      )}
+      {popover}
     </div>
   )
 }

@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import { boardWords } from '../lib/waffle'
 import styles from './SolutionReveal.module.css'
 
@@ -13,13 +12,7 @@ import styles from './SolutionReveal.module.css'
  */
 export function SolutionReveal({ solution }: { solution: string }) {
   const [a0, a2, a4, d0, d2, d4] = boardWords(solution)
-
-  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(
-    null,
-  )
-  function define(word: string, el: HTMLElement) {
-    setDefining({ word, rect: el.getBoundingClientRect() })
-  }
+  const { define, popover } = useDefinePopover()
 
   return (
     <div className={styles.reveal}>
@@ -30,13 +23,7 @@ export function SolutionReveal({ solution }: { solution: string }) {
         <WordGroup heading="Down" words={[d0, d2, d4]} onDefine={define} />
       </div>
 
-      {defining && (
-        <DefinitionPopover
-          initialWord={defining.word}
-          anchorRect={defining.rect}
-          onClose={() => setDefining(null)}
-        />
-      )}
+      {popover}
     </div>
   )
 }

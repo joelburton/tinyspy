@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
-import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './PlayLog.module.css'
 
@@ -23,10 +23,10 @@ export function PlayLog({ plays, players }: { plays: PlayRow[]; players: Member[
     if (el) el.scrollTop = el.scrollHeight
   }, [plays.length])
 
-  // The word currently being defined + the element it anchors under.
-  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(null)
-  const openDefine = (word: string, el: HTMLElement) =>
-    setDefining({ word: word.toLowerCase(), rect: el.getBoundingClientRect() })
+  // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
+  // Words display uppercase in the log; the lookup wants them lowercase.
+  const { define, popover } = useDefinePopover()
+  const openDefine = (word: string, el: HTMLElement) => define(word.toLowerCase(), el)
   // Click / keyboard activation for a clickable word (mirrors FoundWords).
   const defineProps = (word: string) => ({
     className: cls(styles.word, styles.clickable),
@@ -90,13 +90,7 @@ export function PlayLog({ plays, players }: { plays: PlayRow[]; players: Member[
         </ol>
       )}
 
-      {defining && (
-        <DefinitionPopover
-          initialWord={defining.word}
-          anchorRect={defining.rect}
-          onClose={() => setDefining(null)}
-        />
-      )}
+      {popover}
     </div>
   )
 }

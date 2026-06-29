@@ -1,10 +1,9 @@
 import {
   useMemo,
-  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
-import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
 import type { FoundWordRow, Player } from '../hooks/useGame'
@@ -111,18 +110,11 @@ export function WordList({
   )
   const recentlyFound = useRecentlyFound(foundWordsOnly)
 
-  // Click-to-define: clicking any word row opens a definition popover
-  // anchored to that row. The lookup is a common feature (see
-  // common/components/DefinitionPopover) — spellingbee just wires its
-  // rows to it.
-  const [defining, setDefining] = useState<{
-    word: string
-    rect: DOMRect
-  } | null>(null)
-
-  function openDefine(word: string, el: HTMLElement) {
-    setDefining({ word, rect: el.getBoundingClientRect() })
-  }
+  // Click-to-define: clicking any word row opens a definition popover anchored
+  // to that row. The open/anchor/close plumbing is the shared useDefinePopover
+  // hook (a common feature — see common/hooks/useDefinePopover); spellingbee
+  // just wires its rows to `openDefine`.
+  const { define: openDefine, popover } = useDefinePopover()
 
   /** Mouse + keyboard activation for a word row. */
   function rowActivation(word: string) {
@@ -215,13 +207,7 @@ export function WordList({
             })
           )}
       </ul>
-      {defining && (
-        <DefinitionPopover
-          initialWord={defining.word}
-          anchorRect={defining.rect}
-          onClose={() => setDefining(null)}
-        />
-      )}
+      {popover}
     </div>
   )
 }

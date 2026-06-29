@@ -1,10 +1,9 @@
 import {
   useMemo,
-  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
-import { DefinitionPopover } from '../../common/components/DefinitionPopover'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
 import type { FoundWordRow, Player } from '../hooks/useGame'
@@ -56,10 +55,7 @@ export function WordList({
   const foundWordsOnly = useMemo(() => foundWords.map((r) => r.word), [foundWords])
   const recentlyFound = useRecentlyFound(foundWordsOnly)
 
-  const [defining, setDefining] = useState<{ word: string; rect: DOMRect } | null>(null)
-  function openDefine(word: string, el: HTMLElement) {
-    setDefining({ word, rect: el.getBoundingClientRect() })
-  }
+  const { define: openDefine, popover } = useDefinePopover()
   function rowActivation(word: string) {
     return {
       onClick: (e: ReactMouseEvent<HTMLLIElement>) => openDefine(word, e.currentTarget),
@@ -124,13 +120,7 @@ export function WordList({
           })
         )}
       </ul>
-      {defining && (
-        <DefinitionPopover
-          initialWord={defining.word}
-          anchorRect={defining.rect}
-          onClose={() => setDefining(null)}
-        />
-      )}
+      {popover}
     </div>
   )
 }
