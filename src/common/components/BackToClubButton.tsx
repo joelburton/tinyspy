@@ -1,6 +1,5 @@
 import { IconBack } from './icons'
 import { cls } from '../lib/cls'
-import styles from './BackToClubButton.module.css'
 
 type Props = {
   onClick: () => void
@@ -28,6 +27,10 @@ type Props = {
  * `variant` swaps the fill (the global `secondary` class vs the default accent
  * button); `compact` swaps the visible label to just "club" (the chevron
  * carries the rest). The accessible label stays "Back to club" either way.
+ *
+ * The icon+label look is the global `.icon-button` class (docs/ui.md → Button
+ * iconography) — the same shape psychicnum's / connections' input-row buttons
+ * use, composed via cls() the way `secondary` is.
  */
 export function BackToClubButton({
   onClick,
@@ -38,7 +41,7 @@ export function BackToClubButton({
   return (
     <button
       type="button"
-      className={cls(styles.button, variant === 'secondary' && 'secondary')}
+      className={cls('icon-button', variant === 'secondary' && 'secondary')}
       onClick={onClick}
       aria-label={compact ? 'Back to club' : undefined}
       autoFocus={autoFocus}

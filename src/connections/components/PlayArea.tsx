@@ -423,7 +423,7 @@ export function PlayArea({
                 )}
                 <button
                   type="button"
-                  className={cls('secondary', styles.inputButton)}
+                  className={cls('secondary', 'icon-button', styles.inputButton)}
                   onClick={handleClear}
                   disabled={unionTiles.length === 0}
                 >
@@ -432,7 +432,7 @@ export function PlayArea({
                 </button>
                 <button
                   type="button"
-                  className={styles.inputButton}
+                  className={cls('icon-button', styles.inputButton)}
                   onClick={handleSubmit}
                   disabled={!canSubmit}
                 >
@@ -495,7 +495,7 @@ export function PlayArea({
                   can't submit (eliminated). */}
               <button
                 type="button"
-                className={cls('secondary', shared.helperButton)}
+                className={cls('secondary', 'icon-button', shared.helperButton)}
                 onClick={() => setHintsOpen(true)}
                 disabled={isEliminated}
               >
@@ -504,7 +504,7 @@ export function PlayArea({
               </button>
               <button
                 type="button"
-                className={cls('secondary', shared.helperButton)}
+                className={cls('secondary', 'icon-button', shared.helperButton)}
                 onClick={() => void handleEndGame()}
               >
                 <IconEnd size={15} aria-hidden />

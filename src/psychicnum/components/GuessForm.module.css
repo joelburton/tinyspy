@@ -27,13 +27,10 @@
 }
 
 /* A button in the input row (`.inputButton` — the shared name connections uses
- * for its Clear/Submit too): a Lucide icon + label on one centered line, with a
- * floor width so it matches connections' input-row buttons. Here it's just the
- * Submit button (the EntryBox beside it is the other half of the row). */
+ * for its Clear/Submit too). The icon+label look is the global `.icon-button`
+ * class (composed via cls() at the call site); this just adds the floor width so
+ * it matches connections' input-row buttons. Here it's only the Submit button
+ * (the EntryBox beside it is the other half of the row). */
 .inputButton {
   min-width: 7rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
 }

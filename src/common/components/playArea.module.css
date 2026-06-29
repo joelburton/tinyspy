@@ -151,17 +151,15 @@
   flex-wrap: nowrap;
 }
 
-/* A labelled action button (Lucide icon + label, centered). A real flex-basis
- * (not 0) so a couple share a row and the rest wrap as a unit rather than all
- * squeezing on and squishing the labels; they still grow to share the row.
- * nowrap so a label stays on one line. */
+/* A labelled action button in the info-column action row. The icon+label look
+ * comes from the global `.icon-button` class (composed via cls() at the call
+ * site); this is just the action-row MODIFIER: a real flex-basis (not 0) so a
+ * couple share a row and the rest wrap as a unit rather than all squeezing on
+ * and squishing the labels; they still grow to share the row. nowrap so a label
+ * stays on one line. */
 .helperButton {
   flex: 1 1 6rem;
   min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
   white-space: nowrap;
 }
 

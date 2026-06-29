@@ -644,9 +644,13 @@ the move controls — psychicnum's word entry + Submit, connections' Clear /
 Submit), **`.inputButton`** (a Lucide-icon + label button in it; `min-width:
 7rem`, centered), and **`.inputMessage`** (what fills the row when the controls
 are gone — the terminal reveal, or an "out of guesses / you're out" waiting
-line). Reuse these when a new game grows the same row. *(The two `.inputMessage`
-treatments still differ cosmetically — psychicnum muted, connections bold;
-unifying that is open.)*
+line). Reuse these when a new game grows the same row. The **`.inputMessage`**
+text presentation is canonical across games — **muted, `1.15rem`, normal weight**
+(`<strong>` rises to full text color for key tokens) — a *calm, secondary* line,
+since the loud verdict lives in the GameOverModal + the bold info-column
+`.outcome`. (Its box differs by placement: a padded board-column child in
+psychicnum, a `flex: 1` span in the `.inputRow` in connections — same text, the
+box fits where it sits.)
 
 ## Turn log
 
@@ -825,8 +829,16 @@ icon buttons).
 - **The icon is decorative; the button carries the label** (visible text, or
   `aria-label`/`title` on icon-only buttons). So the icon is `aria-hidden`.
 - **Sizing:** ~`size={15-16}` for an icon beside a text label, ~`size={20-24}`
-  for an icon-only pill. An icon-and-label button is `display: inline-flex;
-  align-items: center; gap: ~0.4em`.
+  for an icon-only pill.
+- **The icon-and-label shape is the global `.icon-button` class** (`theme.css`):
+  `display: inline-flex; align-items: center; justify-content: center; gap:
+  0.4em` — defined once, composed via `cls()` the way `secondary` is, so a button
+  is `cls('icon-button', styles.someModifier)` (or `cls('secondary',
+  'icon-button', …)`). It's pure shape — fill/border come from the base `<button>`
+  or `secondary`, width from a per-button modifier (`.inputButton`'s `min-width`,
+  `.helperButton`'s flex-grow). **Not** for icon-only pills (`ShuffleButton`,
+  `PauseButton`) — those are a separate round, fixed-size, label-less shape that
+  styles itself.
 - **Decided picks worth noting:** **Submit = `Play`** (keeps the solid
   right-triangle we'd used). **Shuffle/rotate = `RotateCw`** (read clearer than
   the crossing-arrows `Shuffle`, and spins nicely on the existing hover-spin).
@@ -850,4 +862,16 @@ item elsewhere (wiring icons into `<Menu>` items is a separate decision).
 - **Animations and transitions** beyond the existing `:hover` brightness on tiles.
 - **A literal palette layer** (`--color-gray-100`, etc.). Overkill at ~15 tokens; revisit at ~50+.
 - **Font-size tokens** (`--text-sm`, `--text-base`, …). Components pick raw rem values ad-hoc; standardize when the variety becomes noise.
+- **Promoting the board `.board` wrapper + `.grid` base into the shared
+  `playArea.module.css`.** Today psychicnum's `WordBoard.module.css` and
+  connections' `PlayArea.module.css` carry a byte-identical `.board` wrapper
+  (`flex: 1 1 0; min-height: 0; display: flex; flex-direction: column`) and a
+  near-identical `.grid` base (the per-game bits being the track definition + the
+  `--tile-font-*` knobs). Tempting to share now, but both current boards are the
+  same shape (a grid of equal tiles filling the column) — so the "shared" shape
+  would just be *these two*, and a genuinely different board (scrabble's 15×15
+  premium board, boggle's dice grid, a future crossword) is what reveals the real
+  abstraction. **Defer until a structurally different board exists**, then extract
+  what's actually common rather than guessing. (The per-game `.board` comments
+  already name this as the future single place a framed board would live.)
 - **Per-game UI testing** beyond what already exists. Manual smoke is the bar for now.

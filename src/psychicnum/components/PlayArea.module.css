@@ -15,7 +15,14 @@
  * rest" line. Lands where the player was already looking and explains the
  * missing entry; sitting BELOW the top-anchored board, it never shifts the board
  * when it appears. Stretches to the board width (it's a flex child of the board
- * column) and centers its text. */
+ * column) and centers its text.
+ *
+ * This is the CANONICAL below-board message look — muted, 1.15rem, normal weight
+ * (with `strong` rising to full text color for the key tokens) — a calm,
+ * secondary line, since the loud verdict lives in the modal + info-column
+ * `.outcome`. connections' `.inputMessage` matches the text presentation; the box
+ * differs by placement (here a padded boardCol child; there a flex span in the
+ * `.inputRow`). See docs/ui.md → "Text entry". */
 .inputMessage {
   margin: 0;
   text-align: center;

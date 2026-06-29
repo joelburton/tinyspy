@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { IconSubmit } from '../../common/components/icons'
+import { cls } from '../../common/lib/cls'
 import { EntryBox } from '../../common/components/EntryBox'
 import { ResultFlash, type ResultTone } from '../../common/components/ResultFlash'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
@@ -112,7 +113,7 @@ export function GuessForm({ value, onChange, onSubmit, submitting, result }: Pro
           <EntryBox value={value} placeholder="type a word" className={styles.entry} />
           <button
             type="submit"
-            className={styles.inputButton}
+            className={cls('icon-button', styles.inputButton)}
             disabled={submitting || value === ''}
           >
             <IconSubmit size={15} aria-hidden />

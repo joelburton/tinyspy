@@ -144,15 +144,18 @@
 }
 
 /* The message that replaces the input once the game's over (or this player is
- * out): "You win!", "You lost: out of time", etc. Centered + bold, filling the
- * slot the buttons vacated — gives the player looking there an explanation, the
- * way psychicnum's reveal does. (`.inputMessage` — the shared name psychicnum
- * uses for the same slot; the two games still style it differently today, see
- * docs/ui.md.) */
+ * out): "You win!", "You lost: out of time", etc. A CALM, secondary line — the
+ * loud verdict already lives in the GameOverModal + the bold, color-coded
+ * info-column `.outcome` line, so this just explains why the input is gone. Same
+ * canonical below-board look as psychicnum's `.inputMessage`: muted, 1.15rem,
+ * normal weight (docs/ui.md → "Text entry"). The box differs by placement — here
+ * a `flex: 1` span centered in the `.inputRow`; psychicnum's is a padded boardCol
+ * child — but the text presentation matches. */
 .inputMessage {
   flex: 1;
   text-align: center;
-  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--color-muted);
   margin: 0;
 }
 
@@ -164,12 +167,9 @@
  * flash, or the terminal outcome. */
 
 /* A button in the input row (`.inputButton` — the shared name psychicnum uses
- * for its Submit too): a Lucide icon + label on one centered line, natural width
- * with a sensible floor. Here it's the Clear + Submit pair. */
+ * for its Submit too). The icon+label look is the global `.icon-button` class
+ * (composed via cls() at the call site); this just adds the floor width. Here
+ * it's the Clear + Submit pair. */
 .inputButton {
   min-width: 7rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4em;
 }

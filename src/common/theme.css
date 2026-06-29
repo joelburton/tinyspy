@@ -292,6 +292,24 @@ a {
   margin: 0 auto;
 }
 
+/* The icon-and-label button look: a Lucide icon + a text label on one centered
+   line. The ONE place the "icon beside a label" shape is defined (docs/ui.md →
+   Button iconography) — every such button composes it via cls(), the same way
+   they compose `secondary`, instead of re-declaring inline-flex/gap in their own
+   module. Pure shape: no fill/border/color (those come from the base <button>,
+   or from `secondary`), and no width (a per-button modifier adds min-width or
+   flex-grow). So a play button is `cls('icon-button', styles.inputButton)`; a
+   secondary one is `cls('secondary', 'icon-button', …)`.
+
+   NOT for icon-ONLY pills (ShuffleButton, PauseButton) — those are a separate,
+   round, fixed-size shape with no label, so they style themselves. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+}
+
 .muted {
   color: var(--color-muted);
   font-size: 0.9rem;

@@ -404,7 +404,7 @@ export function PlayArea({
                       word. Both log to the turn log, cost nothing. */}
                   <button
                     type="button"
-                    className={cls('secondary', shared.helperButton)}
+                    className={cls('secondary', 'icon-button', shared.helperButton)}
                     onClick={getHint}
                     disabled={hinting}
                   >
@@ -413,7 +413,7 @@ export function PlayArea({
                   </button>
                   <button
                     type="button"
-                    className={cls('secondary', shared.helperButton)}
+                    className={cls('secondary', 'icon-button', shared.helperButton)}
                     onClick={getReveal}
                     disabled={revealing}
                   >
@@ -426,7 +426,7 @@ export function PlayArea({
                   sits with them in the action row. Confirmed. */}
               <button
                 type="button"
-                className={cls('secondary', shared.helperButton)}
+                className={cls('secondary', 'icon-button', shared.helperButton)}
                 onClick={endGame}
               >
                 <IconEnd size={15} aria-hidden />

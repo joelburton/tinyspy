@@ -1,9 +1,0 @@
-/* Lay the Lucide ChevronLeft icon + the label on one centered line, with a
- * small gap between them (replaces the old glyph's margin). The `secondary`
- * variant's fill/border come from the global class; this just handles the
- * icon+label alignment. */
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15em;
-}
