@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { tileColor } from '../../common/lib/tileColor'
 import { CELLS, isHole } from '../lib/waffle'
@@ -33,6 +33,36 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   // Drag source (HTML5 drag-and-drop, the desktop alternative to tap).
   const dragFrom = useRef<number | null>(null)
+
+  // Recently-swapped tile flash: when the board changes, the two cells whose
+  // letters moved briefly pop, so the eye tracks the change (the only other cue
+  // is the recolor). The board updates via the realtime refetch (Pattern A), so
+  // we detect the move by diffing the new board against the previous one — which
+  // also catches a teammate's swap in coop. The setState is scheduled off the
+  // effect body (rAF) so it reads as a transient, not a cascading render.
+  const [flashing, setFlashing] = useState<ReadonlySet<number>>(() => new Set())
+  const prevBoardRef = useRef<string | null>(null)
+  useEffect(
+    function flashSwappedTiles() {
+      const prev = prevBoardRef.current
+      prevBoardRef.current = board
+      // Seed silently on first load / a length change — don't flash the whole
+      // board into existence.
+      if (prev === null || prev.length !== board.length) return
+      const moved: number[] = []
+      for (let i = 0; i < board.length; i++) {
+        if (!isHole(i) && board[i] !== prev[i]) moved.push(i)
+      }
+      if (moved.length === 0) return
+      const raf = requestAnimationFrame(() => setFlashing(new Set(moved)))
+      const clear = window.setTimeout(() => setFlashing(new Set()), 480)
+      return () => {
+        cancelAnimationFrame(raf)
+        clearTimeout(clear)
+      }
+    },
+    [board],
+  )
 
   function activate(pos: number) {
     if (disabled || isHole(pos)) return
@@ -73,6 +103,7 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
                 shared.tile,
                 styles[color],
                 selected === pos && styles.selected,
+                flashing.has(pos) && styles.justSwapped,
               )}
               aria-label={`${letter.toUpperCase()} (${color})`}
               aria-pressed={selected === pos}

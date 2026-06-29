@@ -169,17 +169,25 @@ the caller, so there are no peer events to narrate.
 
 ## waffle (brand SyrupSwap)
 
-### Header feedback (ctx.feedback → FeedbackPill)
+**Split applied** when waffle moved onto the shared PlayArea scaffold: own-action
+errors are LOCAL (below the board), and the header pill is reserved for PEER/group
+events. (Previously both swap- and End-failures went to the header pill.)
+
+### Header feedback (ctx.feedback → FeedbackPill) — peer/group only
 | trigger | message | tone → color | dismiss |
 |---|---|---|---|
-| Submit-swap RPC fails | `<error.message>` | error → red | closeable |
-| End-game RPC fails (shared `useEndGameMenu`) | `<error.message>` | error → red | closeable |
+| (compete) an opponent solves the board | `<name> solved it` | warning → amber, outline + leading identity dot | timed 3000ms |
+| (compete) an opponent runs out of swaps | `<name> is out of swaps` | warning → amber, outline + leading identity dot | timed 3000ms |
+| coop | — (nothing — the swap log shows every teammate move) | — | — |
 
 ### Local feedback
 | where | trigger | message | color | how it clears |
 |---|---|---|---|---|
-| WaffleGrid tiles | after a swap (server colors via realtime) | — (visual, Wordle-style) | green #6aaa64 / yellow #c9b458 / gray #787c7e / blank #d3d6da | persists until next swap mutates the position |
-| WaffleGrid `.selected` | tile selected awaiting swap partner | — (visual) | select-ring border + shadow | on swap / deselect |
+| below-board `<ResultFlash>` (shared) | own submit-swap RPC fails | `<error.message>` | bad → red | shared ResultFlash beat (~1.4s) / next action |
+| below-board `<ResultFlash>` (shared) | own End-game RPC fails (End is an action-row button now, not `useEndGameMenu`) | `End game failed: <error.message>` | bad → red | as above |
+| WaffleGrid tiles | after a swap (server colors via realtime) | — (visual, Wordle-style) | shared `--wordle-green/yellow/gray/blank` | persists until next swap mutates the position |
+| WaffleGrid recently-swapped pop | the two cells whose letters moved (diff prev vs. next board) | — (visual, ~0.45s scale pop; respects reduced-motion) | — | ~480ms timer |
+| WaffleGrid `.selected` | tile selected awaiting swap partner | — (visual) | outline select-ring + lift | on swap / deselect |
 
 ---
 

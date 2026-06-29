@@ -105,3 +105,25 @@
   outline-offset: 2px;
   transform: translateY(-2px);
 }
+
+/* Recently-swapped tiles briefly pop, so the eye tracks the two that moved (the
+ * only other change-signal is the recolor). Set for ~480ms after the board
+ * updates, by diffing prev vs. next board (see WaffleGrid.tsx). A swapped tile is
+ * never `selected` (the pick clears on swap), so the pop's transform doesn't
+ * fight the selection lift. */
+.justSwapped {
+  animation: waffle-swap-pop 0.45s ease;
+}
+
+@keyframes waffle-swap-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Drop the motion; the recolor still signals the swap landed. */
+  .justSwapped {
+    animation: none;
+  }
+}
