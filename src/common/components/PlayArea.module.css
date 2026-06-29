@@ -69,7 +69,7 @@
   /* Debug tint so the board column's bounds (and the gaps between tiles) are
    * visible during layout work. Deliberately kept — do NOT remove until Joel
    * asks. */
-  background: rgba(40, 120, 255, 0.30);
+  background: rgba(40, 120, 255, 0.0);
 }
 
 /* Shuffle floats over the board's top-right corner — purely a fresh visual

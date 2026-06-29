@@ -1,0 +1,11 @@
+/* Per-character styling for the typed word rendered inside the shared <EntryBox>
+ * (spellingbee passes <TypedWord> as the box's children). The input-like box, the
+ * blinking caret, and the placeholder are EntryBox's; only the illegal-letter dim
+ * is spellingbee's. */
+
+/* A character not in the current puzzle's letter set — a visual cue the
+ * submission will be rejected as "badLetters" (same affordance spellingbee-ws
+ * uses). */
+.illegal {
+  color: #aaa;
+}

@@ -1,15 +1,15 @@
-/* The capture-input display box. Styled to read like the global <input>
- * rule (same border / padding / radius / background) so the entry surface
- * looks familiar, but it's a plain <div> — the game captures keystrokes off
- * the window rather than into a focusable field. Per-game appearance (size,
- * how it sits in a row) comes from a `className` the consumer appends. */
+/* The capture-input display. A plain <div> — the game captures keystrokes off
+ * the window rather than into a focusable field. Deliberately CHROME-LESS: no
+ * border / background / padding box, just large centered text with the simulated
+ * caret, so the typed word reads as the focus rather than as a form field. (The
+ * caret's `1.15em` height tracks this font-size.) Per-game appearance (how it
+ * sits in a row, casing) comes from a `className` the consumer appends. Shared by
+ * psychicnum + spellingbee — change here flows to both. */
 .box {
   display: flex;
   align-items: center;
-  padding: 0.6rem 0.9rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-control-border);
-  background: var(--color-control-bg);
+  justify-content: center;
+  font-size: 1.5rem;
   /* tabular figures so the caret doesn't jitter as digit widths change
      (harmless for alpha entry — only affects digit glyphs) */
   font-variant-numeric: tabular-nums;

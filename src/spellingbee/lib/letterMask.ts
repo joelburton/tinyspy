@@ -11,7 +11,7 @@
  *   (wordMask & ~puzzleMask) === 0    // word ⊆ puzzle
  *
  * The FE uses this for two things:
- *   1. Per-letter illegal-letter dimming in <WordInput> — the
+ *   1. Per-letter illegal-letter dimming in <TypedWord> — the
  *      current typed word renders character-by-character, gray
  *      for letters not in the puzzle.
  *   2. Pre-flight pangram check in the FE (the synthetic

@@ -19,17 +19,19 @@ type Props = {
 }
 
 /**
- * The shared **capture-input display**: a box that looks like a text input
- * but holds no `<input>`. The capture-input games read keystrokes off the
+ * The shared **capture-input display**: large centered text with a blinking
+ * caret, holding no `<input>`. The capture-input games read keystrokes off the
  * window (see `useGlobalKeyHandler`) and feed the pending value here; there's
  * no focusable field, so clicking a board tile never blurs the entry and
  * interrupts typing.
  *
  * What this component owns — the *invariant* part:
- *   - the input-like shell (border / padding / radius / background);
- *   - the **simulated caret**, blinking only while the game owns the keyboard
- *     (via `useGameHasKeyboard`) — the affordance a real input's cursor would
- *     give, kept honest so it never duels with the chat box's cursor;
+ *   - the chrome-less display (no border/background — just large centered text,
+ *     so the typed word reads as the focus, not as a form field);
+ *   - the **simulated caret**, shown only once something's typed AND while the
+ *     game owns the keyboard (via `useGameHasKeyboard`) — the affordance a real
+ *     input's cursor would give, kept honest so it never duels with the chat
+ *     box's cursor (and stays out of an empty field, which the placeholder owns);
  *   - placeholder-when-empty slotting.
  *
  * What the *consumer* owns — the parts that vary:
@@ -46,7 +48,11 @@ export function EntryBox({ value, placeholder, children, className }: Props) {
   return (
     <div className={cls(styles.box, className)}>
       {!empty && (children ?? <span className={styles.value}>{value}</span>)}
-      {gameHasKeyboard && <span className={styles.caret} aria-hidden />}
+      {/* Caret only once something's been typed: an empty field shows just the
+          placeholder, which already says "type here". A caret on an empty box
+          would blink off in the corner (or, centered, float oddly mid-box) with
+          nothing to anchor it — noise, not an affordance. */}
+      {gameHasKeyboard && !empty && <span className={styles.caret} aria-hidden />}
       {empty && placeholder !== undefined && (
         <span className={styles.placeholder}>{placeholder}</span>
       )}

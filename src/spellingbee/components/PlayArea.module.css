@@ -1,43 +1,57 @@
-/* Two-column layout: the input loop on the left, the score/
- * rank/word-list panel on the right. Both columns share a
- * single centered wrapper with a max-width.
+/* spellingbee play surface, now on the shared two-column scaffold
+ * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * .layout / .boardCol / .infoCol psychicnum / connections / codenamesduet /
+ * waffle use. This module holds only spellingbee's own bits: the per-game layout
+ * vars, the board-size derivation, the below-board input region (the typed-word
+ * display + Delete/Enter on one line, feedback slot beneath), and the leftover
+ * loading/terminal styles.
  *
- * Desktop-only per docs/ui.md — the play surface is a laptop
- * browser; mobile gets graceful degradation, not engineering.
- * We don't write narrow-viewport reflows.
+ * MIGRATION PHASE 1: the skeleton + a board that grows. The info column is still
+ * an UNFORMATTED dump (RankBar / Stats / WordList shoved in); sorting it into the
+ * shared actionSlot readouts is Phase 2.
  */
 
-.playArea {
-  display: grid;
-  /* Right panel runs wider than the left now so the word list shows
-     three columns comfortably (see WordList.module.css). */
-  grid-template-columns: minmax(320px, 1fr) minmax(400px, 1.15fr);
-  gap: 32px;
-  align-items: start;
-  padding: 24px 16px 48px;
-  max-width: 980px;
-  margin: 0 auto;
+/* Per-game layout vars the shared scaffold reads. The info column runs wider than
+ * the other games' — the word list wants room for several columns — so start at
+ * 33rem and tune. --avail-h is the vertical space left for the hex board (bounded
+ * by height too, like waffle's square): viewport − chrome − the below-board
+ * input/feedback stack. */
+.layout {
+  --info-col-width: 33rem;
+  --avail-h: calc(100vh - var(--game-chrome-height) - 9.5rem);
 }
 
-.inputColumn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+/* The board column. Hoists `--side` (the hex board's edge length) here — rather
+ * than on .letters — so the below-board input row can match the board width.
+ *
+ * ─── Board size cap — TINKER HERE ────────────────────────────────────────────
+ * The hex board is bounded by BOTH width and height (like waffle's square), so it
+ * sizes to the smaller of the width left beside the info column (--avail-w, the
+ * shared scaffold token), the height left above the input row (--avail-h), and
+ * --max-hex-board-size. Raise/lower the cap to taste; comment it out for an
+ * uncapped board that fills the smaller available axis (but then define a value —
+ * a bare var() fallback trips the cssTokens guard; see the passing games). */
+.boardCol {
+  --max-hex-board-size: 30rem;
+  --side: min(var(--avail-w), var(--avail-h), var(--max-hex-board-size, 999rem));
 }
 
-.sidePanel {
+/* The below-board region, stacked: the full-width entry box, then the
+ * Delete/Enter button row, then the feedback slot. Width pinned to the board's
+ * --side so a long typed word can't widen the column and shift the centered
+ * board. */
+.belowBoard {
+  width: var(--side);
   display: flex;
   flex-direction: column;
-  /* A DEFINITE viewport-derived height (not just a cap): the WordList
-   * fills what's left below the score/rank/actions and gets a definite
-   * height itself, which its column-major grid needs to know how many
-   * rows fit (and therefore where columns wrap). The bordered grids
-   * above are inflexible; the WordList (flex: 1) absorbs the rest and
-   * scrolls horizontally inside. */
-  height: calc(100vh - 200px);
-  min-height: 240px;
-  padding: 0 8px;
+  gap: 0.5rem;
+}
+
+/* The shared <EntryBox> as spellingbee's word entry: full-width (the column
+ * stretches it). The look — chrome-less, large, centered — is the shared
+ * EntryBox; nothing per-game to add beyond letting it fill the column. */
+.entry {
+  min-width: 0;
 }
 
 .loading,

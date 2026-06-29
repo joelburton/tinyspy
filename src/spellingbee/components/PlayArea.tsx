@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { ShuffleButton } from '../../common/components/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { db } from '../db'
@@ -17,8 +19,10 @@ import { Feedback } from './Feedback'
 import { Letters } from './Letters'
 import { RankBar } from './RankBar'
 import { Stats } from './Stats'
-import { WordInput } from './WordInput'
+import { EntryBox } from '../../common/components/EntryBox'
+import { TypedWord } from './TypedWord'
 import { WordList } from './WordList'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -400,31 +404,57 @@ export function PlayArea(ctx: GamePageCtx) {
     : null
 
   return (
-    <div className={styles.playArea}>
-      <div className={styles.inputColumn}>
-        <WordInput word={word} allowedLetters={allowedLetters} />
-        {isTerminal && over
-          ? (
-            <div className={styles.terminalIndicator}>
-              <span>Game over — {over.indicator}</span>
-              <BackToClubButton onClick={goToClub} />
-            </div>
-          )
-          : <Feedback message={feedback.message} tone={feedback.tone} />}
+    <div className={cls(shared.layout, styles.layout)}>
+      <div className={cls(shared.boardCol, styles.boardCol)}>
         <Letters
           outerLetters={outerShuffled}
           centerLetter={game.center_letter}
           onLetterClick={handleLetterClick}
         />
-        <Actions
-          wordEmpty={word.length === 0}
-          locked={isTerminal}
-          onDelete={handleDelete}
+        {/* Shuffle floats over the board's top-right — a fresh visual scan of the
+            SAME board, not a turn action (psychicnum's pattern). Always
+            clickable, even when locked (a harmless rearrange). */}
+        <ShuffleButton
           onShuffle={handleShuffle}
-          onSubmit={() => void handleSubmit()}
+          label="Shuffle outer letters"
+          className={shared.floatingShuffle}
         />
+        {/* The below-board input region: the typed-word display + Delete/Enter on
+            one line, with the own-action feedback (or terminal line) beneath. The
+            board itself is the letter input; this row commits/edits it. */}
+        <div className={styles.belowBoard}>
+          {/* The shared capture-input box (input-like shell + blinking caret, no
+              <input>), full width. spellingbee's per-character illegal-letter dim
+              rides in as the box's children via <TypedWord>. */}
+          <EntryBox
+            value={word}
+            placeholder="Type or click letters"
+            className={styles.entry}
+          >
+            <TypedWord word={word} allowedLetters={allowedLetters} />
+          </EntryBox>
+          {/* Delete / Enter sit on their own row BELOW the entry. */}
+          <Actions
+            wordEmpty={word.length === 0}
+            locked={isTerminal}
+            onDelete={handleDelete}
+            onSubmit={() => void handleSubmit()}
+          />
+          {isTerminal && over
+            ? (
+              <div className={styles.terminalIndicator}>
+                <span>Game over — {over.indicator}</span>
+                <BackToClubButton onClick={goToClub} />
+              </div>
+            )
+            : <Feedback message={feedback.message} tone={feedback.tone} />}
+        </div>
       </div>
-      <div className={styles.sidePanel}>
+
+      {/* PHASE 1: the info column is an UNFORMATTED dump — RankBar / OpponentStrip
+          / Stats / WordList shoved straight in. Phase 2 sorts these into the
+          shared actionSlot readouts (setup / status / help / End) + WordList fill. */}
+      <div className={shared.infoCol}>
         <RankBar score={foundWordsScore} total={game.required_words_score} />
         {isCompete && targetRankIdx !== null && (() => {
           // Index the leaderboard by user so the metric callback can

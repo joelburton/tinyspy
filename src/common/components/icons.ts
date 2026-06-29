@@ -20,6 +20,7 @@ export {
   // for sending a move — not the setup dialog or other form submits.
   Triangle as IconSubmit,
   Eraser as IconClear, // clear the current selection
+  Delete as IconDelete, // delete the last typed character (the backspace key glyph)
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   ChevronLeft as IconBack, // back to club
   Pause as IconPause, // pause the game
