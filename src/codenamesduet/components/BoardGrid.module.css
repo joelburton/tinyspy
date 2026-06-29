@@ -12,16 +12,6 @@
  * shouting-wide tiles.
  */
 
-.errorBanner {
-  background: var(--codenamesduet-assassin-soft);
-  border: 1px solid var(--codenamesduet-assassin);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
-  margin: 0 0 1rem;
-  color: var(--color-error-soft-text);
-  font-size: 0.95rem;
-}
-
 /* --------- the 5×5 board + tiles ---------
  *
  * The board wrapper + grid mirror psychicnum/connections (the shared "board"

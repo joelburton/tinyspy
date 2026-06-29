@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FeedbackApi, FeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -6,6 +6,8 @@ import { db } from '../db'
 import { IconEnd } from '../../common/components/icons'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { ResultFlash } from '../../common/components/ResultFlash'
+import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
@@ -213,26 +215,50 @@ export function PlayArea({
   // after dismiss. See common/hooks/useTerminalModal.ts.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
+  // ─── Own-action feedback (local) + guess dispatch ──────
+  // A board click is the guess move; PlayArea owns the submit_guess RPC + the
+  // pending-tile state (like psychicnum/connections own their submit) so the
+  // own-action <ResultFlash> lives in the below-board slot next to the clue UI —
+  // the LOCAL half of the feedback split (turn-state changes go to the header
+  // pill via useTurnPill). codenamesduet's guess RESULT shows on the board (the
+  // tile reveal) + the turn log, so this flash is ERROR-ONLY: a rejected guess
+  // or a failed End. Shared machinery; PlayArea owns where it renders.
+  const [pendingPos, setPendingPos] = useState<number | null>(null)
+  const { flash: actionFlash, show: flashAction, clear: clearActionFlash } =
+    useResultFlash()
+
+  const handleGuess = useCallback(
+    async (position: number) => {
+      clearActionFlash()
+      setPendingPos(position)
+      const { error } = await db.rpc('submit_guess', {
+        target_game: gameId,
+        target_position: position,
+      })
+      setPendingPos(null)
+      if (error) {
+        console.error('submit_guess failed', error)
+        flashAction('bad', error.message)
+      }
+      // Success: the reveal arrives via Realtime → useBoard refetches → the tile
+      // re-renders with its result color. No optimistic update, no flash.
+    },
+    [gameId, flashAction, clearActionFlash],
+  )
+
   // ─── End-game action (info-column action-row button) ───
-  // The friends' explicit "we're done" affordance — now an action-row button
-  // (like psychicnum/connections) rather than a GamePage menu item. codenamesduet
-  // has automatic terminals (won / lost_*), but this lets them abandon an
-  // in-progress game early — fires codenamesduet.end_game, a neutral terminal
+  // The friends' explicit "we're done" affordance — an action-row button (like
+  // psychicnum/connections) rather than a GamePage menu item. codenamesduet has
+  // automatic terminals (won / lost_*), but this lets them abandon an in-progress
+  // game early — fires codenamesduet.end_game, a neutral terminal
   // (play_state='ended', everyone {won:false}). Confirmed; it's irreversible. An
-  // error surfaces in the header pill for now (Phase 4 moves own-action errors
-  // to a local <ResultFlash>).
+  // error is an own-action error → the same local flash as a rejected guess.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      feedback.show({
-        tone: 'error',
-        text: `End game failed: ${error.message}`,
-        dismiss: { kind: 'timed', ms: 4000 },
-      })
-    }
-  }, [gameId, isTerminal, feedback])
+    if (error) flashAction('bad', `End game failed: ${error.message}`)
+  }, [gameId, isTerminal, flashAction])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -297,22 +323,26 @@ export function PlayArea({
     <div className={cls(shared.layout, inSuddenDeath && styles.suddenDeath)}>
       <div className={shared.boardCol}>
         <BoardGrid
-          gameId={gameId}
           words={words}
           myKey={myKey}
           peerKey={peerKey}
           mySeat={mySeat}
           gameOver={gameOver}
           cellsClickable={cellsClickable}
+          pendingPos={pendingPos}
+          onGuess={handleGuess}
         />
         {/* The below-board slot — codenamesduet's move-input zone (docs/ui.md →
-            "Text entry"): the CluePanel (clue form / clue display + Pass /
-            waiting copy) during play, else a calm verdict echo at terminal. A
-            reserved height keeps the top-anchored board from shifting as the clue
-            state swaps. */}
+            "Text entry"): a verdict echo at terminal; else an own-action error
+            <ResultFlash> for a beat (a rejected guess / failed End — the local
+            half of the feedback split); else the CluePanel (clue form / clue
+            display + Pass / waiting copy). A reserved height keeps the
+            top-anchored board from shifting as the slot swaps. */}
         <div className={styles.inputRow}>
           {over ? (
             <p className={styles.inputMessage}>{over.verdict}</p>
+          ) : actionFlash ? (
+            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} />
           ) : (
             <CluePanel
               gameId={gameId}
