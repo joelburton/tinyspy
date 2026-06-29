@@ -8,35 +8,32 @@ type Props = {
 }
 
 /**
- * The "what just happened" display, rendered inside `<StatusSlot>`
- * when `ctx.feedback.show()` has been called. See
- * docs/ui.md → "Feedback pill" for the full API contract.
+ * The shared feedback pill — the "what just happened" display. It serves BOTH
+ * feedback areas (docs/design-decisions.md → Terms): the GLOBAL one (the header
+ * `<StatusSlot>`, via `ctx.feedback.show()`, left-justified, for peer/opponent
+ * messages) and the LOCAL one (a below-board slot a game renders directly,
+ * centered, for the player's own move). See docs/ui.md → "Feedback pill" for the
+ * full API contract.
  *
  * Three dismiss modes:
- *   - `timed`:    self-clears via `<GamePage>`'s auto-clear effect
- *                 — the pill renders, the timer in GamePage fires,
- *                 the message clears.
- *   - `sticky`:   stays until the caller's next `show()`/`clear()`.
- *                 The pill renders identically; only the lifetime
- *                 differs.
- *   - `closeable`: renders a × button that calls `onClose` (which
- *                 maps to `ctx.feedback.clear()` at the GamePage
- *                 level). Click-to-dismiss user-acknowledgment.
+ *   - `timed`:    self-clears via `<GamePage>`'s auto-clear effect.
+ *   - `sticky`:   stays until the caller's next `show()`/`clear()` (or, for a
+ *                 directly-rendered local pill, until the host swaps it out).
+ *   - `closeable`: renders a × button that calls `onClose`. Click-to-dismiss.
  *
- * Visual tone (`success` / `error` / `neutral` / `info`) picks a
- * background + border color via a CSS-class branch. The tones
- * are global UI-state vocabulary (see docs/ui.md → "Two
- * vocabularies") — a connections "wrong guess" pill should look
- * like a codenamesduet "clue invalid" pill should look like a future
- * Boggle "not a word" pill. Same component, same tone, same
- * paint.
+ * Visual tone (`success` / `error` / `warning` / `neutral` / `info`) picks a
+ * background + border color via a CSS-class branch. Tones are global UI-state
+ * vocabulary (docs/ui.md → "Two vocabularies") — a connections "wrong guess"
+ * pill looks like a codenamesduet "clue invalid" pill looks like a future Boggle
+ * "not a word" pill.
  *
- * Two extras serve group/peer (identity) messages — see docs/ui.md →
- * "Player identity = a colored disc":
- *   - `msg.dot`: a leading player-color disc (the actor's identity).
- *   - `msg.variant === 'outline'`: colored border, no fill — so the disc
- *     isn't fighting a tinted background. The outline uses the green/red
- *     outcome palette, matching the board's own result flashes.
+ * `msg.variant` is the transient-vs-permanent axis (docs/design-decisions.md →
+ * Feedback):
+ *   - `'outline'` → TRANSIENT: white background, tone-colored border.
+ *   - omitted / `'fill'` → PERMANENT: a lightened-tone background + border, so it
+ *     reads *more* like its tone (a terminal message, an end-game mode).
+ * `msg.dot` is independent of that axis: a leading player-color disc naming the
+ * actor in a peer message (docs/ui.md → "Player identity = a colored disc").
  */
 export function FeedbackPill({ msg, onClose }: Props) {
   const outline = msg.variant === 'outline'

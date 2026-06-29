@@ -11,5 +11,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * — the file already exists and every call site already routes through it.
  */
 export function SubmitButton({ label = 'Submit', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconSubmit} label={label} tone="primary" {...rest} />
+  return <ActionButton icon={IconSubmit} label={label} weight="primary" {...rest} />
 }

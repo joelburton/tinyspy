@@ -6,8 +6,8 @@
  * itself would spin the whole pill, which reads as a twitch). */
 
 .shuffle {
-  width: 44px;
-  height: 44px;
+  width: 35px;
+  height: 35px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -17,14 +17,17 @@
   font-size: 32px;
   border-radius: 999px;
   border: 1px solid var(--color-surface-border);
-  background: var(--color-surface);
+  /* Slightly translucent: the button floats over the board, so letting a little
+   * of the tiles behind it show through keeps it from reading as an opaque patch
+   * stuck on top. */
+  background: color-mix(in oklab, var(--color-surface) 65%, transparent);
   color: var(--color-text);
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;
 }
 
 .shuffle:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  /*background: color-mix(in oklab, var(--color-surface-hover) 85%, transparent);*/
   transform: translateY(-1px);
 }
 

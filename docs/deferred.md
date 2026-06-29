@@ -15,7 +15,14 @@ See [`codenamesduet.md → Open items`](games/codenamesduet.md#open-items) for t
 
 ## psychicnum
 
-No outstanding deferred items today. Open scope-creep notes live in [`psychicnum.md → Open items`](games/psychicnum.md#open-items).
+- **Make the game-status readout (`.infoState`) more visually interesting.** The
+  info-column game-status area (`.infoState` — "N/3 found · M/9 guesses used") is
+  plain and boring. Give it more visual life: spellingbee's info column (its
+  rank ladder / stats treatment) is a good reference for what "interesting" looks
+  like. Cross-game concern (the `.infoState` class is shared), but psychicnum is
+  where it's most noticeably flat. Deferred from the psychicnum v2 → v3 pass.
+
+Open scope-creep notes also live in [`psychicnum.md → Open items`](games/psychicnum.md#open-items).
 
 ## Common / architecture
 

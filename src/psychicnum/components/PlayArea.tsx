@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconEnd, IconHint, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
+import { HintButton } from '../../common/components/buttons/HintButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -24,6 +27,14 @@ import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
 /** The computer hides this many secret words; players win by finding all. */
 const SECRET_COUNT = 3
+
+/** Local feedback pills are never closeable, so the × is never rendered and this
+ *  is never called — but `<FeedbackPill>` requires the prop. */
+const noop = () => {}
+
+/** Sentence-case a message's first letter. Server errors come back lowercase
+ *  (`'setup.guesses is required'`); local feedback should read as a sentence. */
+const capitalize = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -99,16 +110,32 @@ export function PlayArea({
   }, [wordsKey, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
-  // ─── Entry-bar flash (own-action feedback) ─────────────
-  // A transient message that replaces the entry bar for the player's own
-  // action: "Correct"/"Incorrect" after a guess, or a validation error
-  // ("Not on the board") when the typed word isn't a tile. The shared
-  // <ResultFlash> lives in the entry's already-claimed space (never a new line
-  // that would shrink the board — docs/ui.md → Layout stability). Local channel:
-  // near my eyes, about what I just did (docs/deferred.md → Feedback channels).
-  // GuessForm hides it the moment the player types again (dismiss-on-input), so
-  // psychicnum never needs the hook's `clear`.
-  const { flash: entryFlash, show: flashEntry } = useResultFlash()
+  // ─── Local feedback flash (own-action) ─────────────────
+  // The player's own result, shown as a centered <FeedbackPill> in the entry's
+  // already-claimed space (never a new line that would shrink the board —
+  // docs/ui.md → Layout stability): "Correct"/"Incorrect" after a guess, or a
+  // validation error ("Not on the board"). Local channel: near my eyes, about
+  // what I just did (docs/deferred.md → Feedback channels).
+  //
+  // STICKY, not timed (docs/design-decisions.md → Dismissal modes): an own-move
+  // result is important and I may be looking elsewhere on the board, so it
+  // persists until my NEXT move dismisses it — a tile click or a keystroke into
+  // the EntryBox, both routed through `handleEntryChange` below (which calls the
+  // hook's `clear`). `useResultFlash(null)` disables the auto-timer.
+  const { flash: entryFlash, show: flashEntry, clear: clearFlash } = useResultFlash(null)
+
+  // A user-driven entry change — typing a letter, or clicking a board tile — is
+  // also the gesture that dismisses a sticky local result, so route both through
+  // here: clear the flash, then update the pending guess. (submit_guess sets
+  // `pending` to '' directly, NOT through this, so it doesn't clear the flash it
+  // is about to show.)
+  const handleEntryChange = useCallback(
+    (next: string) => {
+      clearFlash()
+      setPending(next)
+    },
+    [clearFlash],
+  )
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess (green correct / red not) or hint request (amber) is
@@ -257,7 +284,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      flashEntry('bad', error.message)
+      flashEntry('bad', capitalize(error.message))
       return
     }
     flashEntry(
@@ -273,14 +300,14 @@ export function PlayArea({
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) flashEntry('bad', error.message)
+    if (error) flashEntry('bad', capitalize(error.message))
   }
 
   const getReveal = async () => {
     setRevealing(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
     setRevealing(false)
-    if (error) flashEntry('bad', error.message)
+    if (error) flashEntry('bad', capitalize(error.message))
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -288,7 +315,7 @@ export function PlayArea({
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) flashEntry('bad', error.message)
+    if (error) flashEntry('bad', capitalize(error.message))
   }
 
   return (
@@ -302,7 +329,7 @@ export function PlayArea({
           words={shuffledWords}
           results={results}
           selected={selected}
-          onPick={canGuess ? (w) => setPending(w) : undefined}
+          onPick={canGuess ? handleEntryChange : undefined}
         />
         {/* Shuffle floats over the board's top-right — it's purely visual (a
             fresh scan of the SAME board), not a turn action, so it lives on the
@@ -313,32 +340,62 @@ export function PlayArea({
           label="Shuffle the words"
           className={shared.floatingShuffle}
         />
-        {/* The slot below the board: the guess entry during play, else an
-            explanatory line — same place the player's eyes already are. Below
-            the board (never a heading above it) so the board never shifts. The
-            non-play branch ALWAYS renders (never null), so the slot can't
-            collapse and let the flex:1 board grow (docs/ui.md → Layout
-            stability): terminal → the secret reveal; out-of-guesses-but-not-over
-            (compete, others still playing) → a waiting line. */}
-        {canGuess ? (
-          <GuessForm
-            value={pending}
-            onChange={setPending}
-            onSubmit={submitGuess}
-            submitting={submitting}
-            result={entryFlash}
-          />
-        ) : (
-          <p className={styles.inputMessage}>
-            {!over ? (
-              'Out of guesses — waiting on the rest.'
-            ) : game.secrets ? (
-              <>The words were <strong>{game.secrets.join(', ').toUpperCase()}</strong></>
-            ) : (
-              'Game over.'
-            )}
-          </p>
-        )}
+        {/* The belowBoard region (v3): one fixed-height slot below the
+            top-anchored board, holding the local feedback area + the guess entry
+            (docs/design-decisions.md → BoardCol). It ALWAYS renders (never null),
+            so the slot can't collapse and let the flex:1 board grow (docs/ui.md →
+            Layout stability). Three states, all in the same place the player's
+            eyes already are:
+              - terminal → a PERMANENT FeedbackPill (fill, outcome-colored)
+                carrying the secret reveal — the terminal state always lands as
+                permanent local feedback (design-decisions.md → Feedback);
+              - playing + can guess → the GuessForm (entry, or a transient pill
+                for the player's own last result);
+              - out of guesses but not over (compete, others still playing) → a
+                sticky "waiting" pill. */}
+        <div className={styles.belowBoard}>
+          {over ? (
+            <div className={styles.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone:
+                    over.tone === 'won'
+                      ? 'success'
+                      : over.tone === 'lost'
+                        ? 'error'
+                        : 'neutral',
+                  text: game.secrets
+                    ? `The words were ${game.secrets.join(', ').toUpperCase()}`
+                    : 'Game over.',
+                  variant: 'fill', // permanent → lightened-tone fill
+                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
+                }}
+                onClose={noop}
+              />
+            </div>
+          ) : canGuess ? (
+            <GuessForm
+              value={pending}
+              onChange={handleEntryChange}
+              onSubmit={submitGuess}
+              submitting={submitting}
+              result={entryFlash}
+              onDismissResult={clearFlash}
+            />
+          ) : (
+            <div className={styles.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone: 'neutral',
+                  text: 'Out of guesses — waiting on the rest.',
+                  variant: 'outline',
+                  dismiss: { kind: 'sticky' },
+                }}
+                onClose={noop}
+              />
+            </div>
+          )}
+        </div>
       </div>
       <div className={shared.infoCol}>
         {/* The non-log info column — four recurring kinds of info, the shared
@@ -347,19 +404,6 @@ export function PlayArea({
             across games. Which survive into the terminal state differs per kind
             — see below. */}
         <div className={shared.actionSlot}>
-          {/* Setup — shown in BOTH states, behind a disclosure. Open, it grows
-              (which we normally avoid), but it's closable so it reclaims the
-              space — "what did I pick at setup?" without it taking room by
-              default. (See docs/ui.md → Layout stability.) */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
-              <li>{game.words.length} tiles on the board</li>
-              <li>{SECRET_COUNT} secret words</li>
-              <li>{difficultyLabel} difficulty</li>
-            </ul>
-          </details>
-
           {/* State — shown in both states. */}
           <p className={shared.infoState}>
             <strong>{found}/{SECRET_COUNT}</strong> found ·{' '}
@@ -376,18 +420,9 @@ export function PlayArea({
             />
           )}
 
-          {/* Help — playing only (hidden once over). */}
-          {!over && (
-            <p className={shared.infoHelp}>
-              {canGuess
-                ? 'Click on or type a word and hit submit.'
-                : 'No guesses left — waiting on the rest.'}
-            </p>
-          )}
-
-          {/* Action buttons. Playing: Hint / Reveal / Shuffle / End. Terminal:
-              the play buttons hide; a bold, outcome-colored result line shows
-              with a compact back-to-club button. */}
+          {/* Action buttons. Playing: Hint / Reveal / End. Terminal: the play
+              buttons hide; a bold, outcome-colored result line shows with a
+              compact back-to-club button. */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span
@@ -402,39 +437,54 @@ export function PlayArea({
               {canGuess && (
                 <>
                   {/* Hint = a clue (common.words.hint); Reveal = the answer
-                      word. Both log to the turn log, cost nothing. */}
-                  <button
-                    type="button"
-                    className={cls('secondary', 'icon-button', shared.helperButton)}
+                      word. Both log to the turn log, cost nothing — and both are
+                      warning-toned (amber) via the semantic button components
+                      (docs/design-decisions.md → Action buttons). */}
+                  <HintButton
                     onClick={getHint}
                     disabled={hinting}
-                  >
-                    <IconHint size={15} aria-hidden />
-                    Hint
-                  </button>
-                  <button
-                    type="button"
-                    className={cls('secondary', 'icon-button', shared.helperButton)}
+                    className={shared.helperButton}
+                  />
+                  <RevealButton
                     onClick={getReveal}
                     disabled={revealing}
-                  >
-                    <IconReveal size={15} aria-hidden />
-                    Reveal
-                  </button>
+                    className={shared.helperButton}
+                  />
                 </>
               )}
               {/* End is a turn/game-altering action (like Hint + Reveal), so it
-                  sits with them in the action row. Confirmed. */}
-              <button
-                type="button"
-                className={cls('secondary', 'icon-button', shared.helperButton)}
+                  sits with them in the action row — error-toned (red). */}
+              <EndGameButton
+                label="End"
                 onClick={endGame}
-              >
-                <IconEnd size={15} aria-hidden />
-                End
-              </button>
+                className={shared.helperButton}
+              />
             </div>
           )}
+
+          {/* Help — playing only (hidden once over). Below the action row, per
+              the docs/design-decisions.md → InfoCol order. */}
+          {!over && (
+            <p className={shared.infoHelp}>
+              {canGuess
+                ? 'Click on or type a word and hit submit.'
+                : 'No guesses left — waiting on the rest.'}
+            </p>
+          )}
+
+          {/* Setup — shown in BOTH states, behind a disclosure, LAST before the
+              turn log (docs/design-decisions.md → InfoCol order). Open, it grows
+              (which we normally avoid), but it's closable so it reclaims the
+              space — "what did I pick at setup?" without it taking room by
+              default. (See docs/ui.md → Layout stability.) */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{game.words.length} tiles on the board</li>
+              <li>{SECRET_COUNT} secret words</li>
+              <li>{difficultyLabel} difficulty</li>
+            </ul>
+          </details>
         </div>
         <GameTurnLog guesses={guesses} players={players} />
       </div>

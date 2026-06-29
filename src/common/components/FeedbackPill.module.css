@@ -62,19 +62,22 @@
   opacity: 0.7;
 }
 
-/* Tone variants. The color-mix-against-theme-token pattern is
- * lifted from common.theme.css's existing chrome — keeps these
- * pills consistent with banners / hover states elsewhere.
+/* Tone variants — the fill look (a tone-tinted background + border). success and
+ * error use the OUTCOME palette (won-green / lost-red), NOT the accent: a "you
+ * won" pill must read green, not blue, and match the board / turn-log outcomes
+ * and the `.outline.*` borders below (which already use the `-strong` tones). The
+ * color-mix-against-token pattern keeps them consistent with the rest of the
+ * chrome.
  */
 
 .success {
-  background: color-mix(in oklab, var(--color-accent) 12%, var(--color-surface));
-  border-color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-outcome-won-border) 18%, var(--color-surface));
+  border-color: var(--color-outcome-won-strong);
 }
 
 .error {
-  background: color-mix(in oklab, var(--color-error) 12%, var(--color-surface));
-  border-color: var(--color-error);
+  background: color-mix(in oklab, var(--color-outcome-lost-border) 18%, var(--color-surface));
+  border-color: var(--color-outcome-lost-strong);
 }
 
 /* Amber — the "important, but not good/bad" tone (a hint was asked for, an

@@ -1,0 +1,43 @@
+/* Semantic TONE colors for outline (secondary-weight) action buttons.
+ *
+ * A toned button re-sets the SAME control tokens that `button.secondary` reads
+ * (--color-control-border-2 / --color-control-text-2) on its own element, so the
+ * border + text — and the icon, via `currentColor` — take the tone color. We
+ * re-set the tokens rather than out-cascade `button.secondary` (which is an
+ * `element.class` selector, higher specificity than a bare module class), so
+ * this wins regardless of stylesheet load order — the same re-set-the-token
+ * discipline the tiles use (docs/ui.md → Interactive tile states).
+ *
+ * The colors are the SAME palette the feedback pills use, so a `warning` button
+ * is the exact dark amber of a `warning` pill, an `error` button the dark red of
+ * an `error` pill, etc. (docs/design-decisions.md → Action buttons). `neutral`
+ * needs no class — it's the plain secondary outline.
+ */
+
+.success {
+  --color-control-border-2: var(--color-outcome-won-strong);
+  --color-control-text-2: var(--color-outcome-won-strong);
+}
+
+.error {
+  --color-control-border-2: var(--color-error);
+  --color-control-text-2: var(--color-error);
+}
+
+/* The "dark amber" — important, not good or bad (Hint / Reveal). */
+.warning {
+  --color-control-border-2: var(--color-outcome-near-strong);
+  --color-control-text-2: var(--color-outcome-near-strong);
+}
+
+.info {
+  --color-control-border-2: var(--color-accent);
+  --color-control-text-2: var(--color-accent);
+}
+
+/* near (one-away) shares warning's amber for now — a distinct name, same color
+ * (docs/design-decisions.md → Tones). */
+.near {
+  --color-control-border-2: var(--color-outcome-near-strong);
+  --color-control-text-2: var(--color-outcome-near-strong);
+}

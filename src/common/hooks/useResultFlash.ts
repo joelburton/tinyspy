@@ -12,7 +12,9 @@ export type ResultFlashState = { tone: ResultTone; label: string } | null
 export type ResultFlashApi = {
   flash: ResultFlashState
   /** Show a flash; it auto-clears after `ms` (re-arming the timer if one is
-   *  already running, so a fresh result resets the countdown). */
+   *  already running, so a fresh result resets the countdown). When the hook was
+   *  created with `ms: null` there's no timer — the flash is **sticky** until the
+   *  host calls `clear()`. */
   show: (tone: ResultTone, label: string) => void
   /** Clear the flash now — e.g. when the player starts the next move (a
    *  keystroke, a tile click). No-op if nothing's showing. */
@@ -20,18 +22,22 @@ export type ResultFlashApi = {
 }
 
 /**
- * The shared **own-result flash machinery**: a transient `{ tone, label }` that
- * auto-clears after a beat. The local half of the feedback split (see
- * docs/deferred.md → Feedback channels) — it drives the `<ResultFlash>` bar that
- * replaces a game's input row (psychicnum's word entry, connections's commit
- * row). The timer is cleaned up on unmount.
+ * The shared **own-result flash machinery**: a `{ tone, label }` for the local
+ * half of the feedback split (see docs/deferred.md → Feedback channels). It
+ * drives a game's local own-move feedback (psychicnum's word entry, connections's
+ * commit row). The timer is cleaned up on unmount.
+ *
+ * Pass `ms: null` for a **sticky** flash (no auto-timer) — the v3 default for
+ * local feedback, which is important enough that it should persist until the
+ * player's next move rather than vanish on a timer (docs/design-decisions.md →
+ * Dismissal modes). The host then calls `clear()` on that next move.
  *
  * The host owns the *policy*: WHERE the flash renders (it just reads `flash`)
- * and WHEN it clears early (`clear()` on the next keystroke / tile click). This
- * hook owns the *mechanics* — the state, the re-armable timer, the cleanup —
- * which were near-verbatim copies in both games before they landed here.
+ * and WHEN it clears (`clear()` on the next keystroke / tile click). This hook
+ * owns the *mechanics* — the state, the re-armable timer, the cleanup — which
+ * were near-verbatim copies in both games before they landed here.
  */
-export function useResultFlash(ms: number = RESULT_FLASH_MS): ResultFlashApi {
+export function useResultFlash(ms: number | null = RESULT_FLASH_MS): ResultFlashApi {
   const [flash, setFlash] = useState<ResultFlashState>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -39,10 +45,14 @@ export function useResultFlash(ms: number = RESULT_FLASH_MS): ResultFlashApi {
     (tone: ResultTone, label: string) => {
       setFlash({ tone, label })
       if (timerRef.current !== null) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => {
-        setFlash(null)
-        timerRef.current = null
-      }, ms)
+      // ms === null → sticky: no auto-clear timer; the host clears it on the
+      // player's next move (docs/design-decisions.md → Dismissal modes).
+      if (ms !== null) {
+        timerRef.current = setTimeout(() => {
+          setFlash(null)
+          timerRef.current = null
+        }, ms)
+      }
     },
     [ms],
   )

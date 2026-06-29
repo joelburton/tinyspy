@@ -9,21 +9,29 @@
   flex-direction: row;
   gap: 0.5rem;
   align-items: center;
-  /* Reserve the bar height so swapping the entry + Submit for the full-width
-   * <ResultFlash> never changes the row height — the board above can't reflow
-   * (docs/ui.md → Layout stability). 2.75rem matches connections' input row,
-   * so the two games' input bars are the same height too. */
+  /* Reserve the bar height so swapping the entry + Submit for the centered
+   * <FeedbackPill> (the local feedback area, v3) never changes the row height —
+   * the board above can't reflow (docs/ui.md → Layout stability). 2.75rem
+   * matches connections' input row, so the two games' input bars are the same
+   * height too. `justify-content: center` centers the lone feedback pill; the
+   * entry + Submit fill the row via flex, so it has no effect on them. */
   min-height: 2.75rem;
+  justify-content: center;
 }
 
 /* Appearance override for the shared <EntryBox>: fill the row's free width
- * (the submit button keeps its intrinsic size). The box's look — border,
- * padding, caret — comes from EntryBox.module.css. Uppercased to match the
- * board tiles (the value is stored lowercase). */
+ * (the submit button keeps its intrinsic size). The box's look — chrome-less
+ * centered text, the bold/uppercase/letter-spaced entered-text style, the caret
+ * — all comes from EntryBox.module.css now (the casing used to live here; it's
+ * common as of v3 so every EntryBox consumer matches). */
 .entry {
   flex: 1;
   min-width: 0;
-  text-transform: uppercase;
+  /* Bigger entry text than the shared default. Re-set on the same element as
+     `.box`, so it wins regardless of stylesheet order (re-setting the token, not
+     out-cascading). The Submit button beside it stays vertically centered via
+     the row's `align-items: center`. */
+  --entrybox-font-size: 2rem;
 }
 
 /* A button in the input row (`.inputButton` — the shared name connections uses

@@ -10,6 +10,6 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  */
 export function DeleteButton({ label = 'Delete', ...rest }: PurposeButtonProps) {
   return (
-    <ActionButton icon={IconDelete} label={label} iconSize={22} tone="secondary" {...rest} />
+    <ActionButton icon={IconDelete} label={label} iconSize={22} {...rest} />
   )
 }

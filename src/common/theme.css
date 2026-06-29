@@ -191,6 +191,13 @@
      independent of the glyph inside it. */
   --icon-button-size:         2.4rem;
 
+  /* The shared <EntryBox> text size (placeholder + entered word). Default here;
+     a consumer raises it by re-setting the token on its own EntryBox element
+     (psychicnum's word entry goes bigger). A token rather than a literal so the
+     override wins regardless of stylesheet order. The caret height tracks it
+     (1.15em). */
+  --entrybox-font-size:       1.5rem;
+
   /* Page padding — the breathing room on every page (the body's padding, all
      sides). Single source: `body` applies it, and a game PlayArea's
      available-width math subtracts 2× of it. (The vertical 2× is also part of

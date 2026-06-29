@@ -3,13 +3,25 @@
  * border / background / padding box, just large centered text with the simulated
  * caret, so the typed word reads as the focus rather than as a form field. (The
  * caret's `1.15em` height tracks this font-size.) Per-game appearance (how it
- * sits in a row, casing) comes from a `className` the consumer appends. Shared by
- * psychicnum + spellingbee — change here flows to both. */
+ * sits in a row, its width) comes from a `className` the consumer appends; the
+ * *entered-text* look — bold, uppercase, lightly letter-spaced — is common here,
+ * so it's uniform across every consumer (docs/design-decisions.md → WordInput /
+ * EntryBox). Shared by psychicnum + spellingbee — change here flows to both. */
 .box {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  /* Size is a per-game knob — the default lives at :root in theme.css; a
+     consumer raises it by re-setting --entrybox-font-size on its EntryBox
+     element. The caret's 1.15em height tracks this. */
+  font-size: var(--entrybox-font-size);
+  /* The shared entered-text look: bold, all-caps, slightly letter-spaced. On
+     `.box` (not `.value`) so it also reaches a consumer that renders the value
+     via `children` (spellingbee's per-character <TypedWord>). The placeholder
+     opts out below — it's a calm hint, not entered text. */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   /* tabular figures so the caret doesn't jitter as digit widths change
      (harmless for alpha entry — only affects digit glyphs) */
   font-variant-numeric: tabular-nums;
@@ -19,8 +31,14 @@
   color: inherit;
 }
 
+/* The empty-state hint. Opts OUT of the entered-text look above — it should read
+   as a quiet placeholder (normal weight, its own casing, no letter-spacing), not
+   as bold all-caps typed text. */
 .placeholder {
   color: var(--color-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* Simulated text cursor — stands in for the blinking caret a real <input>

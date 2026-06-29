@@ -62,7 +62,7 @@ even if some tones share a color for now:
 | `neutral` | plain, no valence |
 | `success` | the player's action succeeded / a good outcome |
 | `error` | the player's action failed / a bad outcome |
-| `warning` | "important, not good or bad" — "you already guessed that word," "Moth asked for a hint" |
+| `warning` | "important, not good or bad" — "you already guessed that word," "moth asked for a hint" |
 | `info` | informational, no valence (distinct from neutral if/when we want it) |
 | `near` | a near-miss — connections' "one away" |
 
@@ -78,6 +78,15 @@ Every pill has one of three dismissal modes:
 - **`sticky`** — stays until game logic clears it (typically when the next move
   starts; game-dependent).
 - **`closeable`** — shows a close-`×`; the player dismisses it.
+
+**Local feedback defaults to `sticky`, not `timed`.** A local message reports the
+result of the player's *own* move — important, and they may be looking elsewhere
+on the board when it lands, so it shouldn't vanish on a timer they might miss.
+Instead it persists until their **next move** dismisses it. Concretely in
+psychicnum, a non-permanent local pill clears when the player **clicks a tile or
+types a character into the EntryBox**. Reserve `timed` for low-stakes
+acknowledgments. (Permanent local feedback — the terminal message — never
+auto-dismisses at all; see [Transient vs permanent](#transient-vs-permanent).)
 
 ### Transient vs permanent
 
@@ -101,7 +110,7 @@ permanence signal.
 
 In the **global feedback area** we're often talking about another player. When a
 player is named, put their **player-color circle** to the left of their username:
-"● Moth found APPLE." (This is the colored-disc identity convention — see
+"● moth found APPLE." (This is the colored-disc identity convention — see
 [`ui.md → Player identity`](ui.md#player-identity--a-colored-disc), and the shared
 `<ActorTag>`.) This does **not** apply to the **local feedback area**, which is
 about the player's own move and shouldn't be naming other players.
@@ -208,7 +217,7 @@ Contents, in order:
 
 - **Game status info (`.infoState`)** — core live state: words found, score, etc.
 - **Opponent strip (`<OpponentStrip>`)** — a horizontal list of opponents in the
-  "● Moth" style, each with short game-dependent status. (Fixed-seat 2-player
+  "● moth" style, each with short game-dependent status. (Fixed-seat 2-player
   games like codenamesduet show peer status in the **global feedback area**
   instead, so they may not carry an opponent strip — use the strip when there's a
   meaningful per-opponent metric.)
@@ -237,6 +246,33 @@ Contents, in order:
   No game has both; some games have neither. Whichever is present **grows
   downward to fill the remaining column height.**
 
+## Action buttons
+
+Game action buttons (Hint, Reveal, End, Submit, Delete, …) are **semantic
+components** from `common/components/buttons/` — never a hand-rolled `<button
+className="secondary icon-button">` in a game. Each component bakes in its glyph,
+weight, and tone, so the same action looks identical across games and can't drift.
+
+**The rule: games use the semantic button components. Need a button with no
+semantic component yet? STOP and talk — we'll probably create one** (a one-line
+wrapper around `<ActionButton>`). Don't invent a one-off button in a game's
+PlayArea.
+
+A button has **two axes** (`ActionButton`):
+
+- **weight** — `primary` (the filled-accent *main* action: Submit) vs `secondary`
+  (the outline everything else builds on).
+- **tone** — the **same semantic vocabulary + palette as the feedback pills**
+  (`neutral | success | error | warning | info | near`), coloring a secondary
+  button's border + text + icon. So a `warning` button is the exact dark amber of
+  a `warning` pill; an `error` button the dark red of an `error` pill — one
+  palette across surfaces. (Implemented by re-setting the control-color tokens,
+  so it composes with `button.secondary` regardless of stylesheet order.)
+
+Today's toned buttons: **Hint / Reveal = `warning`** (dark amber — "important,
+not good or bad"), **End game = `error`** (dark red — destructive), **Submit =
+`primary`** (filled accent), **Clear / Delete = `neutral`**.
+
 ## Reconciliation with the code
 
 Where these rules differ from the code as of this writing — the work to make code
@@ -247,9 +283,10 @@ match the doc:
    `<FeedbackPill>` (same component/CSS as global, centered) in a fixed-size local
    feedback slot. Affects all four redesigned games.
 2. **Tone set.** `FeedbackTone` should be
-   `success | error | warning | neutral | info | near`. `near` is new; confirm the
-   pill renders a style for **every** tone (`warning` currently has no style
-   branch in `FeedbackPill.tsx`).
+   `success | error | warning | neutral | info | near`. `near` is the only tone
+   missing today (`warning` is already styled in `FeedbackPill.module.css`); add
+   `near` to the type + a `.near` / `.outline.near` rule when a game needs it
+   (connections' "one away").
 3. **Transient vs permanent = outline vs fill.** The existing `variant: 'fill' |
    'outline'` prop currently means *local-validation vs peer-identity*; repurpose
    it (or add a `permanent` flag) so **transient = outline** (white bg + colored
@@ -263,6 +300,12 @@ match the doc:
 5. **`belowBoard`.** spellingbee already names this region `.belowBoard`;
    generalize it as the standard container, with `.inputRow` as the move-controls
    row (the `GameEntryArea`) inside it.
+6. **Semantic buttons — part of every v2 → v3 conversion.** Replace a game's
+   inline action `<button>`s with the semantic components from
+   `common/components/buttons/` (`HintButton`, `RevealButton`, `EndGameButton`,
+   …), creating a missing one rather than hand-rolling (see [Action
+   buttons](#action-buttons)). psychicnum is migrated; the other games convert as
+   they reach v3.
 
 A few statements in [`ui.md`](ui.md) now lag this doc — local feedback described
 as the `<ResultFlash>` bar, the tone names, and the caret prose (which omits the

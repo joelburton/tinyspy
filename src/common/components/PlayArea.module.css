@@ -97,7 +97,8 @@
   flex: 0 0 var(--info-col-width);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  /* Space between the action slot and the turn log / word list below it. */
+  gap: 1rem;
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--color-divider);
@@ -114,7 +115,10 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 0.5rem;
+  /* Breathing room between the readout sections — state / opponent strip /
+   * action row / help / setup. A touch more than the old 0.5rem so the sections
+   * read as distinct blocks rather than a dense stack. */
+  gap: 1rem;
   flex-shrink: 0;
 }
 
