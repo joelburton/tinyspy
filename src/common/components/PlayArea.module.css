@@ -204,6 +204,19 @@
   color: var(--color-text);
 }
 
+/* Terminal-only EXTRA info in the info column — content shown ONLY at game over,
+ * below the action slot (e.g. waffle's answer reveal: words too tall for the
+ * below-board slot, which would overflow the viewport and scroll the page — a
+ * hard no). This is the one info-column region that GROWS on the play→terminal
+ * transition: a DELIBERATE, allowed exception to the layout-stability rule
+ * (docs/ui.md → "Layout stability"), because by then the play surface is done and
+ * the INFO column absorbs it — the board doesn't move, and the scrolling turn log
+ * below gives way so the page itself never scrolls. `flex-shrink: 0` keeps its
+ * content height; the log (flex: 1, min-height: 0) shrinks/scrolls to make room. */
+.terminalExtra {
+  flex-shrink: 0;
+}
+
 /* ─── Shared tile ────────────────────────────────────────────────────────
  * The board tile every game's clickable word/letter tiles use. Resting look
  * comes ENTIRELY from the --tile-* tokens (common/theme.css), so a state class

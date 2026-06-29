@@ -567,6 +567,7 @@ these names when a new game's info column needs the same.
 | **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
 | **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
 | **`.infoActions`** | the action-button row | — | **swaps** (see below) |
+| **`.terminalExtra`** | extra info shown **only at game over** (waffle: the answer reveal) | a content-height block below the action slot | **terminal-only** (absent during play) |
 
 - **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
   so opening it grows the column but it *reclaims* the space — the rationale
@@ -583,10 +584,21 @@ these names when a new game's info column needs the same.
   play buttons with a **bold, outcome-colored result line** (won = green / lost =
   red / manual-end = neutral, via the `--color-outcome-*-strong` tones) + a
   **compact** back-to-club button (`<BackToClubButton compact>` → just "‹ club").
+- **`.terminalExtra` — the one allowed growth on the play→terminal transition.**
+  A region that appears *only* at game over, for terminal content too big for the
+  below-board slot — waffle's multi-line answer reveal, which there would overflow
+  the viewport and scroll the page (a hard no). It **grows the info column** when
+  the game ends: a deliberate exception to [Layout stability](#layout-stability),
+  allowed because the play surface is done, the **board doesn't move**, and the
+  scrolling turn log below gives way so the *page* never scrolls (`flex-shrink: 0`
+  on it; the log's `flex: 1` + `min-height: 0` absorbs it). waffle is the first
+  user; reuse it when a game needs an end-of-game readout that doesn't fit below
+  the board.
 
-Now shared in `common/components/playArea.module.css` (promoted when connections
+Now shared in `common/components/PlayArea.module.css` (promoted when connections
 became the second adopter) — `.infoSetup` / `.infoState` / `.infoHelp` /
-`.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*`. connections
+`.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
+`.terminalExtra`. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
 "N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
 buttons (both moved off the GamePage menu into the action row). codenamesduet

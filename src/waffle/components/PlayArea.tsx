@@ -163,15 +163,15 @@ export function PlayArea({
           disabled={isTerminal || !isPlayer}
           onSwap={handleSwap}
         />
-        {/* The below-board slot — waffle's local-feedback zone. Terminal: the
-            SolutionReveal answer (where the entry would be). Else: an own-action
-            error flash for a beat. Else: empty (waffle's input is the board
-            itself). A reserved height keeps the top-anchored board from shifting
-            as the slot's content swaps. */}
+        {/* The below-board slot — waffle's local-feedback zone: an own-action
+            error flash (a rejected swap / failed End) for a beat, else empty
+            (waffle's input is the board itself). A reserved height keeps the
+            top-anchored board from shifting when the flash swaps in. The
+            end-of-game answer is NOT here — it's several lines and would overflow
+            the viewport (the page must never scroll); it lives in the info
+            column's .terminalExtra instead. */}
         <div className={styles.inputRow}>
-          {over ? (
-            game.solution && <SolutionReveal solution={game.solution} />
-          ) : actionFlash ? (
+          {actionFlash ? (
             <ResultFlash
               tone={actionFlash.tone}
               label={actionFlash.label}
@@ -258,6 +258,18 @@ export function PlayArea({
             )
           )}
         </div>
+
+        {/* Terminal-only extra: the answer (the six solution words, each
+            click-to-define). Lives in the info column — NOT the below-board slot —
+            because it's several lines and would overflow the viewport there (the
+            page must never scroll). The shared `.terminalExtra` region grows the
+            info column at game-over (a deliberate layout-stability exception); the
+            swap log below shrinks/scrolls to make room, the board doesn't move. */}
+        {over && game.solution && (
+          <div className={shared.terminalExtra}>
+            <SolutionReveal solution={game.solution} />
+          </div>
+        )}
 
         {/* The shared swap log — coop only (compete writes none, and a swap
             sequence would leak an opponent's hidden board). */}

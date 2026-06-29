@@ -6,11 +6,11 @@
  * WaffleGrid.module.css. Only the below-board local-feedback slot is here.
  *
  * waffle has no text entry (the board IS the input — tap two tiles), so this
- * slot mostly sits empty during play; it holds the own-action error flash (a
- * rejected swap / failed End — the LOCAL half of the feedback split) for a beat,
- * and at terminal the SolutionReveal (the answer goes where the entry would be —
- * docs/ui.md → "Text entry"). A reserved height keeps the top-anchored board from
- * shifting when the flash swaps in. */
+ * slot mostly sits empty; it holds the own-action error flash (a rejected swap /
+ * failed End — the LOCAL half of the feedback split) for a beat, else nothing. A
+ * reserved height keeps the top-anchored board from shifting when the flash swaps
+ * in. (The end-of-game answer is NOT here — it's several lines and would overflow
+ * the viewport; it lives in the info column's shared `.terminalExtra`.) */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). waffle's right column (setup + swap state + the
