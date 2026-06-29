@@ -53,22 +53,27 @@ The other exempt case is **loading state**: "Loading game…" doesn't have to oc
 
 ### Feedback pill
 
-A uniformly-styled component that carries every game's transient and persistent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a connections "wrong guess" should look like a codenamesduet "clue invalid" should look like a future Boggle "not a word."
+A uniformly-styled component that carries every game's transient and permanent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a connections "wrong guess" should look like a codenamesduet "clue invalid" should look like a future Boggle "not a word."
 
-The pill lives inside `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below). When feedback is active, the pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
+The **same pill serves both feedback areas** (see [design-decisions.md → Terms](design-decisions.md#terms)): the **global feedback area** — `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat feedback — and the **local feedback area** — a fixed-height slot in the `belowBoard` region, centered, for the player's own move. In the header, an active pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
 
 **API on `GamePageCtx`:**
 
 ```ts
-type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info'
+type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' | 'near'
 //                                       ▲ amber — "important, but not good/bad"
-//                                         (a hint asked for, an opponent's progress)
+//                                         (a hint asked for, an opponent's progress);
+//                                         'near' = a near-miss (connections' "one away"),
+//                                         amber-adjacent — may share warning's color for now.
+//   A deliberately semantic set: some tones collapse to one color today, but the
+//   names stay distinct so we can re-color them independently later.
 
 type FeedbackMsg = {
   tone: FeedbackTone
   text: string
   dot?: string                          // leading player-color disc (from colorVarFor) — identity anchor for peer messages
-  variant?: 'fill' | 'outline'          // 'fill' (default) tints bg by tone; 'outline' colors only the border (no fill)
+  variant?: 'fill' | 'outline'          // 'outline' (transient, default) = white bg + tone border;
+                                        // 'fill' (permanent) = lightened-tone bg + tone border (reads *more* like its tone)
   dismiss:
     | { kind: 'timed'; ms?: number }   // self-dismiss after delay (default ~2200ms)
     | { kind: 'sticky' }                // persists until caller's next show()/clear()
@@ -87,7 +92,9 @@ feedback: {
 - **`sticky`** for state-driven info the game itself will clear. codenamesduet's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
 - **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
 
-**Fill vs outline (`variant`).** Local validation ("not a word") uses the default `fill` — a tone-tinted background. **Group/peer (identity) messages** ("● leah found APPLE") set `variant: 'outline'` + a `dot`: a tinted fill would fight the leading player-color disc, so outline colors only the *border*, in the green/red/amber **outcome** palette (the same colors the per-game board uses — so "correct" reads green, "not it" red, a hint amber, across surfaces). The outline border uses the saturated `--color-outcome-*-strong` (800-level) tier so it stays legible as a bare 2px border on the white surface (the pastel `-border` tones look pale outline-only). This is the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc) applied to the header slot.
+**Transient vs permanent (`variant`).** Most feedback is *transient* and uses the default `outline` — a white background with a tone-colored border. *Permanent* feedback — the terminal message, or an end-game mode like codenamesduet's sudden death — uses `fill`: a **lightened-tone background plus** the tone border, so a permanent `error` (light-red fill + red border) reads as *more* emphatically "error" than a transient one (white fill + red border). The fill is the permanence signal. The border uses the saturated `--color-outcome-*-strong` (800-level) tier so it stays legible as a 2px border on the white surface (the pastel `-border` tones look pale outline-only). **Peer identity is independent of this axis:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color regardless of fill/outline — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)). See [design-decisions.md → Feedback](design-decisions.md#feedback).
+
+> **Note — this repurposes `variant`.** It previously meant *local-validation (`fill`) vs peer-identity (`outline`)*; it now means *permanent (`fill`) vs transient (`outline`)*, with peer identity moved entirely onto the `dot`. Updating the code to this meaning is tracked in [design-decisions.md → Reconciliation](design-decisions.md#reconciliation-with-the-code).
 
 **Semantics:**
 
@@ -631,11 +638,14 @@ The contract for the capture model:
 
 - **Simulated caret = honesty.** `<EntryBox>` draws a blinking caret to say "type
   here" (recovering the one thing a real input's cursor gave). It blinks **only
-  while the game owns the keyboard** — gated on `useGameHasKeyboard` (no
+  while the game owns the keyboard *and* something's been typed** — keyboard
+  ownership is gated on `useGameHasKeyboard` (no
   `<input>`/`<textarea>`/`<select>`/contenteditable focused), the *same*
   condition under which `useGlobalKeyHandler` routes keys to the game. So **caret
-  visible ⟺ keystrokes land in the game**; it never duels with the chat box's
-  cursor.
+  visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its grey
+  placeholder (which already says "type here"), and the caret never duels with the
+  chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
+  uniform, not a per-game choice.
 - **No tabbing between controls.** While the entry is live, `Tab` is swallowed —
   these games are navigated by clicks + typing, not by tabbing focus between
   buttons, and a caret blinking on the board while focus sits on some button reads
@@ -648,19 +658,28 @@ The contract for the capture model:
   key boilerplate is a candidate to lift into a shared helper once a second game
   adopts `<EntryBox>`.
 
-**Own-result flash — the shared `<ResultFlash>`.** The player's own last move
-flashes a result for the *local* half of the feedback split (see [Feedback
-pill](#feedback-pill) for the *group* half): "Correct!" / "Incorrect" / "One
-away!" or a validation error, in the green/red/amber outcome palette. It's the
-shared **`<ResultFlash tone label />`** (`common/components/ResultFlash`), which
-**replaces the whole input bar** for ~1.4s — psychicnum swaps it in for the
-entry + Submit row, connections for the Clear/Submit commit row, so the two read
-identically. The host reserves the bar height (its input row's `min-height`) so
-the swap never reflows the board, and owns the flash's lifetime (a timer, cleared
-early when the player starts the next move — the next keystroke for psychicnum, a
-tile click for connections). The capture-input games keep their `<form>` mounted
-under the flash so the key handler keeps capturing while it shows. (`tone: 'near'`
-— the one-away amber — is connections-only; psychicnum has no near-miss state.)
+**Local own-result feedback.** The player's own last move shows a result for the
+*local* half of the feedback split (the *group* half is the header pill, [Feedback
+pill](#feedback-pill) above): "Correct!" / "Incorrect" / "One away!" or a
+validation error, in the green/red/amber outcome palette.
+
+**Decided direction:** this renders as the same `<FeedbackPill>` as the global
+area — identical CSS, centered, in the fixed-height **local feedback area** in the
+`belowBoard` region — so local and global feedback read as one register (see
+[design-decisions.md → Feedback](design-decisions.md#feedback)).
+
+**Current implementation, pending migration:** the four redesigned games still use
+the shared **`<ResultFlash tone label />`** (`common/components/ResultFlash`), a
+full-width bar that **replaces the whole input bar** for ~1.4s — psychicnum swaps
+it in for the entry + Submit row, connections for the Clear/Submit commit row. The
+host reserves the bar height (its input row's `min-height`) so the swap never
+reflows the board, and owns the flash's lifetime (a timer, cleared early when the
+player starts the next move — the next keystroke for psychicnum, a tile click for
+connections). The capture-input games keep their `<form>` mounted under the flash
+so the key handler keeps capturing while it shows. (The one-away amber,
+`tone: 'near'`, is connections-only; psychicnum has no near-miss state.) Converting
+`<ResultFlash>` to the centered pill is tracked in
+[design-decisions.md → Reconciliation](design-decisions.md#reconciliation-with-the-code).
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the
