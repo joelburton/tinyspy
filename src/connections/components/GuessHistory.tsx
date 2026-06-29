@@ -23,12 +23,13 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * same log shape across games).
  *
  * Stateless and presentational. One row per guess: the shared outcome bar
- * (green correct / amber one-away / red wrong), the turn number, the four
- * tiles guessed (in board order — kept as the FE stored them, so the row
- * matches what the players were looking at), a short verdict beneath them, and
- * the actor with their identity dot. The verdict names the matched category on
- * a correct guess ("Matched: Colors"), so "the row that solved the blue band"
- * is legible at a glance; the other two outcomes carry the NYT-canonical copy.
+ * (green correct / amber one-away / red wrong), the four tiles guessed on top
+ * (full width, in board order — kept as the FE stored them, so the row matches
+ * what the players were looking at), then a second line with the verdict (left)
+ * and the actor + their identity dot (right). The verdict names the matched
+ * category on a correct guess ("Matched: Colors"), so "the row that solved the
+ * blue band" is legible at a glance; the other two outcomes carry the
+ * NYT-canonical copy.
  *
  * In compete mode RLS scopes `guesses` to the caller, so this shows only the
  * viewer's own attempts.
@@ -44,11 +45,11 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
     matchedCategories.map((m) => [m.rank, m.name]),
   )
 
-  // The actor's identity cell — shared shape with psychicnum's log.
-  const whoCell = (userId: string) => {
+  // The actor's identity — name + colored dot, right-justified on the meta line.
+  const whoInline = (userId: string) => {
     const actor = playerFor(userId)
     return (
-      <td className={turnLog.who}>
+      <span className={styles.who}>
         <span className={turnLog.actor}>{actor?.username ?? 'someone'}</span>
         <span
           className={turnLog.dot}
@@ -57,7 +58,7 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
         >
           ●
         </span>
-      </td>
+      </span>
     )
   }
 
@@ -69,17 +70,18 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
       scrollKey={guesses}
       className={styles.history}
     >
-      {guesses.map((g, i) => (
+      {guesses.map((g) => (
         <TurnLogEntry key={g.id} outcome={OUTCOME[g.result]}>
-          <td className={turnLog.meta}>#{i + 1}</td>
-          {/* The 4 tiles, with the verdict on a sub-line — connections rows
-              carry more than a single word, so they stack inside one cell while
-              the number + who columns still align across rows. */}
+          {/* One content cell beside the outcome bar: the four guessed tiles on
+              top (full width — not squished by a who-column), then the verdict
+              (left) and the actor (right) below. */}
           <td>
-            <div className={styles.tiles}>{g.tiles.join(' · ')}</div>
-            <div className={turnLog.meta}>{verdictLabel(g, nameByRank)}</div>
+            <div className={styles.words}>{g.tiles.join(' · ')}</div>
+            <div className={styles.metaRow}>
+              <span className={turnLog.meta}>{verdictLabel(g, nameByRank)}</span>
+              {whoInline(g.user_id)}
+            </div>
           </td>
-          {whoCell(g.user_id)}
         </TurnLogEntry>
       ))}
     </TurnLog>
@@ -87,8 +89,9 @@ export function GuessHistory({ guesses, matchedCategories, players }: Props) {
 }
 
 /**
- * Short verdict line for one guess row. Correct guesses name the category that
- * was matched; the other two carry the NYT-canonical short copy.
+ * Short verdict line for one guess row. Correct guesses just name the category
+ * (the green outcome bar already says "found", so no "Matched:" prefix); the
+ * other two carry the NYT-canonical short copy.
  *
  * `matched_category_rank` is non-null IFF result === 'correct' (the SQL
  * constraint guarantees this); a defensive fallback to plain "Correct" if a
@@ -103,7 +106,7 @@ function verdictLabel(
       g.matched_category_rank != null
         ? nameByRank.get(g.matched_category_rank)
         : undefined
-    return name ? `Matched: ${name}` : 'Correct'
+    return name ?? 'Correct'
   }
   if (g.result === 'oneAway') return 'One away!'
   return 'Not a match'

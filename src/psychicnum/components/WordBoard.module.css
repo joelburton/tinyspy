@@ -35,21 +35,24 @@
   --tile-font-max: 2.6rem;
 }
 
-/* Guessed tiles color PERMANENTLY by result — green if the word was a secret,
- * red if not — by re-setting the shared tile's --tile-* tokens (so the fill
- * wins regardless of stylesheet order). No dimming/grey: the color IS the
- * "already tried" signal and doubles as a record of found vs ruled out. The
- * tile is also `disabled` once guessed, so it never shows the hover ring. (In
- * compete RLS scopes the viewer's board to their own guesses, so this never
- * leaks what opponents tried.) */
+/* A guessed tile is "decided": it colors PERMANENTLY by result — green if the
+ * word was a secret, red if not — by re-setting the shared tile's --tile-*
+ * tokens (so the fill wins regardless of stylesheet order). It uses the
+ * SATURATED outcome tones (`--color-outcome-*-border`, the same green/red the
+ * TurnLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
+ * tile obviously carries the same green=good / red=bad message as a guess
+ * outcome. No dimming/grey: the color IS the "already tried" signal and a record
+ * of found vs ruled out. The tile is also `disabled` once guessed, so it never
+ * shows the hover ring. (In compete RLS scopes the viewer's board to their own
+ * guesses, so this never leaks what opponents tried.) */
 .correct {
-  --tile-bg: var(--color-outcome-won-bg);
-  --tile-border: var(--color-outcome-won-border);
+  --tile-bg: var(--color-outcome-won-border);
+  --tile-border: var(--color-outcome-won-strong);
   font-weight: 700;
 }
 
 .incorrect {
-  --tile-bg: var(--color-outcome-lost-bg);
-  --tile-border: var(--color-outcome-lost-border);
+  --tile-bg: var(--color-outcome-lost-border);
+  --tile-border: var(--color-outcome-lost-strong);
   font-weight: 700;
 }

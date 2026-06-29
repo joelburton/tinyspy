@@ -1,44 +1,59 @@
 /* connections board surface. The two-column SHELL, the info-column READOUTS,
  * and the TILE chrome come from the shared common/components/playArea.module.css
  * (imported as `shared`); only what's specific to connections lives here:
- *   - .connBoard  — sets the shared tile/band HEIGHT var on the board column.
- *   - .band*      — the colored matched/revealed category bands.
- *   - .grid       — the 4-wide, FIXED-height tile grid (connections does NOT grow
- *                   tiles to fill: bands must align to tile rows, and rows leave
- *                   the grid as categories match, so growing survivors would
- *                   balloon — see docs/ui.md → "Board sizing").
+ *   - .grid       — the one board grid: 4 columns, grows to fill the column (the
+ *                   same flex-fill layout psychicnum's WordBoard uses, minus the
+ *                   max tile-height cap — none here yet). Holds BOTH the tiles
+ *                   and the solved-category bands (see Board.tsx + docs/ui.md →
+ *                   "Board sizing").
+ *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
+ *                   same height as a tile row and sharing the one grid gap.
  *   - .tileShaking — the wrong-guess shake.
- *   - .commit / .commitButton — the Clear / Submit row below the board.
+ *   - .commit / .commitButton / .mistakesInline — the row below the board.
  *
  * The shared dark hover-ring + dark selected fill (a player's own pick) come
- * from `.tile` / `.selected`; a peer's pick is an inline color frame (TileGrid).
+ * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
  */
 
-/* Composed onto the shared .boardCol. Defines the one HEIGHT both the tile rows
- * and the solved-category bands lock to — a band occupies the same vertical
- * space as the row of tiles it replaces (the "tiles collapse into a bar" read).
- * ~1.75× a content-sized tile, which spends a laptop's spare vertical room and
- * makes the black-on-color labels easy to read without going overboard. */
-.connBoard {
-  --wknit-tile-h: 6.9rem;
+/* The board grid. Fills the board column (`flex: 1`) and grows to fill the
+ * height; the row count is applied inline by Board.tsx as `repeat(rows, 1fr)`
+ * (rows = bands + tile-rows; always 4 for a 16-tile board). No per-row height
+ * cap yet (psychicnum's WordBoard has one; connections may add one later). Four
+ * columns; the --tile-font-* knobs tune the shared .tileWord auto-fit. */
+.grid {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  --tile-font-min: 1rem;
+  --tile-font-factor: 0.94;
+  --tile-font-max: 1.95rem;
 }
 
+/* A solved/revealed category is "one long tile": a full-width grid row (spans
+ * all four columns) with the SAME box as a .tile — same height (the grid's 1fr
+ * row), same padding, radius, and drop shadow — just colored by the category
+ * (fill set inline to the rank color) and holding two lines (name + members).
+ * No border, so the rank color reads clean. The name auto-fits the band width
+ * via a container query. */
 .band {
+  grid-column: 1 / -1;
+  min-height: 0;
+  padding: 0.4rem 0.5rem;
   border-radius: var(--radius-md);
-  height: var(--wknit-tile-h);
-  /* container-query so the name can auto-fit the band width (see .band strong). */
+  box-shadow: var(--tile-shadow);
   container-type: inline-size;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0.6rem 0.85rem;
   text-align: center;
 }
 
 .band strong {
   display: block;
   /* Auto-fit, same idea as the shared .tileWord — `--len` is the name's char
-   * count (set inline by CategoryBands), 100cqi is the band's inner width. */
+   * count (set inline by Board), 100cqi is the band's inner width. */
   font-size: clamp(1.15rem, calc(100cqi / (var(--len) * 0.72)), 1.7rem);
   margin-bottom: 0.25rem;
 }
@@ -52,21 +67,6 @@
  * slightly darker overlay to signal "the game revealed this, you didn't find it." */
 .bandRevealed {
   box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.1);
-}
-
-/* The 4-wide tile grid. FIXED row height (not grown to fill — see header); the
- * row count varies (16 → 12 → 8 → 4) as categories match, so `grid-auto-rows`.
- * The --tile-font-* knobs tune the shared .tileWord auto-fit for connections'
- * larger tiles. */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: var(--wknit-tile-h);
-  gap: 0.5rem;
-  margin: 0.25rem 0;
-  --tile-font-min: 1rem;
-  --tile-font-factor: 0.94;
-  --tile-font-max: 1.95rem;
 }
 
 /* Wrong-guess shake: a brief horizontal jiggle on the tiles of a rejected
@@ -92,19 +92,37 @@
   }
 }
 
-/* The Clear / Submit commit row below the board (the board-side commit
- * affordance — selecting tiles is the input, these commit it). Stretches to the
- * board width; the two buttons split it. Mirrors psychicnum's entry row
- * position. */
+/* Coop "Mistakes remaining ●●●○" — left-justified on the commit row below the
+ * board (margin-right:auto pushes the Clear/Submit buttons to the right). The
+ * old NYT-style placement: the mistake dots on the same line as the buttons.
+ * (Compete shows the per-player OpponentStrip in its own row instead; the
+ * textual N/4 count lives in the info column.) */
+.mistakesInline {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* Normal body text — this is real game state (how many mistakes are left),
+   * not incidental help, so it reads at full color and size. */
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+/* The commit row below the board (the board-side commit affordance — selecting
+ * tiles is the input, these commit it). Buttons sit at the RIGHT; in coop the
+ * mistakes group pushes them there via margin-right:auto. Mirrors psychicnum's
+ * entry row position. */
 .commit {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
 }
 
-/* Each commit button: a Lucide icon + label on one centered line; both grow to
- * share the row evenly. */
+/* Each commit button: a Lucide icon + label on one centered line, natural
+ * width with a sensible floor. */
 .commitButton {
-  flex: 1 1 0;
+  min-width: 7rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;

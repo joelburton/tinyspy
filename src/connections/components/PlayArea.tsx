@@ -13,11 +13,10 @@ import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
-import { CategoryBands } from './CategoryBands'
+import { Board } from './Board'
 import { GuessHistory } from './GuessHistory'
 import { HintModal } from './HintModal'
 import { MistakeDots } from './MistakeDots'
-import { TileGrid } from './TileGrid'
 import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
@@ -43,7 +42,7 @@ function timerLabel(t: TimerMode): string {
  * manifests. The mode is read from `game.mode` (set at create-
  * game time and never changes); rendering branches on it for:
  *
- *   - **Selection**: coop shares via Broadcast (the TileGrid
+ *   - **Selection**: coop shares via Broadcast (the Board
  *     shows per-tile peer attribution); compete keeps selections
  *     local (every tile reads as "mine" because the broadcast
  *     send is suppressed in useGame).
@@ -109,7 +108,7 @@ export function PlayArea({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
   // Tiles currently playing the wrong-guess shake. PlayArea sets
   // this for ~500ms after `submit_guess` returns 'wrong', then
-  // the cleanup effect below clears it. TileGrid reads the set
+  // the cleanup effect below clears it. Board reads the set
   // and applies its shake class.
   const [shakingTiles, setShakingTiles] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -226,7 +225,7 @@ export function PlayArea({
   // tile → user_id mapping. In coop this carries every peer's
   // contribution; in compete it only ever has the caller's tiles
   // (broadcast is local-only there) so every tile reads as "mine"
-  // and the peer-frame logic in TileGrid never activates.
+  // and the peer-frame logic in Board never activates.
   const ownerByTile = new Map<string, string>()
   for (const [userId, list] of selections) {
     for (const t of list) ownerByTile.set(t, userId)
@@ -267,23 +266,48 @@ export function PlayArea({
 
   return (
     <div className={shared.layout}>
-      <div className={cls(shared.boardCol, styles.connBoard)}>
+      <div className={shared.boardCol}>
         <HintModal
           categories={game.board.categories}
           open={hintsOpen}
           onClose={() => setHintsOpen(false)}
         />
 
-        <CategoryBands matched={matchedCategories} unmatched={unmatched} />
+        {/* One grid: solved categories as full-width band rows + the remaining
+            tiles. Tiles only while input is live (terminal/eliminated shows the
+            revealed bands alone). */}
+        <Board
+          matched={matchedCategories}
+          unmatched={unmatched}
+          tiles={showInput ? displayedTiles : []}
+          ownerByTile={ownerByTile}
+          selfUserId={session.user.id}
+          onToggle={toggleTile}
+          shakingTiles={shakingTiles}
+          colorByUserId={colorByUserId}
+        />
 
-        {showInput && (
-          <TileGrid
-            tiles={displayedTiles}
-            ownerByTile={ownerByTile}
-            selfUserId={session.user.id}
-            onToggle={toggleTile}
-            shakingTiles={shakingTiles}
-            colorByUserId={colorByUserId}
+        {/* Compete: the per-player mistakes strip below the board (each
+            player's dots, the caller's included). Coop's shared "Mistakes
+            remaining" instead rides the commit row below — see it there. The
+            textual N/4 count is also in the info column's state line. */}
+        {game.mode === 'compete' && (
+          <OpponentStrip
+            players={players}
+            selfId={session.user.id}
+            metricFor={(p, isSelf) => {
+              const mistakes = isSelf
+                ? mistakeCount
+                : (opponentMistakes.get(p.user_id) ?? 0)
+              return (
+                <>
+                  <MistakeDots used={mistakes} />
+                  {mistakes >= MISTAKE_BUDGET && (
+                    <span className="muted"> out</span>
+                  )}
+                </>
+              )
+            }}
           />
         )}
 
@@ -305,6 +329,13 @@ export function PlayArea({
             board, like psychicnum's entry row. */}
         {showInput && (
           <div className={styles.commit}>
+            {/* Coop: "Mistakes remaining ●●●○" left-justified on this row
+                (margin-right:auto pushes the buttons to the right). */}
+            {game.mode === 'coop' && (
+              <div className={styles.mistakesInline}>
+                Mistakes remaining <MistakeDots used={mistakeCount} />
+              </div>
+            )}
             <button
               type="button"
               className={cls('secondary', styles.commitButton)}
@@ -341,37 +372,12 @@ export function PlayArea({
             </ul>
           </details>
 
-          {/* Live state: categories found. */}
+          {/* Live state: categories found + mistakes made (the dots live below
+              the board; this is the at-a-glance textual count). */}
           <p className={shared.infoState}>
-            <strong>{found}/{CATEGORY_COUNT}</strong> categories found
+            <strong>{found}/{CATEGORY_COUNT}</strong> categories found ·{' '}
+            <strong>{mistakeCount}/{MISTAKE_BUDGET}</strong> mistakes
           </p>
-
-          {/* Mistakes. Coop: a single shared dot row. Compete: the
-              OpponentStrip carries every player's dots (the caller's included),
-              so no separate coop-style line. */}
-          {game.mode === 'coop' ? (
-            <p className={shared.infoState}>
-              Mistakes remaining <MistakeDots used={mistakeCount} />
-            </p>
-          ) : (
-            <OpponentStrip
-              players={players}
-              selfId={session.user.id}
-              metricFor={(p, isSelf) => {
-                const mistakes = isSelf
-                  ? mistakeCount
-                  : (opponentMistakes.get(p.user_id) ?? 0)
-                return (
-                  <>
-                    <MistakeDots used={mistakes} />
-                    {mistakes >= MISTAKE_BUDGET && (
-                      <span className="muted"> out</span>
-                    )}
-                  </>
-                )
-              }}
-            />
-          )}
 
           {/* Help — playing only. The eliminated spectator gets their status
               here (input is frozen; the rest race on). */}
@@ -445,7 +451,7 @@ export function PlayArea({
  * psychicnum's buildOver. Coop verdicts are team-wide; compete distinguishes
  * the racer who hit 4 matches (the winner) from everyone else (beaten to the
  * punch). Detail-on-page intentionally: the matched/unmatched categories show
- * on the CategoryBands and mistake counts on the strip; the modal + line stay
+ * on the bands and mistake counts on the strip; the modal + line stay
  * focused on the verdict.
  */
 function buildOver({

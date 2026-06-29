@@ -288,7 +288,7 @@ export function useGame(
   // so we skip the `channel.send` and only apply locally. Peers
   // in compete also short-circuit, so no foreign events should
   // arrive — the `applySelection` map stays caller-only and the
-  // TileGrid renders every tile as "mine" (no peer attribution).
+  // Board renders every tile as "mine" (no peer attribution).
   const broadcast = useCallback(
     (event: SelectionEvent) => {
       if (!channel) return

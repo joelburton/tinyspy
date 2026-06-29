@@ -54,21 +54,27 @@
   border-bottom: none;
 }
 
-/* Outcome bar: the first cell holds the colored bar as a real <span> (so the
- * cell's width is honored — an empty cell collapses). The cell's padding does
- * the spacing: `padding-left` is the bar's left margin, `padding-right` the gap
- * before the next cell, and the vertical padding insets the bar so adjacent
- * rows' bars don't touch and read as individual segments. The bar tracks the
- * row height; its color comes from the outcome class on the row. */
+/* The bar cell is just an anchor: a fixed width (its left margin + the 7px bar +
+ * the gap to the next cell) and `position: relative` so the bar can stretch to
+ * the cell's full height absolutely. We can't use a percentage height — the
+ * table has no definite height, so `height: 100%` resolves to auto and the bar
+ * collapses to its content. Absolute top/bottom sidesteps that and fills the
+ * row height for any number of lines. */
 .entry .bar {
-  padding: 0.3rem 0.5rem 0.3rem 0.4rem;
+  position: relative;
+  width: calc(0.4rem + 7px + 0.5rem);
+  padding: 0;
 }
 
 .barInner {
-  display: block;
+  position: absolute;
+  /* Inset top/bottom so adjacent rows' bars read as separate segments; left
+   * aligns the bar after its margin. Stretches between top and bottom → full
+   * cell height, every line. */
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: 0.4rem;
   width: 7px;
-  height: 100%;
-  min-height: 1.2rem;
   border-radius: 3px;
   background: var(--color-divider);
 }

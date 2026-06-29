@@ -7,7 +7,7 @@ import type { CategoryRank } from './board'
  * [src/connections/theme.css](../theme.css) under `--connections-rank-N`;
  * this map just translates the rank to the CSS-variable lookup.
  *
- * Consumed by `<CategoryBands>` (the matched-category strips
+ * Consumed by `<Board>` (the matched-category strips
  * above the tile grid) and `<HintModal>` (per-row swatch). Lives
  * in its own file so it can be imported alongside components
  * without tripping Vite Fast Refresh's "components-only file"

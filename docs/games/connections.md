@@ -308,14 +308,15 @@ src/connections/
                           Branches on game.mode for the OpponentStrip + eliminated-spectator
                           state. Mounted by <GamePage> as its render-prop child.
     PlayArea.module.css
-    CategoryBands.tsx     The colored matched-category bands above the tile grid (plus the
-                          unmatched-revealed bands rendered on game-over loss OR on compete
-                          per-player elimination). Pulls the RANK_TOKEN rank → CSS-variable
-                          map from lib/rankColors.
-    TileGrid.tsx          The 4×4 of remaining tiles + per-tile isMine/isPeer attribution.
-                          Pure render — degenerate to "all mine, no peers" in compete because
-                          useGame's broadcast send is suppressed there (the selections map
-                          only ever contains the caller).
+    Board.tsx             The board as ONE grid: solved/revealed categories as full-width
+                          colored band rows (grid-column: 1 / -1, sorted by rank — the
+                          unmatched ones revealed on game-over loss OR compete elimination)
+                          plus the remaining tiles, which carry per-tile isMine/isPeer
+                          attribution (degenerate to "all mine" in compete, where useGame
+                          suppresses the broadcast send). Grows to fill the column, each row
+                          capped at MAX_TILE (psychicnum's WordBoard layout). Pulls RANK_TOKEN
+                          from lib/rankColors. (Replaced the old separate CategoryBands +
+                          TileGrid, whose two layout systems gave bands/tiles different gaps.)
     MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
                           mistake, filled for remaining and dimmed for used (default budget 4).
     MistakeDots.module.css

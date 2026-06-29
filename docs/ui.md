@@ -421,14 +421,25 @@ psychicnum frames its grid in a tray; connections does **not** — its full-widt
 colored bands need to sit edge-to-edge with the tiles, and a tray around the
 grid would fight them.
 
-**Result fill — permanent, not a flash.** When a tile's outcome is *known and
-fixed* (psychicnum's guessed words: green = a secret, red = a miss), color the
-tile **permanently** by re-setting `--tile-bg` / `--tile-border` to the outcome
-palette and drop any spent/dim/grey treatment — the color *is* the "already
-tried" signal and a record of found-vs-ruled-out. It's mutually exclusive with
-the selected dark-fill (a committed tile is `disabled`, so it's never both). A
-*transient* flash (a brief pop on a just-made move) is a different thing — prefer
-the permanent fill when the result is durable.
+**The decided tile — a permanent result fill.** A tile is *decided* once its
+outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
+= a miss; connections: a tile placed into a solved category — it becomes part of
+that category's colored band). A decided tile colors **permanently** by re-setting
+`--tile-bg` / `--tile-border`, dropping any spent/dim/grey treatment — the color
+*is* the "already decided" signal and a record of what's found vs ruled out. It's
+mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
+it's never both).
+
+The fill is the game's **result palette at full saturation**, not a washed-out
+pastel — the decided color should obviously carry the *same message* as the
+game's other outcome signals. So psychicnum's decided tiles use the saturated
+`--color-outcome-*-border` green/red (the exact tone the TurnLog outcome bars
+use), and connections' use the four saturated rank colors of the bands. (An
+earlier psychicnum used the pale `--color-outcome-*-bg` tier, which read as a
+different, weaker signal than its own guess outcomes — fixed.)
+
+A *transient* flash (a brief pop on a just-made move) is a different thing —
+prefer the permanent fill when the result is durable.
 
 **Peer-identity frame.** In a shared-selection game (connections coop), a
 *teammate's* selected tile is the resting beige + an inset ring in their member
@@ -709,15 +720,19 @@ scrabble + boggle still use the viewport-math (shrink-wrap) form; migrating them
 is deferred. psychicnum moved to the flex-fill form above (it was on the
 viewport-math form when its board was square number tiles).
 
-**connections is a third variant: a fixed-height grid in a fill column.** Its
-board column is the shared `flex: 1` pane, but the grid does **not** grow tiles
-to fill — `grid-auto-rows` is pinned to a fixed `--wknit-tile-h` (~1.75× a
-content-sized tile). Two reasons it can't grow: a solved category collapses into
-a colored **band** that must occupy exactly the height of the tile row it
-replaced (so band-height and tile-height are one locked value), and the row count
-shrinks as categories match (16 → 12 → 8 → 4), so `1fr` rows would balloon the
-survivors. The board is top-anchored with slack below — the commit row (Clear /
-Submit) sits under it, like psychicnum's entry row.
+**connections uses the exact same flex-fill grid as psychicnum.** The only two
+differences: (a) a solved category is **"one long tile"** — a grid cell spanning
+all four columns (`grid-column: 1 / -1`) instead of four single-column tiles, so
+it occupies exactly the row its tiles did with the same height, padding, depth,
+and grid gap; and (b) psychicnum gives its tiles a **max height**, connections
+doesn't (yet) — connections' `1fr` rows simply grow to fill the column. Because
+every category is four tiles, `bands + ceil(remaining / 4)` is always the same
+row count (4 for a 16-tile board), so it's genuinely one grid (`gridTemplateRows:
+repeat(rows, 1fr)`, set inline by `Board.tsx`) that fills the column. This
+replaced an earlier fixed-row-height design whose separately-flex-stacked bands
+had a different gap than the tiles — the single grid removes that drift. The
+board is top-anchored with slack below — the commit row (Clear / Submit) sits
+under it, like psychicnum's entry row.
 
 ## Mode pills
 
