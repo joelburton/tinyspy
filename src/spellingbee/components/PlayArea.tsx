@@ -3,8 +3,10 @@ import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { SubmitButton } from '../../common/components/buttons/SubmitButton'
+import { DeleteButton } from '../../common/components/buttons/DeleteButton'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -13,7 +15,6 @@ import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
-import { Actions } from './Actions'
 import type { WordResultTone } from './Feedback'
 import { Feedback } from './Feedback'
 import { Letters } from './Letters'
@@ -423,23 +424,32 @@ export function PlayArea(ctx: GamePageCtx) {
             one line, with the own-action feedback (or terminal line) beneath. The
             board itself is the letter input; this row commits/edits it. */}
         <div className={styles.belowBoard}>
-          {/* The shared capture-input box (input-like shell + blinking caret, no
-              <input>), full width. spellingbee's per-character illegal-letter dim
-              rides in as the box's children via <TypedWord>. */}
-          <EntryBox
-            value={word}
-            placeholder="Type or click letters"
-            className={styles.entry}
-          >
-            <TypedWord word={word} allowedLetters={allowedLetters} />
-          </EntryBox>
-          {/* Delete / Enter sit on their own row BELOW the entry. */}
-          <Actions
-            wordEmpty={word.length === 0}
-            locked={isTerminal}
-            onDelete={handleDelete}
-            onSubmit={() => void handleSubmit()}
-          />
+          {/* The entry row: icon-only Delete (left) flanking the chrome-less
+              capture-input box, icon-only Submit (right). The shared purpose
+              buttons bake in the glyph, icon-size, tone, and the focus-guard
+              (the click must not steal focus from the window keyboard-capture). */}
+          <div className={styles.inputRow}>
+            <DeleteButton
+              iconOnly
+              onClick={handleDelete}
+              disabled={word.length === 0 || isTerminal}
+            />
+            {/* The shared capture-input box (chrome-less, large, centered; no
+                <input>). spellingbee's per-character illegal-letter dim rides in
+                as the box's children via <TypedWord>. */}
+            <EntryBox
+              value={word}
+              placeholder="Type or click letters"
+              className={styles.entry}
+            >
+              <TypedWord word={word} allowedLetters={allowedLetters} />
+            </EntryBox>
+            <SubmitButton
+              iconOnly
+              onClick={() => void handleSubmit()}
+              disabled={word.length === 0 || isTerminal}
+            />
+          </div>
           {isTerminal && over
             ? (
               <div className={styles.terminalIndicator}>

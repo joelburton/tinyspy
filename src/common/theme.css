@@ -186,6 +186,11 @@
   --radius-md:                6px;   /* buttons, inputs, panels */
   --radius-lg:                8px;   /* cards, modals */
 
+  /* The fixed square footprint of an icon-only action button (`.icon-only`).
+     One token so the box size is consistent everywhere and tunable in one place,
+     independent of the glyph inside it. */
+  --icon-button-size:         2.4rem;
+
   /* Page padding — the breathing room on every page (the body's padding, all
      sides). Single source: `body` applies it, and a game PlayArea's
      available-width math subtracts 2× of it. (The vertical 2× is also part of
@@ -319,13 +324,31 @@ a {
    flex-grow). So a play button is `cls('icon-button', styles.inputButton)`; a
    secondary one is `cls('secondary', 'icon-button', …)`.
 
-   NOT for icon-ONLY pills (ShuffleButton, PauseButton) — those are a separate,
-   round, fixed-size shape with no label, so they style themselves. */
+   For a labelless rectangular button — same chrome as its labeled siblings, just
+   square because there's no text — add the `icon-only` modifier below. Still NOT
+   for the round icon pills (ShuffleButton, PauseButton): those are a separate,
+   fixed-size circular shape that style themselves. */
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4em;
+}
+
+/* Icon-ONLY rectangular button: keeps the base <button> (or `secondary`) fill +
+   border, but is a FIXED square box (not padding hugging the icon). This
+   DECOUPLES icon size from button size — the glyph can be scaled up/down for
+   per-glyph visual-weight tuning (some Lucide icons read smaller/denser than
+   others) WITHOUT moving the button's footprint; it just floats centered
+   (`icon-button` does the centering). Compose with `icon-button` — a primary
+   submit is `cls('icon-button', 'icon-only')`, a secondary one
+   `cls('secondary', 'icon-button', 'icon-only')`. The shared counterpart of
+   `icon-button` for the no-label case, so every game's icon-only action button
+   matches. (`--icon-button-size` tunes the box once, globally.) */
+.icon-only {
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  padding: 0;
 }
 
 .muted {

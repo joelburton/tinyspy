@@ -47,10 +47,19 @@
   gap: 0.5rem;
 }
 
-/* The shared <EntryBox> as spellingbee's word entry: full-width (the column
- * stretches it). The look — chrome-less, large, centered — is the shared
- * EntryBox; nothing per-game to add beyond letting it fill the column. */
+/* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
+.inputRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* The shared <EntryBox> as spellingbee's word entry. A moderate fixed width (not
+ * the full row) so the flanking buttons sit close to the typed word. The look —
+ * chrome-less, large, centered text — is the shared EntryBox. */
 .entry {
+  width: 16rem;
   min-width: 0;
 }
 

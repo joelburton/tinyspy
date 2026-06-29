@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
-import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { boardToDisplay } from '../lib/dice'

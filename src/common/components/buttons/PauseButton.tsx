@@ -1,4 +1,4 @@
-import { IconPause } from './icons'
+import { IconPause } from '../icons'
 import styles from './PauseButton.module.css'
 
 type Props = {

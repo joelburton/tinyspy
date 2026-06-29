@@ -12,7 +12,7 @@ import {
   reconcileHandOrder,
   shuffleString,
 } from '../lib/board'
-import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import styles from './PlayerBoard.module.css'

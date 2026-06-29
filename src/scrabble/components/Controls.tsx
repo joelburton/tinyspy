@@ -1,4 +1,4 @@
-import { ShuffleButton } from '../../common/components/ShuffleButton'
+import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import styles from './PlayArea.module.css'
 
 /**
