@@ -6,15 +6,15 @@ import { signIn } from './helpers/session'
  * Layout-stability guard for codenamesduet's below-board clue slot.
  *
  * The below-board area cycles through several shapes — the clue form, the clue
- * display + Pass, "waiting for X…", and (the bug that prompted this) the local
- * error flash when the suggest edge function returns a non-2xx. The slot is a
+ * display + Pass, "waiting for X…", the own-action error flash. The slot is a
  * FIXED height precisely so the `flex: 1` board above never reflows as those
- * swap. That invariant is a real layout property: it can't be checked in
- * Vitest/jsdom (no layout engine — `getBoundingClientRect` is all zeros), so it
- * needs a real browser. This is a deliberate, narrow exception to the "e2e =
- * realtime/presence only" charter in playwright.config.ts: the regression class
- * (board jumps as the slot's content changes) is exactly what unit tests can't
- * see.
+ * swap. We also check that opening the AI "Clue Hint" dialog (a floating panel)
+ * doesn't move the board. That invariant is a real layout property: it can't be
+ * checked in Vitest/jsdom (no layout engine — `getBoundingClientRect` is all
+ * zeros), so it needs a real browser. This is a deliberate, narrow exception to
+ * the "e2e = realtime/presence only" charter in playwright.config.ts: the
+ * regression class (board jumps as the slot's content changes) is exactly what
+ * unit tests can't see.
  *
  * codenamesduet is the subject because it has by far the richest below-board
  * area. Two players must be present or the game presence-pauses (unmounting the
@@ -65,9 +65,10 @@ test.describe('codenamesduet below-board layout stability', () => {
     await expect(pageBob.getByText(/waiting for/i).first()).toBeVisible({ timeout: 15000 })
     const bWait = await boardHeight(pageBob)
 
-    // ── Alice: the suggest edge function errors. Mock it to a non-2xx — the
-    //    exact regression — so the local error flash replaces the form. The
-    //    board must not move.
+    // ── Alice clicks Clue Hint and the edge function errors (route-mocked to a
+    //    non-2xx). The suggestion opens its own floating dialog (which surfaces
+    //    the API error), NOT a slot swap — so the form stays put and the board
+    //    must not move.
     await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
       route.fulfill({
         status: 500,
@@ -76,11 +77,20 @@ test.describe('codenamesduet below-board layout stability', () => {
       }),
     )
     await pageAlice.getByRole('button', { name: /clue hint/i }).click()
-    // The flash swaps in (the form inputs vanish for its lifetime).
-    await expect(countInput).toBeHidden({ timeout: 5000 })
+    // The dialog pops up (its own panel) — the form is still there underneath.
+    await expect(pageAlice.getByText('Clue suggestion')).toBeVisible({ timeout: 10000 })
+    // DEBUG: where does the panel actually render?
+    console.log('VIEWPORT', pageAlice.viewportSize())
+    console.log('PANEL TITLE BOX', await pageAlice.getByText('Clue suggestion').boundingBox())
+    console.log(
+      'PANEL ROOT BOX',
+      await pageAlice.locator('.react-draggable, [class*="rnd"]').first().boundingBox(),
+    )
+    await expect(countInput).toBeVisible()
     const aError = await boardHeight(pageAlice)
-    // …then it clears and the form returns.
-    await expect(countInput).toBeVisible({ timeout: 5000 })
+    // Dismiss the dialog so it can't overlap the form for the submit below.
+    await pageAlice.getByRole('button', { name: 'Close' }).click()
+    await expect(pageAlice.getByText('Clue suggestion')).toBeHidden()
 
     // ── Alice submits a clue → guess phase. She now sees the clue + "waiting for
     //    bob to guess".

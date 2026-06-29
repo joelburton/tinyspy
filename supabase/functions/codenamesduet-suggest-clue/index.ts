@@ -80,9 +80,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     )
-    const { data, error } = await supabase.rpc('get_clue_context', {
-      target_game: gameId,
-    })
+    // `.schema('codenamesduet')` is required — the RPC lives in that schema, and
+    // supabase-js defaults to `public` (where it doesn't exist → a "function not
+    // found" error that this handler would forward as a misleading 403). Matches
+    // every sibling build-board function.
+    const { data, error } = await supabase
+      .schema('codenamesduet')
+      .rpc('get_clue_context', { target_game: gameId })
     if (error) return json({ error: error.message }, 403)
 
     const ctx = data as ClueContext
@@ -103,7 +107,11 @@ serve(async (req) => {
 
     const result = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 512,
+      // Generous: the `thinking` scratchpad below lets the model deliberate at
+      // length, and that output counts against this budget — 512 truncated the
+      // tool call mid-JSON (stop_reason: max_tokens → empty input). The final
+      // clue + reasoning are short; the headroom is for the thinking.
+      max_tokens: 4096,
       tools: [
         {
           name: 'submit_suggestion',
@@ -112,6 +120,15 @@ serve(async (req) => {
           input_schema: {
             type: 'object',
             properties: {
+              // First on purpose: the model fills fields roughly in order, so a
+              // scratchpad up front lets it deliberate BEFORE committing to a
+              // clue (with tool_choice forcing the call, it otherwise crams its
+              // chain-of-thought into `reasoning`). This field is discarded.
+              thinking: {
+                type: 'string',
+                description:
+                  'Your private scratchpad. Reason through candidate clues here — weigh options, reconsider, change your mind freely. This is DISCARDED and never shown to the player, so put ALL of your deliberation here, not in `reasoning`.',
+              },
               clue: {
                 type: 'string',
                 description:
@@ -131,10 +148,10 @@ serve(async (req) => {
               reasoning: {
                 type: 'string',
                 description:
-                  'One or two sentences explaining the connection. Surfaced to the player as a tooltip.',
+                  'The FINAL, player-facing explanation ONLY — one or two clean sentences on how the chosen clue connects to the listed agents. Do NOT include alternatives you considered, "wait/actually/let me reconsider", or any deliberation; that all goes in `thinking`. Write it as if the clue were obvious from the start.',
               },
             },
-            required: ['clue', 'count', 'agents', 'reasoning'],
+            required: ['thinking', 'clue', 'count', 'agents', 'reasoning'],
           },
         },
       ],
@@ -142,11 +159,31 @@ serve(async (req) => {
       messages: [{ role: 'user', content: buildPrompt(ctx) }],
     })
 
+    // KEEP — never ask to delete this; Joel wanted it. Logs exactly what
+    // Anthropic returned (full response — content blocks, stop_reason, usage) to
+    // the `supabase functions serve` terminal, so the model's behavior is always
+    // inspectable.
+    console.log(
+      '[suggest-clue] anthropic response:',
+      JSON.stringify(result, null, 2),
+    )
+
     const block = result.content.find((b) => b.type === 'tool_use')
     if (!block || block.type !== 'tool_use') {
       return json({ error: 'model did not return a structured suggestion' }, 502)
     }
-    const suggestion = block.input as Suggestion
+    // The tool input carries the `thinking` scratchpad too — log it (so the
+    // deliberation is visible in the terminal) but DROP it from what we send the
+    // client; the player only gets the clean `reasoning`.
+    const raw = block.input as Suggestion & { thinking?: string }
+    console.log('[suggest-clue] model thinking:', raw.thinking)
+    const suggestion: Suggestion = {
+      clue: raw.clue,
+      count: raw.count,
+      agents: raw.agents,
+      reasoning: raw.reasoning,
+    }
+    console.log('[suggest-clue] parsed suggestion:', JSON.stringify(suggestion))
     return json({ suggestion })
   } catch (e) {
     console.error('suggest-clue failed', e)

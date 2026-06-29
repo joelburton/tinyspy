@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
 import { ActorTag } from '../../common/components/ActorTag'
+import { FloatingPanel } from '../../common/components/FloatingPanel'
 import { IconHint } from '../../common/components/icons'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
@@ -27,9 +28,13 @@ type CluePanelProps = {
    *  to PlayArea's local <ResultFlash> — NOT an inline line, so the slot height
    *  (and the board above) never changes. */
   onError: (message: string) => void
-  /** Report the AI clue suggestion's reasoning. Goes to the header pill (it'd
-   *  grow the one-line slot if shown inline). */
-  onReasoning: (text: string) => void
+  /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
+   *  state and renders the <ClueSuggestionPanel> HIGH in the tree: the board
+   *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
+   *  static flow position, so a panel rendered deep in the column lands
+   *  off-screen. Rendered up at the `.layout` level (like GameOverModal) it
+   *  sits where its coordinates intend. */
+  onSuggestionChange: (state: SuggestState | null) => void
 }
 
 /**
@@ -47,10 +52,10 @@ type CluePanelProps = {
  *     guesser       → "waiting for <peer> to give a clue"
  *
  * Every state is exactly ONE line, so the reserved-height slot is constant and
- * the board above never shifts (docs/ui.md → "Layout stability"). Anything that
- * would add a second line — a submit/suggest error, the AI reasoning — is
- * reported up via `onError` / `onReasoning` (to the local flash / header pill)
- * rather than rendered inline.
+ * the board above never shifts (docs/ui.md → "Layout stability"). A submit /
+ * suggest / pass error is reported up via `onError` (to the local flash) rather
+ * than rendered inline; the AI suggestion's reasoning opens in its own floating
+ * panel (see ClueForm) — neither grows the row.
  */
 export function CluePanel({
   gameId,
@@ -60,7 +65,7 @@ export function CluePanel({
   inSuddenDeath,
   peer,
   onError,
-  onReasoning,
+  onSuggestionChange,
 }: CluePanelProps) {
   if (inSuddenDeath) {
     return (
@@ -87,7 +92,7 @@ export function CluePanel({
         gameId={gameId}
         peer={peer}
         onError={onError}
-        onReasoning={onReasoning}
+        onSuggestionChange={onSuggestionChange}
       />
     )
   }
@@ -124,10 +129,20 @@ function PeerWaiting({
   )
 }
 
+/** The clue-suggestion dialog's contents. It opens on click in `loading` (the
+ *  edge function calls an AI and takes a few seconds), then resolves to the
+ *  picked clue + reasoning (`ready`) or the API error message (`error`). */
+export type SuggestState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; word: string; count: number; reasoning: string }
+
 /**
  * The clue-giver's inline clue form: "Clue for <peer>  [#]  [word]  ▲  Clue Hint"
- * on ONE line. Errors + the AI reasoning are reported up (onError / onReasoning)
- * rather than rendered below, so the row never grows a second line.
+ * on ONE line. Errors are reported up via `onError` (to the local flash) so the
+ * row never grows a second line; an AI suggestion fills the inputs AND opens a
+ * draggable/resizable <FloatingPanel> with its reasoning (it's the requester's
+ * own helper output — too long for, and the wrong channel for, the header pill).
  *
  * The server (submit_clue RPC) enforces the real preconditions (right seat, no
  * existing clue this turn, game active); we only do lightweight UX validation —
@@ -141,12 +156,12 @@ function ClueForm({
   gameId,
   peer,
   onError,
-  onReasoning,
+  onSuggestionChange,
 }: {
   gameId: string
   peer: Player | undefined
   onError: (message: string) => void
-  onReasoning: (text: string) => void
+  onSuggestionChange: (state: SuggestState | null) => void
 }) {
   // Count is a string (not a number) so the input can start empty — defaulting
   // to a digit would tempt a Submit before the giver consciously picks one. The
@@ -154,6 +169,9 @@ function ClueForm({
   const [count, setCount] = useState('')
   const [word, setWord] = useState('')
   const [busy, setBusy] = useState(false)
+  // Whether a suggest request is in flight (disables the button). The dialog
+  // STATE itself lives in PlayArea (via onSuggestionChange) so the panel renders
+  // high in the tree where react-rnd positions it on-screen.
   const [suggesting, setSuggesting] = useState(false)
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
@@ -170,31 +188,42 @@ function ClueForm({
       return
     }
     // Clear on success; the panel swaps to the guess-phase view once Realtime
-    // propagates the new clue row.
+    // propagates the new clue row. Also dismiss any open suggestion dialog.
     setCount('')
     setWord('')
+    onSuggestionChange(null)
   }
 
   // Calls the codenamesduet-suggest-clue Edge Function (which enforces the
   // "you are the clue-giver in an active game" check, then asks Claude for a
-  // structured clue). The suggestion fills the inputs — editable before submit;
-  // the clue is uppercased to match the type-as-caps convention, the reasoning
-  // surfaced via the header pill.
+  // structured clue — a few seconds). The dialog opens IMMEDIATELY in `loading`
+  // (so the wait is obvious — the subtle button change wasn't), then resolves to
+  // the suggestion (filling the inputs too) or the API error, in the dialog. The
+  // giver moves/resizes/closes it. The button is disabled while in flight, so
+  // there's no double-request to guard against.
   async function onSuggest() {
+    console.log('[ClueHint] button clicked → open dialog (loading)')
     setSuggesting(true)
+    onSuggestionChange({ status: 'loading' })
     const { data, error } = await supabase.functions.invoke(
       'codenamesduet-suggest-clue',
       { body: { gameId } },
     )
     setSuggesting(false)
     if (error || data?.error) {
-      onError(error?.message ?? data?.error ?? 'failed to fetch suggestion')
+      console.log('[ClueHint] response = error')
+      onSuggestionChange({
+        status: 'error',
+        message: error?.message ?? data?.error ?? 'Could not fetch a suggestion.',
+      })
       return
     }
     const s = data.suggestion as { clue: string; count: number; reasoning: string }
-    setWord(s.clue.toUpperCase())
+    const upper = s.clue.toUpperCase()
+    setWord(upper)
     setCount(String(s.count))
-    if (s.reasoning) onReasoning(s.reasoning)
+    console.log('[ClueHint] response = ready:', upper, s.count)
+    onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
   }
 
   const submittable = count !== '' && word.trim().length > 0
@@ -253,6 +282,53 @@ function ClueForm({
         </button>
       </div>
     </form>
+  )
+}
+
+/**
+ * The AI clue suggestion, in a draggable/resizable <FloatingPanel> the clue-giver
+ * dismisses when done. It's the requester's OWN helper output (not a peer event)
+ * and the reasoning is often long — so a panel, not the header pill. Opens
+ * straight away while Claude thinks (`loading`), so the few-second wait is
+ * obvious; then shows the picked clue + reasoning (`ready`, also filled into the
+ * form inputs) or the API error message (`error`). Plain <FloatingPanel>, like
+ * connections' HintModal — but PlayArea renders it HIGH in the tree (next to
+ * GameOverModal, at the `.layout` flex-row level) so react-rnd positions it
+ * on-screen; rendered deep in the flex-column board it lands below the viewport.
+ */
+export function ClueSuggestionPanel({
+  state,
+  onClose,
+}: {
+  state: SuggestState
+  onClose: () => void
+}) {
+  console.log('[ClueHint] ClueSuggestionPanel rendering — status:', state.status)
+  return (
+    <FloatingPanel
+      title="Clue suggestion"
+      onClose={onClose}
+      defaultSize={{ width: 360, height: 240 }}
+      minWidth={240}
+      minHeight={140}
+    >
+      <div className={styles.suggestionBody}>
+        {state.status === 'loading' && (
+          <p className={styles.suggestionLoading}>Asking Claude for a clue…</p>
+        )}
+        {state.status === 'error' && (
+          <p className={styles.suggestionError}>{state.message}</p>
+        )}
+        {state.status === 'ready' && (
+          <>
+            <div className={styles.suggestionClue}>
+              <strong>{state.word}</strong> · {state.count}
+            </div>
+            <p className={styles.suggestionReasoning}>{state.reasoning}</p>
+          </>
+        )}
+      </div>
+    </FloatingPanel>
   )
 }
 

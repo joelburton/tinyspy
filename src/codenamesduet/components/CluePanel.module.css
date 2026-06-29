@@ -109,3 +109,36 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+/* The AI suggestion panel body (inside a <FloatingPanel>): the picked clue,
+ * then the reasoning. The panel scrolls (FloatingPanel's .body) when the
+ * reasoning is long. */
+.suggestionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.3rem;
+}
+
+.suggestionClue {
+  font-size: 1.3rem;
+}
+
+.suggestionReasoning {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* "Asking Claude…" while the edge function runs. */
+.suggestionLoading {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* The API error message, shown in the dialog (not the local flash bar). */
+.suggestionError {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-error);
+}

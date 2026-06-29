@@ -17,7 +17,7 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
-import { CluePanel } from './CluePanel'
+import { CluePanel, ClueSuggestionPanel, type SuggestState } from './CluePanel'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
@@ -227,6 +227,13 @@ export function PlayArea({
   const { flash: actionFlash, show: flashAction, clear: clearActionFlash } =
     useResultFlash()
 
+  // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
+  // so the <ClueSuggestionPanel> renders at the `.layout` level — a panel
+  // rendered deep in the flex-column board lands off-screen (react-rnd positions
+  // from the static flow position). ClueForm drives it via onSuggestionChange.
+  const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
+  console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
+
   const handleGuess = useCallback(
     async (position: number) => {
       clearActionFlash()
@@ -356,16 +363,11 @@ export function PlayArea({
               inSuddenDeath={inSuddenDeath}
               peer={peer}
               // Own-action errors → the local flash (replaces the slot for a
-              // beat, never grows it); the AI reasoning → the header pill (an
-              // inline line would grow the one-line slot, shifting the board).
+              // beat, never grows it). The AI clue suggestion opens its own
+              // draggable panel (rendered at the .layout level below, so it's
+              // on-screen) — the requester's helper output, not peer feedback.
               onError={(m) => flashAction('bad', m)}
-              onReasoning={(t) =>
-                feedback.show({
-                  tone: 'info',
-                  text: `Clue Hint: ${t}`,
-                  dismiss: { kind: 'timed', ms: 8000 },
-                })
-              }
+              onSuggestionChange={setClueSuggestion}
             />
           )}
         </div>
@@ -459,6 +461,16 @@ export function PlayArea({
 
         <GameTurnLog clues={clues} guesses={guesses} players={players} />
       </div>
+
+      {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
+          (a flex row), like GameOverModal — so react-rnd places it on-screen.
+          (Deep inside the flex-column board column it lands below the viewport.) */}
+      {clueSuggestion && (
+        <ClueSuggestionPanel
+          state={clueSuggestion}
+          onClose={() => setClueSuggestion(null)}
+        />
+      )}
 
       {showModal && over && (
         <GameOverModal
