@@ -22,68 +22,47 @@
   font-size: 0.95rem;
 }
 
-/* --------- the 5×5 grid + tiles ---------
+/* --------- the 5×5 board + tiles ---------
  *
- * The grid fills the available column height + width — both axes
- * use `repeat(5, 1fr)` so each tile takes an equal slice of both
- * dimensions. Tiles no longer carry their own aspect-ratio
- * constraint; they're as wide or as tall as the column allows.
- * This keeps the board "on screen" for the page-height-fits-the-
- * viewport rule (docs/ui.md → "Page-height fits the viewport") —
- * at a tall viewport the tiles get taller, at a wide one wider.
- *
- * The grid is a flex child of `.boardCol` (PlayArea); `flex: 1 +
- * min-height: 0` is what bounds it within the column so the
- * 1fr-row math has something to divide.
- */
+ * The board wrapper + grid mirror psychicnum/connections (the shared "board"
+ * shape every game carries — the single place a future framed board would
+ * live). The grid fills the column on both axes (`repeat(5, 1fr)` each), so the
+ * tiles get taller on a tall viewport and wider on a wide one — the page-height-
+ * fits-the-viewport rule (docs/ui.md → "Page-height fits the viewport"). The
+ * tile CHROME (fill / border / shadow / hover ring / centering / the word
+ * auto-fit) is the SHARED `.tile`/`.tileWord` from common (imported as `shared`
+ * in BoardGrid.tsx); only the bits unique to codenamesduet live below. */
 
-.boardGrid {
+.board {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(5, 1fr);
   gap: 0.5rem;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
+  /* Tune the shared `.tileWord` auto-fit (clamp by `--len`) for a 5-col board of
+   * single words. Starting values — adjust during manual verification. */
+  --tile-font-min: 0.8rem;
+  --tile-font-factor: 0.9;
+  --tile-font-max: 1.6rem;
 }
 
-.tile {
-  padding: 0.5rem;
-  border-radius: var(--radius-md);
-  /* Center the word horizontally + vertically in the tile.
-   * Pending state's "…" indicator absolute-positions to the
-   * bottom-right so it doesn't compete with the centered word. */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
+/* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral triangles,
+ * the pending "…") that absolutely-position against the tile, so the tile must
+ * be a positioning context. The shared `.tile` doesn't set `position: relative`
+ * (psychicnum/connections have no such children), so we add it here as a
+ * per-game composition — `cls(shared.tile, styles.overlayTile)` — keeping the
+ * shared tile's contract narrow. (The shared `.tile` already sets
+ * `container-type: inline-size`, which the cqi-sized overlays below rely on.) */
+.overlayTile {
   position: relative;
-  font: inherit;
-  color: inherit;
-  /* Fallback background; every tile gets one of the `.bg*` result classes
-     (white / tan / green / red) below, plus the corner keycard squares. */
-  background: transparent;
-  /* Container-queries on the tile so the word's font-size can
-   * scale with the tile's width — wider tiles, bigger letters,
-   * clamped at both ends so it stays readable at small sizes and
-   * doesn't go silly-large on huge screens. */
-  container-type: inline-size;
-}
-
-.tileWord {
-  text-align: center;
-  font-weight: 700;
-  /* clamp(min, 10% of tile width, max). 10cqi at a 150px tile is
-   * 15px; at a 250px tile, 25px. Caps prevent the font from
-   * vanishing on shrunken viewports or shouting at large ones. */
-  font-size: clamp(0.85rem, 10cqi, 1.5rem);
-  word-break: break-word;
-  line-height: 1.15;
-
-  /*background-color: white;*/
-  /*color: black;*/
-  /*padding: 0.25em;*/
-  /*border-radius: 0.25em;*/
 }
 
 .tileKey {
@@ -98,53 +77,42 @@
   letter-spacing: 0.1em;
 }
 
-/* Tile BACKGROUND = the caller's OWN result on this cell (set in BoardGrid):
- *   white   — I haven't guessed it (incl. cells only my partner has)
- *   tan     — I guessed it and it came up neutral (mine only)
- *   green   — we contacted an agent (global)
- *   red     — the assassin was hit (global)
- * The keycard squares (below) carry the "what does a key SAY" signal; the
- * background carries "what happened." */
+/* Tile FILL = what HAPPENED on this cell, set by re-defining the shared tile's
+ * --tile-* tokens (so the fill wins regardless of stylesheet order — the same
+ * pattern psychicnum's .correct/.incorrect use). The keycard squares (below)
+ * carry the "what does a key SAY" signal; the fill carries "what happened":
+ *   white  — no one has guessed it (explicit #fff so it doesn't inherit the
+ *            shared beige --tile-bg)
+ *   tan    — someone guessed it as a neutral (which player → triangles)
+ *   green  — we contacted an agent (global)
+ *   red    — the assassin was hit (global)
+ * The shared `.tile` supplies the hover ring (a box-shadow, NOT a recolor — so
+ * codenamesduet's "never recolor on hover" rule still holds) and the un-faded
+ * disabled look, so no per-game cursor/hover/disabled rules are needed here. */
 .bgWhite {
-  background: #fff;
-  border-color: var(--color-surface-border);
+  --tile-bg: #fff;
+  --tile-border: var(--color-surface-border);
 }
 .bgNeutral {
-  background: var(--codenamesduet-neutral);
-  border-color: var(--codenamesduet-neutral);
-  color: white;
+  --tile-bg: var(--codenamesduet-neutral);
+  --tile-border: var(--codenamesduet-neutral);
+  --tile-text: #fff;
 }
 .bgAgent {
-  background: var(--codenamesduet-agent);
-  border-color: var(--codenamesduet-agent);
-  color: white;
+  --tile-bg: var(--codenamesduet-agent);
+  --tile-border: var(--codenamesduet-agent);
+  --tile-text: #fff;
 }
 .bgAssassin {
   /* Real Duet uses black for the assassin; we use red because "red = wrong
    * pick" reads more obviously on screen than "black = ominous." */
-  background: var(--codenamesduet-assassin);
-  border-color: var(--codenamesduet-assassin);
-  color: white;
+  --tile-bg: var(--codenamesduet-assassin);
+  --tile-border: var(--codenamesduet-assassin);
+  --tile-text: #fff;
 }
 
-.tileClickable {
-  cursor: pointer;
-}
-/* Hover affordance: a black ring AROUND the tile — and nothing else. The
- * background must NOT change on hover (a recolor reads as a real reveal — a
- * partner once mistook the old hover-blue for a played tile). Bare <button>s
- * carry no global look now (see common/theme.css), so the tile keeps its own
- * per-state color on hover; we just add the outline. */
-.tileClickable:hover:not(:disabled) {
-  outline: 2px solid #000;
-  outline-offset: 2px;
-}
-
-.tile:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
+/* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
+ * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
 .tilePending {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;

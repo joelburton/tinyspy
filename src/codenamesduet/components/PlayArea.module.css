@@ -1,67 +1,22 @@
-/* codenamesduet play surface — two-column viewport-bound layout.
+/* codenamesduet play surface. The two-column SHELL (.layout / .boardCol /
+ * .infoCol) now comes from the shared common/components/playArea.module.css
+ * (imported as `shared` in PlayArea.tsx), the same scaffold psychicnum and
+ * connections use. Only the bits still specific to codenamesduet's right-column
+ * content live here — the status row, the action slot + finished-player banners,
+ * the game-over indicator — PLUS the sudden-death frame. (Phases 2–4 migrate the
+ * log / readouts / clue input / feedback onto the shared pieces; this file
+ * shrinks further as that lands.)
  *
- *   ┌────────────────────────┬───────────────────────────┐
- *   │                        │ 0/15 agents · 1/9 turns   │
- *   │                        │ ─────────────────────────  │
- *   │                        │ Clue / Waiting / Input    │
- *   │   BoardGrid (5×5)      │                            │
- *   │                        │                            │
- *   │                        │ Game log                   │
- *   │                        │ (scrolls internally)       │
- *   └────────────────────────┴───────────────────────────┘
- *
- * Layout follows docs/ui.md → "Page-height fits the viewport":
- * the .layout fills the remaining viewport (100vh minus the
- * shared --game-chrome-height token in common/theme.css, which
- * accounts for body padding + GamePage header + frame gap), the
- * board column claims the bulk of the width, and the right column
- * has a fixed-height status row + fixed-height action slot (clue
- * / waiting / input / game-over) + a scrolling game log.
- *
- * Sudden death — game.status === 'sudden_death' — wraps the whole
- * layout in an accent red border + tinted background. Real game-
- * state distinction; the visual is the "any non-green reveal
- * loses" warning made visceral.
- */
+ * Sudden death — game.status === 'sudden_death' — wraps the whole layout in an
+ * accent red border + tinted background. Real game-state distinction; the visual
+ * is the "any non-green reveal loses" warning made visceral. Composed alongside
+ * the shared `.layout`, so it's a standalone modifier here. */
 
-.layout {
-  height: calc(100vh - var(--game-chrome-height));
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  align-items: stretch;
-}
-
-.layout.suddenDeath {
+.suddenDeath {
   padding: 1rem;
   border: 2px solid var(--codenamesduet-assassin);
   border-radius: var(--radius-lg);
   background: var(--codenamesduet-assassin-soft-dim);
-}
-
-/* Board column — takes the bulk of the width; the BoardGrid
- * inside lays out its own 5×5 grid. The column is flex-column so
- * BoardGrid (rendered as a fragment of an optional error banner
- * + the grid div) can use `flex: 1` on its grid to fill the
- * column's height. min-height: 0 lets the grid bound itself
- * within the column. */
-.boardCol {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
-/* Right column — fixed-width side panel for status + clue action +
- * game log. 18rem keeps the board roomy on a small laptop; the clue
- * form's count + word + submit row still fits. */
-.rightCol {
-  flex: 0 0 18rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-height: 0;
 }
 
 /* Status row at the top of the right column: "0/15 agents ·

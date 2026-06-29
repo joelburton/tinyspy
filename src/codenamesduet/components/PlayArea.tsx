@@ -17,6 +17,7 @@ import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel } from './CluePanel'
 import { GameLog } from './GameLog'
+import shared from '../../common/components/playArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
 
@@ -265,8 +266,8 @@ export function PlayArea({
   const peerFinished = bannerEligible && peerAgentsDone
 
   return (
-    <div className={cls(styles.layout, inSuddenDeath && styles.suddenDeath)}>
-      <div className={styles.boardCol}>
+    <div className={cls(shared.layout, inSuddenDeath && styles.suddenDeath)}>
+      <div className={shared.boardCol}>
         <BoardGrid
           gameId={gameId}
           words={words}
@@ -278,7 +279,7 @@ export function PlayArea({
         />
       </div>
 
-      <div className={styles.rightCol}>
+      <div className={shared.infoCol}>
         <div className={styles.status}>
           <strong>{greenFound}</strong> / 15 agents
           <span className={styles.muted}>
