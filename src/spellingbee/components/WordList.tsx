@@ -14,12 +14,6 @@ import styles from './WordList.module.css'
 type Props = {
   foundWords: FoundWordRow[]
   players: Player[]
-  /** Count of all words the viewer/team has found (required + bonus).
-   *  Driven by the parent so it matches the server's
-   *  status.found_words_count. Can exceed requiredWordsCount when
-   *  bonus words are found. */
-  foundWordsCount: number
-  requiredWordsCount: number
   /** Post-terminal reveal: when set, the list interleaves the
    *  unfound required words alphabetically with the found words (the
    *  unfound ones render grey). Its mere presence is also the "game
@@ -79,8 +73,6 @@ type Props = {
 export function WordList({
   foundWords,
   players,
-  foundWordsCount,
-  requiredWordsCount,
   revealWords,
 }: Props) {
   // Presence of the reveal list is the "game is over" signal — it only
@@ -135,11 +127,10 @@ export function WordList({
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.header}>
-        {revealWords
-          ? `${foundWordsCount} / ${requiredWordsCount} words — reveal`
-          : `${foundWordsCount} / ${requiredWordsCount} words`}
-      </div>
+      <h3 className={styles.heading}>Words</h3>
+      {/* The list in a card — the same bordered scroll-box chrome the shared
+          TurnLog uses (a heading over an evident frame). */}
+      <div className={styles.box}>
       <ul
         className={cls(
           styles.list,
@@ -207,6 +198,7 @@ export function WordList({
             })
           )}
       </ul>
+      </div>
       {popover}
     </div>
   )

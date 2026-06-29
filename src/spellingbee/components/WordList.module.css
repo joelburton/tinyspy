@@ -13,25 +13,38 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
-/* Mid-game header: "N / M words found". Updates on every accepted
- * submission. Sits above the list, sticky-feeling so the player
- * always knows where they are. */
-.header {
-  font-size: 13px;
+/* The card heading — a plain label over the list, matching the shared TurnLog's
+ * heading. (The live "X / Y words" count that used to sit here moved out — it
+ * duplicated the Stats grid above.) */
+.heading {
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  margin-bottom: 8px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+/* The card frame: an evident bordered scroll box (the same chrome as the shared
+ * TurnLog's .turnLogBox) around the column-major list. Fixed height via flex; the
+ * list scrolls HORIZONTALLY inside once words run past the visible columns. */
+.box {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  padding: 0.5rem 0.6rem;
 }
 
 /* An alphabetical list filled COLUMN-major (down each column, then the
  * next to the right): APPLE / BERRY in column 1, CHERRY / DURIAN in
- * column 2, … The box is a FIXED height (derived from the viewport — see
- * PlayArea `.sidePanel`), so each column is exactly that tall; three
- * columns show at a time and the rest scroll HORIZONTALLY. */
+ * column 2, … It fills the card box (.box) at a FIXED height, so each
+ * column is exactly that tall; three columns show at a time and the rest
+ * scroll HORIZONTALLY. */
 .list {
   list-style: none;
   margin: 0;
@@ -51,6 +64,7 @@
   overflow-y: hidden;
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
 }
 
 .row {

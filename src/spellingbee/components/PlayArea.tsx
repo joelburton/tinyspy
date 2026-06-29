@@ -7,7 +7,8 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { DeleteButton } from '../../common/components/buttons/DeleteButton'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
+import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
@@ -461,9 +462,10 @@ export function PlayArea(ctx: GamePageCtx) {
         </div>
       </div>
 
-      {/* PHASE 1: the info column is an UNFORMATTED dump — RankBar / OpponentStrip
-          / Stats / WordList shoved straight in. Phase 2 sorts these into the
-          shared actionSlot readouts (setup / status / help / End) + WordList fill. */}
+      {/* The info column. Unlike the other games, the rank bar + game status lead
+          (it's the thing you watch), with the "Setup options" disclosure BELOW
+          them rather than at the top. No help line — the honeycomb makes it
+          obvious what to do. The WordList fills the rest. */}
       <div className={shared.infoCol}>
         <RankBar score={foundWordsScore} total={game.required_words_score} />
         {isCompete && targetRankIdx !== null && (() => {
@@ -497,11 +499,25 @@ export function PlayArea(ctx: GamePageCtx) {
           foundWordsCount={foundWordsCount}
           requiredWordsCount={game.required_words_count}
         />
+
+        {/* Setup options — what was picked at create time, behind the shared
+            disclosure. Closed by default so it doesn't crowd the status above; it
+            sits BELOW the rank/status here (not at the top as in other games). */}
+        <details className={shared.infoSetup}>
+          <summary>Setup options</summary>
+          <ul>
+            <li>{DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '—'} required words</li>
+            <li>{DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '—'} legal (bonus) words</li>
+            {isCompete && targetRankIdx !== null && (
+              <li>Target rank: {RANKS[targetRankIdx]}</li>
+            )}
+            <li>{timerLabel(spellingbeeSetup.timer)}</li>
+          </ul>
+        </details>
+
         <WordList
           foundWords={foundWords}
           players={players}
-          foundWordsCount={foundWordsCount}
-          requiredWordsCount={game.required_words_count}
           // Once terminal, games_state surfaces the full required-
           // words list via _required_words_for. Pre-terminal
           // game.requiredWords is null and WordList skips reveal.
@@ -518,6 +534,18 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
     </div>
   )
+}
+
+/** One-line timer summary for the setup disclosure (same shape the other migrated
+ *  games use). */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
 }
 
 /**
