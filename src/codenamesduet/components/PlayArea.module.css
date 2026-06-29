@@ -1,11 +1,14 @@
 /* codenamesduet play surface. The two-column SHELL (.layout / .boardCol /
- * .infoCol) now comes from the shared common/components/playArea.module.css
- * (imported as `shared` in PlayArea.tsx), the same scaffold psychicnum and
- * connections use. Only the bits still specific to codenamesduet's right-column
- * content live here — the status row, the action slot + finished-player banners,
- * the game-over indicator — PLUS the sudden-death frame. (Phases 2–4 migrate the
- * log / readouts / clue input / feedback onto the shared pieces; this file
- * shrinks further as that lands.)
+ * .infoCol), the info-column READOUTS (.infoSetup / .infoState / .infoHelp /
+ * .infoActions + the terminal swap), and the tile chrome all come from the
+ * shared common/components/playArea.module.css (imported as `shared`), the same
+ * scaffold psychicnum and connections use. Only the bits unique to codenamesduet
+ * live here:
+ *   - .suddenDeath  — the whole-layout red frame for the sudden-death phase;
+ *   - .inputRow / .inputMessage — the below-board move-input slot (the clue UI
+ *     during play, a verdict echo at terminal);
+ *   - .finishedNote / .peerDoneNote — the finished-player banners in the info
+ *     column.
  *
  * Sudden death — game.status === 'sudden_death' — wraps the whole layout in an
  * accent red border + tinted background. Real game-state distinction; the visual
@@ -19,28 +22,14 @@
   background: var(--codenamesduet-assassin-soft-dim);
 }
 
-/* Status row at the top of the right column: "0/15 agents ·
- * 1/10 turns." Compact, with a faint divider below it so it
- * reads as a header rather than a regular content row. */
-.status {
-  flex-shrink: 0;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--color-text);
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-surface-border);
-}
-
-.status .muted {
-  color: var(--color-muted);
-}
-
-/* Action slot — the fixed-height region that holds either the
- * CluePanel (clue form / clue display / waiting copy / sudden-
- * death notice) or the terminal-state indicator. Constant
- * height so the GameTurnLog below it never shifts as the action
- * changes — per docs/ui.md → "Layout stability." */
-.actionSlot {
+/* The below-board move-input slot — holds the CluePanel (clue form / clue
+ * display + Pass / waiting copy) during play, or the terminal verdict echo. A
+ * reserved min-height (the clue form is the tallest state) + vertical centering
+ * keeps the top-anchored board from shifting as the clue state swaps (docs/ui.md
+ * → "Layout stability"). The shared below-board `.inputRow` concept; here it's
+ * taller and column-oriented because codenamesduet's clue UI is richer than the
+ * single control row psychicnum/connections use. */
+.inputRow {
   flex-shrink: 0;
   min-height: 8rem;
   display: flex;
@@ -48,55 +37,39 @@
   justify-content: center;
 }
 
-/* The game-log region — takes the remaining column height and
- * scrolls internally when turns pile up. The shared <TurnLog>
- * (rendered by GameTurnLog) handles the inner box's flex +
- * min-height + overflow-y; this slot just gives it the space. */
-.gameLogSlot {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+/* The terminal verdict echo shown in the below-board slot once the game's over —
+ * a calm, secondary line, since the loud verdict is in the GameOverModal + the
+ * info-column `.outcome`. Muted, the canonical below-board message look
+ * psychicnum/connections share (docs/ui.md → "Text entry"). */
+.inputMessage {
+  margin: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  color: var(--color-muted);
 }
 
-/* Finished-player banner inside the action slot. Shown to a player
- * whose agents are all contacted, explaining that their partner gives
- * every remaining clue (Duet's finished-player rule). Painted in the
- * "agent" green soft-banner fill so it reads as an accomplishment
- * ("you're done!"), not a warning. Sits above the CluePanel; the slot
- * grows to fit since this only appears late in a game. */
+/* Finished-player banner in the info column. Shown to a player whose agents are
+ * all contacted, explaining that their partner gives every remaining clue
+ * (Duet's finished-player rule). Painted in the "agent" green soft-banner fill so
+ * it reads as an accomplishment ("you're done!"), not a warning. */
 .finishedNote {
   font-size: 0.9rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;
-  margin-bottom: 0.7rem;
   border-radius: 6px;
   background: var(--codenamesduet-agent-soft-banner);
   color: var(--codenamesduet-agent-text);
 }
 
-/* The mirror banner for the OTHER player — "your partner is done, you
- * give all the clues now." Informational rather than celebratory, so
- * it's painted in the calm neutral (bystander tan) tones instead of the
- * agent green, keeping the two notes visually distinct. */
+/* The mirror banner for the OTHER player — "your partner is done, you give all
+ * the clues now." Informational rather than celebratory, so it's painted in the
+ * calm neutral (bystander tan) tones instead of the agent green, keeping the two
+ * notes visually distinct. */
 .peerDoneNote {
   font-size: 0.9rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;
-  margin-bottom: 0.7rem;
   border-radius: 6px;
   background: var(--codenamesduet-neutral-soft-bright);
   color: var(--codenamesduet-neutral-text);
-}
-
-/* Terminal-state indicator inside the action slot. Sits where
- * the CluePanel sat during play — "Game over: <status>" on the
- * left, Back-to-club button on the right. Once the GameOverModal
- * closes, this is the lasting cue that the game has ended. */
-.gameOverIndicator {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  font-size: 0.95rem;
 }

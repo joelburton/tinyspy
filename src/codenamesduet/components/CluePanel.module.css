@@ -1,10 +1,8 @@
-/* The CluePanel renders inside PlayArea's `.actionSlot`, which
- * already sets a fixed minimum height + vertical centering. The
- * panel itself no longer carries the surface chrome (border,
- * background, vertical margin) it had when it sat full-width
- * above the board — its container is the chrome now. This
- * stylesheet just lays out the contents of whichever state is
- * rendered. */
+/* The CluePanel renders inside PlayArea's below-board `.inputRow` slot, which
+ * already sets a reserved height + vertical centering (so swapping clue states
+ * doesn't shift the board). The panel itself carries no surface chrome (border,
+ * background, vertical margin) — its container is the chrome. This stylesheet
+ * just lays out the contents of whichever state is rendered. */
 
 .cluePanel {
   display: flex;

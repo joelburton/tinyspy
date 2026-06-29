@@ -1,12 +1,12 @@
-import { useEffect, useRef } from 'react'
-import type { FeedbackApi, FeedbackTone, GamePageCtx } from '../../common/lib/games'
+import { useCallback, useEffect, useRef } from 'react'
+import type { FeedbackApi, FeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
+import { IconEnd } from '../../common/components/icons'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
@@ -55,51 +55,68 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * everything in sync.
  */
 
-/** Per-status modal copy for codenamesduet. `playState` is the
- *  authoritative input — only terminal states appear here; non-
- *  terminal callers don't render the modal. `verdict` is the
- *  centered modal line; `status` is the lowercase phrase the
- *  PlayArea indicator pairs with "Game over:". Detail-on-page
- *  intentionally: the agents-found counter sits in the right
- *  column status row, the board carries the revealed tiles.
- *
- *  Named to match connections's and psychicnum's equivalents so a
- *  reader scanning the per-game PlayAreas sees the same shape
- *  across all three. */
+/** One-line timer summary for the setup disclosure (same shape connections
+ *  uses). */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
+
+/** Per-status terminal copy for codenamesduet. `playState` is the authoritative
+ *  input — only terminal states appear here. `outcome` + `verdict` drive the
+ *  GameOverModal (and `verdict` the below-board echo); `message` + `tone` drive
+ *  the short, bold, color-coded line in the info-column action row (won = green,
+ *  lost = red, manual end = neutral). Same shape as psychicnum's / connections's
+ *  buildOver so a reader scanning the per-game PlayAreas sees one shape across
+ *  all three. Detail-on-page intentionally: the agents-found counter sits in the
+ *  info-column state line, the board carries the revealed tiles. */
 function buildOver(
   playState: string,
-): { outcome: 'won' | 'lost'; verdict: string; status: string } {
+): {
+  outcome: 'won' | 'lost'
+  verdict: string
+  message: string
+  tone: 'won' | 'lost' | 'neutral'
+} {
   if (playState === 'won') {
-    return { outcome: 'won', verdict: 'You win!', status: 'won' }
+    return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
   }
   if (playState === 'lost_assassin') {
     return {
       outcome: 'lost',
       verdict: 'You lost: assassin revealed',
-      status: 'assassin revealed',
+      message: 'Assassin revealed',
+      tone: 'lost',
     }
   }
   if (playState === 'lost_clock') {
     return {
       outcome: 'lost',
       verdict: 'You lost: out of turns',
-      status: 'out of turns',
+      message: 'Out of turns',
+      tone: 'lost',
     }
   }
   if (playState === 'ended') {
     // Manual end (codenamesduet.end_game): the friends stopped the game on
-    // purpose. Neutral, not a loss — outcome:'won' gives the modal
-    // green/neutral coloring (GameOverModal only supports 'won'|'lost',
-    // and 'won' is the non-red one). No "you lost" framing.
-    return { outcome: 'won', verdict: 'Game ended.', status: 'ended' }
+    // purpose. Neutral, not a loss — outcome:'won' gives the modal green/neutral
+    // coloring (GameOverModal only supports 'won'|'lost', and 'won' is the
+    // non-red one); tone:'neutral' keeps the info-column line plain. No "you
+    // lost" framing.
+    return { outcome: 'won', verdict: 'Game ended.', message: 'Game ended', tone: 'neutral' }
   }
-  // lost_timeout (and any future terminal state that doesn't match
-  // above — falls back to a generic timer-out message rather than
-  // crashing).
+  // lost_timeout (and any future terminal state that doesn't match above —
+  // falls back to a generic timer-out message rather than crashing).
   return {
     outcome: 'lost',
     verdict: 'You lost: out of time',
-    status: 'out of time',
+    message: 'Out of time',
+    tone: 'lost',
   }
 }
 
@@ -175,7 +192,6 @@ export function PlayArea({
   isTerminal,
   setup,
   feedback,
-  menu,
   goToClub,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
@@ -197,17 +213,26 @@ export function PlayArea({
   // after dismiss. See common/hooks/useTerminalModal.ts.
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
-  // ─── End-game action (per-game menu item) ──────────────
-  // The friends' explicit "we're done" affordance. codenamesduet has
-  // automatic terminals (won / lost_*), but this lets them abandon an
-  // in-progress game early — fires codenamesduet.end_game, which writes a
-  // neutral terminal (play_state='ended', everyone {won:false}).
-  useEndGameMenu({
-    isTerminal,
-    menu,
-    feedback,
-    endGame: () => db.rpc('end_game', { target_game: gameId }),
-  })
+  // ─── End-game action (info-column action-row button) ───
+  // The friends' explicit "we're done" affordance — now an action-row button
+  // (like psychicnum/connections) rather than a GamePage menu item. codenamesduet
+  // has automatic terminals (won / lost_*), but this lets them abandon an
+  // in-progress game early — fires codenamesduet.end_game, a neutral terminal
+  // (play_state='ended', everyone {won:false}). Confirmed; it's irreversible. An
+  // error surfaces in the header pill for now (Phase 4 moves own-action errors
+  // to a local <ResultFlash>).
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      feedback.show({
+        tone: 'error',
+        text: `End game failed: ${error.message}`,
+        dismiss: { kind: 'timed', ms: 4000 },
+      })
+    }
+  }, [gameId, isTerminal, feedback])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -229,6 +254,9 @@ export function PlayArea({
   const me = players.find((p) => p.user_id === session.user.id)
   const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
+  const firstClueGiver = players.find(
+    (p) => p.user_id === codenamesduetSetup.firstClueGiverUserId,
+  )
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
   // Phase derivation: a turn is in "guess phase" iff a clue already
@@ -277,70 +305,114 @@ export function PlayArea({
           gameOver={gameOver}
           cellsClickable={cellsClickable}
         />
+        {/* The below-board slot — codenamesduet's move-input zone (docs/ui.md →
+            "Text entry"): the CluePanel (clue form / clue display + Pass /
+            waiting copy) during play, else a calm verdict echo at terminal. A
+            reserved height keeps the top-anchored board from shifting as the clue
+            state swaps. */}
+        <div className={styles.inputRow}>
+          {over ? (
+            <p className={styles.inputMessage}>{over.verdict}</p>
+          ) : (
+            <CluePanel
+              gameId={gameId}
+              isClueGiver={isClueGiver}
+              isGuessPhase={isGuessPhase}
+              currentClue={currentTurnClue}
+              inSuddenDeath={inSuddenDeath}
+              peer={peer}
+            />
+          )}
+        </div>
       </div>
 
       <div className={shared.infoCol}>
-        <div className={styles.status}>
-          <strong>{greenFound}</strong> / 15 agents
-          <span className={styles.muted}>
-            {' · '}
-            {inSuddenDeath
-              ? 'sudden death'
-              : `${game.turn_number}/${codenamesduetSetup.turns} turns`}
-          </span>
-        </div>
+        {/* The non-log info column — the shared named readouts (.infoSetup /
+            .infoState / .infoHelp / .infoActions) from playArea.module.css, so
+            they read the same across games. */}
+        <div className={shared.actionSlot}>
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{codenamesduetSetup.turns} turns</li>
+              <li>First clue: {firstClueGiver?.username ?? '—'}</li>
+              <li>{timerLabel(codenamesduetSetup.timer)}</li>
+            </ul>
+          </details>
 
-        <div className={styles.actionSlot}>
-          {gameOver && over ? (
-            <div className={styles.gameOverIndicator}>
-              <span>
-                <span className="muted">Game over:</span> {over.status}
+          <p className={shared.infoState}>
+            <strong>{greenFound}</strong>/15 agents ·{' '}
+            {inSuddenDeath ? (
+              'sudden death'
+            ) : (
+              <>
+                <strong>{game.turn_number}</strong>/{codenamesduetSetup.turns} turns
+              </>
+            )}
+          </p>
+
+          {/* Duet's finished-player rule, surfaced to BOTH players so neither
+              reads the lopsided turn flow as a bug — kept as a prominent colored
+              banner here in the info column. */}
+          {viewerFinished && (
+            <div className={styles.finishedNote}>
+              All your agents have been found! From here{' '}
+              {peer ? (
+                <strong style={{ color: colorVarFor(peer.color) }}>
+                  {peer.username}
+                </strong>
+              ) : (
+                'your partner'
+              )}{' '}
+              gives every remaining clue — keep guessing to find theirs.
+            </div>
+          )}
+          {peerFinished && (
+            <div className={styles.peerDoneNote}>
+              {peer ? (
+                <strong style={{ color: colorVarFor(peer.color) }}>
+                  {peer.username}
+                </strong>
+              ) : (
+                'Your partner'
+              )}{' '}
+              has found all their agents — you give every remaining clue now, and
+              they do the guessing.
+            </div>
+          )}
+
+          {/* Help — a stable orienting line during play (the per-phase guidance
+              lives below the board + in the header pill). */}
+          {!over && (
+            <p className={shared.infoHelp}>
+              Give clues for your agents; guess the clues your partner gives you.
+            </p>
+          )}
+
+          {/* Action row. Playing: End. Terminal: the bold, outcome-colored
+              result line + a compact back-to-club button (the shared swap). */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
               </span>
-              <BackToClubButton onClick={goToClub} />
+              <BackToClubButton onClick={goToClub} compact />
             </div>
           ) : (
-            <>
-              {viewerFinished && (
-                <div className={styles.finishedNote}>
-                  All your agents have been found! From here{' '}
-                  {peer ? (
-                    <strong style={{ color: colorVarFor(peer.color) }}>
-                      {peer.username}
-                    </strong>
-                  ) : (
-                    'your partner'
-                  )}{' '}
-                  gives every remaining clue — keep guessing to find theirs.
-                </div>
-              )}
-              {peerFinished && (
-                <div className={styles.peerDoneNote}>
-                  {peer ? (
-                    <strong style={{ color: colorVarFor(peer.color) }}>
-                      {peer.username}
-                    </strong>
-                  ) : (
-                    'Your partner'
-                  )}{' '}
-                  has found all their agents — you give every remaining clue
-                  now, and they do the guessing.
-                </div>
-              )}
-              <CluePanel
-                gameId={gameId}
-                isClueGiver={isClueGiver}
-                isGuessPhase={isGuessPhase}
-                currentClue={currentTurnClue}
-                inSuddenDeath={inSuddenDeath}
-                peer={peer}
-              />
-            </>
+            <div className={shared.infoActions}>
+              <button
+                type="button"
+                className={cls('secondary', 'icon-button', shared.helperButton)}
+                onClick={() => void handleEndGame()}
+              >
+                <IconEnd size={15} aria-hidden />
+                End
+              </button>
+            </div>
           )}
         </div>
 
-        <div className={styles.gameLogSlot}>
-          <GameTurnLog clues={clues} guesses={guesses} players={players} />
-        </div>
+        <GameTurnLog clues={clues} guesses={guesses} players={players} />
       </div>
 
       {showModal && over && (
