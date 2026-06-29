@@ -69,7 +69,7 @@ function timerLabel(t: TimerMode): string {
  *     header branch — the guesses log is RLS-scoped to the caller,
  *     so there are no peer events to announce.
  *
- * Submission flow (unchanged from baseline):
+ * Submission flow:
  *   1. FE evaluates the guess locally against board.categories
  *      (FE-knows-the-answer; see docs/games/connections.md).
  *   2. Dup detection (sameTileSet on the existing guess log) —
@@ -78,8 +78,10 @@ function timerLabel(t: TimerMode): string {
  *   3. Fire submit_guess RPC with (tiles, result, rank).
  *   4. Realtime postgres-changes propagate to every player; the
  *      hook refetches automatically (players + guesses + games).
- *   5. Broadcast a `clear` (no-op in compete because broadcast is
- *      local-only there; coop drops everyone's selection).
+ *   5. On a CORRECT guess only, broadcast a `clear` (no-op in
+ *      compete because broadcast is local-only there; coop drops
+ *      everyone's selection). A wrong / one-away guess keeps the
+ *      selection so the player can tweak it and resubmit.
  *
  * **Pause behavior**: PauseBoundary in GamePage unmounts this
  * component on pause and remounts on resume. The shared selection
@@ -252,16 +254,25 @@ export function PlayArea({
       flashCommit('bad', error.message)
       return
     }
-    // Own-result flash in the commit slot (green/neutral/red). sendClear()
-    // empties the selection below, so the flash fills the vacated row until
-    // it times out or the player clicks a tile.
-    if (verdict.kind === 'correct') flashCommit('good', 'Correct!')
-    else if (verdict.kind === 'oneAway') flashCommit('near', 'One away!')
-    else {
+    // Own-result flash in the commit slot (green/near/red). The flash replaces
+    // the commit buttons for its lifetime regardless; what differs is the
+    // SELECTION:
+    //   - correct → clear it (those four tiles just became a solved band, so
+    //     they leave the grid anyway).
+    //   - wrong / one-away → KEEP it, so the player can swap a tile or two and
+    //     resubmit without rebuilding the whole guess. A one-away especially is
+    //     "so close" — clearing it would be hostile. Clicking a tile dismisses
+    //     the flash early (handleToggle) and the buttons return with the
+    //     selection still live; resubmitting an unchanged set hits dup-detection.
+    if (verdict.kind === 'correct') {
+      flashCommit('good', 'Correct!')
+      sendClear()
+    } else if (verdict.kind === 'oneAway') {
+      flashCommit('near', 'One away!')
+    } else {
       flashCommit('bad', 'Incorrect')
       setShakingTiles(new Set(unionTiles))
     }
-    sendClear()
   }
 
   function handleClear() {
