@@ -218,6 +218,38 @@ describe('useClubChat', () => {
     expect(result.current.messages[1].content).toBe('while you were out')
   })
 
+  it('does not drop a live-appended message when a stale refetch lacks it (rapid-message race)', async () => {
+    // Initial load: one message.
+    mockOrder.mockResolvedValueOnce({
+      data: [{ id: 'm1', user_id: 'ada', content: 'hi' }],
+      error: null,
+    })
+    const { result } = renderHook(() => useClubChat('club-1'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // A second message arrives LIVE via INSERT and is appended.
+    act(() => {
+      channelHandlers.insert!({
+        new: { id: 'm2', user_id: 'bea', content: 'hello' },
+      })
+    })
+    expect(result.current.messages).toHaveLength(2)
+
+    // A SUBSCRIBED refetch now resolves with a STALE snapshot — its query was
+    // taken before m2 committed, so it only has m1. This must NOT clobber the
+    // live-appended m2 (the bug that left the unread badge stuck at 1).
+    mockOrder.mockResolvedValueOnce({
+      data: [{ id: 'm1', user_id: 'ada', content: 'hi' }],
+      error: null,
+    })
+    act(() => {
+      channelHandlers.status!('SUBSCRIBED')
+    })
+
+    await waitFor(() => expect(result.current.messages).toHaveLength(2))
+    expect(result.current.messages.map((m) => m.id)).toEqual(['m1', 'm2'])
+  })
+
   it('does not refetch on non-SUBSCRIBED statuses', async () => {
     mockOrder.mockResolvedValueOnce({ data: [], error: null })
     renderHook(() => useClubChat('club-1'))
