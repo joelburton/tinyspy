@@ -41,15 +41,18 @@ const BEA: Member = {
 /** A child that increments an external counter every time it
  *  mounts. Used to assert that unmount-on-pause + remount-on-
  *  resume actually fires. */
-function MountCounterChild({ count }: { count: { value: number } }) {
+function MountCounterChild({ onMount }: { onMount: () => void }) {
   // Use a ref guard so React 18+ StrictMode double-invoke doesn't
-  // double-count effect bodies; we only want to count real mounts.
-  const incremented = useRef(false)
+  // double-count effect bodies; we only want to count real mounts. A callback
+  // (rather than a mutated counter argument) keeps the helper clear of the
+  // argument-mutation the react-hooks immutability rule correctly forbids; a
+  // fresh mount after an unmount gets a fresh `counted` ref, so it fires again.
+  const counted = useRef(false)
   useEffect(() => {
-    if (incremented.current) return
-    incremented.current = true
-    count.value += 1
-  }, [count])
+    if (counted.current) return
+    counted.current = true
+    onMount()
+  }, [onMount])
   return <div data-testid="child">child</div>
 }
 
@@ -75,32 +78,32 @@ describe('PauseBoundary', () => {
   })
 
   it('remounts children when paused toggles true→false (i.e., children unmount, not visibility:hidden)', () => {
-    const count = { value: 0 }
+    const onMount = vi.fn()
     const { rerender } = render(
       <PauseBoundary paused={false} missing={[]}>
-        <MountCounterChild count={count} />
+        <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
-    expect(count.value).toBe(1)
+    expect(onMount).toHaveBeenCalledTimes(1)
 
-    // Pause: child unmounts. Counter stays at 1.
+    // Pause: child unmounts. Mount count stays at 1.
     rerender(
       <PauseBoundary paused={true} missing={[BEA]}>
-        <MountCounterChild count={count} />
+        <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
     expect(screen.queryByTestId('child')).not.toBeInTheDocument()
-    expect(count.value).toBe(1)
+    expect(onMount).toHaveBeenCalledTimes(1)
 
-    // Resume: child remounts. Counter increments — the proof that
+    // Resume: child remounts. Mount count increments — the proof that
     // the previous unmount actually happened.
     rerender(
       <PauseBoundary paused={false} missing={[]}>
-        <MountCounterChild count={count} />
+        <MountCounterChild onMount={onMount} />
       </PauseBoundary>,
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
-    expect(count.value).toBe(2)
+    expect(onMount).toHaveBeenCalledTimes(2)
   })
 
   it('shows the missing peer name in the presence-pause copy', () => {

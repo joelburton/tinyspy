@@ -115,7 +115,14 @@ export function useRealtimeRefetch({
   // captures the latest `loadRef.current` every time the channel
   // fires a refetch.
   const loadRef = useRef<RealtimeLoad>(load)
-  loadRef.current = load
+  // Keep the ref pointing at the latest `load` after each commit. Done in an
+  // effect (not a bare write during render — refs aren't render outputs) so the
+  // subscription effect below, which deliberately omits `load` from its deps,
+  // still fires the freshest closure when the channel calls back. No dep array:
+  // it re-syncs on every render, which is exactly what "latest" wants.
+  useEffect(() => {
+    loadRef.current = load
+  })
 
   // Normalize a single subscription to a one-element array — the
   // wiring loop below treats both shapes uniformly.
@@ -169,6 +176,11 @@ export function useRealtimeRefetch({
     // Deps: channelPrefix + id + tablesKey. NOT load — held in
     // ref above. Rebuilding the channel on a load-identity
     // change would be wrong (load captures the same id and
-    // tables; nothing structural is different).
+    // tables; nothing structural is different). The effect also reads
+    // `tableList`, but `tablesKey` is its stable string proxy (a fresh
+    // `[{...}]` literal each render would otherwise thrash the channel) —
+    // so we depend on the key, not the array. exhaustive-deps can't see
+    // through that derivation, hence the scoped disable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelPrefix, id, tablesKey])
 }

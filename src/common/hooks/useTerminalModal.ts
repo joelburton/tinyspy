@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 /**
  * Terminal-modal state for a game's PlayArea.
@@ -40,9 +40,21 @@ export function useTerminalModal(isTerminal: boolean): {
   closeModal: () => void
 } {
   const [showModal, setShowModal] = useState(isTerminal)
-  useEffect(function popOnTerminal() {
+
+  // Pop the modal when `isTerminal` transitions false → true, without an effect:
+  // we track the previous value and adjust state DURING render (React's endorsed
+  // "storing information from previous renders" pattern — it re-renders
+  // immediately without committing, so there's no extra paint and no
+  // set-state-in-effect cascade). The transition guard is what makes the pop
+  // fire once: after the user closes the modal, `isTerminal` hasn't changed, so
+  // we don't re-pop on subsequent renders. The initial already-terminal case is
+  // handled by `useState(isTerminal)` above, so this only covers the flip.
+  const [prevTerminal, setPrevTerminal] = useState(isTerminal)
+  if (isTerminal !== prevTerminal) {
+    setPrevTerminal(isTerminal)
     if (isTerminal) setShowModal(true)
-  }, [isTerminal])
+  }
+
   return {
     showModal,
     closeModal: () => setShowModal(false),
