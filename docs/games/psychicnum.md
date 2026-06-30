@@ -371,10 +371,13 @@ src/psychicnum/
                           + submit_guess dispatch. Clicking a board tile and typing
                           drive the same pending word.
     GuessForm.module.css
-    GameTurnLog.tsx      The shared <TurnLog> table — one row per guess or hint
-                          (outcome bar green=correct / red=wrong / amber=
-                            hint+reveal; a hint row is a colspan "Hint: <clue>"),
-                          word + result + actor with their identity dot.
+    GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
+                          panel (row anatomy is the game's — see ui.md → Turn log):
+                          each row = the shared <TurnLogBar> cell (green=correct /
+                          red=wrong / amber=hint+reveal) + #n + word + result +
+                          actor with their identity dot, and turnLog.turnLogDivider
+                          for the between-turns line. A hint row collapses the
+                          word+result columns into a colspan "Hint: <clue>".
     GameTurnLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
                           mounted in the common SetupGameDialog.

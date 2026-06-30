@@ -335,13 +335,17 @@ src/codenamesduet/
                           never as a second row (the slot is fixed-height — the
                           board must not reflow).
     CluePanel.module.css
-    GameTurnLog.tsx       Turn-by-turn replay on the shared <TurnLog>: one
-                          <TurnLogItem outcome=…> per turn (a turn = one clue + its
-                          0..N guesses), grouped client-side by turn_number. Top
-                          line = the clue ({count} {WORD}); bottom line = the
-                          guesses (each colored by reveal outcome) + the clue-giver
-                          via the shared <ActorTag>. Outcome bar from
-                          lib/turnOutcome.ts.
+    GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
+                          codenamesduet renders its OWN rows (row anatomy is the
+                          game's — see ui.md → Turn log): a TWO-<tr> turn per
+                          turn_number (grouped client-side). Row 1 = real columns
+                          [<TurnLogBar> ⇣rowSpan 2] | #n | {count} {WORD} | the
+                          clue-giver via <ActorTag> (right-aligned via turnLog.who);
+                          row 2 spans those content columns with the guesses (each
+                          colored by reveal outcome) — or "(clue given)" while the
+                          turn is still live, "(no guesses)" once it ended empty.
+                          turnLog.turnLogDivider on row 1 draws the between-turns
+                          line. Per-turn outcome from lib/turnOutcome.ts.
     GameTurnLog.module.css
     GameTurnLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
@@ -466,7 +470,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
-| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping, oldest-first chronological order, within-turn guess sort by `revealed_at`, "no guesses made" placeholder for passed turns. |
+| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, and the guess-line state: "(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended (or the game is over). |
 
 **Plus one Playwright e2e** — [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — a deliberate, narrow exception to the "e2e = realtime/presence only" charter. It guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
 

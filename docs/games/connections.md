@@ -340,10 +340,13 @@ src/connections/
     MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
                           mistake, filled for remaining and dimmed for used (default budget 4).
     MistakeDots.module.css
-    GameTurnLog.tsx      The append-only log of this game's guesses, in the info column,
-                          rendered with the shared <TurnLog> table (one row = the 4 tiles +
-                          a verdict sub-line + the actor's identity dot). Stateless/
-                          presentational; same shape as psychicnum's <GameTurnLog>.
+    GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
+                          Renders its OWN single-<tr> rows in the shared <TurnLog> panel
+                          (row anatomy is the game's — see ui.md → Turn log): each row =
+                          the shared <TurnLogBar> cell + one content cell holding the 4
+                          tiles over a verdict sub-line + the actor's identity dot, with
+                          turnLog.turnLogDivider for the between-turns line. Stateless/
+                          presentational.
     GameTurnLog.module.css
     HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
                           a "Reveal" button that surfaces that category's first tile. Purely

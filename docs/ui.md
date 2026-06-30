@@ -704,58 +704,81 @@ box fits where it sits.)
 
 ## Turn log
 
-The shared **`<TurnLog>`** + **`<TurnLogItem outcome>`** (`common/components/TurnLog.tsx`)
-is a game's per-turn history — one **item** per turn (= per guess for most games; a
-TinySpy turn can span several guesses, so the row is an "item"/"turn", never a
-"guess" in the shared vocabulary). It's the chronological counterpart to the
-alphabetical `<WordList>` (spellingbee/boggle); a game has whichever fits.
+The shared **`<TurnLog>`** (`common/components/TurnLog.tsx`) is a game's per-turn
+history — one **item** per turn (= per guess for most games; a TinySpy turn can
+span a clue + several guesses, so an item is a "turn", never a "guess" in the
+shared vocabulary). It's the chronological counterpart to the alphabetical
+`<WordList>` (spellingbee/boggle); a game has whichever fits.
 
-- **It's a `<table>`.** Rows are `<tr>`s and each game supplies its own `<td>`
-  cells, so the pieces line up in **columns across rows** (the number column, the
-  who column, etc. all align) — which a flex/grid-of-rows can't do, and which is
-  the point once rows carry several pieces of info. `<TurnLogItem>` prepends the
-  shared outcome-bar cell; the game passes the rest.
-- **Class vocabulary.** The structure is `turnLog`-prefixed (`.turnLog` /
-  `.turnLogBox` / `.turnLogItem` / `.turnLogBar`); `.turnLog` carries the shared
-  `flex: 1` column-fill so a consumer needs no `className` for the common case.
-  The small composable **content classes** (`.primary` / `.meta` / `.who`) keep
-  bare names — read as `turnLog.primary` at the call site, already namespaced by
-  the import alias. (The actor name + identity disc is the shared
-  [`<ActorTag>`](#player-identity--a-colored-disc), not a TurnLog class.)
-- **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
-  frame, not a hairline, so it reads as scrollable) that stays the same height
-  whether empty or full and auto-snaps to the newest row; the table scrolls
-  inside it.
-- **Outcome bar — every entry, every game.** The first cell holds a colored bar
-  (`good` / `bad` / `partial` / `neutral` → the shared `--color-outcome-*`
-  palette, so a "bad" turn reads the same everywhere). It's a real `<span>`, not
-  a styled empty cell: **an empty table cell collapses (its `width` is ignored)
-  and has no content box to paint**, so neither a cell background nor
-  `background-clip: content-box` shows anything — the span is what makes it
-  reliable. The cell's padding does the spacing — `padding-left` is the bar's
-  left margin, `padding-right` the gap to the next cell, and the vertical padding
-  insets the bar (so adjacent rows' bars don't touch and read as individual
-  segments). The bar tracks the row height.
-- **Flat rows, not cards.** No per-row border or margin — rows are separated by a
-  single horizontal **divider line** (the cells' shared `border-bottom`), which
-  spans the full width (reaches the left edge) and, with symmetric cell padding,
-  sits centered between rows. No vertical borders between cells.
-- **Content library, not ad-hoc.** Cell *content* is game-specific, but games
-  compose it from `TurnLog.module.css`'s content classes — `.primary` (the lead
-  value), `.meta` (minor/de-emphasized info), `.who` (a right-aligned cell that
-  absorbs the row's slack so the discs line up on the right) — plus the shared
+**The game owns its rows.** `<TurnLog>` is the **panel only** — heading, scroll
+box, `<table>` — and makes **no** assumption about row shape, because row anatomy
+genuinely differs game to game: a one-row three-column guess, a two-`<tr>`
+clue-then-guesses turn, a row with an inline mini-board. So a game renders its
+**own `<tr>`s** inside `<TurnLog>` (its children *are* the rows). The only shared
+contract is *"a turn-log item is a `<tr>` in this table."* Even the column count
+isn't shared — psychicnum's one-guess row and a future five-column stat row are
+both valid. (Trying to parameterize one row shape into a shared `<TurnLogItem>`
+was overfitting — it grows a prop per game-shape; see [design-decisions.md →
+Reconciliation #7](design-decisions.md#reconciliation-with-the-code).)
+
+What *is* shared is **vocabulary a game composes into its own rows**, so logs look
+consistent without imposing structure:
+
+- **It's a `<table>`,** so when a game *does* use the same columns across its
+  rows, they line up (number column, who column, …) — a flex/grid-of-rows can't.
+  **Use that structure: give each aligning piece its own `<td>`** (and a multi-line
+  turn a second `<tr>` with a `rowSpan`ned bar). **Don't** collapse a whole row
+  into one `<td>` and fake the columns with flexbox/grid inside it — that throws
+  away the alignment the table exists for (the codenamesduet conversion bug). A
+  single content cell is fine only when the row is genuinely one blob beside the
+  bar (connections's stacked tiles + verdict — nothing in it needs to align with
+  the next row). Default cell padding/size lives on `:where(.turnLogTable) td`
+  (held at single-*element* specificity by `:where()`, so any game cell class or
+  the bar atom overrides it without a fight).
+- **`<TurnLogBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
+  row piece common to most logs. It's *optional* (a game's row needn't include
+  it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
+  class), so a game drops it into whatever row it builds. `outcome` is `good` /
+  `bad` / `partial` / `neutral` → the shared `--color-outcome-*` palette, so a
+  "bad" turn reads the same everywhere; `rowSpan` lets a multi-row turn have the
+  bar cover the whole turn (codenamesduet). The bar is a real `<span>`, not a
+  styled empty cell (**an empty table cell collapses — its `width` is ignored —
+  and has no content box to paint**); a zero-height `::before` spacer reserves the
+  column width so a content-rich row can't squeeze the bar to nothing. The cell's
+  padding sets the spacing; the span is absolutely positioned + inset top/bottom
+  so it tracks the (possibly multi-row) cell height and adjacent bars read as
+  individual segments.
+- **`.turnLogDivider`** — the between-turns **divider line**. A game puts it on
+  the **first `<tr>` of each turn** (it alone knows where a turn starts — one row
+  or several). It's a *top* border, so a multi-row turn gets **no** mid-turn line;
+  `:first-child` suppresses it on the very first turn, so a game applies it to
+  every turn-start row unconditionally. Full width, reaching the left edge (over
+  the bar column too). Flat rows, no per-row card border, no vertical borders.
+- **Content classes** — `.primary` (the lead value), `.meta` (minor/de-emphasized
+  info, e.g. a turn number), `.who` (a right-aligned cell that absorbs the row's
+  slack so the discs line up on the right) — plus the shared
   [`<ActorTag>`](#player-identity--a-colored-disc) for the actor (name + identity
-  disc), so similar pieces look the same across games. The set grows as new
-  shapes recur; reach for an existing class/component before inventing one.
+  disc). Bare names, read as `turnLog.primary` (namespaced by the import alias).
+  Reach for an existing class/component before inventing one.
+- **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
+  frame, not a hairline) that stays the same height whether empty or full and
+  auto-snaps to the newest row; the table scrolls inside it.
 
-psychicnum, connections, and codenamesduet all use `<TurnLog>` — codenamesduet's
-`GameTurnLog` is the **multi-guess** case the "item, not guess" vocabulary was
-named for: one item spans a clue + its several guesses (its outcome bar is
-derived per turn in `codenamesduet/lib/turnOutcome.ts`). The older `HistoryPanel`
-predecessor it replaced has been **deleted** (it had no other consumers — scrabble's
-framed `PlayLog` is separate and unaffected). A connections row stacks the four
-guessed tiles + a verdict sub-line in one cell while the turn-number and who
-columns still align across rows.
+psychicnum, connections, and codenamesduet each render their own rows:
+psychicnum's is a single `<tr>` (number / word / result / who columns);
+connections's stacks the four guessed tiles + a verdict sub-line in one content
+cell; **codenamesduet's is the multi-guess case** the "item, not guess"
+vocabulary was named for — a **two-`<tr>`** turn (the bar `rowSpan`s both) with
+real `# | clue | clue-giver` columns on row 1 and the turn's guesses spanning
+beneath on row 2 (its per-turn outcome derived in
+`codenamesduet/lib/turnOutcome.ts`).
+
+**`<TurnLogItem>` survives only as a thin legacy single-row wrapper** (one `<tr>`
+= `<TurnLogBar>` + `.turnLogDivider` + the game's cells) for games not yet
+converted — **waffle** today. New code should not use it; convert a remaining
+game to its own `<tr>`s, and once no caller is left, delete the wrapper. (The
+older `HistoryPanel` predecessor this whole system replaced was already
+**deleted** — scrabble's framed `PlayLog` is separate and unaffected.)
 
 ## Board sizing
 

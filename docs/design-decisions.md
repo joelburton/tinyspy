@@ -380,3 +380,28 @@ A few statements in [`ui.md`](ui.md) now lag this doc — local feedback describ
 as the `<ResultFlash>` bar, the tone names, and the caret prose (which omits the
 non-empty condition the code already enforces). Reconcile `ui.md` to match when we
 do the implementation pass.
+
+### Conversion gotchas (learned converting codenamesduet)
+
+Two mistakes that are easy to carry over from a v1/v2 layout — check for them
+explicitly on every conversion:
+
+1. **Get the `.infoCol` order right — don't eyeball it.** The
+   [Info column](#info-column-infocol) section documents the exact order its
+   pieces must appear in: **state → opponent strip → action buttons → help →
+   setup disclosure → turn log / word list**. codenamesduet had drifted to
+   setup-first with help and actions swapped. Read that section and reorder to
+   match; a v2 layout's order is *not* a reliable guide.
+
+2. **Use the turn log's real table structure — don't condense a row into one
+   cell.** A `<TurnLog>` row is a `<tr>`; pieces that should line up as **columns
+   across rows** (a number column, a who column) must be real `<td>`s — and a
+   multi-line turn is a **second `<tr>`** (with a `rowSpan`ned bar), not a stacked
+   div. Do **not** collapse the whole row into a single `<td>` and rebuild the
+   columns inside it with flexbox/grid: that defeats the table (its whole job is
+   columns lining up across rows) and was exactly the codenamesduet bug we
+   unwound. (A *single* content cell is fine only when the row genuinely has one
+   blob of content beside the bar — connections's stacked tiles + verdict — i.e.
+   nothing in it needs to align with the next row. The test: "should this piece
+   line up with the same piece one row down?" → if yes, it's a column, give it a
+   `<td>`.) See [Turn log](ui.md#turn-log) in ui.md.
