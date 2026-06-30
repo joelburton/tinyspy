@@ -629,6 +629,16 @@ pending value in a read-only display box (the shared **`<EntryBox>`**), so there
 no focus to lose — typing and tile-clicks both feed one pending value, and clicking
 anywhere never interrupts entry.
 
+Every such game renders the shared **`<EntryRow>`** (`common/components/EntryRow.tsx`):
+one component bundling the whole entry control so it looks + behaves identically
+everywhere — an icon-only `<DeleteButton>` + the `<EntryBox>` (which flex-fills the
+row) + an icon-only `<SubmitButton>`, the `useCaptureKeys` keyboard, and the
+**pill swap** (pass a `pill` and it renders that `<FeedbackPill>` in place of the
+controls — the own-move result / terminal verdict — without unmounting, so a
+keystroke still dismisses it). The host owns only the below-board *slot* (its
+board-matched width + reserved height) and which `pill` to show. A new word game
+gets the entire entry for free.
+
 **Free-text / phrase entry** (codenamesduet's clue — arbitrary words, spaces,
 mid-string editing) is the exception: it stays a real `<input data-game-input>`,
 where native cursor/selection/editing earns its keep. The rule: *single token →
@@ -951,8 +961,9 @@ icon buttons).
 | Back to club | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
 | Submit a move | `Triangle` (points up) | Recall | `Undo2` |
 | Get hint | `Lightbulb` | Trash / dump | `Recycle` |
-| Get answer / reveal | `Eye` | Pause | `Pause` |
-| End game | `Flag` | Peel | **`🍌` kept** (see below) |
+| Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
+| Get answer / reveal | `Eye` | Peel | **`🍌` kept** (see below) |
+| End game | `Flag` | | |
 | Clear selection | `Eraser` | | |
 
 **Conventions:**

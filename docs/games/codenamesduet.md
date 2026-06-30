@@ -258,7 +258,7 @@ Inherited unchanged from the common shell. The only codenamesduet-relevant note:
 
 ## Edge Function: `codenamesduet-suggest-clue`
 
-The "Clue Hint" button in the FE calls this. The function:
+The "AI" button (the shared `AIButton`) in the FE calls this. The function:
 
 1. Invokes `codenamesduet.get_clue_context(target_game)` as the user (RLS applies — only the current clue-giver gets through). The RPC lives in the `codenamesduet` schema, so the call is `.schema('codenamesduet').rpc('get_clue_context', …)` — an un-qualified `rpc()` hits `public`, misses, and 403s.
 2. Calls Claude Sonnet 4.6 via the Anthropic tool-use API. The tool schema asks for `{thinking, clue, count, agents, reasoning}`: `thinking` is a **discarded scratchpad** (required + first, so the model's chain-of-thought lands there and the returned `reasoning` stays a clean final explanation, not stream-of-consciousness), and the model must commit to specific agent words. `max_tokens` is generous (the scratchpad must not starve the tool JSON). A `console.log` of the raw Anthropic response is kept intentionally as a debugging aid.
@@ -325,10 +325,11 @@ src/codenamesduet/
     CluePanel.tsx         The below-board move-zone — rendered into PlayArea's
                           `.inputRow` slot (NOT the info column). ONE horizontal
                           line per state: the clue FORM (count + word `<input>` +
-                          Submit + "Clue Hint") for the giver; the active clue +
+                          Submit + "AI") for the giver; the active clue +
                           Pass for the guesser; a muted "Waiting for moth…" line
                           otherwise; the sudden-death notice. Live-uppercases the
-                          clue. "Clue Hint" calls the edge function and opens the
+                          clue. The "AI" button (shared `AIButton`, sparkles + amber)
+                          calls the edge function and opens the
                           AI suggestion in a <FloatingPanel> (the exported
                           `ClueSuggestionPanel`, mounted by PlayArea at `.layout`
                           level); errors surface in that dialog or the local flash,

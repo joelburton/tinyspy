@@ -35,3 +35,10 @@
   min-height: 2.75rem;
 }
 
+/* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
+ * entry font — a single short guess word reads large. Applied to the shared
+ * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
+.bigEntry {
+  --entrybox-font-size: 2rem;
+}
+

@@ -19,7 +19,7 @@ import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { GuessForm } from './GuessForm'
+import { EntryRow } from '../../common/components/EntryRow'
 import { GameTurnLog } from './GameTurnLog'
 import { WordBoard } from './WordBoard'
 import shared from '../../common/components/PlayArea.module.css'
@@ -397,14 +397,30 @@ export function PlayArea({
               />
             </div>
           ) : canGuess ? (
-            <GuessForm
+            /* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
+               Submit + the capture keyboard) — same control every EntryBox game
+               uses. `bigEntry` bumps the entry font (psychicnum's one short guess
+               word reads large). The own-move result pill replaces the controls
+               while the entry is empty (typing reclaims it). */
+            <EntryRow
               value={pending}
               onChange={handleEntryChange}
               onSubmit={submitGuess}
-              submitting={submitting}
+              placeholder="Click on a tile or type"
+              busy={submitting}
+              onAnyKey={clearFlash}
               recall={lastGuess}
-              result={entryFlash}
-              onDismissResult={clearFlash}
+              className={styles.bigEntry}
+              pill={
+                entryFlash && pending === ''
+                  ? {
+                      tone: entryFlash.tone === 'good' ? 'success' : 'error',
+                      text: entryFlash.label,
+                      variant: 'outline',
+                      dismiss: { kind: 'sticky' },
+                    }
+                  : null
+              }
             />
           ) : (
             <div className={shared.localFeedback}>

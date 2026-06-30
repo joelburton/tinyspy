@@ -56,9 +56,9 @@
   gap: 0.4rem;
 }
 
-/* The control row stays on ONE line (label, count, word, submit, Clue Hint) —
- * no wrap, so the Clue Hint button never drops below the inputs. When space is
- * tight the word field shrinks (flex-shrink) rather than the row breaking. */
+/* The control row stays on ONE line (label, count, word, submit, AI) — no wrap,
+ * so the AI button never drops below the inputs. When space is tight the word
+ * field shrinks (flex-shrink) rather than the row breaking. */
 .clueLine {
   display: flex;
   flex-direction: row;
@@ -82,17 +82,16 @@
 }
 
 /* Submit button — the shared icon+label look (via the global `.icon-button`).
- * Holds its width + stays one line in the no-wrap row, like the Clue Hint
- * button beside it. */
+ * Holds its width + stays one line in the no-wrap row, like the AI button
+ * beside it. */
 .submitBtn {
   flex-shrink: 0;
   white-space: nowrap;
 }
 
-/* The "Clue Hint" button (AI suggestion) — icon + label via the global
- * `.icon-button`. Hold its width (no shrink) + keep the label on one line, so
- * "Clue Hint" never wraps onto two lines. */
-.hintBtn {
+/* The AI clue-suggestion button — icon + label via the global `.icon-button`.
+ * Hold its width (no shrink) + keep the label on one line. */
+.aiBtn {
   font-size: 0.9rem;
   flex-shrink: 0;
   white-space: nowrap;

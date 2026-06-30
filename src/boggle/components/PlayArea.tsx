@@ -4,15 +4,12 @@ import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { EntryBox } from '../../common/components/EntryBox'
+import { EntryRow } from '../../common/components/EntryRow'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { SubmitButton } from '../../common/components/buttons/SubmitButton'
-import { DeleteButton } from '../../common/components/buttons/DeleteButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
+import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
@@ -25,11 +22,6 @@ import { db } from '../db'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-
-/** Local feedback pills are never closeable here (sticky, dismissed by the next
- *  move), so the × is never rendered and `onClose` is never called — but
- *  `<FeedbackPill>` requires the prop. */
-const noop = () => {}
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters
  *  themselves render upright (no spin). new[i][j] = old[n-1-j][i]. */
@@ -188,27 +180,6 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [word, game, isTerminal, submitting, foundWords, myId, ladder, gameId, showFeedback])
 
-  const handleDelete = useCallback(() => {
-    clearFeedback()
-    setWord((prev) => prev.slice(0, -1))
-  }, [clearFeedback])
-
-  // ─── Capture-entry key handling ────────────────────────
-  // The shared helper owns the universal plumbing (modifier bail, Tab swallow,
-  // sticky-feedback dismissal, Backspace / Enter, the 16-char cap, and the universal
-  // last-move history: ArrowUp recalls `recall` — the last submitted word — and
-  // ArrowDown clears). boggle's only per-game piece: letters stored UPPERCASE.
-  useCaptureKeys({
-    value: word,
-    onChange: setWord,
-    onSubmit: () => void submit(),
-    disabled: loading || !game || isTerminal,
-    busy: submitting,
-    onAnyKey: clearFeedback,
-    charFor: asciiLetters('upper'),
-    recall: lastWord,
-  })
-
   // Manual end — an info-column action-row button now (like the other converged
   // games), off the GamePage menu. Confirmed; it's irreversible.
   const handleEndGame = useCallback(async () => {
@@ -266,49 +237,35 @@ export function PlayArea(ctx: GamePageCtx) {
           label="Rotate board"
           className={shared.floatingShuffle}
         />
-        {/* The below-board slot holds exactly ONE of: the terminal pill, the
-            sticky own-move feedback pill, or the input row — they replace each
-            other in a fixed-height slot so the board never reflows. */}
+        {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the
+            EntryBox + icon-only Submit, plus the capture keyboard). It renders the
+            terminal verdict / own-move feedback pill in place of the controls when
+            `pill` is set (terminal takes precedence; an own-move result shows only
+            while the entry is empty so typing reclaims the slot). */}
         <div className={styles.belowBoard}>
-          {over ? (
-            <div className={shared.localFeedback}>
-              <FeedbackPill
-                msg={{
-                  tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                  text: over.verdict,
-                  variant: 'fill', // permanent → lightened-tone fill
-                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
-                }}
-                onClose={noop}
-              />
-            </div>
-          ) : feedback.message && word === '' ? (
-            <div className={shared.localFeedback}>
-              <FeedbackPill
-                msg={{
-                  tone: feedback.tone,
-                  text: feedback.message,
-                  variant: 'outline', // transient look
-                  dismiss: { kind: 'sticky' },
-                }}
-                onClose={noop}
-              />
-            </div>
-          ) : (
-            <div className={styles.inputRow}>
-              <DeleteButton
-                iconOnly
-                onClick={handleDelete}
-                disabled={word.length === 0 || isTerminal}
-              />
-              <EntryBox value={word} placeholder="Type a word" />
-              <SubmitButton
-                iconOnly
-                onClick={() => void submit()}
-                disabled={word.length === 0 || isTerminal}
-              />
-            </div>
-          )}
+          <EntryRow
+            value={word}
+            onChange={setWord}
+            onSubmit={() => void submit()}
+            placeholder="Type a word"
+            disabled={isTerminal}
+            busy={submitting}
+            onAnyKey={clearFeedback}
+            charFor={asciiLetters('upper')}
+            recall={lastWord}
+            pill={
+              over
+                ? {
+                    tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
+                    text: over.verdict,
+                    variant: 'fill', // permanent → lightened-tone fill
+                    dismiss: { kind: 'sticky' },
+                  }
+                : feedback.message && word === ''
+                  ? { tone: feedback.tone, text: feedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                  : null
+            }
+          />
         </div>
       </div>
 

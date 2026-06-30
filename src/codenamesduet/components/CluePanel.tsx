@@ -4,7 +4,7 @@ import { cls } from '../../common/lib/cls'
 import { ActorTag } from '../../common/components/ActorTag'
 import { FloatingPanel } from '../../common/components/FloatingPanel'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
-import { HintButton } from '../../common/components/buttons/HintButton'
+import { AIButton } from '../../common/components/buttons/AIButton'
 import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
@@ -50,7 +50,7 @@ type CluePanelProps = {
  *     guesser       → "Your clue: WORD · N" + Pass button
  *     clue-giver    → "Your clue: WORD · N" + "waiting for <peer> to guess"
  *   clue phase &&
- *     clue-giver    → "Clue for <peer>" + count + word + Submit + Clue Hint
+ *     clue-giver    → "Clue for <peer>" + count + word + Submit + AI
  *     guesser       → "waiting for <peer> to give a clue"
  *
  * Every state is exactly ONE line, so the reserved-height slot is constant and
@@ -139,7 +139,7 @@ export type SuggestState =
   | { status: 'ready'; word: string; count: number; reasoning: string }
 
 /**
- * The clue-giver's inline clue form: "[#]  [word]  [△ Submit]  [💡 Clue Hint]"
+ * The clue-giver's inline clue form: "[#]  [word]  [△ Submit]  [✨ AI]"
  * on ONE line (the submit's up-triangle "sends" the clue to the partner). Errors
  * are reported up via `onError` (to the local flash) so the
  * row never grows a second line; an AI suggestion fills the inputs AND opens a
@@ -268,13 +268,14 @@ function ClueForm({
           disabled={eitherBusy || !submittable}
           className={styles.submitBtn}
         />
-        {/* AI clue suggestion — the shared HintButton (lightbulb + amber warning
-            tone), relabelled "Clue Hint" since here it asks Claude for a clue. */}
-        <HintButton
-          label={suggesting ? 'Thinking…' : 'Clue Hint'}
+        {/* AI clue suggestion — the shared AIButton (sparkles + amber warning
+            tone): asking Claude for a clue is "use AI", distinct from a built-in
+            "hint". Shows "Thinking…" while the edge function runs. */}
+        <AIButton
+          label={suggesting ? 'Thinking…' : 'AI'}
           onClick={onSuggest}
           disabled={eitherBusy}
-          className={styles.hintBtn}
+          className={styles.aiBtn}
         />
       </div>
     </form>

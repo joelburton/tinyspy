@@ -206,15 +206,22 @@ Everything under the board is the **`belowBoard`** region. It contains:
 
 Some games put other things in `belowBoard`; many don't.
 
-## Move entry: `EntryBox`
+## Move entry: `EntryRow`
 
 For games where the player types a word (psychicnum, spellingbee, boggle, …) we do
-**not** use a real `<input type=text>`. We use the shared **`<EntryBox>`** (the
-display + caret) plus the **`useCaptureKeys`** hook (the key handling — built on
-`useGlobalKeyHandler`, which captures keystrokes off the window) and
-**`useGameHasKeyboard`** (gates capture so it never fights the chat input). Why
-capture instead of an input: these are board-first games, and a focused `<input>`
-blurs the instant you click a tile, silently stopping typing.
+**not** use a real `<input type=text>`. They all render the shared
+**`<EntryRow>`** (`common/components/EntryRow.tsx`) — one component bundling the
+entire entry control so it looks + behaves identically everywhere: an icon-only
+`<DeleteButton>` + the chrome-less **`<EntryBox>`** (display + caret, flex-filling
+the row) + an icon-only `<SubmitButton>`, the **`useCaptureKeys`** keyboard (key
+handling off the window via `useGlobalKeyHandler`, gated by `useGameHasKeyboard` so
+it never fights the chat input), and the own-move/terminal **pill swap** (pass a
+`pill` and it replaces the controls in the same slot, without unmounting, so a
+keystroke still dismisses it). Why capture instead of an input: these are
+board-first games, and a focused `<input>` blurs the instant you click a tile,
+silently stopping typing. **Both icon buttons are always present, always icon-only**
+— a game never hand-rolls or omits them. The host supplies only the capture values
++ which `pill` to show; a new word game gets the entry for free.
 
 Rules:
 

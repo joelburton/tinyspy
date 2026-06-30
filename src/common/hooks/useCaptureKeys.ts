@@ -99,9 +99,9 @@ export type CaptureKeysOptions = {
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits, the
  * stored case) and any extra keys (`onExtraKey` — spellingbee's Space-shuffle).
  *
- * Replaces the near-identical hand-rolled key handlers that lived in psychicnum's
- * GuessForm and spellingbee's PlayArea (the lift tracked since the first EntryBox
- * adopter).
+ * Driven through the shared `<EntryRow>` (common/components/EntryRow.tsx), which
+ * every EntryBox game renders — so the capture keyboard, the icon Delete/Submit
+ * buttons, and the feedback-pill swap are all shared, not re-wired per game.
  */
 export function useCaptureKeys({
   value,

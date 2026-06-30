@@ -352,7 +352,8 @@ src/psychicnum/
                           PlayArea.module.css now holds only .inputMessage):
                             WordBoard (grid of word tiles on the shared beige --tile-*
                               system; guessed tiles permanently green=secret / red=miss)
-                            GuessForm (capture-input word entry + submit_guess RPC) — during play
+                            <EntryRow> (the shared capture-entry control: icon Delete +
+                              EntryBox + icon Submit + keyboard) + submit_guess RPC — during play
                             info readouts (setup details / state / help) +
                               action row: Hint / Reveal / End — playing
                             Shuffle button — FLOATS over the board top-right
@@ -365,13 +366,13 @@ src/psychicnum/
                           isTerminal, timer, setup, goToClub, feedback, menu }).
                           Cross-cutting chrome (logo, chat-bubble, players strip,
                           pause, timer, suspend-confirm) lives on <GamePage>.
-    PlayArea.module.css
-    GuessForm.tsx         Capture-only word entry (no <input> — keys read off the
-                          window via the shared useCaptureKeys hook into the shared
-                          <EntryBox>; letters lowercase, the default) + submit_guess
-                          dispatch. Clicking a board tile and typing drive the same
-                          pending word.
-    GuessForm.module.css
+    PlayArea.module.css   (+ `.bigEntry` — psychicnum's one entry tweak: a 2rem font
+                          on the shared <EntryRow>, since a single guess word reads large)
+                          The word entry is now the SHARED common/components/EntryRow
+                          (icon Delete + EntryBox + icon Submit + the capture keyboard) —
+                          psychicnum's old per-game GuessForm was deleted when it landed.
+                          Clicking a board tile and typing drive the same pending word;
+                          submit_guess dispatch lives in PlayArea.
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see ui.md → Turn log):
                           each row = the shared <TurnLogBar> cell (green=correct /
@@ -463,6 +464,6 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) + `GuessForm.tsx` / `GameTurnLog.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/components/EntryRow.tsx`](../../src/common/components/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Are the secrets really hidden? | column-level grant + `psychicnum.games_state` view with `_secrets_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

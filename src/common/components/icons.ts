@@ -12,6 +12,10 @@
  */
 export {
   Lightbulb as IconHint, // get a hint (a clue toward the answer)
+  // use an AI-powered helper (e.g. codenamesduet's Claude clue suggester). The
+  // sparkles glyph is the near-universal "AI / magic" idiom — kept DISTINCT from
+  // IconHint's lightbulb so "ask the AI" reads differently from "give me a hint".
+  Sparkles as IconAI,
   Eye as IconReveal, // reveal the answer
   Flag as IconEnd, // end the game (manual stop)
   // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move

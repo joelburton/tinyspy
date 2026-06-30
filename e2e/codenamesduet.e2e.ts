@@ -8,7 +8,7 @@ import { signIn } from './helpers/session'
  * The below-board area cycles through several shapes — the clue form, the clue
  * display + Pass, "waiting for X…", the own-action error flash. The slot is a
  * FIXED height precisely so the `flex: 1` board above never reflows as those
- * swap. We also check that opening the AI "Clue Hint" dialog (a floating panel)
+ * swap. We also check that opening the AI clue dialog (a floating panel)
  * doesn't move the board. That invariant is a real layout property: it can't be
  * checked in Vitest/jsdom (no layout engine — `getBoundingClientRect` is all
  * zeros), so it needs a real browser. This is a deliberate, narrow exception to
@@ -65,8 +65,8 @@ test.describe('codenamesduet below-board layout stability', () => {
     await expect(pageBob.getByText(/waiting for/i).first()).toBeVisible({ timeout: 15000 })
     const bWait = await boardHeight(pageBob)
 
-    // ── Alice clicks Clue Hint and the edge function errors (route-mocked to a
-    //    non-2xx). The suggestion opens its own floating dialog (which surfaces
+    // ── Alice clicks the AI clue button and the edge function errors (route-mocked
+    //    to a non-2xx). The suggestion opens its own floating dialog (which surfaces
     //    the API error), NOT a slot swap — so the form stays put and the board
     //    must not move.
     await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
@@ -76,7 +76,7 @@ test.describe('codenamesduet below-board layout stability', () => {
         body: '{"error":"boom"}',
       }),
     )
-    await pageAlice.getByRole('button', { name: /clue hint/i }).click()
+    await pageAlice.getByRole('button', { name: 'AI' }).click()
     // The dialog pops up (its own panel) — the form is still there underneath.
     await expect(pageAlice.getByText('Clue suggestion')).toBeVisible({ timeout: 10000 })
 

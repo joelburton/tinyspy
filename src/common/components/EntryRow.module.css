@@ -1,0 +1,14 @@
+/* The shared capture-entry control row (common/components/EntryRow.tsx): an
+ * icon-only Delete button | the chrome-less <EntryBox> | an icon-only Submit
+ * button, on one centered line. The EntryBox flex-fills the row (see
+ * EntryBox.module.css → `.box { flex: 1 }`); the buttons keep their intrinsic
+ * icon-square size at the two ends. Shared by every EntryBox game so the entry
+ * looks identical everywhere. The fixed slot height + the board-matched width
+ * stay with the host's `.belowBoard` (they're board-specific). */
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}

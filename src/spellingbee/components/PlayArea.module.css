@@ -66,17 +66,8 @@
   justify-content: center;
 }
 
-/* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
-.inputRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-/* (No per-game EntryBox width — the shared EntryBox now stretches to FILL the row
- * between the buttons, so there's always room for the longest word (16-char cap).
- * See common/components/EntryBox.module.css.) */
+/* (The input row + its EntryBox/Delete/Submit live in the shared
+ * common/components/EntryRow now; only the below-board slot wrapper is here.) */
 
 .loading,
 .empty {

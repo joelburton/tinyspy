@@ -2,18 +2,16 @@ import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { SubmitButton } from '../../common/components/buttons/SubmitButton'
-import { DeleteButton } from '../../common/components/buttons/DeleteButton'
+import { EntryRow } from '../../common/components/EntryRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
+import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
@@ -21,7 +19,6 @@ import type { SpellingbeeSetup } from '../lib/setup'
 import { Letters } from './Letters'
 import { RankBar } from './RankBar'
 import { Stats } from './Stats'
-import { EntryBox } from '../../common/components/EntryBox'
 import { TypedWord } from './TypedWord'
 import { WordList } from '../../common/components/WordList'
 import { buildDisplayRows } from '../lib/displayRows'
@@ -29,11 +26,6 @@ import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
-
-/** Local feedback pills are never closeable (sticky, dismissed by the next move),
- *  so the × is never rendered and `onClose` is never called — but `<FeedbackPill>`
- *  requires the prop. */
-const noop = () => {}
 
 /**
  * Maps each `submit_word` result-enum value to the visual tone
@@ -225,10 +217,6 @@ export function PlayArea(ctx: GamePageCtx) {
     setWord((prev) => prev + letter.toUpperCase())
   }, [clearFeedback])
 
-  const handleDelete = useCallback(() => {
-    clearFeedback()
-    setWord((prev) => prev.slice(0, -1))
-  }, [clearFeedback])
 
   // ─── Submit ────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false)
@@ -265,30 +253,18 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, isTerminal, showFeedback, submitting, word])
 
-  // ─── Capture-entry key handling ────────────────────────
-  // The shared capture-key helper owns the universal plumbing (modifier bail, Tab
-  // swallow, sticky-feedback dismissal, Backspace / Enter, the 16-char cap, and the
-  // universal last-move history: ArrowUp recalls `recall` — the last submitted word,
-  // "add an S" — and ArrowDown clears). spellingbee's own pieces: letters stored
-  // UPPERCASE, and the one extra key — Space shuffles. (The `~` word-lookup shortcut
-  // is app-global; see useAppShortcuts.)
-  useCaptureKeys({
-    value: word,
-    onChange: setWord,
-    onSubmit: () => void handleSubmit(),
-    disabled: loading || !game || isTerminal,
-    onAnyKey: clearFeedback,
-    charFor: asciiLetters('upper'),
-    recall: lastWord,
-    onExtraKey: (e) => {
-      if (e.key === ' ') {
-        e.preventDefault()
-        handleShuffle()
-        return true
-      }
-      return false
-    },
-  })
+  // Space shuffles the outer letters — spellingbee's one capture-entry extra key
+  // (passed to the shared <EntryRow> below, which owns the rest of the keyboard:
+  // letters/Backspace/Enter + the ArrowUp-recall / ArrowDown-clear history). The
+  // `~` word-lookup shortcut is app-global (useAppShortcuts), not here.
+  const handleEntryExtraKey = useCallback((e: KeyboardEvent) => {
+    if (e.key === ' ') {
+      e.preventDefault()
+      handleShuffle()
+      return true
+    }
+    return false
+  }, [handleShuffle])
 
   // ─── End-game action (info-column button) ──────────────
   // The manual "we're done" stop — an info-column action-row button now (like
@@ -387,80 +363,40 @@ export function PlayArea(ctx: GamePageCtx) {
           label="Shuffle outer letters"
           className={shared.floatingShuffle}
         />
-        {/* The below-board slot holds exactly ONE of: the input row (typed-word
-            display flanked by Delete/Submit), the sticky own-move feedback pill,
-            or the terminal pill — they replace each other in a fixed-height slot
-            so the board never reflows. The board itself is the letter input; this
-            row commits/edits it. */}
+        {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the
+            EntryBox + icon-only Submit + the capture keyboard; Space shuffles via
+            onExtraKey). The EntryBox renders spellingbee's per-character illegal-
+            letter dim via <TypedWord> children. When `pill` is set, EntryRow shows
+            it in place of the controls (same slot, no reflow): the terminal verdict
+            (permanent fill) takes precedence over an own-move result, which shows
+            only while the entry is empty so typing reclaims the slot. */}
         <div className={styles.belowBoard}>
-          {isTerminal && over ? (
-            /* Terminal: a PERMANENT fill <FeedbackPill> (outcome-colored) carrying
-               the game-over line REPLACES the input area. Terminal local feedback
-               always lands as a permanent fill pill — it reads *more* like its tone
-               (docs/design-decisions.md → Transient vs permanent). The back-to-club
-               button is NOT here — it's in the info-column action row. */
-            <div className={shared.localFeedback}>
-              <FeedbackPill
-                msg={{
-                  tone:
-                    over.tone === 'won'
-                      ? 'success'
-                      : over.tone === 'lost'
-                        ? 'error'
-                        : 'neutral',
-                  text: `Game over — ${over.indicator}`,
-                  variant: 'fill', // permanent → lightened-tone fill
-                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
-                }}
-                onClose={noop}
-              />
-            </div>
-          ) : feedback.message && word === '' ? (
-            /* Own-action local feedback REPLACES the input row for its beat (a word
-               result / validation message) — the shared centered <FeedbackPill>
-               (transient outline), so local own-move feedback reads identically to
-               the header's global pill. STICKY: it persists until the player's next
-               move clears it (the key / hex-click / Delete handlers). Gated on
-               word === '' so the moment they type the next word their letters
-               reclaim the slot. */
-            <div className={shared.localFeedback}>
-              <FeedbackPill
-                msg={{
-                  tone: feedback.tone,
-                  text: feedback.message,
-                  variant: 'outline',
-                  dismiss: { kind: 'sticky' },
-                }}
-                onClose={noop}
-              />
-            </div>
-          ) : (
-            /* The entry row: icon-only Delete (left) flanking the chrome-less
-               capture-input box, icon-only Submit (right). The shared purpose
-               buttons bake in the glyph, icon-size, tone, and the focus-guard
-               (a click must not steal focus from the window keyboard-capture). */
-            <div className={styles.inputRow}>
-              <DeleteButton
-                iconOnly
-                onClick={handleDelete}
-                disabled={word.length === 0 || isTerminal}
-              />
-              {/* The shared capture-input box (chrome-less, large, centered; no
-                  <input>). spellingbee's per-character illegal-letter dim rides in
-                  as the box's children via <TypedWord>. */}
-              <EntryBox
-                value={word}
-                placeholder="Type or click letters"
-              >
-                <TypedWord word={word} allowedLetters={allowedLetters} />
-              </EntryBox>
-              <SubmitButton
-                iconOnly
-                onClick={() => void handleSubmit()}
-                disabled={word.length === 0 || isTerminal}
-              />
-            </div>
-          )}
+          <EntryRow
+            value={word}
+            onChange={setWord}
+            onSubmit={() => void handleSubmit()}
+            placeholder="Type or click letters"
+            disabled={isTerminal}
+            busy={submitting}
+            onAnyKey={clearFeedback}
+            charFor={asciiLetters('upper')}
+            onExtraKey={handleEntryExtraKey}
+            recall={lastWord}
+            pill={
+              isTerminal && over
+                ? {
+                    tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
+                    text: `Game over — ${over.indicator}`,
+                    variant: 'fill', // permanent → lightened-tone fill
+                    dismiss: { kind: 'sticky' },
+                  }
+                : feedback.message && word === ''
+                  ? { tone: feedback.tone, text: feedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                  : null
+            }
+          >
+            <TypedWord word={word} allowedLetters={allowedLetters} />
+          </EntryRow>
         </div>
       </div>
 
