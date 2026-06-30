@@ -1,0 +1,19 @@
+/* An inline player segment in a RichMessage — a leading identity disc + name,
+ * kept together so it never wraps mid-"● name". */
+.player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+/* The identity disc — a filled circle in the player's color (set inline),
+ * matching the other "● name" markers (docs/ui.md → Player identity). */
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}

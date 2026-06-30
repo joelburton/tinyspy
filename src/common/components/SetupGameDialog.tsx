@@ -1,7 +1,8 @@
 import { Suspense, useState } from 'react'
-import { MODE_LABEL, type GameManifest, type Member } from '../lib/games'
+import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../lib/games'
 import { colorVarFor } from '../lib/memberColor'
 import { FloatingPanel } from './FloatingPanel'
+import { RichMessage } from './RichMessage'
 import actionRow from './modalActions.module.css'
 import styles from './SetupGameDialog.module.css'
 
@@ -98,7 +99,7 @@ export function SetupGameDialog({
     ...((savedDefault ?? {}) as Record<string, unknown>),
   }))
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | RichMessageType | null>(null)
 
   // Who's playing this game. Defaults to every club member; the
   // creator unchecks anyone sitting this one out (the moth+joel
@@ -242,7 +243,11 @@ export function SetupGameDialog({
       {/* Setup-level guard (e.g. bag too small): blocks Start with a
           fix-this hint, same muted register as the player-count hint. */}
       {setupError && <p className={styles.playerHint}>{setupError}</p>}
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error">
+          <RichMessage message={error} />
+        </p>
+      )}
       <div className={actionRow.modalActions}>
         <button
           type="button"

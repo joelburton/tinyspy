@@ -105,8 +105,9 @@ export type GamePageCtx = {
 }
 
 /** Tone variants the feedback pill renders. See docs/ui.md →
- *  Feedback pill. */
-export type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info'
+ *  Feedback pill. (`near` = a near-miss — connections' "one away"; shares
+ *  warning's amber for now.) */
+export type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' | 'near'
 
 /** A single feedback message. The `dismiss` mode picks how it
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
@@ -185,6 +186,16 @@ export type Member = {
    *  matching CSS variable. */
   color: string
 }
+
+/**
+ * A "rich" message — a sequence of text + inline player segments — so an error
+ * (or any message) can name players with their identity disc inline:
+ * "…needs these players: ● bert, ● ernie, ● claude." A plain `string` is still a
+ * valid message everywhere a `RichMessage` is accepted; this is just the
+ * structured form, rendered by `<RichMessage>`. Self-contained (each segment
+ * carries the full `Member`), so it needs no resolver wherever it's shown.
+ */
+export type RichMessage = Array<string | { player: Member }>
 
 /**
  * Props the per-game setup-form body receives from the common
@@ -404,7 +415,7 @@ export type GameManifest = {
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
-  ) => Promise<{ id: string } | { error: string }>
+  ) => Promise<{ id: string } | { error: string | RichMessage }>
 
   /**
    * Render a one-line label for a single `common.games` row,

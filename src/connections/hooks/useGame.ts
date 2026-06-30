@@ -27,7 +27,7 @@ export type Player = Member
 // and arrives via ctx.
 type GameRow = Pick<
   Database['connections']['Tables']['games']['Row'],
-  'id' | 'club_handle' | 'mode' | 'board' | 'created_at'
+  'id' | 'club_handle' | 'mode' | 'board' | 'created_at' | 'puzzle_date'
 >
 
 export type GuessRow = {
@@ -44,6 +44,9 @@ export type GuessRow = {
 export type PlayerRow = {
   user_id: string
   mistake_count: number
+  /** The player's own categories-found count (public; drives the compete
+   *  "Found" opponent strip). See connections.players.matched_count. */
+  matched_count: number
 }
 
 /**
@@ -67,6 +70,9 @@ export type ConnectionsGame = {
   club_handle: string
   mode: 'coop' | 'compete'
   board: Board
+  /** The puzzle's NYT date (`YYYY-MM-DD`), or null for a non-NYT puzzle. The
+   *  most identifying setup choice — *which* daily puzzle this game is. */
+  puzzleDate: string | null
   /** Server-stamped game-start timestamp, ISO. Mirrored from the
    *  per-gametype row (which carries its own created_at). */
   created_at: string
@@ -107,15 +113,15 @@ export type SelectionMap = ReadonlyMap<string, string[]>
  * coop falls back to lock-step shared values):
  *   - `mistakeCount` — caller's row's mistake_count. In coop,
  *     equals every other row's; in compete, the caller's own.
- *   - `opponentMistakes` — Map<user_id, count> excluding caller.
- *     Drives the compete OpponentStrip; empty in coop.
+ *   - `opponentFound` — Map<user_id, categories-found> excluding
+ *     caller. Drives the compete "Found" OpponentStrip; empty in coop.
  *   - `isEliminated` — caller's mistake_count >= 4. Compete-only
  *     meaningful (in coop the whole game would already be terminal
  *     once mistakes hit 4); always false in coop pre-game-over.
  *
  * Returns:
  *   - game / guesses / matchedCategories — postgres-derived state.
- *   - mistakeCount / opponentMistakes / isEliminated — see above.
+ *   - mistakeCount / opponentFound / isEliminated — see above.
  *   - selections / unionTiles — shared peer-selection state
  *     (coop only; compete's map only ever contains caller's own).
  *   - toggleTile / sendClear — emit selection events.
@@ -131,7 +137,7 @@ export function useGame(
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
   mistakeCount: number
-  opponentMistakes: ReadonlyMap<string, number>
+  opponentFound: ReadonlyMap<string, number>
   isEliminated: boolean
   selections: SelectionMap
   unionTiles: string[]
@@ -196,7 +202,7 @@ export function useGame(
       const [gameRes, guessesRes, playersRes] = await Promise.all([
         db
           .from('games')
-          .select('id, club_handle, mode, board, created_at')
+          .select('id, club_handle, mode, board, created_at, puzzle_date')
           .eq('id', gameId)
           .maybeSingle(),
         db
@@ -208,7 +214,7 @@ export function useGame(
           .order('guessed_at', { ascending: true }),
         db
           .from('players')
-          .select('user_id, mistake_count')
+          .select('user_id, mistake_count, matched_count')
           .eq('game_id', gameId),
       ])
       if (!mounted) return
@@ -223,6 +229,7 @@ export function useGame(
         club_handle: row.club_handle,
         mode: row.mode as 'coop' | 'compete',
         board: row.board as Board,
+        puzzleDate: row.puzzle_date,
         created_at: row.created_at,
       })
       setGuesses(
@@ -362,15 +369,14 @@ export function useGame(
   const selfPlayer = players.find((p) => p.user_id === session.user.id)
   const mistakeCount = selfPlayer?.mistake_count ?? 0
 
-  // Opponents' per-row mistake counts. Drives the compete
-  // OpponentStrip. Returns an empty Map in coop (every
-  // row equals the caller's, so listing peers separately would
-  // just be noise).
-  const opponentMistakes = new Map<string, number>()
+  // Opponents' categories-found counts (public via players.matched_count) —
+  // drives the compete "Found" opponent strip. Empty Map in coop (the caller's
+  // own found is matchedCategories.length; a coop opponent comparison is noise).
+  const opponentFound = new Map<string, number>()
   if (game?.mode === 'compete') {
     for (const p of players) {
       if (p.user_id === session.user.id) continue
-      opponentMistakes.set(p.user_id, p.mistake_count)
+      opponentFound.set(p.user_id, p.matched_count)
     }
   }
 
@@ -386,7 +392,7 @@ export function useGame(
     guesses,
     matchedCategories,
     mistakeCount,
-    opponentMistakes,
+    opponentFound,
     isEliminated,
     selections,
     unionTiles,

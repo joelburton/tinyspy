@@ -13,9 +13,8 @@
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
  *                   same height as a tile row and sharing the one grid gap.
  *   - .tileShaking — the wrong-guess shake.
- *   - .inputRow / .inputButton / .inputMessage / .mistakesInline — the input row
- *     below the board (shared names with psychicnum; see docs/ui.md → "Text
- *     entry").
+ *   - .inputRow / .inputButton / .mistakesInline — the commit row below the
+ *     board (shared names with psychicnum; see docs/ui.md → "Text entry").
  *
  * The shared dark hover-ring + dark selected fill (a player's own pick) come
  * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
@@ -176,28 +175,11 @@
   min-height: 2.75rem;
 }
 
-/* The message that replaces the input once the game's over (or this player is
- * out): "You win!", "You lost: out of time", etc. A CALM, secondary line — the
- * loud verdict already lives in the GameOverModal + the bold, color-coded
- * info-column `.outcome` line, so this just explains why the input is gone. Same
- * canonical below-board look as psychicnum's `.inputMessage`: muted, 1.15rem,
- * normal weight (docs/ui.md → "Text entry"). The box differs by placement — here
- * a `flex: 1` span centered in the `.inputRow`; psychicnum's is a padded boardCol
- * child — but the text presentation matches. */
-.inputMessage {
-  flex: 1;
-  text-align: center;
-  font-size: 1.15rem;
-  color: var(--color-muted);
-  margin: 0;
-}
-
-/* The own-result flash that replaces the commit buttons for ~1.4s after my
- * guess resolves is the shared <ResultFlash> (common/components/ResultFlash) —
- * the same bar psychicnum swaps in for its entry row, so the two games' local
- * feedback is identical. It reserves no height of its own: the `.inputRow`'s
- * min-height (above) keeps the slot stable whether it holds the buttons, the
- * flash, or the terminal outcome. */
+/* Own-result feedback + the terminal/eliminated message both render as the shared
+ * <FeedbackPill> (centered via the shared `.localFeedback`) in this same commit
+ * slot — the local feedback area (v4). It reserves no height of its own: the
+ * `.inputRow`'s min-height (above) keeps the slot stable whether it holds the
+ * Clear/Submit buttons, the result pill, or the terminal pill. */
 
 /* A button in the input row (`.inputButton` — the shared name psychicnum uses
  * for its Submit too). The icon+label look is the global `.icon-button` class

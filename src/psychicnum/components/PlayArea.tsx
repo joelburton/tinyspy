@@ -372,7 +372,7 @@ export function PlayArea({
                 sticky "waiting" pill. */}
         <div className={styles.belowBoard}>
           {over ? (
-            <div className={styles.localFeedback}>
+            <div className={shared.localFeedback}>
               <FeedbackPill
                 msg={{
                   tone:
@@ -400,7 +400,7 @@ export function PlayArea({
               onDismissResult={clearFlash}
             />
           ) : (
-            <div className={styles.localFeedback}>
+            <div className={shared.localFeedback}>
               <FeedbackPill
                 msg={{
                   tone: 'neutral',

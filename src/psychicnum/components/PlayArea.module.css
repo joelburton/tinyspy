@@ -2,12 +2,10 @@
  * the TILE chrome all come from the shared common/components/PlayArea.module.css
  * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
  * to psychicnum live here:
- *   - .belowBoard / .localFeedback — the v3 below-board region: a fixed-height
- *     slot holding the local feedback area + the guess entry, plus a centering
- *     wrapper for a lone <FeedbackPill> (docs/design-decisions.md → BoardCol).
+ *   - .belowBoard — the v4 below-board region: a fixed-height slot holding the
+ *     local feedback area + the guess entry. (Centering a lone <FeedbackPill> is
+ *     the shared `.localFeedback`, promoted to common/components/PlayArea.module.css.)
  *   - .layout — psychicnum's info-column width (see below).
- *   - .inputMessage — CURRENTLY UNUSED: the below-board messages it styled are
- *     now <FeedbackPill>s (v3); kept pending a decision to remove it.
  *
  * The board column HUGS its board (`flex: 0 0 auto`) — now the shared default in
  * common/components/PlayArea.module.css, so no per-game override here. The board
@@ -37,36 +35,3 @@
   min-height: 2.75rem;
 }
 
-/* Centers a lone <FeedbackPill> in the slot. (The GuessForm fills the width on
- * its own, so it doesn't use this.) The LOCAL feedback area shows the pill
- * centered; the header's GLOBAL feedback shows it left-justified
- * (docs/design-decisions.md → Terms / Feedback). */
-.localFeedback {
-  display: flex;
-  justify-content: center;
-}
-
-/* The message shown in the slot the guess entry occupied during play (see
- * PlayArea) — the end-game secret reveal, or the "out of guesses, waiting on the
- * rest" line. Lands where the player was already looking and explains the
- * missing entry; sitting BELOW the top-anchored board, it never shifts the board
- * when it appears. Stretches to the board width (it's a flex child of the board
- * column) and centers its text.
- *
- * This is the CANONICAL below-board message look — muted, 1.15rem, normal weight
- * (with `strong` rising to full text color for the key tokens) — a calm,
- * secondary line, since the loud verdict lives in the modal + info-column
- * `.outcome`. connections' `.inputMessage` matches the text presentation; the box
- * differs by placement (here a padded boardCol child; there a flex span in the
- * `.inputRow`). See docs/ui.md → "Text entry". */
-.inputMessage {
-  margin: 0;
-  text-align: center;
-  font-size: 1.15rem;
-  color: var(--color-muted);
-  padding: 0.6rem 0;
-}
-
-.inputMessage strong {
-  color: var(--color-text);
-}

@@ -24,4 +24,11 @@ export {
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   ChevronLeft as IconBack, // back to club
   Pause as IconPause, // pause the game
+  // The <StrikeMarks> meter (a status row, not a button): a bounded "N of M used"
+  // counter filling left-to-right — a USED mark is a red square-X, an OPEN slot a
+  // dashed square. Squares (not circles) so they never read as the player-identity
+  // disc (docs/ui.md → Player identity = a colored disc). First used by
+  // connections' mistakes; reusable for any limited-attempts counter.
+  SquareX as IconStrikeUsed,
+  SquareDashed as IconStrikeOpen,
 } from 'lucide-react'

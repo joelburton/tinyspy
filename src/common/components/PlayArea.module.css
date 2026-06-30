@@ -72,6 +72,20 @@
   background: rgba(40, 120, 255, 0.0);
 }
 
+/* The LOCAL feedback area — centers a lone <FeedbackPill> (or terminal message)
+ * in the below-board slot, the universal "local feedback is centered" look
+ * (docs/design-decisions.md → Terms / Feedback; the global header pill is
+ * left-justified instead). `flex: 1` fills its slot so it centers regardless of
+ * whether that slot is a column (psychicnum's belowBoard) or a row (connections'
+ * commit row); a game's entry/commit CONTROLS don't use this — only the lone
+ * pill/message does. */
+.localFeedback {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Shuffle floats over the board's top-right corner — purely a fresh visual
  * scan of the SAME board (not a turn action), so it lives on the board, not in
  * the info-column action row. A drop shadow so it reads as hovering above. */

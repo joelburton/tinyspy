@@ -98,6 +98,13 @@
   background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
 }
 
+/* near — a near-miss (connections' "one away"). Shares warning's amber for now
+ * (a distinct tone name, same color — docs/design-decisions.md → Tones). */
+.near {
+  border-color: var(--color-outcome-near-strong);
+  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
+}
+
 .neutral {
   /* No tone color to carry recognition, so the BORDER itself must read as "this
    * is a feedback pill" — a dark grey (not the pale surface border) on all sides

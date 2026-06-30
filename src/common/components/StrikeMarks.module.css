@@ -1,0 +1,28 @@
+/* The <StrikeMarks> meter — a row of square marks inline with surrounding text.
+ * The marks scale with the font (width/height in `em`) so they read at the
+ * surrounding text scale. See StrikeMarks.tsx. */
+
+.marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+}
+
+.used,
+.open {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+/* A USED mark — a red square-X. Lucide icons stroke with currentColor, so
+ * `color` sets the glyph color. */
+.used {
+  color: var(--color-error);
+}
+
+/* An OPEN slot — a dashed square in black. */
+.open {
+  color: var(--color-text);
+}

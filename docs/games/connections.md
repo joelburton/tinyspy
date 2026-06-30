@@ -94,8 +94,8 @@ Unlike codenamesduet and psychicnum — where the server holds a secret and vali
 | table | purpose |
 |---|---|
 | `puzzles` | The source-of-truth puzzle archive. One row per NYT Connections puzzle, with `source_id` (the NYT puzzle number, as text), `nyt_date`, and `categories` jsonb (matching the games.board.categories shape). Imported via `npm run connections:import`. Publicly readable. Distinct from `games.board` — puzzles stay pristine; games copy from them. See [Puzzles](#puzzles) below. |
-| `games` | One row per playthrough. `club_handle` (not null) ties to `common.clubs`. `puzzle_id` (not null) references the puzzle. `mode` (text, `coop` or `compete`) is denormalized for RLS branching — same pattern as `psychicnum.games.mode`. `board` jsonb holds the puzzle's categories + this game's shuffled tileOrder (publicly readable). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
-| `players` | Per-player mistake tracking. One row per `(game_id, user_id)` with `mistake_count int default 0`. In coop, all rows update in lock-step (every wrong guess hits every row); in compete, only the guesser's row increments. Created at game-start time, seeded to 0. Per-player outcome (`won` / `lost`) doesn't live here — it goes on `common.game_players.result` at game-end. Same shape as `psychicnum.players`. |
+| `games` | One row per playthrough. `club_handle` (not null) ties to `common.clubs`. `puzzle_id` is a **soft, provenance-only FK** — nullable, `on delete set null` — because everything to play AND identify the game is copied onto the row (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)). `mode` (text, `coop` or `compete`) is denormalized for RLS branching — same pattern as `psychicnum.games.mode`. `board` jsonb holds the puzzle's categories + this game's shuffled tileOrder; `puzzle_date` is the frozen copy of the puzzle's `nyt_date` (provenance — "which daily puzzle"). Both publicly readable. Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
+| `players` | Per-player **mistake** + **found** tracking. One row per `(game_id, user_id)` with `mistake_count int default 0` and `matched_count int default 0` (the player's own categories found — public, so a compete opponent strip can show race progress; mirrors `psychicnum.players.secrets_found`). In coop, mistake rows update in lock-step; in compete, only the guesser's increments. Created at game-start, seeded to 0. Per-player outcome (`won` / `lost`) goes on `common.game_players.result` at game-end. |
 | `guesses` | Append-only log of every submission. `result` is `'correct' \| 'oneAway' \| 'wrong'`; `matched_category_rank` is non-null iff result is correct. `mode` (text) is denormalized from `games.mode` so the mode-aware partial unique indexes (below) can filter without a subquery, and the mode-aware RLS policy can branch without a join. Two partial unique indexes enforce idempotency: `(game_id, matched_category_rank) where result='correct' and mode='coop'` in coop; `(game_id, user_id, matched_category_rank) where result='correct' and mode='compete'` in compete (each player can independently solve every category). |
 
 ### `board` jsonb shape
@@ -179,7 +179,7 @@ The one entry point. **One RPC for both modes** — the `mode` parameter:
 - Triggers the player-count check (compete requires ≥2).
 - Drives the per-mode terminal-state vocabulary that `submit_guess` writes later.
 
-Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the `connections.games` row with `mode` + `puzzle_id`, then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; the puzzle row stays pristine.
+Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the `connections.games` row with `mode`, `puzzle_id`, and the frozen `puzzle_date` (a copy of the puzzle's `nyt_date`), then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; on a correct guess `submit_guess` bumps the caller's `matched_count`. Everything the game needs is copied onto the row — the puzzle row stays pristine and is a soft, deletable provenance link (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)).
 
 Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; missing/malformed `setup.puzzleId`; `setup.puzzleId` doesn't reference a known puzzle (P0002 `'puzzle not found'`); bad `setup.timer` shape.
 
@@ -281,6 +281,19 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Example: `"#1 2023-06-12 (BUCKS/HAIL)"`. Built at create_game time from the puzzle's data, so it carries forward unchanged for the life of the game. Each puzzle's NYT number + date is the canonical identity; the 2 tiles ground it in something memorable ("oh, the one with BUCKS and HAIL").
 
 ## Frontend
+
+> **v4 (2026-06-29).** The FE was converted to the v4 conventions (see
+> [`design-decisions.md`](../design-decisions.md)): local own-move feedback +
+> the terminal/eliminated message are the shared `<FeedbackPill>` (sticky,
+> dismissed on the next tile click — not the old `<ResultFlash>` bar); action
+> buttons are the semantic components (`HintButton` / `ClearButton` /
+> `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes render as
+> `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
+> compete shows a **Found** opponent strip in the info column; a wrong/one-away
+> guess now clears the selection. The setup dialog also surfaces a
+> rich roster-mismatch error (`<RichMessage>`) when a puzzle already has a game
+> with a different roster. The structural subsections below predate the conversion
+> in places — trust `design-decisions.md` for the current UI rules.
 
 ### Folder layout
 

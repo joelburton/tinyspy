@@ -76,6 +76,19 @@ Each manifest declares two fields connecting these pieces:
 
 psychicnum is the canonical reference today — see [`docs/games/psychicnum.md`](games/psychicnum.md). When connections and spellingbee pick up their compete-mode variants, they'll follow the same shape.
 
+## Library-puzzle games: provenance, not dependency
+
+Some games source their board from a **curated library** instead of random generation: connections (`connections.puzzles`, the NYT archive), stackdown (`stackdown.boards`), and any future dated-puzzle game (crosswords). The rule for how a per-game `games` row relates to its library:
+
+**Copy everything the game needs onto the `games` row at create time; keep the library link as a *soft* FK (`on delete set null`, nullable).** The library is *provenance* — "which puzzle this came from" — never a runtime dependency. A game must stay fully playable **and** self-describing if its source puzzle is later deleted or re-imported.
+
+Concretely, freeze onto the game row at create time:
+
+- the **gameplay data** — connections copies the puzzle's `categories` into `games.board`; stackdown copies `tiles`/`solution`/`wordlist`. Gameplay code reads these frozen copies, never the library table.
+- the **identifying provenance** — connections copies the puzzle's `nyt_date` into `games.puzzle_date` (the bit a player reads to know *which* puzzle it is).
+
+**stackdown is the template** — its `board_id` is `on delete set null` with the board data copied (see its schema comment). **connections was the cautionary case**: it hard-FK'd the puzzle (`on delete restrict`) and left the date un-frozen, so it couldn't retire a puzzle and had to *join* `puzzles` just to show the date — since fixed to match this rule. The payoff: puzzles can be cleaned up / re-imported freely, and in-flight games never break.
+
 ## Schema: `common.*`
 
 ### Tables

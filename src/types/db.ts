@@ -908,7 +908,8 @@ export type Database = {
           created_at: string
           id: string
           mode: string
-          puzzle_id: string
+          puzzle_date: string | null
+          puzzle_id: string | null
         }
         Insert: {
           board: Json
@@ -916,7 +917,8 @@ export type Database = {
           created_at?: string
           id: string
           mode: string
-          puzzle_id: string
+          puzzle_date?: string | null
+          puzzle_id?: string | null
         }
         Update: {
           board?: Json
@@ -924,7 +926,8 @@ export type Database = {
           created_at?: string
           id?: string
           mode?: string
-          puzzle_id?: string
+          puzzle_date?: string | null
+          puzzle_id?: string | null
         }
         Relationships: [
           {
@@ -987,16 +990,19 @@ export type Database = {
       players: {
         Row: {
           game_id: string
+          matched_count: number
           mistake_count: number
           user_id: string
         }
         Insert: {
           game_id: string
+          matched_count?: number
           mistake_count?: number
           user_id: string
         }
         Update: {
           game_id?: string
+          matched_count?: number
           mistake_count?: number
           user_id?: string
         }

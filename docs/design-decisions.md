@@ -261,6 +261,12 @@ Contents, in order:
     "Waiting for others" + their End/Concede on the right). Being unable to act is
     basically terminal *for them*, so show it that way rather than as a quietly
     changed help line.
+
+  **Terminal + locally-terminal always show in BOTH the action row and the local
+  feedback area** — the action row's outcome/status line *and* a pill in the
+  below-board local feedback slot. This is not redundancy to trim; it's the rule.
+  (The two read differently: the action row is terse + carries the button; the
+  local feedback pill can be fuller — "You're out — the rest are still racing.")
 - **Help (`.infoHelp`)** — subtle grey text explaining *how to make a move*, not
   how to play (the Help modal teaches the game). Shown **only while the player can
   act on it**, and it **never silently swaps text**: a mid-game state that matters

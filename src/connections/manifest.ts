@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import type { GameManifest } from '../common/lib/games'
+import type { GameManifest, Member, RichMessage } from '../common/lib/games'
 import { db } from './db'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -82,6 +82,22 @@ const setupFormLoader = lazy(() =>
 //
 // RLS makes the lookup safe: the row only appears for club members,
 // belt-and-braces on top of the .eq('club_handle', ...) filter.
+// The rich roster-mismatch error: the message text with the existing game's
+// players named inline as identity discs ("● bert, ● ernie, ● claude"), rendered
+// by <RichMessage> in the setup dialog.
+function rosterMismatchError(players: Member[]): RichMessage {
+  const named: RichMessage = []
+  players.forEach((p, i) => {
+    if (i > 0) named.push(', ')
+    named.push({ player: p })
+  })
+  return [
+    'You already have a game for this puzzle, and it needs these players: ',
+    ...named,
+    '. To play with a different set of players, either choose a different puzzle, or cancel and delete the existing game.',
+  ]
+}
+
 //
 // `brand` is the manifest's own `name` (passed in from BRAND below) so
 // the user-facing error reads the brand from the single branding source
@@ -101,7 +117,30 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
       .eq('puzzle_id', s.puzzleId)
       .eq('mode', mode)
       .maybeSingle()
-    if (existing.data) return { id: existing.data.id }
+    if (existing.data) {
+      // A game for this puzzle already exists — one game per shared daily puzzle
+      // per club per mode, INCLUDING finished ones (you shouldn't re-solve a
+      // puzzle the club's already done; delete it to replay). Reopen it only if
+      // its roster matches the new selection; otherwise STOP with a rich error
+      // naming the players it needs — so deselecting a player doesn't silently
+      // drop you into the existing game's roster (the "Waiting for moth" bug).
+      const { data: gp } = await db
+        .from('game_players')
+        .select('user_id')
+        .eq('game_id', existing.data.id)
+      const existingIds = (gp ?? []).map((r) => r.user_id)
+      const selected = new Set(playerUserIds)
+      const sameRoster =
+        existingIds.length === selected.size &&
+        existingIds.every((id) => selected.has(id))
+      if (sameRoster) return { id: existing.data.id }
+
+      const { data: profs } = await db
+        .from('profiles')
+        .select('user_id, username, color')
+        .in('user_id', existingIds)
+      return { error: rosterMismatchError((profs ?? []) as Member[]) }
+    }
 
     const { data, error } = await db
       .rpc('create_game', {

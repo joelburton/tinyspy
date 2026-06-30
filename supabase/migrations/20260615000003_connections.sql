@@ -167,18 +167,21 @@ grant insert, select on connections.puzzles to service_role;
 create table connections.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
-  -- The puzzle this game was created from. ON DELETE RESTRICT
-  -- because deleting a puzzle that has games against it would
-  -- leave dangling references — alpha-stage policy is "clean up
-  -- games first, then drop the puzzle." Set at create_game time;
-  -- never updated.
-  puzzle_id uuid not null references connections.puzzles(id) on delete restrict,
-  -- Frozen per-game copy of the puzzle's categories + this game's
-  -- shuffled tileOrder. Keeping the copy means the played board is
-  -- self-contained: if the source puzzle row were ever corrected
-  -- upstream and re-imported, in-flight games stay on the version
-  -- they started with.
+  -- The puzzle this game was created from — PROVENANCE only (a SOFT FK).
+  -- Everything needed to play AND identify the game is COPIED below (board +
+  -- puzzle_date), so a puzzle can be retired with ON DELETE SET NULL: games
+  -- built from it survive, just losing the back-link. Mirrors
+  -- stackdown.games.board_id. Set at create_game time; never updated.
+  puzzle_id uuid references connections.puzzles(id) on delete set null,
+  -- Frozen per-game copy of the puzzle's categories + this game's shuffled
+  -- tileOrder. Keeping the copy means the played board is self-contained:
+  -- gameplay reads board.categories, NEVER the puzzles table, so a deleted or
+  -- re-imported puzzle never affects in-flight games.
   board jsonb not null,
+  -- Frozen copy of the puzzle's NYT date — its provenance ("which daily
+  -- puzzle"), copied so the game stays self-describing after the puzzle is
+  -- deleted. Null for a non-NYT puzzle (puzzles.nyt_date is nullable).
+  puzzle_date date,
   created_at timestamptz not null default now(),
   -- Sibling-manifest mode axis; agrees with the gametype string
   -- ('connections_coop' / 'connections_compete') by construction in
@@ -278,6 +281,14 @@ create table connections.players (
     references common.profiles(user_id) on delete cascade,
   mistake_count int not null default 0
     check (mistake_count between 0 and 4),
+  -- The player's own categories-found count (their correct guesses). PUBLIC like
+  -- mistake_count, so a compete opponent strip can show race progress ("Found")
+  -- — the guess log itself is RLS-scoped to the caller in compete, so this row
+  -- is the only public window onto an opponent's progress (mirrors
+  -- psychicnum.players.secrets_found). Maintained by submit_guess on a correct
+  -- guess.
+  matched_count int not null default 0
+    check (matched_count between 0 and 4),
   primary key (game_id, user_id)
 );
 
@@ -568,12 +579,16 @@ begin
   -- it comes from common.create_game above and FKs to
   -- common.games(id). Setup lives on common.games.setup, not
   -- duplicated here.
-  insert into connections.games (id, club_handle, mode, puzzle_id, board)
+  -- Copy the puzzle's categories AND date onto the game (board + puzzle_date),
+  -- so the game is self-contained — playable + self-describing even if the
+  -- puzzle is later deleted (puzzle_id is a soft, provenance-only FK).
+  insert into connections.games (id, club_handle, mode, puzzle_id, puzzle_date, board)
   values (
     new_id,
     target_club,
     mode,
     s_puzzle_id,
+    puzzle_row.nyt_date,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order))
   );
@@ -725,6 +740,18 @@ begin
       return;
     end;
 
+    -- Persist the caller's own found count to their (public) players row so a
+    -- compete opponent strip can show race progress (the "Found" metric).
+    -- Computed once here; the compete win check below reuses caller_matched.
+    select count(*) into caller_matched
+      from connections.guesses gu
+     where gu.game_id = target_game
+       and gu.user_id = caller_id
+       and gu.result = 'correct';
+    update connections.players
+       set matched_count = caller_matched
+     where game_id = target_game and user_id = caller_id;
+
     if g_row.mode = 'coop' then
       -- Coop win check: 4 correct rows total ⇒ solved.
       select count(*) into matched_count
@@ -761,13 +788,7 @@ begin
       -- Compete win check: caller's own correct count = 4 ⇒
       -- solved_compete, caller wins, everyone else loses. The
       -- race ends instantly — opponents with remaining lives
-      -- don't get to keep trying.
-      select count(*) into caller_matched
-        from connections.guesses gu
-       where gu.game_id = target_game
-         and gu.user_id = caller_id
-         and gu.result = 'correct';
-
+      -- don't get to keep trying. (caller_matched computed above.)
       if caller_matched >= 4 then
         select username into winner_name
           from common.profiles where user_id = caller_id;
