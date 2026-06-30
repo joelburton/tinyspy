@@ -15,7 +15,7 @@ it "v4" after an interim "v3" cut that no longer exists; there is no v4 — v3 *
 the spec as it stands.)
 
 - **v1** — the original layout (every game before the redesign). Today:
-  **bananagrams, wordle, stackdown, scrabble, boggle**.
+  **bananagrams, stackdown, scrabble, boggle**.
 - **v2** — the shared-layout redesign: the two-column scaffold, tiles, info
   column, capture entry. The intermediate stage games pass through on the way to
   v3 — they have the shared layout but not yet the full rule set below.
@@ -26,8 +26,8 @@ the spec as it stands.)
   the feedback-pill tone border + bar, opponent-strip identity discs + metric
   labels, the terminal-look for locally-terminal states, sticky local feedback,
   natural-width action buttons. **psychicnum is the first v3 game — the
-  reference;** **connections**, **codenamesduet**, and **waffle** follow. The
-  remaining games convert v1/v2 → v3 next, following this doc + the
+  reference;** **connections**, **codenamesduet**, **waffle**, and **wordle**
+  follow. The remaining games convert v1/v2 → v3 next, following this doc + the
   [Reconciliation](#reconciliation-with-the-code) checklist.
 
 ## Terms
