@@ -92,6 +92,9 @@ export function PlayArea({
   // (string so the entry can be empty). PlayArea owns it — and the submit RPC —
   // so a tile click and a keystroke drive the same guess.
   const [pending, setPending] = useState('')
+  // The last submitted guess, kept so ArrowUp can recall it into the entry (the
+  // universal capture-game last-move history). FE-only — never shared or stored.
+  const [lastGuess, setLastGuess] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [hinting, setHinting] = useState(false)
   const [revealing, setRevealing] = useState(false)
@@ -273,6 +276,9 @@ export function PlayArea({
   // never a new line that would reflow the board.
   const submitGuess = async () => {
     const guess = pending.trim().toLowerCase()
+    // Remember the submitted entry so ArrowUp can recall it (covers a rejected
+    // guess too — recalling lets the player fix it).
+    setLastGuess(pending)
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!game.words.includes(guess)) {
@@ -396,6 +402,7 @@ export function PlayArea({
               onChange={handleEntryChange}
               onSubmit={submitGuess}
               submitting={submitting}
+              recall={lastGuess}
               result={entryFlash}
               onDismissResult={clearFlash}
             />

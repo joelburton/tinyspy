@@ -24,18 +24,18 @@ test.describe('boggle play loop', () => {
     // The 4×4 board renders all 16 tiles.
     await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 15000 })
 
-    const input = page.locator('input[data-game-input]')
-    await expect(input).toBeVisible()
-
+    // v3 move entry is the shared CAPTURE model (window key-capture + a
+    // chrome-less <EntryBox> display — no <input>), so type on the page keyboard
+    // rather than filling a field.
     // Type the required word "cat" and submit → it lands in the list (rows are
     // role=button, rendered uppercase).
-    await input.fill('CAT')
-    await input.press('Enter')
+    await page.keyboard.type('cat')
+    await page.keyboard.press('Enter')
     await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
 
     // An off-board word ("zzz" — no Z on the board) is rejected: never listed.
-    await input.fill('ZZZ')
-    await input.press('Enter')
+    await page.keyboard.type('zzz')
+    await page.keyboard.press('Enter')
     await expect(page.getByRole('button', { name: 'ZZZ' })).toHaveCount(0)
 
     await ctx.close()

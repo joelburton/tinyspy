@@ -1,47 +1,60 @@
-/* Two fixed-height columns — board left, input + found-words right. No
- * full-page scroll (docs/ui.md); the found-words list owns the only scroll. */
+/* MothCubes play surface, on the shared two-column scaffold
+ * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
+ * This module holds only boggle's own bits: the per-game layout vars, the SQUARE
+ * board sizing (the waffle model — boggle's board is a square tile grid like
+ * waffle's), the below-board input region, and the loading style. The info
+ * column's readouts use the shared `.actionSlot` + readout classes; own-move and
+ * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`. */
 
+/* Per-game layout vars the shared scaffold reads. The info column runs wide — the
+ * word list wants room for its columns — so 33rem (spellingbee's width). --avail-h
+ * is the vertical space left for the square board (it's bounded by height too,
+ * unlike the rectangular fill-boards): viewport − chrome − the below-board stack
+ * (the input row / feedback pill min-height 2.75rem + the board column's 0.75rem
+ * gap + the .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
 .layout {
-  /* Flex (not grid) so the board can grow to a viewport-sized square on the left
-   * while the side column stays a FIXED width on the right — the scrabble layout.
-   * A content-sized grid here shrank the whole area to its min-content width,
-   * wasting the viewport; sizing the board explicitly (var below) avoids that. */
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-  /* Left-aligned (like scrabble's .layout) — NOT centered. Centering clips the
-   * board's left edge off-screen if the row ever overflows; flex-start anchors
-   * the board to the left so it's always fully visible. */
-  flex-wrap: wrap;
-  padding: 16px;
+  --info-col-width: 33rem;
+  --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
 }
 
-.loading {
-  padding: 2rem;
-  color: var(--color-text);
+/* The board column. Computes `--side` — the largest square that fits — HERE
+ * (rather than on the grid) so the below-board input row can match the board's
+ * width from the same source. `--cols` / `--rows` are set inline (n ∈ 4/5/6).
+ *
+ * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
+ * boggle is a SQUARE board (like waffle), so it has ONE knob: the max tile SIZE.
+ * It ships effectively UNCAPPED — a huge 999rem default, so the per-tile term
+ * never wins the `min()` and the board grows to the largest square that fits
+ * (bounded by the width left beside the info column, --avail-w, and the height
+ * left above the input row, --avail-h). LOWER it (e.g. 6rem) to cap tile size.
+ * A real defined value rather than a commented-out knob + var() fallback, so the
+ * token isn't "phantom" (see src/cssTokens.test.ts). Relative units (rem). */
+.boardCol {
+  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
+  --grid-gap: 6px;
+  --side: min(
+    var(--avail-w),
+    var(--avail-h),
+    calc(var(--cols) * var(--max-tile-size) + (var(--cols) - 1) * var(--grid-gap))
+  );
 }
 
-.boardArea {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.board {
+/* The square tile grid: an n×n lattice of 1fr tracks sized to the definite
+ * `--side` square. The dark "tray" (dice-box look) + padding sit on the grid
+ * itself; box-sizing keeps the padding inside --side. The board column hugs this
+ * definite size (boardCol is `flex: 0 0 auto`). */
+.grid {
+  width: var(--side);
+  height: var(--side);
   display: grid;
-  /* grid-template-columns/rows (repeat(n, 1fr)) are set inline since n varies. */
-  gap: 6px;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  gap: var(--grid-gap);
   padding: 10px;
   background: var(--boggle-board-bg);
   border-radius: 12px;
   box-sizing: border-box;
-  /* A square sized to grow as large as the layout allows (see --boggle-board-size
-   * in theme.css). `aspect-ratio: 1` keeps it square; the n×n 1fr tracks make
-   * every tile square too — a 4×4 gets big roomy tiles, a 6×6 packs the space. */
-  width: var(--boggle-board-size);
-  aspect-ratio: 1;
 }
 
 .tile {
@@ -53,8 +66,10 @@
   border-radius: 8px;
   min-width: 0;
   min-height: 0;
-  /* A sizing container so the letter scales with the tile (cqmin below),
-   * staying proportional whether the board is a roomy 4×4 or a dense 6×6. */
+  /* A sizing container so the letter scales with the tile (cqmin below), staying
+   * proportional whether the board is a roomy 4×4 or a dense 6×6 — n-agnostic,
+   * which is why boggle keeps this rather than waffle's column-count-tuned
+   * `--side / 12` divisor. */
   container-type: size;
 }
 
@@ -72,41 +87,35 @@
   opacity: 0.4;
 }
 
-.sideCol {
-  /* Fixed width (never re-sizes as the word list fills); as tall as the board so
-   * the found-words list fills the leftover height and scrolls inside itself.
-   * `min-width: 0` is essential: without it a flex item's auto minimum lets the
-   * WordList's column grid blow the column out to its full content width (and
-   * wrap it below the board). With it, the column stays 420px and the list
-   * scrolls horizontally inside. */
-  flex: 0 0 420px;
-  min-width: 0;
+/* The below-board slot — holds exactly ONE of: the input row, the own-action
+ * feedback pill, or the terminal pill (they replace each other). A reserved
+ * min-height (the input row's) keeps the top-anchored board from shifting as they
+ * swap. Width pinned to the board's --side so a long typed word can't widen the
+ * column and shift the board. `margin-top` drops the row down off the board for
+ * breathing room (on top of the board column's 0.75rem gap) — counted into
+ * `--avail-h` above. */
+.belowBoard {
+  width: var(--side);
+  min-height: 2.75rem;
+  margin-top: 1.5rem;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: var(--boggle-board-size);
-  min-height: 280px;
+  align-items: center;
+  justify-content: center;
 }
 
+/* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
 .inputRow {
   display: flex;
-  margin: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.input {
-  flex: 1 1 auto;
-  font: inherit;
-  font-size: 1.2rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 10px 14px;
-  border: 2px solid var(--color-control-border);
-  border-radius: 8px;
-  background: var(--color-control-bg);
+/* (No per-game EntryBox width — the shared EntryBox now stretches to fit the typed
+ * word, up to the 16-char cap, with a common min-width floor. See
+ * common/components/EntryBox.module.css.) */
+
+.loading {
+  padding: 2rem;
   color: var(--color-text);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--boggle-accent);
 }

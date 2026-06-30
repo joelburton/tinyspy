@@ -6,11 +6,20 @@
  * sits in a row, its width) comes from a `className` the consumer appends; the
  * *entered-text* look — bold, uppercase, lightly letter-spaced — is common here,
  * so it's uniform across every consumer (docs/design-decisions.md → WordInput /
- * EntryBox). Shared by psychicnum + spellingbee — change here flows to both. */
+ * EntryBox). Shared by psychicnum + spellingbee + boggle — change here flows to all. */
 .box {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* STRETCH TO FIT the typed word. The box hugs its content (`fit-content`) so it's
+   * exactly as wide as what's typed — and since useCaptureKeys caps entry at 16
+   * chars, the longest possible word always fits with no clipping. A `min-width`
+   * floor keeps it a stable, comfortable size for the placeholder + short words
+   * (so it doesn't jitter narrower than the hint), then it grows for long ones.
+   * (A game that wants a fill-the-row box instead — psychicnum — overrides with
+   * `flex: 1` on its own class.) */
+  width: fit-content;
+  min-width: var(--entrybox-min-width);
   /* Size is a per-game knob — the default lives at :root in theme.css; a
      consumer raises it by re-setting --entrybox-font-size on its EntryBox
      element. The caret's 1.15em height tracks this. */

@@ -35,9 +35,10 @@ type Props = {
  *   - placeholder-when-empty slotting.
  *
  * What the *consumer* owns — the parts that vary:
- *   - **what can be entered** + key handling → the game's `useGlobalKeyHandler`
- *     callback (digits vs letters, length/value caps, ArrowUp recall, …);
- *   - **appearance** (size, how the box sits in its row) → `className`;
+ *   - **what can be entered** → the game's `useCaptureKeys` `charFor` (digits vs
+ *     letters, the stored case); the universal keys — Backspace / Enter / the
+ *     ArrowUp-recall + ArrowDown-clear last-move history — are built into the hook;
+ *   - **appearance** (extra width/layout beyond the shared stretch-to-fit) → `className`;
  *   - **value rendering** (plain vs per-character styling) → `children`.
  */
 export function EntryBox({ value, placeholder, children, className }: Props) {

@@ -1,16 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
 
 /** How long a freshly-arrived word stays "recently found" — the duration the
- *  per-finder underline shows in the WordList. */
+ *  per-finder underline shows in the shared `<WordList>`. */
 const RECENT_MS = 5000
 
 /**
- * Returns the set of words that arrived in `found` since the last render; each
- * stays for 5s then drops out. Per-word timers live in a ref (a submit can fire
- * two updates in quick succession — the Realtime echo + a refetch — and a
- * per-effect cleanup would clear the just-scheduled timer). The initial mount
- * doesn't flash existing words (bootstrap from the first `found`). Same hook as
- * FreeBee's; generic enough that each word game keeps its own copy.
+ * Returns the set of words that arrived in `found` since the last render. Each
+ * freshly-arrived word stays in the set for 5 seconds, then drops out — the
+ * shared `<WordList>` uses it to flash a per-finder underline on a just-found word.
+ *
+ * Two subtleties worth knowing about:
+ *
+ *   1. **Per-word timers live in a ref**, not in the effect's cleanup. A submit
+ *      can trigger `setFoundWords` twice in quick succession (the immediate
+ *      Realtime INSERT echo + a postgres-changes refetch a tick later); a
+ *      per-effect cleanup would clear the just-scheduled timer on the second
+ *      update, leaving the underline stuck on forever.
+ *
+ *   2. **The initial mount doesn't flash existing words.** A reconnect (or a
+ *      navigate-back-to-game) brings a fully-populated `found` array; without the
+ *      `knownFoundRef` bootstrap, every entry would count as "fresh" and the whole
+ *      list would underline at once. Bootstrapping from the constructor argument
+ *      keeps the initial render quiet.
+ *
+ * Lifted to common from the per-game copies spellingbee + boggle shared verbatim
+ * (originally a TS port of `~/spellingbee-ws/src/components/useRecentlyFound.js`).
  */
 export function useRecentlyFound(found: string[]): ReadonlySet<string> {
   const [recentlyFound, setRecentlyFound] = useState<Set<string>>(() => new Set())
@@ -43,6 +57,8 @@ export function useRecentlyFound(found: string[]): ReadonlySet<string> {
     }
   }, [found])
 
+  // One-shot cleanup on unmount. The per-effect path above doesn't own these —
+  // see the note about double-update timers — so we explicitly tear them down here.
   useEffect(function clearTimersOnUnmount() {
     const timers = timersRef.current
     return () => {

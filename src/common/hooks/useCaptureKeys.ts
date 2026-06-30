@@ -54,13 +54,25 @@ export type CaptureKeysOptions = {
    *  typed text from overrunning its box. */
   maxLength?: number
   /**
-   * Game-specific keys beyond the universal letters / Backspace / Enter / Tab set
-   * (spellingbee: Space = shuffle, ArrowUp = recall last word, ArrowDown = clear).
+   * Game-specific keys beyond the universal set (spellingbee: Space = shuffle).
    * Runs after `onAnyKey` + the Tab swallow, before the universal dispatch; the
    * callback does its own `preventDefault` and returns true to **claim** the key
    * (the helper then stops). Optional.
+   *
+   * Note: ArrowUp (recall) and ArrowDown (clear) are now BUILT IN below — a game
+   * no longer wires them here; pass `recall` for ArrowUp to restore. `onExtraKey`
+   * still gets first refusal, so a game *could* claim an arrow if it ever needs to.
    */
   onExtraKey?: (e: KeyboardEvent) => boolean
+  /**
+   * The last submitted value, for **ArrowUp = "recall last entry"** — the
+   * universal last-move-history affordance every capture game shares (add an 'S'
+   * to your last word, fix a typo, re-guess). The game tracks it (set in its
+   * submit handler, so it covers both Enter and the Submit button) and passes it
+   * here; ArrowUp restores it into the entry. Omit (or pass '') to make ArrowUp a
+   * no-op. **ArrowDown always clears** the entry — no option, it's universal.
+   */
+  recall?: string
 }
 
 /**
@@ -81,9 +93,11 @@ export type CaptureKeysOptions = {
  *   3. **Feedback dismissal** — any key is the player's next move (`onAnyKey`).
  *   4. **Backspace** deletes the last character; **Enter** submits when non-empty.
  *   5. **Length cap** (`maxLength`, default 16).
+ *   6. **ArrowUp recalls** the last submitted value (`recall`); **ArrowDown clears**
+ *      the entry. The shared last-move-history affordance, identical everywhere.
  *
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits, the
- * stored case) and any extra keys (`onExtraKey` — spellingbee's Space / arrows).
+ * stored case) and any extra keys (`onExtraKey` — spellingbee's Space-shuffle).
  *
  * Replaces the near-identical hand-rolled key handlers that lived in psychicnum's
  * GuessForm and spellingbee's PlayArea (the lift tracked since the first EntryBox
@@ -99,6 +113,7 @@ export function useCaptureKeys({
   charFor = asciiLetters('lower'),
   maxLength = 16,
   onExtraKey,
+  recall,
 }: CaptureKeysOptions): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {
     // 1. Let the browser/OS keep any modified keystroke — Cmd-R, Ctrl-Tab, Cmd-L,
@@ -130,6 +145,22 @@ export function useCaptureKeys({
 
     // Soft-busy (mid-submit): dismissal + Tab already handled; block edits + submit.
     if (busy) return
+
+    // 6. Last-move history — the universal arrow affordance, identical across every
+    //    capture game. ArrowUp restores the last submitted value (`recall`);
+    //    ArrowDown clears the entry. Both are edits (past the busy gate);
+    //    preventDefault either way so the arrows never scroll the page while the
+    //    entry owns the keyboard.
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (recall) onChange(recall)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      onChange('')
+      return
+    }
 
     // 4/5. A character to append (per the game's `charFor`), capped at maxLength.
     const ch = charFor(e.key)

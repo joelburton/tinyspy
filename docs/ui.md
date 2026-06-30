@@ -656,15 +656,17 @@ The contract for the capture model:
 - **What can be entered is per-game; the rest is shared.** The universal key
   plumbing lives in **`useCaptureKeys`** (`common/hooks/useCaptureKeys.ts`): the
   modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
-  Backspace / Enter (Enter only when non-empty), and the ~16-char cap. A game
-  supplies only *what may be entered* — `charFor` (letters vs digits + the stored
-  case; the exported `asciiLetters('lower' | 'upper')` covers the word games) —
-  plus any extra keys via `onExtraKey` (spellingbee's `Space` = shuffle, `ArrowUp`
-  = recall, `ArrowDown` = clear) and the `disabled` (loading / terminal — a true
+  Backspace / Enter (Enter only when non-empty), the ~16-char cap, and the
+  **last-move history** (`ArrowUp` recalls the game's `recall` value, `ArrowDown`
+  clears) — identical everywhere. A game supplies only *what may be entered* —
+  `charFor` (letters vs digits + the stored case; the exported
+  `asciiLetters('lower' | 'upper')` covers the word games) — plus any extra keys via
+  `onExtraKey` (spellingbee's `Space` = shuffle), the `recall` value (its
+  last-submitted word, for ArrowUp), and the `disabled` (loading / terminal — a true
   no-op, won't dismiss a terminal pill) / `busy` (mid-submit — block edits, still
-  dismiss) gates. psychicnum's GuessForm and spellingbee's PlayArea both use it —
-  the lift the capture model had been holding for a second `<EntryBox>` consumer to
-  reveal the shared shape.
+  dismiss) gates. psychicnum's GuessForm, spellingbee's PlayArea, and boggle's
+  PlayArea all use it — the shared shape a second/third `<EntryBox>` consumer
+  revealed.
 
 **Local own-result feedback.** The player's own last move shows a result for the
 *local* half of the feedback split (the *group* half is the header pill, [Feedback

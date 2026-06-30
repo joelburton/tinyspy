@@ -69,13 +69,9 @@
   gap: 0.5rem;
 }
 
-/* The shared <EntryBox> as spellingbee's word entry. A moderate fixed width (not
- * the full row) so the flanking buttons sit close to the typed word. The look —
- * chrome-less, large, centered text — is the shared EntryBox. */
-.entry {
-  width: 16rem;
-  min-width: 0;
-}
+/* (No per-game EntryBox width — the shared EntryBox now stretches to fit the typed
+ * word, up to the 16-char cap, with a common min-width floor. See
+ * common/components/EntryBox.module.css.) */
 
 .loading,
 .empty {

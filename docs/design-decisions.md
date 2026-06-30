@@ -15,7 +15,7 @@ it "v4" after an interim "v3" cut that no longer exists; there is no v4 — v3 *
 the spec as it stands.)
 
 - **v1** — the original layout (every game before the redesign). Today:
-  **bananagrams, stackdown, scrabble, boggle**.
+  **bananagrams, stackdown, scrabble**.
 - **v2** — the shared-layout redesign: the two-column scaffold, tiles, info
   column, capture entry. An intermediate stage games pass through on the way to
   v3 — the shared layout, but not yet the full rule set below. **No game sits
@@ -26,8 +26,8 @@ the spec as it stands.)
   labels, the terminal-look for locally-terminal states, sticky local feedback,
   natural-width action buttons. **psychicnum is the first v3 game — the
   reference;** **connections**, **codenamesduet**, **waffle**, **spellingbee**,
-  and **wordle** follow. The remaining games convert v1 → v3 next, following this
-  doc + the [Reconciliation](#reconciliation-with-the-code) checklist.
+  **wordle**, and **boggle** follow. The remaining games convert v1 → v3 next,
+  following this doc + the [Reconciliation](#reconciliation-with-the-code) checklist.
 
 ## Terms
 
@@ -228,8 +228,12 @@ Rules:
 - **Backspace** deletes a character. Some games also offer delete buttons.
 - **Enter** triggers the game's submit-move button.
 - **Up-arrow** recalls the previously-entered word; **down-arrow** clears it.
-  (These two are a **per-game extra**, not universal — spellingbee wires them via
-  `useCaptureKeys`' `onExtraKey`; psychicnum doesn't have them.)
+  (Both are **universal** — built into `useCaptureKeys`, so every capture game has
+  them identically. A game passes `recall` (its last-submitted value) for up-arrow;
+  down-arrow always clears.)
+- The box **stretches to fit** the typed word (up to the length cap) over a shared
+  `--entrybox-min-width` floor, so the longest word never clips. (Shared in
+  `EntryBox`; a game wanting a fill-the-row box overrides with `flex: 1`.)
 - After a word is submitted, the field clears.
 - Entry is **length-capped** (~16 chars — no real word is longer, and it keeps
   the text from overrunning the box). The text **size** is a per-game knob
@@ -298,8 +302,10 @@ Contents, in order:
 - **Turn log / word list** — exactly one of:
   - **turn log (`<TurnLog>`)** — a table of turns with what happened each turn.
     Most games have this.
-  - **word list (`<WordList>`)** — a side-scrolling list of found words.
-    spellingbee and boggle have this.
+  - **word list (`<WordList>`)** — the shared `common/components/WordList`: a
+    side-scrolling list of found words (heading over a bordered scroll-box card,
+    column-major grid, finder-color discs, click-to-define). spellingbee and boggle
+    use it; each builds its rows via its own `lib/displayRows` → `WordListRow[]`.
 
   No game has both; some games have neither. Whichever is present **grows
   downward to fill the remaining column height.**

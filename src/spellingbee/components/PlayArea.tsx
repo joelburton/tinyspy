@@ -23,7 +23,8 @@ import { RankBar } from './RankBar'
 import { Stats } from './Stats'
 import { EntryBox } from '../../common/components/EntryBox'
 import { TypedWord } from './TypedWord'
-import { WordList } from './WordList'
+import { WordList } from '../../common/components/WordList'
+import { buildDisplayRows } from '../lib/displayRows'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -266,10 +267,11 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Capture-entry key handling ────────────────────────
   // The shared capture-key helper owns the universal plumbing (modifier bail, Tab
-  // swallow, sticky-feedback dismissal, Backspace / Enter, the 16-char cap).
-  // spellingbee's own pieces: letters stored UPPERCASE, and three extra keys —
-  // Space shuffles, ArrowUp recalls the last submitted word ("add an S"), ArrowDown
-  // clears. (The `~` word-lookup shortcut is app-global; see useAppShortcuts.)
+  // swallow, sticky-feedback dismissal, Backspace / Enter, the 16-char cap, and the
+  // universal last-move history: ArrowUp recalls `recall` — the last submitted word,
+  // "add an S" — and ArrowDown clears). spellingbee's own pieces: letters stored
+  // UPPERCASE, and the one extra key — Space shuffles. (The `~` word-lookup shortcut
+  // is app-global; see useAppShortcuts.)
   useCaptureKeys({
     value: word,
     onChange: setWord,
@@ -277,17 +279,8 @@ export function PlayArea(ctx: GamePageCtx) {
     disabled: loading || !game || isTerminal,
     onAnyKey: clearFeedback,
     charFor: asciiLetters('upper'),
+    recall: lastWord,
     onExtraKey: (e) => {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        if (lastWord) setWord(lastWord)
-        return true
-      }
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setWord('')
-        return true
-      }
       if (e.key === ' ') {
         e.preventDefault()
         handleShuffle()
@@ -458,7 +451,6 @@ export function PlayArea(ctx: GamePageCtx) {
               <EntryBox
                 value={word}
                 placeholder="Type or click letters"
-                className={styles.entry}
               >
                 <TypedWord word={word} allowedLetters={allowedLetters} />
               </EntryBox>
@@ -555,13 +547,13 @@ export function PlayArea(ctx: GamePageCtx) {
           </details>
         </div>
 
+        {/* Once terminal, games_state surfaces the full required-words list via
+            _required_words_for. Pre-terminal game.requiredWords is null and the
+            list skips the reveal. */}
         <WordList
-          foundWords={foundWords}
+          rows={buildDisplayRows(foundWords, game.requiredWords)}
           players={players}
-          // Once terminal, games_state surfaces the full required-
-          // words list via _required_words_for. Pre-terminal
-          // game.requiredWords is null and WordList skips reveal.
-          revealWords={game.requiredWords}
+          reveal={game.requiredWords != null}
         />
       </div>
       {showModal && over && (

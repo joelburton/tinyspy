@@ -333,8 +333,9 @@ src/spellingbee/
                           own-move feedback (a shared <FeedbackPill>, dismissed on the next
                           move — no timer), the submit_word dispatch, and the End-game
                           action button. Captures keystrokes via the shared useCaptureKeys
-                          (letters stored uppercase; the extra keys Space=shuffle /
-                          ArrowUp=recall last word / ArrowDown=clear). Wires usePeerFeedback
+                          (letters stored uppercase; the only per-game extra key is
+                          Space=shuffle — ArrowUp=recall last word / ArrowDown=clear are now
+                          universal built-ins, fed by the `recall` option). Wires usePeerFeedback
                           to the common header slot
                           for peer/opponent events (aliased as `headerFeedback` so it
                           doesn't clash with the local pill state). The info column wraps
@@ -381,14 +382,15 @@ src/spellingbee/
     Stats.tsx             2-cell grid: Score / Words. Tabular-nums so the digits
                           don't shift width as the score climbs. (Timer lives in
                           the GamePage header, not here.)
-    WordList.tsx          Alphabetical 2-column flow. Per-finder color via
-                          memberColor.colorVarFor. Pangram = font-weight: 700; bonus =
-                          trailing dot via ::after; recently-found = underline (5s via
-                          useRecentlyFound). Post-terminal: revealWords prop fills in
-                          unfound required words in gray. In compete mode the foundWords
-                          input is already caller-only (RLS branch (b) hides peers'
-                          rows mid-game) — the list renders just the caller's finds
-                          without an FE branch.
+    (WordList)            The found-words list is now the SHARED
+                          common/components/WordList (used by spellingbee + boggle, so the
+                          list looks identical across games). PlayArea builds its rows via
+                          lib/displayRows.buildDisplayRows(foundWords, game.requiredWords)
+                          and passes `reveal`. Per-finder color, pangram bold, bonus dot,
+                          5s recently-found underline (the now-shared common/hooks/
+                          useRecentlyFound), and the post-terminal grey reveal all live in
+                          the common component. In compete the foundWords input is already
+                          caller-only (RLS hides peers' rows mid-game).
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
                           SetupGameDialog wrapper). Reads `mode` from SetupBodyProps
                           (fed by the sibling-manifest's GameManifest.mode). Coop:
@@ -410,10 +412,10 @@ src/spellingbee/
                           on the next refetch.
                           (Keyboard capture is the SHARED common/hooks/useCaptureKeys, called
                           from PlayArea — no longer a spellingbee-local hook.)
-    useRecentlyFound.ts   Tracks freshly-arrived words from the found_words log. Each
-                          new arrival stays "recent" for 5 seconds, then drops out via
-                          per-word setTimeouts in a ref (NOT effect cleanup — see the
-                          inline note about double-update timer cancellation).
+                          (useRecentlyFound is now SHARED: common/hooks/useRecentlyFound,
+                          used inside the common WordList — no longer a spellingbee-local
+                          hook. Tracks freshly-arrived words, each "recent" for 5s via
+                          per-word setTimeouts in a ref, NOT effect cleanup.)
     usePeerFeedback.ts    Fires HEADER feedback pills for other players' activity — the
                           complement to the below-board own-move pill. coop: a peer found a
                           good/pangram word (found_words is club-wide). compete: an opponent
@@ -520,7 +522,8 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | `src/spellingbee/lib/ranks.test.ts` | Rank ladder boundary cases; integer-math agreement with `spellingbee._rank_idx`. |
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
-| `src/spellingbee/hooks/useRecentlyFound.test.ts` | Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
+| `src/spellingbee/lib/displayRows.test.ts` | Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
+| `src/common/hooks/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
 
@@ -535,7 +538,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
 | The rank ladder math | [`src/spellingbee/lib/ranks.ts`](../../src/spellingbee/lib/ranks.ts) |
-| The found-words list | [`src/spellingbee/components/WordList.tsx`](../../src/spellingbee/components/WordList.tsx) |
+| The found-words list | the SHARED [`src/common/components/WordList.tsx`](../../src/common/components/WordList.tsx) (spellingbee builds its rows via [`src/spellingbee/lib/displayRows.ts`](../../src/spellingbee/lib/displayRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
 
 ## Open / deferred

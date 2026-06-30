@@ -55,7 +55,7 @@ minimum length.
   pool, scored once for the team.
 - **Compete** (`boggle_compete`, 2–8 players): everyone hunts the **same** board
   independently. You see only your **own** words until the game ends; an
-  `OpponentStrip` shows peers' live word counts + scores (not their words). Most
+  `OpponentStrip` shows peers' live scores (not their words or counts). Most
   points wins. Scoring is **independent per player** — no classic dupes-cancel
   (deferred, [§12](#12-deferred--future)).
 
@@ -269,25 +269,52 @@ and trusted, exactly the scrabble trusting-commit model.
 
 ## 8. Frontend (`src/boggle/`)
 
-**Layout: two fixed-height columns, no full-page scroll** (per
-[docs/ui.md](../ui.md)).
+**v3 layout** — the shared two-column scaffold (`common/components/PlayArea.module.css`,
+imported as `shared`): a board column + a fixed info column, no full-page scroll
+(per [docs/ui.md](../ui.md) and [docs/design-decisions.md](../design-decisions.md)).
+boggle is spellingbee's structural twin (hunt words → typed entry → found-words
+`<WordList>` → compete `OpponentStrip` → client-side missed-words reveal); the one
+difference is the **square tile grid** (sized like waffle's, the other square
+board), swapped in for spellingbee's hex flower.
 
-- **Left:** the board grid (CSS-grid, `n`-aware; multiface tiles render "Qu" etc.,
-  the blank a faint `?`). Below it, the shared `ShuffleButton` (⟲) does a
-  **cosmetic 90° matrix rotation** of the displayed grid — the tiles reposition
-  but each letter stays upright (a matrix rotation, not a CSS spin), so the board
-  is readable from any side. It's **local to this player in both modes**: never
-  persisted, never seen by others.
-- **Right:** an `<input type="text">` over the found-words list.
-  - **Input:** Enter submits; **Up arrow** recalls the last submitted word for
-    editing; non-A–Z characters are filtered at the input (and it carries
-    `data-game-input`) so the global `?` / `/` / `~` shortcuts still fire while
-    it's focused. Typed only — no click-to-trace.
-  - **`WordList`:** the FreeBee/spellingbee look — finder color (coop), a bonus
-    dot, a 5 s new-word flash (`useRecentlyFound`), click-to-define via the shared
-    `DefinitionPopover`, and the post-terminal missed-words reveal.
-  - **Compete only:** the shared `OpponentStrip` above the list, showing peers'
-    live counts + scores from `status.leaderboard`.
+- **Board column** — the square `n × n` tile grid (multiface tiles render "Qu" etc.,
+  the blank a faint `?`). It hugs the **largest square that fits** via the shared
+  HUG model (`.boardCol --side = min(--avail-w, --avail-h, n·--max-tile-size +
+  gaps)`, with `--cols`/`--rows` set inline since `n` ∈ 4/5/6); the letter scales
+  with each tile through `container-type: size` + `42cqmin`, kept (rather than
+  waffle's column-count-tuned `--side/12`) precisely because it's **n-agnostic**.
+  The shared `ShuffleButton` (⟲) **floats over the board's top-right** and does a
+  **cosmetic 90° matrix rotation** of the displayed grid — tiles reposition but each
+  letter stays upright (a matrix rotation, not a CSS spin), so the board is readable
+  from any side. **Local to this player in both modes**: never persisted, never seen
+  by others. A fixed-height **below-board slot** under the grid holds exactly one of:
+  the typed-word input row, the sticky own-move `<FeedbackPill>`, or the permanent
+  terminal pill (they replace each other so the board never reflows).
+  - **Move entry** is the shared **capture model** (`useCaptureKeys` + a chrome-less
+    `<EntryBox>` display, same as spellingbee): window key-capture, letters stored
+    UPPERCASE, the icon-only `DeleteButton` + `SubmitButton` flanking the box. Enter
+    submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
+    clears (the universal `useCaptureKeys` last-move history). Typed only —
+    no click-to-trace. Own-move results show as a **local sticky `<FeedbackPill>`**
+    (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
+    next keystroke — not the GamePage header feedback channel.
+- **Info column** (the canonical v3 order — see design-decisions.md → Info column):
+  the live **state line** (`X / Y words · Z pts`), the compete **`OpponentStrip`**
+  (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
+  the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
+  the bold outcome line + a compact back-to-club button at terminal), a **help line**,
+  the **setup disclosure**, and the **`WordList`** filling the rest.
+  - **`WordList`:** the **shared `common/components/WordList`** (identical to
+    spellingbee's, since it IS the same component) — finder color (coop), a bonus
+    dot, a 5 s new-word flash (`common/hooks/useRecentlyFound`), click-to-define via
+    the shared `DefinitionPopover`, and the post-terminal missed-words reveal. boggle
+    builds its rows via `lib/displayRows` → `WordListRow[]` (the live count moved to
+    the info-column state line, so the list header is just a label now).
+
+**End game** is an info-column action-row button (off the GamePage menu); the
+terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, tone}`)
+driving the below-board pill, the action-row line, and the `GameOverModal`. boggle
+has no intrinsic win — coop is a neutral shared hunt; compete picks the highest score.
 
 **Guess flow.** Because the FE holds the board, the required list, and `scoreFor`,
 most guesses resolve instantly with no round-trip: a word in the required set →

@@ -197,6 +197,10 @@
      override wins regardless of stylesheet order. The caret height tracks it
      (1.15em). */
   --entrybox-font-size:       1.5rem;
+  /* The EntryBox's minimum width — a stable floor for the placeholder + short
+     words; the box grows past this (fit-content) for longer words, up to the
+     16-char entry cap. Wide enough to hold the games' placeholder hints. */
+  --entrybox-min-width:       14rem;
 
   /* Page padding — the breathing room on every page (the body's padding, all
      sides). Single source: `body` applies it, and a game PlayArea's

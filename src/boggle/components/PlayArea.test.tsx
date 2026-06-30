@@ -1,0 +1,123 @@
+/**
+ * Render smoke tests for boggle's PlayArea: does the play surface mount and
+ * render without throwing — in coop, in compete, and at terminal?
+ *
+ * Why this exists: a v1→v3 conversion rewired the whole component (shared
+ * scaffold, capture-key entry, info column). A blank-page runtime error here
+ * wouldn't be caught by `tsc` (the root tsconfig checks nothing — see memory
+ * project_typecheck_use_tsc_b), so a one-line `render()` per mode is the guard.
+ * Deliberately shallow: game logic lives in pgTAP (the RPCs) + the lib Vitest
+ * suites (solver / boardTrace / displayRows); here we only prove the tree mounts.
+ *
+ * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
+ * needed; everything else — the grid, entry row, word list, modal — renders real.
+ */
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { GamePageCtx } from '../../common/lib/games'
+import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
+import { PlayArea } from './PlayArea'
+
+type GameHook = {
+  game: BoggleGame | null
+  foundWords: FoundWordRow[]
+  loading: boolean
+}
+
+// A mutable holder the mocked useGame returns each render — set per test before
+// render(). `vi.hoisted` runs before the (also-hoisted) `vi.mock` factory.
+const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
+vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
+vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+
+/** A loaded 4×4 game header; override the mode + required list per test. */
+function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
+  return {
+    id: 'g1',
+    club_handle: 'c1',
+    mode: 'coop',
+    board: 'abcdefghijklmnop', // 16 plain faces → a 4×4 board
+    n: 4,
+    min_word_length: 3,
+    required_words: [{ word: 'cat', points: 1 }],
+    required_words_count: 1,
+    required_words_score: 1,
+    ...over,
+  }
+}
+
+function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
+  return { game, foundWords, loading: false }
+}
+
+const twoMembers = [
+  { user_id: 'u1', username: 'me', color: 'red' },
+  { user_id: 'u2', username: 'moth', color: 'blue' },
+]
+
+function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
+  return {
+    session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    gameId: 'g1',
+    brand: 'MothCubes',
+    players: [{ user_id: 'u1', username: 'me', color: 'red' }],
+    playState: 'playing',
+    isTerminal: false,
+    timer: { displaySeconds: 0, expired: false },
+    // A realistic setup blob — the info-column disclosure reads it (a `{}` here
+    // would crash timerLabel / the difficulty lookups, exactly what this guards).
+    setup: {
+      timer: { kind: 'none' },
+      dice_set: '4',
+      band: 3,
+      legal_band: 5,
+      min_word_length: 3,
+      scoring_ladder: 'basic',
+    },
+    status: null,
+    feedback: { show: vi.fn(), clear: vi.fn() },
+    goToClub: vi.fn(),
+    menu: { setGameItems: vi.fn() },
+    ...over,
+  } as unknown as GamePageCtx
+}
+
+beforeEach(() => {
+  h.result = loaded(loadedGame())
+})
+
+describe('boggle PlayArea — render smoke', () => {
+  it('renders the 4×4 board + state line in coop play', () => {
+    const { container } = render(<PlayArea {...makeCtx()} />)
+    expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
+    // The info-column state line ("<n> / 1 words · <s> pts").
+    expect(screen.getByText(/words ·/)).toBeInTheDocument()
+    expect(screen.getByText(/pts/)).toBeInTheDocument()
+  })
+
+  it('renders the OpponentStrip (Score) in compete play', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(screen.getByText('Score:')).toBeInTheDocument()
+  })
+
+  it('renders the terminal state without crashing', () => {
+    h.result = loaded(loadedGame())
+    render(<PlayArea {...makeCtx({ isTerminal: true })} />)
+    // The neutral coop terminal: "Game ended" in the action row, and the
+    // permanent verdict pill below the board.
+    expect(screen.getAllByText(/Game ended/).length).toBeGreaterThan(0)
+  })
+
+  it('shows local feedback (and clears the box) for an off-board word', async () => {
+    // Regression: a too-short/off-board reject set the feedback but didn't clear
+    // `word`, and the below-board pill is gated on word === '' — so its own
+    // feedback was suppressed. The board is 'abcdefghijklmnop' (no Z), so "zzz"
+    // is a non-traceable, off-board word that never reaches the server.
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.keyboard('zzz{Enter}')
+    expect(screen.getByText(/not on the board/i)).toBeInTheDocument()
+  })
+})

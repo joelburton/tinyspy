@@ -32,7 +32,7 @@ describe('buildDisplayRows', () => {
     )
     expect(rows).toHaveLength(1)
     expect(rows[0].kind).toBe('found')
-    if (rows[0].kind === 'found') expect(rows[0].row.user_id).toBe('ada')
+    if (rows[0].kind === 'found') expect(rows[0].userId).toBe('ada')
   })
 
   it('picks the earliest finder regardless of input order', () => {
@@ -43,7 +43,7 @@ describe('buildDisplayRows', () => {
       ],
       [],
     )
-    expect(rows[0].kind === 'found' && rows[0].row.user_id).toBe('ada')
+    expect(rows[0].kind === 'found' && rows[0].userId).toBe('ada')
   })
 
   it('shadows a reveal entry with a found row of the same word', () => {
@@ -65,7 +65,7 @@ describe('buildDisplayRows', () => {
       [fw('ada', 'cead')],
       [{ word: 'aaaa', points: 1, is_pangram: false }],
     )
-    const words = rows.map((r) => (r.kind === 'found' ? r.row.word : r.word))
+    const words = rows.map((r) => r.word)
     expect(words).toEqual(['aaaa', 'cead'])
   })
 })
