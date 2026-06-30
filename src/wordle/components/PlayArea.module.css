@@ -12,6 +12,19 @@
   --info-col-width: 22rem;
 }
 
+/* The local feedback area — a fixed-height slot BETWEEN the board and the
+ * keyboard (Joel's call; the keyboard is always present, so feedback can't
+ * replace an entry row the way it does in the other v3 games). The reserved
+ * height keeps the board above and the keyboard below from reflowing when the
+ * own-move pill appears or clears; it centers the pill (the "local feedback is
+ * centered" rule). */
+.feedbackSlot {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Terminal "Game over / The answer was X" block, shown in the info column.
  * TEMPORARY: Phase 4 folds this into the shared action-slot outcome line + a
  * permanent local feedback pill; kept as-is for now so the shell lands first. */

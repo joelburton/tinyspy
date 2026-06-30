@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { GamePageCtx, FeedbackMsg } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
@@ -32,6 +33,23 @@ import '../theme.css'
  * team's. Compete renders only the caller's own guesses (RLS hides
  * opponents) plus an OpponentStrip of their guess counts.
  */
+
+/** Local feedback pills are never closeable, so the × never renders and this is
+ *  never called — but `<FeedbackPill>` requires the prop. */
+const noop = () => {}
+
+/** Build the own-move local pill: outline (transient) + STICKY — it sits in the
+ *  local feedback area until the player's next keypress dismisses it (the typed
+ *  letters stay on the board so they can fix the guess). Tone is per case:
+ *  `error` for an invalid / failed guess (not a real word, an RPC error),
+ *  `warning` for a non-error nudge ("already guessed", "not enough letters"). */
+const localPill = (tone: 'warning' | 'error', text: string): FeedbackMsg => ({
+  tone,
+  text,
+  variant: 'outline',
+  dismiss: { kind: 'sticky' },
+})
+
 export function PlayArea({
   session,
   gameId,
@@ -49,6 +67,12 @@ export function PlayArea({
   const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // The own-move local feedback pill (soft reject / RPC error), shown in the
+  // fixed-height slot between the board and the keyboard. Sticky: cleared by the
+  // player's next edit (typeLetter / deleteLetter below), the "next move
+  // dismisses it" rule (docs/design-decisions.md → Dismissal modes). Accepted
+  // guesses get NO pill — the colored row that lands IS the feedback.
+  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
   // from the moment we submit until its colored server row arrives via
   // realtime, so the letters don't blink out during the round-trip. The
@@ -81,11 +105,25 @@ export function PlayArea({
     !submitting &&
     !pendingWord
 
+  // ─── Edit the active row (dismisses any sticky local pill) ─────
+  // Typing a letter or backspacing is the player's "next move", so it clears the
+  // last soft-reject pill (the analog of psychicnum's "typing dismisses the
+  // entry flash"). Both the physical and on-screen keyboards route through these,
+  // so the clear lives in one place. Stable (no deps) — they only call setters.
+  const typeLetter = useCallback((ch: string) => {
+    setLocalMsg(null)
+    setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
+  }, [])
+  const deleteLetter = useCallback(() => {
+    setLocalMsg(null)
+    setCurrent((c) => c.slice(0, -1))
+  }, [])
+
   // ─── Submit a guess (stable across keystrokes) ────────────────
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        feedback.show({ tone: 'info', text: 'Not enough letters', dismiss: { kind: 'timed', ms: 1200 } })
+        setLocalMsg(localPill('warning', 'Not enough letters'))
         return
       }
       setSubmitting(true)
@@ -99,46 +137,62 @@ export function PlayArea({
       setSubmitting(false)
       if (error) {
         setPending(null)
-        feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+        // A real failure (not a soft reject) → error-toned, still sticky.
+        setLocalMsg(localPill('error', error.message))
         return
       }
       const res = data as { result: string }
+      // Soft rejects (no guess burned, the typed row stays). An invalid word
+      // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
-        feedback.show({ tone: 'error', text: 'Not in word list', dismiss: { kind: 'timed', ms: 1500 } })
+        setLocalMsg(localPill('error', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {
         setPending(null)
-        feedback.show({ tone: 'info', text: 'Already guessed', dismiss: { kind: 'timed', ms: 1500 } })
+        setLocalMsg(localPill('warning', 'Already guessed'))
         return
       }
       if (res.result === 'invalid') {
         setPending(null)
-        feedback.show({ tone: 'error', text: 'Not enough letters', dismiss: { kind: 'timed', ms: 1200 } })
+        setLocalMsg(localPill('warning', 'Not enough letters'))
         return
       }
       // accepted (correct/incorrect): clear the typing buffer. `pending`
       // holds the word in place until its colored row lands (then flips).
       setCurrent('')
     },
-    [gameId, feedback],
+    [gameId],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
   // Mirrors the on-screen <Keyboard>. The handler reads canGuess /
   // current / doSubmit fresh through useGlobalKeyHandler's ref, so the
   // window listener registers once rather than re-binding per keystroke.
+  // Same ordering as useCaptureKeys (the EntryBox grabber): modifier bail →
+  // hard-off → dismiss-on-ANY-key → dispatch.
   useGlobalKeyHandler((e) => {
-    if (!canGuess) return
+    // Leave browser/OS shortcuts (Cmd-R, Ctrl-Tab, …) alone — and don't let
+    // them count as a "next move" that dismisses feedback.
     if (e.metaKey || e.ctrlKey || e.altKey) return
+    // Hard-off when the player can't act (loading / terminal / out of guesses /
+    // mid-submit): do nothing AND don't dismiss — matches useCaptureKeys'
+    // `disabled` gate, so a sticky pill survives a stray key.
+    if (!canGuess) return
+    // ANY key the player presses is their next move → clear the local pill,
+    // even keys we then pass up (space, punctuation, arrows). The on-screen
+    // keyboard dismisses via typeLetter/deleteLetter instead; doing it here too
+    // is a harmless no-op when those run. (Same rule as useCaptureKeys.onAnyKey
+    // — the EntryBox grabber had this exact gap before.)
+    setLocalMsg(null)
     if (e.key === 'Enter') {
       e.preventDefault()
       void doSubmit(current)
     } else if (e.key === 'Backspace') {
-      setCurrent((c) => c.slice(0, -1))
+      deleteLetter()
     } else if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-      setCurrent((c) => (c.length < 5 ? c + e.key.toLowerCase() : c))
+      typeLetter(e.key)
     }
   })
 
@@ -211,11 +265,19 @@ export function PlayArea({
           active={canGuess}
           brand={brand}
         />
+        {/* Local feedback area — between the board and the keyboard (Joel's call).
+            A fixed-height slot so neither the board above nor the keyboard below
+            reflows when the own-move pill appears/clears; it holds the centered
+            soft-reject / error pill, and is empty (but space-reserving)
+            otherwise. */}
+        <div className={styles.feedbackSlot}>
+          {localMsg && <FeedbackPill msg={localMsg} onClose={noop} />}
+        </div>
         <Keyboard
           keyStates={keyStates}
-          onKey={(ch) => canGuess && setCurrent((c) => (c.length < 5 ? c + ch : c))}
+          onKey={typeLetter}
           onEnter={() => void doSubmit(current)}
-          onBackspace={() => setCurrent((c) => c.slice(0, -1))}
+          onBackspace={deleteLetter}
           disabled={!canGuess}
         />
       </div>
