@@ -81,14 +81,14 @@ test.describe('club presence', () => {
 
     // Wait until both are present in the game — i.e. no pause overlay
     // on Alice's screen (this also proves Bob's presence registered).
-    const pauseBanner = pageA.getByText(/Waiting for .* to reconnect/)
+    const pauseBanner = pageA.getByText(/Waiting for /)
     await expect(pauseBanner).toBeHidden()
 
     // Bob disconnects → his game-channel presence expires → Alice's
     // game pauses (we don't play with a missing partner).
     await ctxB.close()
     await expect(
-      pageA.getByText(new RegExp(`Waiting for .*${bob.username}.* to reconnect`)),
+      pageA.getByText(new RegExp(`Waiting for .*${bob.username}`)),
     ).toBeVisible()
 
     await ctxA.close()

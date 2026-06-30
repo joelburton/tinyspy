@@ -168,7 +168,11 @@ export async function createGame(
     .schema('psychicnum')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { guesses: 7, timer: { kind: 'none' } },
+      // psychicnum's setup validation requires word_count (5..20) and
+      // difficulty (1..6) alongside guesses + timer — a complete, valid setup.
+      // timer stays `none` on purpose: a countdown could flip the game to
+      // 'lost' mid-test and make presence/heal assertions flaky.
+      setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
       player_user_ids: club.members.map((m) => m.userId),
       mode: 'coop',
     })

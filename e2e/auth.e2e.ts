@@ -40,7 +40,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
     await page.goto('/')
 
     await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
+    await expect(page.getByRole('heading', { name: /let.?s set you up/i })).toBeHidden()
 
     await ctx.close()
   })
@@ -60,7 +60,7 @@ test.describe('auth gate: a stale session never strands you on the username scre
     await page.goto('/')
 
     await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
+    await expect(page.getByRole('heading', { name: /let.?s set you up/i })).toBeHidden()
 
     await ctx.close()
   })
@@ -79,11 +79,11 @@ test.describe('auth gate: a stale session never strands you on the username scre
     const page = await ctx.newPage()
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { name: /pick a username/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /let.?s set you up/i })).toBeVisible()
 
     await page.getByRole('button', { name: /sign out/i }).click()
     await expect(page.getByRole('heading', { name: 'PuzPuzPuz' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /pick a username/i })).toBeHidden()
+    await expect(page.getByRole('heading', { name: /let.?s set you up/i })).toBeHidden()
 
     await ctx.close()
   })
