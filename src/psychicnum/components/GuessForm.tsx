@@ -1,20 +1,14 @@
-import { useCallback } from 'react'
 import { IconSubmit } from '../../common/components/icons'
 import { cls } from '../../common/lib/cls'
 import { EntryBox } from '../../common/components/EntryBox'
 import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { type ResultTone } from '../../common/components/ResultFlash'
-import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useCaptureKeys } from '../../common/hooks/useCaptureKeys'
 import styles from './GuessForm.module.css'
 
 /** Local feedback pills are never closeable, so the × is never rendered and
  *  this is never called — but `<FeedbackPill>` requires the prop. */
 const noop = () => {}
-
-/** Cap the entry length: no real word is longer, and it keeps the typed word
- *  from overrunning its box. Per-game for now — a candidate to lift into the
- *  shared capture helper once one exists. */
-const MAX_GUESS_LEN = 16
 
 type Props = {
   /** The pending guess word (lowercase; empty string when nothing typed).
@@ -66,60 +60,20 @@ export function GuessForm({ value, onChange, onSubmit, submitting, result, onDis
   // handleEntryChange clears the flash and their letters take over.
   const shownResult = value === '' ? result : null
 
-  // Capture letters / Backspace / Enter / Tab off the window. The form only
-  // mounts when the viewer can guess (PlayArea gates on `canGuess`), so this
-  // is only live when entry is actually allowed.
-  useGlobalKeyHandler(
-    useCallback(
-      (e: KeyboardEvent) => {
-        // Let the browser/OS keep any modified keystroke — Cmd-R refresh,
-        // Ctrl-Tab, Cmd-L, etc. We only capture plain typing, so bail before
-        // touching anything (including the Tab suppression) when a Cmd/Ctrl/Alt
-        // modifier is held.
-        if (e.metaKey || e.ctrlKey || e.altKey) return
-        // Any key the game sees is the player's next move, so dismiss a sticky
-        // local result here — BEFORE the alpha test below — so Space / Enter /
-        // arrows / Backspace clear it too, not just the letters that append. (The
-        // modified combos bailed just above keep the browser's behavior and don't
-        // dismiss.) A no-op when nothing's showing.
-        onDismissResult()
-        // Swallow Tab while the entry is live. The blinking caret claims the
-        // keyboard for the guess; if Tab moved real focus onto some button
-        // (the Submit, a header control) the caret would keep blinking while
-        // focus is elsewhere — two cursors, confusing. These games are
-        // navigated by clicks + typing, not by tabbing between controls, so
-        // we just drop it. (useGlobalKeyHandler still lets a focused text
-        // field — chat, a dialog — keep its own keys, so chat tabbing is
-        // unaffected.)
-        if (e.key === 'Tab') {
-          e.preventDefault()
-          return
-        }
-        if (submitting) return
-        // A single letter → append (stored lowercase; the board words are
-        // lowercase, displayed uppercased via CSS).
-        if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-          e.preventDefault()
-          if (value.length >= MAX_GUESS_LEN) return // cap the entry length
-          onChange(value + e.key.toLowerCase())
-          return
-        }
-        if (e.key === 'Backspace') {
-          e.preventDefault()
-          onChange(value.slice(0, -1))
-          return
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          // Empty Enter just dismisses (done above) — don't submit '' (which
-          // would flash "Not on the board"); the Submit button is disabled when
-          // empty too.
-          if (value !== '') onSubmit()
-        }
-      },
-      [value, submitting, onChange, onSubmit, onDismissResult],
-    ),
-  )
+  // Capture letters / Backspace / Enter / Tab off the window via the shared
+  // capture-key helper (it owns the modifier bail, Tab swallow, next-move
+  // dismissal, Backspace / Enter, and the 16-char cap). psychicnum stores letters
+  // lowercase (board words are lowercase, shown uppercase via CSS) — the helper's
+  // default — so the only per-game wiring is `busy` (block edits mid-submit) and
+  // `onAnyKey` (clear the sticky result). The form only mounts when the viewer can
+  // guess (PlayArea gates on `canGuess`), so capture is only live when allowed.
+  useCaptureKeys({
+    value,
+    onChange,
+    onSubmit,
+    busy: submitting,
+    onAnyKey: onDismissResult,
+  })
 
   return (
     <form

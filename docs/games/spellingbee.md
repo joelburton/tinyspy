@@ -332,7 +332,10 @@ src/spellingbee/
                           .infoCol). Owns the typed word, the shuffle seed, the sticky
                           own-move feedback (a shared <FeedbackPill>, dismissed on the next
                           move — no timer), the submit_word dispatch, and the End-game
-                          action button. Wires usePeerFeedback to the common header slot
+                          action button. Captures keystrokes via the shared useCaptureKeys
+                          (letters stored uppercase; the extra keys Space=shuffle /
+                          ArrowUp=recall last word / ArrowDown=clear). Wires usePeerFeedback
+                          to the common header slot
                           for peer/opponent events (aliased as `headerFeedback` so it
                           doesn't clash with the local pill state). The info column wraps
                           its readouts in the shared .actionSlot: RankBar + Stats (the
@@ -345,19 +348,24 @@ src/spellingbee/
                           slot). The two-column shell + readout classes are the shared
                           common/components/PlayArea.module.css. Desktop-first, no @media
                           reflow — per ui.md.
-    Letters.tsx           The 7-hex honeycomb. Render order: center → top → upper-right →
-                          lower-right → bottom → lower-left → upper-left. Position via
-                          nth-child rules in Letters.module.css.
+    Letters.tsx           The 7-hex honeycomb, rendered as .board > .grid (the board-column
+                          convention — no tray; the hexes carry their own shape). Render
+                          order: center → top → upper-right → lower-right → bottom →
+                          lower-left → upper-left. Position via nth-child rules in
+                          Letters.module.css.
     Letters.module.css    `clip-path: polygon(...)` flat-top hexes, absolute positioning,
-                          per-position nth-child rules — lifted verbatim from
-                          ~/spellingbee-ws/src/globals.css §7.
+                          per-position nth-child rules — the ~/spellingbee-ws §7 layout, but
+                          RE-BASED to the flower's own top-left so .grid hugs its real
+                          256×267 box and sits FLUSH at the top of the column (the source's
+                          320×320 square left a ~37-unit blank band up top). Scales via `--u`
+                          (set on .boardCol); hex shapes + relative positions unchanged.
     Letter.tsx            Single hex. onMouseDown preventDefault so a click doesn't steal
                           focus from the keyboard-handler attachment point.
     TypedWord.tsx         The current typed word, rendered as the children INSIDE the shared
                           <EntryBox> (which owns the box + blinking caret + placeholder).
                           One <span> per character so illegal letters (not in the puzzle's
                           allowed set) dim individually. No <input> — typing is captured by
-                          useGlobalKeyHandler in PlayArea.
+                          useCaptureKeys in PlayArea.
                           (The Delete / Shuffle / Enter controls are no longer a per-game
                           Actions.tsx: they're the shared semantic buttons —
                           <DeleteButton> + <SubmitButton> flanking the EntryBox in the input
@@ -400,10 +408,8 @@ src/spellingbee/
                           two-table subscription on spellingbee.{games, found_words}. Reads
                           from games_state so the post-terminal wordlist reveal Just Works
                           on the next refetch.
-    useGlobalKeyHandler.ts  Window-level keydown listener with a ref-dispatch so the
-                          listener stays mounted for the component's lifetime but
-                          dispatches into a fresh closure each render. Ported verbatim
-                          from spellingbee-ws.
+                          (Keyboard capture is the SHARED common/hooks/useCaptureKeys, called
+                          from PlayArea — no longer a spellingbee-local hook.)
     useRecentlyFound.ts   Tracks freshly-arrived words from the found_words log. Each
                           new arrival stays "recent" for 5 seconds, then drops out via
                           per-word setTimeouts in a ref (NOT effect cleanup — see the

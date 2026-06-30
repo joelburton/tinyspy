@@ -367,9 +367,10 @@ src/psychicnum/
                           pause, timer, suspend-confirm) lives on <GamePage>.
     PlayArea.module.css
     GuessForm.tsx         Capture-only word entry (no <input> — keys read off the
-                          window via useGlobalKeyHandler into the shared <EntryBox>)
-                          + submit_guess dispatch. Clicking a board tile and typing
-                          drive the same pending word.
+                          window via the shared useCaptureKeys hook into the shared
+                          <EntryBox>; letters lowercase, the default) + submit_guess
+                          dispatch. Clicking a board tile and typing drive the same
+                          pending word.
     GuessForm.module.css
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see ui.md → Turn log):

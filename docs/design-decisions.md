@@ -210,8 +210,9 @@ Some games put other things in `belowBoard`; many don't.
 ## Move entry: `EntryBox`
 
 For games where the player types a word (psychicnum, spellingbee, boggle, …) we do
-**not** use a real `<input type=text>`. We use the shared **`<EntryBox>`** plus the
-**`useGlobalKeyHandler`** hook (captures keystrokes off the window) and
+**not** use a real `<input type=text>`. We use the shared **`<EntryBox>`** (the
+display + caret) plus the **`useCaptureKeys`** hook (the key handling — built on
+`useGlobalKeyHandler`, which captures keystrokes off the window) and
 **`useGameHasKeyboard`** (gates capture so it never fights the chat input). Why
 capture instead of an input: these are board-first games, and a focused `<input>`
 blurs the instant you click a tile, silently stopping typing.
@@ -228,11 +229,21 @@ Rules:
 - **Backspace** deletes a character. Some games also offer delete buttons.
 - **Enter** triggers the game's submit-move button.
 - **Up-arrow** recalls the previously-entered word; **down-arrow** clears it.
+  (These two are a **per-game extra**, not universal — spellingbee wires them via
+  `useCaptureKeys`' `onExtraKey`; psychicnum doesn't have them.)
 - After a word is submitted, the field clears.
 - Entry is **length-capped** (~16 chars — no real word is longer, and it keeps
   the text from overrunning the box). The text **size** is a per-game knob
   (`--entrybox-font-size`, default in `theme.css`) so a board-first game can go
   larger without affecting others.
+
+The **universal** rules above — alpha-only capture, Backspace, Enter-when-non-empty,
+the `Tab` swallow, the modifier bail, the length cap, and clearing the next-move
+feedback — are **owned by `useCaptureKeys`** (`common/hooks/useCaptureKeys.ts`), so
+they're identical across games and can't drift. A game supplies only *what may be
+entered* (`charFor` — letters vs digits + the stored case, via the exported
+`asciiLetters` helper) and any extra keys (`onExtraKey`). See
+[`ui.md → Text entry`](ui.md#text-entry--capture-not-input).
 
 **Free-text / phrase entry is the exception** (codenamesduet's clue — arbitrary
 words, spaces, mid-string editing): that stays a real `<input>`, where native
@@ -353,8 +364,8 @@ match the doc:
    border) and **permanent = fill** (lightened-tone bg + colored border). Peer
    identity stays carried by the **dot**, independent of fill/outline.
 4. **Names already correct in code, just locked here:** `StatusSlot` (global
-   feedback area), `EntryBox` + `useGlobalKeyHandler` + `useGameHasKeyboard` (move
-   entry — *not* "WordInput"), `.infoCol` / `.infoState` / `.infoActions` /
+   feedback area), `EntryBox` + `useCaptureKeys` (built on `useGlobalKeyHandler`) +
+   `useGameHasKeyboard` (move entry — *not* "WordInput"), `.infoCol` / `.infoState` / `.infoActions` /
    `.infoHelp` / `.infoSetup`, `<OpponentStrip>`, `<TurnLog>`, `<WordList>`,
    `closeable` (not "manual") dismissal.
 5. **`belowBoard`.** spellingbee already names this region `.belowBoard`;

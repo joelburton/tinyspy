@@ -13,7 +13,7 @@ import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
@@ -264,62 +264,38 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, isTerminal, showFeedback, submitting, word])
 
-  // ─── Global keyboard handler ───────────────────────────
-  useGlobalKeyHandler(
-    useCallback(
-      (e: KeyboardEvent) => {
-        // useGlobalKeyHandler already drops keystrokes aimed at a focused
-        // text field (chat, dialogs), so everything below only ever runs
-        // for board-level input — never while the user is typing in chat.
-        // (The "~" word-lookup shortcut is now app-global; see
-        // useAppShortcuts.)
-
-        if (loading || !game) return
-        if (isTerminal) return
-
-        // Any key the game sees is the player's next move → dismiss the sticky
-        // own-move pill (docs/design-decisions.md → Dismissal modes). Hex clicks
-        // and the Delete button dismiss via their own handlers. A no-op when
-        // nothing's showing, so it's cheap to run unconditionally.
-        clearFeedback()
-
-        if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-          setWord((prev) => prev + e.key.toUpperCase())
-          return
-        }
-        if (e.key === 'Backspace') {
-          e.preventDefault()
-          setWord((prev) => prev.slice(0, -1))
-          return
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault()
-          void handleSubmit()
-          return
-        }
-        // ArrowUp recalls the previously-submitted word into the input for
-        // editing — fast "add an S" entry. (The hook's field guard means
-        // this only fires for word entry, never in chat.)
-        if (e.key === 'ArrowUp') {
-          e.preventDefault()
-          if (lastWord) setWord(lastWord)
-          return
-        }
-        // ArrowDown clears the current entry.
-        if (e.key === 'ArrowDown') {
-          e.preventDefault()
-          setWord('')
-          return
-        }
-        if (e.key === ' ') {
-          e.preventDefault()
-          handleShuffle()
-          return
-        }
-      },
-      [clearFeedback, game, handleShuffle, handleSubmit, isTerminal, lastWord, loading],
-    ),
-  )
+  // ─── Capture-entry key handling ────────────────────────
+  // The shared capture-key helper owns the universal plumbing (modifier bail, Tab
+  // swallow, sticky-feedback dismissal, Backspace / Enter, the 16-char cap).
+  // spellingbee's own pieces: letters stored UPPERCASE, and three extra keys —
+  // Space shuffles, ArrowUp recalls the last submitted word ("add an S"), ArrowDown
+  // clears. (The `~` word-lookup shortcut is app-global; see useAppShortcuts.)
+  useCaptureKeys({
+    value: word,
+    onChange: setWord,
+    onSubmit: () => void handleSubmit(),
+    disabled: loading || !game || isTerminal,
+    onAnyKey: clearFeedback,
+    charFor: asciiLetters('upper'),
+    onExtraKey: (e) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (lastWord) setWord(lastWord)
+        return true
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setWord('')
+        return true
+      }
+      if (e.key === ' ') {
+        e.preventDefault()
+        handleShuffle()
+        return true
+      }
+      return false
+    },
+  })
 
   // ─── End-game action (info-column button) ──────────────
   // The manual "we're done" stop — an info-column action-row button now (like

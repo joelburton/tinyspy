@@ -624,10 +624,10 @@ boggle/spellingbee should converge on), the play surface does **not** use a real
 `<input>`. These are board-first games: the board is where the eyes and clicks
 go, and a focused `<input>` loses focus the instant you click a board tile, so
 typing silently stops. Instead we **capture keystrokes off the window** (the
-shared `useGlobalKeyHandler`) and show the pending value in a read-only display
-box (the shared **`<EntryBox>`**), so there's no focus to lose — typing and
-tile-clicks both feed one pending value, and clicking anywhere never interrupts
-entry.
+shared **`useCaptureKeys`** hook, built on `useGlobalKeyHandler`) and show the
+pending value in a read-only display box (the shared **`<EntryBox>`**), so there's
+no focus to lose — typing and tile-clicks both feed one pending value, and clicking
+anywhere never interrupts entry.
 
 **Free-text / phrase entry** (codenamesduet's clue — arbitrary words, spaces,
 mid-string editing) is the exception: it stays a real `<input data-game-input>`,
@@ -653,10 +653,18 @@ The contract for the capture model:
 - **Modified keystrokes pass through.** Bail before capturing anything when a
   `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
   the browser's.
-- **What can be entered is per-game** (digits vs letters vs length caps); the
-  shared pieces are the display + caret + focus-gating. The Backspace/Enter/Tab
-  key boilerplate is a candidate to lift into a shared helper once a second game
-  adopts `<EntryBox>`.
+- **What can be entered is per-game; the rest is shared.** The universal key
+  plumbing lives in **`useCaptureKeys`** (`common/hooks/useCaptureKeys.ts`): the
+  modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
+  Backspace / Enter (Enter only when non-empty), and the ~16-char cap. A game
+  supplies only *what may be entered* — `charFor` (letters vs digits + the stored
+  case; the exported `asciiLetters('lower' | 'upper')` covers the word games) —
+  plus any extra keys via `onExtraKey` (spellingbee's `Space` = shuffle, `ArrowUp`
+  = recall, `ArrowDown` = clear) and the `disabled` (loading / terminal — a true
+  no-op, won't dismiss a terminal pill) / `busy` (mid-submit — block edits, still
+  dismiss) gates. psychicnum's GuessForm and spellingbee's PlayArea both use it —
+  the lift the capture model had been holding for a second `<EntryBox>` consumer to
+  reveal the shared shape.
 
 **Local own-result feedback.** The player's own last move shows a result for the
 *local* half of the feedback split (the *group* half is the header pill, [Feedback
