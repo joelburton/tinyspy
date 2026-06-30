@@ -1,4 +1,5 @@
 import { ActorTag } from '../../common/components/ActorTag'
+import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
@@ -61,7 +62,9 @@ export function GameTurnLog({ guesses, players }: Props) {
             <tr key={g.id} className={turnLog.turnLogDivider}>
               <TurnLogBar outcome="partial" />
               <td className={turnLog.meta}>#{i + 1}</td>
-              <td colSpan={2} className={styles.hint}>
+              {/* The hint sentence spans the word+result columns; it's the row's
+                  main column (absorbs the slack so `who` stays snug). */}
+              <td colSpan={2} className={cls(turnLog.main, styles.hint)}>
                 <span className={turnLog.meta}>Hint:</span> {g.word}
               </td>
               {whoCell(g.user_id)}
@@ -74,8 +77,11 @@ export function GameTurnLog({ guesses, players }: Props) {
           <tr key={g.id} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'} />
             <td className={turnLog.meta}>#{i + 1}</td>
-            <td className={turnLog.primary}>{g.word.toUpperCase()}</td>
-            <td>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
+            {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
+                result = the main column, absorbing the slack so the word + result
+                stay clustered and `who` sits snug at the right. */}
+            <td className={cls(turnLog.other, turnLog.primary)}>{g.word.toUpperCase()}</td>
+            <td className={turnLog.main}>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
           </tr>
         )

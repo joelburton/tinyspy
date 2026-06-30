@@ -395,13 +395,37 @@ explicitly on every conversion:
 
 2. **Use the turn log's real table structure — don't condense a row into one
    cell.** A `<TurnLog>` row is a `<tr>`; pieces that should line up as **columns
-   across rows** (a number column, a who column) must be real `<td>`s — and a
-   multi-line turn is a **second `<tr>`** (with a `rowSpan`ned bar), not a stacked
-   div. Do **not** collapse the whole row into a single `<td>` and rebuild the
-   columns inside it with flexbox/grid: that defeats the table (its whole job is
-   columns lining up across rows) and was exactly the codenamesduet bug we
-   unwound. (A *single* content cell is fine only when the row genuinely has one
-   blob of content beside the bar — connections's stacked tiles + verdict — i.e.
-   nothing in it needs to align with the next row. The test: "should this piece
-   line up with the same piece one row down?" → if yes, it's a column, give it a
-   `<td>`.) See [Turn log](ui.md#turn-log) in ui.md.
+   across rows** must be real `<td>`s — and a multi-line turn is a **second
+   `<tr>`** (with a `rowSpan`ned bar), not a stacked div. Do **not** collapse the
+   whole row into a single `<td>` and rebuild the columns inside it with
+   flexbox/grid, **and** don't stack two lines in one cell: both defeat the table
+   (its whole job is columns lining up across rows) and were exactly the
+   codenamesduet *and* connections bugs we unwound (connections first kept a
+   `verdict | who` flex sub-line + the tiles in one cell — now a two-`<tr>` turn).
+   A *lone* `<td>` (often `colSpan`) is right only when the row's content is
+   genuinely **one piece** (a phrase like psychicnum's `Hint: <clue>`), never a way
+   to fit two pieces side by side. The test: "should this piece line up with the
+   same piece one row down?" → if yes, it's a column, give it a `<td>`.
+
+   **The typical columns of a turn-log entry** (compose from the shared classes —
+   full detail in [Turn log](ui.md#turn-log)):
+   - **outcome bar** — `<TurnLogBar outcome rowSpan?>` (col 0; `rowSpan`s the whole
+     entry when it's multi-row). Optional, but most games have it.
+   - **meta** — `turnLog.meta`: a turn number / small note. Muted, shrinks, no
+     spaces so it never wraps. Optional.
+   - **main** — `turnLog.main`: the entry's headline content (the verdict, the
+     clue, …). Exactly **one** per entry; it's `width: 100%`, so it absorbs the
+     row's slack and is least likely to wrap. Put it where the gap should land —
+     typically the **last content cell before `who`**, so the slack sits between
+     the content and the actor.
+   - **other** — `turnLog.other`: any additional content column (psychicnum's word
+     beside its result). Sized-to-fit, one line. **Sizing only, no emphasis** —
+     compose a look on top (`cls(turnLog.other, turnLog.primary)` for a bold word).
+   - **who** — `turnLog.who`: the actor, via `<ActorTag>`. Right-aligned, shrinks
+     to "name ●". It does **not** absorb slack (that's `.main`'s job) — a
+     `width: 100%` here steals it and wraps a sibling (the connections "Not a
+     match" bug).
+
+   A multi-row entry tags its first row `turnLog.entryHead` and continuation rows
+   `turnLog.entryCont` (the shared CSS hugs them together) — explicit classes the
+   component sets, since it knows the row kinds. See [Turn log](ui.md#turn-log).

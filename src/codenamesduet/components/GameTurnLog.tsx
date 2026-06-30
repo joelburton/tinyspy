@@ -87,15 +87,15 @@ export function GameTurnLog({ clues, guesses, players, currentTurn, gameOver }: 
         const inProgress = turnGuesses.length === 0 && t === currentTurn && !gameOver
         return (
           <Fragment key={t}>
-            {/* Row 1, real columns: [bar ⇣rowSpan 2] | # | count WORD |
-                clue-giver (right-aligned, absorbing the row's slack via the
-                shared `.who`). `.turnLogDivider` draws the line above this turn
-                (suppressed on the first turn); `.clueRow` tightens its bottom
-                padding so the guess line below sits close. */}
-            <tr className={cls(turnLog.turnLogDivider, styles.clueRow)}>
+            {/* Row 1, real columns: [bar ⇣rowSpan 2] | # (`.meta`) | count WORD
+                (`.main`, absorbs the slack) | clue-giver (`.who`, shrinks to the
+                username). `.turnLogDivider` draws the line above this turn
+                (suppressed on the first); `.entryHead`/`.entryCont` hug the two
+                rows together. */}
+            <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
               <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
-              <td className={cls(turnLog.meta, styles.numCell)}>#{t}</td>
-              <td className={styles.clueCell}>
+              <td className={turnLog.meta}>#{t}</td>
+              <td className={turnLog.main}>
                 <span className={styles.clueWord}>
                   {clue.count} {clue.word.toUpperCase()}
                 </span>
@@ -108,8 +108,8 @@ export function GameTurnLog({ clues, guesses, players, currentTurn, gameOver }: 
                 (#, clue, clue-giver) beneath the clue line. No divider class — the
                 line belongs between turns, not within one. The bar's rowSpan
                 occupies col 0 here, so this colSpan starts at the # column. */}
-            <tr>
-              <td colSpan={3} className={styles.guessCell}>
+            <tr className={turnLog.entryCont}>
+              <td colSpan={3}>
                 {turnGuesses.length === 0 ? (
                   <span className={turnLog.meta}>
                     {inProgress ? '(clue given)' : '(no guesses)'}

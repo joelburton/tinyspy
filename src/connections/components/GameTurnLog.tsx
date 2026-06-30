@@ -1,4 +1,6 @@
+import { Fragment } from 'react'
 import { ActorTag } from '../../common/components/ActorTag'
+import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
@@ -25,13 +27,15 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * a turn-log row isn't "a guess" in the shared vocabulary, even though here it
  * happens to be.)
  *
- * Stateless and presentational. One `<tr>` per guess, which connections renders
- * itself (the row anatomy is the game's — see TurnLog.tsx): the shared
- * `<TurnLogBar>` cell, then a single content cell holding the four tiles guessed
- * on top (full width, in board order — kept as the FE stored them, so the row
- * matches what the players were looking at), then a second line with the verdict
- * (left) and the actor + their identity dot (right). The `.turnLogDivider` class
- * on each row draws the between-turns line. The verdict names the matched
+ * Stateless and presentational. connections renders its own **two-`<tr>`** turn
+ * (the row anatomy is the game's — see TurnLog.tsx): row 1 is `[bar ⇣rowSpan 2] |
+ * verdict | actor` in **real `<td>` columns** (the actor right-aligned via the
+ * shared `.who`), and row 2 spans those columns with the four guessed tiles (full
+ * width, in board order — kept as the FE stored them, so the row matches what the
+ * players were looking at). Real table cells, not a flexbox sub-line inside one
+ * cell (that throws away the column alignment the table exists for — see
+ * design-decisions.md → Conversion gotchas). `.turnLogDivider` on row 1 draws the
+ * between-turns line. The verdict names the matched
  * category on a correct guess ("Matched: Colors"), so "the row that solved the
  * blue band" is legible at a glance; the other two outcomes carry the
  * NYT-canonical copy.
@@ -47,12 +51,6 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
     matchedCategories.map((m) => [m.rank, m.name]),
   )
 
-  // The actor's identity — the shared <ActorTag> (name + colored disc),
-  // right-justified on the meta line by the metaRow's space-between.
-  const whoInline = (userId: string) => (
-    <ActorTag actor={memberById(players, userId)} />
-  )
-
   return (
     <TurnLog
       heading="Guesses"
@@ -61,19 +59,24 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
       scrollKey={guesses}
     >
       {guesses.map((g) => (
-        <tr key={g.id} className={turnLog.turnLogDivider}>
-          <TurnLogBar outcome={OUTCOME[g.result]} />
-          {/* One content cell beside the outcome bar: the four guessed tiles on
-              top (full width — not squished by a who-column), then the verdict
-              (left) and the actor (right) below. */}
-          <td>
-            <div className={styles.words}>{g.tiles.join(' · ')}</div>
-            <div className={styles.metaRow}>
-              <span className={turnLog.meta}>{verdictLabel(g, nameByRank)}</span>
-              {whoInline(g.user_id)}
-            </div>
-          </td>
-        </tr>
+        <Fragment key={g.id}>
+          {/* Row 1, real columns: [bar ⇣rowSpan 2] | verdict (`.main`, absorbs
+              the slack) | actor (`.who`, shrinks to the username). `.turnLogDivider`
+              draws the line above this turn; `.entryHead`/`.entryCont` hug the two
+              rows together. */}
+          <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
+            <TurnLogBar outcome={OUTCOME[g.result]} rowSpan={2} />
+            <td className={turnLog.main}>{verdictLabel(g, nameByRank)}</td>
+            <td className={turnLog.who}>
+              <ActorTag actor={memberById(players, g.user_id)} />
+            </td>
+          </tr>
+          {/* Row 2: the four guessed tiles, full width — spanning the verdict +
+              who columns beneath the meta line. */}
+          <tr className={turnLog.entryCont}>
+            <td colSpan={2} className={styles.words}>{g.tiles.join(' · ')}</td>
+          </tr>
+        </Fragment>
       ))}
     </TurnLog>
   )

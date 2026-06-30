@@ -341,12 +341,13 @@ src/connections/
                           mistake, filled for remaining and dimmed for used (default budget 4).
     MistakeDots.module.css
     GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
-                          Renders its OWN single-<tr> rows in the shared <TurnLog> panel
-                          (row anatomy is the game's — see ui.md → Turn log): each row =
-                          the shared <TurnLogBar> cell + one content cell holding the 4
-                          tiles over a verdict sub-line + the actor's identity dot, with
-                          turnLog.turnLogDivider for the between-turns line. Stateless/
-                          presentational.
+                          Renders its OWN two-<tr> rows in the shared <TurnLog> panel
+                          (row anatomy is the game's — see ui.md → Turn log): row 1 =
+                          [<TurnLogBar> ⇣rowSpan 2] | verdict | actor (right-aligned via
+                          turnLog.who) in REAL <td> columns; row 2 spans those columns
+                          with the 4 guessed tiles. turnLog.turnLogDivider on row 1 draws
+                          the between-turns line. No flexbox sub-line in a cell.
+                          Stateless/presentational.
     GameTurnLog.module.css
     HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
                           a "Reveal" button that surfaces that category's first tile. Purely

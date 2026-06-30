@@ -77,6 +77,19 @@
   border-top: none;
 }
 
+/* Multi-row entry: hug its rows together so they read as ONE entry, not several.
+ * The game (which knows the row kinds, since it renders them) tags the entry's
+ * FIRST row `.entryHead` and each CONTINUATION row `.entryCont`; we just trim the
+ * facing padding. (Preferred over a `:has()`/`:not()` selector that re-derives
+ * the row kind from structure — the explicit class names what the component
+ * already knows.) Inert for single-row entries (which carry neither). */
+.entryHead td {
+  padding-bottom: 0.1rem;
+}
+.entryCont td {
+  padding-top: 0;
+}
+
 /* ─── Outcome bar: a shared, OPTIONAL cell atom (<TurnLogBar>) ──────────────
  * Self-contained — its look doesn't depend on the <tr> carrying any class, so a
  * game drops it into whatever row markup it builds. The bar lives in its own
@@ -134,25 +147,50 @@
  * Compose row cells from these so similar pieces look the same across games,
  * instead of each game styling its own. Bare names (read as `turnLog.primary`
  * at the call site). The set grows as new shapes recur. (The actor name + disc
- * cluster moved to the shared <ActorTag>; `.who` below is just its column.) */
+ * cluster moved to the shared <ActorTag>.)
+ *
+ * The COLUMN-SIZING classes form a small model for a row's cells: an optional
+ * `<TurnLogBar>` (col 0), an optional `.meta` (a turn number, …), one (or more)
+ * content column, and `.who`. Exactly ONE content column should be `.main` (it
+ * absorbs the row's slack so it's least likely to wrap); any others are `.other`
+ * (sized to their content). `.who` and `.meta`/`.other` all shrink to fit, so the
+ * slack lands in `.main` and `.who` sits snug at the right. These classes carry
+ * SIZING only — no emphasis — so a game composes its own look on top
+ * (e.g. `cls(turnLog.other, turnLog.primary)` for a bold word). */
 
-/* The lead value of the row — the guessed number, the played word. */
+/* The MAIN content column — absorbs the row's slack (so a long value doesn't
+ * wrap). Exactly one cell per row should be `.main`; put it where the slack
+ * should land (typically the last content cell before `.who`, so the gap sits
+ * between the content and the actor). */
+.main {
+  width: 100%;
+}
+
+/* A secondary content column — sized to fit its content, doesn't absorb slack,
+ * stays on one line. No emphasis baked in (a game adds its own). */
+.other {
+  white-space: nowrap;
+}
+
+/* The lead value of the row — the guessed number, the played word. EMPHASIS, not
+ * sizing: compose with a sizing class (`.main` / `.other`) for the column. */
 .primary {
   font-weight: 700;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
 }
 
-/* Minor / de-emphasized info — a turn number, a small note. */
+/* Minor / de-emphasized info — a turn number, a small note. Muted; sizes to its
+ * content (typically space-free, so it never wraps). */
 .meta {
   color: var(--color-muted);
 }
 
-/* A right-aligned "who" column that absorbs the row's slack, so its content
- * (an <ActorTag>, and the identity discs inside) line up at the right edge
- * across every row. */
+/* The right-aligned "who" column. Shrinks to its content (the `<ActorTag>`'s
+ * "name ●"), so the discs line up at the right edge across rows and the slack
+ * goes to `.main` instead — NOT `width: 100%`, which would steal the slack and
+ * wrap a sibling. Never wraps the name. */
 .who {
-  width: 100%;
   text-align: right;
   white-space: nowrap;
 }

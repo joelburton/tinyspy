@@ -726,15 +726,19 @@ consistent without imposing structure:
 
 - **It's a `<table>`,** so when a game *does* use the same columns across its
   rows, they line up (number column, who column, …) — a flex/grid-of-rows can't.
-  **Use that structure: give each aligning piece its own `<td>`** (and a multi-line
-  turn a second `<tr>` with a `rowSpan`ned bar). **Don't** collapse a whole row
-  into one `<td>` and fake the columns with flexbox/grid inside it — that throws
-  away the alignment the table exists for (the codenamesduet conversion bug). A
-  single content cell is fine only when the row is genuinely one blob beside the
-  bar (connections's stacked tiles + verdict — nothing in it needs to align with
-  the next row). Default cell padding/size lives on `:where(.turnLogTable) td`
-  (held at single-*element* specificity by `:where()`, so any game cell class or
-  the bar atom overrides it without a fight).
+  **Use that structure: give each distinct piece its own `<td>`** (and put a
+  second line on a second `<tr>` with a `rowSpan`ned bar — *not* a stacked div in
+  one cell). **Don't** collapse a row into one `<td>` and rebuild the columns with
+  flexbox/grid inside it, and **don't** stack two lines in one cell — both throw
+  away the alignment the table exists for (the codenamesduet *and* connections
+  conversion bugs: connections first kept its tiles + a `verdict | who` flex
+  sub-line in a single cell; it's now a two-`<tr>` turn). A lone `<td>` (often
+  `colSpan`) is right only when the row's content is genuinely **one piece** — a
+  phrase like psychicnum's hint row (`Hint: <clue>`) or a single joined string —
+  never a way to fit two pieces (a verdict *and* an actor) side by side. Default
+  cell padding/size lives on `:where(.turnLogTable) td` (held at single-*element*
+  specificity by `:where()`, so any game cell class or the bar atom overrides it
+  without a fight).
 - **`<TurnLogBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
   row piece common to most logs. It's *optional* (a game's row needn't include
   it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
@@ -754,9 +758,24 @@ consistent without imposing structure:
   `:first-child` suppresses it on the very first turn, so a game applies it to
   every turn-start row unconditionally. Full width, reaching the left edge (over
   the bar column too). Flat rows, no per-row card border, no vertical borders.
-- **Content classes** — `.primary` (the lead value), `.meta` (minor/de-emphasized
-  info, e.g. a turn number), `.who` (a right-aligned cell that absorbs the row's
-  slack so the discs line up on the right) — plus the shared
+- **Multi-row hug (`.entryHead` / `.entryCont`).** When a turn is several `<tr>`s,
+  the game tags the **first** row `.entryHead` and each **continuation** row
+  `.entryCont`; the shared CSS trims the facing padding so the rows read as one
+  entry, not several. Explicit classes (the component knows the row kind) rather
+  than a structural `:has()` selector — readability over cleverness. Single-row
+  turns carry neither.
+- **Column-sizing classes** — a small model for a row's cells: an optional
+  `<TurnLogBar>` (col 0), an optional **`.meta`** (a turn number — muted, shrinks,
+  space-free so it never wraps), one or more content columns, and **`.who`**
+  (right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column
+  is **`.main`** (`width: 100%` — it absorbs the row's slack so it's least likely
+  to wrap; put it where the gap should land, typically the last content cell
+  before `.who`); any other content columns are **`.other`** (sized to fit, one
+  line). These carry **sizing only, no emphasis** — compose a look on top (e.g.
+  `cls(turnLog.other, turnLog.primary)` for a bold word). The slack lives in
+  `.main`, **not** `.who` — a `width: 100%` on `.who` would steal it and wrap a
+  sibling (the connections "Not a match" bug).
+- **Emphasis class** — `.primary` (the bold lead value) — plus the shared
   [`<ActorTag>`](#player-identity--a-colored-disc) for the actor (name + identity
   disc). Bare names, read as `turnLog.primary` (namespaced by the import alias).
   Reach for an existing class/component before inventing one.
@@ -766,11 +785,11 @@ consistent without imposing structure:
 
 psychicnum, connections, and codenamesduet each render their own rows:
 psychicnum's is a single `<tr>` (number / word / result / who columns);
-connections's stacks the four guessed tiles + a verdict sub-line in one content
-cell; **codenamesduet's is the multi-guess case** the "item, not guess"
-vocabulary was named for — a **two-`<tr>`** turn (the bar `rowSpan`s both) with
-real `# | clue | clue-giver` columns on row 1 and the turn's guesses spanning
-beneath on row 2 (its per-turn outcome derived in
+connections's is a **two-`<tr>`** turn — row 1 `verdict | who` columns, row 2 the
+four guessed tiles spanning beneath; **codenamesduet's is the multi-guess case**
+the "item, not guess" vocabulary was named for — a **two-`<tr>`** turn (the bar
+`rowSpan`s both) with real `# | clue | clue-giver` columns on row 1 and the turn's
+guesses spanning beneath on row 2 (its per-turn outcome derived in
 `codenamesduet/lib/turnOutcome.ts`).
 
 **`<TurnLogItem>` survives only as a thin legacy single-row wrapper** (one `<tr>`

@@ -1,45 +1,18 @@
-/* codenamesduet-specific bits of the turn log. The panel chrome (heading +
- * scroll box), the row look (outcome bar, divider lines), the two-row turn
- * scaffolding, and the `.meta` / `.who` content classes come from the shared
- * common/components/TurnLog; the clue-giver name + disc is the shared <ActorTag>.
- * Only the per-cell content styling — the # / clue / guess columns of a turn's
- * two rows — is codenamesduet's. */
+/* codenamesduet-specific bits of the turn log. Everything structural — the panel
+ * chrome, the row look (outcome bar, divider), the two-row-entry hugging
+ * (`.entryHead`/`.entryCont`), and the column-sizing classes (`.meta` / `.main` /
+ * `.who`) — is shared in common/components/TurnLog; the clue-giver name + disc is
+ * the shared <ActorTag>. The ONLY codenamesduet-specific styling is the colored
+ * clue/guess words below. */
 
-/* Row 1, col # (`# n`) — muted via the shared `.meta`; just keep it on one line
- * and snug against the bar (the shared td padding sets the gap). */
-.numCell {
-  white-space: nowrap;
-}
-
-/* Row 1, col clue (`count WORD`) — the cell's own padding already opens a gap
- * from the # column; nothing extra needed here. */
-.clueCell {
-  white-space: nowrap;
-}
-
+/* Row 1, the clue word inside the `.main` cell — bold + lightly spaced. */
 .clueWord {
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 
-/* Row 1 (the clue row): pull the guess line below it up close, so the two <tr>s
- * read as one turn rather than two. The shared default cell padding is
- * `0.6rem 0.4rem` (single-element specificity via :where, so a class wins) —
- * here we trim only the bottom. */
-.clueRow td {
-  padding-bottom: 0.1rem;
-}
-
-/* Row 2: the turn's guesses (or "(clue given)" / "(no guesses)"), spanning the
- * content columns beneath the clue line. Trimmed top padding completes the pull
- * toward the clue row above. */
-.guessCell {
-  white-space: normal;
-  padding-top: 0;
-}
-
-/* Each guessed word, colored by its reveal outcome — the same agent-green /
- * neutral-tan / assassin-red vocabulary the board uses for revealed tiles. */
+/* Each guessed word (row 2), colored by its reveal outcome — the same agent-green
+ * / neutral-tan / assassin-red vocabulary the board uses for revealed tiles. */
 .guessWord {
   font-weight: 700;
   letter-spacing: 0.03em;
