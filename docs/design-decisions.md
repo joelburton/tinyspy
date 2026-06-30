@@ -17,18 +17,17 @@ the spec as it stands.)
 - **v1** — the original layout (every game before the redesign). Today:
   **bananagrams, stackdown, scrabble, boggle**.
 - **v2** — the shared-layout redesign: the two-column scaffold, tiles, info
-  column, capture entry. The intermediate stage games pass through on the way to
-  v3 — they have the shared layout but not yet the full rule set below.
-  **spellingbee** is the only game here today (scaffold adopted, v3 polish
-  pending).
+  column, capture entry. An intermediate stage games pass through on the way to
+  v3 — the shared layout, but not yet the full rule set below. **No game sits
+  here now;** spellingbee was the last and has converted to v3.
 - **v3** — conforms to this document **as it stands** — the full set of rules,
   including everything learned converting psychicnum: semantic buttons + tones,
   the feedback-pill tone border + bar, opponent-strip identity discs + metric
   labels, the terminal-look for locally-terminal states, sticky local feedback,
   natural-width action buttons. **psychicnum is the first v3 game — the
-  reference;** **connections**, **codenamesduet**, **waffle**, and **wordle**
-  follow. The remaining games convert v1/v2 → v3 next, following this doc + the
-  [Reconciliation](#reconciliation-with-the-code) checklist.
+  reference;** **connections**, **codenamesduet**, **waffle**, **spellingbee**,
+  and **wordle** follow. The remaining games convert v1 → v3 next, following this
+  doc + the [Reconciliation](#reconciliation-with-the-code) checklist.
 
 ## Terms
 
