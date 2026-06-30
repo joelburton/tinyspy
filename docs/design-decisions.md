@@ -231,9 +231,9 @@ Rules:
   (Both are **universal** — built into `useCaptureKeys`, so every capture game has
   them identically. A game passes `recall` (its last-submitted value) for up-arrow;
   down-arrow always clears.)
-- The box **stretches to fit** the typed word (up to the length cap) over a shared
-  `--entrybox-min-width` floor, so the longest word never clips. (Shared in
-  `EntryBox`; a game wanting a fill-the-row box overrides with `flex: 1`.)
+- The box **stretches to fill** the row between the flanking buttons (the shared
+  `EntryBox` default — `flex: 1`), so there's always room for the longest word (the
+  16-char cap) and the typed text centers in it.
 - After a word is submitted, the field clears.
 - Entry is **length-capped** (~16 chars — no real word is longer, and it keeps
   the text from overrunning the box). The text **size** is a per-game knob

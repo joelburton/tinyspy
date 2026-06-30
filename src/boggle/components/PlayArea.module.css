@@ -98,8 +98,13 @@
   width: var(--side);
   min-height: 2.75rem;
   margin-top: 1.5rem;
+  /* Column (like psychicnum's belowBoard) so the child — the input row or the
+   * lone feedback pill — STRETCHES to the full board width (column flex's default
+   * align-items: stretch). That's what lets the input row span the board and its
+   * EntryBox flex-fill the space between the buttons; a row flex here would shrink-
+   * wrap the input row and the box would just hug the placeholder. */
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
 }
 
@@ -111,9 +116,9 @@
   gap: 0.5rem;
 }
 
-/* (No per-game EntryBox width — the shared EntryBox now stretches to fit the typed
- * word, up to the 16-char cap, with a common min-width floor. See
- * common/components/EntryBox.module.css.) */
+/* (No per-game EntryBox width — the shared EntryBox now stretches to FILL the row
+ * between the buttons, so there's always room for the longest word (16-char cap).
+ * See common/components/EntryBox.module.css.) */
 
 .loading {
   padding: 2rem;
