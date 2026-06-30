@@ -107,32 +107,3 @@ export function TurnLogBar({
     </td>
   )
 }
-
-/**
- * **Legacy single-row turn item — being retired; do NOT use in new code.**
- *
- * The shared layer no longer owns row structure (see the `<TurnLog>` note above):
- * a converted game renders its own `<tr>`s composing `<TurnLogBar>` + the content
- * classes, which is the only way to express the row shapes that actually differ
- * game to game (column count, multi-row turns, …). This wrapper is exactly the
- * simple single-row case — one `<tr>` with the bar cell, the between-turns
- * divider, then the game's cells — kept ONLY so games not yet converted (waffle,
- * …) keep working unchanged. Convert remaining callers to their own `<tr>`s, then
- * delete this (see the v4 conversion guide in docs/design-decisions.md).
- */
-export function TurnLogItem({
-  outcome,
-  className,
-  children,
-}: {
-  outcome: TurnOutcome
-  className?: string
-  children: ReactNode
-}) {
-  return (
-    <tr className={cls(styles.turnLogDivider, className)}>
-      <TurnLogBar outcome={outcome} />
-      {children}
-    </tr>
-  )
-}

@@ -792,12 +792,14 @@ the "item, not guess" vocabulary was named for — a **two-`<tr>`** turn (the ba
 guesses spanning beneath on row 2 (its per-turn outcome derived in
 `codenamesduet/lib/turnOutcome.ts`).
 
-**`<TurnLogItem>` survives only as a thin legacy single-row wrapper** (one `<tr>`
-= `<TurnLogBar>` + `.turnLogDivider` + the game's cells) for games not yet
-converted — **waffle** today. New code should not use it; convert a remaining
-game to its own `<tr>`s, and once no caller is left, delete the wrapper. (The
-older `HistoryPanel` predecessor this whole system replaced was already
-**deleted** — scrabble's framed `PlayLog` is separate and unaffected.)
+**`<TurnLogItem>` has been deleted.** It was a thin legacy single-row wrapper
+(one `<tr>` = `<TurnLogBar>` + `.turnLogDivider` + the game's cells) kept only for
+games not yet converted; **waffle** was the last caller, and converting it to its
+own `<tr>` (a single-row swap entry: bar + `#N` + the move in `.main` + the
+swapper in `.who`) left no callers, so the wrapper is gone. A new game renders its
+own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
+`HistoryPanel` predecessor this whole system replaced was already **deleted** —
+scrabble's framed `PlayLog` is separate and unaffected.)
 
 ## Board sizing
 

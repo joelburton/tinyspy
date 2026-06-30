@@ -3,11 +3,12 @@ import type { GamePageCtx, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { IconEnd } from '../../common/components/icons'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { ResultFlash } from '../../common/components/ResultFlash'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
@@ -19,6 +20,15 @@ import { WaffleGrid } from './WaffleGrid'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+
+/** Own-action flash tone (`useResultFlash`'s good/bad/near) → the shared
+ *  `<FeedbackPill>` tone vocabulary. waffle only ever flashes `bad` (a rejected
+ *  swap / failed End), but the full map keeps it honest. */
+const PILL_TONE = { good: 'success', bad: 'error', near: 'near' } as const
+
+/** Local feedback pills are never closeable here, so the × is never rendered and
+ *  this is never called — but `<FeedbackPill>` requires the prop. */
+const noop = () => {}
 
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
@@ -84,14 +94,20 @@ export function PlayArea({
         const name = member?.username ?? 'Someone'
         const dot = colorVarFor(member?.color)
         if (ps.solved && !prev.solved) {
+          // A solve is a GOOD outcome → success (green) — the same green a found
+          // word reads as in both modes (docs/design-decisions.md → Tone follows
+          // the event). Adverse to me in compete, but the tone names the event,
+          // not my stake.
           feedback.show({
-            tone: 'warning',
+            tone: 'success',
             variant: 'outline',
             dot,
             text: `${name} solved it`,
             dismiss: { kind: 'timed', ms: 3000 },
           })
         } else if (out && !prev.out) {
+          // Out of swaps is a milestone — important, neither clearly good nor bad
+          // (they're done; I gain nothing yet) → warning (amber).
           feedback.show({
             tone: 'warning',
             variant: 'outline',
@@ -152,7 +168,33 @@ export function PlayArea({
     ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
     : null
 
+  // LOCALLY TERMINAL: the game is still going, but *I* can't act any more —
+  // compete-only, because in coop a solve/exhaustion ends the whole game. I've
+  // either solved my board (waiting for opponents) or run out of swaps. We show
+  // this with the TERMINAL LOOK (a bold status line + my Concede), not a quietly
+  // swapped help line — being unable to act is basically terminal for me
+  // (docs/design-decisions.md → InfoCol action buttons / Locally terminal).
+  const selfDone = isPlayer && (self?.solved === true || remaining === 0)
+
   const difficultyLabel = DIFFICULTY_LABELS[waffleSetup.difficulty - 1] ?? '—'
+
+  // The End / Concede button — error-toned (red), shared by the "playing" and the
+  // "locally terminal" action rows (you can bow out either way). compete CONCEDES
+  // ("I give up, you win"); coop ENDS (a neutral mutual "we're done"). Two
+  // components for two semantically distinct actions (docs/design-decisions.md →
+  // End vs Concede).
+  const endButton = isCompete ? (
+    <ConcedeGameButton
+      onClick={() => void handleEndGame()}
+      className={shared.helperButton}
+    />
+  ) : (
+    <EndGameButton
+      label="End"
+      onClick={() => void handleEndGame()}
+      className={shared.helperButton}
+    />
+  )
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
@@ -160,19 +202,70 @@ export function PlayArea({
         <WaffleGrid
           board={board}
           colors={colors}
-          disabled={isTerminal || !isPlayer}
+          disabled={isTerminal || !isPlayer || selfDone}
           onSwap={handleSwap}
         />
-        {/* The below-board slot — waffle's local-feedback zone: an own-action
-            error flash (a rejected swap / failed End) for a beat, else empty
-            (waffle's input is the board itself). A reserved height keeps the
-            top-anchored board from shifting when the flash swaps in. The
-            end-of-game answer is NOT here — it's several lines and would overflow
-            the viewport (the page must never scroll); it lives in the info
-            column's .terminalExtra instead. */}
-        <div className={styles.inputRow}>
-          {actionFlash ? (
-            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} compact />
+        {/* The below-board slot — waffle's LOCAL feedback area (a centered
+            <FeedbackPill>, the same pill the header uses; docs/design-decisions.md
+            → Local feedback area). waffle's input is the board itself, so this slot
+            is feedback-only. A reserved height (`.belowBoard` min-height) keeps the
+            top-anchored board from shifting as the slot's content changes. Four
+            states, by precedence:
+              - terminal → a PERMANENT (fill, outcome-colored) pill carrying the
+                verdict — terminal always lands as permanent local feedback, in
+                BOTH the action row AND here (docs/design-decisions.md → Terminal);
+              - locally terminal (compete: solved or out of swaps, others race on)
+                → a sticky "waiting" pill;
+              - an own-action error (rejected swap / failed End) → a transient
+                (outline) pill for a beat (the hook's timer clears it);
+              - else empty.
+            The multi-line answer reveal is NOT here — it would overflow the
+            viewport (the page must never scroll); it lives in the info column's
+            `.terminalExtra` instead. */}
+        <div className={styles.belowBoard}>
+          {over ? (
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone:
+                    over.tone === 'won'
+                      ? 'success'
+                      : over.tone === 'lost'
+                        ? 'error'
+                        : 'neutral',
+                  text: over.verdict,
+                  variant: 'fill', // permanent → lightened-tone fill
+                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
+                }}
+                onClose={noop}
+              />
+            </div>
+          ) : selfDone ? (
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone: 'neutral',
+                  text: self?.solved
+                    ? 'Solved — waiting on the rest.'
+                    : 'Out of swaps — waiting on the rest.',
+                  variant: 'outline',
+                  dismiss: { kind: 'sticky' },
+                }}
+                onClose={noop}
+              />
+            </div>
+          ) : actionFlash ? (
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone: PILL_TONE[actionFlash.tone],
+                  text: actionFlash.label,
+                  variant: 'outline',
+                  dismiss: { kind: 'sticky' },
+                }}
+                onClose={noop}
+              />
+            </div>
           ) : null}
         </div>
       </div>
@@ -182,18 +275,12 @@ export function PlayArea({
             .infoState / .infoHelp / .infoActions) so they read the same across
             games. */}
         <div className={shared.actionSlot}>
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
-              <li>{difficultyLabel} difficulty</li>
-              <li>
-                Par {game.par_swaps} + {waffleSetup.extra_swaps} extra ={' '}
-                {game.max_swaps} swaps
-              </li>
-              <li>{timerLabel(waffleSetup.timer)}</li>
-            </ul>
-          </details>
+          {/* InfoCol order is FIXED (docs/design-decisions.md → InfoCol order):
+              state → opponent strip → action row → help → setup disclosure → log.
+              Don't eyeball it — a v2 layout's order isn't a reliable guide (this
+              was setup-first before the v3 conversion). */}
 
+          {/* State — shown in both play and terminal. */}
           <p className={shared.infoState}>
             Swaps{' '}
             <strong>
@@ -202,10 +289,14 @@ export function PlayArea({
             ({remaining} left) · Par <strong>{game.par_swaps}</strong>
           </p>
 
+          {/* Opponent strip (compete) — each player's swaps used + a ✓/✗ done
+              mark. The `metricLabel` prefix names the bare number so it isn't
+              ambiguous (docs/design-decisions.md → Opponent strip). */}
           {isCompete && (
             <OpponentStrip
               players={members}
               selfId={session.user.id}
+              metricLabel="Swaps"
               metricFor={(player) => {
                 const ps = playerStates.find((p) => p.user_id === player.user_id)
                 const used = ps?.swaps_used ?? 0
@@ -221,17 +312,12 @@ export function PlayArea({
             />
           )}
 
-          {/* Help — playing only (hidden once over). */}
-          {!over && (
-            <p className={shared.infoHelp}>
-              {isPlayer
-                ? 'Tap two tiles to swap them.'
-                : "Watching — you're not in this game."}
-            </p>
-          )}
-
-          {/* Action row. Playing: End (players only). Terminal: the bold,
-              outcome-colored result line + a compact back-to-club button. */}
+          {/* Action row — four states. TERMINAL: the bold outcome line + a compact
+              back-to-club button. LOCALLY TERMINAL (compete: solved or out of
+              swaps, the rest race on): the terminal LOOK — a bold status + Concede
+              — so being unable to act reads loudly, not as a swapped help line.
+              PLAYING (a player who can act): just End/Concede. WATCHING (not in the
+              game): a bold note, no button. */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
@@ -239,20 +325,44 @@ export function PlayArea({
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
+          ) : selfDone ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                {self?.solved ? 'Solved — waiting' : 'Out of swaps'}
+              </span>
+              {endButton}
+            </div>
+          ) : isPlayer ? (
+            <div className={shared.infoActions}>{endButton}</div>
           ) : (
-            isPlayer && (
-              <div className={shared.infoActions}>
-                <button
-                  type="button"
-                  className={cls('secondary', 'icon-button', shared.helperButton)}
-                  onClick={() => void handleEndGame()}
-                >
-                  <IconEnd size={15} aria-hidden />
-                  End
-                </button>
-              </div>
-            )
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                Watching — not in this game
+              </span>
+            </div>
           )}
+
+          {/* Help — shown ONLY while you can actually act on it (a player who's
+              not over and not locally terminal). It never silently swaps text: the
+              locally-terminal / watching states are carried loudly by the action
+              row above (docs/design-decisions.md → InfoCol help). */}
+          {isPlayer && !over && !selfDone && (
+            <p className={shared.infoHelp}>Tap two tiles to swap them.</p>
+          )}
+
+          {/* Setup — LAST before the log, behind a disclosure (closed by default
+              so it doesn't claim space). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{difficultyLabel} difficulty</li>
+              <li>
+                Par {game.par_swaps} + {waffleSetup.extra_swaps} extra ={' '}
+                {game.max_swaps} swaps
+              </li>
+              <li>{timerLabel(waffleSetup.timer)}</li>
+            </ul>
+          </details>
         </div>
 
         {/* Terminal-only extra: the answer (the six solution words, each

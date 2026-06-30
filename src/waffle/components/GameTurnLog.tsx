@@ -1,5 +1,5 @@
 import { ActorTag } from '../../common/components/ActorTag'
-import { TurnLog, TurnLogItem } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
 import { coord } from '../lib/waffle'
@@ -14,14 +14,18 @@ type Props = {
 /**
  * waffle's turn log — the shared swap history rendered with the common
  * `<TurnLog>` table (same chrome psychicnum / connections / codenamesduet use).
- * One `<TurnLogItem>` per swap. A swap has no win/lose verdict, so every row's
- * outcome bar is `neutral` (grey, like psychicnum's hint rows).
+ * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
+ * `<TurnLogItem>` is retired — docs/design-decisions.md → Turn log), composing the
+ * shared `<TurnLogBar>` + content classes. A swap has no win/lose verdict, so
+ * every row's outcome bar is `neutral` (grey, like psychicnum's hint rows).
  *
- * One row, four columns (the table aligns them down the log): the outcome bar
- * (prepended by `<TurnLogItem>`), the turn number ("#N"), the move
- * ("A (A1) ↔ B (C2)" — swapped letters leading, coordinates receding), and the
- * swapper's `<ActorTag>` right-aligned. Coop only (compete writes no swaps, and a
- * swap sequence would leak an opponent's hidden board); PlayArea gates the render.
+ * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
+ * divs, which throw away the column alignment the table exists for): the outcome
+ * bar, the turn number ("#N", `.meta`), the move ("A (A1) ↔ B (C2)" — swapped
+ * letters leading, coordinates receding — in `.main` so it absorbs the row's
+ * slack), and the swapper's `<ActorTag>` right-aligned (`.who`). `.turnLogDivider`
+ * draws the between-turns line. Coop only (compete writes no swaps, and a swap
+ * sequence would leak an opponent's hidden board); PlayArea gates the render.
  * Stateless + presentational — the shared `<TurnLog>` snaps to the latest row.
  */
 export function GameTurnLog({ swaps, players }: Props) {
@@ -38,11 +42,10 @@ export function GameTurnLog({ swaps, players }: Props) {
       {swaps.map((s) => {
         const swapper = playerFor(s.user_id)
         return (
-          <TurnLogItem key={s.swap_index} outcome="neutral">
-            {/* After the outcome-bar cell: #N · the move · the swapper. As real
-                `<td>`s (not stacked divs) so they align as columns down the log. */}
+          <tr key={s.swap_index} className={turnLog.turnLogDivider}>
+            <TurnLogBar outcome="neutral" />
             <td className={turnLog.meta}>#{s.swap_index}</td>
-            <td>
+            <td className={turnLog.main}>
               <span className={styles.move}>
                 <span className={styles.letter}>{s.letter_a.toUpperCase()}</span>
                 <span className={styles.coord}>({coord(s.pos_a)})</span>
@@ -54,7 +57,7 @@ export function GameTurnLog({ swaps, players }: Props) {
             <td className={turnLog.who}>
               <ActorTag actor={swapper} fallback="someone" />
             </td>
-          </TurnLogItem>
+          </tr>
         )
       })}
     </TurnLog>

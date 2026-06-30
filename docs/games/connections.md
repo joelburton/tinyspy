@@ -282,7 +282,7 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 ## Frontend
 
-> **v4 (2026-06-29).** The FE was converted to the v4 conventions (see
+> **v3 (2026-06-29).** The FE was converted to the v3 conventions (see
 > [`design-decisions.md`](../design-decisions.md)): local own-move feedback +
 > the terminal/eliminated message are the shared `<FeedbackPill>` (sticky,
 > dismissed on the next tile click — not the old `<ResultFlash>` bar); action

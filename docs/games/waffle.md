@@ -260,6 +260,22 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 
 ## Frontend (`src/waffle/`)
 
+> **v3 (2026-06-30).** The FE was converted to the v3 conventions (see
+> [`design-decisions.md`](../design-decisions.md)): local own-move feedback, the
+> locally-terminal "waiting" message, and the terminal verdict are all the shared
+> `<FeedbackPill>` in the renamed `.belowBoard` slot (transient outline error /
+> sticky neutral waiting / permanent fill verdict — not the old `<ResultFlash>`
+> bar, which waffle was the last renderer of); the action row uses the semantic
+> `EndGameButton` (coop) / `ConcedeGameButton` (compete) instead of a hand-rolled
+> `<button>`; a **locally-terminal** state (compete: solved or out of swaps while
+> others race on) reuses the terminal look (a bold status line + Concede) and
+> disables the grid; the `.infoCol` is reordered to the canonical **state →
+> opponent strip → action row → help → setup → log**; the `OpponentStrip` carries
+> a `metricLabel="Swaps"`; and the turn log renders its **own `<tr>` rows** (the
+> legacy `<TurnLogItem>` wrapper was deleted — waffle was its last caller). An
+> opponent solving now reads as `success` (green), the same green a found word
+> always reads as (tone follows the event, not the viewer's stake).
+
 Mirrors the other game folders:
 
 - `manifest.ts` — the `waffle_coop` + `waffle_compete` sibling pair (gametype
@@ -281,17 +297,22 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout
   a waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
   `common/theme.css`, shared with wordle); a picked-up tile gets waffle's own
-  ring (the shared dark `.selected` fill would bury the color). Below it a
-  **local-feedback slot** holds an own-action error flash during play and the
-  `SolutionReveal` answer at terminal.
-- **Info column** — the shared readouts (`.infoSetup` disclosure / `.infoState`
-  swap tally + par / `.infoHelp`) and an action row (just **End** during play →
-  the bold outcome line + compact back-to-club at terminal), over the coop
-  `GameTurnLog` (the swap log on the shared `<TurnLog>` table — "Swap #N" + the
-  swapper's `<ActorTag>`, then "A (A1) ↔ B (C2)" with letters prominent +
-  coordinates small/light; every row's outcome bar is `neutral`; coop only).
-  Compete shows the shared `common/components/OpponentStrip` instead (a
-  `metricFor` returning swaps-used + a ✓/✗ mark).
+  ring (the shared dark `.selected` fill would bury the color). Below it the
+  **`.belowBoard` local-feedback slot** holds a centered `<FeedbackPill>` — a
+  transient own-action error during play, the sticky "waiting" pill when the
+  player is locally terminal, or the permanent fill verdict at game-over. (The
+  multi-line `SolutionReveal` answer is NOT here — it would overflow the viewport;
+  it lives in the info column's `.terminalExtra`.)
+- **Info column** — the shared readouts in canonical order (`.infoState` swap
+  tally + par → `OpponentStrip` (compete) → action row → `.infoHelp` → `.infoSetup`
+  disclosure), over the coop `GameTurnLog`. The action row is the semantic
+  `EndGameButton` / `ConcedeGameButton` during play; the terminal/locally-terminal
+  look (a bold status line + compact back-to-club or Concede) otherwise.
+  `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
+  outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
+  coordinates small/light) + the swapper's `<ActorTag>`; coop only. Compete shows
+  the shared `common/components/OpponentStrip` instead, with `metricLabel="Swaps"`
+  and a `metricFor` returning swaps-used + a ✓/✗ mark.
 - **Feedback split** — own errors (rejected swap / failed End) flash **locally**
   below the board; the header pill carries **peer** news (compete: an opponent
   solved or ran out of swaps; coop needs none — the swap log shows every move).

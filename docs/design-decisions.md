@@ -7,20 +7,27 @@ vocabulary where we'd been loose. Where a name here differs from what's in the
 code today, the [Reconciliation](#reconciliation-with-the-code) section at the
 bottom lists what has to change.
 
-## Game versions (v1 → v4)
+## Game versions (v1 → v3)
 
-A shorthand for where each game sits, so we stay straight as we sweep:
+A shorthand for where each game sits, so we stay straight as we sweep. **v3 is the
+highest version — the standard this document defines.** (Some older notes called
+it "v4" after an interim "v3" cut that no longer exists; there is no v4 — v3 *is*
+the spec as it stands.)
 
-- **v1** — the original layout (every game before the redesign).
-- **v2** — the shared-layout redesign: **psychicnum, connections, codenamesduet,
-  spellingbee** (two-column scaffold, tiles, info column, capture entry).
-- **v3** — an interim target: conforms to the first cut of this document.
-- **v4** — conforms to this document **as it stands** — the full set of rules,
+- **v1** — the original layout (every game before the redesign). Today:
+  **bananagrams, wordle, stackdown, scrabble, boggle**.
+- **v2** — the shared-layout redesign: the two-column scaffold, tiles, info
+  column, capture entry. The intermediate stage games pass through on the way to
+  v3 — they have the shared layout but not yet the full rule set below.
+  **spellingbee** is the only game here today (scaffold adopted, v3 polish
+  pending).
+- **v3** — conforms to this document **as it stands** — the full set of rules,
   including everything learned converting psychicnum: semantic buttons + tones,
   the feedback-pill tone border + bar, opponent-strip identity discs + metric
   labels, the terminal-look for locally-terminal states, sticky local feedback,
-  natural-width action buttons. **psychicnum is the first v4 game — the
-  reference.** The other games convert v1/v2 → v4 next, following this doc + the
+  natural-width action buttons. **psychicnum is the first v3 game — the
+  reference;** **connections**, **codenamesduet**, and **waffle** follow. The
+  remaining games convert v1/v2 → v3 next, following this doc + the
   [Reconciliation](#reconciliation-with-the-code) checklist.
 
 ## Terms
@@ -371,10 +378,10 @@ match the doc:
    turn, so apply it unconditionally). The only shared contract is "a turn-log item
    is a `<tr>` in the table." psychicnum, connections, and codenamesduet render
    their own rows now (codenamesduet's is a two-`<tr>` turn with a `rowSpan`ned
-   bar). **`<TurnLogItem>` survives only as a thin legacy single-row wrapper for
-   games not yet converted (waffle — and any future caller).** When you convert a
-   remaining game (waffle, wordle, stackdown, scrabble, …) move it off
-   `<TurnLogItem>` to its own `<tr>`s; once no caller is left, delete the wrapper.
+   bar), as does waffle (a single-`<tr>` swap row). **`<TurnLogItem>` has been
+   deleted** — waffle was its last caller, and converting it off the wrapper left
+   no callers. A future game that needs a turn log renders its own `<tr>` rows the
+   same way; there is no wrapper to fall back on.
 
 A few statements in [`ui.md`](ui.md) now lag this doc — local feedback described
 as the `<ResultFlash>` bar, the tone names, and the caret prose (which omits the

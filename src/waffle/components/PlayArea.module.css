@@ -6,11 +6,12 @@
  * WaffleGrid.module.css. Only the below-board local-feedback slot is here.
  *
  * waffle has no text entry (the board IS the input — tap two tiles), so this
- * slot mostly sits empty; it holds the own-action error flash (a rejected swap /
- * failed End — the LOCAL half of the feedback split) for a beat, else nothing. A
- * reserved height keeps the top-anchored board from shifting when the flash swaps
- * in. (The end-of-game answer is NOT here — it's several lines and would overflow
- * the viewport; it lives in the info column's shared `.terminalExtra`.) */
+ * slot is feedback-only; it holds a centered <FeedbackPill> — the own-action
+ * error flash, the locally-terminal "waiting" pill, or the permanent terminal
+ * verdict (the LOCAL half of the feedback split) — else nothing. A reserved
+ * height keeps the top-anchored board from shifting as the slot's content
+ * changes. (The multi-line answer reveal is NOT here — it would overflow the
+ * viewport; it lives in the info column's shared `.terminalExtra`.) */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). waffle's right column (setup + swap state + the
@@ -20,16 +21,16 @@
   --info-col-width: 22rem;
 }
 
-/* The below-board slot is a COLUMN that only ever centers the own-action flash
- * (waffle's move is made on the board, so there are no input controls here). The
- * flash itself is the shared <ResultFlash compact> — `compact` pins it to its
- * content height so the default `flex: 1` doesn't stretch it to this slot's full
- * height (see ResultFlash.module.css → `.compact`). */
-.inputRow {
+/* The below-board slot — a fixed-height COLUMN that vertically centers its single
+ * child, the local <FeedbackPill> wrapped in the shared `.localFeedback` (waffle's
+ * move is made on the board, so there are no input controls here). Fixed height so
+ * the slot reserves the same space whether it shows a pill or nothing, and the
+ * flex board above never reflows (docs/ui.md → Layout stability). Same shape as
+ * psychicnum's `.belowBoard`. */
+.belowBoard {
   flex-shrink: 0;
   min-height: 2.75rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
 }
