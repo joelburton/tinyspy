@@ -1,0 +1,39 @@
+/* wordle's turn log rides the shared <TurnLog> table — the panel border, the
+ * between-turns dividers, the right-aligned who column, and the scroll box all
+ * come from common/components/TurnLog.module.css. The ONLY wordle-specific bit is
+ * the guess itself, rendered as five colored mini-tiles (the per-letter g/y/x
+ * feedback); that lives here. */
+
+.squares {
+  display: inline-flex;
+  gap: 0.15rem;
+}
+
+.sq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 3px;
+  background: var(--wordle-gray);
+}
+
+.green {
+  background: var(--wordle-green);
+}
+.yellow {
+  background: var(--wordle-yellow);
+}
+.gray {
+  background: var(--wordle-gray);
+}
+.blank {
+  /* A guess's colors are always g/y/x, so this is defensive — keep it readable
+   * (dark text on the neutral surface) if a blank ever slips through. */
+  background: var(--wordle-key-bg);
+  color: var(--color-text);
+}

@@ -16,7 +16,7 @@ import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { WordleSetup } from '../lib/setup'
 import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
-import { GuessList } from './GuessList'
+import { GameTurnLog } from './GameTurnLog'
 import { cls } from '../../common/lib/cls'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -293,6 +293,36 @@ export function PlayArea({
     <EndGameButton label="End" onClick={() => void handleEndGame()} className={shared.helperButton} />
   )
 
+  // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
+  // The fixed-height feedback slot under the board shows exactly one pill, chosen
+  // here by priority:
+  //   - terminal → a PERMANENT (fill) verdict pill with the answer folded in (the
+  //     answer also shows in the info column's terminalExtra — it lands in both
+  //     places, deliberately);
+  //   - locally terminal (compete: I'm done while the others race) → a sticky
+  //     "you're out" pill (the target isn't revealed until the whole game ends);
+  //   - otherwise → the own-move soft-reject / error pill (localMsg, or nothing).
+  // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the
+  // info column's terminalExtra carries the fuller "The answer was …" sentence.
+  const answerSuffix = game.target
+    ? `Answer: ${game.target.toUpperCase()}.`
+    : ''
+  const slotMsg: FeedbackMsg | null = over
+    ? {
+        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
+        text: answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict,
+        variant: 'fill',
+        dismiss: { kind: 'sticky' },
+      }
+    : isLocallyDone
+      ? {
+          tone: 'neutral',
+          text: "You're out — the rest are still racing.",
+          variant: 'outline',
+          dismiss: { kind: 'sticky' },
+        }
+      : localMsg
+
   return (
     <div className={cls(shared.layout, styles.layout)}>
       <div className={shared.boardCol}>
@@ -306,11 +336,12 @@ export function PlayArea({
         />
         {/* Local feedback area — between the board and the keyboard (Joel's call).
             A fixed-height slot so neither the board above nor the keyboard below
-            reflows when the own-move pill appears/clears; it holds the centered
-            soft-reject / error pill, and is empty (but space-reserving)
-            otherwise. */}
+            reflows when its pill appears/clears. Holds exactly one centered pill —
+            the own-move soft-reject during play, a sticky "you're out" when
+            locally done, or the permanent terminal verdict (see `slotMsg`) — or
+            nothing. */}
         <div className={styles.feedbackSlot}>
-          {localMsg && <FeedbackPill msg={localMsg} onClose={noop} />}
+          {slotMsg && <FeedbackPill msg={slotMsg} onClose={noop} />}
         </div>
         <Keyboard
           keyStates={keyStates}
@@ -389,10 +420,22 @@ export function PlayArea({
           </details>
         </div>
 
-        {/* Bottom region: the guess list. Coop shows everyone's (tagged with
-            who); compete shows only the viewer's own (RLS hides opponents — the
-            opponent reveal grids are deliberately punted for now). */}
-        <GuessList guesses={myGuesses} players={members} showWho={!isCompete} />
+        {/* Terminal-only answer reveal — the one info-column region allowed to
+            grow at game over (docs/ui.md → Layout stability). Shown in BOTH here
+            and the below-board pill, deliberately. */}
+        {over && game.target && (
+          <div className={shared.terminalExtra}>
+            <p className={cls(shared.infoState, styles.answerLine)}>
+              The answer was{' '}
+              <strong className={styles.answerReveal}>{game.target.toUpperCase()}</strong>
+            </p>
+          </div>
+        )}
+
+        {/* Bottom region: the turn log. Coop shows everyone's guesses (each
+            tagged with who); compete shows only the viewer's own (RLS scopes the
+            guesses server-side — the opponent reveal grids are punted for now). */}
+        <GameTurnLog guesses={myGuesses} players={members} />
       </div>
 
       {showModal && over && (
@@ -434,7 +477,7 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Solved it! 🎉', message: 'Solved it!', tone: 'won' }
+      return { outcome: 'won', verdict: 'Solved! 🎉', message: 'Solved it!', tone: 'won' }
     }
     return {
       outcome: 'lost',

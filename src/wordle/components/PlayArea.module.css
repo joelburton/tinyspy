@@ -24,3 +24,17 @@
   align-items: center;
   justify-content: center;
 }
+
+/* The info-column terminal answer-reveal line. Drop the browser's default <p>
+ * margin (this <p> sits outside .actionSlot, which zeroes its own paragraphs),
+ * so the spacing matches the info column's own 1rem gap — like waffle's
+ * terminalExtra, which wraps a margin-less component. */
+.answerLine {
+  margin: 0;
+}
+
+/* The revealed word itself — letter-spaced so the five letters read as the word,
+ * like the board tiles (only the word, not the "The answer was" lead-in). */
+.answerReveal {
+  letter-spacing: 0.08em;
+}

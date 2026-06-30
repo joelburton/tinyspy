@@ -65,7 +65,12 @@ beforeEach(() => {
 })
 
 describe('wordle PlayArea — render smoke', () => {
-  it('renders the board in coop play', () => {
+  it('renders the board + a turn-log row in coop play', () => {
+    // A landed guess exercises the GameTurnLog row (squares + who cell), not
+    // just the empty state.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
+    ])
     render(<PlayArea {...makeCtx()} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
   })
@@ -80,7 +85,9 @@ describe('wordle PlayArea — render smoke', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
-    // The info-column outcome line (the answer reveal lands in Phase 4).
+    // The info-column outcome line + the answer reveal (now shown in both the
+    // terminalExtra region and the below-board pill).
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
   })
 })
