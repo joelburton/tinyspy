@@ -28,9 +28,39 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  /* Keep a whole "● name: value" unit together — the strip wraps BETWEEN entries
+   * (the entries flexbox wraps), never inside one. */
+  white-space: nowrap;
+}
+
+/* The metric label — names what the per-player numbers mean ("Found", "Score").
+ * Full text color + bold so it reads as the category the entries fall under. */
+.metricLabel {
+  color: var(--color-text);
+  font-weight: 700;
 }
 
 .sep {
   opacity: 0.5;
   margin-right: 0.25rem;
+}
+
+/* The per-player metric (score, rank, …) — the important data in this strip, so
+ * it's full text color rather than the strip's muted grey, to stand out. The
+ * `·`-gap before it (the entry's flex gap) is the space after the name's colon. */
+.metric {
+  color: var(--color-text);
+}
+
+/* The player's identity disc — a filled circle in their profile color, set
+ * inline. The leading "this player" marker, matching the header PlayersStrip's
+ * dots (docs/ui.md → Player identity = a colored disc). Sized for this small
+ * strip; box-sizing keeps the border inside the box. */
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }

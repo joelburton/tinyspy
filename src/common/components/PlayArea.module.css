@@ -179,13 +179,15 @@
 
 /* A labelled action button in the info-column action row. The icon+label look
  * comes from the global `.icon-button` class (composed via cls() at the call
- * site); this is just the action-row MODIFIER: a real flex-basis (not 0) so a
- * couple share a row and the rest wrap as a unit rather than all squeezing on
- * and squishing the labels; they still grow to share the row. nowrap so a label
- * stays on one line. */
+ * site); this is just the action-row MODIFIER. NATURAL WIDTH (`flex: 0 0 auto`),
+ * NOT stretched to equal sizes: seeing each button's full icon + label matters
+ * more than a tidy right edge (equalizing widths clipped "Concede"'s flag), and
+ * unequal widths actually aid recognition — the brain picks out "Hint is the
+ * short one". They sit left-aligned with a consistent gap (`.infoActions` `gap`)
+ * and wrap when the row runs out; they deliberately don't stretch to the column's
+ * right margin, which is fine. nowrap keeps each label on one line. */
 .helperButton {
-  flex: 1 1 6rem;
-  min-width: 0;
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 

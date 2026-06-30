@@ -11,6 +11,7 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -57,7 +58,9 @@ function shuffled<T>(arr: readonly T[]): T[] {
  *     compete is RLS-scoped to the caller.
  *   - Feedback: coop narrates teammates' guesses (green/red) and
  *     hint requests (amber) in the header; compete narrates an
- *     opponent finding a secret (amber tension) — never which one.
+ *     opponent finding a secret in GREEN — never which one. Green
+ *     means "they found a word" in BOTH modes, so the player keeps
+ *     one color-meaning rather than learning a compete-only one.
  *   - Terminal copy: coop is a team verdict; compete distinguishes
  *     "you won the race" vs "<name> won".
  *
@@ -187,10 +190,12 @@ export function PlayArea({
   }, [guesses, mode, players, session.user.id, feedback])
 
   // ─── Compete opponent progress (group feedback) ────────
-  // The tension signal: when an opponent's public secrets_found count ticks
-  // up, narrate "X guessed a secret word" — the COUNT, never which word
-  // (that stays private). Watches the players rows; the ref seeds silently on
-  // first load so history isn't replayed.
+  // When an opponent's public secrets_found count ticks up, narrate "X guessed a
+  // secret word" — the COUNT, never which word (that stays private). GREEN
+  // (success), the SAME tone coop uses for a peer's correct guess: green means
+  // "they found a word" in both modes, so the player doesn't maintain a
+  // compete-only color-meaning. Watches the players rows; the ref seeds silently
+  // on first load so history isn't replayed.
   useEffect(function announceOpponentProgress() {
     if (mode !== 'compete') return
     for (const p of playerBudgets) {
@@ -202,7 +207,7 @@ export function PlayArea({
       const member = memberById(players, p.user_id)
       const name = member?.username ?? 'Someone'
       feedback.show({
-        tone: 'warning',
+        tone: 'success',
         variant: 'outline',
         dot: colorVarFor(member?.color),
         text: `${name} guessed a secret word`,
@@ -318,6 +323,18 @@ export function PlayArea({
     if (error) flashEntry('bad', capitalize(error.message))
   }
 
+  // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
+  // up, you win"); solo / coop use the neutral "End" (a mutual "we're done").
+  // Two components because they're semantically different actions
+  // (docs/design-decisions.md → Action buttons). Shared by the "playing" and the
+  // "out of guesses, waiting" action rows below — you can still bow out either way.
+  const endButton =
+    mode === 'compete' ? (
+      <ConcedeGameButton onClick={endGame} className={shared.helperButton} />
+    ) : (
+      <EndGameButton label="End" onClick={endGame} className={shared.helperButton} />
+    )
+
   return (
     <div className={cls(shared.layout, styles.layout)}>
       {/* The board column HUGS the board (styles.boardCol overrides the shared
@@ -413,16 +430,21 @@ export function PlayArea({
             <OpponentStrip
               players={players}
               selfId={session.user.id}
+              metricLabel="Found"
               metricFor={(p) =>
                 playerBudgets.find((b) => b.user_id === p.user_id)
-                  ?.guesses_remaining ?? 0
+                  ?.secrets_found ?? 0
               }
             />
           )}
 
-          {/* Action buttons. Playing: Hint / Reveal / End. Terminal: the play
-              buttons hide; a bold, outcome-colored result line shows with a
-              compact back-to-club button. */}
+          {/* The action row has three states. TERMINAL (game over): a bold,
+              outcome-colored result line + a compact back-to-club button.
+              PLAYING (can guess): Hint / Reveal + End/Concede. WAITING (out of
+              guesses but the game's still going — basically terminal for ME):
+              reuse the terminal LOOK (a bold status line + the action on the
+              right) so the state change reads loudly, not as a silently-swapped
+              help line (docs/design-decisions.md → InfoCol help). */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span
@@ -432,43 +454,40 @@ export function PlayArea({
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
-          ) : (
+          ) : canGuess ? (
             <div className={shared.infoActions}>
-              {canGuess && (
-                <>
-                  {/* Hint = a clue (common.words.hint); Reveal = the answer
-                      word. Both log to the turn log, cost nothing — and both are
-                      warning-toned (amber) via the semantic button components
-                      (docs/design-decisions.md → Action buttons). */}
-                  <HintButton
-                    onClick={getHint}
-                    disabled={hinting}
-                    className={shared.helperButton}
-                  />
-                  <RevealButton
-                    onClick={getReveal}
-                    disabled={revealing}
-                    className={shared.helperButton}
-                  />
-                </>
-              )}
-              {/* End is a turn/game-altering action (like Hint + Reveal), so it
-                  sits with them in the action row — error-toned (red). */}
-              <EndGameButton
-                label="End"
-                onClick={endGame}
+              {/* Hint = a clue (common.words.hint); Reveal = the answer word.
+                  Both log to the turn log, cost nothing — and both are
+                  warning-toned (amber) via the semantic button components. */}
+              <HintButton
+                onClick={getHint}
+                disabled={hinting}
                 className={shared.helperButton}
               />
+              <RevealButton
+                onClick={getReveal}
+                disabled={revealing}
+                className={shared.helperButton}
+              />
+              {endButton}
+            </div>
+          ) : (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                Waiting for others
+              </span>
+              {endButton}
             </div>
           )}
 
-          {/* Help — playing only (hidden once over). Below the action row, per
-              the docs/design-decisions.md → InfoCol order. */}
-          {!over && (
+          {/* Help — shown ONLY while you can actually act on it (canGuess). It
+              never silently swaps text: the "out of guesses, waiting" state is
+              carried loudly by the action row above (the terminal look), not by a
+              quietly-changed help line (docs/design-decisions.md → InfoCol help).
+              Below the action row, per the InfoCol order. */}
+          {canGuess && (
             <p className={shared.infoHelp}>
-              {canGuess
-                ? 'Click on or type a word and hit submit.'
-                : 'No guesses left — waiting on the rest.'}
+              Click on or type a word and hit submit.
             </p>
           )}
 

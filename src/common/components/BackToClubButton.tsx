@@ -9,7 +9,7 @@ type Props = {
    * Defaults to `'secondary'` — the common case.
    */
   variant?: 'primary' | 'secondary'
-  /** Short form — renders "club" instead of "Back to club" (the chevron makes
+  /** Short form — renders "Club" instead of "Back to club" (the chevron makes
    *  the meaning clear). For tight spots like an in-column terminal row. */
   compact?: boolean
   autoFocus?: boolean
@@ -25,7 +25,7 @@ type Props = {
  * announces "Back to club", not the icon.
  *
  * `variant` swaps the fill (the global `secondary` class vs the default accent
- * button); `compact` swaps the visible label to just "club" (the chevron
+ * button); `compact` swaps the visible label to just "Club" (the chevron
  * carries the rest). The accessible label stays "Back to club" either way.
  *
  * The icon+label look is the global `.icon-button` class (docs/ui.md → Button
@@ -47,7 +47,7 @@ export function BackToClubButton({
       autoFocus={autoFocus}
     >
       <IconBack size={16} aria-hidden />
-      {compact ? 'club' : 'Back to club'}
+      {compact ? 'Club' : 'Back to club'}
     </button>
   )
 }

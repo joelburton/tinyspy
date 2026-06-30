@@ -1,11 +1,14 @@
-/* The header-inline feedback pill. Same height as PlayersStrip
- * so the swap between the two doesn't reflow the header (per
- * docs/ui.md → "Layout stability").
+/* The shared feedback pill — header (global) and below-board (local). Same
+ * height as PlayersStrip so the header swap doesn't reflow (docs/ui.md → "Layout
+ * stability").
  *
- * Each tone variant picks its own background tint + border via
- * `color-mix` against the matching theme token — keeps the
- * palette consistent with the rest of the chrome while signaling
- * success/error/neutral/info distinctly.
+ * The TONE color is the WHOLE border: the left side is a thick bar (like the
+ * turn-log outcome bars, easy to read at a glance), the other three sides a
+ * uniform thin border in the SAME tone color. Only the bar's thickness is
+ * special; the color is uniform around the pill. Border WIDTHS are uniform across
+ * every tone and across local/global/fill/outline — no per-tone or per-variant
+ * thickness differences. (Permanent pills add a background tint; transient stay
+ * white.)
  */
 
 .pill {
@@ -13,8 +16,14 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-surface-border);
+  /* A rounded rectangle, not a full lozenge: a thick left border reads as a
+   * straight accent BAR here, but would curve into a crescent on a 999px pill. */
+  border-radius: 0.5rem;
+  /* Uniform 2px top/right/bottom + a thicker LEFT BAR (~the 7px turn-log outcome
+   * bar). The COLOR (all four sides) is set per tone below; here it just defaults
+   * to the pale surface border (every tone overrides it). */
+  border: 2px solid var(--color-surface-border);
+  border-left-width: 0.4rem;
   background: var(--color-surface);
   font-weight: 500;
   /* Cap the text width at a reasonable inline length; long
@@ -62,71 +71,52 @@
   opacity: 0.7;
 }
 
-/* Tone variants — the fill look (a tone-tinted background + border). success and
- * error use the OUTCOME palette (won-green / lost-red), NOT the accent: a "you
- * won" pill must read green, not blue, and match the board / turn-log outcomes
- * and the `.outline.*` borders below (which already use the `-strong` tones). The
- * color-mix-against-token pattern keeps them consistent with the rest of the
- * chrome.
+/* Tone variants. Each colors the WHOLE border (all four sides; the left is just
+ * thicker — the accent bar) + the fill background (a tone tint used by permanent
+ * pills; the `.outline` modifier below drops it back to white for transient
+ * pills). success/error/warning use the OUTCOME palette (won-green / lost-red /
+ * near-amber) — the same colors as the board and the turn-log bars — so "won"
+ * reads green everywhere, not blue. Uses the saturated `-strong` (800) tones so
+ * it stays legible.
  */
 
 .success {
-  background: color-mix(in oklab, var(--color-outcome-won-border) 18%, var(--color-surface));
   border-color: var(--color-outcome-won-strong);
+  background: color-mix(in oklab, var(--color-outcome-won-border) 18%, var(--color-surface));
 }
 
 .error {
-  background: color-mix(in oklab, var(--color-outcome-lost-border) 18%, var(--color-surface));
   border-color: var(--color-outcome-lost-strong);
+  background: color-mix(in oklab, var(--color-outcome-lost-border) 18%, var(--color-surface));
 }
 
 /* Amber — the "important, but not good/bad" tone (a hint was asked for, an
  * opponent made progress). Distinct from success/error so it never reads as
  * a result. */
 .warning {
-  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
   border-color: var(--color-outcome-near-strong);
+  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
 }
 
 .neutral {
+  /* No tone color to carry recognition, so the BORDER itself must read as "this
+   * is a feedback pill" — a dark grey (not the pale surface border) on all sides
+   * incl. the left bar. */
+  border-color: var(--color-muted);
   background: var(--color-surface);
-  border-color: var(--color-surface-border);
 }
 
 .info {
+  border-color: var(--color-accent);
   background: color-mix(in oklab, var(--color-accent) 8%, var(--color-surface));
-  border-color: color-mix(in oklab, var(--color-accent) 50%, var(--color-surface-border));
 }
 
-/* Outline variant — colored border, NO background tint. For group/identity
- * (peer) messages: a tinted fill fights the leading player-color disc, so we
- * drop the fill and color only the border. With no pastel fill behind it the
- * border carries the whole signal, so it's a hair THICKER and uses the
- * saturated 800-level outcome "strong" tones (the 400-level `-border` looked
- * pale as a bare outline) — green for "correct", red for "not it", matching
- * the board's own result flashes. Defined after the tone rules so the
- * compound `.outline.<tone>` border-color and the `.outline` rules win. */
+/* Outline = the TRANSIENT look: drop the fill tint back to a plain white surface,
+ * keeping the tone-colored border (thick left bar + thin sides) from above.
+ * (Permanent pills keep the tinted fill from their tone class.) Peer identity
+ * rides the leading `dot`, which a white background doesn't fight. Defined AFTER
+ * the tone rules so this background wins over the tone tint for `.outline.<tone>`;
+ * it deliberately does NOT touch the border, so the tone border color stays. */
 .outline {
   background: var(--color-surface);
-  border-width: 2px;
-}
-
-.outline.success {
-  border-color: var(--color-outcome-won-strong);
-}
-
-.outline.error {
-  border-color: var(--color-outcome-lost-strong);
-}
-
-.outline.warning {
-  border-color: var(--color-outcome-near-strong);
-}
-
-.outline.neutral {
-  border-color: var(--color-surface-border);
-}
-
-.outline.info {
-  border-color: var(--color-accent);
 }

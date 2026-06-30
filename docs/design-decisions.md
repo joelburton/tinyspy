@@ -7,20 +7,21 @@ vocabulary where we'd been loose. Where a name here differs from what's in the
 code today, the [Reconciliation](#reconciliation-with-the-code) section at the
 bottom lists what has to change.
 
-## Game versions (v1 / v2 / v3)
+## Game versions (v1 → v4)
 
-A shorthand for where each game sits in the redesign, so we stay straight as we
-sweep:
+A shorthand for where each game sits, so we stay straight as we sweep:
 
-- **v1** — the original layout (every game before this redesign).
+- **v1** — the original layout (every game before the redesign).
 - **v2** — the shared-layout redesign: **psychicnum, connections, codenamesduet,
-  spellingbee.** The new two-column scaffold, tiles, info column, capture entry.
-- **v3** — conforms to the finalized rules in *this document*. This is the target
-  as we realign each game.
-
-The four v2 games are **not** automatically v3 — the [Reconciliation](#reconciliation-with-the-code)
-items (local-feedback-as-pill, the `near` tone, the `variant` repurpose) are what
-move them v2 → v3. The other six games go v1 → v3.
+  spellingbee** (two-column scaffold, tiles, info column, capture entry).
+- **v3** — an interim target: conforms to the first cut of this document.
+- **v4** — conforms to this document **as it stands** — the full set of rules,
+  including everything learned converting psychicnum: semantic buttons + tones,
+  the feedback-pill tone border + bar, opponent-strip identity discs + metric
+  labels, the terminal-look for locally-terminal states, sticky local feedback,
+  natural-width action buttons. **psychicnum is the first v4 game — the
+  reference.** The other games convert v1/v2 → v4 next, following this doc + the
+  [Reconciliation](#reconciliation-with-the-code) checklist.
 
 ## Terms
 
@@ -53,8 +54,14 @@ full-width bar); it converges on the pill.
 
 ### Tones
 
-A pill carries a **tone** that drives its style (usually the color, but a tone may
-influence more). The tone set is **semantic**, chosen to be a useful vocabulary
+A pill carries a **tone** that drives its style. **The whole border is the tone
+color** — the left side a thick **bar** (like the turn-log outcome bars, easy to
+read at a glance), the other three sides a uniform thin border in the *same*
+color. Only the bar's thickness is special; the color wraps the pill. Widths are
+uniform on every pill (2px sides + a thicker left bar — no per-tone or
+per-local/global differences); a pale-grey side border read as no border at all,
+so it had to carry the tone too. (`neutral` has no tone, so its border is a
+visible dark grey.) The tone set is **semantic**, chosen to be a useful vocabulary
 even if some tones share a color for now:
 
 | tone | meaning |
@@ -69,6 +76,20 @@ even if some tones share a color for now:
 Some of these map to the same color today (e.g. `warning` and `near` are both
 amber-ish; `info` may equal `neutral`). Keep the names distinct anyway — the
 point is a stable, semantic set we can re-color independently later.
+
+### Tone follows the event, not the viewer's stake
+
+One event reads as **one tone everywhere**, regardless of whether it helps or
+hurts the viewer. A *found word is green* in **both** modes: coop (a teammate
+found one) and compete (an opponent found one — adverse to me, but still "they
+found a word"). We do **not** recolor by competitive stake (e.g. red/amber
+because an opponent scoring is bad for me).
+
+Why: otherwise the player maintains two color-meanings for the same event —
+green-means-found in coop, something-else in compete — which is hard to learn and
+easy to misread. The identity `dot` already says *who*; the tone says *what
+happened*, not *what it means for me*. (It also keeps green-for-correct reusable
+if we ever surface, say, an opponent's turn log in compete.)
 
 ### Dismissal modes
 
@@ -99,12 +120,12 @@ the game replaces them:
   is codenamesduet's **sudden death**: once in it, you stay until the game ends
   (so it's "permanent" until the terminal message replaces it).
 
-**Permanent feedback looks *more* like its tone, not less.** A transient pill is
-**outline-style**: white background, tone-colored border. A permanent pill is
-**fill-style**: a *lightened* tone background **plus** the tone-colored border —
-so a permanent `error` (light-red fill + red border) reads as more emphatically
-"error" than a transient one (white fill + red border). The fill is the
-permanence signal.
+**Permanent feedback looks *more* like its tone, not less.** Both share the same
+tone-colored left bar + thin neutral sides; what differs is the **background**. A
+transient pill is **outline-style**: a plain white background. A permanent pill is
+**fill-style**: a *lightened* tone background — so a permanent `error` (light-red
+fill) reads as more emphatically "error" than a transient one (white fill). The
+background tint is the permanence signal.
 
 ### Mentioning other players
 
@@ -201,6 +222,10 @@ Rules:
 - **Enter** triggers the game's submit-move button.
 - **Up-arrow** recalls the previously-entered word; **down-arrow** clears it.
 - After a word is submitted, the field clears.
+- Entry is **length-capped** (~16 chars — no real word is longer, and it keeps
+  the text from overrunning the box). The text **size** is a per-game knob
+  (`--entrybox-font-size`, default in `theme.css`) so a board-first game can go
+  larger without affecting others.
 
 **Free-text / phrase entry is the exception** (codenamesduet's clue — arbitrary
 words, spaces, mid-string editing): that stays a real `<input>`, where native
@@ -216,22 +241,32 @@ narrow/mobile screen that drops the info column can still play the game.
 Contents, in order:
 
 - **Game status info (`.infoState`)** — core live state: words found, score, etc.
-- **Opponent strip (`<OpponentStrip>`)** — a horizontal list of opponents in the
-  "● moth" style, each with short game-dependent status. (Fixed-seat 2-player
-  games like codenamesduet show peer status in the **global feedback area**
-  instead, so they may not carry an opponent strip — use the strip when there's a
-  meaningful per-opponent metric.)
-- **Action buttons (`.infoActions` → `.terminalActions`)** — a button row that
-  changes with game state:
-  - **non-terminal**: get-hint, reveal-answer, end-game, etc.
-  - **terminal**: a short game-ended message ("Out of time," "Joel won," "You
-    lose") plus the back-to-club button.
+- **Opponent strip (`<OpponentStrip>`)** — a horizontal list of opponents, each
+  `● name: value`. Three rules: identity rides a **leading color disc**, not a
+  colored name (the disc rule); every strip carries a **metric-label prefix**
+  ("Found:", "Score:", "Turns left:") so the bare numbers aren't ambiguous; and
+  the metric **value is full text color** (it's the key data — don't mute it). A
+  whole `● name: value` unit never wraps mid-entry (the strip wraps between
+  entries and grows vertically for many players). (Fixed-seat 2-player games like
+  codenamesduet show peer status in the **global feedback area** instead, so they
+  may not carry a strip — use it when there's a meaningful per-opponent metric.)
+- **Action buttons (`.infoActions` → `.terminalActions`)** — a button row with
+  three states:
+  - **playing**: get-hint, reveal-answer, end/concede, etc. (natural-width — see
+    [Action buttons](#action-buttons)).
+  - **terminal** (game over): a short outcome message ("Out of time," "Ada won,"
+    "You lose") + the back-to-club button.
+  - **locally terminal** — the game continues but *this* player can't act (out of
+    guesses, waiting): reuse the **terminal look** (a bold status line like
+    "Waiting for others" + their End/Concede on the right). Being unable to act is
+    basically terminal *for them*, so show it that way rather than as a quietly
+    changed help line.
 - **Help (`.infoHelp`)** — subtle grey text explaining *how to make a move*, not
-  how to play (the Help modal teaches the game). It's mostly static, so people
-  stop reading it after the first time — which is fine. **When the UI genuinely
-  changes mid-game**, make it *loud* so they notice: codenamesduet's sudden death
-  flips the mode, and we explain the new UI here with a prominent bold-red
-  "**SUDDEN DEATH:** …" message.
+  how to play (the Help modal teaches the game). Shown **only while the player can
+  act on it**, and it **never silently swaps text**: a mid-game state that matters
+  (out of guesses, sudden death) is announced *loudly* — the action row's terminal
+  look, or codenamesduet's prominent bold-red "**SUDDEN DEATH:** …" — not a
+  quietly-changed help line people won't notice.
 - **Setup info (`.infoSetup`)** — a disclosure that reveals a bulleted list of the
   **setup options** the game was created with. It holds only setup choices —
   nothing that changes during play. **Layout-stability exception:** our rules say
@@ -272,6 +307,18 @@ A button has **two axes** (`ActionButton`):
 Today's toned buttons: **Hint / Reveal = `warning`** (dark amber — "important,
 not good or bad"), **End game = `error`** (dark red — destructive), **Submit =
 `primary`** (filled accent), **Clear / Delete = `neutral`**.
+
+**End vs Concede.** Distinct components for distinct actions: **End** (`EndGameButton`)
+is the neutral mutual "we're done" for solo / coop; **Concede** (`ConcedeGameButton`)
+is "I give up, you win" for compete. Same flag glyph + `error` tone today, but kept
+separate so they can diverge later (a concede should hand the opponent the win).
+
+**Natural width, not stretched.** Action-row buttons size to their own icon +
+label (`flex: 0 0 auto`), left-aligned with a consistent gap — they do **not**
+stretch to equal widths or reach the column's right edge. Equalizing widths
+clipped a longer label's icon, and unequal widths actually *aid* recognition (the
+brain picks out "Hint is the short one"). A tidy right edge is worth less than
+seeing each button whole.
 
 ## Reconciliation with the code
 
