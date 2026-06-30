@@ -398,6 +398,7 @@ export function PlayArea({
           ownerByTile={ownerByTile}
           selfUserId={session.user.id}
           onToggle={handleToggle}
+          onSubmit={() => void handleSubmit()}
           shakingTiles={shakingTiles}
           colorByUserId={colorByUserId}
         />

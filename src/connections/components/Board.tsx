@@ -21,6 +21,10 @@ type Props = {
   ownerByTile: ReadonlyMap<string, string>
   selfUserId: string
   onToggle: (tile: string) => void
+  /** Submit the current selection. Bound to Enter on a focused tile (so Return
+   *  submits the guess rather than toggling the tile you happen to have focus
+   *  on); no-ops unless exactly four are selected. */
+  onSubmit: () => void
   /** Tiles playing the wrong-guess shake (set transiently by PlayArea). */
   shakingTiles?: ReadonlySet<string>
   /** user_id → resolved color var, for a peer's selection frame. */
@@ -50,6 +54,7 @@ export function Board({
   ownerByTile,
   selfUserId,
   onToggle,
+  onSubmit,
   shakingTiles,
   colorByUserId,
 }: Props) {
@@ -107,6 +112,17 @@ export function Board({
                   : undefined
               }
               onClick={() => onToggle(tile)}
+              onKeyDown={(e) => {
+                // Enter submits the selection — it must NOT fire the button's
+                // native Enter-activation (which would toggle the focused tile,
+                // e.g. the last one clicked). preventDefault suppresses that
+                // click; Space still toggles (it activates on keyup). onSubmit
+                // no-ops unless four tiles are selected.
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onSubmit()
+                }
+              }}
             >
               {/* --len drives the shared .tileWord auto-fit. */}
               <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>
