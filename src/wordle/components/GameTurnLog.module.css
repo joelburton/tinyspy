@@ -37,3 +37,22 @@
   background: var(--wordle-key-bg);
   color: var(--color-text);
 }
+
+/* The "whose guesses" dropdown in the turn-log header (compete: You + opponents;
+ * coop: just "Team"). Deliberately small + understated — about the height of the
+ * heading, muted, no button chrome — since it's a rarely-used control we don't
+ * want drawing the eye. */
+.whoSelect {
+  font: inherit;
+  font-size: 0.8rem;
+  /* Normal text color — the selected name is a real value, not de-emphasized
+   * info; the control reads as understated from its small size + subtle border,
+   * not from muting the text. */
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  max-width: 9rem;
+  cursor: pointer;
+}

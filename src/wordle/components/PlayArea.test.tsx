@@ -14,6 +14,7 @@
  * needed; everything else — the grid, keyboard, lists, modal — renders for real.
  */
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { WordleGame, WordlePlayerState, WordleGuess } from '../hooks/useGame'
@@ -34,10 +35,21 @@ vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const me: WordlePlayerState = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
+const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
 
-/** A loaded game-hook result; override the game header per test. */
-function loaded(game: WordleGame, guesses: WordleGuess[] = []): GameHook {
-  return { game, players: [me], guesses, loading: false }
+/** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
+const twoMembers = [
+  { user_id: 'u1', username: 'me', color: 'red' },
+  { user_id: 'u2', username: 'moth', color: 'blue' },
+]
+
+/** A loaded game-hook result; override the game header + players per test. */
+function loaded(
+  game: WordleGame,
+  guesses: WordleGuess[] = [],
+  players: WordlePlayerState[] = [me],
+): GameHook {
+  return { game, players, guesses, loading: false }
 }
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
@@ -89,5 +101,101 @@ describe('wordle PlayArea — render smoke', () => {
     // terminalExtra region and the below-board pill).
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+  })
+})
+
+describe('wordle PlayArea — peer narration (global header)', () => {
+  it("announces a teammate's accepted guess in coop", () => {
+    const feedback = { show: vi.fn(), clear: vi.fn() }
+    const ctx = makeCtx({ feedback, players: twoMembers })
+    // First render seeds the seen-set with my own guess (no announcement).
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+    ])
+    const { rerender } = render(<PlayArea {...ctx} />)
+    feedback.show.mockClear()
+    // A teammate's guess lands → narrated in the header.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u2', guess_index: 0, guess: 'crane', colors: 'ggggg', is_correct: true },
+    ])
+    rerender(<PlayArea {...ctx} />)
+    expect(feedback.show).toHaveBeenCalledTimes(1)
+    expect(feedback.show.mock.calls[0][0].text).toBe('moth guessed CRANE')
+  })
+
+  it('does not narrate my own guess', () => {
+    const feedback = { show: vi.fn(), clear: vi.fn() }
+    const ctx = makeCtx({ feedback, players: twoMembers })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
+    const { rerender } = render(<PlayArea {...ctx} />)
+    feedback.show.mockClear()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+    ])
+    rerender(<PlayArea {...ctx} />)
+    expect(feedback.show).not.toHaveBeenCalled()
+  })
+
+  it('announces an opponent solving in compete', () => {
+    const feedback = { show: vi.fn(), clear: vi.fn() }
+    const ctx = makeCtx({ feedback, players: twoMembers })
+    // First render seeds: nobody solved yet.
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    const { rerender } = render(<PlayArea {...ctx} />)
+    feedback.show.mockClear()
+    // moth solves → narrated (the only peer event compete can surface).
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
+      me,
+      { ...moth, solved: true },
+    ])
+    rerender(<PlayArea {...ctx} />)
+    expect(feedback.show).toHaveBeenCalledTimes(1)
+    expect(feedback.show.mock.calls[0][0].text).toBe('moth solved it')
+    // Green — a solve is a solve regardless of whose (tone follows the event).
+    expect(feedback.show.mock.calls[0][0].tone).toBe('success')
+  })
+})
+
+describe('wordle PlayArea — opponent picker (compete)', () => {
+  it('shows "hidden until game ends" when an opponent is picked during play', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    // Defaults to my own (empty) board.
+    expect(screen.getByText('No guesses yet.')).toBeInTheDocument()
+    // Pick the opponent → their guesses are RLS-hidden until the game ends.
+    await user.selectOptions(screen.getByLabelText('Whose guesses to show'), 'u2')
+    expect(screen.getByText('Hidden until game ends.')).toBeInTheDocument()
+  })
+})
+
+describe('wordle PlayArea — turn-log picker label', () => {
+  it('labels the player "You" in a solo game the player is viewing', () => {
+    // makeCtx defaults to viewer u1 as the only player.
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.getByRole('option', { name: 'You' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Team' })).not.toBeInTheDocument()
+  })
+
+  it("names the player (not the viewer) when a club member spectates a solo game", () => {
+    // u2 (a club member, not in the game) is watching u1's solo game.
+    const ctx = makeCtx({
+      session: { user: { id: 'u2' } } as unknown as GamePageCtx['session'],
+      players: [{ user_id: 'u1', username: 'joel', color: 'red' }],
+    })
+    h.result = loaded(
+      { id: 'g1', mode: 'coop', max_guesses: 6, target: null },
+      [],
+      [{ user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }],
+    )
+    render(<PlayArea {...ctx} />)
+    expect(screen.getByRole('option', { name: 'joel' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'You' })).not.toBeInTheDocument()
+  })
+
+  it('shows "Team" in a multi-player coop game', () => {
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(screen.getByRole('option', { name: 'Team' })).toBeInTheDocument()
   })
 })

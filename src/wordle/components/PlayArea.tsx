@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GamePageCtx, FeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { FeedbackPill } from '../../common/components/FeedbackPill'
@@ -14,6 +14,8 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { WordleSetup } from '../lib/setup'
+import { memberById } from '../../common/lib/peers'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
 import { GameTurnLog } from './GameTurnLog'
@@ -81,6 +83,7 @@ export function PlayArea({
   timer,
   setup,
   status,
+  feedback,
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
@@ -215,6 +218,80 @@ export function PlayArea({
       typeLetter(e.key)
     }
   })
+
+  // ─── Coop peer-guess narration (global header) ─────────────────
+  // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth
+  // guessed CRANE", neutral-toned with their identity dot. Only accepted guesses
+  // reach here — `wordle.guesses` holds nothing else (a soft reject writes no
+  // row), so a not-a-word / duplicate is never announced. My own guesses are
+  // excluded (they land on the shared board). Compete never narrates a guess:
+  // RLS scopes `guesses` to the caller, so no peer rows arrive, and we gate on
+  // coop besides. We diff against a seen-set (not "the last row") because coop
+  // interleaves two players' rows by guess_index, so the newest isn't last.
+  const seenGuessesRef = useRef<Set<string> | null>(null)
+  useEffect(
+    function announcePeerGuess() {
+      const key = (g: { user_id: string; guess_index: number }) =>
+        `${g.user_id}-${g.guess_index}`
+      // First load / refetch after mount: seed silently so history isn't replayed.
+      if (seenGuessesRef.current === null) {
+        seenGuessesRef.current = new Set(guesses.map(key))
+        return
+      }
+      const seen = seenGuessesRef.current
+      for (const g of guesses) {
+        const k = key(g)
+        if (seen.has(k)) continue
+        seen.add(k)
+        if (g.user_id === session.user.id) continue // mine → board, no narration
+        if (game?.mode !== 'coop') continue
+        const member = memberById(members, g.user_id)
+        feedback.show({
+          tone: 'neutral',
+          variant: 'outline',
+          dot: colorVarFor(member?.color),
+          text: `${member?.username ?? 'Someone'} guessed ${g.guess.toUpperCase()}`,
+          dismiss: { kind: 'timed', ms: 3000 },
+        })
+      }
+    },
+    [guesses, game, members, session.user.id, feedback],
+  )
+
+  // ─── Compete opponent-solve narration (global header) ──────────
+  // In compete, RLS hides opponents' guesses, so the only peer event we can
+  // surface is a SOLVE (the public `players.solved` flag flips): "● moth solved
+  // it", with their dot. SUCCESS-toned (green) — a solve is a solve regardless of
+  // whose it is (the same green the solving guess gets in the turn-log outcome
+  // bar); tone follows the event, not my competitive stake (docs/design-decisions.md
+  // → "Tone follows the event"). My own solve is excluded (covered by the
+  // terminal / locally-terminal feedback). Coop never reaches here.
+  const seenSolvedRef = useRef<Set<string> | null>(null)
+  useEffect(
+    function announceOpponentSolve() {
+      if (game?.mode !== 'compete') return
+      const solved = playerStates.filter((p) => p.solved).map((p) => p.user_id)
+      if (seenSolvedRef.current === null) {
+        seenSolvedRef.current = new Set(solved) // seed silently
+        return
+      }
+      const seen = seenSolvedRef.current
+      for (const id of solved) {
+        if (seen.has(id)) continue
+        seen.add(id)
+        if (id === session.user.id) continue // my own solve → terminal handling
+        const member = memberById(members, id)
+        feedback.show({
+          tone: 'success',
+          variant: 'outline',
+          dot: colorVarFor(member?.color),
+          text: `${member?.username ?? 'Someone'} solved it`,
+          dismiss: { kind: 'timed', ms: 3000 },
+        })
+      }
+    },
+    [playerStates, game, members, session.user.id, feedback],
+  )
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -432,10 +509,17 @@ export function PlayArea({
           </div>
         )}
 
-        {/* Bottom region: the turn log. Coop shows everyone's guesses (each
-            tagged with who); compete shows only the viewer's own (RLS scopes the
-            guesses server-side — the opponent reveal grids are punted for now). */}
-        <GameTurnLog guesses={myGuesses} players={members} />
+        {/* Bottom region: the turn log. It takes the RAW `guesses` (not myGuesses)
+            so its header dropdown can switch whose guesses show — coop is one
+            shared "Team"; compete defaults to You and lists opponents (their rows
+            fill in once the game ends and RLS reveals them). */}
+        <GameTurnLog
+          guesses={guesses}
+          players={members}
+          selfId={session.user.id}
+          mode={game.mode}
+          isTerminal={isTerminal}
+        />
       </div>
 
       {showModal && over && (

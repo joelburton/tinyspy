@@ -33,6 +33,7 @@ export type TurnOutcome = 'good' | 'bad' | 'partial' | 'neutral'
  */
 export function TurnLog({
   heading,
+  headerAction,
   empty,
   emptyText = 'Nothing yet.',
   scrollKey,
@@ -40,6 +41,10 @@ export function TurnLog({
   children,
 }: {
   heading: string
+  /** Optional control rendered right-aligned on the heading row — e.g. wordle's
+   *  "whose guesses" dropdown. Omit (the default) and the bare `<h3>` renders
+   *  exactly as before, so every other consumer is unaffected. */
+  headerAction?: ReactNode
   /** True when there are no rows — renders the muted empty state instead. */
   empty: boolean
   emptyText?: string
@@ -68,7 +73,16 @@ export function TurnLog({
 
   return (
     <section className={cls(styles.turnLog, className)}>
-      <h3 className={styles.turnLogHeading}>{heading}</h3>
+      {headerAction ? (
+        // Heading + a right-aligned control on one line. Only when an action is
+        // passed, so the bare-heading layout is untouched for everyone else.
+        <div className={styles.turnLogHeaderRow}>
+          <h3 className={styles.turnLogHeading}>{heading}</h3>
+          {headerAction}
+        </div>
+      ) : (
+        <h3 className={styles.turnLogHeading}>{heading}</h3>
+      )}
       <div ref={boxRef} className={styles.turnLogBox}>
         {empty ? (
           <p className={cls('muted', styles.turnLogEmpty)}>{emptyText}</p>

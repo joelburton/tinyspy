@@ -34,6 +34,18 @@
   flex-shrink: 0;
 }
 
+/* Heading row used only when a consumer passes a `headerAction` (e.g. wordle's
+ * "whose guesses" dropdown): the heading on the left, the control on the right.
+ * Without an action the bare <h3> renders instead, so this never affects the
+ * other turn logs. */
+.turnLogHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 /* The scroll box: an EVIDENT bordered frame (2px medium-grey, not a hairline) so
  * players read it as a contained, scrollable region. Fixed height (`flex: 1` +
  * `min-height: 0`) — the same whether empty or full — the table scrolls inside. */
