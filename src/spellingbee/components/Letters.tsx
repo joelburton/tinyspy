@@ -26,22 +26,29 @@ type Props = {
  * Clicking a letter doesn't validate anything — it just appends
  * the character to the typed word. The submission validation
  * happens server-side via `spellingbee.submit_word`.
+ *
+ * Structure: a `.board` wrapper (no tray — the hexes carry their own shape)
+ * around the `.grid` honeycomb, the board-column convention every converged game
+ * follows (docs/design-decisions.md → Board column). The grid hugs the flower so
+ * it sits flush at the top of the board column.
  */
 export function Letters({ outerLetters, centerLetter, onLetterClick }: Props) {
   return (
-    <div className={styles.letters}>
-      <Letter
-        letter={centerLetter}
-        isCenter
-        onClick={() => onLetterClick(centerLetter)}
-      />
-      {outerLetters.map((letter, i) => (
+    <div className={styles.board}>
+      <div className={styles.grid}>
         <Letter
-          key={`${letter}-${i}`}
-          letter={letter}
-          onClick={() => onLetterClick(letter)}
+          letter={centerLetter}
+          isCenter
+          onClick={() => onLetterClick(centerLetter)}
         />
-      ))}
+        {outerLetters.map((letter, i) => (
+          <Letter
+            key={`${letter}-${i}`}
+            letter={letter}
+            onClick={() => onLetterClick(letter)}
+          />
+        ))}
+      </div>
     </div>
   )
 }

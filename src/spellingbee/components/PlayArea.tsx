@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -9,7 +10,7 @@ import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { DeleteButton } from '../../common/components/buttons/DeleteButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
@@ -17,8 +18,6 @@ import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
-import type { WordResultTone } from './Feedback'
-import { Feedback } from './Feedback'
 import { Letters } from './Letters'
 import { RankBar } from './RankBar'
 import { Stats } from './Stats'
@@ -30,14 +29,19 @@ import styles from './PlayArea.module.css'
 
 import '../theme.css'
 
-/** How long a feedback pill stays on screen before auto-clearing. */
-const FEEDBACK_TIMEOUT_MS = 2500
+/** Local feedback pills are never closeable (sticky, dismissed by the next move),
+ *  so the × is never rendered and `onClose` is never called — but `<FeedbackPill>`
+ *  requires the prop. */
+const noop = () => {}
 
 /**
  * Maps each `submit_word` result-enum value to the visual tone
- * the feedback pill renders. See the RPC for the full enum.
+ * the feedback pill renders. See the RPC for the full enum. These are the
+ * shared `FeedbackTone` values now — the in-body word-result pill is the same
+ * `<FeedbackPill>` the header uses (`warning` is in the common palette, which is
+ * why spellingbee no longer needs its own feedback component / tone type).
  */
-const RESULT_TONE: Record<string, WordResultTone> = {
+const RESULT_TONE: Record<string, FeedbackTone> = {
   accepted: 'success',
   bonus: 'success',
   pangram: 'success',
@@ -194,40 +198,36 @@ export function PlayArea(ctx: GamePageCtx) {
   // FE-only — never shared or stored.
   const [lastWord, setLastWord] = useState('')
 
-  const handleLetterClick = useCallback((letter: string) => {
-    setWord((prev) => prev + letter.toUpperCase())
-  }, [])
-
-  const handleDelete = useCallback(() => {
-    setWord((prev) => prev.slice(0, -1))
-  }, [])
-
-  // ─── Feedback + auto-clear ─────────────────────────────
+  // ─── Local own-move feedback (sticky) ──────────────────
+  // The player's own submission result, shown as a centered <FeedbackPill> in the
+  // below-board slot — the same shared pill the header's global feedback uses
+  // (docs/design-decisions.md → Feedback). STICKY, not timed: an own-move result
+  // is important and the player may be looking at the board when it lands, so it
+  // persists until their NEXT move dismisses it rather than vanishing on a timer
+  // (docs/design-decisions.md → Dismissal modes). `clearFeedback` is called on
+  // every move gesture below — any key the game sees, a hex click, or Delete.
   const [feedback, setFeedback] = useState<{
     message: string
-    tone: WordResultTone
+    tone: FeedbackTone
   }>({ message: '', tone: 'success' })
 
-  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const showFeedback = useCallback((message: string, tone: WordResultTone) => {
+  const showFeedback = useCallback((message: string, tone: FeedbackTone) => {
     setFeedback({ message, tone })
-    if (clearTimerRef.current !== null) {
-      clearTimeout(clearTimerRef.current)
-    }
-    clearTimerRef.current = setTimeout(() => {
-      setFeedback({ message: '', tone: 'success' })
-      clearTimerRef.current = null
-    }, FEEDBACK_TIMEOUT_MS)
   }, [])
 
-  useEffect(function clearFeedbackTimerOnUnmount() {
-    return () => {
-      if (clearTimerRef.current !== null) {
-        clearTimeout(clearTimerRef.current)
-      }
-    }
+  const clearFeedback = useCallback(() => {
+    setFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
   }, [])
+
+  const handleLetterClick = useCallback((letter: string) => {
+    clearFeedback()
+    setWord((prev) => prev + letter.toUpperCase())
+  }, [clearFeedback])
+
+  const handleDelete = useCallback(() => {
+    clearFeedback()
+    setWord((prev) => prev.slice(0, -1))
+  }, [clearFeedback])
 
   // ─── Submit ────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false)
@@ -277,6 +277,12 @@ export function PlayArea(ctx: GamePageCtx) {
         if (loading || !game) return
         if (isTerminal) return
 
+        // Any key the game sees is the player's next move → dismiss the sticky
+        // own-move pill (docs/design-decisions.md → Dismissal modes). Hex clicks
+        // and the Delete button dismiss via their own handlers. A no-op when
+        // nothing's showing, so it's cheap to run unconditionally.
+        clearFeedback()
+
         if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
           setWord((prev) => prev + e.key.toUpperCase())
           return
@@ -311,7 +317,7 @@ export function PlayArea(ctx: GamePageCtx) {
           return
         }
       },
-      [game, handleShuffle, handleSubmit, isTerminal, lastWord, loading],
+      [clearFeedback, game, handleShuffle, handleSubmit, isTerminal, lastWord, loading],
     ),
   )
 
@@ -412,22 +418,53 @@ export function PlayArea(ctx: GamePageCtx) {
           label="Shuffle outer letters"
           className={shared.floatingShuffle}
         />
-        {/* The below-board input region: the typed-word display + Delete/Enter on
-            one line, with the own-action feedback (or terminal line) beneath. The
-            board itself is the letter input; this row commits/edits it. */}
+        {/* The below-board slot holds exactly ONE of: the input row (typed-word
+            display flanked by Delete/Submit), the sticky own-move feedback pill,
+            or the terminal pill — they replace each other in a fixed-height slot
+            so the board never reflows. The board itself is the letter input; this
+            row commits/edits it. */}
         <div className={styles.belowBoard}>
           {isTerminal && over ? (
-            /* Terminal: the game-ended status REPLACES the input area. The
-               back-to-club button is NOT here — it's in the info-column action
-               row now. */
-            <div className={styles.terminalIndicator}>Game over — {over.indicator}</div>
+            /* Terminal: a PERMANENT fill <FeedbackPill> (outcome-colored) carrying
+               the game-over line REPLACES the input area. Terminal local feedback
+               always lands as a permanent fill pill — it reads *more* like its tone
+               (docs/design-decisions.md → Transient vs permanent). The back-to-club
+               button is NOT here — it's in the info-column action row. */
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone:
+                    over.tone === 'won'
+                      ? 'success'
+                      : over.tone === 'lost'
+                        ? 'error'
+                        : 'neutral',
+                  text: `Game over — ${over.indicator}`,
+                  variant: 'fill', // permanent → lightened-tone fill
+                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
+                }}
+                onClose={noop}
+              />
+            </div>
           ) : feedback.message && word === '' ? (
-            /* Own-action local feedback REPLACES the input row for its beat (a
-               word result / validation message) — the same swap the other
-               redesigned games do, instead of a line below the input. Gated on
-               word === '' so the moment the player types the next word their
-               letters reclaim the slot (the pill also auto-clears on its timer). */
-            <Feedback message={feedback.message} tone={feedback.tone} />
+            /* Own-action local feedback REPLACES the input row for its beat (a word
+               result / validation message) — the shared centered <FeedbackPill>
+               (transient outline), so local own-move feedback reads identically to
+               the header's global pill. STICKY: it persists until the player's next
+               move clears it (the key / hex-click / Delete handlers). Gated on
+               word === '' so the moment they type the next word their letters
+               reclaim the slot. */
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone: feedback.tone,
+                  text: feedback.message,
+                  variant: 'outline',
+                  dismiss: { kind: 'sticky' },
+                }}
+                onClose={noop}
+              />
+            </div>
           ) : (
             /* The entry row: icon-only Delete (left) flanking the chrome-less
                capture-input box, icon-only Submit (right). The shared purpose
@@ -459,77 +496,88 @@ export function PlayArea(ctx: GamePageCtx) {
         </div>
       </div>
 
-      {/* The info column. Unlike the other games, the rank bar + game status lead
-          (it's the thing you watch), with the "Setup options" disclosure BELOW
-          them rather than at the top. No help line — the honeycomb makes it
-          obvious what to do. The WordList fills the rest. */}
+      {/* The info column. Its top region — the readouts + action row + setup — is
+          wrapped in the shared `.actionSlot` (same as psychicnum / connections /
+          codenamesduet / waffle): a fixed-height block so the WordList below it
+          doesn't shift when the action row swaps play↔terminal (docs/ui.md →
+          Layout stability). Order follows the canonical info-column sequence
+          (docs/design-decisions.md → Info column), with two spellingbee picks:
+          the RankBar + Stats are ONE "state" unit and lead (the thing you watch),
+          and there's no help line — the honeycomb makes the move obvious. The
+          WordList fills the rest. */}
       <div className={shared.infoCol}>
-        <RankBar score={foundWordsScore} total={game.required_words_score} />
-        {isCompete && targetRankIdx !== null && (() => {
-          // Index the leaderboard by user so the metric callback can
-          // pull each opponent's rank by id. leaderboard is null until
-          // the compete branch above populates it (and stays null in
-          // coop, which never reaches this guard), so default to [].
-          const byUserId = new Map(
-            leaderboard?.map((e) => [e.user_id, e]) ?? [],
-          )
-          return (
-            <OpponentStrip
-              players={players}
-              selfId={session.user.id}
-              leading={<>target: <strong>{RANKS[targetRankIdx]}</strong></>}
-              // Self reads its rank from the local FE computation
-              // (selfRankIdx) so "You" updates in lock step with the
-              // RankBar above; peers read from the leaderboard payload.
-              metricFor={(p, isSelf) => {
-                const rankIdx = isSelf
-                  ? selfRankIdx
-                  : (byUserId.get(p.user_id)?.rank_idx ?? 0)
-                return RANKS[rankIdx]
-              }}
-            />
-          )
-        })()}
-        <Stats
-          foundWordsScore={foundWordsScore}
-          requiredWordsScore={game.required_words_score}
-          foundWordsCount={foundWordsCount}
-          requiredWordsCount={game.required_words_count}
-        />
+        <div className={shared.actionSlot}>
+          {/* State — RankBar + Stats are one unit (score progress + the figures),
+              kept together and leading. */}
+          <RankBar score={foundWordsScore} total={game.required_words_score} />
+          <Stats
+            foundWordsScore={foundWordsScore}
+            requiredWordsScore={game.required_words_score}
+            foundWordsCount={foundWordsCount}
+            requiredWordsCount={game.required_words_count}
+          />
 
-        {/* Action row (above Setup): the End-game button during play; at terminal
-            it's replaced by the bold, outcome-colored result line + a compact
-            back-to-club button. */}
-        {over ? (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-              {over.message}
-            </span>
-            <BackToClubButton onClick={goToClub} compact />
-          </div>
-        ) : (
-          <div className={shared.infoActions}>
-            <EndGameButton
-              className={shared.helperButton}
-              onClick={() => void handleEndGame()}
-            />
-          </div>
-        )}
+          {/* Opponent strip — below the state unit, per the canonical order. */}
+          {isCompete && targetRankIdx !== null && (() => {
+            // Index the leaderboard by user so the metric callback can
+            // pull each opponent's rank by id. leaderboard is null until
+            // the compete branch above populates it (and stays null in
+            // coop, which never reaches this guard), so default to [].
+            const byUserId = new Map(
+              leaderboard?.map((e) => [e.user_id, e]) ?? [],
+            )
+            return (
+              <OpponentStrip
+                players={players}
+                selfId={session.user.id}
+                metricLabel="Rank"
+                leading={<>target: <strong>{RANKS[targetRankIdx]}</strong></>}
+                // Self reads its rank from the local FE computation
+                // (selfRankIdx) so "You" updates in lock step with the
+                // RankBar above; peers read from the leaderboard payload.
+                metricFor={(p, isSelf) => {
+                  const rankIdx = isSelf
+                    ? selfRankIdx
+                    : (byUserId.get(p.user_id)?.rank_idx ?? 0)
+                  return RANKS[rankIdx]
+                }}
+              />
+            )
+          })()}
 
-        {/* Setup options — what was picked at create time, behind the shared
-            disclosure. Closed by default so it doesn't crowd the status above; it
-            sits BELOW the rank/status here (not at the top as in other games). */}
-        <details className={shared.infoSetup}>
-          <summary>Setup options</summary>
-          <ul>
-            <li>{DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '—'} required words</li>
-            <li>{DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '—'} legal (bonus) words</li>
-            {isCompete && targetRankIdx !== null && (
-              <li>Target rank: {RANKS[targetRankIdx]}</li>
-            )}
-            <li>{timerLabel(spellingbeeSetup.timer)}</li>
-          </ul>
-        </details>
+          {/* Action row: the End-game button during play; at terminal it's
+              replaced by the bold, outcome-colored result line + a compact
+              back-to-club button. */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
+              </span>
+              <BackToClubButton onClick={goToClub} compact />
+            </div>
+          ) : (
+            <div className={shared.infoActions}>
+              <EndGameButton
+                className={shared.helperButton}
+                onClick={() => void handleEndGame()}
+              />
+            </div>
+          )}
+
+          {/* Setup options — what was picked at create time, behind the shared
+              disclosure. Closed by default so it doesn't crowd the status above. */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '—'} required words</li>
+              <li>{DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '—'} legal (bonus) words</li>
+              {isCompete && targetRankIdx !== null && (
+                <li>Target rank: {RANKS[targetRankIdx]}</li>
+              )}
+              <li>{timerLabel(spellingbeeSetup.timer)}</li>
+            </ul>
+          </details>
+        </div>
 
         <WordList
           foundWords={foundWords}
@@ -564,6 +612,15 @@ function timerLabel(t: TimerMode): string {
   return 'no timer'
 }
 
+/** Wraps a rank name for terminal copy: `rank "Solid"`. The bare ladder words
+ *  ("Start", "Solid", "Nice", …) read as a puzzle mid-sentence — "Stopped at
+ *  Start" looks like a typo — so a terminal line that embeds a rank labels it as
+ *  one and quotes the name. (The standalone "Genius!" win celebration keeps the
+ *  bare, iconic word — it's the exclamation, not embedded mid-sentence.) */
+function rankLabel(name: string): string {
+  return `rank "${name}"`
+}
+
 /**
  * Maps the terminal play_state to:
  *   - `outcome` — the GameOverModal's green/red color cue.
@@ -573,21 +630,24 @@ function timerLabel(t: TimerMode): string {
  *   - `message` + `tone` — the short, bold, color-coded line in the
  *     info-column action row (won = green, lost = red, neutral = plain).
  *
+ * A rank embedded mid-sentence is wrapped via `rankLabel` (`rank "Solid"`); the
+ * bare "Genius!" win is the one exception (it's the celebratory exclamation).
+ *
  * Coop:
  *   - `playState='ended'` + Genius rank → "Genius! N/M points."
- *   - `playState='ended'` + lower rank → "Stopped at <rank> —
- *     N/M points." (covers timeout AND manual end, since the
+ *   - `playState='ended'` + lower rank → 'Stopped at rank "Solid" —
+ *     N/M points.' (covers timeout AND manual end, since the
  *     player already knows which one happened)
  *
  * Compete:
- *   - `playState='won_compete'` + caller is winner → "You won
- *     the race — reached <rank>!"
- *   - `playState='won_compete'` + caller is NOT winner → "<name>
- *     beat you to <rank>."
- *   - `playState='ended'` with outcome='timeout' → "Time's up —
- *     no winner at <rank>."
- *   - `playState='ended'` with outcome='manual' → "Game ended —
- *     no winner at <rank>."
+ *   - `playState='won_compete'` + caller is winner → 'You won
+ *     the race — reached rank "Amazing"!'
+ *   - `playState='won_compete'` + caller is NOT winner → '<name>
+ *     beat you to rank "Amazing".'
+ *   - `playState='ended'` with outcome='timeout' → 'Time's up —
+ *     no winner at rank "Amazing".'
+ *   - `playState='ended'` with outcome='manual' → 'Game ended —
+ *     no winner at rank "Amazing".'
  */
 function buildOver({
   mode,
@@ -630,8 +690,8 @@ function buildOver({
       if (selfWon) {
         return {
           outcome: 'won',
-          verdict: `You won the race — reached ${targetRankName}!`,
-          indicator: `you won at ${targetRankName}`,
+          verdict: `You won the race — reached ${rankLabel(targetRankName)}!`,
+          indicator: `you won at ${rankLabel(targetRankName)}`,
           message: 'You won!',
           tone: 'won',
         }
@@ -640,8 +700,8 @@ function buildOver({
         players.find((p) => p.user_id === winnerId)?.username ?? 'someone'
       return {
         outcome: 'lost',
-        verdict: `${winnerName} beat you to ${targetRankName}.`,
-        indicator: `${winnerName} won at ${targetRankName}`,
+        verdict: `${winnerName} beat you to ${rankLabel(targetRankName)}.`,
+        indicator: `${winnerName} won at ${rankLabel(targetRankName)}`,
         message: `${winnerName} won`,
         tone: 'lost',
       }
@@ -653,16 +713,16 @@ function buildOver({
     if (outcome === 'timeout') {
       return {
         outcome: 'lost',
-        verdict: `Time's up — no winner at ${targetRankName}.`,
-        indicator: `time up — no winner at ${targetRankName}`,
+        verdict: `Time's up — no winner at ${rankLabel(targetRankName)}.`,
+        indicator: `time up — no winner at ${rankLabel(targetRankName)}`,
         message: 'Time up',
         tone: 'lost',
       }
     }
     return {
       outcome: 'lost',
-      verdict: `Game ended — no winner at ${targetRankName}.`,
-      indicator: `ended — no winner at ${targetRankName}`,
+      verdict: `Game ended — no winner at ${rankLabel(targetRankName)}.`,
+      indicator: `ended — no winner at ${rankLabel(targetRankName)}`,
       message: 'Game ended',
       tone: 'neutral',
     }
@@ -680,9 +740,9 @@ function buildOver({
   }
   return {
     outcome: 'won',
-    verdict: `Stopped at ${rankName} — ${foundWordsScore}/${requiredWordsScore} points.`,
-    indicator: `stopped at ${rankName}`,
-    message: `Stopped at ${rankName}`,
+    verdict: `Stopped at ${rankLabel(rankName)} — ${foundWordsScore}/${requiredWordsScore} points.`,
+    indicator: `stopped at ${rankLabel(rankName)}`,
+    message: `Stopped at ${rankLabel(rankName)}`,
     tone: 'neutral',
   }
 }

@@ -74,7 +74,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
 | **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `ClubChatPanel` / `FloatingChat` |
 | **Reveal the required wordlist on game end** | shipped | Via `spellingbee.games_state` view's conditional-on-terminal column exposure (bonus words aren't revealed) |
-| **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or "Stopped at <rank>" (rank < 6 — covers both timeout and manual) |
+| **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or 'Stopped at rank "<name>"' (rank < 6 — covers both timeout and manual) |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
@@ -328,17 +328,23 @@ src/spellingbee/
   logo.svg                Bee glyph (copied from spellingbee-ws).
 
   components/
-    PlayArea.tsx          Two-column composition (input column left, side panel right).
-                          Owns the typed word, the shuffle seed, the in-body feedback pill
-                          timer (own word result), the submit_word dispatch, and the
-                          End-game menu item registration. Wires usePeerFeedback to the
-                          common header slot for peer/opponent events (aliased as
-                          `headerFeedback` so it doesn't clash with the local pill state).
-                          Compete-only: renders the OpponentStrip between RankBar
-                          and Stats (reading from ctx.status.leaderboard). buildOver
-                          branches mode → terminal verdict copy. Mounts GameOverModal
-                          via useTerminalModal on the isTerminal flip.
-    PlayArea.module.css   Two-column grid; no @media reflow — desktop-first per ui.md.
+    PlayArea.tsx          Two-column composition on the shared scaffold (.boardCol /
+                          .infoCol). Owns the typed word, the shuffle seed, the sticky
+                          own-move feedback (a shared <FeedbackPill>, dismissed on the next
+                          move — no timer), the submit_word dispatch, and the End-game
+                          action button. Wires usePeerFeedback to the common header slot
+                          for peer/opponent events (aliased as `headerFeedback` so it
+                          doesn't clash with the local pill state). The info column wraps
+                          its readouts in the shared .actionSlot: RankBar + Stats (the
+                          "state" unit) lead, then — compete-only — the OpponentStrip
+                          (rank), then the action row, then the Setup disclosure; the
+                          WordList fills the rest below. buildOver branches mode → terminal
+                          verdict copy. Mounts GameOverModal via useTerminalModal on the
+                          isTerminal flip.
+    PlayArea.module.css   Per-game bits only (layout vars, hex board sizing, the below-board
+                          slot). The two-column shell + readout classes are the shared
+                          common/components/PlayArea.module.css. Desktop-first, no @media
+                          reflow — per ui.md.
     Letters.tsx           The 7-hex honeycomb. Render order: center → top → upper-right →
                           lower-right → bottom → lower-left → upper-left. Position via
                           nth-child rules in Letters.module.css.
@@ -347,19 +353,21 @@ src/spellingbee/
                           ~/spellingbee-ws/src/globals.css §7.
     Letter.tsx            Single hex. onMouseDown preventDefault so a click doesn't steal
                           focus from the keyboard-handler attachment point.
-    WordInput.tsx         The current typed word above the honeycomb. Renders per-character
-                          so illegal letters (not in the puzzle's allowed set) dim individually.
-                          No <input> — typing is captured by useGlobalKeyHandler.
-    Actions.tsx           Delete / Shuffle / Enter triplet. Shuffle stays clickable when
-                          locked (so the player can fidget post-end). Hover rotates only
-                          the ⟲ glyph (via an inner <span> + .iconGlyph transform), not
-                          the button.
-    Feedback.tsx          The IN-BODY pill, near the input: the player's OWN word result
-                          (success / warning / error — tone type `WordResultTone`, NOT the
-                          common FeedbackTone; it has a `warning` value the header lacks).
-                          role="status" aria-live="polite". PlayArea drives the
-                          show-and-clear timer. Peer/opponent events go to the HEADER slot
-                          instead — see usePeerFeedback. Two distinct surfaces by design.
+    TypedWord.tsx         The current typed word, rendered as the children INSIDE the shared
+                          <EntryBox> (which owns the box + blinking caret + placeholder).
+                          One <span> per character so illegal letters (not in the puzzle's
+                          allowed set) dim individually. No <input> — typing is captured by
+                          useGlobalKeyHandler in PlayArea.
+                          (The Delete / Shuffle / Enter controls are no longer a per-game
+                          Actions.tsx: they're the shared semantic buttons —
+                          <DeleteButton> + <SubmitButton> flanking the EntryBox in the input
+                          row, and a floating <ShuffleButton> over the board's top-right.)
+                          (The own-move result pill is no longer a per-game Feedback.tsx:
+                          it's the shared <FeedbackPill>, sticky, rendered in the below-board
+                          .localFeedback slot. success / warning / error are all in the common
+                          FeedbackTone now, so the surface needs no game-specific tone type.
+                          Peer/opponent events still go to the HEADER slot via usePeerFeedback —
+                          two distinct LOCATIONS for the same shared pill component.)
     RankBar.tsx           7 dots from Start to Genius, filled up to the current rank.
                           Per-dot hover tooltip with rank name + points threshold.
     Stats.tsx             2-cell grid: Score / Words. Tabular-nums so the digits
@@ -401,10 +409,11 @@ src/spellingbee/
                           per-word setTimeouts in a ref (NOT effect cleanup — see the
                           inline note about double-update timer cancellation).
     usePeerFeedback.ts    Fires HEADER feedback pills for other players' activity — the
-                          complement to the in-body pill. coop: a peer found a good/pangram
-                          word (found_words is club-wide). compete: an opponent climbed a
-                          rank (their words are RLS-hidden, but rank rides
-                          status.leaderboard). Both bootstrap on the first loaded render so
+                          complement to the below-board own-move pill. coop: a peer found a
+                          good/pangram word (found_words is club-wide). compete: an opponent
+                          climbed a rank (their words are RLS-hidden, but rank rides
+                          status.leaderboard). Each names the player with a leading
+                          color disc (the `dot`). Both bootstrap on the first loaded render so
                           a reconnect doesn't replay a backlog; self-activity is excluded.
 
   lib/
@@ -417,7 +426,7 @@ src/spellingbee/
                           side by spellingbee._rank_idx (different numeric form, same answer
                           — Vitest verifies agreement at every score / total).
     letterMask.ts         26-bit letter mask helpers (letterMask, popcount26, isSubsetMask).
-                          Used by WordInput for per-character illegal-letter dimming.
+                          Used by TypedWord for per-character illegal-letter dimming.
     pangram.ts            isPangram (popcount26(letterMask(w)) === 7). UI cue only;
                           authority on "real" required pangrams is the server's
                           required_words.is_pangram flag.
@@ -448,22 +457,24 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 
 When `isTerminal` flips true:
 1. `useTerminalModal` opens the `<GameOverModal>` (won/lost color + verdict line + Back-to-club).
-2. The input column's `<Feedback>` row swaps for a terminal indicator: `"Game over — <indicator copy>"` plus a Back-to-club button.
-3. `<Actions>`' Delete + Enter disable; Shuffle stays clickable.
+2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying `"Game over — <indicator copy>"`. Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column action row's bold outcome line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
+3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
 4. `games_state.required_words` materializes via the helper; `useGame.load()` refetches; `game.requiredWords` populates.
 5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.
 
 The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`:
 
+A rank embedded mid-sentence is wrapped by the `rankLabel` helper as `rank "<name>"` — a bare ladder word ("Stopped at Start") reads like a typo. The one exception is the standalone **"Genius!"** win, which keeps the bare iconic word (it's the celebratory exclamation, not embedded mid-sentence).
+
 **Coop**:
 - `rank >= 6` (Genius) → `outcome='won'`, verdict `"Genius! N/M points."`
-- `rank < 6` → `outcome='won'`, verdict `"Stopped at <rank> — N/M points."` (covers both timeout and manual end since the player knows which one happened)
+- `rank < 6` → `outcome='won'`, verdict `'Stopped at rank "<name>" — N/M points.'` (covers both timeout and manual end since the player knows which one happened)
 
 **Compete** (uses `targetRankIdx` read from `setup.target_rank` — the canonical, immutable source — not from `status.target_rank` which `submit_timeout`/`end_game` don't re-emit on terminal):
-- `playState='won_compete'` + caller is winner → `outcome='won'`, verdict `"You won the race — reached <rank>!"`
-- `playState='won_compete'` + caller is NOT winner → `outcome='lost'`, verdict `"<winner-name> beat you to <rank>."`
-- `playState='ended'` + `outcome='timeout'` → `outcome='lost'`, verdict `"Time's up — no winner at <rank>."`
-- `playState='ended'` + `outcome='manual'` → `outcome='lost'`, verdict `"Game ended — no winner at <rank>."`
+- `playState='won_compete'` + caller is winner → `outcome='won'`, verdict `'You won the race — reached rank "<name>"!'`
+- `playState='won_compete'` + caller is NOT winner → `outcome='lost'`, verdict `'<winner-name> beat you to rank "<name>".'`
+- `playState='ended'` + `outcome='timeout'` → `outcome='lost'`, verdict `'Time's up — no winner at rank "<name>".'`
+- `playState='ended'` + `outcome='manual'` → `outcome='lost'`, verdict `'Game ended — no winner at rank "<name>".'`
 
 ### Realtime channels
 

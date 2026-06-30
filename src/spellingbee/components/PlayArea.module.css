@@ -3,48 +3,59 @@
  * .layout / .boardCol / .infoCol psychicnum / connections / codenamesduet /
  * waffle use. This module holds only spellingbee's own bits: the per-game layout
  * vars, the board-size derivation, the below-board input region (the typed-word
- * display + Delete/Enter on one line, feedback slot beneath), and the leftover
- * loading/terminal styles.
- *
- * MIGRATION PHASE 1: the skeleton + a board that grows. The info column is still
- * an UNFORMATTED dump (RankBar / Stats / WordList shoved in); sorting it into the
- * shared actionSlot readouts is Phase 2.
+ * display + Delete/Enter on one line, with the local feedback / terminal pill
+ * swapping into the same slot), and the leftover loading styles. The info
+ * column's readouts use the shared `.actionSlot` + readout classes; own-move and
+ * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`.
  */
 
 /* Per-game layout vars the shared scaffold reads. The info column runs wider than
  * the other games' — the word list wants room for several columns — so start at
  * 33rem and tune. --avail-h is the vertical space left for the hex board (bounded
  * by height too, like waffle's square): viewport − chrome − the single below-board
- * slot (the input row / feedback pill / terminal status, ~2.75rem) and the board
- * column's gap above it (~0.75rem). */
+ * slot (the input row / feedback pill / terminal status, ~2.75rem), the board
+ * column's gap above it (~0.75rem), and the extra `.belowBoard` margin-top that
+ * drops the input row down off the board (1.5rem) — 5rem total. Keep this in sync
+ * with `.belowBoard`'s margin-top below. */
 .layout {
   --info-col-width: 33rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 3.5rem);
+  --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
 }
 
-/* The board column. Hoists `--side` (the hex board's edge length) here — rather
- * than on .letters — so the below-board input row can match the board width.
+/* The board column. Defines `--u` (one honeycomb coordinate unit) and the derived
+ * `--board-width` HERE — rather than on the grid — so the below-board input row can
+ * match the board's width from the same source.
  *
  * ─── Board size cap — TINKER HERE ────────────────────────────────────────────
- * The hex board is bounded by BOTH width and height (like waffle's square), so it
- * sizes to the smaller of the width left beside the info column (--avail-w, the
- * shared scaffold token), the height left above the input row (--avail-h), and
- * --max-hex-board-size. Raise/lower the cap to taste; comment it out for an
- * uncapped board that fills the smaller available axis (but then define a value —
- * a bare var() fallback trips the cssTokens guard; see the passing games). */
+ * The flower's bounding box is 256 (wide) × 267 (tall) coordinate units (see
+ * Letters.module.css). `--u` sizes it to fill the SMALLER of the width left beside
+ * the info column (--avail-w, the shared scaffold token) and the height left above
+ * the input row (--avail-h), capped by --max-hex-board-size — expressed as a
+ * 320-unit square edge, the same cap the old square box used, so the max on-screen
+ * size is unchanged. Raise/lower the cap to taste; to REMOVE it, SET it to 999rem
+ * (don't comment the knob OUT: the token must stay defined, or the cssTokens guard
+ * trips on the now-undefined var() reference — see the passing games). */
 .boardCol {
   --max-hex-board-size: 30rem;
-  --side: min(var(--avail-w), var(--avail-h), var(--max-hex-board-size, 999rem));
+  --u: min(
+    calc(var(--avail-w) / 256),
+    calc(var(--avail-h) / 267),
+    calc(var(--max-hex-board-size) / 320)
+  );
+  --board-width: calc(256 * var(--u));
 }
 
 /* The below-board slot — holds exactly ONE of: the input row, the own-action
  * feedback pill, or the terminal status (they replace each other, the same swap
  * the other redesigned games do). A reserved min-height (the input row's) keeps
- * the top-anchored board from shifting as they swap. Width pinned to --side so a
- * long typed word can't widen the column and shift the centered board. */
+ * the top-anchored board from shifting as they swap. Width pinned to the board
+ * width so a long typed word can't widen the column and shift the centered board.
+ * `margin-top` drops the row down off the board for breathing room (on top of the
+ * board column's 0.75rem gap) — counted into `--avail-h` above. */
 .belowBoard {
-  width: var(--side);
+  width: var(--board-width);
   min-height: 2.75rem;
+  margin-top: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,14 +83,5 @@
   text-align: center;
   color: var(--color-muted);
   grid-column: 1 / -1;
-}
-
-/* The terminal status that REPLACES the input area at game over — the detailed
- * line ("Game over — Genius! 12/93 points"). Just centered text now; the
- * back-to-club button moved to the info-column action row. */
-.terminalIndicator {
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
 }
 

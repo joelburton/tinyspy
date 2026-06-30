@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { FeedbackApi, Member } from '../../common/lib/games'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { RANKS } from '../lib/ranks'
 import type { FoundWordRow } from './useGame'
@@ -58,10 +59,14 @@ export function usePeerFeedback({
       if (seen.has(key(r))) continue
       seen.add(key(r))
       if (r.user_id === selfUserId) continue // own word → in-body pill
-      const name =
-        players.find((p) => p.user_id === r.user_id)?.username ?? 'A teammate'
+      // A global pill that names another player carries a leading color disc in
+      // their player color (docs/design-decisions.md → Mentioning other players).
+      const member = players.find((p) => p.user_id === r.user_id)
+      const name = member?.username ?? 'A teammate'
       feedback.show({
         tone: 'success',
+        variant: 'outline',
+        dot: colorVarFor(member?.color),
         text: r.is_pangram
           ? `🐝 ${name} found a pangram — ${r.word.toUpperCase()}!`
           : `${name} found ${r.word.toUpperCase()}`,
@@ -89,11 +94,12 @@ export function usePeerFeedback({
       prev.set(row.user_id, row.rank_idx)
       if (row.user_id === selfUserId) continue // own rank → RankBar
       if (row.rank_idx > was) {
-        const name =
-          players.find((p) => p.user_id === row.user_id)?.username ??
-          'An opponent'
+        const member = players.find((p) => p.user_id === row.user_id)
+        const name = member?.username ?? 'An opponent'
         feedback.show({
           tone: 'info',
+          variant: 'outline',
+          dot: colorVarFor(member?.color),
           text: `${name} reached ${RANKS[row.rank_idx] ?? 'a new rank'}`,
           dismiss: { kind: 'timed' },
         })

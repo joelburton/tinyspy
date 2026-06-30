@@ -3,27 +3,39 @@
  *
  * 7 hex buttons in a flower: 1 center (gold) + 6 outer (gray), arranged
  * top → upper-right → lower-right → bottom → lower-left → upper-left.
- * Positioning is the original spellingbee-ws 320px coordinate system — absolute
- * nth-child offsets over a 320×320 box, hexes 100×87 — but every length is now
- * expressed in units of `--u = --side / 320`, so the whole flower SCALES with
- * the board's `--side` (set on .boardCol in PlayArea.module.css; the board grows
- * to fill the play area, like waffle's square) while keeping its exact
- * proportions.
+ * Positioning is the original spellingbee-ws 320-unit coordinate system — absolute
+ * nth-child offsets, hexes 100×87 — every length expressed in units of `--u` (set
+ * on .boardCol in PlayArea.module.css), so the whole flower SCALES with the board.
+ *
+ * One adaptation from the source for this repo's board-column convention
+ * (docs/design-decisions.md → Board column): spellingbee-ws laid the flower out
+ * inside a 320×320 SQUARE, but the flower only occupies x∈[32,288], y∈[37,304] of
+ * it — leaving a ~37-unit blank band at the top that pushed the board down. We
+ * re-base the origin to the flower's own top-left (subtract 32 from every `left`,
+ * 37 from every `top`) and size the `.grid` to the flower's real 256×267 box, so
+ * the board has no built-in padding (a grid carries none) and sits flush at the
+ * top of the board column. The hex shapes + relative positions are unchanged.
  *
  * `clip-path: polygon(...)` is the hexagon — a flat-top regular hex with
  * vertical sides at 25% and 75%. Cheaper than SVG (no extra DOM nodes per hex),
  * more flexible than a single background-image (we can transform on hover/press).
  */
 
-.letters {
-  /* One coordinate unit = 1/320 of the board side. `--side` is hoisted to
-   * .boardCol (PlayArea.module.css) so the below-board input row can match the
-   * board width; here we just consume it. */
-  --u: calc(var(--side) / 320);
+/* The board wrapper: no tray (no border/background) — the hexes carry their own
+ * shape — just the structural element between .boardCol and the .grid. Centers the
+ * grid horizontally (a no-op when the column already hugs the grid width). */
+.board {
+  display: flex;
+  justify-content: center;
+}
+
+/* The grid: the flower's bounding box, 256 wide × 267 tall in coordinate units.
+ * `--u` (one unit) is defined on .boardCol (PlayArea.module.css) so the
+ * below-board input row can read the board width from the same source. */
+.grid {
   position: relative;
-  width: var(--side);
-  height: var(--side);
-  margin: 0 auto;
+  width: calc(256 * var(--u));
+  height: calc(267 * var(--u));
 }
 
 .letter {
@@ -74,13 +86,16 @@
  *   1: center  2: top  3: upper-right  4: lower-right
  *   5: bottom  6: lower-left  7: upper-left
  *
- * The same offsets as spellingbee-ws, each scaled by --u so the flower tracks
- * the board size with ~3px-equivalent gutters between adjacent hexes.
+ * The spellingbee-ws offsets RE-BASED to the flower's top-left (each original
+ * `left` − 32, each original `top` − 37; see the header note), each scaled by --u
+ * so the flower tracks the board size with ~3px-equivalent gutters between
+ * adjacent hexes. The bottom hex ends at 267u (= grid height) and the right hexes
+ * at 256u (= grid width), so the flower fills its box edge-to-edge.
  */
-.letters .letter:nth-child(1) { top: calc(127 * var(--u)); left: calc(110 * var(--u)); }
-.letters .letter:nth-child(2) { top: calc(37 * var(--u));  left: calc(110 * var(--u)); }
-.letters .letter:nth-child(3) { top: calc(82 * var(--u));  left: calc(188 * var(--u)); }
-.letters .letter:nth-child(4) { top: calc(171 * var(--u)); left: calc(188 * var(--u)); }
-.letters .letter:nth-child(5) { top: calc(217 * var(--u)); left: calc(110 * var(--u)); }
-.letters .letter:nth-child(6) { top: calc(171 * var(--u)); left: calc(32 * var(--u)); }
-.letters .letter:nth-child(7) { top: calc(82 * var(--u));  left: calc(32 * var(--u)); }
+.grid .letter:nth-child(1) { top: calc(90 * var(--u));  left: calc(78 * var(--u)); }
+.grid .letter:nth-child(2) { top: calc(0 * var(--u));   left: calc(78 * var(--u)); }
+.grid .letter:nth-child(3) { top: calc(45 * var(--u));  left: calc(156 * var(--u)); }
+.grid .letter:nth-child(4) { top: calc(134 * var(--u)); left: calc(156 * var(--u)); }
+.grid .letter:nth-child(5) { top: calc(180 * var(--u)); left: calc(78 * var(--u)); }
+.grid .letter:nth-child(6) { top: calc(134 * var(--u)); left: calc(0 * var(--u)); }
+.grid .letter:nth-child(7) { top: calc(45 * var(--u));  left: calc(0 * var(--u)); }

@@ -82,7 +82,7 @@
  * background without the heaviness of a near-black outline. */
 .achieved {
   background: var(--spellingbee-accent);
-  border-color: var(--spellingbee-feedback-warning);
+  border-color: var(--spellingbee-accent-edge);
 }
 
 /* Tooltip — only renders on hover/focus of its parent dot. */
