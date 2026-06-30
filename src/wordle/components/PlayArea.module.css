@@ -1,32 +1,20 @@
-/* Two-pane play surface: board + keyboard on the left, the guesses
- * counter + list on the right. Mirrors the shape of the other games. */
+/* wordle play surface. The two-column SHELL (.layout / .boardCol / .infoCol)
+ * comes from the shared common/components/PlayArea.module.css (imported as
+ * `shared` in PlayArea.tsx) and is composed via cls(); only what's specific to
+ * wordle lives here. The board grid + keyboard chrome live in their own
+ * modules. See docs/ui.md → "PlayArea layout". */
+
+/* The info column's width — game-specific (the shared scaffold has no default).
+ * wordle's right column (guess counter + guess list) fits a narrow column. A
+ * rem, never a pixel lock; the shared `.infoCol` and the board's --avail-w math
+ * both read it. */
 .layout {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 1.5rem 1rem;
+  --info-col-width: 22rem;
 }
 
-.boardArea {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  flex: 1 1 22rem;
-  min-width: 18rem;
-  max-width: 34rem;
-}
-
-.rightCol {
-  min-width: 14rem;
-  max-width: 22rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
+/* Terminal "Game over / The answer was X" block, shown in the info column.
+ * TEMPORARY: Phase 4 folds this into the shared action-slot outcome line + a
+ * permanent local feedback pill; kept as-is for now so the shell lands first. */
 .gameOver {
   display: flex;
   flex-direction: column;

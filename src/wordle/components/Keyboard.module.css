@@ -1,8 +1,18 @@
+/* The keyboard is wordle's WIDEST board-column child — wider than the 5-tile
+ * grid — so unlike the other v3 games (where the board hugs and sets the
+ * column width), here the KEYBOARD drives `.boardCol`'s width and the grid
+ * centers within it. That means the width must be a definite size, NOT `100%`:
+ * `100%` would resolve to the column width, which the narrower grid has already
+ * hugged down to, collapsing the keyboard to the grid. So size it to a
+ * comfortable ~30rem, capped by `--avail-w` (the shared scaffold token = the
+ * width left beside the info column) so it shrinks gracefully on a narrow
+ * screen rather than overflowing. `margin: 0 auto` only matters in the unusual
+ * case the grid is tinkered WIDER than the keyboard. */
 .keyboard {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  width: min(100%, 30rem);
+  width: min(var(--avail-w), 30rem);
   margin: 0 auto;
 }
 

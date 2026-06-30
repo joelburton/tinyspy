@@ -56,53 +56,55 @@ export function WordleGrid({ rows, current, pending, maxGuesses, active, brand }
   const [firstRows] = useState(rows.length)
 
   return (
-    <div className={styles.grid} role="grid" aria-label={`${brand} board`}>
-      {Array.from({ length: maxGuesses }, (_, r) => {
-        const submitted = rows[r]
-        const isActive = r === activeIndex
-        // The pending (in-flight) word sits in the first empty slot.
-        const isPending = !submitted && !!pending && r === rows.length
-        const flipping = !!submitted && r >= firstRows
-        return (
-          <div key={r} className={styles.row} role="row">
-            {Array.from({ length: 5 }, (_, c) => {
-              let letter = ''
-              let color = tileColor(undefined)
-              if (submitted) {
-                letter = submitted.guess[c] ?? ''
-                color = tileColor(submitted.colors[c])
-              } else if (isPending) {
-                letter = pending[c] ?? ''
-              } else if (isActive) {
-                letter = current[c] ?? ''
-              }
-              return (
-                <div
-                  key={c}
-                  className={cls(
-                    styles.tile,
-                    // Flipping tiles take their color from the keyframes
-                    // (via --reveal-bg), not the static color class.
-                    flipping ? styles.reveal : styles[color],
-                    letter && color === 'blank' && styles.filled,
-                  )}
-                  style={
-                    flipping
-                      ? {
-                          ['--reveal-bg' as string]: revealVar(color),
-                          animationDelay: `${c * REVEAL_STEP_S}s`,
-                        }
-                      : undefined
-                  }
-                  role="gridcell"
-                >
-                  {letter.toUpperCase()}
-                </div>
-              )
-            })}
-          </div>
-        )
-      })}
+    <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
+      <div className={styles.grid} role="grid" aria-label={`${brand} board`}>
+        {Array.from({ length: maxGuesses }, (_, r) => {
+          const submitted = rows[r]
+          const isActive = r === activeIndex
+          // The pending (in-flight) word sits in the first empty slot.
+          const isPending = !submitted && !!pending && r === rows.length
+          const flipping = !!submitted && r >= firstRows
+          return (
+            <div key={r} className={styles.row} role="row">
+              {Array.from({ length: 5 }, (_, c) => {
+                let letter = ''
+                let color = tileColor(undefined)
+                if (submitted) {
+                  letter = submitted.guess[c] ?? ''
+                  color = tileColor(submitted.colors[c])
+                } else if (isPending) {
+                  letter = pending[c] ?? ''
+                } else if (isActive) {
+                  letter = current[c] ?? ''
+                }
+                return (
+                  <div
+                    key={c}
+                    className={cls(
+                      styles.tile,
+                      // Flipping tiles take their color from the keyframes
+                      // (via --reveal-bg), not the static color class.
+                      flipping ? styles.reveal : styles[color],
+                      letter && color === 'blank' && styles.filled,
+                    )}
+                    style={
+                      flipping
+                        ? {
+                            ['--reveal-bg' as string]: revealVar(color),
+                            animationDelay: `${c * REVEAL_STEP_S}s`,
+                          }
+                        : undefined
+                    }
+                    role="gridcell"
+                  >
+                    {letter.toUpperCase()}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

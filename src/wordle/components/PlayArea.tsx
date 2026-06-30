@@ -12,6 +12,8 @@ import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
 import { GuessList } from './GuessList'
 import { CompetePlayers } from './CompetePlayers'
+import { cls } from '../../common/lib/cls'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -199,11 +201,8 @@ export function PlayArea({
     : null
 
   return (
-    <div className={styles.layout}>
-      <div
-        className={styles.boardArea}
-        style={{ ['--rows' as string]: game.max_guesses }}
-      >
+    <div className={cls(shared.layout, styles.layout)}>
+      <div className={shared.boardCol}>
         <WordleGrid
           rows={rows}
           current={current}
@@ -221,7 +220,7 @@ export function PlayArea({
         />
       </div>
 
-      <div className={styles.rightCol}>
+      <div className={shared.infoCol}>
         {over && (
           <div className={styles.gameOver}>
             <span>

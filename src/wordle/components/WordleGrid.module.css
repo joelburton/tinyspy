@@ -1,17 +1,43 @@
+/* The board wrapper. NO border/background today — the colored tiles carry the
+ * look (like psychicnum/connections); it exists so a future framed board adds
+ * the frame in one place, and it holds the tile-size knobs. It just centers the
+ * grid; the grid drives its own size (see below). */
+.board {
+  /* ─── Tile size cap — TINKER HERE ────────────────────────────────────────
+   * The board grows to fill the space, but a tile never exceeds this width.
+   * Square tiles, so width is the only knob. Relative units (rem). To REMOVE
+   * the cap, SET it to 999rem (the calc term goes huge → the grid fills
+   * --avail-w). Don't comment it out — the phantom-token guard
+   * (src/cssTokens.test.ts) needs it defined. */
+  --max-tile-width: 3.7rem;
+  --grid-gap: 0.35rem;
+  --cols: 5;
+  display: flex;
+  justify-content: center;
+}
+
+/* The board grid: --rows rows of 5 square tiles. HUGS its WIDTH — as wide as 5
+ * tiles + gaps need, capped per tile by --max-tile-width, never past --avail-w
+ * (the shared scaffold token on .layout, the width left beside the info
+ * column). `aspect-ratio` then derives the HEIGHT so the tiles stay SQUARE —
+ * wordle's iconic look — instead of the flex-fill the other v3 boards use
+ * (a keyboard shares this column below the board, so the board hugs its height
+ * rather than filling the column). Each row is its own 5-col grid (`.row`). */
 .grid {
   display: grid;
   grid-auto-rows: 1fr;
-  gap: 0.35rem;
-  /* Square-ish board sized to its column; caps so it doesn't get huge. */
-  width: min(100%, 20rem);
-  aspect-ratio: 5 / var(--rows);
-  margin: 0 auto;
+  gap: var(--grid-gap);
+  width: min(
+    var(--avail-w),
+    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
+  );
+  aspect-ratio: var(--cols) / var(--rows);
 }
 
 .row {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.35rem;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: var(--grid-gap);
 }
 
 .tile {
