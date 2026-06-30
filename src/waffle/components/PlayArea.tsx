@@ -190,7 +190,6 @@ export function PlayArea({
     />
   ) : (
     <EndGameButton
-      label="End"
       onClick={() => void handleEndGame()}
       className={shared.helperButton}
     />

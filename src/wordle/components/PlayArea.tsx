@@ -367,7 +367,7 @@ export function PlayArea({
   const endButton = isCompete ? (
     <ConcedeGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
   ) : (
-    <EndGameButton label="End" onClick={() => void handleEndGame()} className={shared.helperButton} />
+    <EndGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
   )
 
   // ─── The below-board pill (terminal / locally-terminal / own-move) ─────

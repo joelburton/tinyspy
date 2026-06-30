@@ -480,13 +480,11 @@ export function PlayArea({
           ) : (
             <div className={shared.infoActions}>
               {/* Manual "we're done" stop — the shared EndGameButton (flag +
-                  error/red tone). codenamesduet is coop, so "End game" (a mutual
-                  stop), not "Concede". The full "End game" label (a one-off
-                  override) disambiguates it from this game's "Pass & end turn"
-                  below the board — most games have no per-turn end, so they can
-                  use the shorter default "End". */}
+                  error/red tone, the canonical "End" label). codenamesduet is coop,
+                  so End (a mutual stop), not Concede. It reads distinctly from this
+                  game's "Pass & end turn" below the board (a different component +
+                  glyph), so it keeps the same plain "End" as every other v3 game. */}
               <EndGameButton
-                label="End Game"
                 onClick={() => void handleEndGame()}
                 className={shared.helperButton}
               />

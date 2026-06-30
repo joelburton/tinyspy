@@ -338,7 +338,7 @@ export function PlayArea({
     mode === 'compete' ? (
       <ConcedeGameButton onClick={endGame} className={shared.helperButton} />
     ) : (
-      <EndGameButton label="End" onClick={endGame} className={shared.helperButton} />
+      <EndGameButton onClick={endGame} className={shared.helperButton} />
     )
 
   return (
