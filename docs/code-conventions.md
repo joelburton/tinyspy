@@ -239,9 +239,13 @@ Decision rule when porting a new game:
 
 Mixing — Pattern B for broadcast + a separate Pattern A call for postgres-changes — adds a second channel per peer with no functional gain and breaks the "one hook, one channel" mental model. Don't.
 
-#### Append-on-event exception
+#### Append-on-event exception — and the merge rule it requires
 
 [`useClubChat`](../src/common/hooks/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
+
+**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/hooks/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
+
+The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/hooks/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
 
 ## Frontend
 
