@@ -8,11 +8,12 @@
  * The board grows to fill the space, but a tile never exceeds these. Relative
  * units (rem). These are the only knobs; everything below derives from them.
  *
- * To REMOVE a cap, comment its line out — that axis then fills the available
- * space (the calc falls back to "unlimited", 999rem):
- *     no width cap  → comment out --max-tile-width
- *     no height cap → comment out --max-tile-height
- * Example alternative caps:
+ * To REMOVE a cap, SET its value to 999rem (effectively unlimited — that axis's
+ * calc term goes huge and the board just fills the available space):
+ *     no width cap  → --max-tile-width: 999rem
+ *     no height cap → --max-tile-height: 999rem
+ * Don't comment a knob OUT: the token must stay defined, or the calc below breaks
+ * and the phantom-token guard (src/cssTokens.test.ts) fails. Example caps:
  *     --max-tile-width: 8rem;
  *     --max-tile-height: 12rem;                                                */
 .board {
@@ -29,7 +30,7 @@
   display: flex;
   flex-direction: column;
   max-height: calc(
-    var(--rows) * var(--max-tile-height, 999rem) + (var(--rows) - 1) * var(--grid-gap)
+    var(--rows) * var(--max-tile-height) + (var(--rows) - 1) * var(--grid-gap)
   );
 }
 
@@ -50,7 +51,7 @@
   gap: var(--grid-gap);
   width: min(
     var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
   );
   --tile-font-min: 0.85rem;
   --tile-font-factor: 0.9;

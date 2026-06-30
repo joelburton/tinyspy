@@ -35,11 +35,12 @@
  *
  * ─── Tile size caps — TINKER HERE ────────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative
- * units (rem). connections ships UNCAPPED (both commented out) → the board fills
- * the column as before. To impose a cap, uncomment a line; comment it back out
- * for no cap on that axis (the calc falls back to "unlimited", 999rem):
- *     no width cap  → leave --max-tile-width commented
- *     no height cap → leave --max-tile-height commented                         */
+ * units (rem). To REMOVE a cap, SET its value to 999rem (effectively unlimited —
+ * that axis's calc term goes huge and the board fills the column on that axis):
+ *     no width cap  → --max-tile-width: 999rem
+ *     no height cap → --max-tile-height: 999rem
+ * Don't comment a knob OUT: the token must stay defined, or the calc breaks and
+ * the phantom-token guard (src/cssTokens.test.ts) fails.                        */
 .board {
    --max-tile-width: 12rem;
    --max-tile-height: 9rem;
@@ -54,15 +55,16 @@
   flex-direction: column;
   /* Cap the board height so each 1fr row tops out at --max-tile-height; rows
    * still shrink on short screens. --rows (bands + tile-rows) is set inline by
-   * Board.tsx. Uncapped by default → the calc is huge → no effective cap. */
+   * Board.tsx. Set --max-tile-height to 999rem and the calc goes huge → no
+   * effective cap. */
   max-height: calc(
-    var(--rows) * var(--max-tile-height, 999rem) + (var(--rows) - 1) * var(--grid-gap)
+    var(--rows) * var(--max-tile-height) + (var(--rows) - 1) * var(--grid-gap)
   );
 }
 
 /* The board grid. HUGS: as wide as the tiles+gaps need, capped per tile, never
  * past --avail-w (the width left beside the info column — the shared scaffold
- * token on .layout). With no width cap it simply fills --avail-w (today's look).
+ * token on .layout). With --max-tile-width at 999rem it simply fills --avail-w.
  * --cols/--rows drive the 1fr tracks; the bands span all columns (`grid-column:
  * 1 / -1`). The --tile-font-* knobs tune the shared .tileWord auto-fit. */
 .grid {
@@ -74,7 +76,7 @@
   gap: var(--grid-gap);
   width: min(
     var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width, 999rem) + (var(--cols) - 1) * var(--grid-gap))
+    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
   );
   --tile-font-min: 1rem;
   --tile-font-factor: 0.94;
