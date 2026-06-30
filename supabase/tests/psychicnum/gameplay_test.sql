@@ -6,11 +6,16 @@
 -- players win by finding all three. Covers coop AND compete.
 --
 -- We pin a known board + secrets with a postgres-role UPDATE after
--- create_game (the RPC samples them randomly). The board:
---   words   = alpha bravo charlie delta echo foxtrot golf hotel
---   secrets = alpha bravo charlie
--- so delta..hotel are guessable-but-wrong, and a word NOT on the
--- board (e.g. 'zulu') exercises the board-word guard.
+-- create_game (the RPC samples them randomly). The board words are
+-- deliberately NON-words (a `z`-prefixed NATO alphabet), so they're
+-- guaranteed absent from common.words — that's what makes the request_hint
+-- "No hint available" fallback fire deterministically. A real word would
+-- carry a clue and defeat that assertion (e.g. "bravo" → "paid assassin").
+-- The board:
+--   words   = zalpha zbravo zcharlie zdelta zecho zfoxtrot zgolf zhotel
+--   secrets = zalpha zbravo zcharlie
+-- so zdelta..zhotel are guessable-but-wrong, and a word NOT on the
+-- board (e.g. 'zzulu') exercises the board-word guard.
 --
 -- Coop assertions:
 --   - a word not on the board is rejected
@@ -57,14 +62,14 @@ select * from psychicnum.create_game(
 );
 reset role;
 update psychicnum.games
-   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
-       secrets = array['alpha','bravo','charlie']
+   set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
+       secrets = array['zalpha','zbravo','zcharlie']
  where id = (select id from coop_g);
 
 -- (1) A word not on the board is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'zulu') $$, (select id from coop_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zzulu') $$, (select id from coop_g)),
   'P0001', 'not a word on the board',
   'coop: a word not on the board is rejected'
 );
@@ -72,15 +77,15 @@ select throws_ok(
 -- (2) Non-player rejected
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'delta') $$, (select id from coop_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from coop_g)),
   '42501', 'not playing this game',
   'coop: non-player submit_guess rejected'
 );
 
--- (3) ada submits wrong (delta): decrement EVERY player's budget
+-- (3) ada submits wrong (zdelta): decrement EVERY player's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  psychicnum.submit_guess((select id from coop_g), 'delta'),
+  psychicnum.submit_guess((select id from coop_g), 'zdelta'),
   'wrong',
   'coop: wrong guess returns wrong'
 );
@@ -93,10 +98,10 @@ select is(
   'coop: wrong guess decrements EVERY player budget (5→4 for both)'
 );
 
--- (4) ada finds a secret (alpha): returns 'correct', game continues
+-- (4) ada finds a secret (zalpha): returns 'correct', game continues
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  psychicnum.submit_guess((select id from coop_g), 'alpha'),
+  psychicnum.submit_guess((select id from coop_g), 'zalpha'),
   'correct',
   'coop: finding a secret (not the last) returns correct'
 );
@@ -120,7 +125,7 @@ select is(
 -- (6) re-guessing a taken word (game-wide in coop) is rejected
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'alpha') $$, (select id from coop_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from coop_g)),
   'P0001', 'word already guessed',
   'coop: re-guessing a word another player took is rejected'
 );
@@ -147,13 +152,13 @@ select is(
 -- (9) request_reveal returns an unfound secret WORD (the answer)...
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select psychicnum.request_reveal((select id from coop_g)) = any(array['bravo','charlie'])),
+  (select psychicnum.request_reveal((select id from coop_g)) = any(array['zbravo','zcharlie'])),
   true,
   'coop: request_reveal returns an as-yet-unfound secret word'
 );
 
 -- (10) ...logged as a kind='reveal' row (and it does NOT find the secret —
--- bea still guesses bravo + charlie below to win)
+-- bea still guesses zbravo + zcharlie below to win)
 reset role;
 select is(
   (select count(*)::int from psychicnum.guesses
@@ -170,11 +175,11 @@ select is(
   'coop: request_hint / request_reveal do not decrement the budget'
 );
 
--- (10) bea finds bravo, then charlie (the last) → team wins
+-- (10) bea finds zbravo, then zcharlie (the last) → team wins
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select psychicnum.submit_guess((select id from coop_g), 'bravo');
+select psychicnum.submit_guess((select id from coop_g), 'zbravo');
 select is(
-  psychicnum.submit_guess((select id from coop_g), 'charlie'),
+  psychicnum.submit_guess((select id from coop_g), 'zcharlie'),
   'won',
   'coop: finding the last secret returns won'
 );
@@ -196,7 +201,7 @@ select is(
 -- (11) submit_guess on a finished game is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'echo') $$, (select id from coop_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zecho') $$, (select id from coop_g)),
   'P0001', 'game is not active',
   'coop: submit_guess on terminal game rejected'
 );
@@ -215,13 +220,13 @@ select * from psychicnum.create_game(
 );
 reset role;
 update psychicnum.games
-   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
-       secrets = array['alpha','bravo','charlie']
+   set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
+       secrets = array['zalpha','zbravo','zcharlie']
  where id = (select id from coop_loss);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.submit_guess((select id from coop_loss), 'delta');
-select psychicnum.submit_guess((select id from coop_loss), 'echo');
+select psychicnum.submit_guess((select id from coop_loss), 'zdelta');
+select psychicnum.submit_guess((select id from coop_loss), 'zecho');
 
 -- After 2 wrong, both player budgets at 1, play_state still playing.
 reset role;
@@ -234,7 +239,7 @@ select is(
 -- 3rd wrong → team loses.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  psychicnum.submit_guess((select id from coop_loss), 'foxtrot'),
+  psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
   'lost',
   'coop: 3rd wrong guess returns lost'
 );
@@ -261,13 +266,13 @@ select * from psychicnum.create_game(
 );
 reset role;
 update psychicnum.games
-   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
-       secrets = array['alpha','bravo','charlie']
+   set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
+       secrets = array['zalpha','zbravo','zcharlie']
  where id = (select id from comp_g);
 
--- (1) ada submits wrong (delta): decrement ONLY ada's budget
+-- (1) ada submits wrong (zdelta): decrement ONLY ada's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.submit_guess((select id from comp_g), 'delta');
+select psychicnum.submit_guess((select id from comp_g), 'zdelta');
 
 reset role;
 select is(
@@ -280,13 +285,13 @@ select is(
 -- (2) bea finds all three on her own → wins
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  psychicnum.submit_guess((select id from comp_g), 'alpha'),
+  psychicnum.submit_guess((select id from comp_g), 'zalpha'),
   'correct',
   'compete: finding a secret (not the last) returns correct'
 );
-select psychicnum.submit_guess((select id from comp_g), 'bravo');
+select psychicnum.submit_guess((select id from comp_g), 'zbravo');
 select is(
-  psychicnum.submit_guess((select id from comp_g), 'charlie'),
+  psychicnum.submit_guess((select id from comp_g), 'zcharlie'),
   'won',
   'compete: finding the last secret returns won'
 );
@@ -317,7 +322,7 @@ select is(
 -- (3) ada (with budget remaining=2) cannot guess after bea won
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'alpha') $$, (select id from comp_g)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from comp_g)),
   'P0001', 'game is not active',
   'compete: game ends for everyone on the win, even those with budget left'
 );
@@ -337,20 +342,20 @@ select * from psychicnum.create_game(
 );
 reset role;
 update psychicnum.games
-   set words = array['alpha','bravo','charlie','delta','echo','foxtrot','golf','hotel'],
-       secrets = array['alpha','bravo','charlie']
+   set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
+       secrets = array['zalpha','zbravo','zcharlie']
  where id = (select id from comp_loss);
 
 -- ada exhausts on wrong guesses (the already-guessed guard is per-caller in
 -- compete, so bea reusing the same words below is fine).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.submit_guess((select id from comp_loss), 'delta');
-select psychicnum.submit_guess((select id from comp_loss), 'echo');
-select psychicnum.submit_guess((select id from comp_loss), 'foxtrot');
+select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
+select psychicnum.submit_guess((select id from comp_loss), 'zecho');
+select psychicnum.submit_guess((select id from comp_loss), 'zfoxtrot');
 
 -- ada now at 0 budget; trying to guess again raises.
 select throws_ok(
-  format($$ select psychicnum.submit_guess(%L::uuid, 'golf') $$, (select id from comp_loss)),
+  format($$ select psychicnum.submit_guess(%L::uuid, 'zgolf') $$, (select id from comp_loss)),
   'P0001', 'no guesses remaining',
   'compete: caller with 0 budget cannot submit (P0001)'
 );
@@ -365,10 +370,10 @@ select is(
 
 -- bea exhausts too. The last wrong guess (total_remaining → 0) ends it.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select psychicnum.submit_guess((select id from comp_loss), 'delta');
-select psychicnum.submit_guess((select id from comp_loss), 'echo');
+select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
+select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select is(
-  psychicnum.submit_guess((select id from comp_loss), 'golf'),
+  psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
   'lost',
   'compete: all-exhausted last guess returns lost'
 );
