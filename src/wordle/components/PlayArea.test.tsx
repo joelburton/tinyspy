@@ -49,7 +49,9 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    setup: {},
+    // A realistic setup blob — the info-column disclosure reads it (a `{}` here
+    // would crash timerLabel, exactly the kind of render bug these tests guard).
+    setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
     status: null,
     feedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
@@ -74,11 +76,11 @@ describe('wordle PlayArea — render smoke', () => {
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
   })
 
-  it('renders the terminal reveal without crashing', () => {
+  it('renders the terminal state without crashing', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
-    // The end-of-game answer reveal.
-    expect(screen.getByText('CRANE')).toBeInTheDocument()
+    // The info-column outcome line (the answer reveal lands in Phase 4).
+    expect(screen.getByText('Solved it!')).toBeInTheDocument()
   })
 })

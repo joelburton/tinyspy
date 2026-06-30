@@ -24,17 +24,3 @@
   align-items: center;
   justify-content: center;
 }
-
-/* Terminal "Game over / The answer was X" block, shown in the info column.
- * TEMPORARY: Phase 4 folds this into the shared action-slot outcome line + a
- * permanent local feedback pill; kept as-is for now so the shell lands first. */
-.gameOver {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: flex-start;
-}
-
-.answer {
-  letter-spacing: 0.08em;
-}

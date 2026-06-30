@@ -10,33 +10,22 @@ type Props = {
    *  viewer's own (RLS-filtered until terminal). In order. */
   guesses: WordleGuess[]
   players: Member[]
-  guessesUsed: number
-  maxGuesses: number
   /** Coop attributes each guess to its guesser; compete doesn't. */
   showWho: boolean
 }
 
 /**
- * The right-column panel: a "guesses used / allowed" counter over the
- * list of guesses. Each guess renders as five mini feedback squares;
- * in coop it's tagged with who entered it (in their member color), so
- * the team can see who tried what.
+ * The info column's bottom region: the list of guesses (the guess COUNT lives in
+ * the info-column state line now, not here). Each guess renders as five mini
+ * feedback squares; in coop it's tagged with who entered it (in their member
+ * color), so the team can see who tried what.
  */
-export function GuessList({
-  guesses,
-  players,
-  guessesUsed,
-  maxGuesses,
-  showWho,
-}: Props) {
+export function GuessList({ guesses, players, showWho }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
 
   return (
     <section className={styles.panel}>
-      <div className={styles.counter}>
-        <strong>{guessesUsed}</strong> / {maxGuesses} guesses
-      </div>
       {guesses.length === 0 ? (
         <p className="muted">No guesses yet.</p>
       ) : (

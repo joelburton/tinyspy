@@ -1,18 +1,22 @@
 import { useCallback, useState } from 'react'
-import type { GamePageCtx, FeedbackMsg } from '../../common/lib/games'
+import type { GamePageCtx, FeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { FeedbackPill } from '../../common/components/FeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
+import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
+import type { WordleSetup } from '../lib/setup'
 import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
 import { GuessList } from './GuessList'
-import { CompetePlayers } from './CompetePlayers'
 import { cls } from '../../common/lib/cls'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -50,6 +54,23 @@ const localPill = (tone: 'warning' | 'error', text: string): FeedbackMsg => ({
   dismiss: { kind: 'sticky' },
 })
 
+/** Where the hidden target is drawn from, for the setup disclosure. `0` = the
+ *  curated NYT-Wordle answer list; `1..6` = a clean word of that difficulty band
+ *  or easier. */
+const answerSourceLabel = (n: number): string =>
+  n === 0 ? 'NYT Wordle list' : `${DIFFICULTY_LABELS[n - 1] ?? 'any'} or easier`
+
+/** One-line timer summary for the setup disclosure. */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
+
 export function PlayArea({
   session,
   gameId,
@@ -58,10 +79,9 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  setup,
   status,
-  feedback,
   goToClub,
-  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
@@ -196,14 +216,6 @@ export function PlayArea({
     }
   })
 
-  // ─── End-game menu item (both modes) ──────────────────────────
-  useEndGameMenu({
-    isTerminal,
-    menu,
-    feedback,
-    endGame: () => db.rpc('end_game', { target_game: gameId }),
-  })
-
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
@@ -254,6 +266,33 @@ export function PlayArea({
       })
     : null
 
+  // Locally terminal (compete only): I'm done — solved, or out of my own guesses
+  // — but the game continues for the others still racing. Coop has no such state
+  // (one shared board: over for me ⇒ over for everyone). Shown as the terminal
+  // LOOK (a status line + Concede), not a quietly-swapped help line.
+  const isLocallyDone =
+    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses)
+
+  const wordleSetup = setup as WordleSetup
+
+  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed
+  // because it's irreversible; an RPC failure flashes in the local feedback slot.
+  const handleEndGame = async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) setLocalMsg(localPill('error', error.message))
+  }
+
+  // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
+  // up, you win"); coop uses the neutral "End" (a mutual "we're done"). Shared by
+  // the playing and the locally-terminal action rows.
+  const endButton = isCompete ? (
+    <ConcedeGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
+  ) : (
+    <EndGameButton label="End" onClick={() => void handleEndGame()} className={shared.helperButton} />
+  )
+
   return (
     <div className={cls(shared.layout, styles.layout)}>
       <div className={shared.boardCol}>
@@ -283,46 +322,77 @@ export function PlayArea({
       </div>
 
       <div className={shared.infoCol}>
-        {over && (
-          <div className={styles.gameOver}>
-            <span>
-              <span className="muted">Game over:</span> {over.status}
-            </span>
-            {game.target && (
-              <span>
-                The answer was{' '}
-                <strong className={styles.answer}>
-                  {game.target.toUpperCase()}
-                </strong>
-              </span>
-            )}
-            <BackToClubButton onClick={goToClub} />
-          </div>
-        )}
-        {!self && <p className="muted">Watching — you're not in this game.</p>}
+        <div className={shared.actionSlot}>
+          {!self && (
+            <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
+          )}
 
-        {isCompete ? (
-          // One block per player: header (dot + name + used/max + ✓) over
-          // a mini guess grid. The viewer's own grid always shows; the
-          // opponents' open up once the game is terminal (RLS reveal).
-          <CompetePlayers
-            members={members}
-            playerStates={playerStates}
-            guesses={guesses}
-            selfId={session.user.id}
-            maxGuesses={game.max_guesses}
-            revealAll={isTerminal}
-          />
-        ) : (
-          // Coop: the single shared guess list (everyone's), team budget.
-          <GuessList
-            guesses={myGuesses}
-            players={members}
-            guessesUsed={guessesUsed}
-            maxGuesses={game.max_guesses}
-            showWho
-          />
-        )}
+          {/* State — the live guess count (the viewer's own; coop shares it). */}
+          <p className={shared.infoState}>
+            <strong>{guessesUsed}/{maxGuesses}</strong> guesses
+          </p>
+
+          {/* Opponent strip (compete) — each racer's guess COUNT (not their
+              letters, which RLS hides until terminal). */}
+          {isCompete && (
+            <OpponentStrip
+              players={members}
+              selfId={session.user.id}
+              metricLabel="Guesses"
+              metricFor={(p, isSelf) =>
+                isSelf
+                  ? guessesUsed
+                  : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
+              }
+            />
+          )}
+
+          {/* Action row — three states. Terminal: the outcome line + back-to-club.
+              Locally terminal (compete, I'm done while others race): the terminal
+              LOOK — "Waiting for others" + Concede. Playing: just End/Concede
+              (wordle has no hint/reveal). */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
+              </span>
+              <BackToClubButton onClick={goToClub} compact />
+            </div>
+          ) : isLocallyDone ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                Waiting for others
+              </span>
+              {endButton}
+            </div>
+          ) : (
+            <div className={shared.infoActions}>{endButton}</div>
+          )}
+
+          {/* Help — only while you can act (never a silent swap; the locally-done
+              state is carried loudly by the action row above). */}
+          {!over && !isLocallyDone && (
+            <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
+          )}
+
+          {/* Setup — last, behind a disclosure (closed by default). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{maxGuesses} guesses</li>
+              <li>Answer: {answerSourceLabel(wordleSetup.answer_source)}</li>
+              <li>
+                Legal guesses: {DIFFICULTY_LABELS[wordleSetup.legal_guess - 1] ?? '—'} or easier
+              </li>
+              <li>{timerLabel(wordleSetup.timer)}</li>
+            </ul>
+          </details>
+        </div>
+
+        {/* Bottom region: the guess list. Coop shows everyone's (tagged with
+            who); compete shows only the viewer's own (RLS hides opponents — the
+            opponent reveal grids are deliberately punted for now). */}
+        <GuessList guesses={myGuesses} players={members} showWho={!isCompete} />
       </div>
 
       {showModal && over && (
@@ -337,7 +407,12 @@ export function PlayArea({
   )
 }
 
-/** Terminal verdict + status copy, mode- and (compete) self-aware. */
+/**
+ * Per-status terminal copy. `outcome` + `verdict` drive the `<GameOverModal>`;
+ * `message` + `tone` drive the short, color-coded info-column outcome line (the
+ * shared `TerminalCopy` shape, like psychicnum / connections). Mode- and
+ * (compete) self-aware.
+ */
 function buildOver({
   mode,
   playState,
@@ -354,25 +429,18 @@ function buildOver({
   wonByClock: boolean
   /** The viewer lost specifically on the clock (tied the winner's count). */
   selfTiedWinner: boolean
-}): { outcome: 'won' | 'lost'; verdict: string; status: string } {
-  // Manual end (wordle.end_game) → neutral 'ended'. We reuse the modal's
-  // 'won' (green) treatment; the verdict copy makes clear there's no
-  // winner.
-  if (playState === 'ended') {
-    return {
-      outcome: 'won',
-      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      status: 'ended',
-    }
-  }
+}): TerminalCopy {
+  // Manual end (wordle.end_game) → the shared neutral 'ended' copy.
+  if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Solved it! 🎉', status: 'solved' }
+      return { outcome: 'won', verdict: 'Solved it! 🎉', message: 'Solved it!', tone: 'won' }
     }
     return {
       outcome: 'lost',
       verdict: timerExpired ? 'Out of time.' : 'Out of guesses.',
-      status: timerExpired ? 'out of time' : 'out of guesses',
+      message: timerExpired ? 'Out of time' : 'Out of guesses',
+      tone: 'lost',
     }
   }
   // compete. The winner is fewest-guesses, clock-as-tiebreak — so the
@@ -380,17 +448,18 @@ function buildOver({
   if (playState === 'won_compete') {
     if (selfWon) {
       return wonByClock
-        ? { outcome: 'won', verdict: 'You won — same guesses, but faster! ⏱️', status: 'you won (faster)' }
-        : { outcome: 'won', verdict: 'You won — fewest guesses!', status: 'you won' }
+        ? { outcome: 'won', verdict: 'You won — same guesses, but faster! ⏱️', message: 'You won (faster)', tone: 'won' }
+        : { outcome: 'won', verdict: 'You won — fewest guesses!', message: 'You won!', tone: 'won' }
     }
     return selfTiedWinner
-      ? { outcome: 'lost', verdict: 'Beaten on the clock — same guesses, just slower.', status: 'opponent won (faster)' }
-      : { outcome: 'lost', verdict: 'Beaten on guesses.', status: 'opponent won' }
+      ? { outcome: 'lost', verdict: 'Beaten on the clock — same guesses, just slower.', message: 'Opponent won (faster)', tone: 'lost' }
+      : { outcome: 'lost', verdict: 'Beaten on guesses.', message: 'Opponent won', tone: 'lost' }
   }
-  // lost_compete — nobody solved, or time ran out
+  // lost_compete — nobody solved, or time ran out.
   return {
     outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody solved it.',
-    status: timerExpired ? 'out of time' : 'no winner',
+    message: timerExpired ? 'Out of time' : 'No winner',
+    tone: 'lost',
   }
 }
