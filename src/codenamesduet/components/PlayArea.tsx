@@ -3,12 +3,13 @@ import type { FeedbackApi, FeedbackTone, GamePageCtx, TimerMode } from '../../co
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
-import { IconEnd } from '../../common/components/icons'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
-import { ResultFlash } from '../../common/components/ResultFlash'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useResultFlash } from '../../common/hooks/useResultFlash'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
@@ -26,13 +27,14 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
 /**
  * codenamesduet's play surface — two-column viewport-bound composition:
  *
- *   - **Board column** (left, flex) — the 5×5 BoardGrid.
- *   - **Right column** (fixed-width):
+ *   - **Board column** (left, flex) — the 5×5 BoardGrid, with the fixed-height
+ *     `belowBoard` slot under it (the CluePanel during play, a local
+ *     `<FeedbackPill>` for an own-action error or the terminal verdict).
+ *   - **Info column** (fixed-width):
  *       - Status: "{greenFound}/15 agents · {turn}/{turns} turns"
- *       - Action slot: CluePanel (clue/waiting/input) when active;
- *         GameOverIndicator (status + Back-to-club button) when
- *         terminal. Fixed minimum height so swapping between
- *         states doesn't shift the log below.
+ *       - Action row: the EndGameButton while playing; at terminal the bold
+ *         outcome line + a compact Back-to-club button. Fixed minimum height so
+ *         swapping between them doesn't shift the log below.
  *       - GameTurnLog: the shared TurnLog table, scrolls internally.
  *
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
@@ -57,6 +59,10 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * everything in sync.
  */
 
+/** Local feedback pills here are never closeable, so the × is never rendered and
+ *  this is never called — but `<FeedbackPill>` requires the prop. */
+const noop = () => {}
+
 /** One-line timer summary for the setup disclosure (same shape connections
  *  uses). */
 function timerLabel(t: TimerMode): string {
@@ -70,21 +76,14 @@ function timerLabel(t: TimerMode): string {
 }
 
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
- *  input — only terminal states appear here. `outcome` + `verdict` drive the
- *  GameOverModal (and `verdict` the below-board echo); `message` + `tone` drive
- *  the short, bold, color-coded line in the info-column action row (won = green,
- *  lost = red, manual end = neutral). Same shape as psychicnum's / connections's
- *  buildOver so a reader scanning the per-game PlayAreas sees one shape across
- *  all three. Detail-on-page intentionally: the agents-found counter sits in the
- *  info-column state line, the board carries the revealed tiles. */
-function buildOver(
-  playState: string,
-): {
-  outcome: 'won' | 'lost'
-  verdict: string
-  message: string
-  tone: 'won' | 'lost' | 'neutral'
-} {
+ *  input — only terminal states appear here. Returns the shared `TerminalCopy`
+ *  shape (the same psychicnum/connections use): `outcome` + `verdict` drive the
+ *  GameOverModal and the permanent below-board pill; `message` + `tone` drive the
+ *  short, bold, color-coded line in the info-column action row (won = green,
+ *  lost = red, manual end = neutral). Detail-on-page intentionally: the
+ *  agents-found counter sits in the info-column state line, the board carries the
+ *  revealed tiles. */
+function buildOver(playState: string): TerminalCopy {
   if (playState === 'won') {
     return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
   }
@@ -104,14 +103,10 @@ function buildOver(
       tone: 'lost',
     }
   }
-  if (playState === 'ended') {
-    // Manual end (codenamesduet.end_game): the friends stopped the game on
-    // purpose. Neutral, not a loss — outcome:'won' gives the modal green/neutral
-    // coloring (GameOverModal only supports 'won'|'lost', and 'won' is the
-    // non-red one); tone:'neutral' keeps the info-column line plain. No "you
-    // lost" framing.
-    return { outcome: 'won', verdict: 'Game ended.', message: 'Game ended', tone: 'neutral' }
-  }
+  // Manual end (codenamesduet.end_game): the friends stopped the game on purpose
+  // — the uniform neutral terminal shared with the other games, owned by the
+  // shared endedCopy(). codenamesduet is coop-only.
+  if (playState === 'ended') return endedCopy('coop')
   // lost_timeout (and any future terminal state that doesn't match above —
   // falls back to a generic timer-out message rather than crashing).
   return {
@@ -237,8 +232,8 @@ export function PlayArea({
   // ─── Own-action feedback (local) + guess dispatch ──────
   // A board click is the guess move; PlayArea owns the submit_guess RPC + the
   // pending-tile state (like psychicnum/connections own their submit) so the
-  // own-action <ResultFlash> lives in the below-board slot next to the clue UI —
-  // the LOCAL half of the feedback split (turn-state changes go to the header
+  // own-action local <FeedbackPill> lives in the below-board slot next to the
+  // clue UI — the LOCAL half of the feedback split (turn-state changes go to the
   // pill via useTurnPill). codenamesduet's guess RESULT shows on the board (the
   // tile reveal) + the turn log, so this flash is ERROR-ONLY: a rejected guess
   // or a failed End. Shared machinery; PlayArea owns where it renders.
@@ -358,17 +353,50 @@ export function PlayArea({
           pendingPos={pendingPos}
           onGuess={handleGuess}
         />
-        {/* The below-board slot — codenamesduet's move-input zone (docs/ui.md →
-            "Text entry"): a verdict echo at terminal; else an own-action error
-            <ResultFlash> for a beat (a rejected guess / failed End — the local
-            half of the feedback split); else the CluePanel (clue form / clue
-            display + Pass / waiting copy). A reserved height keeps the
-            top-anchored board from shifting as the slot swaps. */}
-        <div className={styles.inputRow}>
+        {/* The below-board slot — codenamesduet's move-input zone
+            (docs/design-decisions.md → BoardCol → belowBoard). Three states, all
+            in the same fixed-height slot so the top-anchored board never shifts as
+            it swaps:
+              - terminal → a PERMANENT (fill, outcome-colored) <FeedbackPill>
+                carrying the verdict — the terminal state always also lands as
+                local feedback, alongside the info-column outcome line
+                (docs/design-decisions.md → Feedback);
+              - own-action error → a transient (outline, error) <FeedbackPill> for
+                a beat (a rejected guess / failed End — the LOCAL half of the
+                feedback split; turn-state changes go to the header pill);
+              - else → the CluePanel (clue form / clue display + Pass / waiting). */}
+        <div className={styles.belowBoard}>
           {over ? (
-            <p className={styles.inputMessage}>{over.verdict}</p>
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  tone:
+                    over.tone === 'won'
+                      ? 'success'
+                      : over.tone === 'lost'
+                        ? 'error'
+                        : 'neutral',
+                  text: over.verdict,
+                  variant: 'fill', // permanent → lightened-tone fill
+                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
+                }}
+                onClose={noop}
+              />
+            </div>
           ) : actionFlash ? (
-            <ResultFlash tone={actionFlash.tone} label={actionFlash.label} compact />
+            <div className={shared.localFeedback}>
+              <FeedbackPill
+                msg={{
+                  // Own-action flash is error-only here (a rejected guess / failed
+                  // End); the success path shows on the board + turn log instead.
+                  tone: actionFlash.tone === 'bad' ? 'error' : 'success',
+                  text: actionFlash.label,
+                  variant: 'outline', // transient
+                  dismiss: { kind: 'sticky' }, // host clears it (the flash timer)
+                }}
+                onClose={noop}
+              />
+            </div>
           ) : (
             <CluePanel
               gameId={gameId}
@@ -392,16 +420,13 @@ export function PlayArea({
         {/* The non-log info column — the shared named readouts (.infoSetup /
             .infoState / .infoHelp / .infoActions) from PlayArea.module.css, so
             they read the same across games. */}
+        {/* Info-column readouts in the shared canonical order
+            (docs/design-decisions.md → Info column): STATE → [opponent strip —
+            n/a, peer status rides the header pill] → ACTIONS → HELP → SETUP
+            disclosure, then the turn log below. codenamesduet's finished-player
+            banners are a loud live-state announcement, so they sit right under
+            the state line. */}
         <div className={shared.actionSlot}>
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
-              <li>{codenamesduetSetup.turns} turns</li>
-              <li>First clue: {firstClueGiver?.username ?? '—'}</li>
-              <li>{timerLabel(codenamesduetSetup.timer)}</li>
-            </ul>
-          </details>
-
           <p className={shared.infoState}>
             <strong>{greenFound}</strong>/15 agents ·{' '}
             {inSuddenDeath ? (
@@ -414,8 +439,8 @@ export function PlayArea({
           </p>
 
           {/* Duet's finished-player rule, surfaced to BOTH players so neither
-              reads the lopsided turn flow as a bug — kept as a prominent colored
-              banner here in the info column. */}
+              reads the lopsided turn flow as a bug — a prominent colored banner
+              right under the live state it explains. */}
           {viewerFinished && (
             <div className={styles.finishedNote}>
               All your agents have been found! From here{' '}
@@ -443,6 +468,31 @@ export function PlayArea({
             </div>
           )}
 
+          {/* Action row. Playing: End. Terminal: the bold, outcome-colored
+              result line + a compact back-to-club button (the shared swap). */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
+              </span>
+              <BackToClubButton onClick={goToClub} compact />
+            </div>
+          ) : (
+            <div className={shared.infoActions}>
+              {/* Manual "we're done" stop — the shared EndGameButton (flag +
+                  error/red tone). codenamesduet is coop, so "End game" (a mutual
+                  stop), not "Concede". The full "End game" label (a one-off
+                  override) disambiguates it from this game's "Pass & end turn"
+                  below the board — most games have no per-turn end, so they can
+                  use the shorter default "End". */}
+              <EndGameButton
+                label="End Game"
+                onClick={() => void handleEndGame()}
+                className={shared.helperButton}
+              />
+            </div>
+          )}
+
           {/* Help — a stable orienting line during play (the per-phase guidance
               lives below the board + in the header pill). In sudden death it
               switches to the sudden-death rules; the help is muted and easily
@@ -462,30 +512,26 @@ export function PlayArea({
             </p>
           )}
 
-          {/* Action row. Playing: End. Terminal: the bold, outcome-colored
-              result line + a compact back-to-club button (the shared swap). */}
-          {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
-          ) : (
-            <div className={shared.infoActions}>
-              <button
-                type="button"
-                className={cls('secondary', 'icon-button', shared.helperButton)}
-                onClick={() => void handleEndGame()}
-              >
-                <IconEnd size={15} aria-hidden />
-                End
-              </button>
-            </div>
-          )}
+          {/* Setup — a disclosure, LAST before the turn log (closed by default so
+              it doesn't claim space; opening it grows the slot, the one allowed
+              exception since it's closable). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>{codenamesduetSetup.turns} turns</li>
+              <li>First clue: {firstClueGiver?.username ?? '—'}</li>
+              <li>{timerLabel(codenamesduetSetup.timer)}</li>
+            </ul>
+          </details>
         </div>
 
-        <GameTurnLog clues={clues} guesses={guesses} players={players} />
+        <GameTurnLog
+          clues={clues}
+          guesses={guesses}
+          players={players}
+          currentTurn={game.turn_number}
+          gameOver={gameOver}
+        />
       </div>
 
       {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`

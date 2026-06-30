@@ -13,12 +13,20 @@ export type TurnOutcome = 'good' | 'bad' | 'partial' | 'neutral'
  * the newest row like a chat panel.
  *
  * It's a **`<table>`** so each game's row pieces line up in columns *across*
- * rows (the number column, the who column, etc. all align) — which a flex/grid-
- * of-rows can't do. Each game supplies its own `<td>` cells inside a
- * {@link TurnLogItem}; the item prepends the shared outcome-bar cell. Compose
- * the cells from the content classes in `TurnLog.module.css` (`.primary` /
- * `.meta` / `.actor` / `.dot` / `.who`) rather than inventing ad-hoc ones, so
- * similar pieces read the same across games.
+ * rows. But the **row anatomy is the game's** — how many `<tr>`s a turn is, how
+ * many cells, what spans — because that genuinely differs game to game (a one-row
+ * three-column guess, a two-row clue-then-guesses turn, a row with an inline
+ * mini-board…). So `<TurnLog>` makes **no** assumption about rows: its children
+ * are the `<tr>`s the game renders. The only shared contract is "a turn-log item
+ * is a `<tr>` inside this table."
+ *
+ * What IS shared is *vocabulary a game composes into its own rows*, so logs look
+ * consistent without imposing structure:
+ *   - **`<TurnLogBar>`** — the colored outcome-bar cell (optional; most games
+ *     include it, but a game's row needn't).
+ *   - the content classes in `TurnLog.module.css` (`.primary` / `.meta` /
+ *     `.who` / `.actor` / `.dot`), and `.turnLogDivider` for the between-turns
+ *     line.
  *
  * Distinct from a **word list** (`<WordList>`, spellingbee/boggle), which is
  * alphabetical, not chronological. See docs/ui.md → "Turn log".
@@ -42,6 +50,7 @@ export function TurnLog({
    *  flex parent (`flex: 1` on `.turnLog`); this is only for a rare per-game
    *  override (a different width/flex). */
   className?: string
+  /** The game's `<tr>` rows (it owns their structure — see the component note). */
   children: ReactNode
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
@@ -74,15 +83,42 @@ export function TurnLog({
 }
 
 /**
- * One row (**item**) in a {@link TurnLog}: a `<tr>` that prepends the shared
- * **outcome-bar cell** (a colored bar on the left, by outcome) and then renders
- * the game's own `<td>` cells (`children`). Rows are separated by a horizontal
- * divider line (the cells' shared bottom border); there are no vertical borders
- * between cells. `className` lets a game tweak the row if needed.
+ * The shared **outcome-bar cell** — a colored left bar by outcome, the one row
+ * piece common to every game's turn log. It's a `<td>`, so a game drops it into
+ * whatever row markup it builds (it is *not* "the row"); its styling is
+ * self-contained and doesn't depend on the `<tr>` carrying any class.
  *
- * Named "item", not "guess" — a turn-log row is one *turn*, and a turn can hold
- * several guesses (codenamesduet's clue-then-multiple-guesses), so "guess" is
- * reserved for the game-specific case where a row genuinely is a single guess.
+ * `rowSpan` lets a multi-row turn (codenamesduet's clue + guess line) have the
+ * bar cover the whole turn — pass the number of rows it spans; omit for a normal
+ * single-row turn.
+ */
+export function TurnLogBar({
+  outcome,
+  rowSpan,
+}: {
+  outcome: TurnOutcome
+  rowSpan?: number
+}) {
+  return (
+    // Real element (not a styled empty cell) so its width is honored and the bar
+    // can be sized/positioned reliably.
+    <td className={styles.bar} rowSpan={rowSpan}>
+      <span className={cls(styles.barInner, styles[`barInner_${outcome}`])} />
+    </td>
+  )
+}
+
+/**
+ * **Legacy single-row turn item — being retired; do NOT use in new code.**
+ *
+ * The shared layer no longer owns row structure (see the `<TurnLog>` note above):
+ * a converted game renders its own `<tr>`s composing `<TurnLogBar>` + the content
+ * classes, which is the only way to express the row shapes that actually differ
+ * game to game (column count, multi-row turns, …). This wrapper is exactly the
+ * simple single-row case — one `<tr>` with the bar cell, the between-turns
+ * divider, then the game's cells — kept ONLY so games not yet converted (waffle,
+ * …) keep working unchanged. Convert remaining callers to their own `<tr>`s, then
+ * delete this (see the v4 conversion guide in docs/design-decisions.md).
  */
 export function TurnLogItem({
   outcome,
@@ -94,12 +130,8 @@ export function TurnLogItem({
   children: ReactNode
 }) {
   return (
-    <tr className={cls(styles.turnLogItem, styles[`outcome_${outcome}`], className)}>
-      {/* Real element (not just a styled empty cell) so the cell's width is
-          honored and the bar can be sized/positioned reliably. */}
-      <td className={styles.turnLogBar}>
-        <span className={styles.turnLogBarInner} />
-      </td>
+    <tr className={cls(styles.turnLogDivider, className)}>
+      <TurnLogBar outcome={outcome} />
       {children}
     </tr>
   )

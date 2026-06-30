@@ -1,6 +1,6 @@
 import { ActorTag } from '../../common/components/ActorTag'
 import { memberById } from '../../common/lib/peers'
-import { TurnLog, TurnLogItem } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -18,10 +18,13 @@ type Props = {
  * Stateless and presentational — owns no state, makes no RPC calls, just renders
  * the rows from the props it's given, newest snapping into view.
  *
- * Columns (after the shared outcome-bar cell): the turn number (muted), the
- * word (bold — the important part), the result, and the actor (right-aligned
- * with their identity dot, so the dots line up down the column). Cells use
- * `<TurnLog>`'s content classes so they match other games' logs.
+ * Each turn is a single `<tr>` psychicnum renders itself (the row anatomy is the
+ * game's — see TurnLog.tsx): the shared `<TurnLogBar>` cell, then the turn number
+ * (muted), the word (bold — the important part), the result, and the actor
+ * (right-aligned with their identity dot, so the dots line up down the column).
+ * Cells use `<TurnLog>`'s content classes so they match other games' logs; the
+ * `.turnLogDivider` class on each row draws the between-turns line (suppressed on
+ * the first by `:first-child`).
  *
  * Three row kinds:
  *   - a **guess** → green (correct) / red (incorrect) outcome bar; word + result.
@@ -55,27 +58,26 @@ export function GameTurnLog({ guesses, players }: Props) {
         // the row carries a clue sentence, not a word + a one-word result.
         if (g.kind === 'hint') {
           return (
-            <TurnLogItem key={g.id} outcome="partial">
+            <tr key={g.id} className={turnLog.turnLogDivider}>
+              <TurnLogBar outcome="partial" />
               <td className={turnLog.meta}>#{i + 1}</td>
               <td colSpan={2} className={styles.hint}>
                 <span className={turnLog.meta}>Hint:</span> {g.word}
               </td>
               {whoCell(g.user_id)}
-            </TurnLogItem>
+            </tr>
           )
         }
         // Guess (good/bad) or reveal (amber, the answer).
         const isReveal = g.kind === 'reveal'
         return (
-          <TurnLogItem
-            key={g.id}
-            outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'}
-          >
+          <tr key={g.id} className={turnLog.turnLogDivider}>
+            <TurnLogBar outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'} />
             <td className={turnLog.meta}>#{i + 1}</td>
             <td className={turnLog.primary}>{g.word.toUpperCase()}</td>
             <td>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
-          </TurnLogItem>
+          </tr>
         )
       })}
     </TurnLog>

@@ -1,15 +1,17 @@
 /* The shared turn log — a per-turn history in an evident, fixed-height scroll
- * box. It's a <table> so each game's row pieces line up in columns across rows.
- * Rows are flat (no card border): each carries its outcome as a colored LEFT
- * BAR (inset, so the bars read as individual segments rather than one strip) and
- * a horizontal divider line between rows; no vertical borders between cells. See
+ * box. It's a <table> so each game's row pieces line up in columns across rows,
+ * but the ROW anatomy is the game's (see TurnLog.tsx): this file styles only the
+ * shared PANEL + the composable atoms a game drops into its own rows. Rows are
+ * flat (no card border): a game's turn carries its outcome as a colored LEFT BAR
+ * (<TurnLogBar>, inset so the bars read as individual segments) and the
+ * `.turnLogDivider` line between turns; no vertical borders between cells. See
  * TurnLog.tsx and docs/ui.md → "Turn log".
  *
  * Class vocabulary: the STRUCTURE is `turnLog`-prefixed (.turnLog / .turnLogBox /
- * .turnLogItem / .turnLogBar …) so the source reads as one system; the
- * `.outcome_*` row modifiers stay semantic; and the small COMPOSABLE content
- * classes (.primary / .meta / .actor / .dot / .who) keep bare names — consumers
- * read them as `turnLog.primary`, already namespaced by the import alias. */
+ * .turnLogTable …) so the source reads as one system; the small COMPOSABLE
+ * content classes (.primary / .meta / .actor / .dot / .who) keep bare names —
+ * consumers read them as `turnLog.primary`, already namespaced by the import
+ * alias. */
 
 /* The panel root. `flex: 1` is the shared column-fill EVERY consumer wants — it
  * grows to fill the info column's remaining height so the inner box scrolls
@@ -52,45 +54,58 @@
   border-collapse: collapse;
 }
 
-/* Cells share a bottom border = the divider line between rows (full width,
- * reaching the left edge, under the bar cell too). Symmetric vertical padding
- * centers that line in the white space between rows. No vertical borders. */
-.turnLogItem td {
+/* Default styling for EVERY cell in the table, so a game's own <td>s get
+ * consistent padding/size without each needing a class. `:where()` holds this at
+ * single-ELEMENT specificity (0,0,1), so any game cell class — or the bar atom's
+ * `.bar` — overrides it without a specificity fight. No vertical borders between
+ * cells; the only divider is `.turnLogDivider` below. */
+:where(.turnLogTable) td {
   padding: 0.6rem 0.4rem;
-  border-bottom: 1px solid var(--color-divider);
   vertical-align: middle;
   font-size: 0.9rem;
 }
 
-.turnLogItem:last-child td {
-  border-bottom: none;
+/* The divider line BETWEEN turns. A game applies this to the FIRST <tr> of each
+ * turn (it alone knows where a turn starts — one row, or several). A top border,
+ * so a multi-row turn gets NO mid-turn line; the very first turn's row is
+ * suppressed by :first-child, so a game can apply it to every turn-start row
+ * unconditionally. Full width, reaching the left edge (over the bar column too). */
+.turnLogDivider td {
+  border-top: 1px solid var(--color-divider);
+}
+.turnLogDivider:first-child td {
+  border-top: none;
 }
 
-/* The outcome bar lives in its own column, decoupled from whatever the next
- * cell holds (#n, words, …). Two pieces make that reliable:
+/* ─── Outcome bar: a shared, OPTIONAL cell atom (<TurnLogBar>) ──────────────
+ * Self-contained — its look doesn't depend on the <tr> carrying any class, so a
+ * game drops it into whatever row markup it builds. The bar lives in its own
+ * column, decoupled from whatever the next cell holds (#n, words, …). Two pieces
+ * make that reliable:
  *   - `position: relative` + an absolutely-positioned bar that stretches between
  *     top/bottom → full cell height for any number of lines. (A percentage
  *     height can't work: the table has no definite height, so `height: 100%`
- *     resolves to auto and collapses.)
- *   - a zero-height in-flow `::before` spacer that reserves the 7px column
- *     width. Without it the (content-less) bar column has min-width 0, and a
+ *     resolves to auto and collapses.) With a `rowSpan` the cell covers the whole
+ *     turn, so the bar spans every line of it.
+ *   - a zero-height in-flow `::before` spacer that reserves the 7px column width.
+ *     Without it the (content-less) bar column has min-width 0, and a
  *     content-rich row's table layout squeezes it to nothing — the absolute bar
  *     then spills into the next cell (the psychicnum #n overlap).
  * The cell's padding sets the spacing: left padding = the bar's left margin,
  * right padding = the gap to the next cell. */
-.turnLogItem .turnLogBar {
+.bar {
   position: relative;
   padding: 0 0.3rem 0 0.4rem;
 }
 
-.turnLogItem .turnLogBar::before {
+.bar::before {
   content: '';
   display: block;
   width: 7px;
   height: 0;
 }
 
-.turnLogBarInner {
+.barInner {
   position: absolute;
   /* Inset top/bottom so adjacent rows' bars read as separate segments; left
    * aligns the bar with its column (after the cell's left padding). */
@@ -99,19 +114,19 @@
   left: 0.4rem;
   width: 7px;
   border-radius: 3px;
-  background: var(--color-divider);
+  background: var(--color-surface-border); /* neutral default */
 }
 
-.outcome_good .turnLogBarInner {
+.barInner_good {
   background: var(--color-outcome-won-border);
 }
-.outcome_bad .turnLogBarInner {
+.barInner_bad {
   background: var(--color-outcome-lost-border);
 }
-.outcome_partial .turnLogBarInner {
+.barInner_partial {
   background: var(--color-outcome-near-border);
 }
-.outcome_neutral .turnLogBarInner {
+.barInner_neutral {
   background: var(--color-surface-border);
 }
 

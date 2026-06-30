@@ -1,6 +1,6 @@
 import { ActorTag } from '../../common/components/ActorTag'
 import { memberById } from '../../common/lib/peers'
-import { TurnLog, TurnLogItem, type TurnOutcome } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -25,11 +25,13 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * a turn-log row isn't "a guess" in the shared vocabulary, even though here it
  * happens to be.)
  *
- * Stateless and presentational. One row per guess: the shared outcome bar
- * (green correct / amber one-away / red wrong), the four tiles guessed on top
- * (full width, in board order — kept as the FE stored them, so the row matches
- * what the players were looking at), then a second line with the verdict (left)
- * and the actor + their identity dot (right). The verdict names the matched
+ * Stateless and presentational. One `<tr>` per guess, which connections renders
+ * itself (the row anatomy is the game's — see TurnLog.tsx): the shared
+ * `<TurnLogBar>` cell, then a single content cell holding the four tiles guessed
+ * on top (full width, in board order — kept as the FE stored them, so the row
+ * matches what the players were looking at), then a second line with the verdict
+ * (left) and the actor + their identity dot (right). The `.turnLogDivider` class
+ * on each row draws the between-turns line. The verdict names the matched
  * category on a correct guess ("Matched: Colors"), so "the row that solved the
  * blue band" is legible at a glance; the other two outcomes carry the
  * NYT-canonical copy.
@@ -59,7 +61,8 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
       scrollKey={guesses}
     >
       {guesses.map((g) => (
-        <TurnLogItem key={g.id} outcome={OUTCOME[g.result]}>
+        <tr key={g.id} className={turnLog.turnLogDivider}>
+          <TurnLogBar outcome={OUTCOME[g.result]} />
           {/* One content cell beside the outcome bar: the four guessed tiles on
               top (full width — not squished by a who-column), then the verdict
               (left) and the actor (right) below. */}
@@ -70,7 +73,7 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
               {whoInline(g.user_id)}
             </div>
           </td>
-        </TurnLogItem>
+        </tr>
       ))}
     </TurnLog>
   )

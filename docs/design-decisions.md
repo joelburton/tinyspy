@@ -359,6 +359,22 @@ match the doc:
    …), creating a missing one rather than hand-rolling (see [Action
    buttons](#action-buttons)). psychicnum is migrated; the other games convert as
    they reach v3.
+7. **Turn log — the game owns its rows; `<TurnLogItem>` is retired.** The shared
+   `<TurnLog>` is now the **panel only** (heading, scroll box, `<table>`); it makes
+   no assumption about row shape, because row anatomy genuinely differs game to
+   game (column count, multi-`<tr>` turns, an inline mini-board…). A converted game
+   renders its **own `<tr>` rows** inside `<TurnLog>`, composing the shared atoms:
+   **`<TurnLogBar outcome rowSpan?>`** (the optional outcome-bar cell — most games
+   include it, but a row needn't) + the content classes (`.meta` / `.who` /
+   `.primary` / `.actor` / `.dot`) + **`.turnLogDivider`** on the first `<tr>` of
+   each turn (the between-turns line; `:first-child` suppresses it on the first
+   turn, so apply it unconditionally). The only shared contract is "a turn-log item
+   is a `<tr>` in the table." psychicnum, connections, and codenamesduet render
+   their own rows now (codenamesduet's is a two-`<tr>` turn with a `rowSpan`ned
+   bar). **`<TurnLogItem>` survives only as a thin legacy single-row wrapper for
+   games not yet converted (waffle — and any future caller).** When you convert a
+   remaining game (waffle, wordle, stackdown, scrabble, …) move it off
+   `<TurnLogItem>` to its own `<tr>`s; once no caller is left, delete the wrapper.
 
 A few statements in [`ui.md`](ui.md) now lag this doc — local feedback described
 as the `<ResultFlash>` bar, the tone names, and the caret prose (which omits the

@@ -4,8 +4,8 @@
  * shared common/components/PlayArea.module.css (imported as `shared`), the same
  * scaffold psychicnum and connections use. Only the bits unique to codenamesduet
  * live here:
- *   - .inputRow / .inputMessage — the below-board move-input slot (the clue UI
- *     during play, a verdict echo at terminal);
+ *   - .belowBoard — the below-board move-input slot (the clue UI during play, a
+ *     local feedback pill for an own-action error or the terminal verdict);
  *   - .finishedNote / .peerDoneNote — the finished-player banners in the info
  *     column;
  *   - .suddenDeathTag — the red "SUDDEN DEATH:" lead-in on the info-column help.
@@ -29,37 +29,22 @@
   color: var(--codenamesduet-assassin);
 }
 
-/* The below-board move-input slot — holds the CluePanel (clue form / clue
- * display + Pass / waiting copy, each on one line), the own-action error flash,
- * or the terminal verdict echo. A FIXED height (not min-height) so the slot is
- * immutable: every state's content fits within it and centers, and NOTHING can
- * grow it — so the top-anchored board never shifts as the state swaps
+/* The below-board move-input slot (docs/design-decisions.md → BoardCol →
+ * belowBoard) — holds the CluePanel (clue form / clue display + Pass / waiting
+ * copy, each on one line), a centered local <FeedbackPill> for an own-action
+ * error, or the permanent terminal verdict pill. A FIXED height (not min-height)
+ * so the slot is immutable: every state's content fits within it and centers, and
+ * NOTHING can grow it — so the top-anchored board never shifts as the state swaps
  * (docs/ui.md → "Layout stability"). `3rem` clears codenamesduet's clue-form
  * controls (taller than a single button/entry). Errors + the AI reasoning are
- * routed to the flash / header pill rather than rendered inline, so no state
- * adds a second line. */
-/* The below-board slot is a fixed-height COLUMN holding the CluePanel, a terminal
- * verdict echo, or the own-action flash. The flash is the shared <ResultFlash
- * compact> — `compact` pins it to its content height (clearly shorter than the
- * clue controls), so the default `flex: 1` doesn't stretch it to fill this slot
- * (see ResultFlash.module.css → `.compact`). */
-.inputRow {
+ * routed to the local pill / header pill rather than rendered inline, so no state
+ * adds a second line. A lone pill centers via the shared `.localFeedback`. */
+.belowBoard {
   flex-shrink: 0;
   height: 3rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-
-/* The terminal verdict echo shown in the below-board slot once the game's over —
- * a calm, secondary line, since the loud verdict is in the GameOverModal + the
- * info-column `.outcome`. Muted, the canonical below-board message look
- * psychicnum/connections share (docs/ui.md → "Text entry"). */
-.inputMessage {
-  margin: 0;
-  text-align: center;
-  font-size: 1.15rem;
-  color: var(--color-muted);
 }
 
 /* Finished-player banner in the info column. Shown to a player whose agents are

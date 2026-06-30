@@ -3,7 +3,9 @@ import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
 import { ActorTag } from '../../common/components/ActorTag'
 import { FloatingPanel } from '../../common/components/FloatingPanel'
-import { IconHint, IconSubmit } from '../../common/components/icons'
+import { SubmitButton } from '../../common/components/buttons/SubmitButton'
+import { HintButton } from '../../common/components/buttons/HintButton'
+import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
@@ -25,7 +27,7 @@ type CluePanelProps = {
    *  fetch, in which case the copy falls back to "your partner". */
   peer: Player | undefined
   /** Report an own-action error (a failed clue submit / suggestion / pass). Goes
-   *  to PlayArea's local <ResultFlash> — NOT an inline line, so the slot height
+   *  to PlayArea's local feedback pill — NOT an inline line, so the slot height
    *  (and the board above) never changes. */
   onError: (message: string) => void
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
@@ -39,7 +41,7 @@ type CluePanelProps = {
 
 /**
  * The codenamesduet clue UI, rendered in the below-board input slot (PlayArea's
- * `.inputRow`). Each state is a single horizontal line — the slot is board-wide,
+ * `.belowBoard`). Each state is a single horizontal line — the slot is board-wide,
  * so there's room to lay the pieces out in a row rather than stacking them.
  * Which line shows depends on who's looking + where in the turn cycle we are:
  *
@@ -257,26 +259,23 @@ function ClueForm({
           className={styles.wordInput}
           data-game-input
         />
-        {/* Submit — the shared icon+label look (IconSubmit is the up-pointing
-            triangle: "send this clue up to your partner"). */}
-        <button
+        {/* Submit — the shared primary SubmitButton (its IconSubmit up-triangle
+            "sends this clue up to your partner"). type="submit" so the form's
+            onSubmit still fires (ActionButton defaults to type="button"). */}
+        <SubmitButton
           type="submit"
-          className={cls('icon-button', styles.submitBtn)}
+          label={busy ? 'Submitting…' : 'Submit'}
           disabled={eitherBusy || !submittable}
-        >
-          <IconSubmit size={15} aria-hidden />
-          {busy ? 'Submitting…' : 'Submit'}
-        </button>
-        {/* AI clue suggestion — the hint (lightbulb) icon + "Clue Hint". */}
-        <button
-          type="button"
-          className={cls('secondary', 'icon-button', styles.hintBtn)}
+          className={styles.submitBtn}
+        />
+        {/* AI clue suggestion — the shared HintButton (lightbulb + amber warning
+            tone), relabelled "Clue Hint" since here it asks Claude for a clue. */}
+        <HintButton
+          label={suggesting ? 'Thinking…' : 'Clue Hint'}
           onClick={onSuggest}
           disabled={eitherBusy}
-        >
-          <IconHint size={15} aria-hidden />
-          {suggesting ? 'Thinking…' : 'Clue Hint'}
-        </button>
+          className={styles.hintBtn}
+        />
       </div>
     </form>
   )
@@ -343,9 +342,8 @@ function PassButton({
 }) {
   const [busy, setBusy] = useState(false)
   return (
-    <button
-      type="button"
-      className="secondary"
+    <EndTurnButton
+      label="Pass & End Turn"
       disabled={busy}
       onClick={async () => {
         setBusy(true)
@@ -353,8 +351,6 @@ function PassButton({
         setBusy(false)
         if (error) onError(error.message)
       }}
-    >
-      Pass (end turn)
-    </button>
+    />
   )
 }

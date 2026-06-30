@@ -19,6 +19,10 @@ export {
   // keeps the RIGHT-pointing play triangle free for the play/resume idiom. Only
   // for sending a move — not the setup dialog or other form submits.
   Triangle as IconSubmit,
+  // end the current turn without making (another) move — a stop-sign octagon.
+  // Distinct from IconEnd's flag (end the whole GAME): this ends just your turn
+  // and hands play on. codenamesduet's "Pass" is the first user.
+  Octagon as IconEndTurn,
   Eraser as IconClear, // clear the current selection
   Delete as IconDelete, // delete the last typed character (the backspace key glyph)
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look

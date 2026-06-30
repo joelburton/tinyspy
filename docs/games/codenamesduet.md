@@ -288,14 +288,17 @@ src/codenamesduet/
     PlayArea.tsx          The shared two-column play shell — imports the common
                           `playArea.module.css` scaffold (`shared.layout` /
                           `.boardCol` / `.infoCol`). BoardGrid fills the board
-                          column; the info column carries the shared readouts
-                          (`.infoSetup` = turn cap + first clue-giver, `.infoState`
-                          = "{green}/15 agents · turn n/cap", `.infoHelp` = phase
-                          copy, `.infoActions` = End) above the GameTurnLog. The
-                          clue move-zone sits BELOW the board (see CluePanel).
+                          column; the info column carries the shared readouts in
+                          the canonical order (`.infoState` = "{green}/15 agents ·
+                          turn n/cap", then the finished-player banners,
+                          `.infoActions` = End, `.infoHelp` = phase copy, and the
+                          `.infoSetup` disclosure = turn cap + first clue-giver)
+                          above the GameTurnLog. The clue move-zone sits BELOW the
+                          board (see CluePanel).
                           Loads via the three hooks, derives phase, and owns the
                           guess move: `pendingPos` + the `submit_guess` RPC (lifted
-                          up out of BoardGrid) + the own-action `<ResultFlash>`. A
+                          up out of BoardGrid) + the own-action local
+                          `<FeedbackPill>` (in the below-board slot). A
                           local `useTurnPill` drives the header peer-status pill.
                           Pops the shared `<GameOverModal>` on terminal and renders
                           the AI `<ClueSuggestionPanel>` at the `.layout` level (a
@@ -387,7 +390,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
-codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<ResultFlash>` in the below-board slot (a rejected guess / clue, or an end-game error). The GamePage **header pill** reports what the **other** player is doing — "● moth is writing a clue", "● moth is making guesses", "● moth is waiting for your guess" — *sticky*, *neutral*-toned, with a **leading** player-color disc (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth is writing a clue", "● moth is making guesses", "● moth is waiting for your guess" — *sticky*, *neutral*-toned, with a **leading** player-color disc (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
 
 **Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 

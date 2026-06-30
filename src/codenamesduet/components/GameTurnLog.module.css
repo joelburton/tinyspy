@@ -1,16 +1,20 @@
 /* codenamesduet-specific bits of the turn log. The panel chrome (heading +
- * scroll box), the row look (outcome bar, divider lines), and the `.meta`
- * content class come from the shared common/components/TurnLog; the clue-giver
- * name + disc is the shared <ActorTag>. Only the two-line row body — the clue on
- * top, the turn's guesses below — is codenamesduet's. */
+ * scroll box), the row look (outcome bar, divider lines), the two-row turn
+ * scaffolding, and the `.meta` / `.who` content classes come from the shared
+ * common/components/TurnLog; the clue-giver name + disc is the shared <ActorTag>.
+ * Only the per-cell content styling — the # / clue / guess columns of a turn's
+ * two rows — is codenamesduet's. */
 
-/* Top line: turn # + clue on the left, the clue-giver's <ActorTag> on the right
- * (space-between), the same shape connections' metaRow uses. */
-.clueRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
+/* Row 1, col # (`# n`) — muted via the shared `.meta`; just keep it on one line
+ * and snug against the bar (the shared td padding sets the gap). */
+.numCell {
+  white-space: nowrap;
+}
+
+/* Row 1, col clue (`count WORD`) — the cell's own padding already opens a gap
+ * from the # column; nothing extra needed here. */
+.clueCell {
+  white-space: nowrap;
 }
 
 .clueWord {
@@ -18,11 +22,20 @@
   letter-spacing: 0.03em;
 }
 
-/* Second line: the guesses made on that clue, slightly indented so they read as
- * "what happened because of the clue above." */
-.guessLine {
-  margin-top: 0.15rem;
-  padding-left: 0.75rem;
+/* Row 1 (the clue row): pull the guess line below it up close, so the two <tr>s
+ * read as one turn rather than two. The shared default cell padding is
+ * `0.6rem 0.4rem` (single-element specificity via :where, so a class wins) —
+ * here we trim only the bottom. */
+.clueRow td {
+  padding-bottom: 0.1rem;
+}
+
+/* Row 2: the turn's guesses (or "(clue given)" / "(no guesses)"), spanning the
+ * content columns beneath the clue line. Trimmed top padding completes the pull
+ * toward the clue row above. */
+.guessCell {
+  white-space: normal;
+  padding-top: 0;
 }
 
 /* Each guessed word, colored by its reveal outcome — the same agent-green /

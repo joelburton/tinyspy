@@ -1,4 +1,4 @@
-/* The CluePanel renders inside PlayArea's below-board `.inputRow` slot, which
+/* The CluePanel renders inside PlayArea's below-board `.belowBoard` slot, which
  * reserves a single control-row's height + vertical-centers its child (so
  * swapping clue states doesn't shift the board). The slot is board-wide, so each
  * state lays its pieces out on ONE horizontal line rather than stacking them.
