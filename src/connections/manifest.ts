@@ -1,6 +1,11 @@
 import { lazy } from 'react'
 import type { GameManifest, Member, RichMessage } from '../common/lib/games'
 import { db } from './db'
+// `game_players` and `profiles` live in the `common` schema, not `connections`,
+// so they must be read through the common-scoped client — the connections `db`
+// (`supabase.schema('connections')`) would resolve `connections.game_players`,
+// which doesn't exist. See common/db.ts for this exact cross-feature aliasing.
+import { db as commonDb } from '../common/db'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -124,7 +129,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
       // its roster matches the new selection; otherwise STOP with a rich error
       // naming the players it needs — so deselecting a player doesn't silently
       // drop you into the existing game's roster (the "Waiting for moth" bug).
-      const { data: gp } = await db
+      const { data: gp } = await commonDb
         .from('game_players')
         .select('user_id')
         .eq('game_id', existing.data.id)
@@ -135,7 +140,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
         existingIds.every((id) => selected.has(id))
       if (sameRoster) return { id: existing.data.id }
 
-      const { data: profs } = await db
+      const { data: profs } = await commonDb
         .from('profiles')
         .select('user_id, username, color')
         .in('user_id', existingIds)
