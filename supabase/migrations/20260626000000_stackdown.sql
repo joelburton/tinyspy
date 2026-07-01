@@ -125,13 +125,16 @@ create policy players_select on stackdown.players
 --   'word'   — a completed 5-letter entry. `valid` = accepted (its tiles
 --              are gone from the board) vs invalid (tiles returned). The
 --              board's removed set = union of `tile_ids` over VALID rows.
---   'hint'   — the player asked for the next word's hint ("Requested hint").
---   'reveal' — the player asked for the next word itself ("Requested word").
--- Cheat requests are SEPARATE rows from the word (so the log can show
--- "moth asked for a hint, later joel found the word"); they carry no word/
--- tiles. `for_word_index` is the solution-word index the request was about,
--- which doubles as a dedup key: at most one hint + one reveal request per
--- (player, word), so repeated clicks don't spam the log. Visibility rides
+--   'hint'   — the player asked for the next word's hint. The clue text is
+--              stored in `word` so the log can show "Hint: <clue>".
+--   'reveal' — the player asked for the next word itself. The word is stored
+--              in `word` (lowercase) so the log can show "Revealed: <WORD>".
+-- Cheat requests are SEPARATE rows from the played word (so the log can show
+-- "moth asked for a hint, later joel found the word"); they carry no tiles and
+-- no `valid`, but DO carry the revealed text in `word` (a hint clue, or the
+-- revealed word). `for_word_index` is the solution-word index the request was
+-- about, which doubles as a dedup key: at most one hint + one reveal request
+-- per (player, word), so repeated clicks don't spam the log. Visibility rides
 -- the same RLS as word rows (coop → all; compete → requester).
 --
 -- Mid-word RETRACTIONS are NOT here — those are ephemeral + broadcast (coop).
@@ -547,8 +550,12 @@ begin
     return null;
   end if;
 
-  -- Log a "Requested word" entry, once per (player, word) so repeated
-  -- clicks don't spam the log. Visibility rides the submissions RLS.
+  -- Log a "Revealed: <word>" entry, once per (player, word) so repeated
+  -- clicks don't spam the log. The revealed word is STORED on the row (in
+  -- `word`, lowercase like every other word) so the log can show it — this is
+  -- an explicit cheat, so leaking the word to the row's viewers (coop = all,
+  -- compete = requester until terminal) is the intended behavior. Visibility
+  -- rides the submissions RLS.
   if not exists (
     select 1 from stackdown.submissions
      where game_id = target_game and user_id = caller_id
@@ -556,8 +563,8 @@ begin
   ) then
     select coalesce(max(seq), 0) + 1 into next_seq
       from stackdown.submissions where game_id = target_game and user_id = caller_id;
-    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index)
-    values (target_game, caller_id, next_seq, 'reveal', cleared);
+    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index, word)
+    values (target_game, caller_id, next_seq, 'reveal', cleared, next_word);
   end if;
 
   return next_word;
@@ -590,6 +597,7 @@ declare
   cur_state text;
   cleared   int;
   next_word text;
+  hint_text text;
   next_seq  int;
 begin
   caller_id := common.require_game_player(target_game);
@@ -615,8 +623,11 @@ begin
   if next_word is null then
     return null;
   end if;
+  select hint into hint_text from common.words where word = lower(next_word);
 
-  -- Log a "Requested hint" entry, once per (player, word). Visibility
+  -- Log a "Hint: <clue>" entry, once per (player, word). The hint TEXT is
+  -- stored on the row (in `word`) so the log can show it — this leaks only the
+  -- clue, never the word (the whole point of reveal_next_hint). Visibility
   -- rides the submissions RLS (coop → all; compete → requester).
   if not exists (
     select 1 from stackdown.submissions
@@ -625,11 +636,11 @@ begin
   ) then
     select coalesce(max(seq), 0) + 1 into next_seq
       from stackdown.submissions where game_id = target_game and user_id = caller_id;
-    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index)
-    values (target_game, caller_id, next_seq, 'hint', cleared);
+    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index, word)
+    values (target_game, caller_id, next_seq, 'hint', cleared, hint_text);
   end if;
 
-  return (select hint from common.words where word = lower(next_word));
+  return hint_text;
 end;
 $$;
 revoke execute on function stackdown.reveal_next_hint(uuid) from public;

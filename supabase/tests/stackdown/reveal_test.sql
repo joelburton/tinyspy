@@ -54,11 +54,12 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'reveal'),
   1, 'reveal_next_word logs a "Requested word" row');
 select ok(
-  (select word is null and valid is null and for_word_index = 0
+  (select word = (select hint from common.words where word = 'eagle')
+      and valid is null and for_word_index = 0
      from stackdown.submissions
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
-  'a request row carries no word/valid and is tagged with the word index');
+  'a hint request row stores the hint text (for the log), no valid, tagged with the word index');
 
 -- Coop: a peer can see the requesting player's request row (shown to all).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

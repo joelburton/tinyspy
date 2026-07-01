@@ -1,49 +1,59 @@
-/* Two-pane play surface: the tile stack + word entry on the left, the
- * opponent strip + submission log on the right. Mirrors the shape of the
- * other games. */
+/* stackdown play surface, on the shared two-column scaffold
+ * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
+ * This module holds only stackdown's own bits: the per-game layout vars, the
+ * SQUARE stacked-tile canvas sizing (the hug model — the board is a square like
+ * waffle's/boggle's, so it's bounded by BOTH width and height), the below-board
+ * region (word entry + the local feedback slot), and the terminal words reveal. */
+
+/* Per-game layout vars the shared scaffold reads.
+ *   --info-col-width: the log column (state + strip + the #n/word/who log) fits a
+ *     narrow column, like connections' 22rem.
+ *   --avail-h: the vertical space left for the square board — it's bounded by
+ *     height too (unlike a fill board), so we subtract the below-board stack (the
+ *     WordEntry row + the local-feedback slot + the gaps) plus the chrome. */
 .layout {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 1.5rem 1rem;
+  --info-col-width: 22rem;
+  --avail-h: calc(100vh - var(--game-chrome-height) - 8.5rem);
 }
 
-.boardArea {
+/* The board column hugs its square. `--side` is the largest square that fits —
+ * bounded by the width left beside the info column (--avail-w, from the shared
+ * scaffold), the height left above the below-board stack (--avail-h), and a hard
+ * cap so it doesn't get silly on a huge monitor. Both the canvas and the
+ * below-board region read `--side` so they share one width. */
+.boardCol {
+  --side: min(var(--avail-w), var(--avail-h), 620px);
+}
+
+/* Everything under the board: the five-slot WordEntry, then the fixed-height
+ * local feedback slot. Pinned to the board's --side so a long feedback pill can't
+ * widen the column and shift the board; centered so the word row + pill sit under
+ * the board. */
+.belowBoard {
+  width: var(--side);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  /* Grow to take the leftover row width (the canvas inside caps itself),
-   * so the board uses the space when there's room. */
-  flex: 1 1 26rem;
-  min-width: 18rem;
-  max-width: 640px;
 }
 
-.rightCol {
-  min-width: 14rem;
-  max-width: 22rem;
+/* The LOCAL feedback slot — holds the own-move / terminal <FeedbackPill> (or
+ * nothing). A reserved min-height keeps the top-anchored board from shifting as
+ * the pill appears and clears (docs/ui.md → Layout stability). Full width so the
+ * shared `.localFeedback` centering resolves against the board width. */
+.localSlot {
+  width: 100%;
+  min-height: 2.75rem;
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  justify-content: center;
 }
 
-.gameOver {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  align-items: flex-start;
-}
-
+/* Terminal-only reveal of the six solution words, in the info column below the
+ * action slot (the shared `.terminalExtra` is the one region allowed to grow at
+ * game-over). Roomy line-height so the `·`-joined words wrap readably. */
 .reveal {
-  letter-spacing: 0.04em;
-}
-
-/* The two cheat buttons (reveal hint / reveal word), side by side. */
-.cheats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  letter-spacing: 0.03em;
 }

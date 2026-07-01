@@ -22,8 +22,9 @@ export type PlayerRow = {
 export type SubmissionRow = {
   user_id: string
   seq: number
-  /** 'word' = a played word; 'hint' / 'reveal' = a logged cheat request
-   *  ("Requested hint" / "Requested word"). Requests carry no word/tiles. */
+  /** 'word' = a played word; 'hint' / 'reveal' = a logged cheat request. A
+   *  request carries no tiles, but DOES carry its revealed text in `word`: the
+   *  hint clue ('hint') or the revealed word ('reveal'), for the log to show. */
   kind: 'word' | 'hint' | 'reveal'
   word: string | null
   tile_ids: number[] | null

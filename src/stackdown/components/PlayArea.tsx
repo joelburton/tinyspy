@@ -1,38 +1,58 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GamePageCtx } from '../../common/lib/games'
+import { cls } from '../../common/lib/cls'
+import type {
+  FeedbackMsg,
+  FeedbackTone,
+  GamePageCtx,
+  TimerMode,
+} from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { HintButton } from '../../common/components/buttons/HintButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { exposedIds } from '../lib/board'
+import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '../hooks/usePeerFeedback'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
 import { FoundWords } from './FoundWords'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * stackdown's play surface, shared by the coop and compete manifests.
- * Two columns: the tile stack + the word-being-built on the left, the
- * opponent strip (compete) + the submission log on the right. Mode is
- * read from `game.mode`.
+ * stackdown's play surface, shared by the coop and compete manifests, on the
+ * shared two-column scaffold (docs/design-decisions.md → PlayArea layout):
  *
- * Clicking an exposed tile picks it onto the word; the fifth tile
- * auto-submits via `stackdown.submit_word`. Accepted words remove their
- * tiles (the board updates via the realtime refetch in useGame);
- * invalid attempts are logged and their tiles returned. The word being
- * built is **private** to each player — not broadcast — in both modes.
+ *   - **Board column** — the stacked-tile board, a floating nothing (no shuffle
+ *     here — the stack IS the puzzle), and a below-board region with the
+ *     five-slot `WordEntry` and a fixed-height LOCAL feedback slot. Own-move
+ *     results land in that slot as a centered `<FeedbackPill>`; an accepted /
+ *     rejected word ALSO flashes its letters green/red in the WordEntry (the ring
+ *     is board-adjacent, the pill carries the words that have no ring — misses on
+ *     keystrokes, reveals, errors, the terminal verdict).
+ *   - **Info column** — the live cleared count, the compete OpponentStrip, the
+ *     Reveal-hint / Reveal-word cheats + End/Concede action row (terminal outcome
+ *     line at game-over), a help line, the setup disclosure, the words-cleared
+ *     reveal (terminal only), and the `FoundWords` submission log filling the
+ *     rest.
  *
- * Coop renders the SHARED stack + log (everyone's, 6 words to clear
- * together — but each player builds their own word, only the completed
- * submissions are shared). Compete renders the caller's own copy + an
- * OpponentStrip of each player's found-word count; first to clear all
- * six wins.
+ * Clicking an exposed tile picks it onto the word; the fifth tile auto-submits
+ * via `stackdown.submit_word`. Accepted words remove their tiles (the board
+ * updates via the realtime refetch in useGame); invalid attempts are logged and
+ * their tiles returned. The word being built is **private** to each player — not
+ * broadcast — in both modes. Mode is read from `game.mode`.
+ *
+ * Coop renders the SHARED stack + log; compete renders the caller's own copy + an
+ * OpponentStrip of each player's found-word count (first to clear all six wins).
  */
 export function PlayArea({
   session,
@@ -41,10 +61,10 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  setup,
   status,
   feedback,
   goToClub,
-  menu,
 }: GamePageCtx) {
   const {
     game,
@@ -60,8 +80,26 @@ export function PlayArea({
   } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [submitting, setSubmitting] = useState(false)
-  // Tiles to briefly outline in red — set when a typed letter is
-  // ambiguous (more than one exposed tile bears it), cleared after a beat.
+
+  // ─── Local own-move feedback (the below-board pill) ──────────────
+  // The player's OWN move results — a rejected word, a keystroke that matched no
+  // exposed tile (or too many), a reveal's answer, an RPC error — show as a
+  // centered <FeedbackPill> in the below-board slot (docs/design-decisions.md →
+  // local feedback area). Sticky: it persists until the player's NEXT action
+  // (a tile click, a keystroke) dismisses it. Peer narration goes to the GLOBAL
+  // header instead (usePeerFeedback). Word accept/reject additionally flash the
+  // WordEntry ring (below), so the pill is for the results that HAVE no ring.
+  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
+  const showLocal = useCallback(
+    (text: string, tone: FeedbackTone, dismiss: FeedbackMsg['dismiss'] = { kind: 'sticky' }) => {
+      setLocalMsg({ tone, text, variant: 'outline', dismiss })
+    },
+    [],
+  )
+  const clearLocal = useCallback(() => setLocalMsg(null), [])
+
+  // Tiles to briefly outline in red — set when a typed letter is ambiguous
+  // (more than one exposed tile bears it), cleared after a beat.
   const [flashIds, setFlashIds] = useState<readonly number[]>([])
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flashTiles = useCallback((ids: number[]) => {
@@ -78,6 +116,7 @@ export function PlayArea({
     },
     [],
   )
+
   // A word flashes in the entry row for a beat, then clears — or sooner,
   // when the player starts a new word (onTileClick clears it). Two sources
   // feed it: the player's OWN just-accepted word (green "good move"), and —
@@ -92,7 +131,7 @@ export function PlayArea({
     flashWordTimer.current = setTimeout(() => {
       setFlash(null)
       flashWordTimer.current = null
-    }, 1000)
+    }, 1500)
   }, [])
   const clearFlash = useCallback(() => {
     if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
@@ -133,7 +172,7 @@ export function PlayArea({
       if (error) {
         // Reachability/lock races (rare in friendly coop) land here.
         clearWord()
-        feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 1500 } })
+        showLocal(error.message, 'error')
         return
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
@@ -143,34 +182,37 @@ export function PlayArea({
         // valid submission lands via realtime. Teammates just see the
         // tiles leave once, on their own refetch.
         commitWord(tileIds)
-        // Flash the just-spelled word green in the entry row.
+        // Flash the just-spelled word green in the entry row (the ring is the
+        // own-accepted signal; no pill needed).
+        clearLocal()
         showFlash([...res.word.toUpperCase()], 'good')
       } else {
         clearWord() // invalid → the tiles return to the board
-        feedback.show({ tone: 'error', text: `Not a word: ${res.word.toUpperCase()}`, dismiss: { kind: 'timed', ms: 1500 } })
+        showLocal(`Not a word: ${res.word.toUpperCase()}`, 'error')
       }
     },
-    [gameId, feedback, clearWord, commitWord, showFlash],
+    [gameId, clearWord, commitWord, showFlash, showLocal, clearLocal],
   )
 
   // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──
   // Peeks at the next solution word the caller still has to clear. Used
   // to verify generated boards are solvable in order; may be removed once
-  // boards are trusted. Surfaced in the header feedback slot so it stays
-  // readable while playing.
+  // boards are trusted. Surfaced in the LOCAL feedback slot (the player's own
+  // request, so it's local, not global) — closeable so it lingers while they
+  // hunt for the tiles.
   const revealNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
     if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 1500 } })
+      showLocal(error.message, 'error')
       return
     }
     const word = data as string | null
-    feedback.show({
-      tone: 'info',
-      text: word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
-      dismiss: { kind: 'closeable' },
-    })
-  }, [gameId, feedback])
+    showLocal(
+      word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
+      'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
+      { kind: 'closeable' },
+    )
+  }, [gameId, showLocal])
 
   // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
   // A softer reveal than "Reveal word": shows the curated hint for the
@@ -180,37 +222,38 @@ export function PlayArea({
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 1500 } })
+      showLocal(error.message, 'error')
       return
     }
     const hint = data as string | null
-    feedback.show({
-      tone: 'info',
-      text: hint ? `Hint: ${hint}` : 'All words cleared',
-      dismiss: { kind: 'closeable' },
-    })
-  }, [gameId, feedback])
+    showLocal(hint ? `Hint: ${hint}` : 'All words cleared', 'warning', { kind: 'closeable' })
+  }, [gameId, showLocal])
 
   // ─── Tile click → extend the word, submit on the fifth ────────
   const onTileClick = useCallback(
     (tileId: number) => {
       if (!canPlay) return
       clearFlash() // starting a new word drops any lingering flash
+      clearLocal() // …and the previous move's local pill (the "next move dismisses it" rule)
       const word = appendTile(tileId)
       if (word && word.length === 5) void submit(word)
     },
-    [canPlay, appendTile, submit, clearFlash],
+    [canPlay, appendTile, submit, clearFlash, clearLocal],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
   // Backspace returns the most recent tile; a letter key plays the
   // matching tile — but ONLY if exactly one exposed tile bears it (the
   // word is the selection order, so an ambiguous letter can't pick for
-  // you). 0 or >1 matches just flash feedback. useGlobalKeyHandler reads
-  // this closure fresh each render and ignores keys aimed at chat / inputs.
+  // you). 0 matches is an error ("no such tile on top"); >1 flashes the
+  // candidates and asks you to click one. useGlobalKeyHandler reads this
+  // closure fresh each render and ignores keys aimed at chat / inputs.
   useGlobalKeyHandler((e) => {
     if (!game || !canPlay) return
     if (e.metaKey || e.ctrlKey || e.altKey) return
+    // Any handled keystroke is a "next move" — clear the previous local pill.
+    // The no-match / ambiguous branches below set a fresh one after this.
+    clearLocal()
     if (e.key === 'Backspace') {
       e.preventDefault()
       if (currentWord.length > 0) retractTo(currentWord.length - 1)
@@ -229,37 +272,30 @@ export function PlayArea({
       if (matches.length === 1) {
         onTileClick(matches[0].id)
       } else if (matches.length === 0) {
-        feedback.show({
-          tone: 'info',
-          text: `No “${letter}” tile is on top`,
-          dismiss: { kind: 'timed', ms: 1200 },
-        })
+        showLocal(`No “${letter}” tile is on top`, 'error')
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
         flashTiles(matches.map((m) => m.id))
-        feedback.show({
-          tone: 'info',
-          text: `${matches.length} “${letter}” tiles are on top — click one`,
-          dismiss: { kind: 'timed', ms: 1500 },
-        })
+        showLocal(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
       }
     }
   })
 
-  // ─── End-game menu item (both modes) ──────────────────────────
-  useEndGameMenu({
-    isTerminal,
-    menu,
-    feedback,
-    endGame: () => db.rpc('end_game', { target_game: gameId }),
-  })
+  // ─── End / Concede — an info-column action-row button (both modes) ──
+  // Manual end (stackdown.end_game) → a neutral stop. Confirmed; irreversible.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) showLocal(`End game failed: ${error.message}`, 'error')
+  }, [gameId, isTerminal, showLocal])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log
-  // quietly growing. Surface each teammate submission as a feedback pill,
-  // and flash their played word (green/red) in the entry row. Called
-  // unconditionally before the early returns; the hook no-ops off coop and
-  // until loaded.
+  // quietly growing. Surface each teammate submission as a GLOBAL feedback pill
+  // (with their identity disc), and flash their played word (green/red) in the
+  // entry row. Called unconditionally before the early returns; the hook no-ops
+  // off coop and until loaded.
   usePeerFeedback({
     loading,
     mode: game?.mode,
@@ -289,18 +325,43 @@ export function PlayArea({
     ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
     : null
 
-  // The submission log. Compete RLS opens every player's submissions once
-  // the game is terminal, but the log should keep showing just the caller's
-  // own — the same list as during play — so it doesn't swap to an
-  // everyone's-words view at game over (mirrors wordle's guess list). Coop
-  // is the shared board, so it shows everyone's throughout.
+  // The words-cleared count for the info-column state line. Coop is the shared
+  // total (every valid submission is visible); compete reads the caller's own
+  // public tally (submissions are RLS-scoped to the caller, so its valid count
+  // matches, but found_count is the authoritative number).
+  const foundCount = isCompete
+    ? self?.found_count ?? 0
+    : submissions.filter((s) => s.valid).length
+
+  // Cheat tallies for the status line. Counted off the caller's visible
+  // submissions — coop = the shared team total, compete = the caller's own
+  // (RLS already scopes the list), matching how foundCount reads per mode.
+  const hintCount = submissions.filter((s) => s.kind === 'hint').length
+  const revealCount = submissions.filter((s) => s.kind === 'reveal').length
+
+  // The submission log. Compete RLS opens every player's submissions once the
+  // game is terminal, but the log should keep showing just the caller's own —
+  // the same list as during play — so it doesn't swap to an everyone's-words
+  // view at game over (mirrors wordle's guess list). Coop is the shared board,
+  // so it shows everyone's throughout.
   const logWords = isCompete
     ? submissions.filter((s) => s.user_id === session.user.id)
     : submissions
 
+  // The below-board local pill: the permanent terminal verdict takes precedence
+  // over any transient own-move message.
+  const localPill: FeedbackMsg | null = over
+    ? {
+        tone: over.outcome === 'won' ? 'success' : 'error',
+        text: over.verdict,
+        variant: 'fill', // permanent → lightened-tone fill
+        dismiss: { kind: 'sticky' },
+      }
+    : localMsg
+
   return (
-    <div className={styles.layout}>
-      <div className={styles.boardArea}>
+    <div className={cls(shared.layout, styles.layout)}>
+      <div className={cls(shared.boardCol, styles.boardCol)}>
         <Board
           tiles={game.tiles}
           offBoard={offBoard}
@@ -308,78 +369,133 @@ export function PlayArea({
           highlight={new Set(flashIds)}
           onTileClick={onTileClick}
         />
-        <WordEntry
-          tiles={game.tiles}
-          currentWord={currentWord}
-          active={canPlay}
-          onRetract={retractTo}
-          flash={flash}
-        />
-      </div>
 
-      <div className={styles.rightCol}>
-        {over ? (
-          <div className={styles.gameOver}>
-            <span>
-              <span className="muted">Game over:</span> {over.status}
-            </span>
-            {game.solution && (
-              <span className={styles.reveal}>
-                The words were{' '}
-                <strong>
-                  {game.solution.map((w) => w.toUpperCase()).join(' · ')}
-                </strong>
-              </span>
-            )}
-            <BackToClubButton onClick={goToClub} />
-          </div>
-        ) : (
-          <>
-            {isCompete && (
-              <OpponentStrip
-                players={members}
-                selfId={session.user.id}
-                metricFor={(player) => {
-                  const ps = playerStates.find((p) => p.user_id === player.user_id)
-                  const found = ps?.found_count ?? 0
-                  return (
-                    <>
-                      {found}
-                      {ps?.solved ? ' ✓' : ''}
-                    </>
-                  )
-                }}
-              />
-            )}
-            {!self && <p className="muted">Watching — you're not in this game.</p>}
-            {self && (
-              <div className={styles.cheats}>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => void revealHint()}
-                  title="Cheat: show the next word's definition (not the word)"
-                >
-                  Reveal hint
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => void revealNext()}
-                  title="Cheat: peek at the next word (for verifying boards)"
-                >
-                  Reveal word
-                </button>
+        <div className={styles.belowBoard}>
+          <WordEntry
+            tiles={game.tiles}
+            currentWord={currentWord}
+            active={canPlay}
+            onRetract={retractTo}
+            flash={flash}
+          />
+          {/* Fixed-height LOCAL feedback slot: reserved whether or not a pill
+              shows, so the board above never reflows when feedback appears. */}
+          <div className={styles.localSlot}>
+            {localPill && (
+              <div className={shared.localFeedback}>
+                <FeedbackPill msg={localPill} onClose={clearLocal} />
               </div>
             )}
-          </>
+          </div>
+        </div>
+      </div>
+
+      <div className={shared.infoCol}>
+        <div className={shared.actionSlot}>
+          {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
+              state → opponent strip → action row → help → setup disclosure → log. */}
+
+          {/* State — words cleared out of six, plus the cheat tallies (hints /
+              reveals used). Always shown (even at 0) so using one doesn't shift
+              the rows below. */}
+          <p className={shared.infoState}>
+            <strong>{foundCount}</strong> / 6 words cleared
+            <br />
+            <strong>{hintCount}</strong> hint{hintCount === 1 ? '' : 's'} ·{' '}
+            <strong>{revealCount}</strong> reveal{revealCount === 1 ? '' : 's'} used
+          </p>
+
+          {/* Opponent strip (compete) — each player's found-word count, identity
+              on a leading disc; a ✓ marks a player who's cleared the board. */}
+          {isCompete && (
+            <OpponentStrip
+              players={members}
+              selfId={session.user.id}
+              metricLabel="Found"
+              metricFor={(player, isSelf) => {
+                const ps = playerStates.find((p) => p.user_id === player.user_id)
+                const found = isSelf ? self?.found_count ?? 0 : ps?.found_count ?? 0
+                return (
+                  <>
+                    {found}
+                    {ps?.solved ? ' ✓' : ''}
+                  </>
+                )
+              }}
+            />
+          )}
+
+          {/* Action row — Reveal hint / Reveal word cheats + End/Concede during
+              play; at terminal the bold outcome line + a compact back-to-club
+              button. */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.outcome === 'won' ? 'won' : 'lost'}`])}>
+                {over.status}
+              </span>
+              <BackToClubButton onClick={goToClub} compact />
+            </div>
+          ) : self ? (
+            <div className={shared.infoActions}>
+              {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
+                  Default labels ("Hint" / "Reveal"); the tooltip carries the
+                  full "what it does" copy. */}
+              <HintButton
+                onClick={() => void revealHint()}
+                className={shared.helperButton}
+                title="Cheat: show the next word's definition (not the word)"
+              />
+              <RevealButton
+                onClick={() => void revealNext()}
+                className={shared.helperButton}
+                title="Cheat: peek at the next word (for verifying boards)"
+              />
+              {isCompete ? (
+                <ConcedeGameButton
+                  onClick={() => void handleEndGame()}
+                  className={shared.helperButton}
+                />
+              ) : (
+                <EndGameButton
+                  onClick={() => void handleEndGame()}
+                  className={shared.helperButton}
+                />
+              )}
+            </div>
+          ) : null}
+
+          {/* Help — only while the player can act on it (never silently swapped). */}
+          {!over && self && (
+            <p className={shared.infoHelp}>
+              Click exposed tiles — or type a letter — to spell a word.{' '}
+              <kbd>Backspace</kbd> takes one back.
+            </p>
+          )}
+          {!over && !self && (
+            <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
+          )}
+
+          {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>30 tiles · 6 words to clear</li>
+              <li>Common 5-letter words</li>
+              <li>{timerLabel((setup as unknown as StackdownSetup).timer)}</li>
+            </ul>
+          </details>
+        </div>
+
+        {/* Terminal-only reveal of the six solution words — the one info-column
+            region allowed to grow at game-over (docs/ui.md → Layout stability). */}
+        {over && game.solution && (
+          <div className={cls(shared.terminalExtra, styles.reveal)}>
+            <span className="muted">The words were</span>{' '}
+            <strong>{game.solution.map((w) => w.toUpperCase()).join(' · ')}</strong>
+          </div>
         )}
 
-        <FoundWords
-          submissions={logWords}
-          players={members}
-          showWho={!isCompete}
-        />
+        <FoundWords submissions={logWords} players={members} showWho={!isCompete} />
       </div>
 
       {showModal && over && (
@@ -394,7 +510,21 @@ export function PlayArea({
   )
 }
 
-/** Terminal verdict + status copy, mode- and (compete) self-aware. */
+/** One-line timer summary for the setup disclosure (same shape the other migrated
+ *  games use). */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
+
+/** Terminal verdict + status copy, mode- and (compete) self-aware. `outcome` +
+ *  `verdict` drive the GameOverModal + the permanent below-board pill; `status`
+ *  drives the short bold line in the info-column action row. */
 function buildOver({
   mode,
   playState,
@@ -413,29 +543,29 @@ function buildOver({
     return {
       outcome: 'won',
       verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      status: 'ended',
+      status: 'Game ended',
     }
   }
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Stack cleared! 🎉', status: 'cleared' }
+      return { outcome: 'won', verdict: 'Stack cleared! 🎉', status: 'Cleared!' }
     }
     return {
       outcome: 'lost',
       verdict: timerExpired ? 'Out of time.' : 'Stack not cleared.',
-      status: timerExpired ? 'out of time' : 'not cleared',
+      status: timerExpired ? 'Out of time' : 'Not cleared',
     }
   }
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'You won — cleared it first!', status: 'you won' }
-      : { outcome: 'lost', verdict: 'Beaten to the clear.', status: 'opponent won' }
+      ? { outcome: 'won', verdict: 'You won — cleared it first!', status: 'You won!' }
+      : { outcome: 'lost', verdict: 'Beaten to the clear.', status: 'Opponent won' }
   }
   // lost_compete — nobody cleared, or time ran out
   return {
     outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody cleared it.',
-    status: timerExpired ? 'out of time' : 'no winner',
+    status: timerExpired ? 'Out of time' : 'No winner',
   }
 }

@@ -1,14 +1,17 @@
 /* The stacked-tile arena. Tiles are absolutely positioned within it as
  * PERCENTAGES (the Board component computes left/top/size from grid
- * coordinates), so the whole board scales with this box. The box is a
- * responsive square: it fills the column width but is capped by viewport
- * height (so it stays on-screen) and a hard max (so it doesn't get silly
- * on a huge monitor). `container-type` makes `cqi` inside resolve against
- * the canvas width, so tile typography scales with the board. */
+ * coordinates), so the whole board scales with this box. It's a responsive
+ * SQUARE sized by the shared hug model: `--side` (the largest square that fits
+ * the column width AND the viewport height) is computed on the board column
+ * (PlayArea.module.css) and read here, so the canvas and the below-board region
+ * share one width. `box-sizing: border-box` keeps the 2px frame inside --side.
+ * `container-type` makes `cqi` inside resolve against the canvas width, so tile
+ * typography scales with the board. */
 .canvas {
   position: relative;
-  width: min(100%, 72vh, 620px);
+  width: var(--side);
   aspect-ratio: 1;
+  box-sizing: border-box;
   container-type: inline-size;
   /* No fill — the tiles (each with its own shade + shadow) sit on the page; an
      evident border defines the board area (same 2px frame as the turn-log / word-

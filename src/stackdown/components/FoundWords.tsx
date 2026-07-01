@@ -1,29 +1,38 @@
 import { type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
-import { colorVarFor } from '../../common/lib/memberColor'
 import { cls } from '../../common/lib/cls'
+import { memberById } from '../../common/lib/peers'
+import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
+import turnLog from '../../common/components/TurnLog.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
 
 /**
- * The submission log — the right-column "found words" list, guess-log
- * style. Every submission lands here in order as a bordered row with a
- * left status-bar: a valid word (green), an invalid attempt struck
- * through + tagged "not a word" (red), and the logged cheat requests
- * (orange). All are durable rows in `stackdown.submissions` — this is
- * just a projection of realtime. Every row is numbered #1, #2, … in
- * order — including the cheat requests, so asking for a hint reads as
- * having "cost a turn" rather than being free.
+ * The submission log — the info-column history of every play, rendered on the
+ * shared `<TurnLog>` (heading + fixed-height bordered scroll box + table) so it
+ * reads the same as the other games' logs. It isn't strictly a "found words"
+ * list: it's chronological and carries invalid attempts and cheat requests too,
+ * so it's a **turn log**, not a `<WordList>`. Each submission is one `<tr>` with
+ * the shared outcome bar:
  *
- * Coop shows who played each word (`showWho`); compete shows only the
- * caller's own attempts (RLS already hides opponents mid-game), so the
- * attribution would be noise and is suppressed.
+ *   - a **valid** word    → green bar, the word clickable to define;
+ *   - an **invalid** word → red bar, struck through + tagged "not a word";
+ *   - a **cheat request**  → amber bar, the muted "Requested hint / word" row.
  *
- * Click-to-define: a valid (real) word is clickable and opens the shared
- * `DefinitionPopover` (the common read-through cache → Wiktionary lookup
- * every word game gets). Invalid attempts aren't real words, so they
- * stay inert.
+ * All three are durable rows in `stackdown.submissions` (this is just a
+ * projection of realtime). Every row is numbered #1, #2, … in order — including
+ * the cheat requests, so asking for a hint reads as having "cost a turn" rather
+ * than being free.
+ *
+ * Coop shows who played each row (`showWho`, via the shared `<ActorTag>`);
+ * compete shows only the caller's own attempts (RLS already hides opponents
+ * mid-game), so the attribution would be noise and is suppressed.
+ *
+ * Click-to-define: a valid (real) word opens the shared `DefinitionPopover` (the
+ * common read-through cache → Wiktionary lookup every word game gets). Invalid
+ * attempts aren't real words, so they stay inert.
  */
 export function FoundWords({
   submissions,
@@ -34,29 +43,13 @@ export function FoundWords({
   players: Member[]
   showWho: boolean
 }) {
-  // The submitter, rendered in their player color (matching the rest of
-  // the app's "who did this" treatment). Falls back to muted "someone"
-  // when the player isn't in the roster.
-  const renderWho = (userId: string) => {
-    const p = players.find((p) => p.user_id === userId)
-    return (
-      <span
-        className={styles.who}
-        style={p ? { color: colorVarFor(p.color) } : undefined}
-      >
-        {p?.username ?? 'someone'}
-      </span>
-    )
-  }
-
   // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
   const { define: openDefine, popover } = useDefinePopover()
 
   // Click / keyboard activation for a clickable word chip (mirrors
   // spellingbee's WordList — same "Click to define" affordance).
   const defineActivation = (word: string) => ({
-    onClick: (e: MouseEvent<HTMLSpanElement>) =>
-      openDefine(word, e.currentTarget),
+    onClick: (e: MouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
     onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
@@ -68,68 +61,72 @@ export function FoundWords({
     title: 'Click to define',
   })
 
-  const found = submissions.filter((s) => s.valid).length
-
   return (
-    <div className={styles.panel}>
-      <div className={styles.header}>
-        <span>Found words:</span>
-        <span className={styles.count}>{found}/6</span>
-      </div>
-      {submissions.length === 0 ? (
-        <p className="muted">No words yet.</p>
-      ) : (
-        <ol className={styles.list}>
-          {submissions.map((s, i) => {
-            // Cheat-request rows: a logged "Requested hint" / "Requested
-            // word" (shown to point out — gently — that someone asked).
-            // Orange bar, and numbered like any other row so a hint reads
-            // as having "cost a turn" rather than being free.
-            if (s.kind === 'hint' || s.kind === 'reveal') {
-              return (
-                <li
-                  key={`${s.user_id}-${s.seq}`}
-                  className={cls(styles.row, styles.barOrange)}
-                >
-                  <span className={styles.num}>#{i + 1}</span>
-                  <span className={styles.requestLabel}>
-                    Requested {s.kind === 'hint' ? 'hint' : 'word'}
+    <>
+      <TurnLog
+        heading="Turn Log"
+        empty={submissions.length === 0}
+        emptyText="No words yet."
+        scrollKey={submissions.length}
+      >
+        {submissions.map((s, i) => {
+          const isRequest = s.kind === 'hint' || s.kind === 'reveal'
+          const outcome: TurnOutcome = isRequest
+            ? 'partial' // amber bar — a logged cheat request
+            : s.valid
+              ? 'good'
+              : 'bad'
+          return (
+            // Every submission is its own one-row "turn"; the divider draws the
+            // between-rows line (:first-child suppresses it on the first row).
+            <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
+              <TurnLogBar outcome={outcome} />
+              <td className={turnLog.meta}>#{i + 1}</td>
+              <td className={turnLog.main}>
+                {isRequest ? (
+                  // A logged cheat request, now carrying the text it revealed
+                  // (stored on the row by reveal_next_hint / reveal_next_word):
+                  // "Hint: <clue>" or "Revealed: <WORD>". Normal weight/color —
+                  // it's information, not an error. (Falls back to the bare label
+                  // if a legacy row has no stored text.)
+                  <span className={styles.request}>
+                    {s.kind === 'hint'
+                      ? s.word
+                        ? `Hint: ${s.word}`
+                        : 'Requested hint'
+                      : s.word
+                        ? `Revealed: ${s.word.toUpperCase()}`
+                        : 'Requested word'}
                   </span>
-                  {showWho && renderWho(s.user_id)}
-                </li>
-              )
-            }
-            // Played-word rows: valid → green bar, clickable to define;
-            // invalid → red bar, struck through + tagged.
-            return (
-              <li
-                key={`${s.user_id}-${s.seq}`}
-                className={cls(
-                  styles.row,
-                  s.valid ? styles.barGreen : styles.barRed,
-                  !s.valid && styles.invalid,
-                )}
-              >
-                <span className={styles.num}>#{i + 1}</span>
-                {s.valid && s.word ? (
+                ) : s.valid && s.word ? (
                   <span
-                    className={cls(styles.word, styles.clickable)}
+                    className={cls(turnLog.primary, styles.clickable)}
                     {...defineActivation(s.word)}
                   >
                     {s.word.toUpperCase()}
                   </span>
                 ) : (
-                  <span className={styles.word}>{s.word?.toUpperCase()}</span>
+                  // An invalid attempt — struck through + tagged (the red bar
+                  // already carries the "rejected" signal).
+                  <>
+                    <span className={cls(turnLog.primary, styles.invalidWord)}>
+                      {s.word?.toUpperCase()}
+                    </span>{' '}
+                    <span className={styles.tag}>not a word</span>
+                  </>
                 )}
-                {!s.valid && <span className={styles.tag}>not a word</span>}
-                {showWho && renderWho(s.user_id)}
-              </li>
-            )
-          })}
-        </ol>
-      )}
+              </td>
+              {showWho && (
+                <td className={turnLog.who}>
+                  <ActorTag actor={memberById(players, s.user_id)} />
+                </td>
+              )}
+            </tr>
+          )
+        })}
+      </TurnLog>
 
       {popover}
-    </div>
+    </>
   )
 }

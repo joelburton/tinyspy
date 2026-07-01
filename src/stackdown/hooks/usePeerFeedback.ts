@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { FeedbackApi, Member } from '../../common/lib/games'
+import { colorVarFor } from '../../common/lib/memberColor'
 import type { SubmissionRow } from './useGame'
 
 /**
@@ -14,10 +15,14 @@ import type { SubmissionRow } from './useGame'
  * board — easy to miss while heads-down on your own word. This surfaces each
  * teammate action as a transient pill:
  *
- *   - **word, valid**   → "moth found SCARE"        (success)
- *   - **word, invalid** → "moth tried FOOFS — not a word" (error)
- *   - **hint**          → "moth revealed a hint"    (info)
- *   - **reveal**        → "moth revealed a word"    (info)
+ * Each pill carries a leading identity disc in the teammate's player color
+ * (`dot`) — the app-wide "who did this" marker for a global/peer message
+ * (docs/design-decisions.md → Mentioning other players).
+ *
+ *   - **word, valid**   → "● moth found SCARE"        (success)
+ *   - **word, invalid** → "● moth tried FOOFS — not a word" (error)
+ *   - **hint**          → "● moth revealed a hint"    (warning)
+ *   - **reveal**        → "● moth revealed a word"    (warning)
  *
  * For a played word it also calls `onPeerWord(letters, valid)` so the
  * PlayArea can flash that word in the shared word-entry row, green for a
@@ -69,18 +74,22 @@ export function usePeerFeedback({
       if (seenSet.has(key(s))) continue
       seenSet.add(key(s))
       if (s.user_id === selfUserId) continue // own action → own pill / flash
-      const name =
-        players.find((p) => p.user_id === s.user_id)?.username ?? 'A teammate'
+      const member = players.find((p) => p.user_id === s.user_id)
+      const name = member?.username ?? 'A teammate'
+      // The leading player-color disc that names the actor on a global pill.
+      const dot = colorVarFor(member?.color)
 
       if (s.kind === 'hint') {
         feedback.show({
-          tone: 'info',
+          tone: 'warning',
+          dot,
           text: `${name} revealed a hint`,
           dismiss: { kind: 'timed' },
         })
       } else if (s.kind === 'reveal') {
         feedback.show({
-          tone: 'info',
+          tone: 'warning',
+          dot,
           text: `${name} revealed a word`,
           dismiss: { kind: 'timed' },
         })
@@ -90,6 +99,7 @@ export function usePeerFeedback({
         if (s.valid) {
           feedback.show({
             tone: 'success',
+            dot,
             text: `${name} found ${word}`,
             dismiss: { kind: 'timed' },
           })
@@ -97,6 +107,7 @@ export function usePeerFeedback({
         } else {
           feedback.show({
             tone: 'error',
+            dot,
             text: `${name} tried ${word} — not a word`,
             dismiss: { kind: 'timed' },
           })

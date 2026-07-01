@@ -1,69 +1,6 @@
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-height: 0;
-}
-
-/* "Found words: N/6" — the count sits right next to the label, not
- * pushed to the right edge (right-aligning it lined it up under the
- * player-name column, which is unrelated and read as confusing). */
-.header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 1rem;
-  color: var(--color-text);
-}
-
-.count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  max-height: 24rem;
-  overflow-y: auto;
-}
-
-/* One submission: a thin-bordered row with a fat colored status-bar on
- * the left — green accepted / red rejected / orange cheat-request. */
-.row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-surface-border);
-  border-left-width: 4px;
-  border-radius: var(--radius-sm);
-}
-.barGreen {
-  border-left-color: var(--color-outcome-won-border);
-}
-.barRed {
-  border-left-color: var(--color-outcome-lost-border);
-}
-.barOrange {
-  border-left-color: var(--color-outcome-near-border);
-}
-
-/* Running guess number (#1, #2, …) on the played-word rows. */
-.num {
-  color: var(--color-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.word {
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--color-text);
-}
+/* stackdown's submission log lives on the shared <TurnLog> now (panel, scroll
+ * box, table, outcome bars, #n / word / who columns all come from
+ * TurnLog.module.css). Only the bits unique to stackdown's rows remain here. */
 
 /* A clickable (definable) word — subtle underline-on-hover affordance. */
 .clickable {
@@ -76,33 +13,23 @@
   outline: none;
 }
 
-/* An invalid attempt — struck through and dimmed (the red bar carries
- * the "rejected" signal). */
-.invalid {
-  color: var(--color-muted);
-}
-.invalid .word {
+/* An invalid attempt — struck through and dimmed (the red bar carries the
+ * "rejected" signal). */
+.invalidWord {
   text-decoration: line-through;
   color: var(--color-muted);
 }
 
+/* The "not a word" tag on an invalid attempt. */
 .tag {
   font-size: 0.75rem;
   color: var(--color-error);
 }
 
-/* A logged cheat request ("Requested hint" / "Requested word"). Italic +
- * the same red as the "not a word" tag, normal size, so it reads as an
- * aside without shrinking the line. */
-.requestLabel {
-  font-style: italic;
-  color: var(--color-error);
-}
-
-/* The submitter — bold (the player color alone can be hard to read) and
- * the same size as the word. Right-aligned via margin-left; the palette
- * color is applied inline in the component. */
-.who {
-  margin-left: auto;
-  font-weight: 700;
+/* A logged cheat request row ("Hint: <clue>" / "Revealed: <WORD>"). Normal
+ * weight + full text color — it's information the player asked for, not an
+ * error, so it reads plainly (the amber outcome bar already marks it as a cheat
+ * request). */
+.request {
+  color: var(--color-text);
 }

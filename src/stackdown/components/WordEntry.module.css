@@ -37,15 +37,27 @@
 
 /* A flashed word — a thick colored ring for a beat (the PlayArea clears
  * it after ~1s, or when a new word is started). A box-shadow ring rather
- * than a wider border so the slot doesn't resize.
+ * than a wider border so the slot doesn't resize. The ring uses the STRONG
+ * (dark, saturated) outcome greens/reds — not the pastel *-border shades —
+ * so an accepted/rejected word reads emphatically at a glance.
  *   - good: an accepted word (the player's own, or a teammate's valid find)
  *   - bad:  a teammate's rejected word (their tiles bounced back) */
 .good {
-  border-color: var(--color-outcome-won-border);
-  box-shadow: 0 0 0 3px var(--color-outcome-won-border);
+  border-color: var(--color-outcome-won-strong);
+  box-shadow: 0 0 0 3px var(--color-outcome-won-strong);
 }
 
 .bad {
-  border-color: var(--color-outcome-lost-border);
-  box-shadow: 0 0 0 3px var(--color-outcome-lost-border);
+  border-color: var(--color-outcome-lost-strong);
+  box-shadow: 0 0 0 3px var(--color-outcome-lost-strong);
+}
+
+/* A flashed slot is `disabled` (not interactive during the flash), which the
+ * global `button:disabled { opacity: 0.5 }` would fade to grey — washing the
+ * letter out. Keep it at full opacity so the letters stay black under the
+ * red/green ring; only the outline signals the result. (`.slot.good` /
+ * `.slot.bad` out-specific `button:disabled`.) */
+.slot.good,
+.slot.bad {
+  opacity: 1;
 }
