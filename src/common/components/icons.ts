@@ -34,8 +34,16 @@ export {
   ArrowLeftRight as IconExchange,
   Delete as IconDelete, // delete the last typed character (the backspace key glyph)
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
+  // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
+  // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
+  // lineage (brand MonkeyGrams) and reads as its own distinct action, not a
+  // generic submit. Local to the PeelButton — no other game peels.
+  Banana as IconPeel,
   ChevronLeft as IconBack, // back to club
   Pause as IconPause, // pause the game
+  // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The
+  // four-corners fullscreen glyph is the near-universal "fit to view" idiom.
+  Fullscreen as IconZoomFit,
   // The <StrikeMarks> meter (a status row, not a button): a bounded "N of M used"
   // counter filling left-to-right — a USED mark is a red square-X, an OPEN slot a
   // dashed square. Squares (not circles) so they never read as the player-identity

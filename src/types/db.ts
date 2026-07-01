@@ -73,6 +73,7 @@ export type Database = {
       }
       progress: {
         Row: {
+          conceded: boolean
           done: boolean
           finished_at: string | null
           game_id: string
@@ -81,6 +82,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conceded?: boolean
           done?: boolean
           finished_at?: string | null
           game_id: string
@@ -89,6 +91,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conceded?: boolean
           done?: boolean
           finished_at?: string | null
           game_id?: string
@@ -120,6 +123,7 @@ export type Database = {
         }
         Returns: number[]
       }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: {
@@ -127,7 +131,6 @@ export type Database = {
         }[]
       }
       dump: { Args: { target_game: string; tile: string }; Returns: undefined }
-      end_game: { Args: { target_game: string }; Returns: undefined }
       peel: { Args: { target_game: string }; Returns: Json }
       save_player_board: {
         Args: { board: string; target_game: string }

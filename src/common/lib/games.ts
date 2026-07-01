@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -114,7 +114,10 @@ export type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' 
  *  detailed when-to-use guidance. */
 export type FeedbackMsg = {
   tone: FeedbackTone
-  text: string
+  /** The message. Usually a plain string; a `ReactNode` is allowed so a message
+   *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
+   *  exchange glyph, matching its dump zone). */
+  text: ReactNode
   /** Optional leading identity disc — a player-color CSS value (from
    *  `colorVarFor`). Renders a small filled circle before the text, the
    *  identity anchor for group/peer messages ("● leah found APPLE"). See

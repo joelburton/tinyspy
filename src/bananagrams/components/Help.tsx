@@ -48,8 +48,9 @@ export function Help({ onClose, brand }: Props) {
 
       <p>
         Your words don’t have to be real — placement isn’t checked, so anything
-        that fills your board counts. (No timer; the friends can also end a
-        stalled game from the menu.)
+        that fills your board counts. Had enough? <strong>Concede</strong> to
+        drop out and take the loss — the others keep racing, and if everyone
+        concedes the game ends.
       </p>
 
       <div style={{ marginTop: '1rem', textAlign: 'right' }}>

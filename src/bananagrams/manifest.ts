@@ -85,7 +85,9 @@ export const bananagramsGame: GameManifest = {
   // on bananagrams.progress), so "in progress" is the live label; the
   // 'won' label reads the winner from status, which is written when a
   // player goes out — that terminal is detected inside `peel`, not by
-  // a dedicated RPC. The 'ended' label covers the manual end_game stop.
+  // a dedicated RPC. play_state 'lost' covers the two no-winner
+  // terminals — a countdown timeout and an all-conceded race — told
+  // apart by status.outcome.
   labelFor: (row) => {
     if (row.play_state === 'playing') return 'in progress'
     if (row.play_state === 'won') {
@@ -93,12 +95,14 @@ export const bananagramsGame: GameManifest = {
       const name = (s.winner_username as string | undefined) ?? 'someone'
       return `won — ${name} finished first`
     }
-    // Countdown expiry (submit_timeout): time ran out with nobody out,
-    // so everyone lost. No winner to name.
-    if (row.play_state === 'lost') return "time's up — nobody finished"
-    // Manual stop (end_game): terminal with no winner. Without this the
-    // ClubPage would show the raw enum 'ended'.
-    if (row.play_state === 'ended') return 'game ended'
+    // No-winner terminals (submit_timeout / everyone conceded), both
+    // play_state 'lost'. status.outcome distinguishes them.
+    if (row.play_state === 'lost') {
+      const s = (row.status ?? {}) as Record<string, unknown>
+      return s.outcome === 'conceded'
+        ? 'everyone conceded'
+        : "time's up — nobody finished"
+    }
     return row.play_state
   },
 

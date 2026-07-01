@@ -8,13 +8,15 @@
 --   3. Non-players rejected
 --   4. Win path: bunch can't refill the table → the peeler goes out and wins
 --   5. Race: a peel after the game is over is rejected
+--   6. Active-player math: a CONCEDED player neither draws on a continuing
+--      peel nor counts toward the refill threshold
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(12);
+select plan(16);
 
 \ir ../_shared/setup.psql
 
@@ -155,6 +157,64 @@ select throws_ok(
   'P0001',
   'game is not active',
   'peeling after the game is over is rejected'
+);
+
+-- ─── Game 3: 3 players; cade concedes → only ada + bea are active ───
+-- Proves a conceded player is skipped by a continuing peel: they don't
+-- draw, and the refill threshold is against the ACTIVE count (2), not the
+-- roster (3). hand_size 21 × 3 = 63 dealt; pool = 144 − 63 = 81.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table trio on commit drop as
+select common.create_club('trio', array['ada', 'bea', 'cade']) as handle;
+
+create temp table g3 on commit drop as
+select * from bananagrams.create_game(
+  (select handle from trio),
+  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid,
+        'cade3333-3333-3333-3333-333333333333'::uuid]
+);
+
+-- cade drops out (2 active remain, so the game keeps going).
+select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
+select lives_ok(
+  format($$ select bananagrams.concede(%L) $$, (select id from g3)),
+  'cade can concede while ada + bea keep racing'
+);
+
+-- ada empties her hand and peels — a CONTINUING peel (pool 81 ≥ active 2).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select bananagrams.save_player_board(
+  (select id from g3),
+  (select tiles || repeat('.', 25 * 25 - length(tiles))
+     from bananagrams.player_boards
+    where game_id = (select id from g3)
+      and user_id = 'ada11111-1111-1111-1111-111111111111')
+);
+select bananagrams.peel((select id from g3));
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select length(tiles) from bananagrams.player_boards
+    where game_id = (select id from g3)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  22,
+  'active peeler ada drew 1 (21 → 22)'
+);
+select is(
+  (select length(tiles) from bananagrams.player_boards
+    where game_id = (select id from g3)
+      and user_id = 'cade3333-3333-3333-3333-333333333333'),
+  21,
+  'conceded cade did NOT draw (still 21)'
+);
+select is(
+  (select length(pool) from bananagrams.games where id = (select id from g3)),
+  79,
+  'the bunch advanced by ACTIVE count × peel_count (81 → 79, not 78)'
 );
 
 select * from finish();

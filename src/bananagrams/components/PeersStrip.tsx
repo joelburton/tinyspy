@@ -15,14 +15,19 @@ type Props = {
  * board itself. Counts come from `bananagrams.progress` (club-readable),
  * updated live as each peer snapshots their board.
  *
- * Renders nothing in a solo game (no peers). Peers are sorted by tiles-left
- * ascending, so whoever's closest to finishing sits at the top.
+ * Renders nothing in a solo game (no peers). Active peers are sorted by
+ * tiles-left ascending (closest to finishing at the top); conceded peers (who
+ * have dropped out of the race) sink to the bottom, shown as "out".
  */
 export function PeersStrip({ players, progress, selfUserId }: Props) {
   const byUser = new Map(progress.map((p) => [p.user_id, p]))
+  // Conceded players are out of the race → sort them last regardless of count;
+  // among active players, closest-to-done first.
+  const rank = (userId: string) =>
+    (byUser.get(userId)?.conceded ? 1e9 : 0) + (byUser.get(userId)?.unplaced ?? Infinity)
   const peers = players
     .filter((p) => p.user_id !== selfUserId)
-    .sort((a, b) => (byUser.get(a.user_id)?.unplaced ?? Infinity) - (byUser.get(b.user_id)?.unplaced ?? Infinity))
+    .sort((a, b) => rank(a.user_id) - rank(b.user_id))
 
   if (peers.length === 0) return null
 
@@ -36,7 +41,7 @@ export function PeersStrip({ players, progress, selfUserId }: Props) {
             <span className={styles.dot} style={{ background: colorVarFor(p.color) }} aria-hidden />
             <span className={styles.name}>{p.username}</span>
             <span className={styles.count} data-count>
-              {pr?.done ? 'done!' : (pr?.unplaced ?? '—')}
+              {pr?.conceded ? 'out' : pr?.done ? 'done!' : (pr?.unplaced ?? '—')}
             </span>
           </div>
         )

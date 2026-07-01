@@ -13,8 +13,14 @@ import {
   shuffleString,
 } from '../lib/board'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
+import { PeelButton } from '../../common/components/buttons/PeelButton'
+import { ZoomFitButton } from '../../common/components/buttons/ZoomFitButton'
+import { IconExchange } from '../../common/components/icons'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
+import { isEditableField } from '../../common/hooks/useGameHasKeyboard'
+import { cls } from '../../common/lib/cls'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -74,6 +80,22 @@ function overDumpAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="dump"]')
 }
 
+/**
+ * Hand focus back to the board when the player interacts with it.
+ *
+ * bananagrams' cells + hand tiles are plain `<div>`s (not focusable), so
+ * clicking them does NOT move focus off a focused chat box the way clicking a
+ * `<button>` tile would in the other games — focus stays in chat and typed
+ * letters go there instead of onto the board (the window key handler declines
+ * while a field is focused). Blurring the focused field on a board interaction
+ * hands the keyboard back to the game, matching how a focusable tile behaves
+ * elsewhere (see useGameHasKeyboard). No-op when nothing editable is focused.
+ */
+function blurActiveField(): void {
+  const a = document.activeElement
+  if (isEditableField(a)) (a as HTMLElement).blur()
+}
+
 type Props = {
   gameId: string
   /** The FE-owned placement grid at load — seeds local board state ONCE. */
@@ -82,10 +104,24 @@ type Props = {
    *  changes it upstream and the derived hand follows. The board is never part
    *  of it; the hand the player sees is `deriveHand(tiles, board)`. */
   tiles: string
-  /** Opponents' tiles-left strip, slotted above the hand (null in solo). */
-  peers?: React.ReactNode
+  /** The info-column readout stack (state / opponents / help / setup), built by
+   *  PlayArea and rendered in the shared `.actionSlot` at the top of the info
+   *  column, above the hand card. */
+  infoTop: React.ReactNode
+  /** The bottom action row (Concede / Dump, or the terminal / locally-terminal
+   *  line), rendered BELOW the hand card — bananagrams' documented exception to
+   *  the canonical order (its hand + peel live in the info column). */
+  infoActions: React.ReactNode
+  /** The below-board local feedback pill (a draw announcement, an RPC error, or
+   *  the terminal / locally-terminal message), or null. Rendered in the
+   *  fixed-height slot under the board so the arena never reflows. */
+  localPill?: React.ReactNode
   /** True once the game is over — disables the Peel button (the race is run). */
   isTerminal?: boolean
+  /** True once THIS player has conceded (but the game is still live for the
+   *  others): freezes the board (no placing / dragging / typing) and disables
+   *  peel + dump — they're out of the race. */
+  isConceded?: boolean
   /** Peel (calls `peel`). Enabled only when the hand is empty; draws a tile for
    *  everyone, or — if the bunch can't refill the table — wins the game (the
    *  win/terminal modal is driven from above by realtime). Resolves to
@@ -105,7 +141,7 @@ type Props = {
   boxCount?: number
 }
 
-export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, onPeel, onDump, bunchCount, boxCount }: Props) {
+export function PlayerBoard({ gameId, initialBoard, tiles, infoTop, infoActions, localPill, isTerminal, isConceded, onPeel, onDump, bunchCount, boxCount }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
   // derived order. Reconciled against the live hand each render, so it survives
@@ -141,12 +177,16 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   const tilesRef = useRef(tiles)
   const cursorRef = useRef(cursor)
   const declaringRef = useRef(declaring) // lets the peel shortcut see an in-flight peel
+  // A conceded player is out — the always-on pointer/key handlers read this ref
+  // to bail (they're stable, so they can't close over the prop directly).
+  const frozenRef = useRef(!!isConceded)
   useEffect(() => {
     boardRef.current = board
     tilesRef.current = tiles
     cursorRef.current = cursor
     declaringRef.current = declaring
-  }, [board, tiles, cursor, declaring])
+    frozenRef.current = !!isConceded
+  }, [board, tiles, cursor, declaring, isConceded])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -330,6 +370,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
 
   const onCellPointerDown = useCallback(
     (x: number, y: number, e: React.PointerEvent) => {
+      if (frozenRef.current) return // conceded → board is frozen
       const letter = boardRef.current[idx(x, y)]
       start({ kind: 'board', x, y }, letter !== '.' ? letter : null, { x, y }, e)
     },
@@ -337,6 +378,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   )
   const onHandPointerDown = useCallback(
     (index: number, letter: string, e: React.PointerEvent) => {
+      if (frozenRef.current) return // conceded → hand is frozen
       start({ kind: 'hand', index }, letter, null, e)
     },
     [start],
@@ -357,7 +399,7 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   // refs so the keyboard path can't act on stale state. Flushes the board first
   // so the server's `placed == tiles` check sees the latest placements.
   const doPeel = useCallback(async () => {
-    if (!onPeel || isTerminal || declaringRef.current) return
+    if (!onPeel || isTerminal || isConceded || declaringRef.current) return
     if (deriveHand(tilesRef.current, boardRef.current).length !== 0) return
     setDeclaring(true)
     try {
@@ -373,10 +415,15 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
     } finally {
       setDeclaring(false)
     }
-  }, [onPeel, isTerminal, gameId])
+  }, [onPeel, isTerminal, isConceded, gameId])
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (frozenRef.current) return // conceded → no keyboard placing / peel
+      // Leave browser/OS shortcuts alone (Cmd-R, Ctrl-C, Alt-…): a bare letter
+      // key with a modifier isn't a tile placement. Without this, Cmd-R matched
+      // the a–z branch below and got swallowed as an "R" placement + preventDefault.
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       const k = e.key
@@ -536,124 +583,143 @@ export function PlayerBoard({ gameId, initialBoard, tiles, peers, isTerminal, on
   }
 
   return (
-    <div className={styles.layout}>
+    <div className={cls(shared.layout, styles.layout)}>
+      {/* The board column is game-specific (a FILL scroll arena, not the shared
+          hug board), so it does NOT compose shared.boardCol — styles.boardCol is
+          self-sufficient, avoiding a flex hug-vs-fill override fight. */}
       <div className={styles.boardCol}>
-        <div className={styles.boardScroll} ref={scrollRef}>
-          <div
-            className={styles.grid}
-            style={{
-              gridTemplateColumns: `repeat(${GRID}, ${cell}px)`,
-              gridTemplateRows: `repeat(${GRID}, ${cell}px)`,
-              width: GRID * cell,
-              height: GRID * cell,
-              fontSize: cell * LETTER_SCALE,
-            }}
-          >
-            {cells}
+        {/* The arena frame: fills the column above the fixed feedback slot; the
+            scroll area + floating controls are absolutely positioned within it. */}
+        <div className={styles.boardFrame}>
+          {/* onPointerDown blurs a focused chat box so clicking the board hands
+              the keyboard back to the game (the cells are non-focusable divs). */}
+          <div className={styles.boardScroll} ref={scrollRef} onPointerDown={blurActiveField}>
+            <div
+              className={styles.grid}
+              style={{
+                gridTemplateColumns: `repeat(${GRID}, ${cell}px)`,
+                gridTemplateRows: `repeat(${GRID}, ${cell}px)`,
+                width: GRID * cell,
+                height: GRID * cell,
+                fontSize: cell * LETTER_SCALE,
+              }}
+            >
+              {cells}
+            </div>
+          </div>
+          {/* Floating view controls over the board's top-right corner: the
+              zoom slider (translucent panel, so the board reads through it) and
+              the standalone square zoom-to-fit button below it. */}
+          <div className={styles.controls}>
+            <input
+              type="range"
+              className={styles.zoom}
+              min={minCell}
+              max={MAX_CELL}
+              value={cell}
+              onChange={(e) => onZoom(Number(e.target.value))}
+              aria-label="Zoom"
+              title="Zoom"
+            />
+            <ZoomFitButton onClick={centerAndFit} label="Fit to screen" />
           </div>
         </div>
-        {/* Floating controls over the board's top-right corner. */}
-        <div className={styles.controls}>
-          <input
-            type="range"
-            className={styles.zoom}
-            min={minCell}
-            max={MAX_CELL}
-            value={cell}
-            onChange={(e) => onZoom(Number(e.target.value))}
-            aria-label="Zoom"
-            title="Zoom"
-          />
-          <button
-            type="button"
-            className={styles.fitBtn}
-            onClick={centerAndFit}
-            title="Center + fit"
-            aria-label="Center and fit"
-          >
-            ◎
-          </button>
-        </div>
+        {/* Local feedback slot — fixed height so the arena never reflows when
+            the pill appears/clears. */}
+        <div className={styles.localSlot}>{localPill}</div>
       </div>
 
-      <div className={styles.rightCol}>
-        {peers}
-        <div className={styles.handHeader}>
-          <span className={styles.handLabel}>Hand</span>
-          <ShuffleButton
-            onShuffle={() => setHandOrder(shuffleString(displayedHand))}
-            disabled={displayedHand.length === 0}
-            label="Shuffle hand"
-          />
-        </div>
-        <div className={styles.hand} data-zone="hand">
-          {/* Red box flash: "you don't hold that tile" (a keyboard miss).
-              Keyed by the nonce so a repeated miss replays the animation;
-              pointer-events:none so it never blocks tile drags. */}
-          {errFlash && (
-            <div key={errNonce} className={styles.handError} aria-hidden />
-          )}
-          {displayedHand.split('').map((letter, i) => (
-            <div
-              key={i}
-              data-hand-tile
-              className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
-              onPointerDown={(e) => onHandPointerDown(i, letter, e)}
-            >
-              {letter}
+      {/* Info column — bananagrams' documented exception to the canonical order:
+          readouts (infoTop) → the HAND card (dump zone + rotate + tiles) → Peel
+          → the bottom action row (Concede / Dump). The hand + peel live here,
+          not in the board column, so the actions sit below them. */}
+      <div className={shared.infoCol}>
+        <div className={shared.actionSlot}>{infoTop}</div>
+
+        {/* The hand — a plain black heading OVER a bordered box (matching the
+            shared WordList / TurnLog chrome), filling the rest of the column
+            height. The dump zone sits at the TOP of the box (you dump one of a
+            few tiles often, so keep the target close); the ⟲ rotate floats over
+            the TILES' top-right corner, below the dump zone. */}
+        <div className={styles.handSection}>
+          <h3 className={styles.handHeading}>Hand</h3>
+          <div className={styles.handBox}>
+            {/* Dump zone — drop a tile here (from the hand OR the board) to swap
+                it for DUMP_COUNT. Info-blue dashed target; brightens while a
+                tile is dragged, greens when one hovers it. Hidden once terminal
+                or conceded. */}
+            {onDump && !isTerminal && !isConceded && (() => {
+              // A dump draws from the bunch + box together (see finishDrag).
+              const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
+              const tooLow = drawable !== undefined && drawable < DUMP_COUNT
+              return (
+                <div
+                  data-zone="dump"
+                  className={
+                    styles.dump +
+                    (drag && !tooLow ? ' ' + styles.dumpArmed : '') +
+                    (dumpHot ? ' ' + styles.dumpHot : '') +
+                    (tooLow ? ' ' + styles.dumpDisabled : '')
+                  }
+                >
+                  {tooLow ? (
+                    'Bunch too low to dump'
+                  ) : (
+                    <>
+                      <IconExchange size={16} aria-hidden /> Drag tile here to dump
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+
+            <div className={styles.handTilesWrap}>
+              {!isTerminal && !isConceded && (
+                <ShuffleButton
+                  className={styles.floatingRotate}
+                  onShuffle={() => setHandOrder(shuffleString(displayedHand))}
+                  disabled={displayedHand.length === 0}
+                  label="Shuffle hand"
+                />
+              )}
+              <div className={styles.hand} data-zone="hand" onPointerDown={blurActiveField}>
+                {/* Red box flash: "you don't hold that tile" (a keyboard miss).
+                    Keyed by the nonce so a repeated miss replays the animation;
+                    pointer-events:none so it never blocks tile drags. */}
+                {errFlash && <div key={errNonce} className={styles.handError} aria-hidden />}
+                {displayedHand.split('').map((letter, i) => (
+                  <div
+                    key={i}
+                    data-hand-tile
+                    className={styles.handTile + (drag && drag.source.kind === 'hand' && drag.source.index === i ? ' ' + styles.lifted : '')}
+                    onPointerDown={(e) => onHandPointerDown(i, letter, e)}
+                  >
+                    {letter}
+                  </div>
+                ))}
+                {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
+              </div>
             </div>
-          ))}
-          {displayedHand.length === 0 && <span className={styles.handEmpty}>all tiles placed!</span>}
-        </div>
-        {/* Dump slot: drop a tile here (from the hand OR the board) to swap it
-         *  for DUMP_COUNT. Lights up while any tile is dragged; dims when the
-         *  bunch can't cover the draw. */}
-        {onDump && !isTerminal && (() => {
-          // A dump draws from the bunch + box together (see finishDrag).
-          const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
-          const tooLow = drawable !== undefined && drawable < DUMP_COUNT
-          return (
-            <div
-              data-zone="dump"
-              className={
-                styles.dump +
-                (drag && !tooLow ? ' ' + styles.dumpArmed : '') +
-                (dumpHot ? ' ' + styles.dumpHot : '') +
-                (tooLow ? ' ' + styles.dumpDisabled : '')
-              }
-            >
-              {tooLow ? '♻️ bunch too low to dump' : `♻️ drag a tile here to dump (1 → ${DUMP_COUNT})`}
-            </div>
-          )
-        })()}
-        {/* The draw/win move: enabled only once the hand is empty. We FLUSH the
-         *  board first so peel's "placed == tiles" check sees the latest
-         *  placements; if the bunch is dry this wins, and the terminal modal is
-         *  driven from above by realtime, not by this click. */}
-        {onPeel && (
-          <div className={styles.peelRow}>
-            <button
-              type="button"
-              className={styles.doneBtn}
-              disabled={derivedHand.length !== 0 || isTerminal || declaring}
-              onClick={() => void doPeel()}
-            >
-              {isTerminal
-                ? 'Game over'
-                : derivedHand.length === 0
-                  ? 'Peel! 🍌'
-                  : 'Place all your tiles'}
-            </button>
-            {bunchCount !== undefined && !isTerminal && (
-              <span className={styles.bunch} title="Tiles left in the bunch">
-                🍌 <span className={styles.bunchNum}>{bunchCount}</span> in bunch
-                {boxCount !== undefined && boxCount > 0 && (
-                  <span className={styles.box}> ({boxCount} in box)</span>
-                )}
-              </span>
-            )}
           </div>
-        )}
+        </div>
+
+        {/* The bottom action row — natural-width action buttons side by side.
+            While playing: [Concede] [Peel] (Peel, the primary move, on the
+            right). The shared PeelButton (primary) is enabled only once the hand
+            is empty (it FLUSHES the board first so peel's "placed == tiles" check
+            is current; the terminal modal is driven from realtime, not this
+            click). At terminal / locally-terminal the row becomes the outcome
+            line + back-to-club (no Peel). */}
+        <div className={cls(shared.infoActions, (isTerminal || isConceded) && shared.terminalActions)}>
+          {infoActions}
+          {onPeel && !isTerminal && !isConceded && (
+            <PeelButton
+              className={shared.helperButton}
+              disabled={derivedHand.length !== 0 || declaring}
+              onClick={() => void doPeel()}
+            />
+          )}
+        </div>
       </div>
 
       {drag && (

@@ -1,27 +1,45 @@
-/* Two-column play surface: the board column on the left (toolbar + the fixed
- * 25×25 arena), the hand on the right. Height is bounded to the viewport via
- * --game-chrome-height so the board scrolls inside its frame. */
+/* bananagrams v3 play surface — composed with the shared scaffold
+ * (common/components/PlayArea.module.css): `.layout` sets the info-column
+ * width, and the board column + hand region are game-specific.
+ *
+ * bananagrams is the documented exception to two house rules:
+ *   - the board FILLS the left column (a zoom/scroll arena sized by the column,
+ *     not a hug board that grows to its tiles), so `.boardCol` overrides the
+ *     shared hug default with flex:1;
+ *   - the move controls (hand + shuffle + dump + peel) live in the RIGHT/info
+ *     column, not the board column — desktop-only, and the hand-on-the-right
+ *     feel is deliberate (docs/games/bananagrams.md). */
 
 .layout {
-  height: calc(100vh - var(--game-chrome-height));
-  display: flex;
-  flex-direction: row;
-  gap: 0.75rem;
+  /* Sized to hug a 5-across hand (5 × 44px tiles + 4 gaps + the hand box's
+   * border/padding + the info column's padding-left), so the tiles fill the
+   * column with no dead space to their right. */
+  --info-col-width: 18.5rem;
 }
 
-/* Positioned container for the absolutely-sized scroll area + the floating
- * controls. */
+/* ---- board column: FILLS (overrides the shared hug) ---- */
 .boardCol {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* The board frame — the positioning context for the absolutely-filled scroll
+ * area + the floating controls. flex:1 so it eats the column height ABOVE the
+ * fixed-height local-feedback slot below it. */
+.boardFrame {
   position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ---- the fixed arena ----
- * Absolutely filled to the column so its size comes from the COLUMN, never
- * from the grid inside it. A flex/auto-sized scroll container would grow to
- * the grid's width at high zoom and push the hand column off-screen; inset:0
- * pins it to the column and the grid just scrolls. */
+ * Absolutely filled to the FRAME so its size comes from the FRAME, never from
+ * the grid inside it. A flex/auto-sized scroll container would grow to the
+ * grid's width at high zoom and push the info column off-screen; inset:0 pins
+ * it and the grid just scrolls. */
 .boardScroll {
   position: absolute;
   inset: 0;
@@ -31,7 +49,21 @@
   background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
 }
 
+/* Local feedback slot — a fixed-height row below the board so the arena never
+ * reflows when the pill appears/clears (docs/design-decisions.md → the local
+ * feedback area is a fixed-height slot). Centered, the "local feedback is
+ * centered" look. */
+.localSlot {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ---- floating controls (top-right of the board) ---- */
+/* TRANSLUCENT so the board/tiles read faintly through the panel (Joel's call) —
+ * a light frosted backing rather than the old opaque surface. */
 .controls {
   position: absolute;
   top: 12px;
@@ -42,7 +74,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.4rem;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  backdrop-filter: blur(2px);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -58,25 +91,6 @@
   padding: 0;
   accent-color: var(--mg-cursor);
   cursor: pointer;
-}
-.fitBtn {
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  line-height: 1;
-  color: var(--mg-cursor); /* blue icon */
-  background: #fff; /* white background, not the global blue button */
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 100ms ease;
-}
-.fitBtn:hover {
-  background: #eef2f7; /* subtle tint on hover */
 }
 .grid {
   display: grid;
@@ -181,50 +195,73 @@
   }
 }
 
-/* ---- right column: peers strip (top) + hand (fills the rest) ---- */
-.rightCol {
-  /* Pinned to the width of a 4-across hand (4 tiles + 3 gaps + the hand's
-   * padding + border). FIXED on purpose: without it the column sizes to its
-   * widest child — the dump slot's text — so when the bunch runs too low to
-   * dump and that text shortens, the column (and the flex:1 board beside it)
-   * would reflow. A state change must never shift the play area (see ui.md).
-   * Keep this calc in sync with .hand's grid + padding below. */
-  flex: 0 0 auto;
-  width: calc(4 * 44px + 3 * 0.4rem + 2 * 0.6rem + 2px);
+/* ---- info column: the HAND ----
+ * Matches the shared WordList / TurnLog chrome: a plain black heading OUTSIDE
+ * an evident 2px-framed box. Sits BELOW the shared .actionSlot and fills the
+ * rest of the column height (bananagrams has no turn log / word list — the hand
+ * takes that slot). */
+.handSection {
+  flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-
-/* The hand's little toolbar: label on the left, ⟲ shuffle on the right. */
-.handHeader {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.handLabel {
-  font-size: 0.8rem;
+/* The heading — OUTSIDE the box, same look as WordList / TurnLog. */
+.handHeading {
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted);
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+/* The bordered box (same 2px frame as WordList / TurnLog): dump zone at the top,
+ * the scrolling tiles below. */
+.handBox {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+/* Wraps the scrolling tiles so the ⟲ rotate can float at the BOTTOM-right of the
+ * tiles area (out of the way of the tiles you reach for up top) and stay put as
+ * the tiles scroll. */
+.handTilesWrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.floatingRotate {
+  position: absolute;
+  bottom: 0.15rem;
+  right: 0.15rem;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+/* Shrink the shared 35px shuffle pill a touch for the hand corner. Element +
+ * class (0,1,1) beats ShuffleButton's `.shuffle` (0,1,0), so this wins
+ * regardless of stylesheet order. */
+button.floatingRotate {
+  width: 28px;
+  height: 28px;
 }
 .hand {
   position: relative; /* positioning context for the .handError flash box */
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 4 tiles across — the column width above (.rightCol) is pinned to match. */
-  grid-template-columns: repeat(4, 44px);
+  /* Exactly 5 tiles across — the column is sized (--info-col-width) to hug
+   * them, so there's no dead space to their right. */
+  grid-template-columns: repeat(5, 44px);
   gap: 0.4rem;
   align-content: start;
-  padding: 0.6rem;
+  justify-content: start;
   overflow-y: auto;
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
 }
 .handTile {
   width: 44px;
@@ -241,25 +278,27 @@
   text-align: center;
 }
 
-/* Dump slot: a dashed drop target below the hand. Quiet by default; lights up
- * when a hand tile is being dragged, brightest when one hovers it. */
+/* Dump zone: a dashed drop target at the TOP of the hand (you dump one of a few
+ * tiles often, so keep the target close to them). INFO-BLUE dashed by default;
+ * brightens (solid blue) while a tile is dragged, greens when one hovers it.
+ * The label sits at button-label size with an inline exchange icon. */
 .dump {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   text-align: center;
-  min-height: 38px;
-  padding: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  border: 2px dashed var(--color-surface-border);
+  min-height: 34px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.9rem;
+  color: var(--color-accent);
+  border: 2px dashed var(--color-accent);
   border-radius: var(--radius-md);
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
 }
 .dumpArmed {
-  border-color: var(--mg-cursor);
-  color: var(--mg-cursor);
+  border-style: solid;
 }
 .dumpHot {
   background: rgba(120, 200, 130, 0.22);
@@ -270,55 +309,8 @@
 .dumpDisabled {
   opacity: 0.5;
   border-style: dotted;
-}
-
-/* Peel + bunch-count, pinned at the bottom of the right column. */
-.peelRow {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.3rem;
-}
-.bunch {
-  text-align: center;
-  font-size: 0.8rem;
   color: var(--color-muted);
-}
-/* The bunch number itself — bolder + a touch larger than the muted label
- * around it, so the count reads at a glance. */
-.bunchNum {
-  font-weight: 700;
-  font-size: 1.15em;
-  color: var(--color-text);
-}
-/* The out-of-play box count, kept quiet next to the bunch. */
-.box {
-  color: var(--color-muted);
-}
-
-/* The draw/win move. Disabled — muted and un-clickable — until the hand is
- * empty. */
-.doneBtn {
-  flex: 0 0 auto;
-  padding: 0.6rem 1rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: var(--mg-cursor);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: filter 100ms ease;
-}
-.doneBtn:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-.doneBtn:disabled {
-  background: var(--color-surface);
-  color: var(--color-muted);
-  border: 1px solid var(--color-surface-border);
-  cursor: not-allowed;
+  border-color: var(--color-surface-border);
 }
 
 /* ---- drag ghost ---- */

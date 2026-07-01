@@ -1,71 +1,100 @@
-import { useCallback, useEffect, useRef } from 'react'
-import type { GamePageCtx } from '../../common/lib/games'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { GamePageCtx, FeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
+import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
+import { IconExchange } from '../../common/components/icons'
+import type { TerminalCopy } from '../../common/lib/terminalCopy'
+import { cls } from '../../common/lib/cls'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
+import type { BananagramsSetup } from '../lib/setup'
 import { PlayerBoard } from './PlayerBoard'
 import { PeersStrip } from './PeersStrip'
+import shared from '../../common/components/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 
 /**
- * bananagrams play surface.
+ * bananagrams play surface (v3).
  *
- * Load gate: `useGame` fetches the caller's own player board (`board` seeded
- * once, `tiles` kept live), `useProgress` subscribes to every player's public
- * count. We mount `<PlayerBoard>` — the fixed 25×25 arena + derived hand — and
- * hand it the `<PeersStrip>` (opponents' tiles-left) to slot above the hand.
+ * bananagrams is the roster's one intentional exception to "everything needed
+ * to make a move lives in the board column": the board is a zoom/scroll arena
+ * that fills the left column, and the HAND + peel + dump live in the RIGHT
+ * (info) column instead. It's a desktop-only game and the hand-on-the-right feel
+ * is deliberate (see docs/games/bananagrams.md). So `<PlayerBoard>` owns the
+ * whole two-column shell (the shared `.layout` / `.infoCol` / `.actionSlot`
+ * scaffold, with a fill — not hug — board column), and THIS component supplies
+ * the v3 info-column chrome (`infoTop`) + the below-board feedback pill.
  *
- * Win flow: the **Peel** button (enabled only when the hand is empty) calls
- * `peel`. If the bunch can't refill the table the peeler goes out and the game
- * ends for everyone; the `is_terminal` flip arrives over `useCommonGame`'s
- * realtime and drives `useTerminalModal` → the GameOverModal. Winner and losers
- * all show the same modal from the same signal — never popped imperatively on
- * the click. Both "did *I* win?" and the winner's name come from
- * `status.winner_username`, which rides the SAME `common.games` update as the
- * flip (no cross-channel flash of the wrong verdict).
+ * Feedback is LOCAL (a `<FeedbackPill>` in the below-board slot), not the global
+ * header channel: a peel/dump draw, an RPC error, and the terminal verdict are
+ * all about the player's own game, so they belong in the local feedback area.
  *
- * Peel announcement: a peel grows EVERY player's `tiles` at once. Each FE picks
- * up its own growth via the live `tiles` subscription, so watching `tiles`
- * length increase is the universal "a peel just happened — here's your new
- * tile" signal (the peeler and every drawer see the same pill).
+ * Win flow: `peel` (enabled only when the hand is empty) either deals everyone a
+ * tile or — when the bunch can't refill the ACTIVE table — goes out and wins.
+ * The `is_terminal` flip arrives over `useCommonGame`'s realtime → `useTerminalModal`.
+ *
+ * Concede: bananagrams is compete, so conceding is a real loss — but it only
+ * drops YOU out (`bananagrams.concede`); the others keep racing. A conceded
+ * player sees the terminal LOOK locally (board frozen, "you're out" pill) while
+ * the game stays live; the last player to concede ends it as a collective loss.
  */
+
+/** Local feedback pills here are never closeable, so the × never renders and
+ *  this is never called — but `<FeedbackPill>` requires the prop. */
+const noop = () => {}
+
+/** One-line timer summary for the setup disclosure. */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
+
 export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
   const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
-  const { gameId, feedback, menu, isTerminal } = ctx
+  const { gameId, isTerminal } = ctx
+
+  // ─── Local feedback (own-move) ─────────────────────────────────────────
+  // The below-board pill: a peel/dump draw announcement (timed), or an RPC
+  // error (sticky). The terminal verdict and the locally-terminal "you're out"
+  // message are layered on top of this in `slotMsg` below.
+  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
+
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+      setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       return null
     }
     // A blocked winning peel: the board isn't a legal grid (disconnected, or —
     // with check_words on — a non-word), so the game stays in progress and the
     // RPC hands back the offending cells — PlayerBoard paints them red. A
-    // 'won'/'dealt' result needs nothing here: a
-    // continuing peel grows `tiles` (the announcement effect reacts) and a
-    // winning peel flips is_terminal (the modal reacts).
+    // 'won'/'dealt' result needs nothing here: a continuing peel grows `tiles`
+    // (the announcement effect reacts) and a winning peel flips is_terminal (the
+    // modal reacts).
     const res = data as { result: string; invalid_cells: number[] } | null
     if (res?.result === 'illegal') {
       return { illegalCells: res.invalid_cells ?? [] }
     }
     return null
-  }, [gameId, feedback])
+  }, [gameId])
 
   // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so
   // the announcement below reads the next growth as a dump rather than a peel.
-  // This is best-effort, NOT race-free: a peel deals a tile to *every* player,
-  // so if a peer peels in the window between this RPC firing and its `tiles`
-  // echo landing, the peel's growth trips the flag first and the dump/peel
-  // toasts get swapped. Accepted as cosmetic — a wrong 2.5s toast, never a
-  // state effect (the tile multiset is always correct) — under the friends-only
-  // trust model. A truly race-free version would need dump/peel (both `returns
-  // void` today) to return their draw counts so the FE announces from the RPC
-  // response instead of inferring from realtime `tiles` growth.
+  // Best-effort, NOT race-free (a peer's peel in the echo window could trip the
+  // flag first) — accepted as cosmetic under the friends-only trust model; the
+  // tile multiset is always correct, only a 2.5s toast can be mislabelled.
   const dumpPending = useRef(false)
   const dump = useCallback(
     async (tile: string) => {
@@ -73,10 +102,10 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc('dump', { target_game: gameId, tile })
       if (error) {
         dumpPending.current = false // no tiles change is coming
-        feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'closeable' } })
+        setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       }
     },
-    [gameId, feedback],
+    [gameId],
   )
 
   // Announce a draw: my own `tiles` growing means a peel dealt me a tile (or my
@@ -93,67 +122,166 @@ export function PlayArea(ctx: GamePageCtx) {
       const grew = tiles.length - seenTilesLen.current
       if (dumpPending.current) {
         dumpPending.current = false
-        // dump drew `grew + 1` (it also removed the one dumped tile).
-        feedback.show({
+        setLocalMsg({
           tone: 'neutral',
-          text: `♻️ Dumped 1, drew ${grew + 1}.`,
+          text: (
+            <>
+              <IconExchange size={14} aria-hidden style={{ verticalAlign: '-2px' }} /> Dumped 1,
+              drew {grew + 1}.
+            </>
+          ),
+          variant: 'outline',
           dismiss: { kind: 'timed', ms: 2500 },
         })
       } else {
-        feedback.show({
+        setLocalMsg({
           tone: 'neutral',
           text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
+          variant: 'outline',
           dismiss: { kind: 'timed', ms: 2500 },
         })
       }
     }
     seenTilesLen.current = tiles.length
-  }, [tiles, loading, feedback])
+  }, [tiles, loading])
 
-  // ─── End-game action (per-game menu item) ──────────────
-  // bananagrams's only intrinsic terminal is a peel-win; if the friends
-  // want to quit before anyone goes out, this is the explicit stop. It
-  // ends the game for EVERYONE with nobody as the winner (status.outcome
-  // 'manual') — agreeing to stop is a valid outcome, not a loss. Mirrors
-  // spellingbee's PlayArea: confirm, fire the RPC, surface only failures.
-  useEndGameMenu({
-    isTerminal,
-    menu,
-    feedback,
-    endGame: () => db.rpc('end_game', { target_game: gameId }),
-  })
+  // ─── Concede — drop out of the race (a real loss, others keep going) ────
+  // Confirmed because it's irreversible; an RPC failure surfaces in the local
+  // pill. A conceded player is out — the game continues for everyone else.
+  const handleConcede = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("Concede? You'll drop out and take the loss — the others keep racing. You can't undo this.")) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) {
+      setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+    }
+  }, [gameId, isTerminal])
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
-  // Terminal verdict. Three terminal shapes reach here:
-  //   - a peel-win → status.winner_username is set; "did I win?" comes
-  //     from comparing it to my username (winner green, others red)
-  //   - a manual end (end_game) → status.outcome 'manual', NO winner.
-  //   - a countdown timeout (submit_timeout) → status.outcome 'timeout',
-  //     NO winner; everyone lost (red "Time's up").
-  // The no-winner cases MUST be checked first: with no winner_username,
-  // the win path below would fall through to `winnerName = 'someone'`
-  // and show everyone the red "someone went out — Bananas!" verdict —
-  // wrong for those. Manual ends show a neutral green "Game ended."
-  // (GameOverModal renders outcome:'won' as green).
-  const selfUsername = ctx.players.find((p) => p.user_id === ctx.session.user.id)?.username
+  const selfId = ctx.session.user.id
+  const selfProgress = progress.find((p) => p.user_id === selfId)
+  // Locally terminal: I've conceded but the game is still live for the others.
+  // Shown as the terminal LOOK (frozen board + "you're out"), not a silent swap.
+  const isConceded = !!selfProgress?.conceded && !isTerminal
+
+  // ─── Terminal verdict ──────────────────────────────────────────────────
+  // Three terminal shapes: a peel-win (status.winner_username set), a countdown
+  // timeout (outcome 'timeout', everyone lost), and an all-conceded collective
+  // loss (outcome 'conceded', everyone lost). The no-winner cases are checked
+  // FIRST — with no winner_username the peel-win branch would fall through to
+  // "someone went out — Bananas!" and show everyone a loss for the wrong reason.
+  const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
   const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
   const selfWon = !!selfUsername && winnerName === selfUsername
-  const over = !ctx.isTerminal
+  const over: TerminalCopy | null = !isTerminal
     ? null
-    : ctx.status?.outcome === 'manual'
-      ? { outcome: 'won' as const, verdict: '🍌 Game ended.' }
-      : ctx.status?.outcome === 'timeout'
-        ? { outcome: 'lost' as const, verdict: "⏰ Time's up — nobody went out." }
-        : {
-            outcome: (selfWon ? 'won' : 'lost') as 'won' | 'lost',
-            verdict: selfWon
-              ? '🍌 Bananas! You went out first.'
-              : `${winnerName} went out — Bananas!`,
-          }
+    : ctx.status?.outcome === 'timeout'
+      ? { outcome: 'lost', verdict: "⏰ Time's up — nobody went out.", message: 'Out of time', tone: 'lost' }
+      : ctx.status?.outcome === 'conceded'
+        ? { outcome: 'lost', verdict: '🏳️ Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
+        : selfWon
+          ? { outcome: 'won', verdict: '🍌 Bananas! You went out first.', message: 'You won!', tone: 'won' }
+          : { outcome: 'lost', verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
 
   const bunchCount = ctx.status?.pool_remaining as number | undefined
   const boxCount = ctx.status?.box_remaining as number | undefined
+  const setup = ctx.setup as unknown as BananagramsSetup
+
+  // ─── The below-board pill (terminal / locally-terminal / own-move) ──────
+  // Exactly one, by priority: the permanent (fill) terminal verdict; else the
+  // sticky "you conceded" when locally terminal; else the own-move draw/error
+  // pill (or nothing).
+  const slotMsg: FeedbackMsg | null = over
+    ? {
+        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
+        text: over.verdict,
+        variant: 'fill',
+        dismiss: { kind: 'sticky' },
+      }
+    : isConceded
+      ? {
+          tone: 'neutral',
+          text: "You conceded — you're out of the race.",
+          variant: 'outline',
+          dismiss: { kind: 'sticky' },
+        }
+      : localMsg
+
+  // ─── Info-column chrome ─────────────────────────────────────────────────
+  // bananagrams' info column is a DOCUMENTED EXCEPTION to the canonical v3
+  // order: state → opponents → help → setup → the HAND card (with the dump zone
+  // + rotate) → the action row (Concede / Dump) at the very bottom. The hand +
+  // peel live here, not in the board column (the game's other documented
+  // exception), so the actions sit below them rather than in the shared
+  // `.actionSlot`. `infoTop` is the readout stack; `infoActions` is the bottom
+  // row (PlayerBoard renders it after the hand card).
+  const infoTop = (
+    <>
+      {/* State — the shared bunch (the race resource everyone watches) + how
+          many tiles the player holds; the box count shows when the game isn't
+          on a full bag (a reduced bag or dump-to-box sets tiles aside). */}
+      <p className={shared.infoState}>
+        Holding <strong>{tiles.length}</strong> tile{tiles.length === 1 ? '' : 's'} ·{' '}
+        <strong>{bunchCount ?? '—'}</strong> in the bunch
+        {boxCount !== undefined && boxCount > 0 && (
+          <>
+            {' '}
+            · <strong>{boxCount}</strong> in the box
+          </>
+        )}
+      </p>
+
+      {/* Opponents — bananagrams keeps its own vertical, closest-to-done strip
+          (a race affordance the horizontal OpponentStrip can't express), which
+          now also marks conceded peers as "out". Renders nothing in solo. */}
+      <PeersStrip players={ctx.players} progress={progress} selfUserId={selfId} />
+
+      {/* Help — only while the player can still act. */}
+      {!over && !isConceded && (
+        <p className={shared.infoHelp}>
+          Drag tiles or click a cell and type. Peel when your hand is empty.
+        </p>
+      )}
+
+      {/* Setup — behind a disclosure (closed by default). */}
+      <details className={shared.infoSetup}>
+        <summary>Setup options</summary>
+        <ul>
+          <li>{setup.hand_size}-tile starter hand</li>
+          <li>{setup.bag_size}-tile bag</li>
+          {setup.check_words ? (
+            <li>
+              Real words required (2-letter: {DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer:{' '}
+              {DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})
+            </li>
+          ) : (
+            <li>Words not checked (trust the friends)</li>
+          )}
+          <li>Dumped tiles {setup.dump_to_box ? 'set aside (box)' : 'return to the bunch'}</li>
+          <li>{timerLabel(setup.timer)}</li>
+        </ul>
+      </details>
+    </>
+  )
+
+  // The bottom action row's CONTENT (PlayerBoard wraps it in the shared
+  // `.infoActions` row, adding the Peel button beside it while playing): the
+  // terminal outcome line + back-to-club, the locally-terminal "you're out"
+  // look, or the Concede button while playing.
+  const infoActions = over ? (
+    <>
+      <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
+      <BackToClubButton onClick={ctx.goToClub} compact />
+    </>
+  ) : isConceded ? (
+    <>
+      <span className={cls(shared.outcome, shared.outcome_neutral)}>You&rsquo;re out</span>
+      <BackToClubButton onClick={ctx.goToClub} compact />
+    </>
+  ) : (
+    <ConcedeGameButton onClick={() => void handleConcede()} className={shared.helperButton} />
+  )
 
   return (
     <>
@@ -162,13 +290,14 @@ export function PlayArea(ctx: GamePageCtx) {
         initialBoard={initialBoard}
         tiles={tiles}
         isTerminal={ctx.isTerminal}
+        isConceded={isConceded}
         onPeel={peel}
         onDump={dump}
         bunchCount={bunchCount}
         boxCount={boxCount}
-        peers={
-          <PeersStrip players={ctx.players} progress={progress} selfUserId={ctx.session.user.id} />
-        }
+        infoTop={infoTop}
+        infoActions={infoActions}
+        localPill={slotMsg && <FeedbackPill msg={slotMsg} onClose={noop} />}
       />
       {showModal && over && (
         <GameOverModal
