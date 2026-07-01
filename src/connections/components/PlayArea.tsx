@@ -164,16 +164,16 @@ export function PlayArea({
   // player's own guess: "Correct!" (green) / "One away!" (amber) /
   // "Incorrect" (red), or a validation/RPC error (red). It lives in the
   // commit row's already-reserved height (never a new line that would
-  // reflow the board — docs/ui.md → Layout stability), and `clearCommitFlash`
+  // reflow the board — docs/ui.md → Layout stability), and `clearLocalFeedback`
   // dismisses it the moment the player clicks a tile to start a fresh selection
   // (handleToggle below) — the tile-click analog of psychicnum's "typing
   // dismisses the flash". Local channel: near my eyes, about what I just did
   // (docs/deferred.md → Feedback channels). Shared machinery; the host owns
   // where it renders + when it clears early.
   const {
-    flash: commitFlash,
-    show: flashCommit,
-    clear: clearCommitFlash,
+    localFeedback,
+    showLocalFeedback,
+    clearLocalFeedback,
   } = useLocalFeedback(null) // sticky: no auto-timer; a tile click dismisses it
 
   // ─── Coop peer events (group feedback) ─────────────────
@@ -239,9 +239,9 @@ export function PlayArea({
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      flashCommit('bad', `End game failed: ${error.message}`)
+      showLocalFeedback('bad', `End game failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, flashCommit])
+  }, [gameId, isTerminal, showLocalFeedback])
 
   // Hints + End now live in the info-column action row (buttons), not the
   // GamePage menu — see the .infoActions block below. Hints opens the HintModal
@@ -259,7 +259,7 @@ export function PlayArea({
     // Dup detection (FE-side per the FE-knows model). My own action, so it
     // flashes locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      flashCommit('bad', 'You already tried that')
+      showLocalFeedback('bad', 'You already tried that')
       return
     }
 
@@ -275,7 +275,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      flashCommit('bad', error.message)
+      showLocalFeedback('bad', error.message)
       return
     }
     // Own-result flash in the commit slot (green/near/red), then clear the
@@ -284,11 +284,11 @@ export function PlayArea({
     // rejected set selected). The sticky flash shows over the cleared board;
     // clicking a tile dismisses it (handleToggle) and starts the next guess.
     if (verdict.kind === 'correct') {
-      flashCommit('good', 'Correct!')
+      showLocalFeedback('good', 'Correct!')
     } else if (verdict.kind === 'oneAway') {
-      flashCommit('near', 'One away!')
+      showLocalFeedback('near', 'One away!')
     } else {
-      flashCommit('bad', 'Incorrect')
+      showLocalFeedback('bad', 'Incorrect')
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -303,7 +303,7 @@ export function PlayArea({
   // psychicnum's "typing dismisses the entry flash" — the player has moved on
   // to the next selection, so the last guess's result should clear at once.
   function handleToggle(tile: string) {
-    clearCommitFlash()
+    clearLocalFeedback()
     toggleTile(tile)
   }
 
@@ -428,14 +428,14 @@ export function PlayArea({
             The `.inputRow` min-height keeps every state the same height. */}
         <div className={styles.inputRow}>
           {showInput ? (
-            commitFlash ? (
+            localFeedback ? (
               // My own guess result — a centered local <GenericFeedbackPill> (sticky;
               // clicking a tile dismisses it). Same register as the header pill.
               <div className={shared.localFeedback}>
                 <GenericFeedbackPill
                   msg={{
-                    tone: PILL_TONE[commitFlash.tone],
-                    text: commitFlash.label,
+                    tone: PILL_TONE[localFeedback.tone],
+                    text: localFeedback.label,
                     variant: 'outline',
                     dismiss: { kind: 'sticky' },
                   }}

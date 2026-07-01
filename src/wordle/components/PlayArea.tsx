@@ -95,7 +95,7 @@ export function PlayArea({
   // player's next edit (typeLetter / deleteLetter below), the "next move
   // dismisses it" rule (docs/design-decisions.md → Dismissal modes). Accepted
   // guesses get NO pill — the colored row that lands IS the feedback.
-  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
+  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
   // from the moment we submit until its colored server row arrives via
   // realtime, so the letters don't blink out during the round-trip. The
@@ -134,11 +134,11 @@ export function PlayArea({
   // entry flash"). Both the physical and on-screen keyboards route through these,
   // so the clear lives in one place. Stable (no deps) — they only call setters.
   const typeLetter = useCallback((ch: string) => {
-    setLocalMsg(null)
+    setLocalFeedback(null)
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
   }, [])
   const deleteLetter = useCallback(() => {
-    setLocalMsg(null)
+    setLocalFeedback(null)
     setCurrent((c) => c.slice(0, -1))
   }, [])
 
@@ -146,7 +146,7 @@ export function PlayArea({
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        setLocalMsg(localPill('warning', 'Not enough letters'))
+        setLocalFeedback(localPill('warning', 'Not enough letters'))
         return
       }
       setSubmitting(true)
@@ -161,7 +161,7 @@ export function PlayArea({
       if (error) {
         setPending(null)
         // A real failure (not a soft reject) → error-toned, still sticky.
-        setLocalMsg(localPill('error', error.message))
+        setLocalFeedback(localPill('error', error.message))
         return
       }
       const res = data as { result: string }
@@ -169,17 +169,17 @@ export function PlayArea({
       // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
-        setLocalMsg(localPill('error', 'Not in word list'))
+        setLocalFeedback(localPill('error', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {
         setPending(null)
-        setLocalMsg(localPill('warning', 'Already guessed'))
+        setLocalFeedback(localPill('warning', 'Already guessed'))
         return
       }
       if (res.result === 'invalid') {
         setPending(null)
-        setLocalMsg(localPill('warning', 'Not enough letters'))
+        setLocalFeedback(localPill('warning', 'Not enough letters'))
         return
       }
       // accepted (correct/incorrect): clear the typing buffer. `pending`
@@ -208,7 +208,7 @@ export function PlayArea({
     // keyboard dismisses via typeLetter/deleteLetter instead; doing it here too
     // is a harmless no-op when those run. (Same rule as useCaptureKeys.onAnyKey
     // — the EntryBox grabber had this exact gap before.)
-    setLocalMsg(null)
+    setLocalFeedback(null)
     if (e.key === 'Enter') {
       e.preventDefault()
       void doSubmit(current)
@@ -358,7 +358,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) setLocalMsg(localPill('error', error.message))
+    if (error) setLocalFeedback(localPill('error', error.message))
   }
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
@@ -378,13 +378,13 @@ export function PlayArea({
   //     places, deliberately);
   //   - locally terminal (compete: I'm done while the others race) → a sticky
   //     "you're out" pill (the target isn't revealed until the whole game ends);
-  //   - otherwise → the own-move soft-reject / error pill (localMsg, or nothing).
+  //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
   // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the
   // info column's terminalExtra carries the fuller "The answer was …" sentence.
   const answerSuffix = game.target
     ? `Answer: ${game.target.toUpperCase()}.`
     : ''
-  const slotMsg: GenericFeedbackMsg | null = over
+  const localFeedbackMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict,
@@ -398,7 +398,7 @@ export function PlayArea({
           variant: 'outline',
           dismiss: { kind: 'sticky' },
         }
-      : localMsg
+      : localFeedback
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
@@ -415,10 +415,10 @@ export function PlayArea({
             A fixed-height slot so neither the board above nor the keyboard below
             reflows when its pill appears/clears. Holds exactly one centered pill —
             the own-move soft-reject during play, a sticky "you're out" when
-            locally done, or the permanent terminal verdict (see `slotMsg`) — or
+            locally done, or the permanent terminal verdict (see `localFeedbackMsg`) — or
             nothing. */}
         <div className={styles.feedbackSlot}>
-          {slotMsg && <GenericFeedbackPill msg={slotMsg} onClose={noop} />}
+          {localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
         </div>
         <Keyboard
           keyStates={keyStates}

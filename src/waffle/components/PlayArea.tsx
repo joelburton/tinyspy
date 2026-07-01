@@ -70,7 +70,7 @@ export function PlayArea({
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
   // below-board slot — never the header pill (that's the peer/group channel).
-  const { flash: actionFlash, show: flashAction } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback } = useLocalFeedback()
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran
@@ -130,9 +130,9 @@ export function PlayArea({
       })
       // Own-action error → the local below-board flash. Success: the swap mutated
       // waffle.players → realtime refetch re-renders the board + colors.
-      if (error) flashAction('bad', error.message)
+      if (error) showLocalFeedback('bad', error.message)
     },
-    [gameId, flashAction],
+    [gameId, showLocalFeedback],
   )
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -142,8 +142,8 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) flashAction('bad', `End game failed: ${error.message}`)
-  }, [gameId, isTerminal, flashAction])
+    if (error) showLocalFeedback('bad', `End game failed: ${error.message}`)
+  }, [gameId, isTerminal, showLocalFeedback])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -253,12 +253,12 @@ export function PlayArea({
                 onClose={noop}
               />
             </div>
-          ) : actionFlash ? (
+          ) : localFeedback ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
                 msg={{
-                  tone: PILL_TONE[actionFlash.tone],
-                  text: actionFlash.label,
+                  tone: PILL_TONE[localFeedback.tone],
+                  text: localFeedback.label,
                   variant: 'outline',
                   dismiss: { kind: 'sticky' },
                 }}

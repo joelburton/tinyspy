@@ -128,7 +128,7 @@ export function PlayArea({
   // persists until my NEXT move dismisses it — a tile click or a keystroke into
   // the EntryBox, both routed through `handleEntryChange` below (which calls the
   // hook's `clear`). `useLocalFeedback(null)` disables the auto-timer.
-  const { flash: entryFlash, show: flashEntry, clear: clearFlash } = useLocalFeedback(null)
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback(null)
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // also the gesture that dismisses a sticky local result, so route both through
@@ -137,10 +137,10 @@ export function PlayArea({
   // is about to show.)
   const handleEntryChange = useCallback(
     (next: string) => {
-      clearFlash()
+      clearLocalFeedback()
       setPending(next)
     },
-    [clearFlash],
+    [clearLocalFeedback],
   )
 
   // ─── Coop peer events (group feedback) ─────────────────
@@ -282,7 +282,7 @@ export function PlayArea({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!game.words.includes(guess)) {
-      flashEntry('bad', 'Not on the board')
+      showLocalFeedback('bad', 'Not on the board')
       return
     }
     setSubmitting(true)
@@ -295,10 +295,10 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      flashEntry('bad', capitalize(error.message))
+      showLocalFeedback('bad', capitalize(error.message))
       return
     }
-    flashEntry(
+    showLocalFeedback(
       data === 'won' || data === 'correct' ? 'good' : 'bad',
       data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
     )
@@ -311,14 +311,14 @@ export function PlayArea({
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) flashEntry('bad', capitalize(error.message))
+    if (error) showLocalFeedback('bad', capitalize(error.message))
   }
 
   const getReveal = async () => {
     setRevealing(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
     setRevealing(false)
-    if (error) flashEntry('bad', capitalize(error.message))
+    if (error) showLocalFeedback('bad', capitalize(error.message))
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -326,7 +326,7 @@ export function PlayArea({
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) flashEntry('bad', capitalize(error.message))
+    if (error) showLocalFeedback('bad', capitalize(error.message))
   }
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
@@ -408,14 +408,14 @@ export function PlayArea({
               onSubmit={submitGuess}
               placeholder="Click on a tile or type"
               busy={submitting}
-              onAnyKey={clearFlash}
+              onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}
               pill={
-                entryFlash && pending === ''
+                localFeedback && pending === ''
                   ? {
-                      tone: entryFlash.tone === 'good' ? 'success' : 'error',
-                      text: entryFlash.label,
+                      tone: localFeedback.tone === 'good' ? 'success' : 'error',
+                      text: localFeedback.label,
                       variant: 'outline',
                       dismiss: { kind: 'sticky' },
                     }

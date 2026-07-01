@@ -89,14 +89,14 @@ export function PlayArea({
   // (a tile click, a keystroke) dismisses it. Peer narration goes to the GLOBAL
   // header instead (usePeerFeedback). Word accept/reject additionally flash the
   // WordEntry ring (below), so the pill is for the results that HAVE no ring.
-  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
-  const showLocal = useCallback(
+  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
+  const showLocalFeedback = useCallback(
     (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) => {
-      setLocalMsg({ tone, text, variant: 'outline', dismiss })
+      setLocalFeedback({ tone, text, variant: 'outline', dismiss })
     },
     [],
   )
-  const clearLocal = useCallback(() => setLocalMsg(null), [])
+  const clearLocalFeedback = useCallback(() => setLocalFeedback(null), [])
 
   // Tiles to briefly outline in red — set when a typed letter is ambiguous
   // (more than one exposed tile bears it), cleared after a beat.
@@ -172,7 +172,7 @@ export function PlayArea({
       if (error) {
         // Reachability/lock races (rare in friendly coop) land here.
         clearWord()
-        showLocal(error.message, 'error')
+        showLocalFeedback(error.message, 'error')
         return
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
@@ -184,14 +184,14 @@ export function PlayArea({
         commitWord(tileIds)
         // Flash the just-spelled word green in the entry row (the ring is the
         // own-accepted signal; no pill needed).
-        clearLocal()
+        clearLocalFeedback()
         showFlash([...res.word.toUpperCase()], 'good')
       } else {
         clearWord() // invalid → the tiles return to the board
-        showLocal(`Not a word: ${res.word.toUpperCase()}`, 'error')
+        showLocalFeedback(`Not a word: ${res.word.toUpperCase()}`, 'error')
       }
     },
-    [gameId, clearWord, commitWord, showFlash, showLocal, clearLocal],
+    [gameId, clearWord, commitWord, showFlash, showLocalFeedback, clearLocalFeedback],
   )
 
   // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──
@@ -203,16 +203,16 @@ export function PlayArea({
   const revealNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
     if (error) {
-      showLocal(error.message, 'error')
+      showLocalFeedback(error.message, 'error')
       return
     }
     const word = data as string | null
-    showLocal(
+    showLocalFeedback(
       word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
       'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
       { kind: 'closeable' },
     )
-  }, [gameId, showLocal])
+  }, [gameId, showLocalFeedback])
 
   // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
   // A softer reveal than "Reveal word": shows the curated hint for the
@@ -222,23 +222,23 @@ export function PlayArea({
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
-      showLocal(error.message, 'error')
+      showLocalFeedback(error.message, 'error')
       return
     }
     const hint = data as string | null
-    showLocal(hint ? `Hint: ${hint}` : 'All words cleared', 'warning', { kind: 'closeable' })
-  }, [gameId, showLocal])
+    showLocalFeedback(hint ? `Hint: ${hint}` : 'All words cleared', 'warning', { kind: 'closeable' })
+  }, [gameId, showLocalFeedback])
 
   // ─── Tile click → extend the word, submit on the fifth ────────
   const onTileClick = useCallback(
     (tileId: number) => {
       if (!canPlay) return
       clearFlash() // starting a new word drops any lingering flash
-      clearLocal() // …and the previous move's local pill (the "next move dismisses it" rule)
+      clearLocalFeedback() // …and the previous move's local pill (the "next move dismisses it" rule)
       const word = appendTile(tileId)
       if (word && word.length === 5) void submit(word)
     },
-    [canPlay, appendTile, submit, clearFlash, clearLocal],
+    [canPlay, appendTile, submit, clearFlash, clearLocalFeedback],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -253,7 +253,7 @@ export function PlayArea({
     if (e.metaKey || e.ctrlKey || e.altKey) return
     // Any handled keystroke is a "next move" — clear the previous local pill.
     // The no-match / ambiguous branches below set a fresh one after this.
-    clearLocal()
+    clearLocalFeedback()
     if (e.key === 'Backspace') {
       e.preventDefault()
       if (currentWord.length > 0) retractTo(currentWord.length - 1)
@@ -272,11 +272,11 @@ export function PlayArea({
       if (matches.length === 1) {
         onTileClick(matches[0].id)
       } else if (matches.length === 0) {
-        showLocal(`No “${letter}” tile is on top`, 'error')
+        showLocalFeedback(`No “${letter}” tile is on top`, 'error')
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
         flashTiles(matches.map((m) => m.id))
-        showLocal(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
+        showLocalFeedback(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
       }
     }
   })
@@ -287,8 +287,8 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocal(`End game failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, showLocal])
+    if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
+  }, [gameId, isTerminal, showLocalFeedback])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log
@@ -357,7 +357,7 @@ export function PlayArea({
         variant: 'fill', // permanent → lightened-tone fill
         dismiss: { kind: 'sticky' },
       }
-    : localMsg
+    : localFeedback
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
@@ -383,7 +383,7 @@ export function PlayArea({
           <div className={styles.localSlot}>
             {localPill && (
               <div className={shared.localFeedback}>
-                <GenericFeedbackPill msg={localPill} onClose={clearLocal} />
+                <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />
               </div>
             )}
           </div>

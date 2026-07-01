@@ -32,7 +32,7 @@ type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
 /** The player's own-move result, shown as a sticky pill in the commit slot. */
-type LocalMsg = { tone: GenericFeedbackTone; text: string }
+type LocalFeedbackMsg = { tone: GenericFeedbackTone; text: string }
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -171,9 +171,9 @@ export function PlayArea({
   // feedback area). v3: own-move feedback is LOCAL (docs/design-decisions.md →
   // Feedback), not the global header `ctx.globalFeedback`. Kept terse — the slot is
   // narrow (it sits where [Swap][Submit][Pass] go). Dismissed by the player's
-  // next move (clearLocal, below), not a timer.
-  const [localMsg, setLocalMsg] = useState<LocalMsg | null>(null)
-  const clearLocal = useCallback(() => setLocalMsg((m) => (m ? null : m)), [])
+  // next move (clearLocalFeedback, below), not a timer.
+  const [localFeedback, setLocalFeedback] = useState<LocalFeedbackMsg | null>(null)
+  const clearLocalFeedback = useCallback(() => setLocalFeedback((m) => (m ? null : m)), [])
 
   // Turn viewer: the play `seq` whose historical board is being inspected, or null
   // (live). Local + view-only — never shared/persisted, doesn't pause; the live
@@ -290,7 +290,7 @@ export function PlayArea({
         setStaged([])
         // Terse on purpose — the commit slot is narrow (a name + disc would
         // overflow with a longer username).
-        setLocalMsg({ tone: 'warning', text: 'Pre-play cleared: conflict' })
+        setLocalFeedback({ tone: 'warning', text: 'Pre-play cleared: conflict' })
       }
       pendingDrawRef.current = 0
       return
@@ -420,20 +420,20 @@ export function PlayArea({
         return
       }
       if (!canPlaceRef.current) return
-      clearLocal() // a board interaction dismisses the sticky own-move pill
+      clearLocalFeedback() // a board interaction dismisses the sticky own-move pill
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
-    [stagedAt, start, clearLocal],
+    [stagedAt, start, clearLocalFeedback],
   )
 
   const onRackPointerDown = useCallback(
     (rackIdx: number, glyph: string, e: React.PointerEvent) => {
       if (!canPlaceRef.current) return
-      clearLocal() // a rack interaction dismisses the sticky own-move pill
+      clearLocalFeedback() // a rack interaction dismisses the sticky own-move pill
       start({ kind: 'rack', rackIdx }, glyph, null, e)
     },
-    [start, clearLocal],
+    [start, clearLocalFeedback],
   )
 
   const pickBlank = useCallback(
@@ -483,7 +483,7 @@ export function PlayArea({
         blank = true
       }
       if (rackIdx < 0) {
-        setLocalMsg({ tone: 'info', text: `No “${letter}” tile` })
+        setLocalFeedback({ tone: 'info', text: `No “${letter}” tile` })
         return
       }
       setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
@@ -510,7 +510,7 @@ export function PlayArea({
     // see the label note). An illegal shape never reaches the server; surface the
     // reason as an own-move error pill in the commit slot and stop here.
     if (!ev.valid) {
-      setLocalMsg({ tone: 'error', text: ev.error })
+      setLocalFeedback({ tone: 'error', text: ev.error })
       return
     }
     setSubmitting(true)
@@ -523,7 +523,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      setLocalMsg({ tone: 'error', text: error.message })
+      setLocalFeedback({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; bad_words?: string[]; drawn?: string[] }
@@ -538,11 +538,11 @@ export function PlayArea({
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
-      setLocalMsg({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
+      setLocalFeedback({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
     } else if (res.result === 'stale') {
-      setLocalMsg({ tone: 'info', text: 'Board changed' })
+      setLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else if (res.result === 'invalid') {
-      setLocalMsg({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
+      setLocalFeedback({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
       const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
@@ -562,17 +562,17 @@ export function PlayArea({
     const { data, error } = await db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles })
     setSubmitting(false)
     if (error) {
-      setLocalMsg({ tone: 'error', text: error.message })
+      setLocalFeedback({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; drawn?: string[] }
     if (res.result === 'stale') {
-      setLocalMsg({ tone: 'info', text: 'Board changed' })
+      setLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else {
       lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
-      setLocalMsg({ tone: 'success', text: `Swapped ${tiles.length}` })
+      setLocalFeedback({ tone: 'success', text: `Swapped ${tiles.length}` })
     }
   }, [game, selected, actingRack, gameId])
 
@@ -583,14 +583,14 @@ export function PlayArea({
     // disabled until tiles are selected, so it's rarely hit by accident.
     if (!window.confirm('Do you really want to pass your turn?')) return
     const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })
-    if (error) setLocalMsg({ tone: 'error', text: error.message })
+    if (error) setLocalFeedback({ tone: 'error', text: error.message })
   }, [game, gameId])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) setLocalMsg({ tone: 'error', text: `End game failed: ${error.message}` })
+    if (error) setLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
   }, [gameId, isTerminal])
 
   useGlobalKeyHandler((e) => {
@@ -604,7 +604,7 @@ export function PlayArea({
     // ANY key dismisses the sticky local feedback (matches the capture-entry games'
     // "next keystroke clears feedback" behavior) — before the canPlace gate, so it
     // clears even for keys this handler otherwise ignores.
-    clearLocal()
+    clearLocalFeedback()
     // (The "~" word-lookup shortcut is now app-global; see useAppShortcuts.)
     if (!game || !canPlace) return
     const k = e.key
@@ -644,15 +644,15 @@ export function PlayArea({
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
   // buttons show).
-  const commitPill: GenericFeedbackMsg | null = over
+  const localFeedbackMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: over.message,
         variant: 'fill',
         dismiss: { kind: 'sticky' },
       }
-    : localMsg
-      ? { tone: localMsg.tone, text: localMsg.text, variant: 'outline', dismiss: { kind: 'sticky' } }
+    : localFeedback
+      ? { tone: localFeedback.tone, text: localFeedback.text, variant: 'outline', dismiss: { kind: 'sticky' } }
       : null
 
   // Turn viewer: when active, the board renders the replayed historical state with
@@ -720,7 +720,7 @@ export function PlayArea({
                 submitting={submitting}
                 submitScore={submitScore}
                 canSubmit={canSubmit}
-                pill={commitPill}
+                pill={localFeedbackMsg}
                 onSubmit={() => void submit()}
                 onRecall={recallAll}
                 onExchange={() => void exchange()}

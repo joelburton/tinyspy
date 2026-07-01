@@ -100,11 +100,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     setup, goToClub,
-    // The COMMON header feedback slot. Aliased so it doesn't clash with the
-    // local in-body `feedback` state below — the two are different surfaces:
-    // `headerFeedback` carries peer/opponent events (usePeerFeedback), the
-    // local pill carries the player's own word result.
-    globalFeedback: headerFeedback,
+    // The COMMON header slot (peer/opponent events, via usePeerFeedback) — as
+    // opposed to the local in-body `localFeedback` state below, which carries
+    // the player's own word result. Two different surfaces.
+    globalFeedback,
   } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
@@ -197,25 +196,25 @@ export function PlayArea(ctx: GamePageCtx) {
   // (docs/design-decisions.md → Feedback). STICKY, not timed: an own-move result
   // is important and the player may be looking at the board when it lands, so it
   // persists until their NEXT move dismisses it rather than vanishing on a timer
-  // (docs/design-decisions.md → Dismissal modes). `clearFeedback` is called on
+  // (docs/design-decisions.md → Dismissal modes). `clearLocalFeedback` is called on
   // every move gesture below — any key the game sees, a hex click, or Delete.
-  const [feedback, setFeedback] = useState<{
+  const [localFeedback, setLocalFeedback] = useState<{
     message: string
     tone: GenericFeedbackTone
   }>({ message: '', tone: 'success' })
 
-  const showFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
-    setFeedback({ message, tone })
+  const showLocalFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
+    setLocalFeedback({ message, tone })
   }, [])
 
-  const clearFeedback = useCallback(() => {
-    setFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
+  const clearLocalFeedback = useCallback(() => {
+    setLocalFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
   }, [])
 
   const handleLetterClick = useCallback((letter: string) => {
-    clearFeedback()
+    clearLocalFeedback()
     setWord((prev) => prev + letter.toUpperCase())
-  }, [clearFeedback])
+  }, [clearLocalFeedback])
 
 
   // ─── Submit ────────────────────────────────────────────
@@ -233,7 +232,7 @@ export function PlayArea(ctx: GamePageCtx) {
         word,
       })
       if (error) {
-        showFeedback(error.message, 'error')
+        showLocalFeedback(error.message, 'error')
         return
       }
       // submit_word returns { result, points } — points lets us show the score
@@ -246,12 +245,12 @@ export function PlayArea(ctx: GamePageCtx) {
       const label = RESULT_LABEL[payload.result] ?? payload.result
       // Scoring results (accepted / bonus / pangram) carry points > 0.
       const suffix = payload.points > 0 ? ` +${payload.points}pts` : ''
-      showFeedback(`${word.toUpperCase()}: ${label}${suffix}`, tone)
+      showLocalFeedback(`${word.toUpperCase()}: ${label}${suffix}`, tone)
       setWord('')
     } finally {
       setSubmitting(false)
     }
-  }, [gameId, isTerminal, showFeedback, submitting, word])
+  }, [gameId, isTerminal, showLocalFeedback, submitting, word])
 
   // Space shuffles the outer letters — spellingbee's one capture-entry extra key
   // (passed to the shared <EntryRow> below, which owns the rest of the keyboard:
@@ -277,9 +276,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showFeedback(`End game failed: ${error.message}`, 'error')
+      showLocalFeedback(`End game failed: ${error.message}`, 'error')
     }
-  }, [gameId, isTerminal, showFeedback])
+  }, [gameId, isTerminal, showLocalFeedback])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -293,7 +292,7 @@ export function PlayArea(ctx: GamePageCtx) {
     players,
     foundWords,
     status,
-    feedback: headerFeedback,
+    feedback: globalFeedback,
   })
 
   // Called UNCONDITIONALLY here, before any early returns —
@@ -378,7 +377,7 @@ export function PlayArea(ctx: GamePageCtx) {
             placeholder="Type or click letters"
             disabled={isTerminal}
             busy={submitting}
-            onAnyKey={clearFeedback}
+            onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
             onExtraKey={handleEntryExtraKey}
             recall={lastWord}
@@ -390,8 +389,8 @@ export function PlayArea(ctx: GamePageCtx) {
                     variant: 'fill', // permanent → lightened-tone fill
                     dismiss: { kind: 'sticky' },
                   }
-                : feedback.message && word === ''
-                  ? { tone: feedback.tone, text: feedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                : localFeedback.message && word === ''
+                  ? { tone: localFeedback.tone, text: localFeedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
                   : null
             }
           >

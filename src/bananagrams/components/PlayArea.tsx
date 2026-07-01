@@ -68,13 +68,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // ─── Local feedback (own-move) ─────────────────────────────────────────
   // The below-board pill: a peel/dump draw announcement (timed), or an RPC
   // error (sticky). The terminal verdict and the locally-terminal "you're out"
-  // message are layered on top of this in `slotMsg` below.
-  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
+  // message are layered on top of this in `localFeedbackMsg` below.
+  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
-      setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       return null
     }
     // A blocked winning peel: the board isn't a legal grid (disconnected, or —
@@ -102,7 +102,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc('dump', { target_game: gameId, tile })
       if (error) {
         dumpPending.current = false // no tiles change is coming
-        setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+        setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       }
     },
     [gameId],
@@ -122,7 +122,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const grew = tiles.length - seenTilesLen.current
       if (dumpPending.current) {
         dumpPending.current = false
-        setLocalMsg({
+        setLocalFeedback({
           tone: 'neutral',
           text: (
             <>
@@ -134,7 +134,7 @@ export function PlayArea(ctx: GamePageCtx) {
           dismiss: { kind: 'timed', ms: 2500 },
         })
       } else {
-        setLocalMsg({
+        setLocalFeedback({
           tone: 'neutral',
           text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
           variant: 'outline',
@@ -153,7 +153,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm("Concede? You'll drop out and take the loss — the others keep racing. You can't undo this.")) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
-      setLocalMsg({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
     }
   }, [gameId, isTerminal])
 
@@ -192,7 +192,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Exactly one, by priority: the permanent (fill) terminal verdict; else the
   // sticky "you conceded" when locally terminal; else the own-move draw/error
   // pill (or nothing).
-  const slotMsg: GenericFeedbackMsg | null = over
+  const localFeedbackMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: over.verdict,
@@ -206,7 +206,7 @@ export function PlayArea(ctx: GamePageCtx) {
           variant: 'outline',
           dismiss: { kind: 'sticky' },
         }
-      : localMsg
+      : localFeedback
 
   // ─── Info-column chrome ─────────────────────────────────────────────────
   // bananagrams' info column is a DOCUMENTED EXCEPTION to the canonical v3
@@ -297,7 +297,7 @@ export function PlayArea(ctx: GamePageCtx) {
         boxCount={boxCount}
         infoTop={infoTop}
         infoActions={infoActions}
-        localPill={slotMsg && <GenericFeedbackPill msg={slotMsg} onClose={noop} />}
+        localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
       />
       {showModal && over && (
         <GameOverModal

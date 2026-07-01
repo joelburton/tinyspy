@@ -77,15 +77,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // (docs/design-decisions.md → Feedback). STICKY: it persists until the player's
   // NEXT move dismisses it (any key the game sees, a Delete) rather than vanishing
   // on a timer.
-  const [feedback, setFeedback] = useState<{ message: string; tone: GenericFeedbackTone }>({
+  const [localFeedback, setLocalFeedback] = useState<{ message: string; tone: GenericFeedbackTone }>({
     message: '',
     tone: 'success',
   })
-  const showFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
-    setFeedback({ message, tone })
+  const showLocalFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
+    setLocalFeedback({ message, tone })
   }, [])
-  const clearFeedback = useCallback(() => {
-    setFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
+  const clearLocalFeedback = useCallback(() => {
+    setLocalFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
   }, [])
 
   const grid = useMemo(
@@ -126,7 +126,7 @@ export function PlayArea(ctx: GamePageCtx) {
     setLastWord(word)
 
     if (w.length < game.min_word_length) {
-      showFeedback(`Too short (min ${game.min_word_length})`, 'warning')
+      showLocalFeedback(`Too short (min ${game.min_word_length})`, 'warning')
       setWord('')
       return
     }
@@ -134,12 +134,12 @@ export function PlayArea(ctx: GamePageCtx) {
       (f) => f.word === w && (game.mode === 'coop' || f.user_id === myId),
     )
     if (dup) {
-      showFeedback(`${w.toUpperCase()} — already found`, 'warning')
+      showLocalFeedback(`${w.toUpperCase()} — already found`, 'warning')
       setWord('')
       return
     }
     if (!traceableStr(game.board, w)) {
-      showFeedback(`${w.toUpperCase()} — not on the board`, 'error')
+      showLocalFeedback(`${w.toUpperCase()} — not on the board`, 'error')
       setWord('')
       return
     }
@@ -151,9 +151,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (required) {
       // Known-good (member + traceable + not dup): show points instantly, record
       // in the background — the realtime insert lands it in the list.
-      showFeedback(`${w.toUpperCase()} +${points}`, 'success')
+      showLocalFeedback(`${w.toUpperCase()} +${points}`, 'success')
       void db.rpc('submit_word', { target_game: gameId, word: w, points }).then(({ error }) => {
-        if (error) showFeedback(error.message, 'error')
+        if (error) showLocalFeedback(error.message, 'error')
       })
       return
     }
@@ -162,23 +162,23 @@ export function PlayArea(ctx: GamePageCtx) {
     try {
       const { data, error } = await db.rpc('submit_word', { target_game: gameId, word: w, points })
       if (error) {
-        showFeedback(error.message, 'error')
+        showLocalFeedback(error.message, 'error')
         return
       }
       const res = data as { result: string; points: number }
       if (res.result === 'bonus' || res.result === 'accepted') {
-        showFeedback(`${w.toUpperCase()} +${res.points} (bonus)`, 'success')
+        showLocalFeedback(`${w.toUpperCase()} +${res.points} (bonus)`, 'success')
       } else if (res.result === 'notAWord') {
-        showFeedback(`${w.toUpperCase()} — not a word`, 'error')
+        showLocalFeedback(`${w.toUpperCase()} — not a word`, 'error')
       } else if (res.result === 'alreadyFound') {
-        showFeedback(`${w.toUpperCase()} — already found`, 'warning')
+        showLocalFeedback(`${w.toUpperCase()} — already found`, 'warning')
       } else {
-        showFeedback(res.result, 'warning')
+        showLocalFeedback(res.result, 'warning')
       }
     } finally {
       setSubmitting(false)
     }
-  }, [word, game, isTerminal, submitting, foundWords, myId, ladder, gameId, showFeedback])
+  }, [word, game, isTerminal, submitting, foundWords, myId, ladder, gameId, showLocalFeedback])
 
   // Manual end — an info-column action-row button now (like the other converged
   // games), off the GamePage menu. Confirmed; it's irreversible.
@@ -186,8 +186,8 @@ export function PlayArea(ctx: GamePageCtx) {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showFeedback(`End game failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, showFeedback])
+    if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
+  }, [gameId, isTerminal, showLocalFeedback])
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
@@ -250,7 +250,7 @@ export function PlayArea(ctx: GamePageCtx) {
             placeholder="Type a word"
             disabled={isTerminal}
             busy={submitting}
-            onAnyKey={clearFeedback}
+            onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
             recall={lastWord}
             pill={
@@ -261,8 +261,8 @@ export function PlayArea(ctx: GamePageCtx) {
                     variant: 'fill', // permanent → lightened-tone fill
                     dismiss: { kind: 'sticky' },
                   }
-                : feedback.message && word === ''
-                  ? { tone: feedback.tone, text: feedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                : localFeedback.message && word === ''
+                  ? { tone: localFeedback.tone, text: localFeedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
                   : null
             }
           />
