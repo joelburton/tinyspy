@@ -1,5 +1,5 @@
-import type { FeedbackMsg } from '../../common/lib/games'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import type { GenericFeedbackMsg } from '../../common/lib/games'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { ExchangeButton } from '../../common/components/buttons/ExchangeButton'
 import { SubmitWithScore } from '../../common/components/buttons/SubmitWithScore'
@@ -12,7 +12,7 @@ import styles from './PlayArea.module.css'
  * Shuffle — is rendered beside it by PlayArea). Recall on the left; the **commit
  * slot** ([Swap] [Pass] [Submit]) pushed to the right edge. That slot doubles as
  * the **local feedback area**: when `pill` is set (an own-move result, or the
- * terminal verdict) it shows a `<FeedbackPill>` in place of the buttons AND fills
+ * terminal verdict) it shows a `<GenericFeedbackPill>` in place of the buttons AND fills
  * the whole space (so a longer message reads before it clips). The rack (to the
  * left) stays interactive, so a keystroke / tile tap dismisses the pill.
  *
@@ -57,7 +57,7 @@ export function Controls({
   canSubmit: boolean
   /** An own-move / terminal pill to show IN the commit slot (replacing the commit
    *  buttons + filling its width), or null to show the buttons. */
-  pill: FeedbackMsg | null
+  pill: GenericFeedbackMsg | null
   onSubmit: () => void
   onRecall: () => void
   onExchange: () => void
@@ -71,7 +71,7 @@ export function Controls({
         {pill ? (
           // Sticky local feedback — no × (the next move dismisses it). onClose is
           // unused for a sticky pill, but the prop is required.
-          <FeedbackPill msg={pill} onClose={() => {}} />
+          <GenericFeedbackPill msg={pill} onClose={() => {}} />
         ) : (
           <>
             <ExchangeButton

@@ -1,12 +1,12 @@
-import type { FeedbackMsg, Member } from '../lib/games'
-import { FeedbackPill } from './FeedbackPill'
+import type { GenericFeedbackMsg, Member } from '../lib/games'
+import { GenericFeedbackPill } from './GenericFeedbackPill'
 import { PlayersStrip } from './PlayersStrip'
 import styles from './StatusSlot.module.css'
 
 type Props = {
   players: Member[]
-  feedback: FeedbackMsg | null
-  onCloseFeedback: () => void
+  globalFeedback: GenericFeedbackMsg | null
+  onCloseGlobalFeedback: () => void
   /** Forwarded to PlayersStrip — when set, absent members render
    *  dimmed. The club page passes its live presence set; the in-game
    *  header omits it. */
@@ -18,7 +18,7 @@ type Props = {
  *
  *  - **default**: `<PlayersStrip>` — colored usernames, the
  *    "who's playing and what color is who" reminder.
- *  - **feedback**: `<FeedbackPill>` — the active feedback
+ *  - **feedback**: `<GenericFeedbackPill>` — the active feedback
  *    message, replacing the strip while it's showing. Three
  *    dismiss modes per docs/ui.md → "Feedback pill."
  *
@@ -34,14 +34,14 @@ type Props = {
  */
 export function StatusSlot({
   players,
-  feedback,
-  onCloseFeedback,
+  globalFeedback,
+  onCloseGlobalFeedback,
   presentUserIds,
 }: Props) {
   return (
     <div className={styles.slot}>
-      {feedback ? (
-        <FeedbackPill msg={feedback} onClose={onCloseFeedback} />
+      {globalFeedback ? (
+        <GenericFeedbackPill msg={globalFeedback} onClose={onCloseGlobalFeedback} />
       ) : (
         <PlayersStrip players={players} presentUserIds={presentUserIds} />
       )}

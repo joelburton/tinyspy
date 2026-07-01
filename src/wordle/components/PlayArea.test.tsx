@@ -65,7 +65,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
     status: null,
-    feedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
     menu: { setGameItems: vi.fn() },
     ...over,
@@ -107,7 +107,7 @@ describe('wordle PlayArea — render smoke', () => {
 describe('wordle PlayArea — peer narration (global header)', () => {
   it("announces a teammate's accepted guess in coop", () => {
     const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ feedback, players: twoMembers })
+    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
     // First render seeds the seen-set with my own guess (no announcement).
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
@@ -126,7 +126,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
 
   it('does not narrate my own guess', () => {
     const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ feedback, players: twoMembers })
+    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
     const { rerender } = render(<PlayArea {...ctx} />)
     feedback.show.mockClear()
@@ -139,7 +139,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
 
   it('announces an opponent solving in compete', () => {
     const feedback = { show: vi.fn(), clear: vi.fn() }
-    const ctx = makeCtx({ feedback, players: twoMembers })
+    const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
     // First render seeds: nobody solved yet.
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     const { rerender } = render(<PlayArea {...ctx} />)

@@ -26,7 +26,7 @@ type Props = {
  * member's dot becomes an empty black outline — present = filled
  * color, away = hollow. The name stays black either way.
  *
- * Replaced by `<FeedbackPill>` when `ctx.feedback.show()` has been
+ * Replaced by `<GenericFeedbackPill>` when `ctx.globalFeedback.show()` has been
  * called; the underlying roster keeps updating in the background, so
  * when the pill clears the strip reflects whoever is in the game
  * right now. Per docs/ui.md → Layout stability, the slot height

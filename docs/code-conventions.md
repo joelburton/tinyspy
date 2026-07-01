@@ -454,6 +454,30 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 | File names — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
 | File names — docs | kebab-case | `code-conventions.md`, `cheatsheet.md` |
 
+### Feedback naming
+
+**"Feedback"** here means specifically **a message shown in the global feedback area (the GamePage-header pill) or the local feedback area (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). Only the two pill channels count.
+
+Two hard rules for anything that *sets, holds, renders, or types* one of those pill messages:
+
+1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackTone`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.
+
+2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** In particular, avoid `flash` — whether a message is timed / sticky / closeable is a per-message property (the `dismiss` field), not something a name should assert.
+
+Same role → same name across games (a peer-narration hook is `useGlobalFeedback` everywhere, not `usePeerFeedback` in one game and `announcePeerGuess` in another).
+
+| role | name | channel |
+|---|---|---|
+| shared pill renderer | `GenericFeedbackPill` | Generic |
+| shared message type / tone / API | `GenericFeedbackMsg` / `GenericFeedbackTone` / `GenericFeedbackApi` | Generic |
+| the global sink on `GamePageCtx` | `globalFeedback` (`.show` / `.clear`) | Global |
+| per-game hook computing peer messages → global area | `useGlobalFeedback` | Global |
+| hook holding the own-move below-board message | `useLocalFeedback` | Local |
+| set / clear the local pill | `showLocalFeedback` / `clearLocalFeedback` | Local |
+| the below-board slot CSS | `.localFeedbackSlot` | Local |
+
+Peer feedback goes to the **global** area; own-move feedback goes to the **local** area. Because that split is 1:1, `Global` and `Local` are effectively synonyms for "peer" and "own" — naming by channel loses no information and keeps the invariant visible.
+
 ### Grid coordinates
 
 The games that let you place tiles onto a coordinate-addressed grid with a keyboard cursor — **bananagrams** and **scrabble** — share one vocabulary:

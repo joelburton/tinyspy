@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ResultTone } from '../components/ResultFlash'
 
-/** How long a result flash stays up before it auto-clears. Shared so every
- *  game's own-result feedback feels identical. */
-export const RESULT_FLASH_MS = 1400
+/** The outcome a local-feedback message paints. `good`/`bad` are the universal
+ *  correct/wrong pair; `near` is the "one away" partial-credit amber (connections
+ *  only). Games map this onto the pill's `GenericFeedbackTone`. Same vocabulary
+ *  as the TurnLog outcome bar, minus its `neutral`. */
+export type LocalFeedbackTone = 'good' | 'bad' | 'near'
 
-/** The current flash, or `null` when nothing's showing. Feed it to a
- *  `<ResultFlash>` (or any consumer) when set. */
-export type ResultFlashState = { tone: ResultTone; label: string } | null
+/** How long a local-feedback message stays up before it auto-clears, when the
+ *  host opts into a timer (the sticky default passes `ms: null`). Shared so every
+ *  game's own-move feedback feels identical. */
+export const LOCAL_FEEDBACK_DISMISS_MS = 1400
 
-export type ResultFlashApi = {
-  flash: ResultFlashState
+/** The current local-feedback message, or `null` when nothing's showing. Feed
+ *  it to a `<GenericFeedbackPill>` (or any consumer) when set. */
+export type LocalFeedbackState = { tone: LocalFeedbackTone; label: string } | null
+
+export type LocalFeedbackApi = {
+  flash: LocalFeedbackState
   /** Show a flash; it auto-clears after `ms` (re-arming the timer if one is
    *  already running, so a fresh result resets the countdown). When the hook was
    *  created with `ms: null` there's no timer — the flash is **sticky** until the
    *  host calls `clear()`. */
-  show: (tone: ResultTone, label: string) => void
+  show: (tone: LocalFeedbackTone, label: string) => void
   /** Clear the flash now — e.g. when the player starts the next move (a
    *  keystroke, a tile click). No-op if nothing's showing. */
   clear: () => void
@@ -37,12 +43,12 @@ export type ResultFlashApi = {
  * owns the *mechanics* — the state, the re-armable timer, the cleanup — which
  * were near-verbatim copies in both games before they landed here.
  */
-export function useResultFlash(ms: number | null = RESULT_FLASH_MS): ResultFlashApi {
-  const [flash, setFlash] = useState<ResultFlashState>(null)
+export function useLocalFeedback(ms: number | null = LOCAL_FEEDBACK_DISMISS_MS): LocalFeedbackApi {
+  const [flash, setFlash] = useState<LocalFeedbackState>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const show = useCallback(
-    (tone: ResultTone, label: string) => {
+    (tone: LocalFeedbackTone, label: string) => {
       setFlash({ tone, label })
       if (timerRef.current !== null) clearTimeout(timerRef.current)
       // ms === null → sticky: no auto-clear timer; the host clears it on the

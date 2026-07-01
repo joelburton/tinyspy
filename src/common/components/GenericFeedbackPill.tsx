@@ -1,16 +1,16 @@
 import { cls } from '../lib/cls'
-import type { FeedbackMsg } from '../lib/games'
-import styles from './FeedbackPill.module.css'
+import type { GenericFeedbackMsg } from '../lib/games'
+import styles from './GenericFeedbackPill.module.css'
 
 type Props = {
-  msg: FeedbackMsg
+  msg: GenericFeedbackMsg
   onClose: () => void
 }
 
 /**
  * The shared feedback pill — the "what just happened" display. It serves BOTH
  * feedback areas (docs/design-decisions.md → Terms): the GLOBAL one (the header
- * `<StatusSlot>`, via `ctx.feedback.show()`, left-justified, for peer/opponent
+ * `<StatusSlot>`, via `ctx.globalFeedback.show()`, left-justified, for peer/opponent
  * messages) and the LOCAL one (a below-board slot a game renders directly,
  * centered, for the player's own move). See docs/ui.md → "Feedback pill" for the
  * full API contract.
@@ -35,7 +35,7 @@ type Props = {
  * `msg.dot` is independent of that axis: a leading player-color disc naming the
  * actor in a peer message (docs/ui.md → "Player identity = a colored disc").
  */
-export function FeedbackPill({ msg, onClose }: Props) {
+export function GenericFeedbackPill({ msg, onClose }: Props) {
   const outline = msg.variant === 'outline'
   return (
     <div className={cls(styles.pill, styles[msg.tone], outline && styles.outline)}>

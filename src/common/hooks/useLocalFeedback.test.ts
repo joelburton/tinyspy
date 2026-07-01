@@ -9,7 +9,7 @@ import { renderHook, act } from '@testing-library/react'
  * Fake timers drive the clock.
  */
 
-import { useResultFlash, RESULT_FLASH_MS } from './useResultFlash'
+import { useLocalFeedback, LOCAL_FEEDBACK_DISMISS_MS } from './useLocalFeedback'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -19,20 +19,20 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('useResultFlash', () => {
+describe('useLocalFeedback', () => {
   it('starts empty', () => {
-    const { result } = renderHook(() => useResultFlash())
+    const { result } = renderHook(() => useLocalFeedback())
     expect(result.current.flash).toBeNull()
   })
 
   it('shows a flash and auto-clears after the duration', () => {
-    const { result } = renderHook(() => useResultFlash())
+    const { result } = renderHook(() => useLocalFeedback())
 
     act(() => result.current.show('good', 'Correct!'))
     expect(result.current.flash).toEqual({ tone: 'good', label: 'Correct!' })
 
     // Just before the deadline it's still up…
-    act(() => void vi.advanceTimersByTime(RESULT_FLASH_MS - 1))
+    act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS - 1))
     expect(result.current.flash).toEqual({ tone: 'good', label: 'Correct!' })
 
     // …and clears exactly at it.
@@ -41,23 +41,23 @@ describe('useResultFlash', () => {
   })
 
   it('clear() dismisses immediately and cancels the timer', () => {
-    const { result } = renderHook(() => useResultFlash())
+    const { result } = renderHook(() => useLocalFeedback())
 
     act(() => result.current.show('bad', 'Incorrect'))
     act(() => result.current.clear())
     expect(result.current.flash).toBeNull()
 
     // The pending auto-clear must not fire later and resurrect/re-null anything.
-    act(() => void vi.advanceTimersByTime(RESULT_FLASH_MS))
+    act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS))
     expect(result.current.flash).toBeNull()
   })
 
   it('re-arms the countdown on a fresh show()', () => {
-    const { result } = renderHook(() => useResultFlash())
+    const { result } = renderHook(() => useLocalFeedback())
 
     act(() => result.current.show('good', 'first'))
     // Most of the way through the first flash…
-    act(() => void vi.advanceTimersByTime(RESULT_FLASH_MS - 10))
+    act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS - 10))
     // …a second result restarts the clock with the new label.
     act(() => result.current.show('near', 'second'))
     expect(result.current.flash).toEqual({ tone: 'near', label: 'second' })
@@ -67,12 +67,12 @@ describe('useResultFlash', () => {
     expect(result.current.flash).toEqual({ tone: 'near', label: 'second' })
 
     // The new full duration clears it.
-    act(() => void vi.advanceTimersByTime(RESULT_FLASH_MS - 10))
+    act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS - 10))
     expect(result.current.flash).toBeNull()
   })
 
   it('honors a custom duration', () => {
-    const { result } = renderHook(() => useResultFlash(500))
+    const { result } = renderHook(() => useLocalFeedback(500))
 
     act(() => result.current.show('bad', 'nope'))
     act(() => void vi.advanceTimersByTime(499))
@@ -83,7 +83,7 @@ describe('useResultFlash', () => {
 
   it('clears the timer on unmount (no leak)', () => {
     const clearSpy = vi.spyOn(globalThis, 'clearTimeout')
-    const { result, unmount } = renderHook(() => useResultFlash())
+    const { result, unmount } = renderHook(() => useLocalFeedback())
 
     act(() => result.current.show('good', 'bye'))
     unmount()

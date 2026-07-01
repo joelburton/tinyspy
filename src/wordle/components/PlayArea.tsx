@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GamePageCtx, FeedbackMsg, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -41,7 +41,7 @@ import '../theme.css'
  */
 
 /** Local feedback pills are never closeable, so the × never renders and this is
- *  never called — but `<FeedbackPill>` requires the prop. */
+ *  never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
 /** Build the own-move local pill: outline (transient) + STICKY — it sits in the
@@ -49,7 +49,7 @@ const noop = () => {}
  *  letters stay on the board so they can fix the guess). Tone is per case:
  *  `error` for an invalid / failed guess (not a real word, an RPC error),
  *  `warning` for a non-error nudge ("already guessed", "not enough letters"). */
-const localPill = (tone: 'warning' | 'error', text: string): FeedbackMsg => ({
+const localPill = (tone: 'warning' | 'error', text: string): GenericFeedbackMsg => ({
   tone,
   text,
   variant: 'outline',
@@ -83,7 +83,7 @@ export function PlayArea({
   timer,
   setup,
   status,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
@@ -95,7 +95,7 @@ export function PlayArea({
   // player's next edit (typeLetter / deleteLetter below), the "next move
   // dismisses it" rule (docs/design-decisions.md → Dismissal modes). Accepted
   // guesses get NO pill — the colored row that lands IS the feedback.
-  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
+  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
   // from the moment we submit until its colored server row arrives via
   // realtime, so the letters don't blink out during the round-trip. The
@@ -246,7 +246,7 @@ export function PlayArea({
         if (g.user_id === session.user.id) continue // mine → board, no narration
         if (game?.mode !== 'coop') continue
         const member = memberById(members, g.user_id)
-        feedback.show({
+        globalFeedback.show({
           tone: 'neutral',
           variant: 'outline',
           dot: colorVarFor(member?.color),
@@ -255,7 +255,7 @@ export function PlayArea({
         })
       }
     },
-    [guesses, game, members, session.user.id, feedback],
+    [guesses, game, members, session.user.id, globalFeedback],
   )
 
   // ─── Compete opponent-solve narration (global header) ──────────
@@ -281,7 +281,7 @@ export function PlayArea({
         seen.add(id)
         if (id === session.user.id) continue // my own solve → terminal handling
         const member = memberById(members, id)
-        feedback.show({
+        globalFeedback.show({
           tone: 'success',
           variant: 'outline',
           dot: colorVarFor(member?.color),
@@ -290,7 +290,7 @@ export function PlayArea({
         })
       }
     },
-    [playerStates, game, members, session.user.id, feedback],
+    [playerStates, game, members, session.user.id, globalFeedback],
   )
 
   if (loading) return <p>Loading game…</p>
@@ -384,7 +384,7 @@ export function PlayArea({
   const answerSuffix = game.target
     ? `Answer: ${game.target.toUpperCase()}.`
     : ''
-  const slotMsg: FeedbackMsg | null = over
+  const slotMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict,
@@ -418,7 +418,7 @@ export function PlayArea({
             locally done, or the permanent terminal verdict (see `slotMsg`) — or
             nothing. */}
         <div className={styles.feedbackSlot}>
-          {slotMsg && <FeedbackPill msg={slotMsg} onClose={noop} />}
+          {slotMsg && <GenericFeedbackPill msg={slotMsg} onClose={noop} />}
         </div>
         <Keyboard
           keyStates={keyStates}

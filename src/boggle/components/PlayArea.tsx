@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -72,16 +72,16 @@ export function PlayArea(ctx: GamePageCtx) {
   const [turns, setTurns] = useState(0)
 
   // ─── Local own-move feedback (sticky) ──────────────────
-  // The player's own submission result, shown as a centered <FeedbackPill> in the
+  // The player's own submission result, shown as a centered <GenericFeedbackPill> in the
   // below-board slot — the same shared pill the header's global feedback uses
   // (docs/design-decisions.md → Feedback). STICKY: it persists until the player's
   // NEXT move dismisses it (any key the game sees, a Delete) rather than vanishing
   // on a timer.
-  const [feedback, setFeedback] = useState<{ message: string; tone: FeedbackTone }>({
+  const [feedback, setFeedback] = useState<{ message: string; tone: GenericFeedbackTone }>({
     message: '',
     tone: 'success',
   })
-  const showFeedback = useCallback((message: string, tone: FeedbackTone) => {
+  const showFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
     setFeedback({ message, tone })
   }, [])
   const clearFeedback = useCallback(() => {
@@ -119,7 +119,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const submit = useCallback(async () => {
     const w = word.trim().toLowerCase()
     if (!game || isTerminal || submitting || w.length === 0) return
-    // Every submit attempt clears the box — the own-move <FeedbackPill> reclaims
+    // Every submit attempt clears the box — the own-move <GenericFeedbackPill> reclaims
     // the below-board slot only when word === '', so a reject that left the word in
     // place would suppress its own feedback. lastWord is set here (not just on the
     // accepted path) so ArrowUp recalls a rejected word to fix it.

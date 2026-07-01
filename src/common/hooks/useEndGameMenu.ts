@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { FeedbackApi, MenuApi } from '../lib/games'
+import type { GenericFeedbackApi, MenuApi } from '../lib/games'
 
 /**
  * Registers the "End game" item in a PlayArea's per-game menu section
@@ -47,7 +47,7 @@ export function useEndGameMenu({
 }: {
   isTerminal: boolean
   menu: MenuApi
-  feedback: FeedbackApi
+  feedback: GenericFeedbackApi
   /** Fires the game's `end_game` RPC. Returns the PostgREST-style
    *  result so the hook can surface `error.message` if it fails.
    *  `PromiseLike` (not `Promise`) so a `db.rpc(...)` builder can be

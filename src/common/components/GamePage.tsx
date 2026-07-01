@@ -10,8 +10,8 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { games } from '../../games'
 import type {
-  FeedbackApi,
-  FeedbackMsg,
+  GenericFeedbackApi,
+  GenericFeedbackMsg,
   GamePageCtx,
   MenuApi,
   MenuItem,
@@ -70,8 +70,8 @@ type Props = {
  * Header layout is layout-static per docs/ui.md → Layout
  * stability — the four chrome elements + the timer slot don't
  * reflow as state changes. The middle `<StatusSlot>` swaps
- * between `<PlayersStrip>` (default) and `<FeedbackPill>` (when
- * the per-gametype PlayArea has called `ctx.feedback.show()`)
+ * between `<PlayersStrip>` (default) and `<GenericFeedbackPill>` (when
+ * the per-gametype PlayArea has called `ctx.globalFeedback.show()`)
  * at fixed slot height so neighbors don't move.
  *
  * The logo is a menu trigger (see docs/ui.md → "GamePage menu"):
@@ -147,7 +147,7 @@ export function GamePage({
   const [helpOpen, setHelpOpen] = useState(false)
   // The currently-active feedback message, or null when the
   // StatusSlot should show its default (`<PlayersStrip>`).
-  const [feedback, setFeedback] = useState<FeedbackMsg | null>(null)
+  const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
   // The per-game menu items the current PlayArea has pushed via
   // `ctx.menu.setGameItems`. Reset to [] on PlayArea unmount
   // (cleanup return on PlayArea's effect) — so during a pause the
@@ -194,23 +194,23 @@ export function GamePage({
   // duration (default 2200ms). Sticky and closeable modes are
   // explicit no-ops at this layer.
   useEffect(function autoClearTimedFeedback() {
-    if (!feedback) return
-    if (feedback.dismiss.kind !== 'timed') return
-    const ms = feedback.dismiss.ms ?? 2200
-    const t = setTimeout(() => setFeedback(null), ms)
+    if (!globalFeedback) return
+    if (globalFeedback.dismiss.kind !== 'timed') return
+    const ms = globalFeedback.dismiss.ms ?? 2200
+    const t = setTimeout(() => setGlobalFeedback(null), ms)
     return () => clearTimeout(t)
-  }, [feedback])
+  }, [globalFeedback])
 
   // Stable identities for the feedback API exposed to PlayArea.
-  const feedbackShow = useCallback((msg: FeedbackMsg) => {
-    setFeedback(msg)
+  const globalFeedbackShow = useCallback((msg: GenericFeedbackMsg) => {
+    setGlobalFeedback(msg)
   }, [])
-  const feedbackClear = useCallback(() => {
-    setFeedback(null)
+  const globalFeedbackClear = useCallback(() => {
+    setGlobalFeedback(null)
   }, [])
-  const feedbackApi = useMemo<FeedbackApi>(
-    () => ({ show: feedbackShow, clear: feedbackClear }),
-    [feedbackShow, feedbackClear],
+  const globalFeedbackApi = useMemo<GenericFeedbackApi>(
+    () => ({ show: globalFeedbackShow, clear: globalFeedbackClear }),
+    [globalFeedbackShow, globalFeedbackClear],
   )
 
   // Stable identity for the menu API exposed to PlayArea. The
@@ -296,8 +296,8 @@ export function GamePage({
           <ChatBubble />
           <StatusSlot
             players={players}
-            feedback={feedback}
-            onCloseFeedback={feedbackClear}
+            globalFeedback={globalFeedback}
+            onCloseGlobalFeedback={globalFeedbackClear}
           />
         </div>
         <div className={styles.right}>
@@ -327,7 +327,7 @@ export function GamePage({
           setup: commonGame.setup,
           status: commonGame.status,
           goToClub,
-          feedback: feedbackApi,
+          globalFeedback: globalFeedbackApi,
           menu: menuApi,
         })}
       </PauseBoundary>

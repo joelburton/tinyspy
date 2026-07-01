@@ -6,10 +6,10 @@ import { colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useResultFlash } from '../../common/hooks/useResultFlash'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -21,13 +21,13 @@ import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
-/** Own-action flash tone (`useResultFlash`'s good/bad/near) → the shared
- *  `<FeedbackPill>` tone vocabulary. waffle only ever flashes `bad` (a rejected
+/** Own-action flash tone (`useLocalFeedback`'s good/bad/near) → the shared
+ *  `<GenericFeedbackPill>` tone vocabulary. waffle only ever flashes `bad` (a rejected
  *  swap / failed End), but the full map keeps it honest. */
 const PILL_TONE = { good: 'success', bad: 'error', near: 'near' } as const
 
 /** Local feedback pills are never closeable here, so the × is never rendered and
- *  this is never called — but `<FeedbackPill>` requires the prop. */
+ *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
 /**
@@ -62,7 +62,7 @@ export function PlayArea({
   timer,
   setup,
   status,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
@@ -70,7 +70,7 @@ export function PlayArea({
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
   // below-board slot — never the header pill (that's the peer/group channel).
-  const { flash: actionFlash, show: flashAction } = useResultFlash()
+  const { flash: actionFlash, show: flashAction } = useLocalFeedback()
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran
@@ -98,7 +98,7 @@ export function PlayArea({
           // word reads as in both modes (docs/design-decisions.md → Tone follows
           // the event). Adverse to me in compete, but the tone names the event,
           // not my stake.
-          feedback.show({
+          globalFeedback.show({
             tone: 'success',
             variant: 'outline',
             dot,
@@ -108,7 +108,7 @@ export function PlayArea({
         } else if (out && !prev.out) {
           // Out of swaps is a milestone — important, neither clearly good nor bad
           // (they're done; I gain nothing yet) → warning (amber).
-          feedback.show({
+          globalFeedback.show({
             tone: 'warning',
             variant: 'outline',
             dot,
@@ -118,7 +118,7 @@ export function PlayArea({
         }
       }
     },
-    [playerStates, game, members, session.user.id, feedback],
+    [playerStates, game, members, session.user.id, globalFeedback],
   )
 
   const handleSwap = useCallback(
@@ -205,7 +205,7 @@ export function PlayArea({
           onSwap={handleSwap}
         />
         {/* The below-board slot — waffle's LOCAL feedback area (a centered
-            <FeedbackPill>, the same pill the header uses; docs/design-decisions.md
+            <GenericFeedbackPill>, the same pill the header uses; docs/design-decisions.md
             → Local feedback area). waffle's input is the board itself, so this slot
             is feedback-only. A reserved height (`.belowBoard` min-height) keeps the
             top-anchored board from shifting as the slot's content changes. Four
@@ -224,7 +224,7 @@ export function PlayArea({
         <div className={styles.belowBoard}>
           {over ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone:
                     over.tone === 'won'
@@ -241,7 +241,7 @@ export function PlayArea({
             </div>
           ) : selfDone ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone: 'neutral',
                   text: self?.solved
@@ -255,7 +255,7 @@ export function PlayArea({
             </div>
           ) : actionFlash ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone: PILL_TONE[actionFlash.tone],
                   text: actionFlash.label,

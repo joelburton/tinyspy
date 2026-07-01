@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import type {
-  FeedbackMsg,
-  FeedbackTone,
+  GenericFeedbackMsg,
+  GenericFeedbackTone,
   GamePageCtx,
   TimerMode,
 } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -35,7 +35,7 @@ import '../theme.css'
  *   - **Board column** — the stacked-tile board, a floating nothing (no shuffle
  *     here — the stack IS the puzzle), and a below-board region with the
  *     five-slot `WordEntry` and a fixed-height LOCAL feedback slot. Own-move
- *     results land in that slot as a centered `<FeedbackPill>`; an accepted /
+ *     results land in that slot as a centered `<GenericFeedbackPill>`; an accepted /
  *     rejected word ALSO flashes its letters green/red in the WordEntry (the ring
  *     is board-adjacent, the pill carries the words that have no ring — misses on
  *     keystrokes, reveals, errors, the terminal verdict).
@@ -63,7 +63,7 @@ export function PlayArea({
   timer,
   setup,
   status,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   const {
@@ -84,14 +84,14 @@ export function PlayArea({
   // ─── Local own-move feedback (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched no
   // exposed tile (or too many), a reveal's answer, an RPC error — show as a
-  // centered <FeedbackPill> in the below-board slot (docs/design-decisions.md →
+  // centered <GenericFeedbackPill> in the below-board slot (docs/design-decisions.md →
   // local feedback area). Sticky: it persists until the player's NEXT action
   // (a tile click, a keystroke) dismisses it. Peer narration goes to the GLOBAL
   // header instead (usePeerFeedback). Word accept/reject additionally flash the
   // WordEntry ring (below), so the pill is for the results that HAVE no ring.
-  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
+  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
   const showLocal = useCallback(
-    (text: string, tone: FeedbackTone, dismiss: FeedbackMsg['dismiss'] = { kind: 'sticky' }) => {
+    (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) => {
       setLocalMsg({ tone, text, variant: 'outline', dismiss })
     },
     [],
@@ -302,7 +302,7 @@ export function PlayArea({
     selfUserId: session.user.id,
     submissions,
     players: members,
-    feedback,
+    feedback: globalFeedback,
     onPeerWord,
   })
 
@@ -350,7 +350,7 @@ export function PlayArea({
 
   // The below-board local pill: the permanent terminal verdict takes precedence
   // over any transient own-move message.
-  const localPill: FeedbackMsg | null = over
+  const localPill: GenericFeedbackMsg | null = over
     ? {
         tone: over.outcome === 'won' ? 'success' : 'error',
         text: over.verdict,
@@ -383,7 +383,7 @@ export function PlayArea({
           <div className={styles.localSlot}>
             {localPill && (
               <div className={shared.localFeedback}>
-                <FeedbackPill msg={localPill} onClose={clearLocal} />
+                <GenericFeedbackPill msg={localPill} onClose={clearLocal} />
               </div>
             )}
           </div>

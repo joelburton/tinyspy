@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FeedbackApi, FeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackApi, GenericFeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { useResultFlash } from '../../common/hooks/useResultFlash'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -29,7 +29,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  *
  *   - **Board column** (left, flex) — the 5×5 BoardGrid, with the fixed-height
  *     `belowBoard` slot under it (the CluePanel during play, a local
- *     `<FeedbackPill>` for an own-action error or the terminal verdict).
+ *     `<GenericFeedbackPill>` for an own-action error or the terminal verdict).
  *   - **Info column** (fixed-width):
  *       - Status: "{greenFound}/15 agents · {turn}/{turns} turns"
  *       - Action row: the EndGameButton while playing; at terminal the bold
@@ -60,7 +60,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  */
 
 /** Local feedback pills here are never closeable, so the × is never rendered and
- *  this is never called — but `<FeedbackPill>` requires the prop. */
+ *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
 /** One-line timer summary for the setup disclosure (same shape connections
@@ -138,14 +138,14 @@ function useTurnPill(args: {
   playState: string
   gameOver: boolean
   sessionUserId: string
-  feedback: FeedbackApi
+  feedback: GenericFeedbackApi
 }) {
   const { game, players, clues, playState, gameOver, sessionUserId, feedback } = args
 
   let text: string | null = null
-  let tone: FeedbackTone = 'neutral'
+  let tone: GenericFeedbackTone = 'neutral'
   // The leading player-color disc for peer-status messages ("● Moth is …"),
-  // via the FeedbackPill's `dot` + outline variant — same identity treatment
+  // via the GenericFeedbackPill's `dot` + outline variant — same identity treatment
   // psychicnum/connections use for their peer pills. Undefined for sudden death
   // (a warning, not a peer message).
   let dot: string | undefined
@@ -207,7 +207,7 @@ export function PlayArea({
   playState,
   isTerminal,
   setup,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
@@ -232,14 +232,14 @@ export function PlayArea({
   // ─── Own-action feedback (local) + guess dispatch ──────
   // A board click is the guess move; PlayArea owns the submit_guess RPC + the
   // pending-tile state (like psychicnum/connections own their submit) so the
-  // own-action local <FeedbackPill> lives in the below-board slot next to the
+  // own-action local <GenericFeedbackPill> lives in the below-board slot next to the
   // clue UI — the LOCAL half of the feedback split (turn-state changes go to the
   // pill via useTurnPill). codenamesduet's guess RESULT shows on the board (the
   // tile reveal) + the turn log, so this flash is ERROR-ONLY: a rejected guess
   // or a failed End. Shared machinery; PlayArea owns where it renders.
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const { flash: actionFlash, show: flashAction, clear: clearActionFlash } =
-    useResultFlash()
+    useLocalFeedback()
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
   // so the <ClueSuggestionModal> renders at the `.layout` level — a panel
@@ -291,7 +291,7 @@ export function PlayArea({
     playState,
     gameOver: isTerminal,
     sessionUserId: session.user.id,
-    feedback,
+    feedback: globalFeedback,
   })
 
   if (loading || !game || !myKey || words.length < 25) {
@@ -357,18 +357,18 @@ export function PlayArea({
             (docs/design-decisions.md → BoardCol → belowBoard). Three states, all
             in the same fixed-height slot so the top-anchored board never shifts as
             it swaps:
-              - terminal → a PERMANENT (fill, outcome-colored) <FeedbackPill>
+              - terminal → a PERMANENT (fill, outcome-colored) <GenericFeedbackPill>
                 carrying the verdict — the terminal state always also lands as
                 local feedback, alongside the info-column outcome line
                 (docs/design-decisions.md → Feedback);
-              - own-action error → a transient (outline, error) <FeedbackPill> for
+              - own-action error → a transient (outline, error) <GenericFeedbackPill> for
                 a beat (a rejected guess / failed End — the LOCAL half of the
                 feedback split; turn-state changes go to the header pill);
               - else → the CluePanel (clue form / clue display + Pass / waiting). */}
         <div className={styles.belowBoard}>
           {over ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone:
                     over.tone === 'won'
@@ -385,7 +385,7 @@ export function PlayArea({
             </div>
           ) : actionFlash ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   // Own-action flash is error-only here (a rejected guess / failed
                   // End); the success path shows on the board + turn log instead.

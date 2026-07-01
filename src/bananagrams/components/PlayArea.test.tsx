@@ -74,7 +74,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     timer: { displaySeconds: 0, expired: false },
     setup: SETUP,
     status: { pool_remaining: 100, box_remaining: 0 },
-    feedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
     menu: { setGameItems: vi.fn() },
     ...over,

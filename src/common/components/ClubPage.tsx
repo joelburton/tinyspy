@@ -19,7 +19,7 @@ import { StatusSlot } from './StatusSlot'
 import { games } from '../../games'
 import type {
   CommonGameListRow,
-  FeedbackMsg,
+  GenericFeedbackMsg,
   GameManifest,
   MenuSection,
 } from '../lib/games'
@@ -193,27 +193,27 @@ export function ClubPage({ handle, session }: Props) {
   // The currently-active feedback pill shown in the header's
   // <StatusSlot>, or null when the slot should show the default
   // <PlayersStrip>. Local-only — ClubPage doesn't expose a
-  // ctx.feedback API the way GamePage does, because there's no
+  // ctx.globalFeedback API the way GamePage does, because there's no
   // render-prop child here. Concrete uses today: the
   // "<title> deleted" toast in handleDelete, and the "coming soon"
   // toasts on the placeholder menu items.
-  const [feedback, setFeedback] = useState<FeedbackMsg | null>(null)
+  const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
 
   // Auto-clear `timed`-dismiss feedback after the configured
   // duration. Mirrors GamePage's autoClearTimedFeedback — same
   // shape; the duplication is borderline (5 lines twice), worth
   // extracting into a hook if a third consumer arrives.
   useEffect(function autoClearTimedFeedback() {
-    if (!feedback) return
-    if (feedback.dismiss.kind !== 'timed') return
-    const ms = feedback.dismiss.ms ?? 2200
-    const t = setTimeout(() => setFeedback(null), ms)
+    if (!globalFeedback) return
+    if (globalFeedback.dismiss.kind !== 'timed') return
+    const ms = globalFeedback.dismiss.ms ?? 2200
+    const t = setTimeout(() => setGlobalFeedback(null), ms)
     return () => clearTimeout(t)
-  }, [feedback])
+  }, [globalFeedback])
 
-  // Stable identity for the StatusSlot's onCloseFeedback prop
+  // Stable identity for the StatusSlot's onCloseGlobalFeedback prop
   // so passing it into props doesn't restage downstream effects.
-  const clearFeedback = useCallback(() => setFeedback(null), [])
+  const clearGlobalFeedback = useCallback(() => setGlobalFeedback(null), [])
 
   /**
    * Delete a game from this club. Same RPC for current vs
@@ -278,7 +278,7 @@ export function ClubPage({ handle, session }: Props) {
     // row out of allGames; the value is captured by the closure
     // and survives the rerender.
     const deleted = allGames.find((g) => g.gameId === gameId)
-    setFeedback({
+    setGlobalFeedback({
       tone: 'neutral',
       text: `${deleted?.title ?? 'Game'} deleted`,
       dismiss: { kind: 'timed' },
@@ -518,7 +518,7 @@ export function ClubPage({ handle, session }: Props) {
         {
           id: 'rename',
           label: 'Rename club',
-          onClick: () => setFeedback({
+          onClick: () => setGlobalFeedback({
             tone: 'info',
             text: 'Rename club: coming soon',
             dismiss: { kind: 'timed' },
@@ -527,7 +527,7 @@ export function ClubPage({ handle, session }: Props) {
         {
           id: 'delete',
           label: 'Delete club',
-          onClick: () => setFeedback({
+          onClick: () => setGlobalFeedback({
             tone: 'info',
             text: 'Delete club: coming soon',
             dismiss: { kind: 'timed' },
@@ -555,8 +555,8 @@ export function ClubPage({ handle, session }: Props) {
             + colored-name shape either way. */}
         <StatusSlot
           players={members}
-          feedback={feedback}
-          onCloseFeedback={clearFeedback}
+          globalFeedback={globalFeedback}
+          onCloseGlobalFeedback={clearGlobalFeedback}
           presentUserIds={presentUserIds}
         />
       </header>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FeedbackMsg, FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
@@ -32,7 +32,7 @@ type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
 /** The player's own-move result, shown as a sticky pill in the commit slot. */
-type LocalMsg = { tone: FeedbackTone; text: string }
+type LocalMsg = { tone: GenericFeedbackTone; text: string }
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -116,7 +116,7 @@ function nextRackOrder(
  *     with everything else needed to play. The action row is split by a divider
  *     into the non-committing actions (Shuffle, Recall) and the **commit slot**
  *     ([Swap] [Submit] [Pass]) — which doubles as the **local feedback area**: an
- *     own-move result (or the terminal verdict) shows as a sticky `<FeedbackPill>`
+ *     own-move result (or the terminal verdict) shows as a sticky `<GenericFeedbackPill>`
  *     in place of the commit buttons, dismissed by the player's next move (a tile
  *     tap / a keystroke). The Submit button doubles as the live score PREVIEW —
  *     its label is the staged play + score ("ARROW +23").
@@ -169,7 +169,7 @@ export function PlayArea({
 
   // The player's own-move result — a sticky pill in the commit slot (the local
   // feedback area). v3: own-move feedback is LOCAL (docs/design-decisions.md →
-  // Feedback), not the global header `ctx.feedback`. Kept terse — the slot is
+  // Feedback), not the global header `ctx.globalFeedback`. Kept terse — the slot is
   // narrow (it sits where [Swap][Submit][Pass] go). Dismissed by the player's
   // next move (clearLocal, below), not a timer.
   const [localMsg, setLocalMsg] = useState<LocalMsg | null>(null)
@@ -644,7 +644,7 @@ export function PlayArea({
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
   // buttons show).
-  const commitPill: FeedbackMsg | null = over
+  const commitPill: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: over.message,

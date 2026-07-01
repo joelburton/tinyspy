@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { FeedbackApi, Member } from '../../common/lib/games'
+import type { GenericFeedbackApi, Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { RANKS } from '../lib/ranks'
@@ -39,7 +39,7 @@ export function usePeerFeedback({
   players: Member[]
   foundWords: FoundWordRow[]
   status: Record<string, unknown> | null
-  feedback: FeedbackApi
+  feedback: GenericFeedbackApi
 }): void {
   // ── coop: a peer found a (good / pangram) word ──
   // `seen` keys every found word already accounted for; `wordsReady`

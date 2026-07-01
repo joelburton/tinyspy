@@ -8,7 +8,7 @@ import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { EntryRow } from '../../common/components/EntryRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import type { FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
@@ -30,11 +30,11 @@ import '../theme.css'
 /**
  * Maps each `submit_word` result-enum value to the visual tone
  * the feedback pill renders. See the RPC for the full enum. These are the
- * shared `FeedbackTone` values now — the in-body word-result pill is the same
- * `<FeedbackPill>` the header uses (`warning` is in the common palette, which is
+ * shared `GenericFeedbackTone` values now — the in-body word-result pill is the same
+ * `<GenericFeedbackPill>` the header uses (`warning` is in the common palette, which is
  * why spellingbee no longer needs its own feedback component / tone type).
  */
-const RESULT_TONE: Record<string, FeedbackTone> = {
+const RESULT_TONE: Record<string, GenericFeedbackTone> = {
   accepted: 'success',
   bonus: 'success',
   pangram: 'success',
@@ -104,7 +104,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // local in-body `feedback` state below — the two are different surfaces:
     // `headerFeedback` carries peer/opponent events (usePeerFeedback), the
     // local pill carries the player's own word result.
-    feedback: headerFeedback,
+    globalFeedback: headerFeedback,
   } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
@@ -192,7 +192,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const [lastWord, setLastWord] = useState('')
 
   // ─── Local own-move feedback (sticky) ──────────────────
-  // The player's own submission result, shown as a centered <FeedbackPill> in the
+  // The player's own submission result, shown as a centered <GenericFeedbackPill> in the
   // below-board slot — the same shared pill the header's global feedback uses
   // (docs/design-decisions.md → Feedback). STICKY, not timed: an own-move result
   // is important and the player may be looking at the board when it lands, so it
@@ -201,10 +201,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // every move gesture below — any key the game sees, a hex click, or Delete.
   const [feedback, setFeedback] = useState<{
     message: string
-    tone: FeedbackTone
+    tone: GenericFeedbackTone
   }>({ message: '', tone: 'success' })
 
-  const showFeedback = useCallback((message: string, tone: FeedbackTone) => {
+  const showFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
     setFeedback({ message, tone })
   }, [])
 

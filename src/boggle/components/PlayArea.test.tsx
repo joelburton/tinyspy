@@ -76,7 +76,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       scoring_ladder: 'basic',
     },
     status: null,
-    feedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
     menu: { setGameItems: vi.fn() },
     ...over,

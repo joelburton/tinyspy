@@ -90,7 +90,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     timer: { displaySeconds: 0, expired: false },
     setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' } },
     status: null,
-    feedback: { show: vi.fn(), clear: vi.fn() },
+    globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
     menu: { setGameItems: vi.fn() },
     ...over,

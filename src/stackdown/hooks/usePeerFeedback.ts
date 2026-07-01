@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { FeedbackApi, Member } from '../../common/lib/games'
+import type { GenericFeedbackApi, Member } from '../../common/lib/games'
 import { colorVarFor } from '../../common/lib/memberColor'
 import type { SubmissionRow } from './useGame'
 
@@ -53,7 +53,7 @@ export function usePeerFeedback({
   selfUserId: string
   submissions: SubmissionRow[]
   players: Member[]
-  feedback: FeedbackApi
+  feedback: GenericFeedbackApi
   /** Drive the word-entry flash for a teammate's played word. */
   onPeerWord: (letters: string[], valid: boolean) => void
 }): void {

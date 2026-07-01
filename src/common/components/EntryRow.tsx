@@ -1,16 +1,16 @@
 import type { ReactNode } from 'react'
 import { cls } from '../lib/cls'
-import type { FeedbackMsg } from '../lib/games'
+import type { GenericFeedbackMsg } from '../lib/games'
 import { useCaptureKeys } from '../hooks/useCaptureKeys'
 import { EntryBox } from './EntryBox'
-import { FeedbackPill } from './FeedbackPill'
+import { GenericFeedbackPill } from './GenericFeedbackPill'
 import { DeleteButton } from './buttons/DeleteButton'
 import { SubmitButton } from './buttons/SubmitButton'
 import shared from './PlayArea.module.css'
 import styles from './EntryRow.module.css'
 
 /** Local feedback pills here are sticky (dismissed by the next move), so the × is
- *  never rendered and `onClose` is never called — but `<FeedbackPill>` needs it. */
+ *  never rendered and `onClose` is never called — but `<GenericFeedbackPill>` needs it. */
 const noop = () => {}
 
 type Props = {
@@ -33,7 +33,7 @@ type Props = {
    * mounted through the swap is what lets a keystroke dismiss a sticky pill: the
    * capture hook below stays live and the next key reclaims the slot.
    */
-  pill?: FeedbackMsg | null
+  pill?: GenericFeedbackMsg | null
   /** Loading / terminal: capture is a hard no-op and the buttons are disabled. */
   disabled?: boolean
   /** Mid-submit: capture blocks edits/submit and the Submit button is disabled. */
@@ -62,7 +62,7 @@ type Props = {
  *   2. the **controls** — an icon-only `<DeleteButton>` and `<SubmitButton>`
  *      flanking the chrome-less `<EntryBox>` (which flex-fills the row between them);
  *   3. the **pill swap** — when `pill` is set it replaces the controls with a
- *      centered `<FeedbackPill>` (the own-move result / terminal verdict), in the
+ *      centered `<GenericFeedbackPill>` (the own-move result / terminal verdict), in the
  *      same slot, without unmounting (so the capture stays live and a keystroke
  *      dismisses the pill).
  *
@@ -92,7 +92,7 @@ export function EntryRow({
   if (pill) {
     return (
       <div className={shared.localFeedback}>
-        <FeedbackPill msg={pill} onClose={noop} />
+        <GenericFeedbackPill msg={pill} onClose={noop} />
       </div>
     )
   }

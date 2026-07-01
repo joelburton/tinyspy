@@ -4,7 +4,7 @@ import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
 import { GameOverModal } from '../../common/components/GameOverModal'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
@@ -12,7 +12,7 @@ import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useResultFlash } from '../../common/hooks/useResultFlash'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { memberById } from '../../common/lib/peers'
@@ -30,7 +30,7 @@ import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 const SECRET_COUNT = 3
 
 /** Local feedback pills are never closeable, so the × is never rendered and this
- *  is never called — but `<FeedbackPill>` requires the prop. */
+ *  is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
 /** Sentence-case a message's first letter. Server errors come back lowercase
@@ -77,7 +77,7 @@ export function PlayArea({
   timer,
   setup,
   status,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
@@ -117,7 +117,7 @@ export function PlayArea({
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
   // ─── Local feedback flash (own-action) ─────────────────
-  // The player's own result, shown as a centered <FeedbackPill> in the entry's
+  // The player's own result, shown as a centered <GenericFeedbackPill> in the entry's
   // already-claimed space (never a new line that would shrink the board —
   // docs/ui.md → Layout stability): "Correct"/"Incorrect" after a guess, or a
   // validation error ("Not on the board"). Local channel: near my eyes, about
@@ -127,8 +127,8 @@ export function PlayArea({
   // result is important and I may be looking elsewhere on the board, so it
   // persists until my NEXT move dismisses it — a tile click or a keystroke into
   // the EntryBox, both routed through `handleEntryChange` below (which calls the
-  // hook's `clear`). `useResultFlash(null)` disables the auto-timer.
-  const { flash: entryFlash, show: flashEntry, clear: clearFlash } = useResultFlash(null)
+  // hook's `clear`). `useLocalFeedback(null)` disables the auto-timer.
+  const { flash: entryFlash, show: flashEntry, clear: clearFlash } = useLocalFeedback(null)
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // also the gesture that dismisses a sticky local result, so route both through
@@ -148,7 +148,7 @@ export function PlayArea({
   // narrated in the header. My own events are excluded — my guesses get the
   // local flash, my hint shows in my own turn log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
-  // feedback.show is a prop callback, so no local set-state lives in here.
+  // globalFeedback.show is a prop callback, so no local set-state lives in here.
   useEffect(function announcePeerEvent() {
     if (guesses.length === 0) return
     const latest = guesses[guesses.length - 1]
@@ -170,7 +170,7 @@ export function PlayArea({
     // bad. (A reveal logs the answer word, but we narrate it without naming the
     // word — "revealed a word", not which one.)
     if (latest.kind === 'hint' || latest.kind === 'reveal') {
-      feedback.show({
+      globalFeedback.show({
         tone: 'warning',
         variant: 'outline',
         dot,
@@ -181,7 +181,7 @@ export function PlayArea({
       })
       return
     }
-    feedback.show({
+    globalFeedback.show({
       tone: latest.was_correct ? 'success' : 'error',
       variant: 'outline',
       dot,
@@ -190,7 +190,7 @@ export function PlayArea({
         : `${name} guessed ${latest.word.toUpperCase()} — not it`,
       dismiss: { kind: 'timed', ms: 3000 },
     })
-  }, [guesses, mode, players, session.user.id, feedback])
+  }, [guesses, mode, players, session.user.id, globalFeedback])
 
   // ─── Compete opponent progress (group feedback) ────────
   // When an opponent's public secrets_found count ticks up, narrate "X guessed a
@@ -209,7 +209,7 @@ export function PlayArea({
       if (p.secrets_found <= prev) continue
       const member = memberById(players, p.user_id)
       const name = member?.username ?? 'Someone'
-      feedback.show({
+      globalFeedback.show({
         tone: 'success',
         variant: 'outline',
         dot: colorVarFor(member?.color),
@@ -217,7 +217,7 @@ export function PlayArea({
         dismiss: { kind: 'timed', ms: 3000 },
       })
     }
-  }, [playerBudgets, mode, players, session.user.id, feedback])
+  }, [playerBudgets, mode, players, session.user.id, globalFeedback])
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
@@ -369,7 +369,7 @@ export function PlayArea({
             so the slot can't collapse and let the flex:1 board grow (docs/ui.md →
             Layout stability). Three states, all in the same place the player's
             eyes already are:
-              - terminal → a PERMANENT FeedbackPill (fill, outcome-colored)
+              - terminal → a PERMANENT GenericFeedbackPill (fill, outcome-colored)
                 carrying the secret reveal — the terminal state always lands as
                 permanent local feedback (design-decisions.md → Feedback);
               - playing + can guess → the GuessForm (entry, or a transient pill
@@ -379,7 +379,7 @@ export function PlayArea({
         <div className={styles.belowBoard}>
           {over ? (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone:
                     over.tone === 'won'
@@ -424,7 +424,7 @@ export function PlayArea({
             />
           ) : (
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={{
                   tone: 'neutral',
                   text: 'Out of guesses — waiting on the rest.',

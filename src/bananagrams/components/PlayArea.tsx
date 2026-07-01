@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GamePageCtx, FeedbackMsg, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
@@ -29,7 +29,7 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
  * scaffold, with a fill — not hug — board column), and THIS component supplies
  * the v3 info-column chrome (`infoTop`) + the below-board feedback pill.
  *
- * Feedback is LOCAL (a `<FeedbackPill>` in the below-board slot), not the global
+ * Feedback is LOCAL (a `<GenericFeedbackPill>` in the below-board slot), not the global
  * header channel: a peel/dump draw, an RPC error, and the terminal verdict are
  * all about the player's own game, so they belong in the local feedback area.
  *
@@ -44,7 +44,7 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
  */
 
 /** Local feedback pills here are never closeable, so the × never renders and
- *  this is never called — but `<FeedbackPill>` requires the prop. */
+ *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
 /** One-line timer summary for the setup disclosure. */
@@ -69,7 +69,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The below-board pill: a peel/dump draw announcement (timed), or an RPC
   // error (sticky). The terminal verdict and the locally-terminal "you're out"
   // message are layered on top of this in `slotMsg` below.
-  const [localMsg, setLocalMsg] = useState<FeedbackMsg | null>(null)
+  const [localMsg, setLocalMsg] = useState<GenericFeedbackMsg | null>(null)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
@@ -192,7 +192,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Exactly one, by priority: the permanent (fill) terminal verdict; else the
   // sticky "you conceded" when locally terminal; else the own-move draw/error
   // pill (or nothing).
-  const slotMsg: FeedbackMsg | null = over
+  const slotMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: over.verdict,
@@ -297,7 +297,7 @@ export function PlayArea(ctx: GamePageCtx) {
         boxCount={boxCount}
         infoTop={infoTop}
         infoActions={infoActions}
-        localPill={slotMsg && <FeedbackPill msg={slotMsg} onClose={noop} />}
+        localPill={slotMsg && <GenericFeedbackPill msg={slotMsg} onClose={noop} />}
       />
       {showModal && over && (
         <GameOverModal

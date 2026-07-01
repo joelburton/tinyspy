@@ -78,14 +78,16 @@ export type GamePageCtx = {
    *  any future game that wants a live status field surfaced
    *  to the play surface. */
   status: Record<string, unknown> | null
-  /** Imperative API for the GamePage-header feedback slot. The
-   *  PlayArea calls `feedback.show({...})` to surface transient
-   *  or persistent feedback in the `<StatusSlot>` (replacing the
-   *  default `<PlayersStrip>` while active); `feedback.clear()`
-   *  empties the slot. See docs/ui.md → Feedback pill for the
-   *  API + dismiss-mode semantics. The functions' identities are
-   *  stable across renders, so they're safe to put in dep arrays. */
-  feedback: FeedbackApi
+  /** Imperative API for the GLOBAL feedback area (the GamePage-header
+   *  slot — peer/opponent news, per the feedback naming convention in
+   *  docs/code-conventions.md). The PlayArea calls
+   *  `globalFeedback.show({...})` to surface transient or persistent
+   *  feedback in the `<StatusSlot>` (replacing the default
+   *  `<PlayersStrip>` while active); `globalFeedback.clear()` empties
+   *  the slot. See docs/ui.md → Feedback pill for the API + dismiss-mode
+   *  semantics. The functions' identities are stable across renders, so
+   *  they're safe to put in dep arrays. */
+  globalFeedback: GenericFeedbackApi
   /** Navigate to this game's club page directly — no suspend-
    *  confirm modal. Wired by `<GamePage>` to use the resolved
    *  `club_handle` for terminal-game navigation; downstream
@@ -107,13 +109,13 @@ export type GamePageCtx = {
 /** Tone variants the feedback pill renders. See docs/ui.md →
  *  Feedback pill. (`near` = a near-miss — connections' "one away"; shares
  *  warning's amber for now.) */
-export type FeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' | 'near'
+export type GenericFeedbackTone = 'success' | 'error' | 'warning' | 'neutral' | 'info' | 'near'
 
 /** A single feedback message. The `dismiss` mode picks how it
  *  leaves the screen. See docs/ui.md → "Dismiss modes" for the
  *  detailed when-to-use guidance. */
-export type FeedbackMsg = {
-  tone: FeedbackTone
+export type GenericFeedbackMsg = {
+  tone: GenericFeedbackTone
   /** The message. Usually a plain string; a `ReactNode` is allowed so a message
    *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
    *  exchange glyph, matching its dump zone). */
@@ -134,8 +136,8 @@ export type FeedbackMsg = {
     | { kind: 'closeable' }
 }
 
-export type FeedbackApi = {
-  show: (msg: FeedbackMsg) => void
+export type GenericFeedbackApi = {
+  show: (msg: GenericFeedbackMsg) => void
   clear: () => void
 }
 

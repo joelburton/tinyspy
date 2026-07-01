@@ -5,14 +5,14 @@ import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { FeedbackPill } from '../../common/components/FeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useResultFlash } from '../../common/hooks/useResultFlash'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
@@ -35,10 +35,10 @@ const CATEGORY_COUNT = 4
 const MISTAKE_BUDGET = 4
 
 /** Local feedback pills are never closeable, so the × never renders and this is
- *  never called — but `<FeedbackPill>` requires the prop. */
+ *  never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
-/** Map the local flash's `ResultTone` (good/bad/near) to the pill's `FeedbackTone`. */
+/** Map the local flash's `LocalFeedbackTone` (good/bad/near) to the pill's `GenericFeedbackTone`. */
 const PILL_TONE = { good: 'success', bad: 'error', near: 'near' } as const
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
@@ -120,7 +120,7 @@ export function PlayArea({
   isTerminal,
   timer,
   setup,
-  feedback,
+  globalFeedback,
   goToClub,
 }: GamePageCtx) {
   const {
@@ -174,7 +174,7 @@ export function PlayArea({
     flash: commitFlash,
     show: flashCommit,
     clear: clearCommitFlash,
-  } = useResultFlash(null) // sticky: no auto-timer; a tile click dismisses it
+  } = useLocalFeedback(null) // sticky: no auto-timer; a tile click dismisses it
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess is narrated in the GamePage header: correct →
@@ -183,7 +183,7 @@ export function PlayArea({
   // get the local commit flash above; my guess also already shows in the
   // turn log. Compete never reaches here: the guesses log is RLS-scoped to
   // the caller server-side, so no foreign rows arrive, and we gate on coop
-  // besides. feedback.show is a prop callback, so no local set-state here.
+  // besides. globalFeedback.show is a prop callback, so no local set-state here.
   const lastSeenGuessIdRef = useRef<string | null>(null)
   useEffect(function announcePeerGuess() {
     if (guesses.length === 0) return
@@ -208,7 +208,7 @@ export function PlayArea({
       const cat = game.board.categories.find(
         (c) => c.rank === latest.matched_category_rank,
       )
-      feedback.show({
+      globalFeedback.show({
         tone: 'success',
         variant: 'outline',
         dot,
@@ -216,7 +216,7 @@ export function PlayArea({
         dismiss: { kind: 'timed', ms: 3000 },
       })
     } else {
-      feedback.show({
+      globalFeedback.show({
         tone: latest.result === 'oneAway' ? 'near' : 'error',
         variant: 'outline',
         dot,
@@ -226,7 +226,7 @@ export function PlayArea({
         dismiss: { kind: 'timed', ms: 3000 },
       })
     }
-  }, [guesses, game, players, session.user.id, feedback])
+  }, [guesses, game, players, session.user.id, globalFeedback])
 
   // ─── End-game action (info-column action-row button) ───
   // Available in both modes. Manual end terminates the game with
@@ -429,10 +429,10 @@ export function PlayArea({
         <div className={styles.inputRow}>
           {showInput ? (
             commitFlash ? (
-              // My own guess result — a centered local <FeedbackPill> (sticky;
+              // My own guess result — a centered local <GenericFeedbackPill> (sticky;
               // clicking a tile dismisses it). Same register as the header pill.
               <div className={shared.localFeedback}>
-                <FeedbackPill
+                <GenericFeedbackPill
                   msg={{
                     tone: PILL_TONE[commitFlash.tone],
                     text: commitFlash.label,
@@ -470,7 +470,7 @@ export function PlayArea({
             // (no separate below-board element): a PERMANENT outcome pill at game
             // over, or a sticky "you're out" while the rest race on.
             <div className={shared.localFeedback}>
-              <FeedbackPill
+              <GenericFeedbackPill
                 msg={
                   over
                     ? {
