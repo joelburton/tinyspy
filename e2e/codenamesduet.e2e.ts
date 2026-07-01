@@ -76,7 +76,10 @@ test.describe('codenamesduet below-board layout stability', () => {
         body: '{"error":"boom"}',
       }),
     )
-    await pageAlice.getByRole('button', { name: 'AI' }).click()
+    // `exact: true`: the accessible-name substring match otherwise also catches
+    // a board tile whose word contains "ai" (the fixture's HAWAII) — collide with
+    // the AI clue button. The button's exact name is "AI".
+    await pageAlice.getByRole('button', { name: 'AI', exact: true }).click()
     // The dialog pops up (its own panel) — the form is still there underneath.
     await expect(pageAlice.getByText('Clue suggestion')).toBeVisible({ timeout: 10000 })
 
