@@ -1,0 +1,23 @@
+/* SubmitWithScore — icon pinned left, score pinned right, fixed footprint. The
+ * base `<button>` provides the primary accent fill / padding / radius (it's the
+ * main action); this only arranges the two children and locks the width.
+ *
+ * `justify-content: space-between` pins the triangle to the left edge and the
+ * score's box to the right edge, so the score stays right-justified at a constant
+ * position whatever its value (and the icon never shifts). The fixed `width` fits
+ * the widest realistic score ("+999") so it never grows/shrinks; a game needing
+ * more room overrides via `className`. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 5.5rem;
+}
+
+/* Tabular figures so the digits don't jitter as the score changes; the span hugs
+ * its content at the right edge (right-justified by the space-between above). */
+.score {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

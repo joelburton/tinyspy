@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { FeedbackMsg, FeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import { cls } from '../../common/lib/cls'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useEndGameMenu } from '../../common/hooks/useEndGameMenu'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
-import { evaluatePlay, type Placement } from '../lib/play'
-import { useGame } from '../hooks/useGame'
+import { boardUpToSeq, evaluatePlay, type Placement } from '../lib/play'
+import type { ScrabbleSetup } from '../lib/setup'
+import { useGame, type PlayRow } from '../hooks/useGame'
 import { Board, type Cursor, type Tentative } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { BlankPicker } from './BlankPicker'
 import { PlayLog } from './PlayLog'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -24,6 +31,8 @@ import '../theme.css'
 type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
+/** The player's own-move result, shown as a sticky pill in the commit slot. */
+type LocalMsg = { tone: FeedbackTone; text: string }
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -33,6 +42,43 @@ function cellAtPoint(x: number, y: number): XY | null {
 }
 function overRackAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="rack"]')
+}
+
+// Stable empties for the turn-viewer (the live board's overlays are suppressed),
+// so the Board doesn't get a fresh Set/Map each render.
+const NO_CELLS: Set<number> = new Set()
+const NO_TENT: Map<number, Tentative> = new Map()
+
+/** The turn-viewer banner line for a play — terse so it fits even with a couple of
+ *  long words: "#1 moth: +10 APPLE, BERRY" for a word, or the action ("#5 moth
+ *  passed", "#5 moth exchanged 3 tiles") for the others. */
+function turnSummary(p: PlayRow, nameOf: (id: string | null) => string): string {
+  const who = nameOf(p.user_id)
+  const n = `#${p.seq}`
+  if (p.kind === 'word') {
+    const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
+    return `${n} ${who}: +${p.score ?? 0} ${words}`
+  }
+  if (p.kind === 'exchange') return `${n} ${who} exchanged ${p.tile_count} tiles`
+  if (p.kind === 'pass') return `${n} ${who} passed`
+  return `${n} ${who} ended — ${-(p.score ?? 0)} tiles unplayed` // forfeit
+}
+
+/**
+ * The display position (0..N) a rack tile dropped at screen-x `px` should land at,
+ * by comparing `px` to each rendered rack tile's horizontal midpoint — so dropping
+ * left-of a tile inserts before it, right-of the last inserts at the end. Returns
+ * null if the rack isn't on screen.
+ */
+function rackInsertIndexAtPoint(px: number): number | null {
+  const tray = document.querySelector('[data-zone="rack"]')
+  if (!tray) return null
+  const tiles = [...tray.querySelectorAll('[data-rack-tile]')]
+  for (let i = 0; i < tiles.length; i++) {
+    const r = tiles[i].getBoundingClientRect()
+    if (px < r.left + r.width / 2) return i
+  }
+  return tiles.length
 }
 
 /**
@@ -62,23 +108,35 @@ function nextRackOrder(
 }
 
 /**
- * scrabble's play surface (coop + compete). Left: the board, sized to grow
- * as tall as the layout allows. Right (fixed column): score / whose-turn, the
- * rack, a live score preview, the action row, and the move log.
+ * scrabble's play surface (coop + compete), on the shared two-column scaffold.
+ *
+ *   - **Board column** — the 15×15 board (sized like waffle/boggle: the largest
+ *     square that fits), and below it scrabble's **GameEntryArea**: the rack +
+ *     the action row. The rack IS the input here, so it lives in the board column
+ *     with everything else needed to play. The action row is split by a divider
+ *     into the non-committing actions (Shuffle, Recall) and the **commit slot**
+ *     ([Swap] [Submit] [Pass]) — which doubles as the **local feedback area**: an
+ *     own-move result (or the terminal verdict) shows as a sticky `<FeedbackPill>`
+ *     in place of the commit buttons, dismissed by the player's next move (a tile
+ *     tap / a keystroke). The Submit button doubles as the live score PREVIEW —
+ *     its label is the staged play + score ("ARROW +23").
+ *   - **Info column** — the live turn/score state, the compete OpponentStrip, the
+ *     End/Concede action row (the terminal outcome line at game-over), a help
+ *     line, the setup disclosure, and the Moves log filling the rest.
  *
  * Placement mirrors bananagrams exactly, two ways:
  *   - DRAG a tile from the rack to a square (or move/return a staged tile by
  *     dragging it). A blank prompts for its letter on drop.
- *   - KEYBOARD: a cursor sits on the board (tap a square to move it); arrow
- *     keys move it (a perpendicular arrow rotates →/↓ first), letters place a
- *     matching rack tile (or a blank declared as the typed letter) and advance,
- *     Backspace removes + steps back, Enter plays the word.
+ *   - KEYBOARD: a cursor sits on the board (tap a square to move it); arrow keys
+ *     move it (a perpendicular arrow rotates →/↓ first), letters place a matching
+ *     rack tile (or a blank declared as the typed letter) and advance, Backspace
+ *     removes + steps back, Enter plays the word.
  * A plain tap on a rack tile toggles it for Exchange.
  *
- * "Play word" evaluates the staged tiles with `lib/play.ts` (geometry +
- * scoring — also shown live as the preview) and sends words + score to
- * `scrabble.play_word`, which trusts them and checks only the dictionary on
- * submit. Staged tiles clear whenever the server version moves.
+ * "Play word" evaluates the staged tiles with `lib/play.ts` (geometry + scoring —
+ * also shown live as the Submit-button preview) and sends words + score to
+ * `scrabble.play_word`, which trusts them and checks only the dictionary. Staged
+ * tiles clear whenever the server version moves.
  */
 export function PlayArea({
   session,
@@ -87,9 +145,8 @@ export function PlayArea({
   playState,
   isTerminal,
   status,
-  feedback,
+  setup,
   goToClub,
-  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
   const { showModal, closeModal } = useTerminalModal(isTerminal)
@@ -110,6 +167,20 @@ export function PlayArea({
   // Red on the new cells of a rejected (not-in-dictionary) word.
   const [redFlash, setRedFlash] = useState<Set<number>>(new Set())
 
+  // The player's own-move result — a sticky pill in the commit slot (the local
+  // feedback area). v3: own-move feedback is LOCAL (docs/design-decisions.md →
+  // Feedback), not the global header `ctx.feedback`. Kept terse — the slot is
+  // narrow (it sits where [Swap][Submit][Pass] go). Dismissed by the player's
+  // next move (clearLocal, below), not a timer.
+  const [localMsg, setLocalMsg] = useState<LocalMsg | null>(null)
+  const clearLocal = useCallback(() => setLocalMsg((m) => (m ? null : m)), [])
+
+  // Turn viewer: the play `seq` whose historical board is being inspected, or null
+  // (live). Local + view-only — never shared/persisted, doesn't pause; the live
+  // `staged` is untouched (it re-renders on exit). See exitViewing below.
+  const [viewingSeq, setViewingSeq] = useState<number | null>(null)
+  const exitViewing = useCallback(() => setViewingSeq(null), [])
+
   // ─── Derived (null-safe until the loading guard) ──────────────
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const mode = game?.mode
@@ -121,7 +192,13 @@ export function PlayArea({
     [mode, sharedRack, myRack],
   )
   const myTurn = !isCompete || game?.currentUserId === session.user.id
-  const canAct = !!self && !isTerminal && !submitting && myTurn
+  // Two gates. `canPlace` — may stage / recall / reorder tiles: in COMPETE this is
+  // allowed even when it ISN'T your turn ("pre-play": line a move up while waiting,
+  // and see its score). `canCommit` — may actually commit a turn-consuming move
+  // (Submit / Swap / Pass), which requires it to be your turn. In coop there are no
+  // turns (myTurn is always true), so the two coincide.
+  const canPlace = !!self && !isTerminal && !submitting
+  const canCommit = canPlace && myTurn
 
   const usedRackIdx = useMemo(() => new Set(staged.map((s) => s.rackIdx)), [staged])
   const tentativeMap = useMemo(() => {
@@ -144,7 +221,7 @@ export function PlayArea({
   }, [game?.board, optimistic])
 
   // Live preview: geometry + score of the staged tiles (dictionary is only
-  // checked on submit — see docs §6).
+  // checked on submit — see docs §6). Drives the Submit-button label.
   const preview = useMemo(
     () => (staged.length > 0 ? evaluatePlay(board, staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))) : null),
     [board, staged],
@@ -160,19 +237,18 @@ export function PlayArea({
   const boardRef = useRef(board)
   const stagedRef = useRef(staged)
   const actingRackRef = useRef(actingRack)
-  const canActRef = useRef(canAct)
+  const canPlaceRef = useRef(canPlace)
   const orderRef = useRef(order)
+  const viewingSeqRef = useRef(viewingSeq)
   useEffect(() => {
     boardRef.current = board
     stagedRef.current = staged
     actingRackRef.current = actingRack
-    canActRef.current = canAct
+    canPlaceRef.current = canPlace
     orderRef.current = order
-  }, [board, staged, actingRack, canAct, order])
+    viewingSeqRef.current = viewingSeq
+  }, [board, staged, actingRack, canPlace, order, viewingSeq])
 
-  // A shown "not in the dictionary" pill is closeable (no auto-timer); we
-  // also clear it the moment the staged tiles change (see the effect below).
-  const dictErrorRef = useRef(false)
   // How many tiles the last play/exchange drew — turned into a yellow rack
   // flash once the new rack arrives (the drawn tiles are the rack's last N).
   const pendingDrawRef = useRef(0)
@@ -180,31 +256,56 @@ export function PlayArea({
   // so the next order keeps the remaining tiles put and adds the new ones right.
   const lastActionRef = useRef<{ removed: Set<number>; oldLen: number } | null>(null)
 
-  // Reset staged + selection + cursor on any server version move.
+  // On a server version move, distinguish MY commit from an OPPONENT'S move:
+  //   - MY play/exchange (`lastActionRef` set when I acted, so I drew tiles), or
+  //     ANY coop commit (shared rack changed): reset staging + rebuild the rack
+  //     order (remaining tiles kept, drawn tiles appended + flashed).
+  //   - COMPETE + an opponent moved (I didn't act → my rack is untouched): KEEP my
+  //     pre-played tiles AND my rack order. Only if the opponent committed onto a
+  //     cell I'd pre-played do I clear the pre-play + warn (the move is invalid now).
   const prevVersion = useRef<number | null>(null)
   const rackLen = actingRack.length
   useEffect(() => {
     if (!game) return
-    if (prevVersion.current !== game.version) {
-      prevVersion.current = game.version
-      setStaged([])
-      setSelected(new Set())
-      // Leave the cursor where it is — the next word is usually nearby, so
-      // snapping back to center each turn would just be in the way. (Its
-      // initial center comes from useState on load.)
-      // Keep remaining tiles put (compacted left); new tiles land on the right.
-      setOrder(nextRackOrder(orderRef.current, lastActionRef.current, rackLen))
-      lastActionRef.current = null
-      setOptimistic([]) // the server board now holds the played tiles
-      // Flash the freshly-drawn tiles — the rack's last N slots (the SQL
-      // appends drawn tiles to the end).
-      if (pendingDrawRef.current > 0 && rackLen > 0) {
-        const n = Math.min(pendingDrawRef.current, rackLen)
-        setYellowFlash(new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)))
+    if (prevVersion.current === game.version) return
+    prevVersion.current = game.version
+    setSelected(new Set())
+    setViewingSeq(null) // a new move landed — drop back to the live board
+    setOptimistic([]) // the server board now holds any just-played tiles
+    // Leave the cursor where it is — the next word is usually nearby.
+
+    const myMove = lastActionRef.current !== null
+    if (isCompete && !myMove) {
+      // An opponent's compete move (or the very first load): my rack is unchanged,
+      // so don't rebuild order/flash — EXCEPT seed the initial order when it's still
+      // empty (first load takes this branch, since I haven't acted), or the rack
+      // renders no tiles.
+      if (orderRef.current.length === 0 && rackLen > 0) {
+        setOrder(Array.from({ length: rackLen }, (_, i) => i))
+      }
+      // Keep my pre-play unless a tile I staged is now occupied on the board.
+      const committed = game.board ?? []
+      const conflict = stagedRef.current.some((s) => committed[cellIndex(s.x, s.y)] != null)
+      if (conflict) {
+        setStaged([])
+        // Terse on purpose — the commit slot is narrow (a name + disc would
+        // overflow with a longer username).
+        setLocalMsg({ tone: 'warning', text: 'Pre-play cleared: conflict' })
       }
       pendingDrawRef.current = 0
+      return
     }
-  }, [game, game?.version, rackLen])
+
+    // My commit (compete or coop), or any coop commit: reset staging + rebuild rack.
+    setStaged([])
+    setOrder(nextRackOrder(orderRef.current, lastActionRef.current, rackLen))
+    lastActionRef.current = null
+    if (pendingDrawRef.current > 0 && rackLen > 0) {
+      const n = Math.min(pendingDrawRef.current, rackLen)
+      setYellowFlash(new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)))
+    }
+    pendingDrawRef.current = 0
+  }, [game, game?.version, rackLen, isCompete])
 
   // Flash timers — each outline clears itself after ~1s.
   useEffect(() => {
@@ -222,18 +323,6 @@ export function PlayArea({
     const id = setTimeout(() => setRedFlash(new Set()), 1000)
     return () => clearTimeout(id)
   }, [redFlash])
-
-  // Dismiss a lingering "not in the dictionary" pill as soon as the player
-  // adds / moves / removes a tile (staged changes). The pill itself stays up
-  // until then (or until they click its X) — it's a result to read, not a
-  // flash. No-ops unless such a pill is currently showing.
-  useEffect(() => {
-    if (dictErrorRef.current) {
-      feedback.clear()
-      setRedFlash(new Set()) // the offending tiles are moving — drop the red outline
-      dictErrorRef.current = false
-    }
-  }, [staged, feedback])
 
   // ─── Cell-state helpers (ref-based; used by stable handlers) ──
   const committedAt = useCallback((x: number, y: number) => !!boardRef.current[cellIndex(x, y)], [])
@@ -282,6 +371,24 @@ export function PlayArea({
       if (g.source.kind === 'board' && overRackAtPoint(px, py)) {
         const { x, y } = g.source
         setStaged((prev) => prev.filter((p) => !(p.x === x && p.y === y)))
+        return
+      }
+      // A rack tile dropped back on the rack → REORDER it (people rearrange tiles
+      // to hunt for anagrams). Move it to the drop position in the display `order`.
+      if (g.source.kind === 'rack' && overRackAtPoint(px, py)) {
+        const insertAt = rackInsertIndexAtPoint(px)
+        if (insertAt === null) return
+        const rackIdx = g.source.rackIdx
+        setOrder((prev) => {
+          const from = prev.indexOf(rackIdx)
+          if (from < 0) return prev
+          let to = insertAt
+          const next = [...prev]
+          next.splice(from, 1)
+          if (from < to) to -= 1 // removal shifted later positions left
+          next.splice(Math.min(to, next.length), 0, rackIdx)
+          return next
+        })
       }
     },
     [committedAt, stagedAt],
@@ -306,19 +413,27 @@ export function PlayArea({
 
   const onCellPointerDown = useCallback(
     (x: number, y: number, e: React.PointerEvent) => {
-      if (!canActRef.current) return
+      // While viewing a past turn the board is read-only; a click exits to live
+      // (interacting ends the peek) rather than placing a tile.
+      if (viewingSeqRef.current != null) {
+        setViewingSeq(null)
+        return
+      }
+      if (!canPlaceRef.current) return
+      clearLocal() // a board interaction dismisses the sticky own-move pill
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
-    [stagedAt, start],
+    [stagedAt, start, clearLocal],
   )
 
   const onRackPointerDown = useCallback(
     (rackIdx: number, glyph: string, e: React.PointerEvent) => {
-      if (!canActRef.current) return
+      if (!canPlaceRef.current) return
+      clearLocal() // a rack interaction dismisses the sticky own-move pill
       start({ kind: 'rack', rackIdx }, glyph, null, e)
     },
-    [start],
+    [start, clearLocal],
   )
 
   const pickBlank = useCallback(
@@ -368,14 +483,14 @@ export function PlayArea({
         blank = true
       }
       if (rackIdx < 0) {
-        feedback.show({ tone: 'info', text: `No “${letter}” (or blank) on your rack`, dismiss: { kind: 'timed', ms: 1200 } })
+        setLocalMsg({ tone: 'info', text: `No “${letter}” tile` })
         return
       }
       setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
       const nxt = nextEmpty(tx, ty, cursor.dir)
       setCursor(nxt ? { x: nxt.x, y: nxt.y, dir: cursor.dir } : { x: tx, y: ty, dir: cursor.dir })
     },
-    [cursor, staged, actingRack, committedAt, nextEmpty, feedback],
+    [cursor, staged, actingRack, committedAt, nextEmpty],
   )
 
   const backspace = useCallback(() => {
@@ -389,11 +504,13 @@ export function PlayArea({
   // ─── Server moves ─────────────────────────────────────────────
   const submit = useCallback(async () => {
     if (!game) return
-    dictErrorRef.current = false // a new attempt: stop tracking any prior dict-error pill
     const placements: Placement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
     const ev = evaluatePlay(board, placements)
+    // Submit is allowed for any placed tiles (it doesn't gate on legal geometry —
+    // see the label note). An illegal shape never reaches the server; surface the
+    // reason as an own-move error pill in the commit slot and stop here.
     if (!ev.valid) {
-      feedback.show({ tone: 'error', text: ev.error, dismiss: { kind: 'timed', ms: 2000 } })
+      setLocalMsg({ tone: 'error', text: ev.error })
       return
     }
     setSubmitting(true)
@@ -406,31 +523,26 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 2000 } })
+      setLocalMsg({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; bad_words?: string[]; drawn?: string[] }
     if (res.result === 'accepted') {
       // Hold the played tiles on the board (as committed) until the realtime
-      // refetch lands, so they don't blink out; green-flash them. The new
-      // rack tiles get the yellow flash once the rack arrives.
+      // refetch lands, so they don't blink out; green-flash them. The new rack
+      // tiles get the yellow flash once the rack arrives.
       setOptimistic(placements)
       setGreenFlash(new Set(placements.map((p) => cellIndex(p.x, p.y))))
       pendingDrawRef.current = res.drawn?.length ?? 0
       lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
       setStaged([])
       setSelected(new Set())
-      feedback.show({
-        tone: 'success',
-        text: `${ev.words.map((w) => w.word).join(' · ')} — +${ev.score}${ev.bingo ? ' · BINGO! +50' : ''}`,
-        dismiss: { kind: 'timed', ms: 2500 },
-      })
+      const words = ev.words.map((w) => w.word).join(' · ')
+      setLocalMsg({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
     } else if (res.result === 'stale') {
-      feedback.show({ tone: 'info', text: 'The board changed — your tiles came back. Take another look.', dismiss: { kind: 'timed', ms: 2500 } })
+      setLocalMsg({ tone: 'info', text: 'Board changed' })
     } else if (res.result === 'invalid') {
-      // Persistent: stays until the player clicks its X or changes the board.
-      feedback.show({ tone: 'error', text: `Not in the dictionary: ${(res.bad_words ?? []).join(', ')}`, dismiss: { kind: 'closeable' } })
-      dictErrorRef.current = true
+      setLocalMsg({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
       const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
@@ -441,7 +553,7 @@ export function PlayArea({
       }
       setRedFlash(cells)
     }
-  }, [game, board, staged, actingRack, gameId, feedback])
+  }, [game, board, staged, actingRack, gameId])
 
   const exchange = useCallback(async () => {
     if (!game) return
@@ -450,36 +562,55 @@ export function PlayArea({
     const { data, error } = await db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles })
     setSubmitting(false)
     if (error) {
-      feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 2000 } })
+      setLocalMsg({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; drawn?: string[] }
     if (res.result === 'stale') {
-      feedback.show({ tone: 'info', text: 'The board changed — try again.', dismiss: { kind: 'timed', ms: 2000 } })
+      setLocalMsg({ tone: 'info', text: 'Board changed' })
     } else {
       lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
-      feedback.show({ tone: 'success', text: `Exchanged ${tiles.length} tiles`, dismiss: { kind: 'timed', ms: 1800 } })
+      setLocalMsg({ tone: 'success', text: `Swapped ${tiles.length}` })
     }
-  }, [game, selected, actingRack, gameId, feedback])
+  }, [game, selected, actingRack, gameId])
 
   const pass = useCallback(async () => {
     if (!game) return
+    // Confirm — passing forfeits the turn (a scoreless turn toward the blocked-end
+    // counter), and the button is easy to misclick. Exchange needs no confirm: it's
+    // disabled until tiles are selected, so it's rarely hit by accident.
+    if (!window.confirm('Do you really want to pass your turn?')) return
     const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })
-    if (error) feedback.show({ tone: 'error', text: error.message, dismiss: { kind: 'timed', ms: 2000 } })
-  }, [game, gameId, feedback])
+    if (error) setLocalMsg({ tone: 'error', text: error.message })
+  }, [game, gameId])
 
-  useEndGameMenu({ isTerminal, menu, feedback, endGame: () => db.rpc('end_game', { target_game: gameId }) })
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) setLocalMsg({ tone: 'error', text: `End game failed: ${error.message}` })
+  }, [gameId, isTerminal])
 
   useGlobalKeyHandler((e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
+    // While viewing a past turn, ANY key exits to the live board — navigation is by
+    // clicking Moves-log rows, so the next keystroke plays normally.
+    if (viewingSeq != null) {
+      setViewingSeq(null)
+      return
+    }
+    // ANY key dismisses the sticky local feedback (matches the capture-entry games'
+    // "next keystroke clears feedback" behavior) — before the canPlace gate, so it
+    // clears even for keys this handler otherwise ignores.
+    clearLocal()
     // (The "~" word-lookup shortcut is now app-global; see useAppShortcuts.)
-    if (!game || !canAct) return
+    if (!game || !canPlace) return
     const k = e.key
     if (k === 'Enter') {
       e.preventDefault()
-      if (staged.length > 0) void submit()
+      if (staged.length > 0 && canCommit) void submit()
     } else if (k === 'Backspace') {
       e.preventDefault()
       backspace()
@@ -492,89 +623,195 @@ export function PlayArea({
     }
   })
 
-  if (loading) return <p>Loading game…</p>
-  if (!game) return <p>Game not found.</p>
+  if (loading) return <p className={styles.loading}>Loading game…</p>
+  if (!game) return <p className={styles.loading}>Game not found.</p>
 
+  const scrabbleSetup = setup as unknown as ScrabbleSetup
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
+  // The player whose turn it is (compete) — for the "Turn: ● name" state line.
+  const currentMember = members.find((m: Member) => m.user_id === game.currentUserId)
+
+  // The Submit button's live score preview: the play's score when tiles are
+  // staged (0 for a not-yet-legal arrangement), or null (an em-dash) on an empty
+  // board. Submitting is allowed for any placed tiles; an illegal shape is
+  // explained by an error pill on submit, not by disabling the button.
+  const submitScore = staged.length > 0 ? (preview?.valid ? preview.score : 0) : null
+  // Submittable only on your turn (compete) — so a pre-played move shows its score
+  // (a disabled Submit displaying "+N") and becomes enabled the moment your turn
+  // starts with tiles already staged.
+  const canSubmit = staged.length > 0 && canCommit
+
+  // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
+  // else the sticky own-move result (transient outline), else nothing (the commit
+  // buttons show).
+  const commitPill: FeedbackMsg | null = over
+    ? {
+        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
+        text: over.message,
+        variant: 'fill',
+        dismiss: { kind: 'sticky' },
+      }
+    : localMsg
+      ? { tone: localMsg.tone, text: localMsg.text, variant: 'outline', dismiss: { kind: 'sticky' } }
+      : null
+
+  // Turn viewer: when active, the board renders the replayed historical state with
+  // that turn's tiles outlined; the live overlays (staged/cursor/flashes) are off.
+  const viewing = viewingSeq != null
+  const viewedPlay: PlayRow | null = viewing ? (plays.find((p) => p.seq === viewingSeq) ?? null) : null
+  const renderBoard = viewing ? boardUpToSeq(plays, viewingSeq) : board
+  const viewingCells =
+    viewing && viewedPlay?.kind === 'word'
+      ? new Set((viewedPlay.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
+      : NO_CELLS
 
   return (
-    <div className={styles.layout}>
-      <div className={styles.boardArea}>
+    <div className={cls(shared.layout, styles.layout)}>
+      <div className={cls(shared.boardCol, styles.boardCol)}>
         <Board
-          board={board}
-          tentative={tentativeMap}
+          board={renderBoard}
+          tentative={viewing ? NO_TENT : tentativeMap}
           cursor={cursor}
-          hover={hover}
-          greenCells={greenFlash}
-          redCells={redFlash}
+          hover={viewing ? null : hover}
+          greenCells={viewing ? NO_CELLS : greenFlash}
+          redCells={viewing ? NO_CELLS : redFlash}
           dragSource={drag && drag.source.kind === 'board' ? { x: drag.source.x, y: drag.source.y } : null}
           dragging={!!drag}
+          viewing={viewing}
+          viewingCells={viewingCells}
           onCellPointerDown={onCellPointerDown}
         />
+
+        <div className={styles.belowBoard}>
+          {/* Turn-viewer banner — overlays the input area (the rack stays mounted
+              underneath, so `staged` is preserved). Click anywhere to exit; the ✕
+              at the far right also exits. Navigation is by clicking Moves-log rows. */}
+          {viewing && viewedPlay && (
+            <div className={styles.viewingBanner} onClick={exitViewing} title="Click to exit">
+              <span className={styles.viewLabel}>{turnSummary(viewedPlay, nameOf)}</span>
+              <button
+                type="button"
+                className={styles.viewExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {self ? (
+            <div className={styles.actionRow}>
+              <div className={styles.rackWrap}>
+                <Rack tiles={rackTiles} used={usedRackIdx} selected={selected} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
+                {/* Shuffle floats over the rack's top-right corner — a quick
+                    reshuffle of the RACK (not a turn action), so it sits on the
+                    rack, not in the commit row. */}
+                <ShuffleButton onShuffle={shuffle} label="Shuffle rack" className={styles.rackShuffle} />
+              </div>
+              <Controls
+                isCompete={isCompete}
+                canCommit={canCommit}
+                hasTentative={staged.length > 0}
+                selectedCount={selected.size}
+                canExchange={game.bagCount >= 7}
+                submitting={submitting}
+                submitScore={submitScore}
+                canSubmit={canSubmit}
+                pill={commitPill}
+                onSubmit={() => void submit()}
+                onRecall={recallAll}
+                onExchange={() => void exchange()}
+                onPass={() => void pass()}
+              />
+            </div>
+          ) : (
+            <p className="muted">Watching — you're not in this game.</p>
+          )}
+        </div>
       </div>
 
-      <div className={styles.sideCol}>
-        {over ? (
-          <div className={styles.gameOver}>
-            <span>
-              <span className="muted">Game over:</span> {over.status}
-            </span>
-            <BackToClubButton onClick={goToClub} />
-          </div>
-        ) : (
-          <>
+      <div className={shared.infoCol}>
+        <div className={shared.actionSlot}>
+          {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
+              state → opponent strip → action row → help → setup disclosure → log. */}
+
+          {/* State — whose turn (compete) / team score (coop) + the bag count.
+              The other player's turn reads "Turn: ● name" (a leading color disc +
+              the bare name) — never the possessive "name's turn" (we don't
+              apostrophize usernames). */}
+          <p className={shared.infoState}>
             {isCompete ? (
-              <>
-                <div className={styles.turn}>{myTurn ? 'Your turn' : `${nameOf(game.currentUserId)}'s turn`}</div>
-                <OpponentStrip
-                  players={members}
-                  selfId={session.user.id}
-                  metricFor={(player) => {
-                    const ps = playerStates.find((p) => p.user_id === player.user_id)
-                    return <>{ps?.score ?? 0}</>
-                  }}
-                />
-              </>
+              myTurn ? (
+                <strong>Your turn</strong>
+              ) : (
+                <>
+                  Turn:{' '}
+                  <span style={{ color: colorVarFor(currentMember?.color) }} aria-hidden>
+                    ●
+                  </span>{' '}
+                  {currentMember?.username ?? 'someone'}
+                </>
+              )
             ) : (
-              <div className={styles.turn}>Team score: {game.teamScore ?? 0}</div>
-            )}
-            <div className="muted">Bag: {game.bagCount} tiles</div>
-            {!self && <p className="muted">Watching — you're not in this game.</p>}
-            {self && (
-              <>
-                <Rack tiles={rackTiles} used={usedRackIdx} selected={selected} flashIds={yellowFlash} active={canAct} onPointerDown={onRackPointerDown} />
-                <div className={styles.preview}>
-                  {preview &&
-                    (preview.valid ? (
-                      <span className={styles.previewOk}>
-                        {preview.words.map((w) => w.word).join(' · ')} — {preview.score} pts
-                        {preview.bingo ? ' (+50 bingo)' : ''}
-                      </span>
-                    ) : (
-                      <span className={styles.previewBad}>{preview.error}</span>
-                    ))}
-                </div>
-                <Controls
-                  isCompete={isCompete}
-                  canAct={canAct}
-                  hasTentative={staged.length > 0}
-                  selectedCount={selected.size}
-                  canExchange={game.bagCount >= 7}
-                  submitting={submitting}
-                  onSubmit={() => void submit()}
-                  onRecall={recallAll}
-                  onShuffle={shuffle}
-                  onExchange={() => void exchange()}
-                  onPass={() => void pass()}
-                />
-                <p className={`muted ${styles.hint}`}>
-                  Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways arrow turns it ↓). Enter plays.
-                </p>
-              </>
-            )}
-          </>
-        )}
-        <PlayLog plays={plays} players={members} />
+              <>Team score: <strong>{game.teamScore ?? 0}</strong></>
+            )}{' · '}
+            {game.bagCount} in bag
+          </p>
+
+          {/* Opponent strip (compete) — each peer's score, identity on a leading
+              disc. Scores aren't hidden (the board reveals them). */}
+          {isCompete && (
+            <OpponentStrip
+              players={members}
+              selfId={session.user.id}
+              metricLabel="Score"
+              metricFor={(player) => {
+                const ps = playerStates.find((p) => p.user_id === player.user_id)
+                return ps?.score ?? 0
+              }}
+            />
+          )}
+
+          {/* Action row — End (coop) / Concede (compete) during play; at terminal
+              the bold outcome line + a compact back-to-club button. */}
+          {over ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
+              <BackToClubButton onClick={goToClub} compact />
+            </div>
+          ) : (
+            <div className={shared.infoActions}>
+              {isCompete ? (
+                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
+              ) : (
+                <EndGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
+              )}
+            </div>
+          )}
+
+          {/* Help — only while the player can act on it (never silently swapped). */}
+          {!over && (
+            <p className={shared.infoHelp}>
+              Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways
+              arrow turns it ↓). Enter plays.
+            </p>
+          )}
+
+          {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
+          <details className={shared.infoSetup}>
+            <summary>Setup options</summary>
+            <ul>
+              <li>2-letter words: {DIFFICULTY_LABELS[scrabbleSetup.dict_2 - 1] ?? '—'}</li>
+              <li>Longer words: {DIFFICULTY_LABELS[scrabbleSetup.dict_3plus - 1] ?? '—'}</li>
+              <li>{timerLabel(scrabbleSetup.timer)}</li>
+            </ul>
+          </details>
+        </div>
+
+        <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={setViewingSeq} />
       </div>
 
       {blankAt && <BlankPicker onPick={pickBlank} onCancel={() => setBlankAt(null)} />}
@@ -592,7 +829,24 @@ export function PlayArea({
   )
 }
 
-/** Terminal verdict + status copy, mode- and self-aware. */
+/** One-line timer summary for the setup disclosure (same shape the other v3
+ *  games use). */
+function timerLabel(t: TimerMode): string {
+  if (t.kind === 'countup') return 'count-up timer'
+  if (t.kind === 'countdown') {
+    const m = Math.floor(t.seconds / 60)
+    const s = t.seconds % 60
+    return `${m}:${String(s).padStart(2, '0')} countdown`
+  }
+  return 'no timer'
+}
+
+/**
+ * Terminal copy, mode- and self-aware. Returns `{ outcome, verdict, message,
+ * tone }`: `outcome` + `verdict` drive the GameOverModal; `message` (terse) +
+ * `tone` drive BOTH the info-column outcome line AND the permanent below-board
+ * pill (so the narrow commit slot stays one line).
+ */
 function buildOver({
   game,
   playState,
@@ -605,17 +859,17 @@ function buildOver({
   status: Record<string, unknown> | null
   selfId: string
   nameOf: (id: string | null) => string
-}): { outcome: 'won' | 'lost'; verdict: string; status: string } {
+}): { outcome: 'won' | 'lost'; verdict: string; message: string; tone: 'won' | 'lost' | 'neutral' } {
   const outcome = (status?.outcome as string | undefined) ?? ''
   if (game.mode === 'coop') {
     const score = game.teamScore ?? 0
-    if (outcome === 'manual') return { outcome: 'won', verdict: `Game ended — ${score} points.`, status: `${score} points` }
-    if (outcome === 'timeout') return { outcome: 'won', verdict: `Time's up — ${score} points.`, status: `${score} points` }
-    return { outcome: 'won', verdict: `Board cleared — ${score} points! 🎉`, status: `${score} points` }
+    if (outcome === 'manual') return { outcome: 'won', verdict: `Game ended — ${score} points.`, message: `${score} pts`, tone: 'neutral' }
+    if (outcome === 'timeout') return { outcome: 'won', verdict: `Time's up — ${score} points.`, message: `${score} pts`, tone: 'neutral' }
+    return { outcome: 'won', verdict: `Board cleared — ${score} points! 🎉`, message: `${score} pts`, tone: 'won' }
   }
-  if (playState === 'ended') return { outcome: 'won', verdict: 'Game ended — no winner.', status: 'ended' }
+  if (playState === 'ended') return { outcome: 'won', verdict: 'Game ended — no winner.', message: 'Ended', tone: 'neutral' }
   const winner = status?.winner as string | null | undefined
-  if (winner === selfId) return { outcome: 'won', verdict: 'You won the game! 🎉', status: 'you won' }
-  if (winner) return { outcome: 'lost', verdict: `${nameOf(winner)} won.`, status: `${nameOf(winner)} won` }
-  return { outcome: 'won', verdict: "It's a tie — co-winners!", status: 'tie' }
+  if (winner === selfId) return { outcome: 'won', verdict: 'You won the game! 🎉', message: 'You won!', tone: 'won' }
+  if (winner) return { outcome: 'lost', verdict: `${nameOf(winner)} won.`, message: `${nameOf(winner)} won`, tone: 'lost' }
+  return { outcome: 'won', verdict: "It's a tie — co-winners!", message: 'Tie', tone: 'neutral' }
 }

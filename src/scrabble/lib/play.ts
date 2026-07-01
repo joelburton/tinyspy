@@ -216,4 +216,25 @@ export function evaluatePlay(board: Cell[], placements: Placement[]): PlayEvalua
   return { valid: true, words, score, bingo }
 }
 
+/**
+ * Replay the board as it stood **after a given turn** — fold every WORD play's
+ * placements with `seq ≤ target` onto an empty grid (exchange / pass / forfeit
+ * place no tiles). Used by the turn-viewer: the board is *defined* as the
+ * accumulation of placements (the server builds it the same way), so this is a
+ * pure FE replay — no per-turn board snapshot to store. Blanks survive (the
+ * placement carries its declared `letter` + `blank` flag). `plays` need not be
+ * sorted (we filter, not slice).
+ */
+export function boardUpToSeq(
+  plays: ReadonlyArray<{ seq: number; kind: string; placements: Placement[] | null }>,
+  seq: number,
+): Cell[] {
+  const cells: Cell[] = new Array(BOARD_SIZE * BOARD_SIZE).fill(null)
+  for (const p of plays) {
+    if (p.seq > seq || p.kind !== 'word' || !p.placements) continue
+    for (const pl of p.placements) cells[cellIndex(pl.x, pl.y)] = { l: pl.letter, b: pl.blank }
+  }
+  return cells
+}
+
 export { BOARD_SIZE }

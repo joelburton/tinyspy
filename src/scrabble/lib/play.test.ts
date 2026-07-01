@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cellIndex, type Cell } from './board'
-import { evaluatePlay, tilesUsed, type Placement } from './play'
+import { boardUpToSeq, evaluatePlay, tilesUsed, type Placement } from './play'
 
 const emptyBoard = (): Cell[] => Array(225).fill(null)
 
@@ -136,5 +136,37 @@ describe('scoring', () => {
 describe('tilesUsed', () => {
   it('maps blanks to ? and keeps letters otherwise', () => {
     expect(tilesUsed([at(7, 7, 'Q', true), at(8, 7, 'I')])).toEqual(['?', 'I'])
+  })
+})
+
+describe('boardUpToSeq (turn-viewer replay)', () => {
+  const plays = [
+    { seq: 1, kind: 'word', placements: [at(7, 7, 'C'), at(8, 7, 'A'), at(9, 7, 'T')] },
+    { seq: 2, kind: 'pass', placements: null },
+    { seq: 3, kind: 'word', placements: [at(8, 8, 'B'), at(8, 9, 'E')] }, // off the A, downward
+    { seq: 4, kind: 'exchange', placements: null },
+  ]
+
+  it('replays only word plays up to and including the given seq', () => {
+    const b1 = boardUpToSeq(plays, 1)
+    expect(b1[cellIndex(7, 7)]).toEqual({ l: 'C', b: false })
+    expect(b1[cellIndex(9, 7)]).toEqual({ l: 'T', b: false })
+    expect(b1[cellIndex(8, 8)]).toBeNull() // turn 3 not applied yet
+  })
+
+  it('a pass/exchange turn shows the board as of the prior word play (no new tiles)', () => {
+    expect(boardUpToSeq(plays, 2)).toEqual(boardUpToSeq(plays, 1)) // pass adds nothing
+    expect(boardUpToSeq(plays, 4)).toEqual(boardUpToSeq(plays, 3)) // exchange adds nothing
+  })
+
+  it('includes every earlier word play by the latest seq', () => {
+    const b = boardUpToSeq(plays, 3)
+    expect(b[cellIndex(7, 7)]).toEqual({ l: 'C', b: false }) // turn 1
+    expect(b[cellIndex(8, 9)]).toEqual({ l: 'E', b: false }) // turn 3
+  })
+
+  it('preserves a blank tile declared letter + flag', () => {
+    const withBlank = [{ seq: 1, kind: 'word', placements: [at(7, 7, 'M', true)] }]
+    expect(boardUpToSeq(withBlank, 1)[cellIndex(7, 7)]).toEqual({ l: 'M', b: true })
   })
 })

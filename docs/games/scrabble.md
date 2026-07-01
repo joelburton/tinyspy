@@ -433,16 +433,69 @@ scrabble doesn't have.)
 ## 7. Frontend (`src/scrabble/`)
 
 Shared `PlayArea` / `SetupForm` / `Help` / `useGame`, mode-branched at render on
-`game.mode`. The board on the left grows to fill the height (`--scrabble-board-size`,
-a square bounded by viewport height and the width left after the fixed side
-column); the rack, action row, score, and move log sit in that fixed side column.
+`game.mode`. **v3 layout** (the shared two-column scaffold — see
+[docs/design-decisions.md](../design-decisions.md)): the **board column** holds
+the 15×15 board (the square *hug* model — `--side = min(--avail-w, --avail-h)`,
+the largest square that fits, like waffle/boggle) and, directly below it,
+scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the input,
+so it lives with everything else needed to play). That row is pinned to the board
+width and split by a divider — Shuffle + the icon-only Recall (`ClearButton`) on
+the left; the **commit slot** ([Swap] [Submit] [Pass]) on the right. The commit
+slot doubles as the **local feedback area**: an own-move result (or the terminal
+verdict) shows as a sticky `<FeedbackPill>` in place of the commit buttons,
+dismissed by the player's next move (a tile tap / a keystroke). To keep that row
+on one line within the board width, the buttons are compact — **Swap is
+icon-only** (the `ExchangeButton`, two-way-arrows glyph, `info` tone); Pass (compete
+only) is the de-emphasized end-turn octagon (`PassButton` — icon-only, secondary,
+`warning` tone, left of Submit); and **Submit is the `SubmitWithScore` button**, a
+shared component that doubles as the live preview — the triangle pinned left, the
+play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
+width so it never resizes. Submit is enabled for *any* placed tiles; an illegal
+shape isn't disabled-away but surfaces as an error pill on submit. The **info column** holds
+the live turn/score state, the compete `OpponentStrip` (metric "Score"), the
+End/Concede action row (the terminal outcome line at game over), a help line, the
+setup disclosure, and the Moves log filling the rest.
 
 **Placement mirrors bananagrams's two input modes** — its pointer-gesture system
 (a press-past-threshold becomes a drag, with a floating ghost + drop highlights)
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
-advances). Drag a tile rack→board, board→board (move), or board→rack (recall); tap
-a square to position the cursor; tap a rack tile to mark it for Exchange.
+advances). Drag a tile rack→board, board→board (move), board→rack (recall), or
+**rack→rack to reorder** (people rearrange tiles to hunt for anagrams — the drop
+position is read off the rack tiles' midpoints and moves the tile in the display
+`order`); tap a square to position the cursor; tap a rack tile to mark it for
+Exchange.
+
+**Pre-play (compete).** Placement is split from commit by two gates: `canPlace`
+(stage / recall / reorder / shuffle) and `canCommit` (Submit / Swap / Pass — needs
+your turn). In compete `canPlace` is true **even when it isn't your turn**, so you
+can *pre-play* — lay a move out while waiting, to line it up and see its score (a
+disabled Submit showing "+N"). Pre-played tiles use the same bright tentative face.
+When an opponent commits, your pre-play **persists** (the version-move effect keeps
+it + your rack order, since your rack is untouched) — *unless* the opponent placed a
+tile on a cell you'd pre-played, in which case the whole pre-play is cleared with a
+terse local `warning` pill, "Pre-play cleared: conflict" (no name/disc — the commit
+slot is too narrow). When your turn then starts with tiles already staged, Submit is enabled and
+Pass is disabled (you have a move pending). Coop is unchanged — no turns, and a
+teammate's commit still resets your in-progress staging (the stackdown-style "first
+commit wins").
+
+**Turn viewer.** Click any Moves-log row to inspect that turn on the board: the
+board swaps to the **replayed historical state** (`boardUpToSeq` in `lib/play.ts` —
+a pure fold of every word play's `placements` with `seq ≤ target`; no per-turn
+snapshot stored, since the board *is* the accumulation of placements). The tiles
+*that turn placed* are outlined **success-green** (they really were the turn's good
+words — so only word turns light up, not a pass), while a **gold outline** rings the
+whole board, the selected log row, and the banner overlaying the input area — a terse
+"#12 Bea: +54 JUKEBOX" (non-word turns read "#5 Bea passed" / "exchanged N"), plain
+surface fill + normal text (gold-on-gold was unreadable), with a `✕` at its far right.
+Gold, not green, for the frame/row/banner: it's a neutral "you're looking at history"
+marker, and green would wrongly imply the *whole* turn was a success (a pass isn't).
+The rack stays mounted *underneath* the banner, so `staged` (your pre-play) is
+preserved and restored on exit. **Navigate by clicking rows** (no arrows); the `✕`, a
+click anywhere on the banner or board, any key, or an opponent's move all **exit
+cleanly** to the live board. It's a local view-only state (like the board rotation) —
+never shared, never persisted, doesn't pause.
 
 - **`lib/board.ts`** — premium grid, tile values, distribution constants. Pure;
   Vitest (layout symmetry, distribution sums to 100).
@@ -450,7 +503,9 @@ a square to position the cursor; tap a rack tile to mark it for Exchange.
   (`evaluatePlay`), used both for the live preview and to build the commit payload
   (no SQL re-implementation — see [§6](#6-where-validation-lives)). Vitest-heavy:
   in-line/contiguous/connected/center-first; main + cross-word extraction;
-  premiums-only-on-new-tiles; bingo +50; blanks = 0.
+  premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`boardUpToSeq`** (the
+  turn-viewer replay): word plays fold in, pass/exchange add nothing, blanks keep
+  their declared letter.
 - **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer).
 - **`hooks/useGame.ts`** — postgres-changes on `scrabble.{games_state,
   players_state, plays}` (Pattern A, per-tab UUID-suffixed channel).
@@ -458,24 +513,29 @@ a square to position the cursor; tap a rack tile to mark it for Exchange.
   blanks shown on a brighter golden face; the cursor overlay; drag drop-highlights
   + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
   7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
-  just-drawn tiles flashed yellow, blanks greyed), `Controls` (a divider splits
-  the non-submit actions — Recall, the common `ShuffleButton` — from the blue
-  submit actions — Exchange, Submit, and Pass in compete), `BlankPicker` (declare
-  a dragged blank's letter on drop), `PlayLog` (framed, scrollable move log: thin
-  rows with a colored left bar — green word / orange exchange-pass / red forfeit —
-  newest at the bottom, auto-scrolled; `name: +score WORD` with the name in the
-  player's color; words click-to-define via the common `DefinitionPopover`),
+  just-drawn tiles flashed yellow, blanks greyed), `Controls` (the action half of
+  the below-board row: the icon-only Recall `ClearButton` on the left, then the
+  **commit slot** pushed right [Swap `ExchangeButton` icon-only / Pass `PassButton`
+  icon-only, compete / Submit `SubmitWithScore`]; that slot doubles as the local
+  feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
+  when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
+  floats over the rack corner, not in this row), `BlankPicker` (declare a
+  dragged blank's letter on drop), `PlayLog` (the move log on the shared
+  `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
+  exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
+  `<ActorTag>`; words click-to-define via the common `DefinitionPopover`),
   `PlayArea` (the composition + the gesture/keyboard plumbing, the live score
-  preview, the optimistic just-played hold,
-  `GameOverModal` + the End-game menu item), `SetupForm` (two `<DifficultyField>`s
-  + timer), `Help`.
+  preview in the Submit button, the optimistic just-played hold, the sticky local
+  own-move feedback, the End/Concede action-row button + `GameOverModal`),
+  `SetupForm` (two `<DifficultyField>`s + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the
 "should this survive a pause?" rule it lives in `PlayArea`, clearing on
-pause/unmount, and on any server `version` move). On an accepted word the played
-tiles are held **optimistically** (rendered committed) until the realtime refetch
-lands, so they never blink off the board. **Compete disables placement when it
-isn't your turn**; coop leaves it always-live (race to commit).
+pause/unmount, and — for *your own* commit — on the server `version` move). On an
+accepted word the played tiles are held **optimistically** (rendered committed)
+until the realtime refetch lands, so they never blink off the board. **Compete
+allows placement off-turn** (pre-play, above) — only *committing* needs your turn;
+coop is always-live (race to commit).
 
 ### Realtime channels
 
@@ -522,6 +582,12 @@ score: `"124 pts · 30 tiles left"`); **at terminal**, the result — `"ended"`
 - `play.test.ts` — geometry (off-line / gap / disconnected / center-first
   rejects), main + cross-word extraction, scoring (premiums only under new tiles,
   stacked word multipliers, bingo +50, blanks 0).
+- `components/PlayArea.test.tsx` — render smoke (coop / compete / terminal): the
+  v3 tree mounts without throwing (board cells, the state line, the compete
+  OpponentStrip, the terminal pill), the 7-tile rack renders (a regression guard),
+  and the turn viewer opens on a row click + exits on ✕. `useGame` + `db` mocked.
+  Shallow by design — the logic lives in the lib + pgTAP suites; this guards the
+  wiring `tsc` can't.
 
 **pgTAP** (`supabase/tests/scrabble/`) — covers the *server's* job (the trusting
 commit), not the TS-owned geometry/scoring:

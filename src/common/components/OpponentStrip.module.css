@@ -1,12 +1,15 @@
 /* The inline per-player progress strip shared by waffle / connections /
- * spellingbee / psychicnum. Muted, small, wraps on overflow. Consolidated
- * from the near-identical per-game copies these games used to carry. */
+ * spellingbee / psychicnum / boggle / scrabble. Small + wraps on overflow, but
+ * NOT muted: its content is real per-player data (who, and their score/rank) —
+ * the player's score is the whole point of the strip, so it must read at full
+ * strength (docs/design-decisions.md → Opponent strip). Understatement comes from
+ * size, not from dimming. Consolidated from the near-identical per-game copies. */
 .strip {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   margin: 0.25rem 0;
-  color: var(--color-muted);
+  color: var(--color-text);
   font-size: 0.85rem;
 }
 
@@ -45,11 +48,12 @@
   margin-right: 0.25rem;
 }
 
-/* The per-player metric (score, rank, …) — the important data in this strip, so
- * it's full text color rather than the strip's muted grey, to stand out. The
+/* The per-player metric (score, rank, …) — the MOST important data in this strip,
+ * so it's full text color AND bold, the prominent value each entry leads to. The
  * `·`-gap before it (the entry's flex gap) is the space after the name's colon. */
 .metric {
   color: var(--color-text);
+  font-weight: 700;
 }
 
 /* The player's identity disc — a filled circle in their profile color, set

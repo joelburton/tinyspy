@@ -1,72 +1,199 @@
+/* scrabble's play surface, on the shared two-column scaffold
+ * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * .layout / .boardCol / .infoCol / .actionSlot the other v3 games use. This
+ * module holds only scrabble's own bits: the per-game layout vars, the SQUARE
+ * board sizing (the waffle/boggle hug model), and the below-board RACK + ACTION
+ * row (scrabble's GameEntryArea — the rack is the input, so it lives in the board
+ * column with everything else needed to play). */
+
+/* Per-game layout vars the shared scaffold reads. The info column is moderate —
+ * it holds the live state, the action row, the setup disclosure, and the Moves
+ * log. --avail-h is the vertical space left for the square board: viewport −
+ * chrome − the below-board stack, which is EXACTLY the board column's 0.75rem gap
+ * + the belowBoard's 0.25rem margin-top + the rack/action row (the belowBoard
+ * min-height, 3.4rem) = 4.4rem. Matching it exactly makes the board fill all the
+ * height it can and the bottom of the rack land at the bottom of the column (no
+ * leftover margin). Keep in sync with `.belowBoard`. */
 .layout {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  --info-col-width: 25rem;
+  --avail-h: calc(100vh - var(--game-chrome-height) - 4.4rem);
+  /* Rack tile size — tied to the board's available space (≈ --side, the min of
+   * the width/height left for the board) so the rack shrinks on a cramped laptop
+   * and the rack + action row keep fitting on one line within the board width.
+   * Defined on .layout (not .boardCol) so the floating drag ghost can read it
+   * too. clamp() floors/caps it to a sane tile size. */
+  --rack-tile-size: clamp(22px, calc(min(var(--avail-w), var(--avail-h)) / 18), 38px);
 }
 
-/* The board sizes itself (see Board.module.css) to grow as tall as the
-   layout allows; this column just wraps it. */
-.boardArea {
+/* The board column. Computes `--side` — the largest square that fits — HERE
+ * (not on the board) so the below-board rack row can match the board's width
+ * from the same source. scrabble is always 15×15, so `--cols` is the literal 15.
+ *
+ * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
+ * Like waffle/boggle this is a SQUARE board with ONE knob: the max tile SIZE.
+ * Ships effectively UNCAPPED (999rem) so the per-tile term never wins the min()
+ * and the board grows to the largest square that fits (bounded by --avail-w
+ * beside the info column and --avail-h above the rack row). LOWER it (e.g. 2.6rem)
+ * to cap tile size. A real value (not a commented-out knob + var() fallback) so
+ * the token isn't "phantom" (src/cssTokens.test.ts). Relative units (rem). */
+.boardCol {
+  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
+  --grid-gap: 2px;
+  --side: min(
+    var(--avail-w),
+    var(--avail-h),
+    calc(15 * var(--max-tile-size) + 14 * var(--grid-gap))
+  );
+}
+
+/* ─── Below the board: the rack + action row (scrabble's GameEntryArea) ───────
+ * Pinned to the board's --side so it spans exactly the board width and never
+ * widens the column (the board column hugs the board). A reserved min-height
+ * keeps the top-anchored board from shifting; a SMALL `margin-top` drops the row
+ * just off the board (on top of the board column's 0.75rem gap) — kept tight so
+ * the board grows as large as possible, counted into `--avail-h` above. The
+ * action buttons are compact (Swap is icon-only, Submit shows just the score) so
+ * the rack + actions fit on one line within the board width. */
+.belowBoard {
+  width: var(--side);
+  min-height: 3.4rem;
+  margin-top: 0.25rem;
+  /* Positioning context for the turn-viewer banner, which overlays this slot. */
+  position: relative;
+}
+
+/* Turn-viewer banner — covers the input area while inspecting a past turn (the
+ * rack stays mounted underneath, so `staged` survives). Just a GOLD OUTLINE (the
+ * neutral historical marker — see Board's .viewing); a plain surface fill (so it's
+ * opaque over the rack) and NORMAL text color (gold-on-gold was unreadable). The
+ * whole banner is a click-to-exit target; the ✕ (pinned far right) also exits. */
+.viewingBanner {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.5rem 0 0.75rem;
+  cursor: pointer;
+  border: 2px solid var(--scrabble-viewer);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* The label fills the row and centers; a long play summary ellipsis-truncates
+ * (min-width:0 lets it shrink so the ✕ never gets pushed off). */
+.viewLabel {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The ✕ exit — pinned at the far right of the overlay (not beside the text). */
+.viewExit {
   flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.35rem;
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.viewExit:hover {
+  background: color-mix(in oklab, var(--color-text) 10%, var(--color-surface));
 }
 
-/* Fixed column wide enough for the 7-tile rack in one row. */
-.sideCol {
-  flex: 0 0 360px;
-  /* As tall as the board, so the moves log (the flex-growing last child) can
-     fill the leftover height and scroll inside itself. */
-  height: var(--scrabble-board-size);
-  min-height: 0;
+/* One horizontal row: the rack on the left, then the controls filling the rest.
+ * nowrap so it never grows a second line (which would reflow the board height) —
+ * labels + messages are kept terse to fit. */
+.actionRow {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
 }
 
+/* Positioning context for the shuffle button floating over the rack's top-right
+ * corner (so the ⟲ reads as "shuffle the rack"). Sized to the rack. */
+.rackWrap {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+/* The shuffle control, floated over the rack's top-right corner and scaled down
+ * (it's a quick reshuffle of the rack, not a turn action — like the board games'
+ * shuffle floating over the board corner). */
+.rackShuffle {
+  position: absolute;
+  top: -9px;
+  right: -14px;
+  z-index: 3;
+  transform: scale(0.68);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* The controls fill the space beside the rack: Recall on the left, the commit
+ * slot (its `margin-left: auto`) shoved to the row's right edge. The left/right
+ * split reads from the gap between them, so there's no divider rule. Because
+ * belowBoard is pinned to --side, this flex:1 free space — not the board —
+ * absorbs any change in the commit slot's width, so the board never moves. */
 .controls {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
-/* Vertical rule separating the non-submit (left) from the submit (right)
-   action buttons. */
-.divider {
-  align-self: stretch;
-  width: 1px;
-  min-height: 1.6em;
-  margin: 0 3px;
-  background: var(--color-divider);
+/* The commit slot — the "local feedback area" too. Normally holds the commit
+ * buttons [Swap] [Submit] [Pass], right-aligned (sized to content; `margin-left:
+ * auto` shoves them to the row's right edge). When an own-move result / terminal
+ * verdict shows, it instead holds a <FeedbackPill> and switches to
+ * `.commitSlotFill` — flex:1, so the pill gets ALL the width from Recall to the
+ * right edge (not just the buttons' narrow width), letting a longer message read
+ * before it ellipsis-clips. The board never moves when this resizes — the flex:1
+ * `.controls` free space absorbs it (belowBoard is pinned). */
+.commitSlot {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
-.turn {
-  font-size: 1.1rem;
-  font-weight: 600;
+/* Feedback-pill mode: fill the whole space left of the right edge. flex:1 eats
+ * the row's free space (so the `margin-left: auto` resolves to 0) — everything
+ * right of Recall becomes the (full-width) feedback area. */
+.commitSlotFill {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
 }
 
-.preview {
-  min-height: 1.4em;
-  font-size: 0.95rem;
-}
-.previewOk {
-  color: #2e7d52;
-  font-weight: 600;
-}
-.previewBad {
-  color: var(--color-muted);
+/* The own-move / terminal pill, constrained to the commit slot so a long message
+ * truncates instead of growing the row (the pill itself already does nowrap +
+ * ellipsis; this bounds its box). */
+.commitPill {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-.hint {
-  font-size: 0.8rem;
-}
-
-/* The dragged tile, following the pointer. */
+/* The dragged tile, following the pointer — sized to match the (responsive)
+ * rack tile so the drag image is the same size as the tile it lifted. */
 .ghost {
   position: fixed;
   transform: translate(-50%, -50%) rotate(-3deg);
-  width: 42px;
-  height: 42px;
+  width: var(--rack-tile-size);
+  height: var(--rack-tile-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,20 +202,13 @@
   border: 1px solid var(--scrabble-tile-edge);
   border-radius: 4px;
   font-weight: 700;
-  font-size: 21px;
+  font-size: calc(var(--rack-tile-size) * 0.5);
   pointer-events: none;
   z-index: 100;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-.gameOver {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: 8px;
-}
-.gameOver .muted {
-  margin-right: 4px;
+.loading {
+  padding: 2rem;
+  color: var(--color-text);
 }

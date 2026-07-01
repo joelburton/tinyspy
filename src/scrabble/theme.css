@@ -18,10 +18,12 @@
   --scrabble-tile-tentative: #ffd21a; /* a vivid, saturated gold so this-turn (placed-but-not-committed) tiles pop */
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
   --scrabble-cursor: #c9881f; /* the keyboard-entry cursor ring */
-  /* The board's on-screen size — a square bounded by viewport height and by
-     the width left after the fixed side column. Shared so the side column
-     (and its moves log) can be exactly as tall as the board. */
-  --scrabble-board-size: min(82vh, calc(100vw - 410px));
+  /* The turn-viewer's GOLD — the board frame + the "Viewing turn" overlay. A
+     neutral "you're looking at an old turn" highlight, deliberately NOT an outcome
+     color: a pass turn isn't a success, so a green frame would mislead. (The tiles
+     that turn PLAYED are still outlined success-green — those really were the good
+     words of the turn; the frame just says "historical view".) */
+  --scrabble-viewer: #c8951a;
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */

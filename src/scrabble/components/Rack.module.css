@@ -7,16 +7,17 @@
   background: #6b4a2a;
   border-radius: 8px;
   /* Always a full 7-tile-wide tray; with fewer tiles they stay left-aligned
-     (the gap math: 7 tiles + 6 gaps + the L/R padding). */
+     (the gap math: 7 tiles + 6 gaps + the L/R padding). Tile size is responsive
+     (--rack-tile-size, set on .layout — shrinks the rack on a cramped laptop). */
   box-sizing: border-box;
-  width: calc(7 * 42px + 6 * 6px + 2 * 8px);
+  width: calc(7 * var(--rack-tile-size) + 6 * 6px + 2 * 8px);
 }
 
 .tile {
   position: relative;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
+  width: var(--rack-tile-size);
+  height: var(--rack-tile-size);
   /* Same container-query trick as the board tile, so the glyph layout below
      matches it exactly at this (smaller) size. */
   container-type: size;

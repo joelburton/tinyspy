@@ -42,6 +42,8 @@ export function Board({
   redCells,
   dragSource,
   dragging,
+  viewing = false,
+  viewingCells,
   onCellPointerDown,
 }: {
   board: Cell[]
@@ -54,6 +56,11 @@ export function Board({
   redCells: Set<number>
   dragSource: XY | null
   dragging: boolean
+  /** Turn-viewer: the board is a historical replay — green frame, no cursor. */
+  viewing?: boolean
+  /** Turn-viewer: cells the viewed turn placed — outlined green (the "good
+   *  words of this turn"). */
+  viewingCells?: Set<number>
   onCellPointerDown: (x: number, y: number, e: React.PointerEvent) => void
 }) {
   const cells = []
@@ -102,6 +109,7 @@ export function Board({
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
                     redCells.has(idx) && styles.flashReject,
+                    viewingCells?.has(idx) && styles.viewingTile,
                   )}
                 >
                   <span className={styles.letter}>{glyph}</span>
@@ -110,12 +118,12 @@ export function Board({
               )
             })()}
           {!committed && !tent && (idx === CENTER ? '★' : PREMIUM_LABEL[premium])}
-          {cursorHere && (
+          {cursorHere && !viewing && (
             <span className={cls(styles.cursor, cursor.dir === 'h' ? styles.cursorH : styles.cursorV)} />
           )}
         </div>,
       )
     }
   }
-  return <div className={styles.board}>{cells}</div>
+  return <div className={cls(styles.board, viewing && styles.viewing)}>{cells}</div>
 }

@@ -28,6 +28,10 @@ export {
   // and hands play on. codenamesduet's "Pass" is the first user.
   Octagon as IconEndTurn,
   Eraser as IconClear, // clear the current selection
+  // swap/exchange tiles for new ones — the two-way horizontal arrows are the
+  // near-universal "exchange" idiom (scrabble's "Swap"). Distinct from
+  // IconShuffle's single rotate glyph (reorder my OWN tiles, no server trade).
+  ArrowLeftRight as IconExchange,
   Delete as IconDelete, // delete the last typed character (the backspace key glyph)
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   ChevronLeft as IconBack, // back to club

@@ -7,14 +7,25 @@
   padding: 4px;
   border-radius: 6px;
   box-sizing: border-box;
-  /* Grow as large as the layout allows: a square sized by viewport height,
-     but never so wide it crowds the fixed side column. */
-  aspect-ratio: 1;
-  height: var(--scrabble-board-size);
-  width: auto;
+  /* The largest square that fits — `--side` is computed on the parent .boardCol
+     (the shared hug model, like waffle/boggle): min(width left beside the info
+     column, height left above the rack row). The grid internals (cqi/cqmin font
+     sizing) are unchanged — only the OUTER square size moved to --side. */
+  width: var(--side);
+  height: var(--side);
   container-type: inline-size;
   user-select: none;
   touch-action: none;
+}
+
+/* Turn-viewer: a GOLD frame around the whole board signals "you're looking at a
+   past turn, not the live board". Gold (not green) because it's a neutral
+   historical-view marker — a pass turn is no success, so a green frame would
+   mislead. (The tiles that turn placed are still outlined green below — those
+   really were good words.) An outline (not a border) so it doesn't resize the board. */
+.board.viewing {
+  outline: 4px solid var(--scrabble-viewer);
+  outline-offset: 3px;
 }
 
 .cell,
@@ -99,6 +110,13 @@
 /* A just-accepted word: green outline for ~1s. */
 .tile.flashAccept {
   outline: 3px solid #2faa5a;
+  outline-offset: -3px;
+  z-index: 2;
+}
+/* Turn-viewer: the tiles THIS turn placed — a persistent green outline (the
+   "good words of this turn"); the success-green, so it never reads as an error. */
+.tile.viewingTile {
+  outline: 3px solid var(--color-outcome-won-strong);
   outline-offset: -3px;
   z-index: 2;
 }
