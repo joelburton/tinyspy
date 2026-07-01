@@ -484,13 +484,15 @@ commit wins").
 board swaps to the **replayed historical state** (`boardUpToSeq` in `lib/play.ts` —
 a pure fold of every word play's `placements` with `seq ≤ target`; no per-turn
 snapshot stored, since the board *is* the accumulation of placements). The tiles
-*that turn placed* are outlined **success-green** (they really were the turn's good
-words — so only word turns light up, not a pass), while a **gold outline** rings the
-whole board, the selected log row, and the banner overlaying the input area — a terse
-"#12 Bea: +54 JUKEBOX" (non-word turns read "#5 Bea passed" / "exchanged N"), plain
-surface fill + normal text (gold-on-gold was unreadable), with a `✕` at its far right.
-Gold, not green, for the frame/row/banner: it's a neutral "you're looking at history"
-marker, and green would wrongly imply the *whole* turn was a success (a pass isn't).
+*that turn placed* take the **placed-tile yellow** face (the same "staged, not
+committed" color) plus a **success-green outline** (they really were the turn's good
+words — so only word turns light up, not a pass). That same **yellow** (a single
+`--scrabble-viewer` = `--scrabble-tile-tentative`) outlines the whole board, the
+selected log row, and the banner overlaying the input area — a terse "#12 Bea: +54
+JUKEBOX" (non-word turns read "#5 Bea passed" / "exchanged N"), plain surface fill +
+normal text, with a `✕` at its far right. Yellow, not green, for the frame/row/banner:
+it's a neutral "you're looking at history" marker, and green would wrongly imply the
+*whole* turn was a success (a pass isn't).
 The rack stays mounted *underneath* the banner, so `staged` (your pre-play) is
 preserved and restored on exit. **Navigate by clicking rows** (no arrows); the `✕`, a
 click anywhere on the banner or board, any key, or an opponent's move all **exit

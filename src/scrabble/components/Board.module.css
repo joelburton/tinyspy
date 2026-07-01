@@ -18,11 +18,12 @@
   touch-action: none;
 }
 
-/* Turn-viewer: a GOLD frame around the whole board signals "you're looking at a
-   past turn, not the live board". Gold (not green) because it's a neutral
-   historical-view marker — a pass turn is no success, so a green frame would
-   mislead. (The tiles that turn placed are still outlined green below — those
-   really were good words.) An outline (not a border) so it doesn't resize the board. */
+/* Turn-viewer: a YELLOW frame (the placed-tile color, --scrabble-viewer) around
+   the whole board signals "you're looking at a past turn, not the live board".
+   Yellow (not green) because it's a neutral historical-view marker — a pass turn is
+   no success, so a green frame would mislead. (The tiles that turn placed take the
+   same yellow FILL + a green outline below.) An outline (not a border) so it doesn't
+   resize the board. */
 .board.viewing {
   outline: 4px solid var(--scrabble-viewer);
   outline-offset: 3px;
@@ -113,9 +114,11 @@
   outline-offset: -3px;
   z-index: 2;
 }
-/* Turn-viewer: the tiles THIS turn placed — a persistent green outline (the
-   "good words of this turn"); the success-green, so it never reads as an error. */
+/* Turn-viewer: the tiles THIS turn placed — the placed-tile YELLOW face (so they
+   read as "this turn's play", matching a staged tile) PLUS a persistent
+   success-green outline (the good words of this turn). */
 .tile.viewingTile {
+  background: var(--scrabble-tile-tentative);
   outline: 3px solid var(--color-outcome-won-strong);
   outline-offset: -3px;
   z-index: 2;

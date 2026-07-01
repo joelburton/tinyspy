@@ -63,9 +63,10 @@
 }
 
 /* Turn-viewer banner — covers the input area while inspecting a past turn (the
- * rack stays mounted underneath, so `staged` survives). Just a GOLD OUTLINE (the
- * neutral historical marker — see Board's .viewing); a plain surface fill (so it's
- * opaque over the rack) and NORMAL text color (gold-on-gold was unreadable). The
+ * rack stays mounted underneath, so `staged` survives). Just a YELLOW OUTLINE (the
+ * placed-tile color / historical marker — see Board's .viewing); a plain surface
+ * fill (so it's opaque over the rack) and NORMAL text color (colored-on-colored was
+ * unreadable). The
  * whole banner is a click-to-exit target; the ✕ (pinned far right) also exits. */
 .viewingBanner {
   position: absolute;

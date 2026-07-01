@@ -12,18 +12,19 @@
   --scrabble-tl: #5a91c8; /* triple letter */
   --scrabble-dl: #acd0ea; /* double letter */
 
-  --scrabble-tile-bg: #f2dca8; /* the wooden tile face */
-  --scrabble-tile-ink: #3b2a14;
+  --scrabble-tile-bg: #f3ede1; /* TEMP: boggle's ivory tile face (was #f2dca8) */
+  --scrabble-tile-ink: #1a1a1a; /* TEMP: boggle ink (was #3b2a14) */
   --scrabble-tile-edge: #d8bd82;
   --scrabble-tile-tentative: #ffd21a; /* a vivid, saturated gold so this-turn (placed-but-not-committed) tiles pop */
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
   --scrabble-cursor: #c9881f; /* the keyboard-entry cursor ring */
-  /* The turn-viewer's GOLD — the board frame + the "Viewing turn" overlay. A
-     neutral "you're looking at an old turn" highlight, deliberately NOT an outcome
-     color: a pass turn isn't a success, so a green frame would mislead. (The tiles
-     that turn PLAYED are still outlined success-green — those really were the good
-     words of the turn; the frame just says "historical view".) */
-  --scrabble-viewer: #c8951a;
+  /* The turn-viewer highlight — the SAME yellow a placed-but-not-committed tile
+     uses, reused here so "history view" reads as one colour: the board frame, the
+     selected log row, and the "Viewing turn" overlay outline. Deliberately NOT an
+     outcome color (a pass turn isn't a success — a green frame would mislead); the
+     viewed turn's tiles take this yellow FILL, plus a success-green outline for the
+     good words they were. */
+  --scrabble-viewer: var(--scrabble-tile-tentative);
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */
