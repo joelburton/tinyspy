@@ -18,7 +18,7 @@
  * walk every consumer.
  */
 :root {
-  --spellingbee-hex:           #e6e6e6;
+  --spellingbee-hex:           var(--tile-2); /* trying the shared warm ramp (was #e6e6e6) */
   --spellingbee-accent:        #f7da21;
   --spellingbee-hex-text:      #1a1a1a;
 
