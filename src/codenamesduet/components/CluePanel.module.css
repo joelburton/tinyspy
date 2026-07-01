@@ -115,6 +115,10 @@
   margin: 0;
   line-height: 1.5;
   color: var(--color-text);
+  /* The edge function appends an "Agents: X, Y" paragraph to the reasoning after
+   * a blank line; pre-line preserves that newline so it renders as its own line
+   * (default `normal` would collapse it into a space). */
+  white-space: pre-line;
 }
 
 /* "Asking Claude…" while the edge function runs. */

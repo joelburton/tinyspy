@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 /** A word's categorization from `common.words` — band, dialects, slur/crude
- *  levels, wordle-list membership. Present on any in-list word; absent when
- *  `unknown`. Surfaced as the small muted line under a definition. */
+ *  levels, slang, wordle-list membership. Present on any in-list word; absent
+ *  when `unknown`. Surfaced as the small muted line under a definition. */
 export type WordMeta = {
   difficulty: number
   american: boolean
@@ -12,6 +12,7 @@ export type WordMeta = {
   australian: boolean
   slur: number
   crude: number
+  slang: boolean
   wordle: boolean
 }
 

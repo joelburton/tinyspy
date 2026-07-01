@@ -62,8 +62,9 @@ type Props = {
  *
  * Three flags compose on top: **pangram** (bold), **bonus** (a trailing '•'), and
  * **recently found** (a finder-color underline that fades after 5s — mid-game
- * only, suppressed when `reveal` is set). Every row is click-to-define via the
- * shared `DefinitionPopover`.
+ * only, suppressed when `reveal` is set). Every word is click-to-define via the
+ * shared `DefinitionPopover` — the word text itself is the target, not the whole
+ * cell.
  */
 export function WordList({ rows, players, reveal = false, heading = 'Words' }: Props) {
   // Color lookup by user_id. Players list is small (<10 in realistic clubs) so a
@@ -86,11 +87,13 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
   // that row. The open/anchor/close plumbing is the shared useDefinePopover hook.
   const { define: openDefine, popover } = useDefinePopover()
 
-  /** Mouse + keyboard activation for a word row. */
-  function rowActivation(word: string) {
+  /** Mouse + keyboard activation for a clickable word. Spread onto the word
+   *  <span> itself (not the row) so only the word text — not the leading dot or
+   *  the empty rest of the cell — opens the definition. */
+  function wordActivation(word: string) {
     return {
-      onClick: (e: ReactMouseEvent<HTMLLIElement>) => openDefine(word, e.currentTarget),
-      onKeyDown: (e: ReactKeyboardEvent<HTMLLIElement>) => {
+      onClick: (e: ReactMouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
+      onKeyDown: (e: ReactKeyboardEvent<HTMLSpanElement>) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           openDefine(word, e.currentTarget)
@@ -127,10 +130,9 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
                   <li
                     key={entry.word}
                     className={cls(styles.row, styles.unfound, entry.isPangram && styles.pangram)}
-                    {...rowActivation(entry.word)}
                   >
                     <span className={cls(styles.dot, styles.dotUnfound)} aria-hidden="true">{'○'}</span>
-                    <span className={styles.word}>{entry.word.toUpperCase()}</span>
+                    <span className={styles.word} {...wordActivation(entry.word)}>{entry.word.toUpperCase()}</span>
                   </li>
                 )
               }
@@ -142,7 +144,6 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
                 <li
                   key={entry.word}
                   className={cls(styles.row, entry.isPangram && styles.pangram, isRecent && styles.recent)}
-                  {...rowActivation(entry.word)}
                 >
                   <span className={styles.dot} style={{ color }} aria-hidden="true">{'●'}</span>
                   {/* Word is plain black; only the dot carries finder color. The
@@ -151,6 +152,7 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
                   <span
                     className={styles.word}
                     style={isRecent ? { textDecorationColor: color } : undefined}
+                    {...wordActivation(entry.word)}
                   >
                     {entry.word.toUpperCase()}
                   </span>

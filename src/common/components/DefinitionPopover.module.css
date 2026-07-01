@@ -10,7 +10,8 @@
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   padding: 0.6rem 0.75rem;
-  /* Long entries scroll rather than growing without bound. */
-  max-height: 50vh;
+  /* Long entries scroll rather than growing without bound. The height cap is
+   * set inline (DefinitionPopover) to the space available above/below the
+   * anchor, so the card always fits within the viewport. */
   overflow-y: auto;
 }

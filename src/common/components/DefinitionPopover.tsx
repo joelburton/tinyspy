@@ -17,9 +17,10 @@ const GAP = 6
 
 /**
  * A small floating card that defines the word a player clicked. Anchors
- * below the clicked element, closes on outside-click or ESC, and lets
- * the player chase Scrabble cross-references in place (a ref click
- * re-points the lookup without moving the card).
+ * below the clicked element (or above, when there's more room there),
+ * closes on any click (inside or outside) or ESC, and lets the player
+ * chase Scrabble cross-references in place (a ref click re-points the
+ * lookup without closing or moving the card).
  *
  * Position is fixed (viewport coordinates) rather than absolute,
  * because the click target lives in a scrollable word list — fixed
@@ -52,21 +53,35 @@ export function DefinitionPopover({ initialWord, anchorRect, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  // Clamp the left edge so a word near the right margin doesn't push
-  // the card off-screen.
-  const left = Math.min(
-    anchorRect.left,
-    window.innerWidth - POPOVER_WIDTH - GAP,
+  // Clamp the left edge so a word near the right margin doesn't push the card
+  // off-screen.
+  const left = Math.max(
+    GAP,
+    Math.min(anchorRect.left, window.innerWidth - POPOVER_WIDTH - GAP),
   )
-  const top = anchorRect.bottom + GAP
+
+  // Vertically, anchor below the word — but when there's more room above (the
+  // word sits low on the page), flip above instead, and cap the height to the
+  // space available on the chosen side. That way the card can never run off the
+  // top or bottom edge and become unreadable; a long entry scrolls internally.
+  const spaceBelow = window.innerHeight - anchorRect.bottom - GAP
+  const spaceAbove = anchorRect.top - GAP
+  const placeBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove
+  const position = placeBelow
+    ? { top: anchorRect.bottom + GAP }
+    : { bottom: window.innerHeight - anchorRect.top + GAP }
+  const maxHeight = placeBelow ? spaceBelow : spaceAbove
 
   return (
     <div
       ref={cardRef}
       className={styles.card}
-      style={{ top, left: Math.max(GAP, left), width: POPOVER_WIDTH }}
+      style={{ ...position, left, width: POPOVER_WIDTH, maxHeight }}
       role="dialog"
       aria-label={`Definition of ${word}`}
+      // Click anywhere on the card dismisses it — a big, easy target. The
+      // cross-ref links inside stop propagation so they navigate instead.
+      onClick={onClose}
     >
       <DefinitionView word={word} onNavigate={setWord} />
     </div>

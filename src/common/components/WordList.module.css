@@ -73,8 +73,6 @@
   line-height: var(--wl-row-height);
   letter-spacing: 0.02em;
   color: var(--color-text);
-  /* Every row is click-to-define (see WordList.tsx). */
-  cursor: pointer;
 }
 
 /* The leading attribution marker: a filled ● in the finder's color (set inline in
@@ -93,19 +91,22 @@
   color: var(--color-divider);
 }
 
-/* The word text itself. Plain body-black for found words; finder identity lives in
- * the dot. Underlines (hover + recent flash) scope to this span so they don't run
- * under the leading dot. */
+/* The word text itself — and the ONLY click-to-define target (not the whole
+ * cell), so the pointer cursor, hover underline, and focus ring all scope to
+ * this span. Plain body-black for found words; finder identity lives in the dot.
+ * Underlines (hover + recent flash) scope here too so they don't run under the
+ * leading dot. */
 .word {
+  cursor: pointer;
   text-underline-offset: 2px;
 }
 
-.row:hover .word {
+.word:hover {
   text-decoration: underline;
   text-decoration-thickness: 1px;
 }
 
-.row:focus-visible {
+.word:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
   border-radius: 2px;

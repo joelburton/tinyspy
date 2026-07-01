@@ -3,7 +3,8 @@ import { parseDefinition } from '../lib/parseDefinition'
 import styles from './DefinitionView.module.css'
 
 /** The small muted tags under a definition: difficulty band, the dialects it's
- *  valid in (US/CA/UK/AU), any slur/crude level, and wordle-list membership. */
+ *  valid in (US/CA/UK/AU), any slur/crude level, a slang flag, and wordle-list
+ *  membership. */
 function metaTags(m: WordMeta): string[] {
   const tags = [`band ${m.difficulty}`]
   const dialects = [
@@ -15,6 +16,7 @@ function metaTags(m: WordMeta): string[] {
   if (dialects.length) tags.push(dialects.join('/'))
   if (m.slur > 0) tags.push(`slur-${m.slur}`)
   if (m.crude > 0) tags.push(`crude-${m.crude}`)
+  if (m.slang) tags.push('slang')
   if (m.wordle) tags.push('wordle')
   return tags
 }
@@ -66,7 +68,13 @@ export function DefinitionView({ word, onNavigate }: Props) {
                   key={i}
                   type="button"
                   className={styles.ref}
-                  onClick={() => onNavigate(part.word)}
+                  // Stop propagation so following a cross-reference navigates
+                  // the lookup in place rather than bubbling up to the popover's
+                  // click-to-close handler.
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onNavigate(part.word)
+                  }}
                 >
                   {part.word}
                 </button>

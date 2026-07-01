@@ -6,8 +6,10 @@
  *   1. Verify the caller's JWT and pull the board context via the
  *      `get_clue_context` RPC. The RPC enforces "you are the current
  *      clue-giver in an active game" — if it rejects, we forward 403.
- *   2. Ask Claude for a clue using a tool-use schema, so the response
- *      arrives as structured JSON instead of having to parse text.
+ *   2. Ask Claude for a clue with structured outputs (output_config.format),
+ *      so the response arrives as schema-valid JSON. Dropping the forced tool
+ *      lets us enable native adaptive thinking — the model deliberates in its
+ *      own thinking channel, which we log but never send to the player.
  *   3. Return `{ suggestion: { clue, count, agents, reasoning } }` to
  *      the FE, which fills it into the existing clue inputs for the
  *      user to review + edit before submitting.
@@ -25,7 +27,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import Anthropic from 'npm:@anthropic-ai/sdk@0.65.0'
+import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 
 type ClueContext = {
   greens: string[]
@@ -94,8 +96,12 @@ serve(async (req) => {
       return json({ error: 'no unrevealed agents to suggest a clue for' }, 400)
     }
 
-    // Step 2: ask Claude. Tool use forces a typed JSON response — no need
-    // to parse code-fenced markdown out of a plain text reply.
+    // Step 2: ask Claude. Structured outputs (`output_config.format`) constrains
+    // the reply to our JSON schema — the same typed-JSON guarantee the old
+    // forced-tool call gave us, but without a tool. Dropping the forced tool is
+    // what lets us turn on NATIVE adaptive thinking: the model deliberates in
+    // real `thinking` blocks (logged below, never sent to the player) instead of
+    // the discarded scratchpad field the tool schema used to carry.
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       return json(
@@ -106,29 +112,30 @@ serve(async (req) => {
     const anthropic = new Anthropic({ apiKey })
 
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      // Generous: the `thinking` scratchpad below lets the model deliberate at
-      // length, and that output counts against this budget — 512 truncated the
-      // tool call mid-JSON (stop_reason: max_tokens → empty input). The final
-      // clue + reasoning are short; the headroom is for the thinking.
-      max_tokens: 4096,
-      tools: [
-        {
-          name: 'submit_suggestion',
-          description:
-            'Return your suggested clue for the stuck Codenames Duet player.',
-          input_schema: {
+      model: 'claude-sonnet-5',
+      // Headroom for native thinking + the short structured answer. Thinking
+      // tokens count against this budget, and at `effort: 'high'` the
+      // deliberation can run long — leave plenty so the final JSON is never
+      // truncated (a max_tokens cut mid-JSON would break the schema). The answer
+      // itself is tiny: a word, a count, a few agents, one or two sentences.
+      max_tokens: 8192,
+      // Native adaptive thinking replaces the old scratchpad field. `summarized`
+      // keeps the reasoning readable so we can still log it (see below); the raw
+      // chain-of-thought is never returned by the model regardless.
+      thinking: { type: 'adaptive', display: 'summarized' },
+      output_config: {
+        // Codenames clue-giving is a hard little reasoning task (connect agents,
+        // dodge the assassin + neutrals, calibrate the count). It fires rarely
+        // and a stuck player will happily wait a beat, so we spend on depth.
+        effort: 'high',
+        // Structured outputs: the model must emit JSON matching this schema —
+        // the same typed-JSON guarantee the forced tool gave us, minus the tool.
+        // `additionalProperties: false` is required on every object.
+        format: {
+          type: 'json_schema',
+          schema: {
             type: 'object',
             properties: {
-              // First on purpose: the model fills fields roughly in order, so a
-              // scratchpad up front lets it deliberate BEFORE committing to a
-              // clue (with tool_choice forcing the call, it otherwise crams its
-              // chain-of-thought into `reasoning`). This field is discarded.
-              thinking: {
-                type: 'string',
-                description:
-                  'Your private scratchpad. Reason through candidate clues here — weigh options, reconsider, change your mind freely. This is DISCARDED and never shown to the player, so put ALL of your deliberation here, not in `reasoning`.',
-              },
               clue: {
                 type: 'string',
                 description:
@@ -148,14 +155,14 @@ serve(async (req) => {
               reasoning: {
                 type: 'string',
                 description:
-                  'The FINAL, player-facing explanation ONLY — one or two clean sentences on how the chosen clue connects to the listed agents. Do NOT include alternatives you considered, "wait/actually/let me reconsider", or any deliberation; that all goes in `thinking`. Write it as if the clue were obvious from the start.',
+                  'The FINAL, player-facing explanation ONLY — one or two clean sentences on how the chosen clue connects to the listed agents. Do NOT include alternatives you considered or any "wait/actually/let me reconsider" deliberation; that belongs in your private thinking. Write it as if the clue were obvious from the start.',
               },
             },
-            required: ['thinking', 'clue', 'count', 'agents', 'reasoning'],
+            required: ['clue', 'count', 'agents', 'reasoning'],
+            additionalProperties: false,
           },
         },
-      ],
-      tool_choice: { type: 'tool', name: 'submit_suggestion' },
+      },
       messages: [{ role: 'user', content: buildPrompt(ctx) }],
     })
 
@@ -168,21 +175,51 @@ serve(async (req) => {
       JSON.stringify(result, null, 2),
     )
 
-    const block = result.content.find((b) => b.type === 'tool_use')
-    if (!block || block.type !== 'tool_use') {
+    // A safety decline (unlikely for a word game, but Sonnet 5 can return one)
+    // or a truncated reply won't carry valid schema JSON — check stop_reason
+    // before touching the content, and fail loudly rather than parse garbage.
+    if (result.stop_reason === 'refusal') {
+      return json({ error: 'the model declined to suggest a clue' }, 502)
+    }
+    if (result.stop_reason === 'max_tokens') {
+      return json({ error: 'the model response was truncated; try again' }, 502)
+    }
+
+    // Native thinking arrives as its own content blocks (summarized text). Log
+    // the deliberation for inspectability — but it never leaves the server; the
+    // player only ever sees the clean `reasoning` field.
+    const thinking = result.content
+      .filter((b) => b.type === 'thinking')
+      .map((b) => (b as { thinking: string }).thinking)
+      .join('\n')
+    if (thinking) console.log('[suggest-clue] model thinking:', thinking)
+
+    // Structured outputs deliver the schema-valid JSON as a text block — there's
+    // no tool_use block to dig out anymore.
+    const textBlock = result.content.find((b) => b.type === 'text')
+    if (!textBlock || textBlock.type !== 'text') {
       return json({ error: 'model did not return a structured suggestion' }, 502)
     }
-    // The tool input carries the `thinking` scratchpad too — log it (so the
-    // deliberation is visible in the terminal) but DROP it from what we send the
-    // client; the player only gets the clean `reasoning`.
-    const raw = block.input as Suggestion & { thinking?: string }
-    console.log('[suggest-clue] model thinking:', raw.thinking)
-    const suggestion: Suggestion = {
-      clue: raw.clue,
-      count: raw.count,
-      agents: raw.agents,
-      reasoning: raw.reasoning,
+    let suggestion: Suggestion
+    try {
+      suggestion = JSON.parse(textBlock.text) as Suggestion
+    } catch {
+      return json({ error: 'model returned malformed suggestion JSON' }, 502)
     }
+
+    // Append the exact target agents as their own paragraph, so the player sees
+    // which board words the clue is for (e.g. "Agents: BRAZIL, MARACAS"). Built
+    // here rather than asked of the model: `agents` is already the ground truth,
+    // so formatting it deterministically guarantees uppercase labels that always
+    // match the clue. The blank line renders as a separate paragraph — CluePanel's
+    // reasoning <p> uses `white-space: pre-line`.
+    if (suggestion.agents?.length) {
+      const agentsLine = `Agents: ${suggestion.agents
+        .map((a) => a.toUpperCase())
+        .join(', ')}`
+      suggestion.reasoning = `${suggestion.reasoning}\n\n${agentsLine}`
+    }
+
     console.log('[suggest-clue] parsed suggestion:', JSON.stringify(suggestion))
     return json({ suggestion })
   } catch (e) {
@@ -224,5 +261,5 @@ Constraints on your clue:
 - The clue must not share a root with any of the 25 board words.
 - Avoid clues that have ANY plausible connection to a neutral or the assassin.
 
-Call the submit_suggestion tool with your answer.`
+Provide your suggested clue.`
 }

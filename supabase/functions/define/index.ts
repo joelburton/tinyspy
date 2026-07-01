@@ -33,7 +33,7 @@
  * means "looked up, no definition"; `unknown` means "not a word in
  * the list." `meta` (present for any IN-LIST word) carries the word's
  * categorization — { difficulty, american, british, canadian,
- * australian, slur, crude, wordle } — for the small tag line the FE
+ * australian, slur, crude, slang, wordle } — for the small tag line the FE
  * shows under the definition.
  *
  * Secrets (all auto-injected by the Edge Runtime):
@@ -120,7 +120,7 @@ serve(async (req) => {
       .schema('common')
       .from('words')
       .select(
-        'definition, definition_source, difficulty, american, british, canadian, australian, slur, crude, wordle',
+        'definition, definition_source, difficulty, american, british, canadian, australian, slur, crude, slang, wordle',
       )
       .eq('word', word)
       .maybeSingle()
@@ -140,6 +140,7 @@ serve(async (req) => {
       australian: row.australian,
       slur: row.slur,
       crude: row.crude,
+      slang: row.slang,
       wordle: row.wordle,
     }
 
