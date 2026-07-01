@@ -158,7 +158,9 @@ The transitions that move a row between buckets:
 
 ### Manual end — every gametype's `end_game(target_game)`
 
-**Every gametype exposes a player-callable `<schema>.end_game(target_game uuid)` RPC.** It's the "we've played as much as we want — stop the game now" action: in spellingbee you've found the words you care about; in connections/Waffle the group agrees to call it; in bananagrams nobody's going to go out. It is a first-class part of the game lifecycle, **not** a per-game extra, so the behaviour is uniform across the roster. [`spellingbee.end_game`](../supabase/migrations/20260617000000_spellingbee.sql) is the reference implementation.
+**Every gametype exposes a player-callable "stop the game" RPC** — almost always `<schema>.end_game(target_game uuid)`. It's the "we've played as much as we want — stop the game now" action: in spellingbee you've found the words you care about; in connections/Waffle the group agrees to call it. It is a first-class part of the game lifecycle, **not** a per-game extra, so the behaviour is uniform across the roster. [`spellingbee.end_game`](../supabase/migrations/20260617000000_spellingbee.sql) is the reference implementation.
+
+**The one exception: bananagrams uses a per-player `concede` instead of a whole-table `end_game`.** It's compete-only, and a race doesn't want a mutual "we all stop, nobody loses" — so conceding drops just the caller out as a real loss while the others keep racing, and the game ends only when the *last* active player concedes (a collective loss). Same "player-callable stop" slot in the lifecycle, different semantics; see [`docs/games/bananagrams.md`](games/bananagrams.md).
 
 Three terminal transitions, deliberately distinct — don't conflate them:
 

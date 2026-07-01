@@ -14,8 +14,8 @@ highest version — the standard this document defines.** (Some older notes call
 it "v4" after an interim "v3" cut that no longer exists; there is no v4 — v3 *is*
 the spec as it stands.)
 
-- **v1** — the original layout (every game before the redesign). Today:
-  **bananagrams**.
+- **v1** — the original layout (every game before the redesign). **No game sits
+  here now;** bananagrams was the last and has converted to v3.
 - **v2** — the shared-layout redesign: the two-column scaffold, tiles, info
   column, capture entry. An intermediate stage games pass through on the way to
   v3 — the shared layout, but not yet the full rule set below. **No game sits
@@ -26,9 +26,9 @@ the spec as it stands.)
   labels, the terminal-look for locally-terminal states, sticky local feedback,
   natural-width action buttons. **psychicnum is the first v3 game — the
   reference;** **connections**, **codenamesduet**, **waffle**, **spellingbee**,
-  **wordle**, **boggle**, **scrabble**, and **stackdown** follow. The remaining
-  game (bananagrams) converts v1 → v3 next, following this doc + the
-  [Reconciliation](#reconciliation-with-the-code) checklist.
+  **wordle**, **boggle**, **scrabble**, **stackdown**, and **bananagrams**
+  follow. **The sweep is complete — all ten games are v3.** bananagrams took
+  two documented layout exceptions (below).
 
 ## Terms
 
@@ -266,6 +266,17 @@ free text → `<input>`.*
 The info column sits to the right of the board column and shows extra information.
 **Anything critical to playing lives in the board column, not here** — so a
 narrow/mobile screen that drops the info column can still play the game.
+
+> **bananagrams is the documented exception to both rules above.** It's
+> desktop-only (a keyboard-driven crossword arena, an explicit non-goal for
+> mobile), so it deliberately (a) puts the move controls — the hand, the dump
+> zone, and the Peel button — in the **info column**, not the board column; and
+> (b) **fills** the board column with a zoom/scroll arena rather than the shared
+> hug board. Because the hand + peel live here, its info-column order also
+> differs: **state → opponents → help → setup → the hand card → the action row at
+> the very bottom** (the action row sits *below* the hand it belongs to). It has
+> no turn log / word list. This is a one-game carve-out; every other game follows
+> the order below. See [`docs/games/bananagrams.md`](games/bananagrams.md).
 
 Contents, in order:
 

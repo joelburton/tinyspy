@@ -992,10 +992,10 @@ icon buttons).
 | Rotate / shuffle | `RotateCw` | Pass | `SkipForward` |
 | Back to club | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
 | Submit a move | `Triangle` (points up) | Recall | `Undo2` |
-| Get hint | `Lightbulb` | Trash / dump | `Recycle` |
+| Get hint | `Lightbulb` | Dump | `ArrowLeftRight` |
 | Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
-| Get answer / reveal | `Eye` | Peel | **`🍌` kept** (see below) |
-| End game | `Flag` | | |
+| Get answer / reveal | `Eye` | Peel | `Banana` (`IconPeel`) |
+| End game | `Flag` | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
 | Clear selection | `Eraser` | | |
 
 **Conventions:**
@@ -1022,17 +1022,26 @@ icon buttons).
   = `RotateCw`** (read clearer than the crossing-arrows `Shuffle`, and spins
   nicely on the existing hover-spin).
 
-**The one deliberate exception:** bananagrams's **Peel** stays `🍌` for now — it's
-MonkeyGrams brand flavor, not generic chrome; revisit when we reach bananagrams.
+**Peel** (bananagrams) is now the semantic **`PeelButton`** (primary weight,
+`IconPeel` = Lucide `Banana` — on-brand for MonkeyGrams and reads as its own
+action, not a generic submit). The `🍌` emoji survives only in the **feedback
+pill** copy ("🍌 Peel! You drew 1 tile"), not the button. **`ZoomFitButton`**
+(`IconZoomFit` = `Fullscreen`) is bananagrams's zoom-to-fit — a plain square
+icon-only button. bananagrams's **dump** uses `ArrowLeftRight` (`IconExchange`),
+the same exchange glyph as scrabble's tile swap, in both the dump zone and the
+dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
+an inline icon).
 
-**Rollout.** Shared components (`PauseButton`, `ShuffleButton`,
-`BackToClubButton`), psychicnum (Submit, Hint, Reveal, End), and connections
-(Submit, Clear, Hints, End, floating Shuffle) are migrated; everything else moves
-game-by-game (don't retrofit per-game buttons ad hoc). In both psychicnum and
-connections, **End** is now an info-column action-row *button* (with the `Flag`
-icon), not a GamePage-menu item. Still on their old glyphs / pending: the chat
-bubble, the `×` close, the `✓`/`✗` marks, and any End game that's still a menu
-item elsewhere (wiring icons into `<Menu>` items is a separate decision).
+**Rollout.** Complete — **all ten games are v3**, so every game-move / end /
+hint / reveal / concede is now a semantic component from
+`common/components/buttons/`, and **End (or Concede)** is an info-column
+action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
+`SubmitButton` · `SubmitWithScore` · `DeleteButton` · `ClearButton` ·
+`HintButton` · `RevealButton` · `AIButton` · `EndGameButton` ·
+`ConcedeGameButton` · `EndTurnButton` · `PassButton` · `ExchangeButton` ·
+`PeelButton` · plus the label-less pills `ShuffleButton` / `PauseButton` /
+`BackToClubButton` / `ZoomFitButton`. Still on their old glyphs / pending: the
+chat bubble, the `×` close, and the `✓`/`✗` marks.
 
 ## Explicitly deferred
 
