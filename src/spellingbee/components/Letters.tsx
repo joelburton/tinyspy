@@ -13,42 +13,48 @@ type Props = {
 }
 
 /**
- * The 7-hex honeycomb. Render order is:
- *   center → top → upper-right → lower-right →
- *   bottom → lower-left → upper-left
+ * The 7-hex honeycomb, drawn as ONE inline `<svg>` (viewBox `0 0 256 267` — the
+ * flower's coordinate units). Each hex is an SVG `<polygon>` with a real fill +
+ * stroke, so the tiles get a proper border (a `clip-path` div can't be bordered).
+ * Only spellingbee uses hexes, so this stays local; the SVG also sets us up for a
+ * future PDF export (vector polygons the PDF lib can reuse).
  *
- * That order matches the nth-child positioning rules in
- * Letters.module.css — child 1 is the center, children 2..7 go
- * clockwise from top around the ring. The parent (PlayArea)
- * controls the shuffle of `outerLetters` so the visual order
- * changes when the user clicks Shuffle.
+ * Render order (matches `POSITIONS` below): center → top → upper-right →
+ * lower-right → bottom → lower-left → upper-left; the parent (PlayArea) controls
+ * the shuffle of `outerLetters` so the visual order changes on Shuffle.
  *
- * Clicking a letter doesn't validate anything — it just appends
- * the character to the typed word. The submission validation
- * happens server-side via `spellingbee.submit_word`.
- *
- * Structure: a `.board` wrapper (no tray — the hexes carry their own shape)
- * around the `.grid` honeycomb, the board-column convention every converged game
- * follows (docs/design-decisions.md → Board column). The grid hugs the flower so
- * it sits flush at the top of the board column.
+ * Clicking a letter doesn't validate — it just appends the character to the typed
+ * word (server validates on submit).
  */
+
+/** Each hex's top-left, in the flower's 256×267 coordinate box, in RENDER order.
+ *  Re-based to the flower's own top-left (the old spellingbee-ws layout, minus the
+ *  32/37 origin offset) so the grid sits flush at the top of the board column. */
+const POSITIONS: ReadonlyArray<{ left: number; top: number }> = [
+  { left: 78, top: 90 }, //  center
+  { left: 78, top: 0 }, //   top
+  { left: 156, top: 45 }, // upper-right
+  { left: 156, top: 134 }, // lower-right
+  { left: 78, top: 180 }, // bottom
+  { left: 0, top: 134 }, //  lower-left
+  { left: 0, top: 45 }, //   upper-left
+]
+
 export function Letters({ outerLetters, centerLetter, onLetterClick }: Props) {
+  const letters = [centerLetter, ...outerLetters]
   return (
     <div className={styles.board}>
-      <div className={styles.grid}>
-        <Letter
-          letter={centerLetter}
-          isCenter
-          onClick={() => onLetterClick(centerLetter)}
-        />
-        {outerLetters.map((letter, i) => (
+      <svg className={styles.grid} viewBox="0 0 256 267" role="group" aria-label="Letter honeycomb">
+        {letters.map((letter, i) => (
           <Letter
             key={`${letter}-${i}`}
             letter={letter}
+            isCenter={i === 0}
+            pos={POSITIONS[i] ?? POSITIONS[0]}
             onClick={() => onLetterClick(letter)}
           />
         ))}
-      </div>
+      </svg>
     </div>
   )
 }

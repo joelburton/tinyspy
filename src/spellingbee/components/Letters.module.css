@@ -1,101 +1,87 @@
-/* Honeycomb (flat-top) layout — lifted from ~/spellingbee-ws/src/globals.css §7
- * ("Hexagon honeycomb").
+/* Honeycomb (flat-top) layout. 7 hexes in a flower: 1 center (gold) + 6 outer
+ * (warm tile-2), arranged center → top → upper-right → lower-right → bottom →
+ * lower-left → upper-left.
  *
- * 7 hex buttons in a flower: 1 center (gold) + 6 outer (gray), arranged
- * top → upper-right → lower-right → bottom → lower-left → upper-left.
- * Positioning is the original spellingbee-ws 320-unit coordinate system — absolute
- * nth-child offsets, hexes 100×87 — every length expressed in units of `--u` (set
- * on .boardCol in PlayArea.module.css), so the whole flower SCALES with the board.
+ * Rendered as ONE inline <svg> (Letters.tsx), viewBox 0 0 256 267 — the flower's
+ * coordinate units (the original spellingbee-ws 320-unit system, re-based to the
+ * flower's own top-left so the grid sits flush at the top of the board column;
+ * hexes are 100×87). The svg is sized in --u (set on .boardCol in
+ * PlayArea.module.css) so the whole flower SCALES with the board — one unit = one
+ * `--u`, and the below-board input row reads the board width from the same source.
  *
- * One adaptation from the source for this repo's board-column convention
- * (docs/design-decisions.md → Board column): spellingbee-ws laid the flower out
- * inside a 320×320 SQUARE, but the flower only occupies x∈[32,288], y∈[37,304] of
- * it — leaving a ~37-unit blank band at the top that pushed the board down. We
- * re-base the origin to the flower's own top-left (subtract 32 from every `left`,
- * 37 from every `top`) and size the `.grid` to the flower's real 256×267 box, so
- * the board has no built-in padding (a grid carries none) and sits flush at the
- * top of the board column. The hex shapes + relative positions are unchanged.
- *
- * `clip-path: polygon(...)` is the hexagon — a flat-top regular hex with
- * vertical sides at 25% and 75%. Cheaper than SVG (no extra DOM nodes per hex),
- * more flexible than a single background-image (we can transform on hover/press).
- */
+ * Each hex is an SVG <polygon> — a real fill + stroke, so the tiles get a proper
+ * BORDER (a clip-path div can't be bordered). The letter is an SVG <text>. Only
+ * spellingbee uses hexes, so this stays local; the vector shapes also set up a
+ * future PDF export. */
 
 /* The board wrapper: no tray (no border/background) — the hexes carry their own
- * shape — just the structural element between .boardCol and the .grid. Centers the
- * grid horizontally (a no-op when the column already hugs the grid width). */
+ * shape — just the structural element between .boardCol and the .grid, centering
+ * the grid horizontally. */
 .board {
   display: flex;
   justify-content: center;
 }
 
-/* The grid: the flower's bounding box, 256 wide × 267 tall in coordinate units.
- * `--u` (one unit) is defined on .boardCol (PlayArea.module.css) so the
- * below-board input row can read the board width from the same source. */
+/* The grid: the flower's bounding box, 256 wide × 267 tall in coordinate units,
+ * now the <svg> itself. `--u` (one unit) is defined on .boardCol so the below-board
+ * input row reads the board width from the same source. `overflow: visible` lets
+ * the outermost hexes' strokes / focus rings paint past the viewBox edge. */
 .grid {
-  position: relative;
+  display: block;
   width: calc(256 * var(--u));
   height: calc(267 * var(--u));
+  overflow: visible;
 }
 
-.letter {
-  position: absolute;
-  width: calc(100 * var(--u));
-  height: calc(87 * var(--u));
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  background: var(--spellingbee-hex);
-  color: var(--spellingbee-hex-text);
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-size: calc(30 * var(--u));
-  font-weight: 800;
-  text-transform: uppercase;
+/* One hex = a clickable group (button semantics live in Letter.tsx via
+ * role/tabindex/keydown). Hover dims the whole hex; press scales it about its OWN
+ * centre — transform-box/-origin, since an SVG transform is otherwise about the
+ * viewBox origin. */
+.hex {
   cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transform-box: fill-box;
+  transform-origin: center;
   transition: transform 80ms ease, filter 80ms ease;
 }
-
-.letter:hover {
+.hex:hover {
   filter: brightness(0.96);
 }
-
-.letter:active {
+.hex:active {
   transform: scale(0.96);
 }
-
-.letter:focus {
+.hex:focus {
   outline: none;
 }
 
-.letter:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
+/* The hex shape — the real fill + border. Outer hexes: warm tile-2 with its OWN
+ * matching tile-family border (--tile-2-border), so the border tracks the fill if
+ * the shade changes; the center is the mandatory-letter yellow with a darker amber
+ * edge. */
+.hexShape {
+  fill: var(--spellingbee-hex);
+  stroke: var(--tile-2-border);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  transition: fill 80ms ease;
+}
+.center .hexShape {
+  fill: var(--spellingbee-accent);
+  stroke: var(--spellingbee-accent-edge);
 }
 
-/* The mandatory center letter is the yellow hex. */
-.center {
-  background: var(--spellingbee-accent);
+/* Focus ring: recolor + thicken the hex border (reliable in SVG, unlike an outline
+ * on a <g>). */
+.hex:focus-visible .hexShape {
+  stroke: var(--color-accent);
+  stroke-width: 4;
 }
 
-/*
- * Per-position absolute placement. JSX render order:
- *   1: center  2: top  3: upper-right  4: lower-right
- *   5: bottom  6: lower-left  7: upper-left
- *
- * The spellingbee-ws offsets RE-BASED to the flower's top-left (each original
- * `left` − 32, each original `top` − 37; see the header note), each scaled by --u
- * so the flower tracks the board size with ~3px-equivalent gutters between
- * adjacent hexes. The bottom hex ends at 267u (= grid height) and the right hexes
- * at 256u (= grid width), so the flower fills its box edge-to-edge.
- */
-.grid .letter:nth-child(1) { top: calc(90 * var(--u));  left: calc(78 * var(--u)); }
-.grid .letter:nth-child(2) { top: calc(0 * var(--u));   left: calc(78 * var(--u)); }
-.grid .letter:nth-child(3) { top: calc(45 * var(--u));  left: calc(156 * var(--u)); }
-.grid .letter:nth-child(4) { top: calc(134 * var(--u)); left: calc(156 * var(--u)); }
-.grid .letter:nth-child(5) { top: calc(180 * var(--u)); left: calc(78 * var(--u)); }
-.grid .letter:nth-child(6) { top: calc(134 * var(--u)); left: calc(0 * var(--u)); }
-.grid .letter:nth-child(7) { top: calc(45 * var(--u));  left: calc(0 * var(--u)); }
+.hexText {
+  fill: var(--spellingbee-hex-text);
+  font-size: 30px; /* flower coordinate units (scaled by --u) */
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+  pointer-events: none; /* clicks land on the polygon/group, not the glyph */
+}

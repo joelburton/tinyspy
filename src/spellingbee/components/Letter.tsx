@@ -1,36 +1,71 @@
 import { cls } from '../../common/lib/cls'
 import styles from './Letters.module.css'
 
+/** Flat-top hex, 100×87 in the flower's coordinate units. Its 6 vertices as
+ *  fractions of the box (vertical sides at 25%/75%) — the SVG equivalent of the
+ *  old `clip-path: polygon(25% 0, 75% 0, 100% 50, 75% 100, 25% 100, 0% 50)`. */
+const HEX_W = 100
+const HEX_H = 87
+const VERTS: ReadonlyArray<readonly [number, number]> = [
+  [0.25, 0],
+  [0.75, 0],
+  [1, 0.5],
+  [0.75, 1],
+  [0.25, 1],
+  [0, 0.5],
+]
+/** Draw each hex slightly smaller than its cell (inset toward the cell centre), so
+ *  the gaps between adjacent hexes are a touch bigger. Positions/centres unchanged. */
+const SHRINK = 0.97
+
 type Props = {
   letter: string
   isCenter?: boolean
+  /** Top-left of this hex's box, in the flower's coordinate units. */
+  pos: { left: number; top: number }
   onClick: () => void
 }
 
 /**
- * One hex in the honeycomb. Pure presentation — receives the
- * letter and a click handler from <Letters>. The position
- * within the honeycomb is decided by render order (the parent
- * renders center first, then 6 outer in clockwise-from-top
- * order); CSS nth-child rules pin each to its absolute spot.
+ * One hex in the honeycomb — an SVG `<polygon>` (a REAL fill + stroke border,
+ * which the old `clip-path` div couldn't give us) plus a centered `<text>`. Drawn
+ * inside the parent `<Letters>` svg, so it shares the flower's coordinate space.
  *
- * `onMouseDown` is intercepted to prevent the button from
- * stealing focus from the typed-word input — without this,
- * clicking a letter would blur whatever was focused and the
- * next keyboard letter would go to the body element instead of
- * the input. (This is the same trick spellingbee-ws uses; the
- * focus stays where the user expects.)
+ * The group is the interactive element (`role="button"` + `tabIndex` + Enter/Space
+ * keydown) since you can't nest a real `<button>` in SVG; the polygon's fill is the
+ * hit area, so clicks only land on the hex shape (not its bounding-box corners).
+ * `onMouseDown` is intercepted so clicking a letter doesn't steal focus from the
+ * typed-word input (same reason as the old button — the next keystroke must still
+ * reach the input). SVG `<text>` ignores `text-transform`, so we uppercase here.
  */
-export function Letter({ letter, isCenter, onClick }: Props) {
+export function Letter({ letter, isCenter, pos, onClick }: Props) {
+  const up = letter.toUpperCase()
+  const points = VERTS.map(([fx, fy]) => {
+    const sx = 0.5 + (fx - 0.5) * SHRINK
+    const sy = 0.5 + (fy - 0.5) * SHRINK
+    return `${pos.left + sx * HEX_W},${pos.top + sy * HEX_H}`
+  }).join(' ')
+  const cx = pos.left + HEX_W / 2
+  const cy = pos.top + HEX_H / 2
   return (
-    <button
-      type="button"
-      className={cls(styles.letter, isCenter && styles.center)}
+    <g
+      className={cls(styles.hex, isCenter && styles.center)}
+      role="button"
+      tabIndex={0}
+      aria-label={isCenter ? `${up} (center letter)` : up}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       onMouseDown={(e) => e.preventDefault()}
-      aria-label={isCenter ? `${letter} (center letter)` : letter}
     >
-      <span>{letter}</span>
-    </button>
+      <polygon className={styles.hexShape} points={points} />
+      <text className={styles.hexText} x={cx} y={cy}>
+        {up}
+      </text>
+    </g>
   )
 }
