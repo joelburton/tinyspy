@@ -405,10 +405,11 @@ and the shared `.tile` / `.tileWord` classes in
 [`common/components/playArea.module.css`](../src/common/components/playArea.module.css).
 A player who learns the board in one game reads it in the next.
 
-- **Resting** — a warm **beige** fill (`--tile-bg`, the NYT-Connections idiom
-  kept as the *one* shared tile color), a tan border a step darker
-  (`--tile-border`), near-black ink (`--tile-text`), and a small drop shadow
-  (`--tile-shadow`) so a tile reads as a physical tile.
+- **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg`, which
+  aliases `--tile-3`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
+  a matching border a step darker (`--tile-border` = `--tile-3-border`), near-black
+  ink (`--tile-text`), and a small drop shadow (`--tile-shadow`) so a tile reads as
+  a physical tile.
 - **Hover** — a **dark** ring (`box-shadow: 0 0 0 2px var(--tile-selected-bg)`,
   composed with the resting shadow). Not accent-blue, not a fill change.
 - **Selected** — a **dark fill** with light ink (`--tile-selected-bg` /
@@ -431,10 +432,41 @@ base safe to compose with per-game modules.)
 **Resting depth, no board frame.** Tiles read as physical tiles via the
 token-driven border + `--tile-shadow` — that's enough on its own. Neither
 psychicnum nor connections wraps the grid in a "tray" frame (a heavier border +
-inner padding): now that the tiles carry their own beige fill and depth, an outer
+inner padding): now that the tiles carry their own warm fill and depth, an outer
 frame is redundant, and connections' full-width bands want to sit edge-to-edge
 anyway. The grid fills its column edge-to-edge. (A tray remains available as a
 per-game option if a future board wants one.)
+
+## The warm tile ramp
+
+Tile colors come from **one warm (slightly-yellow) family** in
+[`common/theme.css`](../src/common/theme.css) — five shades on a hand-tuned
+lightness ramp (lightest → darkest), each with a matching `-border`, plus two
+extras. **Default to this ramp for any game's tiles**; diverge only with a real
+reason (below).
+
+| token | role |
+|---|---|
+| `--tile-1` … `--tile-5` (+ `-border`) | the ramp, lightest → darkest |
+| `--tile-3` = `--tile-bg` | **the normal tile** — what most games use at rest |
+| `--tile-disabled` (+ `-border`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
+| `--tile-attention` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
+| `--grid-cursor` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
+
+**Who uses what:** most games take `--tile-3` via the shared `.tile`'s `--tile-bg`
+(psychicnum, connections, boggle, scrabble — decided/result states then override by
+re-setting the tokens). **stackdown** shades its stack by depth off shades **1–4**
+(top = 1, deepest = 4). Legitimate divergences: **wordle** and **waffle** always
+colour tiles by the wordle result palette (green/yellow/gray), so they never show a
+ramp shade; **codenamesduet** uses its role colors (agent green / neutral tan /
+assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2`
+for its hexes + an accent-yellow center. If a game's tiles are always meaning-coded
+(wordle), that's the reason to skip the ramp — otherwise reach for it.
+
+The ramp is **hand-tuned, not algorithmic** — a deliberate choice so an individual
+shade can be nudged. When a new theme lands (dark mode …), it supplies a fresh ramp
+tuned against its background (borders derive as "a darker shade of the fill", which
+inverts cleanly); the semantic token names make it a one-file swap.
 
 **The decided tile — a permanent result fill.** A tile is *decided* once its
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
