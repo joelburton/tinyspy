@@ -14,6 +14,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
@@ -83,8 +84,6 @@ export function PlayArea({
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
 
-  // Track the id of the last guess/hint we've already-announced (peer events).
-  const lastSeenGuessIdRef = useRef<string | null>(null)
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
@@ -149,48 +148,42 @@ export function PlayArea({
   // local flash, my hint shows in my own turn log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
   // globalFeedback.show is a prop callback, so no local set-state lives in here.
-  useEffect(function announcePeerEvent() {
-    if (guesses.length === 0) return
-    const latest = guesses[guesses.length - 1]
-    // First load / refetch: adopt the latest as seen without replaying it.
-    if (lastSeenGuessIdRef.current === null) {
-      lastSeenGuessIdRef.current = latest.id
-      return
-    }
-    if (latest.id === lastSeenGuessIdRef.current) return
-    lastSeenGuessIdRef.current = latest.id
-
-    if (latest.user_id === session.user.id) return  // mine → local
-    if (mode !== 'coop') return
-    const member = memberById(players, latest.user_id)
-    const name = member?.username ?? 'Someone'
-    const dot = colorVarFor(member?.color)
-
-    // Helper actions (hint / reveal) → amber: important, but neither good nor
-    // bad. (A reveal logs the answer word, but we narrate it without naming the
-    // word — "revealed a word", not which one.)
-    if (latest.kind === 'hint' || latest.kind === 'reveal') {
-      globalFeedback.show({
-        tone: 'warning',
+  // The shared seen-set hook narrates EVERY new peer event (the old hand-rolled
+  // version only looked at the latest row, dropping any that batched between
+  // refetches). keyOf is the guess id; own events return null (mine → local).
+  useGlobalFeedback({
+    enabled: mode === 'coop',
+    items: guesses,
+    keyOf: (g) => g.id,
+    messageFor: (g) => {
+      if (g.user_id === session.user.id) return null // mine → local
+      const member = memberById(players, g.user_id)
+      const name = member?.username ?? 'Someone'
+      const dot = colorVarFor(member?.color)
+      // Helper actions (hint / reveal) → amber: important, but neither good nor
+      // bad. (A reveal logs the answer word, but we narrate it without naming
+      // the word — "revealed a word", not which one.)
+      if (g.kind === 'hint' || g.kind === 'reveal') {
+        return {
+          tone: 'warning',
+          variant: 'outline',
+          dot,
+          text: g.kind === 'hint' ? `${name} asked for a hint` : `${name} revealed a word`,
+          dismiss: { kind: 'timed', ms: 3000 },
+        }
+      }
+      return {
+        tone: g.was_correct ? 'success' : 'error',
         variant: 'outline',
         dot,
-        text: latest.kind === 'hint'
-          ? `${name} asked for a hint`
-          : `${name} revealed a word`,
+        text: g.was_correct
+          ? `${name} found a secret — ${g.word.toUpperCase()}!`
+          : `${name} guessed ${g.word.toUpperCase()} — not it`,
         dismiss: { kind: 'timed', ms: 3000 },
-      })
-      return
-    }
-    globalFeedback.show({
-      tone: latest.was_correct ? 'success' : 'error',
-      variant: 'outline',
-      dot,
-      text: latest.was_correct
-        ? `${name} found a secret — ${latest.word.toUpperCase()}!`
-        : `${name} guessed ${latest.word.toUpperCase()} — not it`,
-      dismiss: { kind: 'timed', ms: 3000 },
-    })
-  }, [guesses, mode, players, session.user.id, globalFeedback])
+      }
+    },
+    globalFeedback,
+  })
 
   // ─── Compete opponent progress (group feedback) ────────
   // When an opponent's public secrets_found count ticks up, narrate "X guessed a

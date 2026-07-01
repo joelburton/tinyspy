@@ -3,8 +3,8 @@
  * `spellingbee.submit_word` rewrites the full array on every accepted
  * submission. Two FE readers share it: the OpponentStrip (renders
  * each opponent's current rank) and the opponent-rank-up header
- * feedback (see `usePeerFeedback`). Lives in `lib/` so both can import
- * it without one reaching into the other's file.
+ * feedback (the compete rank-climb effect in PlayArea). Lives in `lib/`
+ * so both can import it without one reaching into the other's file.
  */
 export type LeaderboardEntry = {
   user_id: string

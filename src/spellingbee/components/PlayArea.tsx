@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -12,7 +12,8 @@ import type { GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
-import { usePeerFeedback } from '../hooks/usePeerFeedback'
+import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
@@ -100,7 +101,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     setup, goToClub,
-    // The COMMON header slot (peer/opponent events, via usePeerFeedback) — as
+    // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
     // the player's own word result. Two different surfaces.
     globalFeedback,
@@ -285,15 +286,65 @@ export function PlayArea(ctx: GamePageCtx) {
   // it's reported by the in-body pill / RankBar. Called unconditionally,
   // before the early returns, and reads `game?.mode` (null while loading; the
   // hook no-ops until loaded + bootstrapped).
-  usePeerFeedback({
-    loading,
-    mode: game?.mode,
-    selfUserId: session.user.id,
-    players,
-    foundWords,
-    status,
-    feedback: globalFeedback,
+  // ─── Coop peer-word narration (global header) ──────────────────
+  // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
+  // `foundWords`; surface good + pangram finds. Rejected words never become a
+  // row, so there's nothing to suppress. Own words go to the in-body local pill.
+  useGlobalFeedback({
+    enabled: game?.mode === 'coop',
+    items: foundWords,
+    keyOf: (r) => `${r.user_id}:${r.word}`,
+    messageFor: (r) => {
+      if (r.user_id === session.user.id) return null // own word → in-body pill
+      const member = players.find((p) => p.user_id === r.user_id)
+      const name = member?.username ?? 'A teammate'
+      return {
+        tone: 'success',
+        variant: 'outline',
+        dot: colorVarFor(member?.color),
+        text: r.is_pangram
+          ? `🐝 ${name} found a pangram — ${r.word.toUpperCase()}!`
+          : `${name} found ${r.word.toUpperCase()}`,
+        dismiss: { kind: 'timed' },
+      }
+    },
+    globalFeedback,
   })
+
+  // ─── Compete opponent-rank narration (global header) ───────────
+  // Opponents' words are RLS-hidden in compete, so the one competitively-
+  // meaningful signal is a rank CLIMB, read off `status.leaderboard` — a delta
+  // detector (bucket B in docs/peer-feedback-audit.md), NOT a seen-set: it fires
+  // on a rank INCREASE, not a new row, so it stays hand-rolled here. `ranksReady`
+  // seeds each player's last-seen rank on first load so history isn't replayed.
+  const prevRankRef = useRef<Map<string, number>>(new Map())
+  const ranksReadyRef = useRef(false)
+  useEffect(() => {
+    if (game?.mode !== 'compete') return
+    const board = readLeaderboard(status)
+    const prev = prevRankRef.current
+    if (!ranksReadyRef.current) {
+      ranksReadyRef.current = true
+      for (const row of board) prev.set(row.user_id, row.rank_idx)
+      return
+    }
+    for (const row of board) {
+      const was = prev.get(row.user_id) ?? 0
+      prev.set(row.user_id, row.rank_idx)
+      if (row.user_id === session.user.id) continue // own rank → RankBar
+      if (row.rank_idx > was) {
+        const member = players.find((p) => p.user_id === row.user_id)
+        const name = member?.username ?? 'An opponent'
+        globalFeedback.show({
+          tone: 'info',
+          variant: 'outline',
+          dot: colorVarFor(member?.color),
+          text: `${name} reached ${RANKS[row.rank_idx] ?? 'a new rank'}`,
+          dismiss: { kind: 'timed' },
+        })
+      }
+    }
+  }, [game, status, players, session.user.id, globalFeedback])
 
   // Called UNCONDITIONALLY here, before any early returns —
   // React forbids conditional hook calls.

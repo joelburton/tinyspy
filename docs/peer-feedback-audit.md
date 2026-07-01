@@ -62,8 +62,20 @@ allowed). Every other game is a coop+compete sibling pair. → 18 gametype rows.
 Under the governing principle, **C is not a third way of doing peer feedback** —
 it's "peer feedback missing" (+ a strip that stays). And **A is a special case
 of B** (a Set is a `Map<key, present>`): both are "silently bootstrap, then diff
-and fire". The seed-timing bug in §1.1 lives in that shared bootstrap. See the
-open question at the bottom.
+and fire". The seed-timing bug in §1.1 lived in that shared bootstrap.
+
+> **Update — Stage 3 (2026-07-01):** bucket A is now unified. All five games
+> (wordle coop+compete, psychicnum-coop, connections-coop, spellingbee-coop,
+> stackdown-coop) route their event-stream narration through one shared
+> `common/hooks/useGlobalFeedback.ts`, which owns the **one correct bootstrap**
+> (gate before seed) — so **§1.1 is fixed** (no backlog replay; the first peer
+> event of a fresh game fires; batched events all fire). The two per-game
+> `usePeerFeedback` hooks (spellingbee, stackdown) are deleted; the three inline
+> `announce*`/`lastSeenGuessIdRef` copies are gone. Bucket B (delta detectors:
+> psychicnum-compete count, spellingbee-compete rank, waffle-compete milestone,
+> codenamesduet phase) stays hand-rolled, as planned. A 7-case regression test
+> (`useGlobalFeedback.test.ts`) covers both §1.1 variants; five independent
+> re-audits confirmed no message/tone/surface changed.
 
 ## The inventory
 
@@ -153,12 +165,12 @@ terminal verdict. Only exception where a peer event reaches it: scrabble's
 - **Silent state-loss (not feedback, but adjacent):** scrabble — a teammate's
   coop commit clears your staged tiles + reorders your rack with no explanation.
 
-## Open question for the consolidation
+## Resolved — the consolidation (Stage 3)
 
-Because A is a special case of B and both share the buggy bootstrap, one
-`usePeerFeedback({ enabled, items, keyOf, diff })` hook could back **every**
-game's peer pill — the coop config diffs an event stream (Set), the compete
-config diffs a per-player snapshot (Map of values), and the correct silent
-bootstrap is written once (killing §1.1 for all of them at once). The declarative
-strips/lists/logs are orthogonal and untouched. Whether that's one hook or two
-thin hooks over a shared core is an implementation call.
+Done. `common/hooks/useGlobalFeedback.ts` backs every bucket-A game's peer pill:
+`{ enabled, items, keyOf, messageFor, globalFeedback }` — the caller supplies the
+gate + the message; the hook owns the seen-set + the one correct silent bootstrap
+(gate before seed), killing §1.1. We scoped it to the coop **event-stream** flavor
+only; the compete **snapshot-delta** signals (bucket B) stayed hand-rolled, since
+folding them in would be false consolidation of a genuinely different mechanism.
+The declarative strips/lists/logs are orthogonal and untouched.

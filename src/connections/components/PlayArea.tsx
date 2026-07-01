@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import type { GamePageCtx, TimerMode } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
@@ -14,6 +14,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
@@ -184,49 +185,37 @@ export function PlayArea({
   // turn log. Compete never reaches here: the guesses log is RLS-scoped to
   // the caller server-side, so no foreign rows arrive, and we gate on coop
   // besides. globalFeedback.show is a prop callback, so no local set-state here.
-  const lastSeenGuessIdRef = useRef<string | null>(null)
-  useEffect(function announcePeerGuess() {
-    if (guesses.length === 0) return
-    const latest = guesses[guesses.length - 1]
-    // First load / refetch: adopt the latest as seen without replaying it.
-    if (lastSeenGuessIdRef.current === null) {
-      lastSeenGuessIdRef.current = latest.id
-      return
-    }
-    if (latest.id === lastSeenGuessIdRef.current) return
-    lastSeenGuessIdRef.current = latest.id
-
-    if (latest.user_id === session.user.id) return  // mine → local flash
-    if (game?.mode !== 'coop') return
-    const member = memberById(players, latest.user_id)
-    const name = member?.username ?? 'Someone'
-    const dot = colorVarFor(member?.color)
-
-    if (latest.result === 'correct') {
-      // Name the solved category — coop reveals its band to everyone anyway,
-      // so there's nothing to hide.
-      const cat = game.board.categories.find(
-        (c) => c.rank === latest.matched_category_rank,
-      )
-      globalFeedback.show({
-        tone: 'success',
+  useGlobalFeedback({
+    enabled: game?.mode === 'coop',
+    items: guesses,
+    keyOf: (g) => g.id,
+    messageFor: (g) => {
+      if (g.user_id === session.user.id) return null // mine → local commit flash
+      const member = memberById(players, g.user_id)
+      const name = member?.username ?? 'Someone'
+      const dot = colorVarFor(member?.color)
+      if (g.result === 'correct') {
+        // Name the solved category — coop reveals its band to everyone anyway,
+        // so there's nothing to hide.
+        const cat = game?.board.categories.find((c) => c.rank === g.matched_category_rank)
+        return {
+          tone: 'success',
+          variant: 'outline',
+          dot,
+          text: cat ? `${name} found ${cat.name.toUpperCase()}!` : `${name} found a category!`,
+          dismiss: { kind: 'timed', ms: 3000 },
+        }
+      }
+      return {
+        tone: g.result === 'oneAway' ? 'near' : 'error',
         variant: 'outline',
         dot,
-        text: cat ? `${name} found ${cat.name.toUpperCase()}!` : `${name} found a category!`,
+        text: g.result === 'oneAway' ? `${name} was one away` : `${name} guessed wrong`,
         dismiss: { kind: 'timed', ms: 3000 },
-      })
-    } else {
-      globalFeedback.show({
-        tone: latest.result === 'oneAway' ? 'near' : 'error',
-        variant: 'outline',
-        dot,
-        text: latest.result === 'oneAway'
-          ? `${name} was one away`
-          : `${name} guessed wrong`,
-        dismiss: { kind: 'timed', ms: 3000 },
-      })
-    }
-  }, [guesses, game, players, session.user.id, globalFeedback])
+      }
+    },
+    globalFeedback,
+  })
 
   // ─── End-game action (info-column action-row button) ───
   // Available in both modes. Manual end terminates the game with
