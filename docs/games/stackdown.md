@@ -216,7 +216,7 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 | `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `wordlist int` (0 = Wordle list) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
 | `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `wordlist`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
-| `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, no word). | coop: all; compete: own (until terminal) |
+| `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the revealed word, for the log to show). | coop: all; compete: own (until terminal) |
 
 The hidden-solution pattern is the same as the other answer-hiding games (waffle,
 wordle): a column-grant excludes `solution`, and the `games_state`
@@ -256,9 +256,11 @@ creation, so it's self-contained; `board_id` is provenance only.
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE surfaces
-  it as a **Reveal word** button in the right column during play (writing to the
-  header feedback slot). It also **logs the request** — a `kind='reveal'`
-  submission row ("Requested word") so the ask persists in the game log; deduped
+  it as a **Reveal word** action button in the info-column action row during play
+  (writing its answer to the **local** below-board feedback slot — it's the
+  player's own request). It also **logs the request** — a `kind='reveal'`
+  submission row storing the revealed word (shown in the log as "Revealed:
+  <WORD>") so the ask persists in the game log; deduped
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
   the games-row `for update` lock (for a collision-free `seq`).
 - **`reveal_next_hint(target_game) → text`** — the softer sibling: returns the
@@ -267,8 +269,8 @@ creation, so it's self-contained; `board_id` is provenance only.
   math as `reveal_next_word`, but the word never reaches the client — only the
   hint text crosses the wire. Every stackdown word is a 5-letter Wordle word, so
   it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
-  button shows it in the header feedback slot. Logs a `kind='hint'` request row
-  ("Requested hint") the same way. Both requests ride the submissions RLS, so a
+  action button shows it in the same local below-board feedback slot. Logs a `kind='hint'` request row
+  storing the clue text (shown in the log as "Hint: <clue>") the same way. Both requests ride the submissions RLS, so a
   coop request shows to everyone and a compete one only to the requester.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
@@ -298,6 +300,19 @@ prettier title here.
 
 ### 5.3 Frontend (`src/stackdown/`)
 
+stackdown is a **v3** game (`docs/design-decisions.md`): it renders on the shared
+two-column PlayArea scaffold (`common/components/PlayArea.module.css` — `.layout` /
+`.boardCol` / `.infoCol` / `.actionSlot`). The board column holds the stacked-tile
+board, the five-slot `WordEntry`, and a fixed-height **local feedback slot**; the
+info column runs **state → opponent strip → action row → help → setup → log** in
+that fixed order. Feedback is **split** the canonical way: the player's OWN move
+results (a rejected word, a keystroke matching no/too-many exposed tiles, a
+reveal's answer, an error, the terminal verdict) show as a centered
+`<FeedbackPill>` in the local slot; **peer** narration goes to the GLOBAL header
+pill (with the teammate's identity disc). An accepted / rejected word additionally
+flashes its letters green/red in the `WordEntry` ring (strong outcome colors) — so
+the local pill carries only the results a ring can't.
+
 - **`lib/board.ts`** — the display half of the board logic, ported from the
   prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
@@ -321,11 +336,12 @@ prettier title here.
   spellingbee `usePeerFeedback` pattern). Diffs the `submissions` list against a
   `seen` set keyed by `(user_id, seq)`, bootstrapping quietly on the first
   loaded render so a reconnect doesn't replay the backlog. Each *new* teammate
-  submission fires a header feedback pill — "moth found SCARE" / "moth tried
-  FOOFS — not a word" / "moth revealed a hint" / "moth revealed a word" — and,
-  for a played word, calls back into PlayArea to flash that word (green/red) in
-  the entry row. No-ops off coop (compete hides peers' submissions) and skips
-  the caller's own rows (those are reported next to their own input).
+  submission fires a **global** header feedback pill — carrying the teammate's
+  identity disc (`● moth found SCARE` / `● moth tried FOOFS — not a word` [error] /
+  `● moth revealed a hint` / `● moth revealed a word` [warning]) — and, for a
+  played word, calls back into PlayArea to flash that word (green/red) in the entry
+  row. No-ops off coop (compete hides peers' submissions) and skips the caller's
+  own rows (those are reported in the local below-board slot / ring instead).
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
@@ -338,20 +354,26 @@ prettier title here.
   the player's own just-accepted word OR a teammate's valid find, red for a
   teammate's rejected word. The flash carries plain letters, not tile ids, so
   it can show a teammate's word whose tiles this client never picked up),
-  `FoundWords` (the right-column game log — valid words listed, clickable to
-  define; invalid attempts struck through and tagged; and the muted "Requested
-  hint" / "Requested word" cheat-request rows), `PlayArea` (two-column compose:
-  board + entry on the left, OpponentStrip [compete] + log on the right; owns the
-  submit + game-over; in compete it filters the log to the caller's own so it
-  doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the
+  `FoundWords` (the info-column submission log — heading "Turn Log" — rendered on
+  the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar:
+  valid words green + clickable to define, invalid attempts red + struck through +
+  tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
+  "Revealed: <WORD>"); coop shows the actor via the shared `<ActorTag>`, compete
+  suppresses it), `PlayArea` (the shared two-column scaffold:
+  board + WordEntry + local feedback slot on the left, the info column [state,
+  compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
+  via the semantic buttons, help, setup, terminal words-reveal, log] on the right;
+  owns the submit + game-over; in compete it filters the log to the caller's own so
+  it doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the
   timer — the board is dealt at random), `Help`.
 - **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
-  order, so an ambiguous letter can't pick for you). No match flashes feedback;
-  more than one flashes feedback AND briefly outlines the candidate tiles in red
-  (a `highlight` set passed to `Board`). The handler ignores keys aimed at chat /
-  inputs.
+  order, so an ambiguous letter can't pick for you). No match shows a local
+  **error** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
+  ("N 'X' tiles are on top — click one") AND briefly outlines the candidate tiles
+  in red (a `highlight` set passed to `Board`). The handler ignores keys aimed at
+  chat / inputs.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 
