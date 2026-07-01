@@ -10,8 +10,10 @@
   width: min(100%, 72vh, 620px);
   aspect-ratio: 1;
   container-type: inline-size;
-  background: var(--stackdown-felt);
-  border: 1px solid var(--color-surface-border);
+  /* No fill — the tiles (each with its own shade + shadow) sit on the page; an
+     evident border defines the board area (same 2px frame as the turn-log / word-
+     list boxes). */
+  border: 2px solid var(--color-divider);
   border-radius: var(--radius-lg);
 }
 

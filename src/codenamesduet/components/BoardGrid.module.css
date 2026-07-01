@@ -107,11 +107,11 @@
  * codenamesduet's "never recolor on hover" rule still holds) and the un-faded
  * disabled look, so no per-game cursor/hover/disabled rules are needed here. */
 .bgWhite {
-  /* Never-guessed tile: a LIGHT WARM-GREY — lighter and more desaturated than
-     the standard tile beige (#f0e6d2), so it doesn't read like the neutral tan
-     (#b4986e), but with a bit of the warm tile-color kept (not flat grey). */
-  --tile-bg: #f4f1ec;
-  --tile-border: #e6e1d7;
+  /* Never-guessed tile: the shared "attention" shade 1 (the lightest of the warm
+     tile family) — lighter than the normal tile (shade 3), so it doesn't read like
+     the darker revealed-neutral. */
+  --tile-bg: var(--tile-1);
+  --tile-border: var(--tile-1-border);
 }
 .bgNeutral {
   --tile-bg: var(--codenamesduet-neutral);

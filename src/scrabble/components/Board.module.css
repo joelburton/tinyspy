@@ -41,6 +41,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Plain (non-premium) empty squares are white; only the premium squares below
+     carry a color. */
   background: var(--scrabble-cell-bg);
   color: #6b8378;
   font-size: 2.4cqi;
@@ -84,10 +86,11 @@
 .tile.committed {
   cursor: default;
 }
-/* Placed-but-not-committed (this-turn) tiles get a bright face so the player
-   can see exactly what they're laying down before they commit the word. */
+/* Placed-but-not-committed (this-turn) tiles get the attention overlay (a warm-
+   yellow wash over the normal tile) so the player sees exactly what they're laying
+   down before they commit the word. */
 .tile.tentative {
-  background: var(--scrabble-tile-tentative);
+  background: var(--scrabble-tile-attention);
 }
 /* A placed blank shows its declared letter normally, marked as a blank by a
    thin ring around the glyph (like circling a wildcard) rather than a tinted
@@ -114,11 +117,11 @@
   outline-offset: -3px;
   z-index: 2;
 }
-/* Turn-viewer: the tiles THIS turn placed — the placed-tile YELLOW face (so they
-   read as "this turn's play", matching a staged tile) PLUS a persistent
+/* Turn-viewer: the tiles THIS turn placed — the attention overlay (so they read
+   as "this turn's play", matching a just-placed tile) PLUS a persistent
    success-green outline (the good words of this turn). */
 .tile.viewingTile {
-  background: var(--scrabble-tile-tentative);
+  background: var(--scrabble-tile-attention);
   outline: 3px solid var(--color-outcome-won-strong);
   outline-offset: -3px;
   z-index: 2;

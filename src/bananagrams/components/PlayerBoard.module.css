@@ -147,12 +147,12 @@
   z-index: 5;
 }
 .cursorH {
-  border: 1px solid var(--mg-cursor);
+  border: 1px solid var(--grid-cursor);
   border-top-width: 5px;
   border-bottom-width: 5px;
 }
 .cursorV {
-  border: 1px solid var(--mg-cursor);
+  border: 1px solid var(--grid-cursor);
   border-left-width: 5px;
   border-right-width: 5px;
 }

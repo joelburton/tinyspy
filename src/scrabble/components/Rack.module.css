@@ -34,8 +34,11 @@
 .tile.blank .letter {
   opacity: 0.4;
 }
+/* A hand tile that's currently placed on the board — shown in the darker
+   "disabled" warm shade so it reads as "in use / on the board", not faded out. */
 .tile.used {
-  opacity: 0.3;
+  background: var(--tile-disabled);
+  border-color: var(--tile-disabled-border);
   cursor: default;
 }
 .tile.selected {

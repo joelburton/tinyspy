@@ -10,7 +10,7 @@
 }
 .row:hover td,
 .row:focus-visible td {
-  background: var(--color-surface-2, rgba(0, 0, 0, 0.04));
+  background: var(--color-surface-hover);
 }
 .row:focus-visible {
   outline: none;

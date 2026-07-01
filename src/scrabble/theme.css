@@ -5,26 +5,28 @@
  */
 :root {
   --scrabble-board-bg: #1f6f54; /* the felt green between cells */
-  --scrabble-cell-bg: #e9f3ee; /* a plain (non-premium) square */
+  --scrabble-cell-bg: #ffffff; /* a plain (non-premium) empty square — white */
 
   --scrabble-tw: #e06a52; /* triple word  */
   --scrabble-dw: #f0a9a0; /* double word + center star */
   --scrabble-tl: #5a91c8; /* triple letter */
   --scrabble-dl: #acd0ea; /* double letter */
 
-  --scrabble-tile-bg: #f3ede1; /* TEMP: boggle's ivory tile face (was #f2dca8) */
-  --scrabble-tile-ink: #1a1a1a; /* TEMP: boggle ink (was #3b2a14) */
-  --scrabble-tile-edge: #d8bd82;
-  --scrabble-tile-tentative: #ffd21a; /* a vivid, saturated gold so this-turn (placed-but-not-committed) tiles pop */
+  --scrabble-tile-bg: var(--tile-3); /* the shared normal tile (shade 3) */
+  --scrabble-tile-ink: var(--tile-text);
+  --scrabble-tile-edge: var(--tile-3-border);
+  /* A placed-but-not-committed tile (and, in the turn-viewer, a tile THIS turn
+     played): the normal tile with the shared attention OVERLAY stacked on top —
+     brighter + more yellow, so it clearly stands out from the committed C tiles. */
+  --scrabble-tile-attention: linear-gradient(var(--tile-attention), var(--tile-attention)), var(--scrabble-tile-bg);
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
-  --scrabble-cursor: #c9881f; /* the keyboard-entry cursor ring */
-  /* The turn-viewer highlight — the SAME yellow a placed-but-not-committed tile
-     uses, reused here so "history view" reads as one colour: the board frame, the
-     selected log row, and the "Viewing turn" overlay outline. Deliberately NOT an
-     outcome color (a pass turn isn't a success — a green frame would mislead); the
-     viewed turn's tiles take this yellow FILL, plus a success-green outline for the
-     good words they were. */
-  --scrabble-viewer: var(--scrabble-tile-tentative);
+  --scrabble-cursor: var(--grid-cursor); /* the shared grid keyboard-entry cursor */
+  /* The turn-viewer OUTLINE — the board frame, selected log row, and "Viewing
+     turn" overlay border. A distinct amber, DECOUPLED from the tile shades on
+     purpose: the tiles a turn placed now fill with the light shade-1, but the
+     history outline stays this stronger amber so "you're viewing history" still
+     reads. Not an outcome color (a pass turn isn't a success). */
+  --scrabble-viewer: #ffd21a;
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */

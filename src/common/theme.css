@@ -162,9 +162,44 @@
      per-game tile CSS. The shared `.tile` (common/components/PlayArea.module.css)
      reads ONLY these tokens for its colors, so a state class overrides by
      re-setting a token, not by out-cascading another stylesheet. */
-  --tile-bg:                  #f0e6d2;  /* warm beige — the shared resting fill */
-  --tile-border:              #e0d4b8;  /* a tan one step darker than the fill */
-  --tile-text:                #1a1a1a;  /* near-black ink on the beige */
+  /* ── Warm tile family — 5 shades, lightest → darkest ──────────────────────
+     One core warm (slightly-yellow) color, hand-tuned along a lightness ramp
+     (~5% steps), each with a matching darker border (~16% darker). Kept subtle
+     because a tile carries lots of OTHER signal (whose? selected? hovered?
+     decided?). Semantic roles:
+       1  attention  — a placed-but-not-committed / highlighted tile (scrabble)
+       2..5          — stackdown depth 0..3 (top → deepest); it reads depth off
+                       the SAME family the other games use for their resting fill
+       3  NORMAL     — the everyday tile most games use (= --tile-bg below)
+     A future theme (dark mode …) supplies a new ramp against its background. */
+  --tile-1:                   #faf7ef;  --tile-1-border: #ead8ae;
+  --tile-2:                   #f6efdf;  --tile-2-border: #e5d09e;
+  --tile-3:                   #f2e8ce;  --tile-3-border: #e1c88e;  /* NORMAL tile */
+  --tile-4:                   #eadbb8;  --tile-4-border: #dabc77;
+  --tile-5:                   #e3cfa1;  --tile-5-border: #d2b060;
+  /* A DARKER warm shade beyond the depth ramp — for "disabled / missing / spent"
+     tile states (a scrabble rack tile that's already on the board). Same hue
+     family, clearly dimmer than shade 5 so it reads as "not in play", but not so
+     dark it looks broken. */
+  --tile-disabled:            #cbb476;  --tile-disabled-border: #ac8f4c;
+
+  /* ATTENTION — a translucent warm-yellow OVERLAY, stacked over a tile's own
+     shade so it reads as "itself, but lighter + more yellow" (works on any of the
+     shades above). Compose it as the first layer of `background`:
+       background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>;
+     Used for a placed-but-not-committed scrabble tile (its history-turn tiles too). */
+  --tile-attention:           rgba(255, 234, 110, 0.62);
+
+  /* The keyboard / crossword ENTRY cursor ring on a tile grid (scrabble,
+     bananagrams, future grid games). A slightly-orange-brown — deliberately NOT
+     red or blue, since scrabble's premium squares already use those (a red/blue
+     cursor wouldn't stand out on them). Shared so the cursor reads the same across
+     grid-entry games. */
+  --grid-cursor:              #c9881f;
+
+  --tile-bg:                  var(--tile-3);  /* the shared resting fill = shade 3 */
+  --tile-border:              var(--tile-3-border);
+  --tile-text:                #1a1a1a;  /* near-black ink on the warm fill */
   --tile-shadow:              0 1px 2px rgba(0, 0, 0, 0.18);
   --tile-selected-bg:         #5a594e;  /* dark warm-gray — selected fill + hover ring */
   --tile-selected-text:       #ffffff;  /* light ink on the dark selected fill */

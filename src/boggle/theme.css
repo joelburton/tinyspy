@@ -5,8 +5,8 @@
  * literal colors — see docs/ui.md "two vocabularies".
  */
 :root {
-  --boggle-tile:        #f3ede1;  /* resting letter tile (warm ivory, dice-ish) */
-  --boggle-tile-text:   #1a1a1a;
+  --boggle-tile:        var(--tile-3);  /* the shared normal tile (shade 3) */
+  --boggle-tile-text:   var(--tile-text);
   --boggle-accent:      #c0563b;  /* highlight / selected path (moth red-brown) */
   --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
   /* The board sizes itself to the largest square that fits via the shared HUG

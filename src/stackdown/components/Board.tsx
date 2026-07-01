@@ -12,16 +12,14 @@ const STEP = 32
 const PAD = 26
 
 /**
- * Lightness by depth below the clickable frontier — brightest at the
- * top (exposed now), fading to a soft floor at the board's deepest
- * layer. `maxDepth` is taken from the FULL board so a given depth always
- * maps to the same shade and the whole stack lightens as it clears.
+ * Shade by covering-depth below the clickable frontier, off the SHARED warm tile
+ * ramp (common/theme.css `--tile-1..4`): depth 0 (exposed now) = shade 1, deeper
+ * layers = 2, 3, 4 (deepest). The direct depth→shade map means a given depth
+ * always reads the same shade, and a tile lightens a step each time a cover clears
+ * (its depth drops). Clamped at 4 — the fixed 30-tile geometry is 4 layers deep.
  */
-function depthColor(depth: number, maxDepth: number): string {
-  const TOP = 86 // depth 0 (exposed) — brightest
-  const FLOOR = 60 // deepest layer — a soft floor, not near-black
-  const lightness = maxDepth === 0 ? TOP : TOP - (depth / maxDepth) * (TOP - FLOOR)
-  return `hsl(41 42% ${lightness}%)`
+function depthColor(depth: number): string {
+  return `var(--tile-${1 + Math.min(depth, 3)})`
 }
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
@@ -57,11 +55,6 @@ export function Board({
   )
   const exposed = useMemo(() => exposedIds(tiles, offBoard), [tiles, offBoard])
   const depths = useMemo(() => depthMap(present), [present])
-  // The full board's deepest layer fixes the color ramp.
-  const maxDepth = useMemo(
-    () => Math.max(0, ...depthMap(tiles).values()),
-    [tiles],
-  )
 
   const maxX = Math.max(0, ...tiles.map((t) => t.x))
   const maxY = Math.max(0, ...tiles.map((t) => t.y))
@@ -93,7 +86,7 @@ export function Board({
               width: pct(TILE),
               height: pct(TILE),
               zIndex: t.z,
-              background: depthColor(depths.get(t.id) ?? 0, maxDepth),
+              background: depthColor(depths.get(t.id) ?? 0),
               cursor: isExp && active ? 'pointer' : 'default',
               justifyContent: align(corner.cx),
               alignItems: align(corner.cy),
