@@ -78,21 +78,21 @@ select * from spellingbee.create_game(
 -- race is still live.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select spellingbee.submit_word((select id from g), 'bead');
-select spellingbee.submit_word((select id from g), 'faced');
+select spellingbee.submit_word((select id from g), 'bead', 1, false, false);
+select spellingbee.submit_word((select id from g), 'faced', 5, false, false);
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
-select spellingbee.submit_word((select id from g), 'beef');
+select spellingbee.submit_word((select id from g), 'beef', 1, false, false);
 
 -- ============================================================
--- (1)–(3) Mid-game, as bea: cat A is populated, cat B is empty,
---         and the reveal is gated shut.
+-- (1)–(3) Mid-game, as bea: cat A is populated, cat B is empty (peer
+--         found_words still RLS-hidden), and the answer key is present
+--         (the reveal is now a client-side isTerminal gate).
 -- ============================================================
--- This is the precondition for the FE's "game over?" signal: the
--- WordList flips to the cat-A/cat-B model precisely when
--- games_state.required_words stops being NULL. Mid-game it must be
--- NULL, and bea must see only her own rows (branch b of the RLS
--- policy) — so cat B genuinely has nothing in it during play.
+-- The FE flips the WordList to the cat-A/cat-B model at `isTerminal` (from
+-- common.games), NOT on required_words appearing — that ships from game start.
+-- The load-bearing server behavior mid-game is the found_words RLS: bea sees only
+-- her own rows (branch b), so cat B "found by others" is genuinely empty in play.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
@@ -111,10 +111,11 @@ select is(
   'compete mid-game / bea: zero peer rows visible — cat B is empty during play'
 );
 
-select ok(
-  (select required_words from spellingbee.games_state
-    where id = (select id from g)) is null,
-  'compete mid-game / bea: games_state.required_words is NULL — reveal gated, FE stays in per-finder mode'
+select is(
+  (select jsonb_array_length(required_words) from spellingbee.games_state
+    where id = (select id from g)),
+  30,
+  'compete mid-game / bea: games_state.required_words is present (un-gated; FE gates the reveal on isTerminal)'
 );
 
 -- ============================================================
@@ -125,7 +126,7 @@ select ok(
 -- manual), which is what we want to exercise for bea-as-loser.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select spellingbee.submit_word((select id from g), 'abcdefg');
+select spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false);
 
 reset role;
 select is(

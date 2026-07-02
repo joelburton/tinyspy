@@ -185,6 +185,7 @@ export type Database = {
       games: {
         Row: {
           board: string
+          bonus_words: Json
           club_handle: string
           created_at: string
           id: string
@@ -198,6 +199,7 @@ export type Database = {
         }
         Insert: {
           board: string
+          bonus_words?: Json
           club_handle: string
           created_at?: string
           id: string
@@ -211,6 +213,7 @@ export type Database = {
         }
         Update: {
           board?: string
+          bonus_words?: Json
           club_handle?: string
           created_at?: string
           id?: string
@@ -249,7 +252,12 @@ export type Database = {
       end_game: { Args: { target_game: string }; Returns: undefined }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
-        Args: { points: number; target_game: string; word: string }
+        Args: {
+          is_bonus: boolean
+          points: number
+          target_game: string
+          word: string
+        }
         Returns: Json
       }
     }
@@ -1645,7 +1653,7 @@ export type Database = {
       }
       games: {
         Row: {
-          bonus_words: string[]
+          bonus_words: Json
           center_letter: string
           club_handle: string
           created_at: string
@@ -1657,7 +1665,7 @@ export type Database = {
           required_words_score: number
         }
         Insert: {
-          bonus_words: string[]
+          bonus_words: Json
           center_letter: string
           club_handle: string
           created_at?: string
@@ -1669,7 +1677,7 @@ export type Database = {
           required_words_score: number
         }
         Update: {
-          bonus_words?: string[]
+          bonus_words?: Json
           center_letter?: string
           club_handle?: string
           created_at?: string
@@ -1704,6 +1712,7 @@ export type Database = {
     Views: {
       games_state: {
         Row: {
+          bonus_words: Json | null
           center_letter: string | null
           club_handle: string | null
           created_at: string | null
@@ -1715,24 +1724,26 @@ export type Database = {
           required_words_score: number | null
         }
         Insert: {
+          bonus_words?: Json | null
           center_letter?: string | null
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
           mode?: string | null
           outer_letters?: string | null
-          required_words?: never
+          required_words?: Json | null
           required_words_count?: number | null
           required_words_score?: number | null
         }
         Update: {
+          bonus_words?: Json | null
           center_letter?: string | null
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
           mode?: string | null
           outer_letters?: string | null
-          required_words?: never
+          required_words?: Json | null
           required_words_count?: number | null
           required_words_score?: number | null
         }
@@ -1741,7 +1752,6 @@ export type Database = {
     }
     Functions: {
       _rank_idx: { Args: { score: number; total: number }; Returns: number }
-      _required_words_for: { Args: { g: string }; Returns: Json }
       candidate_words: {
         Args: {
           center_bit: number
@@ -1770,7 +1780,13 @@ export type Database = {
       end_game: { Args: { target_game: string }; Returns: undefined }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
-        Args: { target_game: string; word: string }
+        Args: {
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          target_game: string
+          word: string
+        }
         Returns: Json
       }
     }

@@ -112,3 +112,26 @@ export function generateBoard(
   }
   return null
 }
+
+/**
+ * Enumerate a finished board's BONUS words: every word the *legal*-band trie can
+ * trace on the board that isn't already required. Points use the same ladder +
+ * min length as the required list, so a bonus word scores exactly what the old
+ * server-side `common.words` path computed at guess time.
+ *
+ * This runs ONCE, on an already-accepted board — it is deliberately NOT part of
+ * `generateBoard`'s roll→solve→reject loop, because board-creation constraints are
+ * judged on the *required* set only (see `docs/games/boggle.md`). Shipping the
+ * bonus list to the FE is what lets the client validate + score bonus guesses
+ * locally (no `common.words` round-trip); when `legalTrie` covers the same band as
+ * the required trie the result is empty.
+ */
+export function listBonusWords(
+  legalTrie: Trie,
+  boardStr: string,
+  requiredWords: FoundWord[],
+  opts: { minWordLength?: number; ladder?: LadderName },
+): FoundWord[] {
+  const required = new Set(requiredWords.map((w) => w.word))
+  return listWords(legalTrie, parseBoard(boardStr), opts).filter((w) => !required.has(w.word))
+}

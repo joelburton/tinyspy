@@ -71,7 +71,7 @@ values (
   (select handle from club),
   'coop',
   'cabdno', 'e', 17, 2,
-  '[]'::jsonb, '{}'::text[]
+  '[]'::jsonb, '[]'::jsonb
 );
 
 -- Three found_words rows, one per player. The RLS branch (a)
@@ -159,7 +159,7 @@ select throws_ok(
          (id, club_handle, outer_letters, center_letter,
           required_words_score, required_words_count, required_words, bonus_words)
        values (gen_random_uuid(), %L,
-               'aaaaaa', 'b', 1, 1, '[]'::jsonb, '{}'::text[]) $$,
+               'aaaaaa', 'b', 1, 1, '[]'::jsonb, '[]'::jsonb) $$,
     (select handle from club)
   ),
   '42501',
@@ -199,7 +199,7 @@ values (
   (select handle from club),
   'compete',
   'cabdno', 'e', 17, 2,
-  '[]'::jsonb, '{}'::text[]
+  '[]'::jsonb, '[]'::jsonb
 );
 
 insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram, is_bonus) values

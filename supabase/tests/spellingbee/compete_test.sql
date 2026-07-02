@@ -61,21 +61,21 @@ select * from spellingbee.create_game(
 -- player has their own list). Ada re-submits 'bead' — rejected.
 
 select is(
-  spellingbee.submit_word((select id from g), 'bead')->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
   'accepted',
   'compete: ada''s first "bead" submission accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  spellingbee.submit_word((select id from g), 'bead')->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
   'accepted',
   'compete: bea also gets credit for "bead" — per-player ownership'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'bead')->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
   'alreadyFound',
   'compete: ada re-submitting "bead" rejected as already-found-by-her'
 );
@@ -125,7 +125,7 @@ select is(
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is(
-  spellingbee.submit_word((select id from g), 'abcdefg')->>'result',
+  spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false)->>'result',
   'pangram',
   'compete: cade''s target-hitting pangram returns "pangram"'
 );
@@ -166,7 +166,7 @@ select is(
 -- Survivor can no longer submit (the race ended).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
-  format($$ select spellingbee.submit_word(%L::uuid, 'face') $$, (select id from g)),
+  format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
   'P0001',
   'game is not in progress',
   'compete: post-win opponent submit is rejected'
@@ -267,10 +267,10 @@ select * from spellingbee.create_game(
   pg_temp.spellingbee_board()
 );
 
-select spellingbee.submit_word((select id from g_rls), 'bead');
+select spellingbee.submit_word((select id from g_rls), 'bead', 1, false, false);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select spellingbee.submit_word((select id from g_rls), 'face');
+select spellingbee.submit_word((select id from g_rls), 'face', 1, false, false);
 
 -- Ada sees her own one row only.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

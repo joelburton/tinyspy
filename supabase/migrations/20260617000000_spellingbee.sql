@@ -19,8 +19,8 @@
 -- Realtime + the PuzPuzPuz common shell.
 --
 -- This file is the squashed, build-from-scratch form of the
--- spellingbee schema: the full final state (schema, RLS, hidden-
--- wordlist pattern, RPCs) with coop + compete shipped as a
+-- spellingbee schema: the full final state (schema, RLS, the
+-- FE-shipped word lists, RPCs) with coop + compete shipped as a
 -- sibling-manifest pair (`spellingbee_coop` + `spellingbee_compete`
 -- gametypes, a denormalized `mode` column on spellingbee.games, and a
 -- `mode` arg on create_game). Same pattern psychicnum and connections
@@ -130,41 +130,19 @@ grant select on spellingbee.pangrams to authenticated;
 -- Same shape as psychicnum.games.mode and connections.games.mode.
 --
 -- ───────────────────────────────────────────────────────────
--- The "terminal-gated wordlists" pattern
+-- The word lists ship to the FE (not hidden)
 -- ───────────────────────────────────────────────────────────
--- `required_words` and `bonus_words` ARE the answer keys. The
--- normal play data path (the games_state view the FE reads)
--- returns `required_words` as NULL during play and the real list
--- post-terminal, so the end-of-game "here are the words you
--- missed" display works without the FE ever holding the answer
--- mid-game. (`bonus_words` is only read server-side, for
--- validation — see the games_state view below.)
---
--- This is NOT an anti-cheat boundary. A determined friend can
--- still recover the answer key — e.g. by calling the
--- candidate_words RPC from devtools with their own board's masks
--- (it's granted to `authenticated` so the edge-function board
--- builder can use it under the caller's JWT). Per
--- CLAUDE.md → Trust model, we don't try to stop that: the goal
--- is a clean single source of truth where the *default* data
--- path doesn't carry the secret, not a guarantee that the secret
--- is unreachable. Keeping it off the normal path is what makes
--- the post-terminal reveal a deliberate, auditable transition.
---
--- Two layers, same pattern as psychicnum.games.target:
---   (1) Column-level grant on this base table omits both columns
---       from the `authenticated` role's SELECT. A direct
---       `SELECT required_words FROM spellingbee.games` returns
---       42501 permission denied for column required_words.
---   (2) `spellingbee.games_state` view (below) calls SECURITY
---       DEFINER helpers that bypass the column grant and apply
---       a CASE on common.games.is_terminal. Pre-terminal:
---       returns NULL. Post-terminal: returns the actual list.
---
--- The FE only ever reads from games_state, never from games
--- directly. See docs/games/spellingbee.md → "The hidden-wordlist
--- pattern" + docs/code-conventions.md → "SECURITY DEFINER
--- helper + security_invoker view" for the wider context.
+-- `required_words` and `bonus_words` are the board's answer key,
+-- and they ship to the FE from game start. The FE validates +
+-- scores every guess against required ∪ bonus locally (via the
+-- shared `useWordSubmit` hook) and submits trusting-commit, the
+-- same model as boggle. The trust model doesn't withhold them
+-- (friends, not anti-cheat), so there's no column-grant gate and
+-- no terminal-reveal helper: the FE reads both lists straight off
+-- `games_state`, and the missed-words reveal is a client-side
+-- `required − found` computed at terminal (bonus words are never
+-- shown in the reveal, but that's a FE display choice, not a gate).
+-- See docs/games/spellingbee.md.
 
 create table spellingbee.games (
   id uuid primary key references common.games(id) on delete cascade,
@@ -183,15 +161,18 @@ create table spellingbee.games (
   -- every guess to recompute "the max."
   required_words_score int not null,
   required_words_count int not null,             -- count of required words
-  -- ─── Hidden columns (see "hidden wordlists" above) ───────
-  -- required_words shape: jsonb array of
-  --     { "word": text, "points": int, "is_pangram": bool }
-  -- bonus_words: text[] of the bonus set (legal − required) —
-  -- accepted and scored, but not part of the required goal.
-  -- Both built by the edge function (via candidate_words over
-  -- common.words) and handed to create_game.
+  -- ─── The two word lists shipped to the FE ────────────────
+  -- Both jsonb arrays of { "word": text, "points": int, "is_pangram": bool }.
+  -- The FE validates + scores a guess against required ∪ bonus locally (no server
+  -- round-trip), so both carry points + the pangram flag. Built by the edge
+  -- function (via candidate_words over common.words) and handed to create_game.
+  --   required_words: the displayed goal set (drives the rank ladder + the
+  --     missed-words reveal, which is required-only).
+  --   bonus_words: the legal − required set (accepted + scored, not the goal).
+  -- Neither is hidden — the trust model doesn't withhold them (friends, not
+  -- anti-cheat); see docs/games/spellingbee.md.
   required_words jsonb not null,
-  bonus_words text[] not null,
+  bonus_words jsonb not null,
   created_at timestamptz not null default now(),
   -- Sibling-manifest mode axis. CHECK constrains it to the two
   -- valid values; the gametype string ('spellingbee_coop' /
@@ -202,19 +183,15 @@ create table spellingbee.games (
 
 create index spellingbee_games_club_handle_idx on spellingbee.games (club_handle);
 
--- Column-level grant: every column EXCEPT the two hidden ones.
--- The presence of any column-level grant on a table changes
--- the access semantics from "all columns visible" to "only
--- granted columns visible," so we have to enumerate the safe
--- ones explicitly. `mode` is included so the security_invoker
--- games_state view's `g.mode` reference and the found_words_select
--- RLS policy's `fg.mode` subquery resolve for `authenticated`
--- (both evaluate in the caller's context). Per
--- docs/code-conventions.md → "Avoid SELECT *", explicit column
--- lists are the convention anyway.
+-- Column-level grant. The word lists are no longer hidden (the FE needs them to
+-- validate guesses locally), so all columns are readable — but we keep the
+-- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
+-- included so the games_state view's `g.mode` and the found_words_select RLS
+-- policy's `fg.mode` resolve for `authenticated` (both run in the caller's context).
 grant select
   (id, club_handle, mode, outer_letters, center_letter,
-   required_words_score, required_words_count, created_at)
+   required_words_score, required_words_count, created_at,
+   required_words, bonus_words)
   on spellingbee.games to authenticated;
 
 -- ============================================================
@@ -308,54 +285,14 @@ create policy found_words_select on spellingbee.found_words
 -- security-definer RPCs below.
 
 -- ============================================================
--- Hidden-wordlist helper + games_state view
+-- games_state view
 -- ============================================================
--- One SECURITY DEFINER helper for the hidden `required_words`
--- answer key. It reads the column directly (running as `postgres`
--- bypasses the column grant) and applies a CASE on
--- common.games.is_terminal: pre-terminal returns NULL; post-
--- terminal returns the actual list — the end-of-game reveal.
---
--- `bonus_words` is NOT revealed: unfound bonus words are never
--- shown to players, so the view doesn't expose it. The column
--- exists only for server-side validation in submit_word.
---
--- The helper is revoked from `public` and granted only to
--- `authenticated` so the games_state view (which runs with the
--- caller's identity under security_invoker=true) can call it.
--- See docs/code-conventions.md → "SECURITY DEFINER helper +
--- security_invoker view" for the recipe.
-
-create function spellingbee._required_words_for(g uuid)
-returns jsonb
-language sql
-security definer
-stable
-set search_path = spellingbee, common, public, extensions
-as $$
-  select case when c.is_terminal then p.required_words end
-    from spellingbee.games p
-    join common.games c on c.id = p.id
-   where p.id = g;
-$$;
-
-revoke execute on function spellingbee._required_words_for(uuid) from public;
--- Grant EXECUTE to authenticated so the games_state view (which
--- runs with the caller's identity under security_invoker=true)
--- can call into the helper. Its SECURITY DEFINER property switches
--- identity to postgres *inside* the call — that's the bit that
--- lets it read the column-grant-blocked `required_words` column.
-grant execute on function spellingbee._required_words_for(uuid) to authenticated;
-
--- The view. `security_invoker = true` means RLS on the base
--- table evaluates as the caller (so games_select still gates
--- row visibility). Column exposure is gated by the helper's
--- CASE. Net effect: a single FE query returns the game row
--- (including `mode` for the FE's coop/compete rendering) with
--- `required_words` populated post-terminal, NULL during play.
--- This view is the FE's only read path on spellingbee games — the
--- base table's column grant blocks the hidden answer key for
--- `authenticated`.
+-- The FE's read path for a spellingbee game header. `security_invoker = true` so
+-- RLS on the base table evaluates as the caller (games_select still gates row
+-- visibility). The word lists are no longer hidden — required_words + bonus_words
+-- ship to the FE from game start so it can validate + score guesses locally — so
+-- the view exposes both directly (no terminal-gated reveal helper anymore; the
+-- missed-words reveal is a client-side `required − found` computed at terminal).
 
 create view spellingbee.games_state with (security_invoker = true) as
 select
@@ -367,7 +304,8 @@ select
   g.required_words_score,
   g.required_words_count,
   g.created_at,
-  spellingbee._required_words_for(g.id) as required_words
+  g.required_words,
+  g.bonus_words
   from spellingbee.games g;
 
 grant select on spellingbee.games_state to authenticated;
@@ -375,19 +313,13 @@ grant select on spellingbee.games_state to authenticated;
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- found_words is the high-traffic table: every accepted
--- submission appends a row that every connected peer's
--- useGame hook refetches on. games is published because the
--- terminal flip — when required_words materializes through the
--- view — is something the FE wants to react to (refetch
--- games_state to pick up the reveal). The flip itself happens
--- on common.games (already published), but useGame
--- subscribes to spellingbee tables; the touch-update on
--- spellingbee.games inside the terminal RPCs (submit_word's coop
--- status update, submit_timeout / end_game's self-set) makes
--- the refetch fire.
+-- Only found_words is published: it's the sole thing that changes during play
+-- (every accepted submission appends a row that peers' useGame hooks refetch on).
+-- spellingbee.games is immutable for the life of the game — the header + word
+-- lists never change and the terminal flip lives on common.games (already
+-- published, and the FE's isTerminal flows from there) — so useGame loads it
+-- once and there's nothing to subscribe to.
 
-alter publication supabase_realtime add table spellingbee.games;
 alter publication supabase_realtime add table spellingbee.found_words;
 
 -- ============================================================
@@ -764,14 +696,9 @@ begin
     b_required_words_score,
     b_required_words_count,
     board->'required_words',
-    -- jsonb-array → text[] coercion: extract each element as
-    -- text, aggregate to array. NULL safety: empty arrays
-    -- still produce text[] of length 0 (not null), so the
-    -- column's NOT NULL constraint is satisfied.
-    coalesce(
-      array(select jsonb_array_elements_text(board->'bonus_words')),
-      array[]::text[]
-    )
+    -- bonus_words is a jsonb array of { word, points, is_pangram } now (same
+    -- shape as required_words) — stored directly so the FE can score bonus finds.
+    coalesce(board->'bonus_words', '[]'::jsonb)
   );
 
   -- ─── Seed common.games.status for the club-page label ────
@@ -862,9 +789,17 @@ grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jso
 -- submit of the same word is also caught at the constraint
 -- level if the lock somehow missed it.
 
+-- Trusting-commit: the FE validated the word against the board's shipped legal
+-- list (required ∪ bonus) and scored it, so this trusts word + points +
+-- is_pangram + is_bonus and only enforces the live-game check, dedups, records,
+-- and recomputes aggregates / the compete win. It does NOT re-validate letters /
+-- center / min length / dictionary membership. (See docs/games/spellingbee.md.)
 create function spellingbee.submit_word(
   target_game uuid,
-  word text
+  word text,
+  points int,
+  is_pangram boolean,
+  is_bonus boolean
 )
 returns jsonb
 language plpgsql
@@ -877,14 +812,6 @@ declare
   current_play_state text;
   current_target_rank int;
   w_lower text;
-  w_mask bigint;
-  puzzle_mask bigint;
-  center_bit bigint;
-  i int;
-  required_entry jsonb;
-  word_points int;
-  word_is_pangram boolean;
-  word_is_bonus boolean;
   duplicate_count int;
 
   team_score int;
@@ -916,100 +843,13 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
-  -- ─── Normalize + letter-mask the input word ──────────────
+  -- Normalize for storage + dedup (the FE already validated legality).
   w_lower := lower(coalesce(word, ''));
 
-  -- (1) tooShort
-  if length(w_lower) < 4 then
-    return jsonb_build_object('result', 'tooShort', 'points', 0);
-  end if;
-
-  -- Compute the word's letter_mask. Loop over each character;
-  -- bail out non-letters early (those automatically lead to
-  -- badLetters since the puzzle's mask is letters-only).
-  w_mask := 0;
-  for i in 1..length(w_lower) loop
-    declare
-      ch text := substr(w_lower, i, 1);
-      code int := ascii(ch);
-    begin
-      if code < 97 or code > 122 then
-        return jsonb_build_object('result', 'badLetters', 'points', 0);
-      end if;
-      w_mask := w_mask | (1::bigint << (code - 97));
-    end;
-  end loop;
-
-  -- Compute the puzzle mask (union of outer + center) and the
-  -- center bit. Cheap — 7 bit-ORs in PL/pgSQL.
-  puzzle_mask := 0;
-  for i in 1..length(g_row.outer_letters) loop
-    puzzle_mask := puzzle_mask
-                 | (1::bigint << (ascii(substr(g_row.outer_letters, i, 1)) - 97));
-  end loop;
-  center_bit := 1::bigint << (ascii(g_row.center_letter) - 97);
-  puzzle_mask := puzzle_mask | center_bit;
-
-  -- (2) badLetters
-  if (w_mask & ~puzzle_mask) <> 0 then
-    return jsonb_build_object('result', 'badLetters', 'points', 0);
-  end if;
-
-  -- (3) missingCenter
-  if (w_mask & center_bit) = 0 then
-    return jsonb_build_object('result', 'missingCenter', 'points', 0);
-  end if;
-
-  -- (4) notAWord — look up in cached lists. The required-words
-  -- lookup gives us back points + is_pangram for the insert.
-  word_is_bonus := false;
-  word_points := 0;
-  word_is_pangram := false;
-
-  select rw into required_entry
-    from jsonb_array_elements(g_row.required_words) rw
-   where rw->>'word' = w_lower
-   limit 1;
-
-  if found then
-    word_points := (required_entry->>'points')::int;
-    word_is_pangram := (required_entry->>'is_pangram')::boolean;
-  elsif w_lower = any(g_row.bonus_words) then
-    -- Bonus words score the SAME as required words: length-based
-    -- (1 pt for 4-letter, length pts for ≥5), plus the +10 pangram
-    -- bonus when distinct(letters) = 7. This matches spellingbee-ws's
-    -- `scoreWord(w)` semantics (server/game.js:4-8). A bonus word
-    -- is legal but not in the required set; it still counts toward
-    -- found_words_count and found_words_score (so the "X / Y words"
-    -- numerator can overshoot Y), it just doesn't move the required
-    -- goal (required_words_count / required_words_score).
-    --
-    -- Pangram detection by the word's OWN mask popcount, not a
-    -- precomputed flag — bonus words have no required-words entry to
-    -- read it from, and spellingbee-ws likewise reads it from the word
-    -- at submit time (sessions.js:989: `new Set(w).size===7`).
-    word_is_bonus := true;
-    word_is_pangram := (
-      select count(distinct c) = 7
-        from regexp_split_to_table(w_lower, '') c
-    );
-    if length(w_lower) = 4 then
-      word_points := 1;
-    else
-      word_points := length(w_lower);
-    end if;
-    if word_is_pangram then
-      word_points := word_points + 10;
-    end if;
-  else
-    return jsonb_build_object('result', 'notAWord', 'points', 0);
-  end if;
-
-  -- (5) alreadyFound (per mode rule, reading off g_row.mode)
-  -- Table alias `fw` is mandatory: the function parameter is
-  -- also named `word`, and PL/pgSQL's column-resolution rule
-  -- raises "column reference word is ambiguous" without the
-  -- alias even though we mean `w_lower` below.
+  -- alreadyFound (per mode rule, reading off g_row.mode). Table alias `fw` is
+  -- mandatory: the function parameter is also named `word`, and PL/pgSQL's
+  -- column-resolution rule raises "column reference word is ambiguous" without
+  -- the alias even though we mean `w_lower` below.
   if g_row.mode = 'coop' then
     select count(*) into duplicate_count
       from spellingbee.found_words fw
@@ -1025,11 +865,12 @@ begin
     return jsonb_build_object('result', 'alreadyFound', 'points', 0);
   end if;
 
-  -- ─── Insert the row ──────────────────────────────────────
+  -- ─── Insert the row (trusted word + points + flags) ──────
   insert into spellingbee.found_words
     (game_id, user_id, word, points, is_pangram, is_bonus)
   values
-    (target_game, caller_id, w_lower, word_points, word_is_pangram, word_is_bonus);
+    (target_game, caller_id, w_lower,
+     coalesce(points, 0), coalesce(is_pangram, false), coalesce(is_bonus, false));
 
   -- ─── Recompute aggregates + status (no terminal in coop) ─
   -- Coop submissions never end the game — coop only ends via
@@ -1038,11 +879,13 @@ begin
   -- denominator and the score can overshoot `required_words_score` (the
   -- spellingbee-ws design — see the bonus-scoring write-up above).
   if g_row.mode = 'coop' then
-    select coalesce(sum(points), 0),
+    -- Alias `fw` so `points` resolves to the column, not the same-named function
+    -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
+    select coalesce(sum(fw.points), 0),
            count(*)
       into team_score, team_found_words_count
-      from spellingbee.found_words
-     where game_id = target_game;
+      from spellingbee.found_words fw
+     where fw.game_id = target_game;
     team_rank_idx := spellingbee._rank_idx(team_score, g_row.required_words_score);
 
     perform common.update_state(
@@ -1066,11 +909,11 @@ begin
     -- block above), so a player who finds bonus pangrams can
     -- legitimately rocket past target faster than the displayed
     -- max score would suggest.
-    select coalesce(sum(points), 0),
+    select coalesce(sum(fw.points), 0),
            count(*)
       into caller_score, caller_found_words_count
-      from spellingbee.found_words
-     where game_id = target_game and user_id = caller_id;
+      from spellingbee.found_words fw
+     where fw.game_id = target_game and fw.user_id = caller_id;
     caller_rank_idx := spellingbee._rank_idx(caller_score, g_row.required_words_score);
 
     if caller_rank_idx >= current_target_rank then
@@ -1160,23 +1003,22 @@ begin
     end if;
   end if;
 
-  -- A pangram (required OR bonus) reports as 'pangram' so the FE can call it
-  -- out; otherwise the accepted/bonus split (which the FE renders identically).
-  -- `points` is the authoritative value already stored on the row.
+  -- Echo back a classification (the FE drives its own optimistic feedback, so this
+  -- is mostly for tests / debugging). `points` is the trusted value on the row.
   return jsonb_build_object(
     'result',
     case
-      when word_is_pangram then 'pangram'
-      when word_is_bonus then 'bonus'
+      when coalesce(is_pangram, false) then 'pangram'
+      when coalesce(is_bonus, false) then 'bonus'
       else 'accepted'
     end,
-    'points', word_points
+    'points', coalesce(points, 0)
   );
 end;
 $$;
 
-revoke execute on function spellingbee.submit_word(uuid, text) from public;
-grant execute on function spellingbee.submit_word(uuid, text) to authenticated;
+revoke execute on function spellingbee.submit_word(uuid, text, int, boolean, boolean) from public;
+grant execute on function spellingbee.submit_word(uuid, text, int, boolean, boolean) to authenticated;
 
 -- ============================================================
 -- spellingbee.submit_timeout
@@ -1190,27 +1032,11 @@ grant execute on function spellingbee.submit_word(uuid, text) to authenticated;
 -- Mode comes off spellingbee.games.mode. This is identical in shape
 -- to connections / psychicnum's submit_timeout, just with spellingbee's
 -- status payload.
---
--- ───────────────────────────────────────────────────────────
--- The Realtime touch at the bottom
--- ───────────────────────────────────────────────────────────
--- common.end_game flips common.games.play_state='ended' and
--- is_terminal=true. The FE's useCommonGame hook (subscribed to
--- common.games) sees that and enters review mode. BUT the FE's
--- per-gametype useGame hook subscribes to spellingbee.{games,
--- found_words} and reads from games_state for the required_words
--- reveal. submit_timeout writes no found_words row
--- (no submission happened), so without a write to a spellingbee table
--- no Realtime event fires on the spellingbee channel, useGame never
--- refetches, and game.requiredWords stays at its pre-terminal null.
---
--- Fix: a no-op UPDATE on spellingbee.games after the terminal flip.
--- `set club_handle = club_handle` changes no column, but Postgres
--- MVCC still writes a new row version (Realtime watches WAL, not
--- changed-column diffs), so the subscriber wakes up and refetches
--- games_state — which now sees is_terminal=true and returns the
--- populated wordlists. (submit_word's 100%-found path doesn't need
--- this because its found_words INSERT already fires the event.)
+-- common.end_game flips common.games to ended/terminal; the FE's useCommonGame
+-- hook (subscribed to common.games) sees that and enters review mode. No
+-- spellingbee-table "realtime touch" is needed anymore: the word lists ship from
+-- game start (nothing to reveal at terminal), and the FE's per-game useGame loads
+-- the immutable header once + reacts to terminal via common.games.
 
 create function spellingbee.submit_timeout(target_game uuid)
 returns void
@@ -1307,15 +1133,6 @@ begin
       player_results
     );
   end if;
-
-  -- Realtime touch — see the file header for the full
-  -- explanation. The self-set is a no-op semantically but
-  -- produces a WAL entry Realtime picks up, waking the FE's
-  -- useGame subscription so it refetches games_state and sees
-  -- the now-revealed required_words.
-  update spellingbee.games
-     set club_handle = club_handle
-   where id = target_game;
 end;
 $$;
 
@@ -1348,10 +1165,9 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 --   - status.outcome='manual' (vs 'timeout')
 --   - any game player can fire it (vs the FE's timer-driven
 --     dispatch)
--- The Realtime touch on spellingbee.games is the same trick
--- documented in submit_timeout — needed because common.end_game
--- writes to common.games but the FE's useGame subscribes to
--- spellingbee.games + spellingbee.found_words.
+-- No spellingbee-table "realtime touch" needed: the FE's isTerminal (from
+-- common.games, already published) drives the terminal transition, and useGame
+-- only subscribes to found_words now (the header is immutable, loaded once).
 
 create function spellingbee.end_game(target_game uuid)
 returns void
@@ -1451,15 +1267,6 @@ begin
       player_results
     );
   end if;
-
-  -- Realtime touch — same trick as submit_timeout. common.end_game
-  -- writes to common.games; we need a write on spellingbee.games so
-  -- the FE's spellingbee-channel useGame subscription wakes up and
-  -- refetches games_state. The self-set is a no-op semantically
-  -- but produces a WAL entry Realtime picks up.
-  update spellingbee.games
-     set club_handle = club_handle
-   where id = target_game;
 end;
 $$;
 

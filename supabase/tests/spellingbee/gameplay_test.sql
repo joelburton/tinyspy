@@ -1,38 +1,25 @@
 -- ============================================================
--- Test: spellingbee.submit_word + spellingbee.submit_timeout
+-- Test: spellingbee.submit_word + spellingbee.submit_timeout + end_game
 -- ============================================================
 --
--- submit_word returns jsonb `{ result, points }` (so the FE can show points
--- without re-deriving the point rules). Assertions read `->>'result'`; one capture
--- checks `points` too. A pangram (required OR bonus) reports result 'pangram'.
+-- submit_word is trusting-commit: the FE validated the word against the board's
+-- shipped legal list and scored it, so the RPC takes (word, points, is_pangram,
+-- is_bonus), trusts them, and only enforces the live-game check, dedups, records,
+-- and recomputes aggregates / the compete win. It does NOT validate word content
+-- (no tooShort/badLetters/missingCenter/notAWord). It returns { result, points }
+-- (result = pangram / bonus / accepted / alreadyFound) mostly for tests.
 --
 -- Coverage:
---   1. submit_word coop happy: required word → result 'accepted',
---      row inserted, status updated, return carries points.
---   2. submit_word coop pangram: pangram word → result 'pangram'
---      with the +10 bonus reflected in points and is_pangram=true.
---   3. submit_word coop bonus: legal-only word → result 'bonus',
---      is_bonus=true, and scored length-based the SAME as a required
---      word (the bonus-scoring fix — assertion below expects 6 pts,
---      not 0). A legal-only word with 7 distinct letters → 'pangram'.
---   4. submit_word soft rejections (each returns { result, points: 0 } —
---      no row inserted, no exception): tooShort, badLetters,
---      missingCenter, notAWord.
---   5. submit_word coop duplicate: once found by anyone,
---      'alreadyFound' for everyone.
---   6. submit_word compete duplicate: per-player; same word
---      by another player is OK, same word by same player is
---      'alreadyFound'.
---   7. submit_word coop has NO auto-terminal — players can
---      continue past required_words_count (bonus words push score over
---      required_words_score, rank clamps to Genius).
---   8. submit_word compete target-rank-hit → terminal
---      'won_compete'; status.leaderboard populated.
---   9. submit_word hard rejections: post-terminal P0001;
---      non-player 42501.
---  10. submit_timeout: terminal 'ended' outcome='timeout';
---      idempotent on second call (raises 'game is not in
---      progress' P0001).
+--   1. coop happy: required word → 'accepted', row inserted, status updated.
+--   2. coop pangram: trusted is_pangram → 'pangram', points as given, is_pangram=true.
+--   3. coop bonus: trusted is_bonus → 'bonus', is_bonus=true, scored as given;
+--      3b a bonus word with is_pangram=true → 'pangram'.
+--   4. coop duplicate → 'alreadyFound'; compete duplicate is per-player.
+--   5. compete target-rank-hit → terminal 'won_compete'; leaderboard populated.
+--   6. hard rejections: post-terminal P0001; non-player 42501.
+--   7. coop has NO auto-terminal past required_words_count.
+--   8. submit_timeout / end_game terminal transitions + idempotency + auth.
+--   9. games_state exposes required_words during play + at terminal (un-gated).
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
@@ -40,7 +27,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(52);
+select plan(45);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -68,19 +55,18 @@ select * from spellingbee.create_game(
 -- (1) Coop happy path: ada submits 'bead' → accepted, 1pt
 -- ============================================================
 
--- Capture the return so we assert both halves of the new { result, points }
--- shape (the rest of the suite just reads ->>'result').
+-- Capture the return so we assert both halves of the { result, points } shape.
 create temp table bead_ret on commit drop as
-select spellingbee.submit_word((select id from g), 'bead') as ret;
+select spellingbee.submit_word((select id from g), 'bead', 1, false, false) as ret;
 select is(
   (select ret->>'result' from bead_ret),
   'accepted',
-  'submit_word: required 4-letter word returns result "accepted"'
+  'submit_word: required word (is_bonus/is_pangram false) → "accepted"'
 );
 select is(
   (select (ret->>'points')::int from bead_ret),
   1,
-  'submit_word: return carries points (bead = 1)'
+  'submit_word: return echoes the trusted points (bead = 1)'
 );
 
 select is(
@@ -94,7 +80,7 @@ select is(
   (select points from spellingbee.found_words
     where game_id = (select id from g) and word = 'bead'),
   1,
-  'submit_word: 4-letter word scores 1 point'
+  'submit_word: row stores the trusted points'
 );
 
 -- Status reflects the accepted word.
@@ -110,20 +96,20 @@ select is(
 );
 
 -- ============================================================
--- (2) Coop pangram: ada submits the synthetic pangram → +10
+-- (2) Coop pangram: ada submits the pangram (trusted +10)
 -- ============================================================
 
 select is(
-  spellingbee.submit_word((select id from g), 'abcdefg')->>'result',
+  spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false)->>'result',
   'pangram',
-  'submit_word: 7-letter pangram returns result "pangram"'
+  'submit_word: is_pangram=true → result "pangram"'
 );
 
 select is(
   (select points from spellingbee.found_words
     where game_id = (select id from g) and word = 'abcdefg'),
   17,
-  'submit_word: pangram scores length(7) + bonus(10) = 17'
+  'submit_word: pangram row stores the trusted 17 points'
 );
 
 select is(
@@ -134,35 +120,23 @@ select is(
 );
 
 -- ============================================================
--- (3) Coop bonus: ada submits a legal-only word
+-- (3) Coop bonus: ada submits a legal-only word (is_bonus true)
 -- ============================================================
--- The board's bonus_words is ['bcdfge', 'abcdef', 'gfedcba'].
--- We pick 'bcdfge' here — uses only puzzle letters, includes 'e',
--- non-pangram (6 distinct letters). 'gfedcba' is exercised
--- separately (3b) as the bonus-pangram path; 'abcdef' is used
--- past-100% in the no-auto-terminal test (10).
 
 select is(
-  spellingbee.submit_word((select id from g), 'bcdfge')->>'result',
+  spellingbee.submit_word((select id from g), 'bcdfge', 6, false, true)->>'result',
   'bonus',
-  'submit_word: legal-but-not-required word returns "bonus"'
+  'submit_word: is_bonus=true → result "bonus"'
 );
 
--- Bonus words score the same as required words per spellingbee-ws:
--- length-based (1 pt for 4-letter, length pts for ≥5) + pangram
--- bonus when 7 distinct letters. 'bcdfge' is 6 distinct letters,
--- length 6 → 6 pts, not a pangram.
 select is(
   (select (points, is_bonus, is_pangram) from spellingbee.found_words
     where game_id = (select id from g) and word = 'bcdfge'),
   (6, true, false),
-  'submit_word: bonus row scores length-based (6 pts), is_bonus=true, not a pangram'
+  'submit_word: bonus row stores trusted points (6), is_bonus=true, not a pangram'
 );
 
--- Score advances WITH the bonus points. found_words_count counts ALL
--- accepted submissions (required + bonus), matching spellingbee-ws's
--- "found.length" stat — the display can overshoot required_words_count
--- when the team finds bonus extras.
+-- Score advances WITH the bonus points; count includes all rows.
 select is(
   (select (status->>'found_words_score')::int from common.games where id = (select id from g)),
   24,                                       -- 1 (bead) + 17 (pangram) + 6 (bonus)
@@ -174,102 +148,48 @@ select is(
   'status.found_words_count counts ALL submissions incl. bonus (overshoot OK)'
 );
 
--- ============================================================
--- (3b) Bonus pangram: legal-only word with 7 distinct letters
--- ============================================================
--- 'gfedcba' (synthetic, in bonus_words via the fixture) uses
--- all 7 puzzle letters. Per spellingbee-ws's point rules, the +10 pangram
--- bonus applies regardless of whether the word is in the required
--- or bonus set — pangram-ness comes from the WORD's distinct
--- letter count, not from the precomputed required-entry flag.
-
+-- ── (3b) Bonus pangram: is_bonus AND is_pangram both true ──
 select is(
-  spellingbee.submit_word((select id from g), 'gfedcba')->>'result',
+  spellingbee.submit_word((select id from g), 'gfedcba', 17, true, true)->>'result',
   'pangram',
-  'submit_word: legal-only 7-distinct-letter word returns "pangram" (bonus pangram)'
+  'submit_word: is_pangram wins over is_bonus in the result label ("pangram")'
 );
 
 select is(
   (select (points, is_bonus, is_pangram) from spellingbee.found_words
     where game_id = (select id from g) and word = 'gfedcba'),
   (17, true, true),
-  'submit_word: bonus pangram scores length(7)+pangram(10) = 17, is_pangram=true'
+  'submit_word: bonus pangram stores (17, is_bonus=true, is_pangram=true)'
 );
 
 -- ============================================================
--- (4) Soft rejections: each returns a string, no row inserted
--- ============================================================
-
-select is(
-  spellingbee.submit_word((select id from g), 'be')->>'result',
-  'tooShort',
-  'submit_word: <4-letter word returns "tooShort"'
-);
-
-select is(
-  spellingbee.submit_word((select id from g), 'help')->>'result',
-  'badLetters',
-  'submit_word: word using non-puzzle letters returns "badLetters"'
-);
-
-select is(
-  spellingbee.submit_word((select id from g), 'badg')->>'result',
-  'missingCenter',
-  'submit_word: word without center letter returns "missingCenter"'
-);
-
-select is(
-  spellingbee.submit_word((select id from g), 'bcde')->>'result',
-  'notAWord',
-  'submit_word: valid-letter word not in required/legal returns "notAWord"'
-);
-
--- None of those soft-rejected attempts inserted a row.
-select is(
-  (select count(*) from spellingbee.found_words
-    where game_id = (select id from g)
-      and word in ('be', 'help', 'badg', 'bcde')),
-  0::bigint,
-  'soft rejections do not insert found_words rows'
-);
-
--- ============================================================
--- (5) Coop duplicate: once anyone finds 'bead', everyone
--- attempting it gets 'alreadyFound'
+-- (4) Coop duplicate: once anyone finds 'bead', everyone gets 'alreadyFound'
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  spellingbee.submit_word((select id from g), 'bead')->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
   'alreadyFound',
   'coop duplicate: bea cannot re-submit a word ada already found'
 );
 
 -- ============================================================
--- (6) Hard rejection: cade isn't in this game's player list
+-- (5) Hard rejection: dee (outsider) is not a player
 -- ============================================================
--- Wait — cade IS in player_user_ids from setup. Let's use dee
--- (the outsider) for this assertion.
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format($$ select spellingbee.submit_word(%L::uuid, 'feed') $$, (select id from g)),
+  format($$ select spellingbee.submit_word(%L::uuid, 'feed', 1, false, false) $$, (select id from g)),
   '42501',
   null,
   'submit_word: non-player (dee, outsider) is rejected with 42501'
 );
 
 -- ============================================================
--- (7) Compete duplicate semantics: per-player ownership
+-- (6) Compete duplicate semantics: per-player ownership
 -- ============================================================
--- Separate compete game in the same club. ada finds 'bead';
--- bea ALSO finds 'bead' (allowed); ada tries 'bead' again
--- (rejected).
---
--- target_rank=2 (Solid; needs ≥12 / 50 = 24%) is chosen so the
--- single pangram submission below (17 points) trips the
--- target-rank-hit terminal in one move — no bulk inserts
--- needed.
+-- target_rank=2 (Solid; ≥12/50=24%) so the pangram below (→18 pts, rank 3) trips
+-- the target-rank terminal in one move.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table compete_g on commit drop as
@@ -284,34 +204,32 @@ select * from spellingbee.create_game(
 );
 
 select is(
-  spellingbee.submit_word((select id from compete_g), 'bead')->>'result',
+  spellingbee.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
   'accepted',
   'compete: ada''s first submission of "bead" is accepted'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  spellingbee.submit_word((select id from compete_g), 'bead')->>'result',
+  spellingbee.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
   'accepted',
-  'compete: bea ALSO finds "bead" (per-player ownership; not blocked by ada''s find)'
+  'compete: bea ALSO finds "bead" (per-player ownership)'
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from compete_g), 'bead')->>'result',
+  spellingbee.submit_word((select id from compete_g), 'bead', 1, false, false)->>'result',
   'alreadyFound',
-  'compete: ada''s SECOND submission of "bead" is "alreadyFound" (same-player rule)'
+  'compete: ada''s SECOND "bead" is "alreadyFound" (same-player rule)'
 );
 
 -- ============================================================
--- (8) Compete win: ada submits the pangram → 'won_compete'
+-- (7) Compete win: ada submits the pangram → 'won_compete'
 -- ============================================================
--- target_rank=2 (Solid) needs ≥12 / 50 = 24%. After bead (1pt)
--- + pangram (17pt) = 18pt → rank_idx=3 (Nice), which is ≥
--- target_rank=2, triggering the terminal flip.
+-- bead (1) + pangram (17) = 18 → rank_idx 3 (Nice) ≥ target_rank 2 → terminal.
 
 select is(
-  spellingbee.submit_word((select id from compete_g), 'abcdefg')->>'result',
+  spellingbee.submit_word((select id from compete_g), 'abcdefg', 17, true, false)->>'result',
   'pangram',
   'compete: pangram submission that crosses target_rank returns "pangram"'
 );
@@ -335,29 +253,21 @@ select is(
 );
 
 -- ============================================================
--- (9) Post-terminal submission is rejected with P0001
+-- (8) Post-terminal submission is rejected with P0001
 -- ============================================================
 
 select throws_ok(
-  format($$ select spellingbee.submit_word(%L::uuid, 'face') $$, (select id from compete_g)),
+  format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from compete_g)),
   'P0001',
   'game is not in progress',
   'post-terminal submit_word raises P0001'
 );
 
 -- ============================================================
--- (10) Coop has NO auto-terminal — players keep going past
---      required_words_count; only timer / manual end terminate
+-- (9) Coop has NO auto-terminal — players keep going past required_words_count
 -- ============================================================
--- spellingbee-ws's coop loop never auto-ends on "all required words
--- found" (sessions.js submitWord has no such check). This port
--- matches: players who exhaust the required set keep finding
--- bonus words; the rank stays at Genius; the Words counter
--- overshoots Y. Terminal comes from timer or the End-game menu
--- item only.
---
--- Sanity: bulk-insert the rest of the required set and verify
--- play_state stays 'playing' — no auto-flip.
+-- Bulk-insert the rest of the required set directly, drop one, and re-submit it
+-- via the RPC to exercise the aggregate recount at the count-complete boundary.
 
 reset role;
 insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram, is_bonus)
@@ -376,14 +286,12 @@ insert into spellingbee.found_words (game_id, user_id, word, points, is_pangram,
         and fw.word = sw->>'word'
     );
 
--- Drop one and re-submit via RPC to exercise the aggregate
--- recount + status-write path with the count at required_words_count.
 delete from spellingbee.found_words
  where game_id = (select id from g) and word = 'bfeg';
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'bfeg')->>'result',
+  spellingbee.submit_word((select id from g), 'bfeg', 1, false, false)->>'result',
   'accepted',
   'coop: 30th required word returns "accepted"'
 );
@@ -401,13 +309,9 @@ select is(
   'coop: is_terminal stays false past 100%-found'
 );
 
--- A bonus word ALSO submits successfully past 100% — the
--- score climbs above required_words_score, and the rank clamps to
--- Genius (max=6). 'abcdef' is in bonus_words (per setup.psql)
--- and hasn't been submitted yet in this test file.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'abcdef')->>'result',
+  spellingbee.submit_word((select id from g), 'abcdef', 6, false, true)->>'result',
   'bonus',
   'coop: bonus word accepted after the required set is exhausted'
 );
@@ -427,10 +331,8 @@ select is(
 );
 
 -- ============================================================
--- (10b) submit_timeout: terminal 'ended' outcome='timeout'
+-- (10) submit_timeout: terminal 'ended' outcome='timeout'
 -- ============================================================
--- Fresh coop game to exercise the timeout path. (The other
--- two are already terminal.)
 
 reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -445,43 +347,14 @@ select * from spellingbee.create_game(
   pg_temp.spellingbee_board()
 );
 
--- One submission so the score isn't zero (proves the timeout
--- captures the current state).
+-- One submission so the score isn't zero (proves the timeout captures state).
 select is(
-  spellingbee.submit_word((select id from timeout_g), 'face')->>'result',
+  spellingbee.submit_word((select id from timeout_g), 'face', 1, false, false)->>'result',
   'accepted',
   'submit_word: face accepted in timeout-game setup'
 );
 
--- Snapshot the spellingbee.games row's system xmin (the transaction
--- id of the row's current version) before submit_timeout. The
--- post-timeout assertion below checks it changed — proving the
--- RPC touched the row, which is what fires the Realtime event
--- the FE's useGame depends on for the post-terminal wordlist
--- reveal. See the "realtime touch" notes in migration
--- 20260617000000_spellingbee.sql for the longer story.
-reset role;
--- ctid is the row's physical tuple location; an UPDATE writes a
--- new tuple at a new ctid, even within the same transaction
--- (which is what xmin would NOT show — xmin reflects the
--- creating transaction id and stays constant for same-xact
--- updates). pgTAP wraps every test file in BEGIN/ROLLBACK, so
--- ctid is the right signal here.
-create temp table ctid_before (prev_ctid tid) on commit drop;
-insert into ctid_before (prev_ctid)
-  select ctid from spellingbee.games where id = (select id from timeout_g);
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select spellingbee.submit_timeout((select id from timeout_g));
-
-reset role;
-select isnt(
-  (select ctid from spellingbee.games where id = (select id from timeout_g)),
-  (select prev_ctid from ctid_before),
-  'submit_timeout: touches spellingbee.games (ctid changes) so the FE Realtime sub wakes up — required for post-terminal required_words reveal'
-);
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
   (select play_state from common.games where id = (select id from timeout_g)),
@@ -501,8 +374,7 @@ select is(
   'submit_timeout: status.outcome=timeout'
 );
 
--- Idempotency: a second call raises P0001. The FE swallows
--- this when peers race the countdown expiry.
+-- Idempotency: a second call raises P0001 (peers racing the countdown).
 select throws_ok(
   format($$ select spellingbee.submit_timeout(%L::uuid) $$, (select id from timeout_g)),
   'P0001',
@@ -510,28 +382,18 @@ select throws_ok(
   'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)'
 );
 
--- Post-terminal: games_state surfaces the hidden required_words
--- answer key via the _required_words_for helper's CASE-on-
--- is_terminal gate. Previously asserted in the now-removed
--- 100%-found block; the conditional-reveal is mode-agnostic
--- (any terminal opens it), so the timeout-terminated game
--- exercises it the same way. (bonus_words is never revealed.)
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- games_state exposes the full required-words list (un-gated: available during
+-- play AND at terminal now — the FE ships it from game start).
 select is(
   (select jsonb_array_length(required_words) from spellingbee.games_state
     where id = (select id from timeout_g)),
   30,
-  'post-terminal: games_state.required_words materializes (30 required entries)'
+  'games_state.required_words is exposed (30 required entries)'
 );
 
 -- ============================================================
--- (12) spellingbee.end_game: manual terminal
+-- (11) spellingbee.end_game: manual terminal
 -- ============================================================
--- The "End game" menu item fires this. Flips play_state='ended'
--- with status.outcome='manual', distinct from timeout/completed
--- so a future status-aware label can frame the modal copy
--- specifically. Same Realtime-touch trick as submit_timeout
--- (no per-gametype write would otherwise wake useGame).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table end_g on commit drop as
@@ -545,22 +407,13 @@ select * from spellingbee.create_game(
   pg_temp.spellingbee_board()
 );
 
--- One required submission so the end-game status carries a real
--- score (proves end_game captures the live aggregate, not the
--- create-time zero).
+-- One required submission so end_game captures a real live aggregate.
 select is(
-  spellingbee.submit_word((select id from end_g), 'bead')->>'result',
+  spellingbee.submit_word((select id from end_g), 'bead', 1, false, false)->>'result',
   'accepted',
   'submit_word: bead accepted in end_game setup'
 );
 
--- Snapshot ctid for the Realtime-touch assertion below.
-reset role;
-create temp table end_ctid_before (prev_ctid tid) on commit drop;
-insert into end_ctid_before (prev_ctid)
-  select ctid from spellingbee.games where id = (select id from end_g);
-
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select spellingbee.end_game((select id from end_g));
 
 select is(
@@ -593,17 +446,7 @@ select is(
   'end_game: status.found_words_count reflects the live count'
 );
 
-reset role;
-select isnt(
-  (select ctid from spellingbee.games where id = (select id from end_g)),
-  (select prev_ctid from end_ctid_before),
-  'end_game: touches spellingbee.games (ctid changes) so the FE Realtime sub wakes up — same trick as submit_timeout'
-);
-
--- Idempotency: a second call raises P0001. Matches the
--- timeout-race UX — clicking End game twice in quick succession
--- is harmless.
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- Idempotency: a second call raises P0001.
 select throws_ok(
   format($$ select spellingbee.end_game(%L::uuid) $$, (select id from end_g)),
   'P0001',
@@ -611,14 +454,8 @@ select throws_ok(
   'end_game: second call raises P0001 (idempotent at the FE-swallow layer)'
 );
 
--- Auth: dee (outsider) cannot call end_game even though it's a
--- "just stop the game" action. The require_game_player gate
--- treats it the same as submit_word — a club outsider can't
--- end a game they're not in.
-select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
-
--- Fresh game for the auth assertion (the previous one is
--- terminal and would short-circuit on play_state).
+-- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
+-- one is terminal and would short-circuit on play_state).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table auth_g on commit drop as
 select * from spellingbee.create_game(

@@ -90,8 +90,9 @@ type Board = {
   required_words_count: number
   /** The required set: words in the smaller list (the displayed goal). */
   required_words: Array<{ word: string; points: number; is_pangram: boolean }>
-  /** The bonus set (legal − required): accepted + scored, not the goal. */
-  bonus_words: string[]
+  /** The bonus set (legal − required): accepted + scored, not the goal. Same
+   *  { word, points, is_pangram } shape as required so the FE scores it locally. */
+  bonus_words: Array<{ word: string; points: number; is_pangram: boolean }>
 }
 
 type PangramRow = {
@@ -280,21 +281,22 @@ function buildBoard(
 ): Board {
   const puzzleMask = letterMask(outerLetters + centerLetter)
   const required: Board['required_words'] = []
-  const bonus: string[] = []
+  const bonus: Board['bonus_words'] = []
   let requiredWordsScore = 0
   let requiredWordsCount = 0
 
   for (const row of candidateWords) {
     const wMask = BigInt(row.letter_mask)
+    // Same length + pangram scoring for both sets; the FE reads points off the
+    // shipped entry, so bonus words must carry them too.
+    const isPangram = wMask === puzzleMask
+    const points = lengthScore(row.word) + (isPangram ? 10 : 0)
     if (row.is_required) {
-      const isPangram = wMask === puzzleMask
-      const points = lengthScore(row.word) + (isPangram ? 10 : 0)
       required.push({ word: row.word, points, is_pangram: isPangram })
       requiredWordsScore += points
       requiredWordsCount++
     } else {
-      // legal but not required → bonus
-      bonus.push(row.word)
+      bonus.push({ word: row.word, points, is_pangram: isPangram })
     }
   }
 

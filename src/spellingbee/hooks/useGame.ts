@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
@@ -12,32 +12,26 @@ import type { Member } from '../../common/lib/games'
  * Per the cross-game vocabulary convention (see naming.md →
  * player), every game's hook file exposes a Player type so a
  * reader scanning per-game folders finds the same parallel
- * everywhere. Future per-player state (e.g. a leaderboard
- * entry for compete mode) has a named home to land in.
+ * everywhere.
  */
 export type Player = Member
 
+/** One entry of a shipped word list — required or bonus. Both carry points + the
+ *  pangram flag so the FE validates + scores a guess locally. */
+export type SpellingbeeWord = { word: string; points: number; is_pangram: boolean }
+
 /**
- * Shape exposed to the FE — projected from `spellingbee.games_state`.
- *
- * Most fields come straight off the view's columns; `requiredWords`
- * materializes **only on game-terminal**: null while the game is in
- * progress, then the full required-words list once `is_terminal`
- * flips (the end-of-game reveal). The bonus set is never exposed —
- * unfound bonus words aren't shown — so there's no `bonusWords`
- * field here.
- *
- * The view's `_required_words_for` helper enforces that gate
- * server-side; the FE just reads the column and treats null as
- * "still hidden". See the migration's "hidden wordlists" section
- * for the wider rationale.
+ * Shape exposed to the FE — projected from `spellingbee.games_state`. The header
+ * is immutable for the life of the game (play state lives on common.games), so it
+ * loads once. Both word lists ship from game start (no longer hidden) — the FE
+ * validates + scores guesses against required ∪ bonus locally; the missed-words
+ * reveal is a client-side `required − found` at terminal.
  */
 export type SpellingbeeGame = {
   id: string
   club_handle: string
   /** Denormalized from `spellingbee.games.mode`. Drives FE branching
-   *  for the OpponentStrip + win-vs-loss verdict copy in the
-   *  PlayArea. Set at create_game time, immutable afterward. */
+   *  for the OpponentStrip + win-vs-loss verdict copy in the PlayArea. */
   mode: 'coop' | 'compete'
   outer_letters: string
   center_letter: string
@@ -46,11 +40,10 @@ export type SpellingbeeGame = {
   /** Count of required words — the "X / Y words" goal (Y). */
   required_words_count: number
   created_at: string
-  /** The required-words answer key. Null during play, materialized
-   *  on terminal (the reveal). */
-  requiredWords:
-    | Array<{ word: string; points: number; is_pangram: boolean }>
-    | null
+  /** The required-words answer key (the displayed goal + the terminal reveal). */
+  requiredWords: SpellingbeeWord[]
+  /** The bonus set (legal − required): accepted + scored, never revealed. */
+  bonusWords: SpellingbeeWord[]
 }
 
 export type FoundWordRow = {
@@ -64,25 +57,17 @@ export type FoundWordRow = {
 }
 
 /**
- * spellingbee's per-gametype data hook.
+ * spellingbee's per-gametype data hook. Two data lifecycles (like boggle):
+ *   - **The header loads ONCE.** `spellingbee.games` is immutable during play —
+ *     the letters + both word lists never change, and terminal lives on
+ *     common.games — so a one-shot fetch, NOT a per-event refetch (the word lists
+ *     would otherwise be re-downloaded on every teammate submission).
+ *   - **found_words refetches on realtime events** (Pattern A): every submission
+ *     flows through `spellingbee.submit_word`, which appends a `found_words` row
+ *     that propagates to peers via postgres-changes.
  *
- * Follows the **refetch-only** realtime pattern (Pattern A, see
- * `docs/code-conventions.md` → "Realtime data hooks"). No
- * broadcast traffic — every submission flows through
- * `spellingbee.submit_word`, which writes a `found_words` row that
- * propagates to every peer via the standard postgres-changes
- * subscription. Same shape psychicnum uses.
- *
- * Two-table subscription on `spellingbee.{games, found_words}`:
- *   - `games`: any change refetches game_state (which carries
- *     the wordlist-reveal gate). We subscribe to the BASE
- *     table because Realtime watches tables, not views.
- *   - `found_words`: every accepted submission appends a row.
- *
- * The `load()` body reads from `spellingbee.games_state` (the view),
- * never from `spellingbee.games` directly — the base table's
- * column-grant blocks `required_words` for authenticated, and the
- * view is what surfaces it conditionally on terminal.
+ * Reads the header from `spellingbee.games_state` (the view) — it exposes the
+ * same columns as the base table plus the two word lists.
  */
 export function useGame(gameId: string): {
   game: SpellingbeeGame | null
@@ -93,60 +78,52 @@ export function useGame(gameId: string): {
   const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
   const [loading, setLoading] = useState(true)
 
+  // The immutable header (letters + both word lists) — fetched once per game.
+  // `loading` gates the PlayArea render, so it flips here.
+  useEffect(() => {
+    let mounted = true
+    void (async () => {
+      const { data } = await db
+        .from('games_state')
+        .select(
+          'id, club_handle, mode, outer_letters, center_letter, required_words_score, required_words_count, created_at, required_words, bonus_words',
+        )
+        .eq('id', gameId)
+        .maybeSingle()
+      if (!mounted) return
+      if (data) {
+        setGame({
+          id: data.id as string,
+          club_handle: data.club_handle as string,
+          mode: data.mode as 'coop' | 'compete',
+          outer_letters: data.outer_letters as string,
+          center_letter: data.center_letter as string,
+          required_words_score: data.required_words_score as number,
+          required_words_count: data.required_words_count as number,
+          created_at: data.created_at as string,
+          requiredWords: (data.required_words as SpellingbeeWord[]) ?? [],
+          bonusWords: (data.bonus_words as SpellingbeeWord[]) ?? [],
+        })
+      }
+      setLoading(false)
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [gameId])
+
   useRealtimeRefetch({
-    tables: [
-      { schema: 'spellingbee', table: 'games', filter: `id=eq.${gameId}` },
-      {
-        schema: 'spellingbee',
-        table: 'found_words',
-        filter: `game_id=eq.${gameId}`,
-      },
-    ],
+    tables: [{ schema: 'spellingbee', table: 'found_words', filter: `game_id=eq.${gameId}` }],
     channelPrefix: 'spellingbee',
     id: gameId,
     load: async ({ mounted }) => {
-      // Two reads: the game header from the view, the found-words
-      // log from the table. Parallel via Promise.all since they
-      // don't depend on each other.
-      const [gameRes, foundRes] = await Promise.all([
-        db
-          .from('games_state')
-          .select(
-            'id, club_handle, mode, outer_letters, center_letter, required_words_score, required_words_count, created_at, required_words',
-          )
-          .eq('id', gameId)
-          .maybeSingle(),
-        db
-          .from('found_words')
-          .select(
-            'game_id, user_id, word, points, is_pangram, is_bonus, found_at',
-          )
-          .eq('game_id', gameId)
-          .order('found_at', { ascending: true }),
-      ])
+      const { data } = await db
+        .from('found_words')
+        .select('game_id, user_id, word, points, is_pangram, is_bonus, found_at')
+        .eq('game_id', gameId)
+        .order('found_at', { ascending: true })
       if (!mounted()) return
-
-      if (!gameRes.data) {
-        setGame(null)
-        setFoundWords([])
-        setLoading(false)
-        return
-      }
-
-      setGame({
-        id: gameRes.data.id as string,
-        club_handle: gameRes.data.club_handle as string,
-        mode: gameRes.data.mode as 'coop' | 'compete',
-        outer_letters: gameRes.data.outer_letters as string,
-        center_letter: gameRes.data.center_letter as string,
-        required_words_score: gameRes.data.required_words_score as number,
-        required_words_count: gameRes.data.required_words_count as number,
-        created_at: gameRes.data.created_at as string,
-        requiredWords:
-          (gameRes.data.required_words as SpellingbeeGame['requiredWords']) ?? null,
-      })
-      setFoundWords((foundRes.data ?? []) as FoundWordRow[])
-      setLoading(false)
+      setFoundWords((data ?? []) as FoundWordRow[])
     },
   })
 

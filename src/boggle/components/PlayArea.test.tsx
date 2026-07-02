@@ -41,6 +41,7 @@ function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
     n: 4,
     min_word_length: 3,
     required_words: [{ word: 'cat', points: 1 }],
+    bonus_words: [],
     required_words_count: 1,
     required_words_score: 1,
     ...over,

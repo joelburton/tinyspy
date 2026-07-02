@@ -31,7 +31,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { generateBoard, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
+import { generateBoard, listBonusWords, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie } from './dict.ts'
@@ -48,12 +48,14 @@ const json = (body: unknown, status = 200): Response =>
 interface BoggleSetup {
   dice_set?: string
   band?: number
+  legal_band?: number
   min_word_length?: number
   scoring_ladder?: LadderName
   constraints?: BoardConstraints
-  // legal_band, timer etc. ride through to create_game, which validates them.
-  // Generation only needs the *required* band (legal_band never affects the
-  // board — it's purely the bonus-word ceiling enforced at guess time).
+  // timer etc. ride through to create_game, which validates them. `legal_band`
+  // never affects board *acceptance* (constraints are judged on the required set
+  // only) — it's used AFTER acceptance to enumerate the board's bonus words for
+  // the FE to validate/score against.
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -80,6 +82,13 @@ serve(async (req: Request): Promise<Response> => {
     if (!set) return json({ error: `unknown dice_set: ${setup.dice_set}` }, 400)
     const band = setup.band ?? 3
     if (band < 1 || band > 6) return json({ error: `band out of range: ${band}` }, 400)
+    // The bonus (legal) band — the difficulty ceiling for the extra words a player
+    // may discover beyond the required set. Must be at least `band` (required
+    // words are legal too) and at most 6. create_game re-validates.
+    const legalBand = setup.legal_band ?? band
+    if (legalBand < band || legalBand > 6) {
+      return json({ error: `legal_band out of range: ${legalBand}` }, 400)
+    }
     // Validate the ladder here (the trust boundary): it comes from untyped JSON
     // and flows straight into the solver's scoring, which would crash on an
     // unknown key. create_game re-validates, but generation runs first.
@@ -99,6 +108,18 @@ serve(async (req: Request): Promise<Response> => {
     const board = generateBoard(trie, set, constraints, seed, 200_000, 1000)
     if (!board) return json({ error: 'No board met those constraints — please relax them.' }, 422)
 
+    // ─── Enumerate the bonus set (post-acceptance, does NOT affect the board) ──
+    // The full legal list = required ∪ bonus; the FE validates + scores guesses
+    // against it locally. bonus = legal-band traceable words minus required.
+    // Empty when legal_band == band (all legal words are already required).
+    const bonusWords =
+      legalBand > band
+        ? listBonusWords(await requiredTrie(legalBand), board.board, board.requiredWords, {
+            minWordLength: constraints.minWordLength,
+            ladder: constraints.ladder,
+          })
+        : []
+
     // ─── Create the game as the caller ────────────────────────────────────
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -116,6 +137,7 @@ serve(async (req: Request): Promise<Response> => {
         required_words: board.requiredWords,
         required_words_count: board.requiredWords.length,
         required_words_score: board.score,
+        bonus_words: bonusWords,
       },
     })
     if (error) return json({ error: error.message }, 400)

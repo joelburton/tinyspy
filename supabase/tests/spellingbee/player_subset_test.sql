@@ -54,7 +54,7 @@ select is(
 -- A player can act.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  spellingbee.submit_word((select id from g), 'bead')->>'result',
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false)->>'result',
   'accepted',
   'a player (ada) can submit_word'
 );
@@ -69,7 +69,7 @@ select is(
 
 -- …but cannot ACT (move RPCs gate on require_game_player).
 select throws_ok(
-  format($$ select spellingbee.submit_word(%L::uuid, 'face') $$, (select id from g)),
+  format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
   '42501',
   'not playing this game',
   'cade (member, not a player) CANNOT submit_word — acting is player-gated'

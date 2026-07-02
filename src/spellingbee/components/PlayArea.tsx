@@ -8,12 +8,12 @@ import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { EntryRow } from '../../common/components/EntryRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import type { GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
-import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useWordSubmit, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
@@ -28,44 +28,6 @@ import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
-
-/**
- * Maps each `submit_word` result-enum value to the visual tone
- * the feedback pill renders. See the RPC for the full enum. These are the
- * shared `GenericFeedbackTone` values now — the in-body word-result pill is the same
- * `<GenericFeedbackPill>` the header uses (`warning` is in the common palette, which is
- * why spellingbee no longer needs its own feedback component / tone type).
- */
-const RESULT_TONE: Record<string, GenericFeedbackTone> = {
-  accepted: 'success',
-  bonus: 'success',
-  pangram: 'success',
-  alreadyFound: 'warning',
-  tooShort: 'warning',
-  badLetters: 'error',
-  missingCenter: 'error',
-  notAWord: 'error',
-}
-
-/** Short human-readable label for each result enum. The typed
- *  word is prefixed at render time for context.
- *
- *  `bonus` reads identically to `accepted`: a bonus word scores the
- *  same points as a required word (submit_word computes length-based +
- *  pangram points for it — see the spellingbee migration), it just
- *  doesn't count toward the "X / Y words" denominator. That internal
- *  distinction isn't worth surfacing to the player, and the old
- *  "Bonus — no points" was simply wrong — they DO earn points. */
-const RESULT_LABEL: Record<string, string> = {
-  accepted: 'Good!',
-  bonus: 'Good!',
-  pangram: 'Pangram!',
-  alreadyFound: 'Already found',
-  tooShort: 'Too short',
-  badLetters: 'Bad letters',
-  missingCenter: 'Missing center letter',
-  notAWord: 'Not a word',
-}
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -185,71 +147,67 @@ export function PlayArea(ctx: GamePageCtx) {
     setShuffleSeed((s) => s + 1)
   }, [])
 
-  // ─── Typed-word state ──────────────────────────────────
-  const [word, setWord] = useState('')
-  // The last word the player submitted, kept so ArrowUp can recall it into the
-  // input for quick editing (add an 'S' for the plural, fix a typo, …).
-  // FE-only — never shared or stored.
-  const [lastWord, setLastWord] = useState('')
-
-  // ─── Local own-move feedback (sticky) ──────────────────
-  // The player's own submission result, shown as a centered <GenericFeedbackPill> in the
-  // below-board slot — the same shared pill the header's global feedback uses
-  // (docs/design-decisions.md → Feedback). STICKY, not timed: an own-move result
-  // is important and the player may be looking at the board when it lands, so it
-  // persists until their NEXT move dismisses it rather than vanishing on a timer
-  // (docs/design-decisions.md → Dismissal modes). `clearLocalFeedback` is called on
-  // every move gesture below — any key the game sees, a hex click, or Delete.
-  // The shared hook owns the state + cleanup; this thin builder keeps
-  // spellingbee's `(message, tone)` call sites over it. Own-move results are
-  // sticky (the next move gesture dismisses them).
-  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
-  const showLocalFeedback = useCallback(
-    (message: string, tone: GenericFeedbackTone) =>
-      showMsg({ tone, text: message, variant: 'outline', dismiss: { kind: 'sticky' } }),
-    [showMsg],
-  )
-
-  const handleLetterClick = useCallback((letter: string) => {
-    clearLocalFeedback()
-    setWord((prev) => prev + letter.toUpperCase())
-  }, [clearLocalFeedback])
-
-
-  // ─── Submit ────────────────────────────────────────────
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = useCallback(async () => {
-    if (submitting || word.length === 0 || isTerminal) return
-    // Remember what was submitted so ArrowUp can recall it (the word clears on
-    // submit, including a rejected one — recalling lets them fix it too).
-    setLastWord(word)
-    setSubmitting(true)
-    try {
-      const { data, error } = await db.rpc('submit_word', {
-        target_game: gameId,
-        word,
-      })
-      if (error) {
-        showLocalFeedback(error.message, 'error')
-        return
-      }
-      // submit_word returns { result, points } — points lets us show the score
-      // earned (and the result enum carries 'pangram') without re-deriving the
-      // point rules on the FE.
-      const payload =
-        (data as unknown as { result: string; points: number } | null)
-        ?? { result: 'notAWord', points: 0 }
-      const tone = RESULT_TONE[payload.result] ?? 'error'
-      const label = RESULT_LABEL[payload.result] ?? payload.result
-      // Scoring results (accepted / bonus / pangram) carry points > 0.
-      const suffix = payload.points > 0 ? ` +${payload.points}pts` : ''
-      showLocalFeedback(`${word.toUpperCase()}: ${label}${suffix}`, tone)
-      setWord('')
-    } finally {
-      setSubmitting(false)
+  // ─── Move entry + own-move feedback (shared engine) ────
+  // Both word lists ship to the FE, so a guess is validated + scored locally —
+  // index required ∪ bonus by word. useWordSubmit owns the typed-word state, the
+  // sticky own-move pill, and the optimistic commit + dedup; spellingbee supplies
+  // the lookup, the RPC, the reject reason (bad-letters / missing-center /
+  // not-a-word), and the success label (with the pangram flourish). See
+  // docs/games/spellingbee.md.
+  const legalIndex = useMemo(() => {
+    const m = new Map<string, WordEntry>()
+    for (const r of game?.requiredWords ?? []) {
+      m.set(r.word, { word: r.word, points: r.points, isBonus: false, isPangram: r.is_pangram })
     }
-  }, [gameId, isTerminal, showLocalFeedback, submitting, word])
+    for (const b of game?.bonusWords ?? []) {
+      m.set(b.word, { word: b.word, points: b.points, isBonus: true, isPangram: b.is_pangram })
+    }
+    return m
+  }, [game?.requiredWords, game?.bonusWords])
+
+  const center = game?.center_letter.toLowerCase() ?? ''
+  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
+    useWordSubmit({
+      mode: game?.mode ?? 'coop',
+      userId: session.user.id,
+      isTerminal,
+      minWordLength: 4,
+      foundWords,
+      lookup: (w) => legalIndex.get(w) ?? null,
+      commit: async (e) => {
+        const { error } = await db.rpc('submit_word', {
+          target_game: gameId,
+          word: e.word,
+          points: e.points,
+          is_pangram: e.isPangram ?? false,
+          is_bonus: e.isBonus,
+        })
+        return { error }
+      },
+      // A miss at/above min length: name why (a letter off the board, or the
+      // center letter missing) else it's simply not in the word list.
+      explainReject: (w) => {
+        for (const ch of w) {
+          if (!allowedLetters.has(ch)) {
+            return { text: `${w.toUpperCase()}: Bad letters`, tone: 'error' }
+          }
+        }
+        if (center && !w.includes(center)) {
+          return { text: `${w.toUpperCase()}: Missing center letter`, tone: 'error' }
+        }
+        return { text: `${w.toUpperCase()}: Not a word`, tone: 'error' }
+      },
+      successText: (e) =>
+        `${e.word.toUpperCase()}: ${e.isPangram ? 'Pangram!' : 'Good!'} +${e.points}pts`,
+    })
+
+  const handleLetterClick = useCallback(
+    (letter: string) => {
+      clearLocalFeedback()
+      setWord((prev) => prev + letter.toUpperCase())
+    },
+    [clearLocalFeedback, setWord],
+  )
 
   // Space shuffles the outer letters — spellingbee's one capture-entry extra key
   // (passed to the shared <EntryRow> below, which owns the rest of the keyboard:
@@ -275,9 +233,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback(`End game failed: ${error.message}`, 'error')
+      showFeedback('error', `End game failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showFeedback])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -423,10 +381,9 @@ export function PlayArea(ctx: GamePageCtx) {
           <EntryRow
             value={word}
             onChange={setWord}
-            onSubmit={() => void handleSubmit()}
+            onSubmit={submit}
             placeholder="Type or click letters"
             disabled={isTerminal}
-            busy={submitting}
             onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
             onExtraKey={handleEntryExtraKey}
@@ -533,13 +490,14 @@ export function PlayArea(ctx: GamePageCtx) {
           </details>
         </div>
 
-        {/* Once terminal, games_state surfaces the full required-words list via
-            _required_words_for. Pre-terminal game.requiredWords is null and the
-            list skips the reveal. */}
+        {/* The required-words answer key now ships from game start, so the
+            missed-words reveal is gated on `isTerminal` (not on the list being
+            present): during play only found rows show; at terminal the unfound
+            required words are revealed (bonus words are never revealed). */}
         <WordList
-          rows={buildDisplayRows(foundWords, game.requiredWords)}
+          rows={buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)}
           players={players}
-          reveal={game.requiredWords != null}
+          reveal={isTerminal}
         />
       </div>
       {showModal && over && (

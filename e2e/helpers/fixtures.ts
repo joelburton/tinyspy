@@ -242,6 +242,46 @@ export async function createBoggleGame(
   return { id: (row as { id: string }).id, gametype: `boggle_${mode}` }
 }
 
+/**
+ * Start a spellingbee game (coop by default) on a fixed synthetic board:
+ * outer `cabdfg` + center `e`, 30 required words (the create_game ≥30 gate) plus
+ * one bonus word (`bcdfge`) so the play loop can exercise required + bonus + a
+ * pangram. Mirrors the pgTAP fixture. Returns id + gametype for the URL.
+ */
+export async function createSpellingbeeGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const reqWords = [
+    'bead', 'beef', 'face', 'fade', 'cage', 'cafe', 'deaf', 'aged', 'bade', 'feed',
+    'edge', 'abed', 'gabe', 'babe', 'dade', 'abef', 'abeg', 'abce', 'acef', 'aceg',
+    'adef', 'adeg', 'afeg', 'bcef', 'bceg', 'bdef', 'bdeg', 'bfeg', 'faced', 'abcdefg',
+  ]
+  const score = (w: string) => (w.length === 7 ? 17 : w.length === 4 ? 1 : w.length)
+  const required = reqWords.map((w) => ({ word: w, points: score(w), is_pangram: w.length === 7 }))
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('spellingbee')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, required: 3, legal: 5 },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        outer_letters: 'cabdfg',
+        center_letter: 'e',
+        required_words_score: required.reduce((s, r) => s + r.points, 0),
+        required_words_count: required.length,
+        required_words: required,
+        bonus_words: [{ word: 'bcdfge', points: 6, is_pangram: false }],
+      },
+    })
+  if (res.error) throw new Error(`spellingbee.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `spellingbee_${mode}` }
+}
+
 /** Start a wordle game (coop by default). Returns id + gametype for the URL. */
 export async function createWordleGame(
   club: E2EClub,

@@ -9,11 +9,13 @@
 --      is a normal readable column — no column-grant exclusion, no
 --      `games_state` security_invoker view, no `_required_words_for`. The
 --      missed-words reveal is computed client-side (`required − found`).
---   2. Trusting-commit submit. The FE traces the word on the board itself and
---      only submits traceable words; `submit_word` does the one check the FE
---      can't (is the word a real dictionary word, for bonus guesses) + dedup +
---      record. Required-ness is a membership test against `required_words`;
---      bonus points are trusted from the FE (scrabble precedent).
+--   2. Trusting-commit submit. The board ships to the FE with BOTH its required
+--      and bonus word lists (`required_words` + `bonus_words`), so the FE alone
+--      validates a guess (membership in the legal list = traceable + real) and
+--      scores it. `submit_word` trusts the word + points + is_bonus it's handed
+--      and only dedups + records (scrabble precedent) — it does NOT re-check the
+--      word against `common.words`. The shared `useWordSubmit` hook drives this
+--      for both boggle + spellingbee.
 --
 -- The board is generated on demand by the `boggle-build-board` edge function
 -- (pure-TS trie solver, see src/boggle/lib/), which calls create_game here.
@@ -43,11 +45,20 @@ create table boggle.games (
   -- difficulty<=band words the board generator guarantees are findable; the
   -- legal band is the (usually wider) net of what else a player may discover.
   min_word_length int not null,
+  -- The bonus difficulty ceiling this board was enumerated against (band..6).
+  -- Retained for reference; the bonus words it produced are stored below, so
+  -- submit_word no longer needs it at guess time.
   legal_band int not null check (legal_band between 1 and 6),
-  -- The required-word list this board is judged against: a jsonb array of
-  -- { "word": text, "points": int }. READABLE by club members (not hidden) —
-  -- the FE classifies guesses + renders the missed-words reveal from it.
+  -- The two word lists shipped to the FE, both jsonb arrays of
+  -- { "word": text, "points": int }. READABLE by club members (not hidden) — the
+  -- FE validates + scores guesses against required ∪ bonus locally.
+  --   required_words: the set the board is judged against (constraints, the
+  --     "X / Y words" goal, and the missed-words reveal — reveal is required-only).
+  --   bonus_words: legal-band words traceable on this board but outside the
+  --     required set (enumerated once at build time by boggle-build-board). Empty
+  --     when legal_band == band.
   required_words jsonb not null,
+  bonus_words jsonb not null default '[]'::jsonb,
   required_words_count int not null,
   required_words_score int not null,
   created_at timestamptz not null default now()
@@ -214,6 +225,11 @@ begin
   if jsonb_typeof(board->'required_words') <> 'array' then
     raise exception 'board.required_words must be an array' using errcode = 'P0001';
   end if;
+  -- bonus_words is optional (empty when legal_band == band); if present it must
+  -- be an array of the same { word, points } shape.
+  if board ? 'bonus_words' and jsonb_typeof(board->'bonus_words') <> 'array' then
+    raise exception 'board.bonus_words must be an array' using errcode = 'P0001';
+  end if;
   b_required_count := (board->>'required_words_count')::int;
   b_required_score := (board->>'required_words_score')::int;
 
@@ -230,11 +246,12 @@ begin
 
   insert into boggle.games (
     id, club_handle, mode, board, n, min_word_length, legal_band,
-    required_words, required_words_count, required_words_score
+    required_words, bonus_words, required_words_count, required_words_score
   )
   values (
     new_id, target_club, mode, b_board, b_n, s_min_word_length, s_legal_band,
-    board->'required_words', b_required_count, b_required_score
+    board->'required_words', coalesce(board->'bonus_words', '[]'::jsonb),
+    b_required_count, b_required_score
   );
 
   -- ─── Seed common.games.status for the club-page label ────
@@ -306,10 +323,15 @@ revoke execute on function boggle._refresh_status(uuid) from public;
 -- ============================================================
 -- submit_word — record a guess (trusting-commit; see header).
 -- ============================================================
+-- The FE validated the word against the board's shipped legal list (required ∪
+-- bonus) and scored it, so this trusts `word` + `points` + `is_bonus` and only
+-- does the things the FE can't: enforce the game is live, dedup, record, and
+-- refresh the club-page status. No word-content or dictionary check.
 create function boggle.submit_word(
   target_game uuid,
   word text,
-  points int
+  points int,
+  is_bonus boolean
 )
 returns jsonb
 language plpgsql
@@ -319,20 +341,14 @@ as $$
 declare
   caller_id uuid;
   g_mode text;
-  g_minlen int;
-  g_legal_band int;
-  g_required jsonb;
   g_playstate text;
   w_lower text;
   dup_count int;
-  required_entry jsonb;
-  is_bonus boolean;
-  pts int;
 begin
   caller_id := common.require_game_player(target_game);
 
-  select bg.mode, bg.min_word_length, bg.legal_band, bg.required_words, cg.play_state
-    into g_mode, g_minlen, g_legal_band, g_required, g_playstate
+  select bg.mode, cg.play_state
+    into g_mode, g_playstate
     from boggle.games bg join common.games cg on cg.id = bg.id
    where bg.id = target_game;
   if not found then
@@ -343,12 +359,6 @@ begin
   end if;
 
   w_lower := lower(coalesce(word, ''));
-  if w_lower !~ '^[a-z]+$' then
-    return jsonb_build_object('result', 'invalid', 'points', 0);
-  end if;
-  if length(w_lower) < g_minlen then
-    return jsonb_build_object('result', 'tooShort', 'points', 0);
-  end if;
 
   -- Dedup, mode-aware: coop = whole team, compete = this player. Alias the table
   -- so `word` resolves to the column, not the same-named function parameter.
@@ -363,39 +373,20 @@ begin
     return jsonb_build_object('result', 'alreadyFound', 'points', 0);
   end if;
 
-  -- Classify: required (membership in this board's list) vs bonus (a word in
-  -- common.words within the legal band) vs not-a-word. The legal-band check
-  -- filters on difficulty ONLY — any dialect/slur/crude/slang qualifies, since
-  -- bonus words are the wide net of "real words a player might dig up."
-  -- Traceability is trusted from the FE.
-  select rw into required_entry
-    from jsonb_array_elements(g_required) rw
-   where rw->>'word' = w_lower
-   limit 1;
-  if found then
-    is_bonus := false;
-    pts := (required_entry->>'points')::int;       -- authoritative stored points
-  elsif exists (
-    select 1 from common.words cw
-     where cw.word = w_lower and cw.difficulty <= g_legal_band
-  ) then
-    is_bonus := true;
-    pts := coalesce(points, 0);                     -- FE-supplied (trusted) bonus points
-  else
-    return jsonb_build_object('result', 'notAWord', 'points', 0);
-  end if;
-
   insert into boggle.found_words (game_id, user_id, word, points, is_bonus)
-    values (target_game, caller_id, w_lower, pts, is_bonus);
+    values (target_game, caller_id, w_lower, coalesce(points, 0), coalesce(is_bonus, false));
 
   perform boggle._refresh_status(target_game);
 
-  return jsonb_build_object('result', case when is_bonus then 'bonus' else 'accepted' end, 'points', pts);
+  return jsonb_build_object(
+    'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end,
+    'points', coalesce(points, 0)
+  );
 end;
 $$;
 
-revoke execute on function boggle.submit_word(uuid, text, int) from public;
-grant execute on function boggle.submit_word(uuid, text, int) to authenticated;
+revoke execute on function boggle.submit_word(uuid, text, int, boolean) from public;
+grant execute on function boggle.submit_word(uuid, text, int, boolean) to authenticated;
 
 -- ============================================================
 -- _finalize / end_game / submit_timeout — terminal transitions.

@@ -64,31 +64,35 @@ minimum length.
 ## 2. Required / legal / bonus words — the core model
 
 The single most important concept in boggle is the split between the *required*
-set (precomputed, surfaced) and *legal* guesses (validated live, never listed).
-Two independent difficulty bands govern them.
+set (the board's goal + reveal) and *bonus* words (extra legal finds). Two
+independent difficulty bands govern them, and **both lists are enumerated at
+board-build time and shipped to the FE** — the FE validates + scores every guess
+locally against required ∪ bonus and submits trusting-commit (the same model as
+spellingbee, via the shared `useWordSubmit` hook). No `common.words` round-trip
+at guess time.
 
 - **Required words** — the set the board is **built and judged against**:
   `difficulty ≤ band` plus the **clean filter** (`american, crude=0, slur=0,
   slang=0`) and `len ≥ min_word_length`. The solver finds them all at board
   creation; every board constraint (word count, score, longest word) is measured
   **only** against this set, and the unfound ones are the "missed words" reveal.
-  Membership is a precomputed **set test** — it folds together the clean filter,
-  the band, traceability on *this* board, and the solver's dedup, so it is *not*
-  recoverable from a word's difficulty alone. **The required list is shipped to
-  the FE** (it isn't hidden — see [§6](#6-schema-boggle)).
+  Shipped to the FE (it isn't hidden — see [§6](#6-schema-boggle)).
 
 - **Bonus words** — real words that aren't required but are still within the
-  **legal band** and traceable on the board. Scored normally; **never
-  precomputed** and **never listed** when unfound.
+  **legal band** and traceable on the board. Scored normally; **never listed**
+  when unfound (the reveal is required-only). Enumerated once on the accepted
+  board (a second `listWords` pass against the legal-band trie — see
+  [§5](#5-board-generation)) and stored in `bonus_words`.
 
-- **Legal words** = required ∪ bonus. We never materialize this set: a guess is
-  legal iff it (a) is in `common.words` at `difficulty ≤ legal_band`, (b) meets
-  `min_word_length`, and (c) traces a valid path (the FE checks the trace; the
-  server trusts it).
+- **Legal words** = required ∪ bonus — the acceptance set. A guess is legal iff it
+  is a member of that shipped list (membership implies traceable + real, since the
+  list was produced by solving *this* board). The FE keeps a local `traceableStr`
+  check only to distinguish the two reject messages ("not on the board" vs "not a
+  word"); the server trusts the FE's word + points + `is_bonus`.
 
 **The two bands and their deliberate asymmetry.** Setup picks *both* a required
 band and a legal band, with `legal_band ≥ band` (every required word is also
-legal). The required band carries the clean filter because it's the only set ever
+legal). The required band carries the clean filter because it's the set that's
 *surfaced* (constraints, missed-words reveal). The legal band filters on
 **difficulty only** — any dialect (us/uk/au/ca) and any register (slurs, crude,
 slang) qualifies — because among friends a bonus is "any real word you can dig
@@ -96,8 +100,9 @@ up" within the chosen obscurity ceiling. Raise the legal band to reward rarer
 finds; lower it to keep bonuses close to the required difficulty. Defaults:
 required ≤3 (familiar), legal ≤5.
 
-Not precomputing the legal set keeps the generator small and fast (it only cares
-about required words), and a per-word trace on the FE is trivially cheap.
+Enumerating the legal set costs one extra solver pass on the *accepted* board (a
+5×5/6×6 legal list is ~a few hundred words, ~10 KB) — it is never part of the
+roll→solve→reject loop, so board-creation constraints stay required-only.
 
 ---
 
@@ -149,12 +154,17 @@ creates the game in one round-trip:
    - Accept iff it meets **every** constraint: word count in `[minWords,
      maxWords]`, score (per the chosen ladder) in `[minScore, maxScore]`, longest
      word in `[minLongest, maxLongest]`, all measured over the required set.
-4. On accept → call `boggle.create_game` with the board + the required-word list
-   (`[{word, points}]`). On exhaustion → return a friendly **"constraints too
-   strict, relax them"** error, which the FE surfaces on the setup dialog.
+4. On accept → enumerate the **bonus** set: build a second trie for `legal_band`
+   (`requiredTrie(legal_band)` — the same builder, a wider band) and run
+   `listWords` once on the accepted board, minus the required set (`listBonusWords`
+   in `src/boggle/lib/generate.ts`). Then call `boggle.create_game` with the board
+   + the required-word list + the bonus-word list (both `[{word, points}]`). On
+   exhaustion → return a friendly **"constraints too strict, relax them"** error,
+   which the FE surfaces on the setup dialog.
 
-`legal_band` rides through to `create_game` untouched — generation never needs it
-(it only shapes guess-time bonus acceptance, not the board). The `scoring_ladder`
+`legal_band` shapes only the post-acceptance bonus enumeration, never board
+*acceptance* (constraints are required-only), so the reject loop stays fast — the
+bonus pass is one extra solve on the single accepted board. The `scoring_ladder`
 is validated at the API boundary before generation.
 
 **Measured cost** (one accepted board): ~60–110 ms for typical bands; ~286 ms for
@@ -204,19 +214,23 @@ pair on one `boggle` schema.
   membership without a join and the FE reads the whole board in one query.
 - `board text` — the rolled board as a row-major raw-face string (A–Z, a
   multiface digit `1`–`6`, or `0` for a blank), length `n²`; `n int` (4–6).
-- `min_word_length int`, `legal_band int` — the two setup bits `submit_word`
-  needs at guess time. The rest of setup (`band`, `scoring_ladder`, `timer`,
+- `min_word_length int`, `legal_band int` — `min_word_length` is the entry floor;
+  `legal_band` is retained for reference (it was the ceiling the bonus list was
+  enumerated against). The rest of setup (`band`, `scoring_ladder`, `timer`,
   constraint bounds) lives in `common.games.setup`.
-- `required_words jsonb` (`[{word, points}]`, **readable** by club members),
-  `required_words_count int`, `required_words_score int`.
+- `required_words jsonb` (`[{word, points}]`) + `bonus_words jsonb` (same shape,
+  the legal − required set; empty when `legal_band == band`), both **readable** by
+  club members and shipped to the FE. `required_words_count int`,
+  `required_words_score int`.
 
-**No hidden-solution view.** A deliberate divergence from spellingbee / waffle,
-which hide their answer behind a column-grant + `security_invoker` reveal view.
-boggle ships the required list to the FE from the start — hiding it would be
-anti-cheat contortion the trust model rejects, and exposing it makes the FE
-simpler (instant required/off-board feedback, client-side missed-words reveal,
-scoring in one shared TS function). So there's no reveal view: the **missed-words
-list is computed client-side** as `required − found`.
+**No hidden-solution view.** A deliberate divergence from waffle, which hides its
+answer behind a column-grant + `security_invoker` reveal view. boggle ships both
+word lists to the FE from the start — hiding them would be anti-cheat contortion
+the trust model rejects, and shipping them makes the FE simpler (instant
+validation + scoring against required ∪ bonus, client-side missed-words reveal, in
+one shared TS hook). So there's no reveal view: the **missed-words list is
+computed client-side** as `required − found` (bonus words are never revealed).
+*(spellingbee now works the same way — the two converged.)*
 
 **`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus, found_at)`,
 PK `(game_id, user_id, word)`. **Mode-aware RLS** (the spellingbee pattern):
@@ -232,19 +246,16 @@ game is terminal, then all.
   (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9), and
   the board structure; inserts the `common.games` header + the `boggle.games`
   row; titles the game `Boggle n×n`.
-- **`submit_word(target_game, word, points)`** — the **trusting commit**. The FE
-  has already traced the word and classified it (it holds the required list); the
-  RPC records it and does the one check the FE can't (the dictionary lookup):
-  1. reject non-alpha; enforce `min_word_length`;
-  2. dedup against the caller's scope (coop = team, compete = self);
-  3. **required** (`word` ∈ the game's `required_words`) → store, trusting the
-     FE's points;
-  4. else look up `common.words` at `difficulty ≤ legal_band` (any
-     dialect/register — difficulty is the only filter) → store as **bonus** with
-     the FE's points if found, else reject as not-a-word.
+- **`submit_word(target_game, word, points, is_bonus)`** — the **trusting commit**.
+  The FE validated the word against the shipped legal list (required ∪ bonus) and
+  scored it, so the RPC trusts `word` + `points` + `is_bonus` and only:
+  1. enforces the game is live (else `gameOver`);
+  2. dedups against the caller's scope (coop = team, compete = self);
+  3. inserts the row + refreshes the club-page status.
 
-  No scoring in plpgsql — points come from the shared TS `scoreFor`, trusted per
-  the scrabble precedent.
+  No word-content or dictionary check, and no scoring, in plpgsql — it does not
+  read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,
+  same as spellingbee.)
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
   missed words from data it already holds.
@@ -255,15 +266,14 @@ The work splits by **where the data is**, so nothing intricate is written twice:
 
 | piece | needs | lives |
 |---|---|---|
-| board generation + required solve | the dictionary trie | **edge function** (`lib/solver` + `generate`) |
-| guess traceability (path on the board) | the board (FE has it) | **FE** `lib/boardTrace` |
-| required-vs-bonus classification | the required list (FE has it) | **FE** |
-| scoring (`scoreFor`) | the ladder (FE has it) | **FE** `lib/solver` |
-| bonus dictionary legality | `common.words` | **server** `submit_word` |
+| board generation + required solve + bonus enumeration | the dictionary trie | **edge function** (`lib/solver` + `generate`) |
+| guess validity + scoring (membership in required ∪ bonus) | the shipped lists (FE has them) | **FE** shared `useWordSubmit` |
+| reject-message nuance (not-on-board vs not-a-word) | the board (FE has it) | **FE** `lib/boardTrace` |
+| dedup + live-game gate + status | the DB rows | **server** `submit_word` |
 
-The server is authoritative only for the one thing the FE genuinely can't do —
-judge an unknown word against the full `common.words` dictionary. Everything else is FE-side
-and trusted, exactly the scrabble trusting-commit model.
+Both word lists are enumerated once at build time and shipped, so the FE is
+authoritative for what counts + how much it scores; the server just records +
+dedups. Exactly the scrabble/spellingbee trusting-commit model.
 
 ---
 
@@ -316,12 +326,12 @@ terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, ton
 driving the below-board pill, the action-row line, and the `GameOverModal`. boggle
 has no intrinsic win — coop is a neutral shared hunt; compete picks the highest score.
 
-**Guess flow.** Because the FE holds the board, the required list, and `scoreFor`,
-most guesses resolve instantly with no round-trip: a word in the required set →
-**required +N**; not required but traced by `lib/boardTrace` → sent to
-`submit_word` for the bonus check; not traceable → instant **not-on-board**
-reject; too short / duplicate → instant info. Only a genuine bonus candidate
-touches the server.
+**Guess flow.** Because the FE holds both word lists, *every* guess resolves
+instantly with no round-trip and commits optimistically: a word in required ∪
+bonus → **+N** (bonus finds get a trailing `•`), committed in the background;
+a miss → not-a-word if it traces on the board (`lib/boardTrace`), else
+not-on-board; too short / duplicate → instant info. The server only records +
+dedups the accepted words.
 
 **Setup form.** Dice set · required difficulty (the shared `DifficultyField`,
 full `universal…expert` list) · legal/bonus difficulty (a second `DifficultyField`
@@ -385,12 +395,11 @@ Settled forks, recorded as fact (this is what shipped):
   make a pre-generated set multiply combinatorially (the waffle rationale).
 - **Pure-TS solver, no WASM** — the algorithm (flat trie + gen-stamp dedup) is
   the win, not the language ([§3](#3-the-solver-libsolverts)).
-- **The required list is shipped to the FE, not hidden** — a deliberate
-  divergence from the hidden-solution games; the trust model makes hiding it
-  pointless and exposing it simpler ([§6](#6-schema-boggle)).
-- **Trusting commit** — traceability + classification + scoring are FE-side and
-  trusted; `submit_word` only does the bonus dictionary lookup
-  ([§7](#7-rpcs-all-security-definer)).
+- **Both word lists are shipped to the FE, not hidden** — the trust model makes
+  hiding them pointless and shipping them simpler ([§6](#6-schema-boggle)).
+- **Trusting commit** — validation + classification + scoring are FE-side and
+  trusted (against the shipped lists); `submit_word` only dedups + records, no
+  `common.words` lookup ([§7](#7-rpcs-all-security-definer)).
 - **Two difficulty bands** — a clean required band and a difficulty-only legal
   band, independently picked with `legal_band ≥ band`
   ([§2](#2-required--legal--bonus-words--the-core-model)).

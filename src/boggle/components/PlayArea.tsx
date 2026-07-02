@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import type { GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -11,10 +11,10 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useWordSubmit, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
-import { LADDERS, scoreFor, type LadderName } from '../lib/solver'
+import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { WordList } from '../../common/components/WordList'
@@ -63,30 +63,54 @@ export function PlayArea(ctx: GamePageCtx) {
   const boggleSetup = setup as unknown as BoggleSetup
   const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'
 
-  // ─── Typed-word state ──────────────────────────────────
-  const [word, setWord] = useState('')
-  // The last word submitted, kept so ArrowUp can recall it for quick editing
-  // (add an 'S', fix a typo). FE-only — never shared or stored.
-  const [lastWord, setLastWord] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   // number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
 
-  // ─── Local own-move feedback (sticky) ──────────────────
-  // The player's own submission result, shown as a centered <GenericFeedbackPill> in the
-  // below-board slot — the same shared pill the header's global feedback uses
-  // (docs/design-decisions.md → Feedback). STICKY: it persists until the player's
-  // NEXT move dismisses it (any key the game sees, a Delete) rather than vanishing
-  // on a timer.
-  // The shared hook owns the state + cleanup; this thin builder keeps boggle's
-  // `(message, tone)` call sites over it. Own-move results are sticky (the next
-  // key dismisses them).
-  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
-  const showLocalFeedback = useCallback(
-    (message: string, tone: GenericFeedbackTone) =>
-      showMsg({ tone, text: message, variant: 'outline', dismiss: { kind: 'sticky' } }),
-    [showMsg],
-  )
+  // ─── Move entry + own-move feedback (shared engine) ────
+  // The board ships with its full legal list (required ∪ bonus), so a guess is
+  // validated + scored locally — index it by word for O(1) lookup. `useWordSubmit`
+  // owns the typed-word state, the sticky own-move pill, and the optimistic
+  // commit + dedup; boggle only supplies the lookup, the RPC, the reject reason
+  // (not-on-board vs not-a-word, client-side via `traceableStr`), and the success
+  // label. See docs/games/boggle.md.
+  const legalIndex = useMemo(() => {
+    const m = new Map<string, WordEntry>()
+    for (const r of game?.required_words ?? []) {
+      m.set(r.word, { word: r.word, points: r.points, isBonus: false })
+    }
+    for (const b of game?.bonus_words ?? []) {
+      m.set(b.word, { word: b.word, points: b.points, isBonus: true })
+    }
+    return m
+  }, [game?.required_words, game?.bonus_words])
+
+  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
+    useWordSubmit({
+      mode: game?.mode ?? 'coop',
+      userId: myId,
+      isTerminal,
+      minWordLength: game?.min_word_length ?? 3,
+      foundWords,
+      lookup: (w) => legalIndex.get(w) ?? null,
+      commit: async (e) => {
+        const { error } = await db.rpc('submit_word', {
+          target_game: gameId,
+          word: e.word,
+          points: e.points,
+          is_bonus: e.isBonus,
+        })
+        return { error }
+      },
+      // A miss is either untraceable ("not on the board") or traceable-but-not-a-
+      // word — the distinction boggle keeps, computed from the board on the FE.
+      explainReject: (w) => ({
+        text: game && traceableStr(game.board, w)
+          ? `${w.toUpperCase()} — not a word`
+          : `${w.toUpperCase()} — not on the board`,
+        tone: 'error',
+      }),
+      successText: (e) => `${e.word.toUpperCase()} +${e.points}`,
+    })
 
   const grid = useMemo(
     () => (game ? boardToDisplay(game.board, game.n) : null),
@@ -116,78 +140,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // found").
   const foundSet = useMemo(() => new Set(foundWords.map((f) => f.word)), [foundWords])
 
-  const submit = useCallback(async () => {
-    const w = word.trim().toLowerCase()
-    if (!game || isTerminal || submitting || w.length === 0) return
-    // Every submit attempt clears the box — the own-move <GenericFeedbackPill> reclaims
-    // the below-board slot only when word === '', so a reject that left the word in
-    // place would suppress its own feedback. lastWord is set here (not just on the
-    // accepted path) so ArrowUp recalls a rejected word to fix it.
-    setLastWord(word)
-
-    if (w.length < game.min_word_length) {
-      showLocalFeedback(`Too short (min ${game.min_word_length})`, 'warning')
-      setWord('')
-      return
-    }
-    const dup = foundWords.some(
-      (f) => f.word === w && (game.mode === 'coop' || f.user_id === myId),
-    )
-    if (dup) {
-      showLocalFeedback(`${w.toUpperCase()} — already found`, 'warning')
-      setWord('')
-      return
-    }
-    if (!traceableStr(game.board, w)) {
-      showLocalFeedback(`${w.toUpperCase()} — not on the board`, 'error')
-      setWord('')
-      return
-    }
-
-    const required = game.required_words.find((r) => r.word === w)
-    const points = required ? required.points : scoreFor(w.length, LADDERS[ladder] ?? LADDERS.basic)
-    setWord('')
-
-    if (required) {
-      // Known-good (member + traceable + not dup): show points instantly, record
-      // in the background — the realtime insert lands it in the list.
-      showLocalFeedback(`${w.toUpperCase()} +${points}`, 'success')
-      void db.rpc('submit_word', { target_game: gameId, word: w, points }).then(({ error }) => {
-        if (error) showLocalFeedback(error.message, 'error')
-      })
-      return
-    }
-    // Bonus candidate — only the server knows if it's a real word.
-    setSubmitting(true)
-    try {
-      const { data, error } = await db.rpc('submit_word', { target_game: gameId, word: w, points })
-      if (error) {
-        showLocalFeedback(error.message, 'error')
-        return
-      }
-      const res = data as { result: string; points: number }
-      if (res.result === 'bonus' || res.result === 'accepted') {
-        showLocalFeedback(`${w.toUpperCase()} +${res.points} (bonus)`, 'success')
-      } else if (res.result === 'notAWord') {
-        showLocalFeedback(`${w.toUpperCase()} — not a word`, 'error')
-      } else if (res.result === 'alreadyFound') {
-        showLocalFeedback(`${w.toUpperCase()} — already found`, 'warning')
-      } else {
-        showLocalFeedback(res.result, 'warning')
-      }
-    } finally {
-      setSubmitting(false)
-    }
-  }, [word, game, isTerminal, submitting, foundWords, myId, ladder, gameId, showLocalFeedback])
-
   // Manual end — an info-column action-row button now (like the other converged
-  // games), off the GamePage menu. Confirmed; it's irreversible.
+  // games), off the GamePage menu. Confirmed; it's irreversible. Its error shares
+  // the same below-board pill as a word submit (via the hook's showFeedback).
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, showLocalFeedback])
+    if (error) showFeedback('error', `End game failed: ${error.message}`)
+  }, [gameId, isTerminal, showFeedback])
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 
@@ -247,10 +208,9 @@ export function PlayArea(ctx: GamePageCtx) {
           <EntryRow
             value={word}
             onChange={setWord}
-            onSubmit={() => void submit()}
+            onSubmit={submit}
             placeholder="Type a word"
             disabled={isTerminal}
-            busy={submitting}
             onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
             recall={lastWord}

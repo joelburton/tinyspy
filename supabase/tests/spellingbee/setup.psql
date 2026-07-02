@@ -51,12 +51,15 @@ language plpgsql
 as $$
 declare
   required jsonb := '[]'::jsonb;
-  -- bonus holds the bonus set (legal − required: in the large
-  -- dictionary but not the required one). 'gfedcba' is a synthetic
-  -- 7-distinct-letter word covering the bonus-pangram path — verifies
-  -- that a bonus word with 7 distinct letters earns the +10 pangram
-  -- bonus per spellingbee-ws scoring (sessions.js:988-989).
-  bonus jsonb := jsonb_build_array('bcdfge', 'abcdef', 'gfedcba');
+  -- bonus holds the bonus set (legal − required), now the same
+  -- { word, points, is_pangram } shape as required (the FE scores bonus words
+  -- locally). 'gfedcba' is a synthetic 7-distinct-letter word covering the
+  -- bonus-pangram path (length 7 + 10 pangram bonus = 17).
+  bonus jsonb := jsonb_build_array(
+    jsonb_build_object('word', 'bcdfge',  'points', 6,  'is_pangram', false),
+    jsonb_build_object('word', 'abcdef',  'points', 6,  'is_pangram', false),
+    jsonb_build_object('word', 'gfedcba', 'points', 17, 'is_pangram', true)
+  );
   -- 28 four-letter + 1 five-letter + 1 seven-letter, in that order.
   syn_words text[] := array[
     'bead','beef','face','fade','cage','cafe','deaf','aged',

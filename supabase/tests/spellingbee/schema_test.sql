@@ -13,14 +13,12 @@
 --   1. The gametype is registered in common.gametypes.
 --   2. The spellingbee.pangrams reference table is readable by
 --      `authenticated` (the word list itself is now common.words).
---   3. The column-level grant on spellingbee.games blocks direct
---      SELECT of required_words / bonus_words for the
---      `authenticated` role.
---   4. The games_state view exposes the required_words answer key
---      conditionally on common.games.is_terminal: NULL pre-terminal,
---      the real value post-terminal. (bonus_words is never exposed.)
---   5. found_words.user_id ≠ caller-only — schema lets us
---      record a row attributed to ANY player.
+--   3. The word lists are NOT hidden: required_words + bonus_words
+--      are readable directly by `authenticated` (the FE validates
+--      guesses against them locally; the trust model doesn't withhold).
+--   4. The games_state view exposes both word lists unconditionally
+--      (during play and at terminal) — the missed-words reveal is a
+--      client-side `required − found` at terminal, not a server gate.
 --
 -- RLS membership / coop-vs-compete visibility lives in
 -- rls_test.sql. The two test files together form the
@@ -132,78 +130,61 @@ values (
   2,
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  array['oceaned']
+  '[{"word":"oceaned","points":7,"is_pangram":false}]'::jsonb
 );
 
 -- ============================================================
--- Column-level grant blocks direct SELECT of hidden columns
+-- The word lists are readable directly (no longer hidden)
 -- ============================================================
--- The grant on spellingbee.games to authenticated enumerates every
--- column EXCEPT required_words and bonus_words. A direct
--- SELECT of either column should raise 42501.
+-- The grant on spellingbee.games to authenticated now includes
+-- required_words + bonus_words — the FE needs them to validate
+-- guesses locally, and the trust model doesn't withhold them.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- Match SQLSTATE only — Postgres reports "permission denied for
--- table games" (rather than column-specific text) when the
--- requested column has no grant, even on a table that has
--- column-level grants for other columns. Same pattern psychicnum
--- uses for its target-column denial test.
-select throws_ok(
-  format(
-    $$ select required_words from spellingbee.games where id = %L::uuid $$,
-    (select id from common_g)
-  ),
-  '42501',
-  null,
-  'direct SELECT of spellingbee.games.required_words is denied (column-level grant blocks it)'
+select is(
+  (select required_words from spellingbee.games where id = (select id from common_g)),
+  '[{"word":"acedone","points":17,"is_pangram":true},
+    {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
+  'authenticated CAN SELECT required_words directly (un-gated)'
 );
 
-select throws_ok(
-  format(
-    $$ select bonus_words from spellingbee.games where id = %L::uuid $$,
-    (select id from common_g)
-  ),
-  '42501',
-  null,
-  'direct SELECT of spellingbee.games.bonus_words is denied (column-level grant blocks it)'
+select is(
+  (select bonus_words from spellingbee.games where id = (select id from common_g)),
+  '[{"word":"oceaned","points":7,"is_pangram":false}]'::jsonb,
+  'authenticated CAN SELECT bonus_words directly (un-gated)'
 );
 
--- The non-hidden columns ARE selectable — sanity check that
--- the grant didn't accidentally exclude something it shouldn't.
 select is(
   (select outer_letters from spellingbee.games where id = (select id from common_g)),
   'cabdno'::char(6),
-  'authenticated CAN SELECT non-hidden columns (outer_letters) — column grant is precise'
+  'authenticated CAN SELECT the non-list columns (outer_letters) too'
 );
 
 -- ============================================================
--- games_state view: pre-terminal exposure rules
+-- games_state view: exposes both lists during play
 -- ============================================================
--- The view exposes required_words THROUGH the _required_words_for
--- helper. While common.games.is_terminal is false, it should be
--- NULL even for a club member. (bonus_words is never exposed.)
+-- No terminal gate anymore — required_words is present from game start (the
+-- reveal is a client-side computation at terminal).
 
 select is(
   (select required_words from spellingbee.games_state where id = (select id from common_g)),
-  null::jsonb,
-  'games_state.required_words is NULL while is_terminal=false (member sees row but not the answers)'
+  '[{"word":"acedone","points":17,"is_pangram":true},
+    {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
+  'games_state.required_words is present during play (un-gated)'
 );
 
--- And the non-hidden columns DO surface via the view (sanity
--- check on the join inside the helpers).
 select is(
   (select outer_letters from spellingbee.games_state where id = (select id from common_g)),
   'cabdno'::char(6),
-  'games_state surfaces non-hidden columns regardless of terminal state'
+  'games_state surfaces the non-list columns too'
 );
 
 -- ============================================================
--- games_state view: post-terminal exposure
+-- games_state view: still exposed at terminal
 -- ============================================================
--- Flip is_terminal to true (the terminal transition that
--- common.end_game would do in production), then re-query the
--- view. The required_words answer key should materialize.
+-- Flip is_terminal to true; required_words stays exposed (it always was) — the
+-- terminal transition no longer changes what the view returns.
 
 reset role;
 update common.games set is_terminal = true, play_state = 'ended'
@@ -215,7 +196,7 @@ select is(
   (select required_words from spellingbee.games_state where id = (select id from common_g)),
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
-  'games_state.required_words surfaces post-terminal (helper CASE flips the gate)'
+  'games_state.required_words remains exposed post-terminal'
 );
 
 -- ============================================================

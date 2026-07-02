@@ -25,9 +25,9 @@ select * from boggle.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid],
   'coop', pg_temp.boggle_board());
-select boggle.submit_word((select id from g), 'cat', 1);
+select boggle.submit_word((select id from g), 'cat', 1, false);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select boggle.submit_word((select id from g), 'car', 1);
+select boggle.submit_word((select id from g), 'car', 1, false);
 
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select is((select count(*) from boggle.found_words where game_id = (select id from g)),
@@ -47,9 +47,9 @@ select * from boggle.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete', pg_temp.boggle_board());
-select boggle.submit_word((select id from cg), 'cat', 1);
+select boggle.submit_word((select id from cg), 'cat', 1, false);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select boggle.submit_word((select id from cg), 'car', 1);
+select boggle.submit_word((select id from cg), 'car', 1, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
