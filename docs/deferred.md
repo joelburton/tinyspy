@@ -63,6 +63,10 @@ See [`spellingbee.md → Open / deferred`](games/spellingbee.md#open--deferred) 
 
 No outstanding deferred items today.
 
+## bananagrams (bananagrams)
+
+- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer peeling grows the caller's own `tiles` (everyone draws on a peel), so the caller's draw-announcement watcher reads it as a draw and shows the peel pill even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why the pill?"). Cosmetic — the tile counts are always correct. Joel hasn't decided whether to reword the peer case (e.g. "🍌 <name> peeled — you drew N") or leave it. Low priority.
+
 ## Wordlist markers (spellingbee + boggle)
 
 The shared `WordList` (used by both spellingbee and boggle) now leads each row with a **circle marker** carrying finder attribution — a filled ● in the finder's color for found words, a hollow ○ in light grey for post-terminal misses — with the word text itself plain black. Rationale worth keeping: a solid disc is a far better color carrier than thin colored text (bigger area, no legibility/antialiasing fight), which **decouples identity from legibility** and relaxes the member palette — colors no longer have to survive as thin text, only as a ~12px disc. The deferred ideas that fall out of having a marker vocabulary:
@@ -72,6 +76,8 @@ The shared `WordList` (used by both spellingbee and boggle) now leads each row w
 - **Filter dropdown on the WordList.** A small select to narrow the displayed words: `all words`, `missed`, `everyone`, `me`, and one entry per other player by username (`moth`, `leah`, …). There are real moments you want to focus — "what did we miss?", "what did Leah get?" — that the full alphabetical wall buries. Pure FE: filters the rows the list already has (found rows + the post-terminal reveal), nothing new from the server. Same honesty constraint as the markers above: `missed` and per-player options only mean anything **post-terminal in compete** (mid-game RLS shows you only your own finds), so the per-player entries should appear only when the data is actually visible (coop, or compete post-terminal). The finder-color circles make the per-player options self-labeling — each name can carry its color dot.
 
 ## Feedback channels (local vs group)
+
+> **✅ RESOLVED — the feedback refactor (`7f160b4` → `2af0e4d`, branch `playarea-layout`).** Exactly this split shipped: **local** feedback is `common/hooks/useLocalFeedback.ts` (a near-input `<GenericFeedbackPill>` in the below-board slot, validity tones, never a player color); **group/peer** feedback is `common/hooks/useGlobalFeedback.ts` → the header `<StatusSlot>` (carries the actor's color disc). The two are separate channels so neither clobbers the other, and the naming convention (`Global`/`Local`/`Generic`, never bare "feedback") is in `docs/code-conventions.md`. Only remaining follow-up: unify the *turn-outcome* vocabulary (TurnLog good/bad/near/…), deliberately deferred. *Original note below for the record.*
 
 `ctx.feedback` → `<FeedbackPill>` renders in the GamePage header's `<StatusSlot>`, *replacing* the `<PlayersStrip>`. It's used inconsistently: most games route **local** feedback — validation of the player's own action ("not a word", "no 'X' on your rack", "too short") — into this **group**-positioned slot, clobbering the player roster. The distinction worth enforcing:
 
@@ -83,6 +89,7 @@ The shared `WordList` (used by both spellingbee and boggle) now leads each row w
 ## Tooling
 
 - **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Not worth the machinery until we have ≥ 3 games — the dup is one line and the lint failure on a missed update is obvious.
+- **Stale e2e fixtures: `bananagrams` + `boggle`.** `e2e/bananagrams.e2e.ts` uses `data-row`/`data-col` selectors but the board renders `data-x`/`data-y`, and its input interaction predates the v3 UI + the concede/peel changes; `e2e/boggle.e2e.ts`'s input interaction predates the capture-entry model (it should type via `page.keyboard`, no `<input data-game-input>`). Both were deferred through the v3 sweep and never re-run. Refresh selectors + interactions when either game is next touched. The Playwright infra itself is healthy — and the **WebKit + Firefox engines are now installed** (`npx playwright install webkit firefox`), so cross-engine (Safari/Firefox) layout repro is available.
 
 ## Far future
 
