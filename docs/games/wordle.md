@@ -56,7 +56,8 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus spellingbee's pe
 
 - **`create_game(club, setup, players, mode)`** — validate (`max_guesses` 5..8, `answer_source` 0..6, `legal_guess` 1..6 ≥ the answer band, timer, mode); pick `target` from `where wordle` (source 0) or `len=5 AND difficulty ≤ answer_source AND clean` (1..6); store target + `legal_guess`; seed players; `update_state 'playing'`.
 - **`submit_guess(game, guess) → jsonb`** — `FOR UPDATE` lock (coop serialization). Soft rejects (no burn, no row): `invalid` (not 5 a–z), `notAWord` (not in `len=5, difficulty ≤ games.legal_guess`), `duplicate`. A valid fresh word → compute colors, log it, `guesses_used++` (coop: all rows; compete: caller), set `solved`. Terminal: coop → `won`/`lost`; compete → when every player is done, winner = fewest guesses (tie earliest) → `won_compete`/`lost_compete`. Returns `{ result, colors, guesses_used, solved, terminal }`; `result ∈ correct | incorrect | notAWord | duplicate | invalid`.
-- **`submit_timeout`** / **`end_game`** — mirror waffle's (countdown loss / race-resolve; manual neutral `ended`). Both fire a realtime "touch" on `wordle.games` so the FE refetches the now-revealed target.
+- **`submit_timeout`** / **`end_game`** — mirror waffle's (countdown loss / race-resolve; manual neutral `ended`, coop's stop). Both fire a realtime "touch" on `wordle.games` so the FE refetches the now-revealed target.
+- **`concede`** — the compete per-player drop-out (elimination game, like waffle): `common._set_conceded` then `wordle._maybe_finish_compete`, which counts a conceder as done and forfeits their win (fewest-guesses winner among solved, non-conceded players). `submit_timeout` also excludes conceders from the winner. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
 ### Title formula
 

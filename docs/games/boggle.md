@@ -258,7 +258,13 @@ game is terminal, then all.
   same as spellingbee.)
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
-  missed words from data it already holds.
+  missed words from data it already holds. `end_game` is coop's manual stop.
+- **`concede`** — the compete per-player drop-out. boggle is a timed hunt with no
+  per-player elimination, so it's a **thin wrapper over `common.concede`**
+  (compete-only guard). FE shows `<ConcedeGameButton>` in compete, marks a
+  conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See
+  [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
+  `concede_test.sql`.
 
 ### Where validation lives
 

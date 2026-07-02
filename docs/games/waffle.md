@@ -168,8 +168,18 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   - Returns `{ colors, swaps_used, solved, terminal }`.
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   spellingbee "realtime touch" pattern so the FE wakes up on expiry.
+- **`concede(game)`** — the compete "Concede" action-row button: a per-player
+  "I quit, the others keep racing". waffle is an **elimination** game (a player
+  is done when solved or out of swaps without the table ending), so concede calls
+  `common._set_conceded` then re-runs `waffle._maybe_finish_compete`, which counts
+  a conceder as done and **forfeits their win** (fewest-swaps winner is picked
+  among solved, non-conceded players). The FE shows Concede in compete / End in
+  coop, marks a conceder "out" in the OpponentStrip, and folds them into the
+  existing solved/out-of-swaps locally-terminal look. Full mechanism:
+  [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
+  `concede_test.sql`.
 - **`end_game(game)`** — the manual "End" action-row button in the info column
-  (both modes; players only). A
+  (**coop**; compete shows Concede instead). A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
   intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
   `status = {outcome:'manual', mode}`. Any game player can call it; idempotent

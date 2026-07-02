@@ -483,14 +483,20 @@ neither). Genuine gaps, ranked:
   spellingbee's peer messages: `{name} found {WORD} +{pts}` / `… +{pts} — pangram!
   🐝`, the bonus dot single-sourced as `useWordSubmit.wordWithBonusDot`, and the
   opponent rank-climb pill made **sticky**.*
-- **GAP 2 [med — verify intent] — spellingbee compete uses whole-table End
-  instead of per-player Concede.** `spellingbee/components/PlayArea.tsx:464` uses
-  `EndGameButton` in both modes; its `handleEndGame` terminates the race with
-  everyone `{won:false}`. That's exactly the whole-table `end_game` that
-  bananagrams v3 *retired* for a per-player concede (drop out = a real loss,
-  others keep racing). In a timed word-race, one player quitting shouldn't end
-  everyone's race. *Low effort* — but confirm it wasn't a deliberate "friends stop
-  together" choice.
+- ~~**GAP 2 [med — verify intent] — spellingbee compete uses whole-table End
+  instead of per-player Concede.**~~ **✅ RESOLVED (2026-07-02) — and generalized
+  to a whole-app feature.** It wasn't just spellingbee: **every** compete game's
+  Concede button was wired to the whole-table `end_game` (spellingbee didn't even
+  show Concede). Fixed by promoting bananagrams' per-player concede into the
+  common layer — `common.game_players.conceded` + `common.concede` (marks the
+  caller out; ends as a collective loss only when the *last* active player
+  concedes) — and giving every compete game a `<game>.concede` RPC + Concede UI.
+  Two patterns: non-elimination games (spellingbee/boggle/stackdown/bananagrams)
+  wrap `common.concede`; elimination games (wordle/waffle/connections/psychicnum)
+  and turn-based scrabble run their own terminal check that counts a conceder as
+  done + forfeits their win. The DB now distinguishes the two "no longer active"
+  states (`conceded` flag) so terminals read "Quit at …" vs "Lost at …". See
+  [`docs/common.md` → Concede](common.md#concede--per-player-drop-out).
 - **GAP 3 [med] — click-to-define missing on wordle and connections.** 6/10 games
   have it via `useDefinePopover`; wordle (guesses + answer) and connections (16
   real words + revealed categories) are real-word games where players want

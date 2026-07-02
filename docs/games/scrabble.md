@@ -369,16 +369,23 @@ Advances the turn, `consecutive_scoreless += 1`, logs `kind='pass'`, checks the
 blocked-end condition. Like the other moves it takes `base_version` and runs the
 optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
 
-### 5.5 `end_game` / `submit_timeout`
+### 5.5 `end_game` / `concede` / `submit_timeout`
 
 `submit_timeout` is countdown expiry and always runs final scoring
-([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop: in
-**compete** it's the uniform neutral terminal ([common.md → Manual
-end](../common.md#manual-end--every-gametypes-end_gametarget_game)) — no winner,
-no scoring; in **coop** it deviates and runs final scoring with a leftover-tile
-**forfeit** (a `'forfeit'` play row with the negative value lost, `play_state
-'won'`, `outcome 'manual'`). Both do the realtime-touch self-write on a
-`scrabble` row so the FE subscription wakes to reveal final racks.
+([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop shown in
+**coop** only: it runs final scoring with a leftover-tile **forfeit** (a
+`'forfeit'` play row with the negative value lost, `play_state 'won'`, `outcome
+'manual'`). **Compete uses `scrabble.concede`, not `end_game`** — a per-player
+"I quit, the others keep playing". Because scrabble is turn-based, concede is
+more than a flag: `scrabble._advance_turn` **skips** conceders, `scrabble._finish`
+picks the winner among **non-conceded** players (a drop-out forfeits even a tying
+score), and `scrabble.concede` hands the turn off if it was the conceder's, or
+ends the game (final scoring, nobody eligible to win) when the last active player
+drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip
+(and `Quit · score` at terminal via `playerOutcome`), input disabled once
+conceded. See [common.md → Concede](../common.md#concede--per-player-drop-out).
+pgTAP: `concede_test.sql`. All the terminal paths do the realtime-touch self-write
+on a `scrabble` row so the FE subscription wakes to reveal final racks.
 
 ---
 

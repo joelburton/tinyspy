@@ -248,7 +248,8 @@ creation, so it's self-contained; `board_id` is provenance only.
   formula](#title-formula)).
 - **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
   `lost_compete` (a race, so no winner if it gets here).
-- **`end_game(target_game)`** — manual neutral stop → `ended`.
+- **`end_game(target_game)`** — manual neutral stop → `ended` (**coop**; compete shows Concede).
+- **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `<ConcedeGameButton>` in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 - **`reveal_next_word(target_game) → text`** — a **cheat**: returns the next
   solution word the caller still has to clear (`solution[cleared + 1]`; NULL once
   all six are gone), defeating the hidden-solution invariant on purpose. It exists
