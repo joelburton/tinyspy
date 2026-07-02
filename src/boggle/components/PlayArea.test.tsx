@@ -17,6 +17,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
+import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
@@ -30,6 +31,8 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** A loaded 4×4 game header; override the mode + required list per test. */
 function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
@@ -86,6 +89,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 
 beforeEach(() => {
   h.result = loaded(loadedGame())
+  rpc.mockReset()
+  rpc.mockResolvedValue({ error: null }) // trusting-commit succeeds by default
 })
 
 describe('boggle PlayArea — render smoke', () => {
@@ -120,5 +125,41 @@ describe('boggle PlayArea — render smoke', () => {
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('zzz{Enter}')
     expect(screen.getByText(/not on the board/i)).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
+  it('accepts a required word: optimistic pill + submit_word call', async () => {
+    // 'cat' is in the required list (membership, not traceability, drives accept),
+    // so it commits optimistically with the stored points + is_bonus=false.
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.keyboard('cat{Enter}')
+    expect(screen.getByText(/CAT \+1/)).toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith(
+      'submit_word',
+      expect.objectContaining({ word: 'cat', points: 1, is_bonus: false }),
+    )
+  })
+
+  it('accepts a bonus word with the trailing dot', async () => {
+    h.result = loaded(loadedGame({ bonus_words: [{ word: 'dog', points: 2 }] }))
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.keyboard('dog{Enter}')
+    expect(screen.getByText(/DOG \+2 •/)).toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
+  })
+
+  it('rejects a real-but-untraceable word as "not a word"', async () => {
+    // 'aid' isn't in required ∪ bonus, but it IS traceable on the plain board
+    // (a→i→? — actually a,i adjacent? the board is row-major abcd/efgh/ijkl/mnop;
+    // pick a word whose letters trace): use a legal-list miss that traces.
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.keyboard('abe{Enter}') // a(0)→b(1)→e(4): adjacent, traceable, not in the lists
+    expect(screen.getByText(/not a word/i)).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalled()
   })
 })
