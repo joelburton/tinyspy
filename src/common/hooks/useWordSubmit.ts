@@ -98,6 +98,16 @@ const ownMove = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg =>
 })
 
 /**
+ * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
+ * dot when it's a bonus find. Single-sources that convention so it can't drift
+ * between the local own-move `line()` (below) and the per-game peer-narration
+ * pills (spellingbee/boggle coop headers), which also lead with `{name} found
+ * {WORD}` and must show the same dot.
+ */
+export const wordWithBonusDot = (word: string, isBonus = false): string =>
+  `${word.toUpperCase()}${isBonus ? ' •' : ''}`
+
+/**
  * The one own-move line format, shared by both games so their feedback reads
  * identically: `WORD — body`, always leading with the word in caps. A **bonus**
  * find gets the ` •` dot right after the word (not at the end of the line):
@@ -108,7 +118,7 @@ const ownMove = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg =>
  *   reject       → `ZZZ — not on board`   (the reason comes from explainReject)
  */
 const line = (word: string, body: string, isBonus = false): string =>
-  `${word.toUpperCase()}${isBonus ? ' •' : ''} — ${body}`
+  `${wordWithBonusDot(word, isBonus)} — ${body}`
 
 export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [word, setWordState] = useState('')

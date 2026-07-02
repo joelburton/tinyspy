@@ -10,8 +10,10 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
+import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
-import { useWordSubmit, type WordEntry } from '../../common/hooks/useWordSubmit'
+import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
 import { type LadderName } from '../lib/solver'
@@ -54,7 +56,7 @@ function rotateCW(g: string[][]): string[][] {
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, setup, goToClub, session, status } = ctx
+  const { gameId, players, isTerminal, setup, goToClub, session, status, globalFeedback } = ctx
   const { game, foundWords, loading } = useGame(gameId)
   const myId = session.user.id
 
@@ -144,6 +146,36 @@ export function PlayArea(ctx: GamePageCtx) {
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showFeedback('error', `End game failed: ${error.message}`)
   }, [gameId, isTerminal, showFeedback])
+
+  // ─── Coop peer-word narration (global header) ──────────────────
+  // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
+  // `foundWords`; surface it in the shared header slot (the twin of spellingbee's
+  // coop narration). Rejected words never become a row, so there's nothing to
+  // suppress; own words go to the in-body local pill. boggle has no pangram, but
+  // a long find (7+ letters) is its "wow" moment — flag those. Compete stays
+  // silent by design (opponents' words are private; no rank ladder to announce).
+  useGlobalFeedback({
+    enabled: game?.mode === 'coop',
+    items: foundWords,
+    keyOf: (r) => `${r.user_id}:${r.word}`,
+    messageFor: (r) => {
+      if (r.user_id === myId) return null // own word → in-body pill
+      const member = players.find((p) => p.user_id === r.user_id)
+      const name = member?.username ?? 'A teammate'
+      const wow = r.word.length >= 7
+      const label = wordWithBonusDot(r.word, r.is_bonus)
+      return {
+        tone: 'success',
+        variant: 'outline',
+        dot: colorVarFor(member?.color),
+        text: wow
+          ? `${name} found ${label} +${r.points} — wow!`
+          : `${name} found ${label} +${r.points}`,
+        dismiss: { kind: 'timed' },
+      }
+    },
+    globalFeedback,
+  })
 
   const { showModal, closeModal } = useTerminalModal(isTerminal)
 

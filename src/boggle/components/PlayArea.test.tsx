@@ -163,3 +163,70 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 })
+
+describe('boggle PlayArea — coop peer narration (global header)', () => {
+  // `useGlobalFeedback` seeds the backlog silently on the first loaded render,
+  // then fires a header pill for each NEW peer row. So each test renders once
+  // (empty seed), pushes a peer row into the mocked useGame, and re-renders to
+  // trigger the fire — asserting on the same ctx's stable `globalFeedback.show`.
+
+  /** A peer's accepted found_words row (the coop header reads these). */
+  function foundRow(over: Partial<FoundWordRow> = {}): FoundWordRow {
+    return {
+      game_id: 'g1',
+      user_id: 'u2', // 'moth' — a teammate, not the caller (u1)
+      word: 'dog',
+      points: 2,
+      is_bonus: false,
+      found_at: '2026-01-01T00:00:01Z',
+      ...over,
+    }
+  }
+
+  it("narrates a teammate's find with the word + points", () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found DOG +2', tone: 'success' }),
+    )
+  })
+
+  it('flags a long (7+ letter) find with "wow!"', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'jackpot', points: 9 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found JACKPOT +9 — wow!' }),
+    )
+  })
+
+  it('shows the bonus dot after a bonus find', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2, is_bonus: true })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found DOG • +2' }),
+    )
+  })
+
+  it('does not narrate your own find (that goes to the local pill)', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'cat', points: 1 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+  })
+
+  it("stays silent in compete (opponents' finds are private)", () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame({ mode: 'compete' }), [foundRow({ word: 'dog', points: 2 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+  })
+})

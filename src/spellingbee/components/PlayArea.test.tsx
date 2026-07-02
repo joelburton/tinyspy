@@ -161,3 +161,96 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     expect(rpc).not.toHaveBeenCalled()
   })
 })
+
+describe('spellingbee PlayArea — coop peer narration (global header)', () => {
+  // `useGlobalFeedback` seeds the backlog silently on the first loaded render,
+  // then fires a header pill for each NEW peer row. Each test renders once (empty
+  // seed), pushes a peer row into the mocked useGame, and re-renders to fire.
+
+  /** A peer's accepted found_words row (the coop header reads these). */
+  function foundRow(over: Partial<FoundWordRow> = {}): FoundWordRow {
+    return {
+      game_id: 'g1',
+      user_id: 'u2', // 'moth' — a teammate, not the caller (u1)
+      word: 'bead',
+      points: 1,
+      is_pangram: false,
+      is_bonus: false,
+      found_at: '2026-01-01T00:00:01Z',
+      ...over,
+    }
+  }
+
+  it("narrates a teammate's find with the word + points", () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'bead', points: 1 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found BEAD +1', tone: 'success' }),
+    )
+  })
+
+  it('adds the pangram flourish for a peer pangram', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found ABCDEFG +17 — pangram! 🐝' }),
+    )
+  })
+
+  it('shows the bonus dot after a peer bonus find', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ word: 'bcdfge', points: 6, is_bonus: true })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
+      expect.objectContaining({ text: 'moth found BCDFGE • +6' }),
+    )
+  })
+
+  it('does not narrate your own find (that goes to the local pill)', () => {
+    const ctx = makeCtx({ players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'bead', points: 1 })])
+    rerender(<PlayArea {...ctx} />)
+    expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
+  })
+})
+
+describe('spellingbee PlayArea — compete opponent rank climb', () => {
+  // The compete channel is a hand-rolled rank-delta detector over
+  // `status.leaderboard` (opponents' words are private, so it reads the aggregate
+  // rank). It seeds each opponent's rank on the first render, then fires a
+  // **sticky** pill when a rank INCREASES.
+  const entry = (rank_idx: number) => ({
+    user_id: 'u2',
+    rank_idx,
+    found_words_score: 10 * rank_idx,
+    found_words_count: rank_idx,
+  })
+  const competeCtx = (rank_idx: number, over: Partial<GamePageCtx> = {}) =>
+    makeCtx({
+      players: twoMembers,
+      setup: { required: 3, legal: 5, target_rank: 6, timer: { kind: 'none' } },
+      status: { leaderboard: [entry(rank_idx)] },
+      ...over,
+    })
+
+  it('fires a sticky pill when an opponent reaches a higher rank', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    const gf = { show: vi.fn(), clear: vi.fn() }
+    const props = competeCtx(1, { globalFeedback: gf as unknown as GamePageCtx['globalFeedback'] })
+    const { rerender } = render(<PlayArea {...props} />)
+    // Same globalFeedback + players, new leaderboard with u2 climbing 1 → 2.
+    rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
+    expect(gf.show).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringMatching(/^moth reached /),
+        dismiss: { kind: 'sticky' },
+      }),
+    )
+  })
+})

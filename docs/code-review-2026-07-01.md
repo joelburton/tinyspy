@@ -29,7 +29,8 @@ was edited — this is a findings report, not a change.
 >   drift remains.
 >
 > Verified **still open** (the §1.1 work did *not* touch these, despite living
-> nearby): **GAP 1** (boggle peer feedback) and the §3.1 `--avail-h` derivation.
+> nearby): the §3.1 `--avail-h` derivation. (**GAP 1**, boggle peer feedback, was
+> since closed on `2026-07-02` — see §5.)
 > **§1.2** (codenamesduet clue-draft loss) was investigated and closed **WONTFIX**
 > — `submit_clue` has no content-rejection path, so the draft is moot whenever the
 > error fires (see §1.2). Each item is annotated inline below. *(Unrelated to this review: a shared board-overflow bug on classic
@@ -471,13 +472,17 @@ GameOver modal, and a peer display (codenamesduet excepted by design); every gam
 has exactly one of {turn log, word list} except bananagrams (deliberately
 neither). Genuine gaps, ranked:
 
-- **GAP 1 [high] — boggle is missing live peer-found feedback.** boggle is the
-  structural twin of spellingbee (coop shared word list, compete private, both
-  render `<WordList>`+`<OpponentStrip>`) but has no "● moth found APPLE" header
-  announcement — teammates' finds appear silently. spellingbee and stackdown both
-  have `usePeerFeedback`; boggle is the odd one out. *Low–medium effort* — port
-  the hook (ideally the §4.1 shared one). boggle already exposes the same
-  `foundWords` shape and `ctx.feedback`.
+- ~~**GAP 1 [high] — boggle is missing live peer-found feedback.**~~ **✅ RESOLVED
+  (2026-07-02).** boggle's coop PlayArea now narrates teammates' finds through the
+  shared `useGlobalFeedback` (the §4.1 hook, so it inherits the correct
+  gate-before-seed bootstrap — no backlog replay on pause/remount): `{name} found
+  {WORD} +{pts}`, with a `— wow!` flourish on a 7+ letter find (boggle's analog of
+  spellingbee's pangram) and the shared ` •` bonus dot after the word. Compete
+  stays silent by design (opponents' finds are private; no rank ladder to announce).
+  Covered by 5 new `boggle/PlayArea.test.tsx` cases. *Same change re-aligned
+  spellingbee's peer messages: `{name} found {WORD} +{pts}` / `… +{pts} — pangram!
+  🐝`, the bonus dot single-sourced as `useWordSubmit.wordWithBonusDot`, and the
+  opponent rank-climb pill made **sticky**.*
 - **GAP 2 [med — verify intent] — spellingbee compete uses whole-table End
   instead of per-player Concede.** `spellingbee/components/PlayArea.tsx:464` uses
   `EndGameButton` in both modes; its `handleEndGame` terminates the race with
@@ -529,8 +534,8 @@ by design.
 6. **Mechanical PlayArea boilerplate** (§4.2) after normalizing `buildOver`→
    `TerminalCopy`; then `<SelectField>` (§4.4, fixes drift), `useRealtimeRefetch`
    conversions (§4.3), `<RadioRow>`/`<TurnLogActor>` (§4.5).
-7. **Feature gaps** (§5) — boggle peer feedback (reuses step 1), the End→Concede
-   fix, then click-to-define and wordle capture.
+7. **Feature gaps** (§5) — ~~boggle peer feedback~~ **✅ done (`useGlobalFeedback`,
+   2026-07-02)**; still: the End→Concede fix, then click-to-define and wordle capture.
 8. **Focused decompositions** (§4.6) — scrabble PlayArea, then bananagrams
    PlayerBoard; each its own scoped effort.
 

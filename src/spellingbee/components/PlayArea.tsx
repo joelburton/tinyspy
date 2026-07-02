@@ -13,7 +13,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
-import { useWordSubmit, type WordEntry } from '../../common/hooks/useWordSubmit'
+import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
@@ -254,8 +254,8 @@ export function PlayArea(ctx: GamePageCtx) {
         variant: 'outline',
         dot: colorVarFor(member?.color),
         text: r.is_pangram
-          ? `🐝 ${name} found a pangram — ${r.word.toUpperCase()}!`
-          : `${name} found ${r.word.toUpperCase()}`,
+          ? `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points} — pangram! 🐝`
+          : `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`,
         dismiss: { kind: 'timed' },
       }
     },
@@ -291,7 +291,7 @@ export function PlayArea(ctx: GamePageCtx) {
           variant: 'outline',
           dot: colorVarFor(member?.color),
           text: `${name} reached ${RANKS[row.rank_idx] ?? 'a new rank'}`,
-          dismiss: { kind: 'timed' },
+          dismiss: { kind: 'sticky' },
         })
       }
     }
