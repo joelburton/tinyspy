@@ -13,6 +13,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
@@ -199,18 +200,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // persists until their NEXT move dismisses it rather than vanishing on a timer
   // (docs/design-decisions.md → Dismissal modes). `clearLocalFeedback` is called on
   // every move gesture below — any key the game sees, a hex click, or Delete.
-  const [localFeedback, setLocalFeedback] = useState<{
-    message: string
-    tone: GenericFeedbackTone
-  }>({ message: '', tone: 'success' })
-
-  const showLocalFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
-    setLocalFeedback({ message, tone })
-  }, [])
-
-  const clearLocalFeedback = useCallback(() => {
-    setLocalFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
-  }, [])
+  // The shared hook owns the state + cleanup; this thin builder keeps
+  // spellingbee's `(message, tone)` call sites over it. Own-move results are
+  // sticky (the next move gesture dismisses them).
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
+  const showLocalFeedback = useCallback(
+    (message: string, tone: GenericFeedbackTone) =>
+      showMsg({ tone, text: message, variant: 'outline', dismiss: { kind: 'sticky' } }),
+    [showMsg],
+  )
 
   const handleLetterClick = useCallback((letter: string) => {
     clearLocalFeedback()
@@ -441,8 +439,8 @@ export function PlayArea(ctx: GamePageCtx) {
                     variant: 'fill', // permanent → lightened-tone fill
                     dismiss: { kind: 'sticky' },
                   }
-                : localFeedback.message && word === ''
-                  ? { tone: localFeedback.tone, text: localFeedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                : word === ''
+                  ? localFeedback
                   : null
             }
           >

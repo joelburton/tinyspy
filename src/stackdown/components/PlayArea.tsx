@@ -21,6 +21,7 @@ import { exposedIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
@@ -90,14 +91,14 @@ export function PlayArea({
   // (a tile click, a keystroke) dismisses it. Peer narration goes to the GLOBAL
   // header instead (usePeerFeedback). Word accept/reject additionally flash the
   // WordEntry ring (below), so the pill is for the results that HAVE no ring.
-  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
+  // The shared hook owns the state + timer + cleanup; this thin builder keeps
+  // stackdown's terse `(text, tone, dismiss?)` call sites over it.
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
   const showLocalFeedback = useCallback(
-    (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) => {
-      setLocalFeedback({ tone, text, variant: 'outline', dismiss })
-    },
-    [],
+    (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) =>
+      showMsg({ tone, text, variant: 'outline', dismiss }),
+    [showMsg],
   )
-  const clearLocalFeedback = useCallback(() => setLocalFeedback(null), [])
 
   // Tiles to briefly outline in red — set when a typed letter is ambiguous
   // (more than one exposed tile bears it), cleared after a beat.

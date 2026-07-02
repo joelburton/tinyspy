@@ -8,6 +8,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
@@ -92,11 +93,11 @@ export function PlayArea({
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   // The own-move local feedback pill (soft reject / RPC error), shown in the
-  // fixed-height slot between the board and the keyboard. Sticky: cleared by the
-  // player's next edit (typeLetter / deleteLetter below), the "next move
-  // dismisses it" rule (docs/design-decisions.md → Dismissal modes). Accepted
-  // guesses get NO pill — the colored row that lands IS the feedback.
-  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
+  // fixed-height slot between the board and the keyboard. Sticky (localPill):
+  // cleared by the player's next edit (typeLetter / deleteLetter below), the
+  // "next move dismisses it" rule (docs/design-decisions.md → Dismissal modes).
+  // Accepted guesses get NO pill — the colored row that lands IS the feedback.
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
   // from the moment we submit until its colored server row arrives via
   // realtime, so the letters don't blink out during the round-trip. The
@@ -133,21 +134,22 @@ export function PlayArea({
   // Typing a letter or backspacing is the player's "next move", so it clears the
   // last soft-reject pill (the analog of psychicnum's "typing dismisses the
   // entry flash"). Both the physical and on-screen keyboards route through these,
-  // so the clear lives in one place. Stable (no deps) — they only call setters.
+  // so the clear lives in one place. `clearLocalFeedback` is stable (the hook
+  // memoizes it), so these stay effectively constant.
   const typeLetter = useCallback((ch: string) => {
-    setLocalFeedback(null)
+    clearLocalFeedback()
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
-  }, [])
+  }, [clearLocalFeedback])
   const deleteLetter = useCallback(() => {
-    setLocalFeedback(null)
+    clearLocalFeedback()
     setCurrent((c) => c.slice(0, -1))
-  }, [])
+  }, [clearLocalFeedback])
 
   // ─── Submit a guess (stable across keystrokes) ────────────────
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        setLocalFeedback(localPill('warning', 'Not enough letters'))
+        showLocalFeedback(localPill('warning', 'Not enough letters'))
         return
       }
       setSubmitting(true)
@@ -162,7 +164,7 @@ export function PlayArea({
       if (error) {
         setPending(null)
         // A real failure (not a soft reject) → error-toned, still sticky.
-        setLocalFeedback(localPill('error', error.message))
+        showLocalFeedback(localPill('error', error.message))
         return
       }
       const res = data as { result: string }
@@ -170,24 +172,24 @@ export function PlayArea({
       // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
-        setLocalFeedback(localPill('error', 'Not in word list'))
+        showLocalFeedback(localPill('error', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {
         setPending(null)
-        setLocalFeedback(localPill('warning', 'Already guessed'))
+        showLocalFeedback(localPill('warning', 'Already guessed'))
         return
       }
       if (res.result === 'invalid') {
         setPending(null)
-        setLocalFeedback(localPill('warning', 'Not enough letters'))
+        showLocalFeedback(localPill('warning', 'Not enough letters'))
         return
       }
       // accepted (correct/incorrect): clear the typing buffer. `pending`
       // holds the word in place until its colored row lands (then flips).
       setCurrent('')
     },
-    [gameId],
+    [gameId, showLocalFeedback],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -209,7 +211,7 @@ export function PlayArea({
     // keyboard dismisses via typeLetter/deleteLetter instead; doing it here too
     // is a harmless no-op when those run. (Same rule as useCaptureKeys.onAnyKey
     // — the EntryBox grabber had this exact gap before.)
-    setLocalFeedback(null)
+    clearLocalFeedback()
     if (e.key === 'Enter') {
       e.preventDefault()
       void doSubmit(current)
@@ -340,7 +342,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) setLocalFeedback(localPill('error', error.message))
+    if (error) showLocalFeedback(localPill('error', error.message))
   }
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GenericFeedbackApi, GenericFeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
@@ -62,6 +62,16 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
 /** Local feedback pills here are never closeable, so the × is never rendered and
  *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
+
+/** Build codenamesduet's own-action local pill: outline + TIMED (auto-clears
+ *  after a beat — the only own-move feedback is a rejected guess / failed End /
+ *  clue-panel error). A pure msg-builder over the shared `useLocalFeedback`. */
+const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
+  tone,
+  text,
+  variant: 'outline',
+  dismiss: { kind: 'timed' },
+})
 
 /** One-line timer summary for the setup disclosure (same shape connections
  *  uses). */
@@ -259,7 +269,7 @@ export function PlayArea({
       setPendingPos(null)
       if (error) {
         console.error('submit_guess failed', error)
-        showLocalFeedback('error', error.message)
+        showLocalFeedback(ownAction('error', error.message))
       }
       // Success: the reveal arrives via Realtime → useBoard refetches → the tile
       // re-renders with its result color. No optimistic update, no flash.
@@ -278,7 +288,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
+    if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
@@ -386,17 +396,9 @@ export function PlayArea({
             </div>
           ) : localFeedback ? (
             <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={{
-                  // Own-action flash is error-only here (a rejected guess / failed
-                  // End); the success path shows on the board + turn log instead.
-                  tone: localFeedback.tone,
-                  text: localFeedback.label,
-                  variant: 'outline', // transient
-                  dismiss: { kind: 'sticky' }, // host clears it (the flash timer)
-                }}
-                onClose={noop}
-              />
+              {/* Own-action flash is error-only here (a rejected guess / failed
+                  End); the success path shows on the board + turn log instead. */}
+              <GenericFeedbackPill msg={localFeedback} onClose={noop} />
             </div>
           ) : (
             <div className={styles.moveArea}>
@@ -411,7 +413,7 @@ export function PlayArea({
               // beat, never grows it). The AI clue suggestion opens its own
               // draggable panel (rendered at the .layout level below, so it's
               // on-screen) — the requester's helper output, not peer feedback.
-              onError={(m) => showLocalFeedback('error', m)}
+              onError={(m) => showLocalFeedback(ownAction('error', m))}
               onSuggestionChange={setClueSuggestion}
             />
             </div>

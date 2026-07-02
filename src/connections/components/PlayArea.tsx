@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import type { GamePageCtx, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone, TimerMode } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -38,6 +38,15 @@ const MISTAKE_BUDGET = 4
 /** Local feedback pills are never closeable, so the × never renders and this is
  *  never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
+
+/** Build connections' own-guess local pill: outline + STICKY (a tile click
+ *  dismisses it). A pure msg-builder over the shared `useLocalFeedback`. */
+const ownGuess = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
+  tone,
+  text,
+  variant: 'outline',
+  dismiss: { kind: 'sticky' },
+})
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
  *  UTC so a calendar date never shifts by a local-tz offset (matches Calendar). */
@@ -172,7 +181,7 @@ export function PlayArea({
     localFeedback,
     showLocalFeedback,
     clearLocalFeedback,
-  } = useLocalFeedback(null) // sticky: no auto-timer; a tile click dismisses it
+  } = useLocalFeedback()
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess is narrated in the GamePage header: correct →
@@ -225,7 +234,7 @@ export function PlayArea({
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback('error', `End game failed: ${error.message}`)
+      showLocalFeedback(ownGuess('error', `End game failed: ${error.message}`))
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -245,7 +254,7 @@ export function PlayArea({
     // Dup detection (FE-side per the FE-knows model). My own action, so it
     // flashes locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback('error', 'You already tried that')
+      showLocalFeedback(ownGuess('error', 'You already tried that'))
       return
     }
 
@@ -261,7 +270,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback('error', error.message)
+      showLocalFeedback(ownGuess('error', error.message))
       return
     }
     // Own-result flash in the commit slot (green/near/red), then clear the
@@ -270,11 +279,11 @@ export function PlayArea({
     // rejected set selected). The sticky flash shows over the cleared board;
     // clicking a tile dismisses it (handleToggle) and starts the next guess.
     if (verdict.kind === 'correct') {
-      showLocalFeedback('success', 'Correct!')
+      showLocalFeedback(ownGuess('success', 'Correct!'))
     } else if (verdict.kind === 'oneAway') {
-      showLocalFeedback('near', 'One away!')
+      showLocalFeedback(ownGuess('near', 'One away!'))
     } else {
-      showLocalFeedback('error', 'Incorrect')
+      showLocalFeedback(ownGuess('error', 'Incorrect'))
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -420,15 +429,7 @@ export function PlayArea({
               // My own guess result — a centered local <GenericFeedbackPill> (sticky;
               // clicking a tile dismisses it). Same register as the header pill.
               <div className={shared.localFeedback}>
-                <GenericFeedbackPill
-                  msg={{
-                    tone: localFeedback.tone,
-                    text: localFeedback.label,
-                    variant: 'outline',
-                    dismiss: { kind: 'sticky' },
-                  }}
-                  onClose={noop}
-                />
+                <GenericFeedbackPill msg={localFeedback} onClose={noop} />
               </div>
             ) : (
               <div className={styles.moveArea}>

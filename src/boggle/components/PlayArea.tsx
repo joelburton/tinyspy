@@ -11,6 +11,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
 import { LADDERS, scoreFor, type LadderName } from '../lib/solver'
@@ -77,16 +78,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // (docs/design-decisions.md → Feedback). STICKY: it persists until the player's
   // NEXT move dismisses it (any key the game sees, a Delete) rather than vanishing
   // on a timer.
-  const [localFeedback, setLocalFeedback] = useState<{ message: string; tone: GenericFeedbackTone }>({
-    message: '',
-    tone: 'success',
-  })
-  const showLocalFeedback = useCallback((message: string, tone: GenericFeedbackTone) => {
-    setLocalFeedback({ message, tone })
-  }, [])
-  const clearLocalFeedback = useCallback(() => {
-    setLocalFeedback((f) => (f.message === '' ? f : { message: '', tone: 'success' }))
-  }, [])
+  // The shared hook owns the state + cleanup; this thin builder keeps boggle's
+  // `(message, tone)` call sites over it. Own-move results are sticky (the next
+  // key dismisses them).
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
+  const showLocalFeedback = useCallback(
+    (message: string, tone: GenericFeedbackTone) =>
+      showMsg({ tone, text: message, variant: 'outline', dismiss: { kind: 'sticky' } }),
+    [showMsg],
+  )
 
   const grid = useMemo(
     () => (game ? boardToDisplay(game.board, game.n) : null),
@@ -262,8 +262,8 @@ export function PlayArea(ctx: GamePageCtx) {
                     variant: 'fill', // permanent → lightened-tone fill
                     dismiss: { kind: 'sticky' },
                   }
-                : localFeedback.message && word === ''
-                  ? { tone: localFeedback.tone, text: localFeedback.message, variant: 'outline', dismiss: { kind: 'sticky' } }
+                : word === ''
+                  ? localFeedback
                   : null
             }
           />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
@@ -37,6 +37,16 @@ const noop = () => {}
 /** Sentence-case a message's first letter. Server errors come back lowercase
  *  (`'setup.guesses is required'`); local feedback should read as a sentence. */
 const capitalize = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s)
+
+/** Build psychicnum's own-move local pill: outline + STICKY (persists until the
+ *  next move dismisses it — a keystroke / tile click routed through
+ *  handleEntryChange). A pure msg-builder over the shared `useLocalFeedback`. */
+const ownMove = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
+  tone,
+  text,
+  variant: 'outline',
+  dismiss: { kind: 'sticky' },
+})
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -126,8 +136,9 @@ export function PlayArea({
   // result is important and I may be looking elsewhere on the board, so it
   // persists until my NEXT move dismisses it — a tile click or a keystroke into
   // the EntryBox, both routed through `handleEntryChange` below (which calls the
-  // hook's `clear`). `useLocalFeedback(null)` disables the auto-timer.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback(null)
+  // hook's `clear`). The pill's `dismiss: { kind: 'sticky' }` (via `ownMove`) is
+  // what keeps it up — no auto-timer.
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // also the gesture that dismisses a sticky local result, so route both through
@@ -275,7 +286,7 @@ export function PlayArea({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!game.words.includes(guess)) {
-      showLocalFeedback('error', 'Not on the board')
+      showLocalFeedback(ownMove('error', 'Not on the board'))
       return
     }
     setSubmitting(true)
@@ -288,12 +299,14 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback('error', capitalize(error.message))
+      showLocalFeedback(ownMove('error', capitalize(error.message)))
       return
     }
     showLocalFeedback(
-      data === 'won' || data === 'correct' ? 'success' : 'error',
-      data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
+      ownMove(
+        data === 'won' || data === 'correct' ? 'success' : 'error',
+        data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
+      ),
     )
   }
 
@@ -304,14 +317,14 @@ export function PlayArea({
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) showLocalFeedback('error', capitalize(error.message))
+    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
   }
 
   const getReveal = async () => {
     setRevealing(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
     setRevealing(false)
-    if (error) showLocalFeedback('error', capitalize(error.message))
+    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -319,7 +332,7 @@ export function PlayArea({
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('error', capitalize(error.message))
+    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
   }
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
@@ -405,16 +418,7 @@ export function PlayArea({
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}
-              pill={
-                localFeedback && pending === ''
-                  ? {
-                      tone: localFeedback.tone,
-                      text: localFeedback.label,
-                      variant: 'outline',
-                      dismiss: { kind: 'sticky' },
-                    }
-                  : null
-              }
+              pill={pending === '' ? localFeedback : null}
             />
           ) : (
             <div className={shared.localFeedback}>

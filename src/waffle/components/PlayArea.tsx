@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { GamePageCtx, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -24,6 +24,16 @@ import '../theme.css'
 /** Local feedback pills are never closeable here, so the × is never rendered and
  *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
+
+/** Build waffle's own-action local pill: outline + TIMED (auto-clears after a
+ *  beat — waffle's only own-move feedback is a rejected swap / failed End, a
+ *  transient nudge). A pure msg-builder over the shared `useLocalFeedback`. */
+const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
+  tone,
+  text,
+  variant: 'outline',
+  dismiss: { kind: 'timed' },
+})
 
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
@@ -125,7 +135,7 @@ export function PlayArea({
       })
       // Own-action error → the local below-board flash. Success: the swap mutated
       // waffle.players → realtime refetch re-renders the board + colors.
-      if (error) showLocalFeedback('error', error.message)
+      if (error) showLocalFeedback(ownAction('error', error.message))
     },
     [gameId, showLocalFeedback],
   )
@@ -137,7 +147,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
+    if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback])
 
   if (loading) return <p>Loading game…</p>
@@ -249,15 +259,7 @@ export function PlayArea({
                 onClose={noop}
               />
             ) : localFeedback ? (
-              <GenericFeedbackPill
-                msg={{
-                  tone: localFeedback.tone,
-                  text: localFeedback.label,
-                  variant: 'outline',
-                  dismiss: { kind: 'sticky' },
-                }}
-                onClose={noop}
-              />
+              <GenericFeedbackPill msg={localFeedback} onClose={noop} />
             ) : null}
           </div>
         </div>

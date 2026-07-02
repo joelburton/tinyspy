@@ -10,6 +10,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
@@ -172,8 +173,14 @@ export function PlayArea({
   // Feedback), not the global header `ctx.globalFeedback`. Kept terse — the slot is
   // narrow (it sits where [Swap][Submit][Pass] go). Dismissed by the player's
   // next move (clearLocalFeedback, below), not a timer.
-  const [localFeedback, setLocalFeedback] = useState<LocalFeedbackMsg | null>(null)
-  const clearLocalFeedback = useCallback(() => setLocalFeedback((m) => (m ? null : m)), [])
+  // The shared hook owns the state + cleanup; this thin builder keeps scrabble's
+  // terse `{ tone, text }` call sites over it (own-move results are outline +
+  // sticky — the next move dismisses them via `clearLocalFeedback`).
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
+  const showLocalFeedback = useCallback(
+    (m: LocalFeedbackMsg) => showMsg({ ...m, variant: 'outline', dismiss: { kind: 'sticky' } }),
+    [showMsg],
+  )
 
   // Turn viewer: the play `seq` whose historical board is being inspected, or null
   // (live). Local + view-only — never shared/persisted, doesn't pause; the live
@@ -290,7 +297,7 @@ export function PlayArea({
         setStaged([])
         // Terse on purpose — the commit slot is narrow (a name + disc would
         // overflow with a longer username).
-        setLocalFeedback({ tone: 'warning', text: 'Pre-play cleared: conflict' })
+        showLocalFeedback({ tone: 'warning', text: 'Pre-play cleared: conflict' })
       }
       pendingDrawRef.current = 0
       return
@@ -305,7 +312,7 @@ export function PlayArea({
       setYellowFlash(new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)))
     }
     pendingDrawRef.current = 0
-  }, [game, game?.version, rackLen, isCompete])
+  }, [game, game?.version, rackLen, isCompete, showLocalFeedback])
 
   // Flash timers — each outline clears itself after ~1s.
   useEffect(() => {
@@ -483,14 +490,14 @@ export function PlayArea({
         blank = true
       }
       if (rackIdx < 0) {
-        setLocalFeedback({ tone: 'info', text: `No “${letter}” tile` })
+        showLocalFeedback({ tone: 'info', text: `No “${letter}” tile` })
         return
       }
       setStaged((prev) => [...prev.filter((s) => !(s.x === tx && s.y === ty)), { x: tx, y: ty, letter, blank, rackIdx }])
       const nxt = nextEmpty(tx, ty, cursor.dir)
       setCursor(nxt ? { x: nxt.x, y: nxt.y, dir: cursor.dir } : { x: tx, y: ty, dir: cursor.dir })
     },
-    [cursor, staged, actingRack, committedAt, nextEmpty],
+    [cursor, staged, actingRack, committedAt, nextEmpty, showLocalFeedback],
   )
 
   const backspace = useCallback(() => {
@@ -510,7 +517,7 @@ export function PlayArea({
     // see the label note). An illegal shape never reaches the server; surface the
     // reason as an own-move error pill in the commit slot and stop here.
     if (!ev.valid) {
-      setLocalFeedback({ tone: 'error', text: ev.error })
+      showLocalFeedback({ tone: 'error', text: ev.error })
       return
     }
     setSubmitting(true)
@@ -523,7 +530,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      setLocalFeedback({ tone: 'error', text: error.message })
+      showLocalFeedback({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; bad_words?: string[]; drawn?: string[] }
@@ -538,11 +545,11 @@ export function PlayArea({
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
-      setLocalFeedback({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
+      showLocalFeedback({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
     } else if (res.result === 'stale') {
-      setLocalFeedback({ tone: 'info', text: 'Board changed' })
+      showLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else if (res.result === 'invalid') {
-      setLocalFeedback({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
+      showLocalFeedback({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
       const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
@@ -553,7 +560,7 @@ export function PlayArea({
       }
       setRedFlash(cells)
     }
-  }, [game, board, staged, actingRack, gameId])
+  }, [game, board, staged, actingRack, gameId, showLocalFeedback])
 
   const exchange = useCallback(async () => {
     if (!game) return
@@ -562,19 +569,19 @@ export function PlayArea({
     const { data, error } = await db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles })
     setSubmitting(false)
     if (error) {
-      setLocalFeedback({ tone: 'error', text: error.message })
+      showLocalFeedback({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; drawn?: string[] }
     if (res.result === 'stale') {
-      setLocalFeedback({ tone: 'info', text: 'Board changed' })
+      showLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else {
       lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
-      setLocalFeedback({ tone: 'success', text: `Swapped ${tiles.length}` })
+      showLocalFeedback({ tone: 'success', text: `Swapped ${tiles.length}` })
     }
-  }, [game, selected, actingRack, gameId])
+  }, [game, selected, actingRack, gameId, showLocalFeedback])
 
   const pass = useCallback(async () => {
     if (!game) return
@@ -583,15 +590,15 @@ export function PlayArea({
     // disabled until tiles are selected, so it's rarely hit by accident.
     if (!window.confirm('Do you really want to pass your turn?')) return
     const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })
-    if (error) setLocalFeedback({ tone: 'error', text: error.message })
-  }, [game, gameId])
+    if (error) showLocalFeedback({ tone: 'error', text: error.message })
+  }, [game, gameId, showLocalFeedback])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) setLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
-  }, [gameId, isTerminal])
+    if (error) showLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
+  }, [gameId, isTerminal, showLocalFeedback])
 
   useGlobalKeyHandler((e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
@@ -652,8 +659,6 @@ export function PlayArea({
         dismiss: { kind: 'sticky' },
       }
     : localFeedback
-      ? { tone: localFeedback.tone, text: localFeedback.text, variant: 'outline', dismiss: { kind: 'sticky' } }
-      : null
 
   // Turn viewer: when active, the board renders the replayed historical state with
   // that turn's tiles outlined; the live overlays (staged/cursor/flashes) are off.

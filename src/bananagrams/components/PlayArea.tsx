@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, TimerMode } from '../../common/lib/games'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
+import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/terminalCopy'
@@ -66,15 +67,16 @@ export function PlayArea(ctx: GamePageCtx) {
   const { gameId, isTerminal } = ctx
 
   // ─── Local feedback (own-move) ─────────────────────────────────────────
-  // The below-board pill: a peel/dump draw announcement (timed), or an RPC
-  // error (sticky). The terminal verdict and the locally-terminal "you're out"
-  // message are layered on top of this in `localFeedbackMsg` below.
-  const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
+  // The below-board pill: a peel/dump draw announcement (timed — the hook
+  // auto-clears it), or an RPC error (sticky). The terminal verdict and the
+  // locally-terminal "you're out" message are layered on top of this in
+  // `localFeedbackMsg` below.
+  const { localFeedback, showLocalFeedback } = useLocalFeedback()
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
-      setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       return null
     }
     // A blocked winning peel: the board isn't a legal grid (disconnected, or —
@@ -88,7 +90,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return { illegalCells: res.invalid_cells ?? [] }
     }
     return null
-  }, [gameId])
+  }, [gameId, showLocalFeedback])
 
   // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so
   // the announcement below reads the next growth as a dump rather than a peel.
@@ -102,10 +104,10 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc('dump', { target_game: gameId, tile })
       if (error) {
         dumpPending.current = false // no tiles change is coming
-        setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+        showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       }
     },
-    [gameId],
+    [gameId, showLocalFeedback],
   )
 
   // Announce a draw: my own `tiles` growing means a peel dealt me a tile (or my
@@ -122,7 +124,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const grew = tiles.length - seenTilesLen.current
       if (dumpPending.current) {
         dumpPending.current = false
-        setLocalFeedback({
+        showLocalFeedback({
           tone: 'neutral',
           text: (
             <>
@@ -134,7 +136,7 @@ export function PlayArea(ctx: GamePageCtx) {
           dismiss: { kind: 'timed', ms: 2500 },
         })
       } else {
-        setLocalFeedback({
+        showLocalFeedback({
           tone: 'neutral',
           text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
           variant: 'outline',
@@ -143,7 +145,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }
     }
     seenTilesLen.current = tiles.length
-  }, [tiles, loading])
+  }, [tiles, loading, showLocalFeedback])
 
   // ─── Concede — drop out of the race (a real loss, others keep going) ────
   // Confirmed because it's irreversible; an RPC failure surfaces in the local
@@ -153,9 +155,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm("Concede? You'll drop out and take the loss — the others keep racing. You can't undo this.")) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
-      setLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
     }
-  }, [gameId, isTerminal])
+  }, [gameId, isTerminal, showLocalFeedback])
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
