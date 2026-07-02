@@ -502,11 +502,17 @@ neither). Genuine gaps, ranked:
   done + forfeits their win. The DB now distinguishes the two "no longer active"
   states (`conceded` flag) so terminals read "Quit at …" vs "Lost at …". See
   [`docs/common.md` → Concede](common.md#concede--per-player-drop-out).
-- **GAP 3 [med] — click-to-define missing on wordle and connections.** 6/10 games
-  have it via `useDefinePopover`; wordle (guesses + answer) and connections (16
-  real words + revealed categories) are real-word games where players want
-  post-game lookups. Needs a non-conflicting attach point since both use
-  interactive tiles (wordle's GameTurnLog rows; connections' revealed words).
+- ~~**GAP 3 [med] — click-to-define missing on wordle and connections.**~~
+  **✅ RESOLVED / scoped down (2026-07-02).** Split by Joel's call:
+  - **connections — WONTFIX.** Its tiles are Connections *phrases* / category
+    members, which often aren't dictionary words at all — click-to-define doesn't
+    apply.
+  - **wordle — DONE.** Added `useDefinePopover` to `wordle/GameTurnLog.tsx`: each
+    logged guess is definable, with the affordance on the **word** (the five-square
+    group), **not** the individual cells — one lookup per guess. (Every wordle guess
+    is a legal dictionary word, so all log rows are definable; the unsolved answer
+    lives outside the log and stays out of scope.) The board tiles are left alone,
+    dodging the interactive-tile conflict the review flagged.
 - **GAP 4 [low] — wordle and bananagrams hand-roll their keyboard guard.**
   *(Corrected: an earlier reviewer claimed wordle uses the shared `useCaptureKeys`
   — verified false.)* `wordle/components/PlayArea.tsx:198` uses `useGlobalKeyHandler`
@@ -547,7 +553,8 @@ by design.
    conversions (§4.3), `<RadioRow>`/`<TurnLogActor>` (§4.5).
 7. **Feature gaps** (§5) — ~~boggle peer feedback~~ **✅ done (`useGlobalFeedback`,
    2026-07-02)**; ~~the End→Concede fix~~ **✅ done (whole-app per-player concede,
-   2026-07-02)**; still: **click-to-define (GAP 3)**, then wordle capture (GAP 4).
+   2026-07-02)**; ~~click-to-define (GAP 3)~~ **✅ done (wordle turn-log;
+   connections WONTFIX, 2026-07-02)**; still: **wordle capture (GAP 4)** — the last one.
 8. **Focused decompositions** (§4.6) — scrabble PlayArea, then bananagrams
    PlayerBoard; each its own scoped effort.
 

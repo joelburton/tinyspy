@@ -243,3 +243,17 @@ describe('wordle PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })
+
+describe('wordle PlayArea — click-to-define (turn log)', () => {
+  it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+    ])
+    render(<PlayArea {...makeCtx()} />)
+    // The turn-log guess carries the click-to-define affordance, and it rides the
+    // whole five-letter word (one define per guess), not an individual cell.
+    const define = screen.getByTitle('Click to define')
+    expect(define).toHaveAttribute('role', 'button')
+    expect(define).toHaveTextContent('SLATE')
+  })
+})

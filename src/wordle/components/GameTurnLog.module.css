@@ -9,6 +9,21 @@
   gap: 0.15rem;
 }
 
+/* The guess is click-to-define (common/hooks/useDefinePopover) — the affordance
+ * rides the whole five-square WORD group, not the individual cells. Colored
+ * blocks can't take the usual underline-on-hover, so the cue is a pointer +
+ * a tone-colored ring on hover / keyboard focus. The `outline` draws outside the
+ * box, so it never reflows the log. */
+.definable {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.definable:hover,
+.definable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .sq {
   display: inline-flex;
   align-items: center;

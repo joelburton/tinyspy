@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { ActorTag } from '../../common/components/ActorTag'
 import { cls } from '../../common/lib/cls'
 import { memberById, orderSelfFirst } from '../../common/lib/peers'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
@@ -65,6 +67,25 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
 
   const shown = teamView ? guesses : guesses.filter((g) => g.user_id === picked)
 
+  // Click-to-define (a common feature — see common/hooks/useDefinePopover). Every
+  // wordle guess is a legal dictionary word, so the whole guess is definable — the
+  // affordance rides the WORD (the five-square group), not the individual cells, so
+  // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.
+  const { define, popover } = useDefinePopover()
+  const defineProps = (word: string) => ({
+    className: cls(styles.squares, styles.definable),
+    role: 'button' as const,
+    tabIndex: 0,
+    title: 'Click to define',
+    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
+    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        define(word, e.currentTarget)
+      }
+    },
+  })
+
   // In compete an opponent's guesses are RLS-hidden until the game ends, so an
   // empty log for a player who isn't me means "hidden", not "none made" (they're
   // present and guessing; pause guarantees presence). At terminal their rows
@@ -95,6 +116,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   )
 
   return (
+    <>
     <TurnLog
       heading="Guesses"
       headerAction={picker}
@@ -107,7 +129,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
           <TurnLogBar outcome={g.is_correct ? 'good' : 'neutral'} />
           <td className={turnLog.meta}>#{i + 1}</td>
           <td className={turnLog.main}>
-            <span className={styles.squares}>
+            <span {...defineProps(g.guess)}>
               {[...g.guess].map((ch, c) => (
                 <span key={c} className={cls(styles.sq, styles[tileColor(g.colors[c])])}>
                   {ch.toUpperCase()}
@@ -121,5 +143,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
         </tr>
       ))}
     </TurnLog>
+    {popover}
+    </>
   )
 }
