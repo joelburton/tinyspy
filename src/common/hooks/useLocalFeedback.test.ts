@@ -28,12 +28,12 @@ describe('useLocalFeedback', () => {
   it('shows a flash and auto-clears after the duration', () => {
     const { result } = renderHook(() => useLocalFeedback())
 
-    act(() => result.current.showLocalFeedback('good', 'Correct!'))
-    expect(result.current.localFeedback).toEqual({ tone: 'good', label: 'Correct!' })
+    act(() => result.current.showLocalFeedback('success', 'Correct!'))
+    expect(result.current.localFeedback).toEqual({ tone: 'success', label: 'Correct!' })
 
     // Just before the deadline it's still up…
     act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS - 1))
-    expect(result.current.localFeedback).toEqual({ tone: 'good', label: 'Correct!' })
+    expect(result.current.localFeedback).toEqual({ tone: 'success', label: 'Correct!' })
 
     // …and clears exactly at it.
     act(() => void vi.advanceTimersByTime(1))
@@ -43,7 +43,7 @@ describe('useLocalFeedback', () => {
   it('clear() dismisses immediately and cancels the timer', () => {
     const { result } = renderHook(() => useLocalFeedback())
 
-    act(() => result.current.showLocalFeedback('bad', 'Incorrect'))
+    act(() => result.current.showLocalFeedback('error', 'Incorrect'))
     act(() => result.current.clearLocalFeedback())
     expect(result.current.localFeedback).toBeNull()
 
@@ -55,7 +55,7 @@ describe('useLocalFeedback', () => {
   it('re-arms the countdown on a fresh show()', () => {
     const { result } = renderHook(() => useLocalFeedback())
 
-    act(() => result.current.showLocalFeedback('good', 'first'))
+    act(() => result.current.showLocalFeedback('success', 'first'))
     // Most of the way through the first flash…
     act(() => void vi.advanceTimersByTime(LOCAL_FEEDBACK_DISMISS_MS - 10))
     // …a second result restarts the clock with the new label.
@@ -74,7 +74,7 @@ describe('useLocalFeedback', () => {
   it('honors a custom duration', () => {
     const { result } = renderHook(() => useLocalFeedback(500))
 
-    act(() => result.current.showLocalFeedback('bad', 'nope'))
+    act(() => result.current.showLocalFeedback('error', 'nope'))
     act(() => void vi.advanceTimersByTime(499))
     expect(result.current.localFeedback).not.toBeNull()
     act(() => void vi.advanceTimersByTime(1))
@@ -85,7 +85,7 @@ describe('useLocalFeedback', () => {
     const clearSpy = vi.spyOn(globalThis, 'clearTimeout')
     const { result, unmount } = renderHook(() => useLocalFeedback())
 
-    act(() => result.current.showLocalFeedback('good', 'bye'))
+    act(() => result.current.showLocalFeedback('success', 'bye'))
     unmount()
     expect(clearSpy).toHaveBeenCalled()
     clearSpy.mockRestore()

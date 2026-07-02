@@ -39,9 +39,6 @@ const MISTAKE_BUDGET = 4
  *  never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
 
-/** Map the local flash's `LocalFeedbackTone` (good/bad/near) to the pill's `GenericFeedbackTone`. */
-const PILL_TONE = { good: 'success', bad: 'error', near: 'near' } as const
-
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
  *  UTC so a calendar date never shifts by a local-tz offset (matches Calendar). */
 function formatPuzzleDate(d: string | null): string {
@@ -228,7 +225,7 @@ export function PlayArea({
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback('bad', `End game failed: ${error.message}`)
+      showLocalFeedback('error', `End game failed: ${error.message}`)
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -248,7 +245,7 @@ export function PlayArea({
     // Dup detection (FE-side per the FE-knows model). My own action, so it
     // flashes locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback('bad', 'You already tried that')
+      showLocalFeedback('error', 'You already tried that')
       return
     }
 
@@ -264,7 +261,7 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback('bad', error.message)
+      showLocalFeedback('error', error.message)
       return
     }
     // Own-result flash in the commit slot (green/near/red), then clear the
@@ -273,11 +270,11 @@ export function PlayArea({
     // rejected set selected). The sticky flash shows over the cleared board;
     // clicking a tile dismisses it (handleToggle) and starts the next guess.
     if (verdict.kind === 'correct') {
-      showLocalFeedback('good', 'Correct!')
+      showLocalFeedback('success', 'Correct!')
     } else if (verdict.kind === 'oneAway') {
       showLocalFeedback('near', 'One away!')
     } else {
-      showLocalFeedback('bad', 'Incorrect')
+      showLocalFeedback('error', 'Incorrect')
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -425,7 +422,7 @@ export function PlayArea({
               <div className={shared.localFeedback}>
                 <GenericFeedbackPill
                   msg={{
-                    tone: PILL_TONE[localFeedback.tone],
+                    tone: localFeedback.tone,
                     text: localFeedback.label,
                     variant: 'outline',
                     dismiss: { kind: 'sticky' },

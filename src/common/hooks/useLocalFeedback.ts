@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-
-/** The outcome a local-feedback message paints. `good`/`bad` are the universal
- *  correct/wrong pair; `near` is the "one away" partial-credit amber (connections
- *  only). Games map this onto the pill's `GenericFeedbackTone`. Same vocabulary
- *  as the TurnLog outcome bar, minus its `neutral`. */
-export type LocalFeedbackTone = 'good' | 'bad' | 'near'
+import type { GenericFeedbackTone } from '../lib/games'
 
 /** How long a local-feedback message stays up before it auto-clears, when the
  *  host opts into a timer (the sticky default passes `ms: null`). Shared so every
@@ -12,8 +7,10 @@ export type LocalFeedbackTone = 'good' | 'bad' | 'near'
 export const LOCAL_FEEDBACK_DISMISS_MS = 1400
 
 /** The current local-feedback message, or `null` when nothing's showing. Feed
- *  it to a `<GenericFeedbackPill>` (or any consumer) when set. */
-export type LocalFeedbackState = { tone: LocalFeedbackTone; label: string } | null
+ *  it to a `<GenericFeedbackPill>` when set. Tones are the SAME `GenericFeedbackTone`
+ *  the global pill uses — local and global feedback speak one tone vocabulary
+ *  (docs/code-conventions.md → Feedback naming). */
+export type LocalFeedbackState = { tone: GenericFeedbackTone; label: string } | null
 
 export type LocalFeedbackApi = {
   /** The active local-feedback message, or `null`. */
@@ -22,7 +19,7 @@ export type LocalFeedbackApi = {
    *  already running, so a fresh result resets the countdown). When the hook was
    *  created with `ms: null` there's no timer — the message is **sticky** until
    *  the host calls `clearLocalFeedback()`. */
-  showLocalFeedback: (tone: LocalFeedbackTone, label: string) => void
+  showLocalFeedback: (tone: GenericFeedbackTone, label: string) => void
   /** Clear the message now — e.g. when the player starts the next move (a
    *  keystroke, a tile click). No-op if nothing's showing. */
   clearLocalFeedback: () => void
@@ -51,7 +48,7 @@ export function useLocalFeedback(ms: number | null = LOCAL_FEEDBACK_DISMISS_MS):
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showLocalFeedback = useCallback(
-    (tone: LocalFeedbackTone, label: string) => {
+    (tone: GenericFeedbackTone, label: string) => {
       setLocalFeedback({ tone, label })
       if (timerRef.current !== null) clearTimeout(timerRef.current)
       // ms === null → sticky: no auto-clear timer; the host clears it on the

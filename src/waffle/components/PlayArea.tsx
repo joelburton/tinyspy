@@ -21,11 +21,6 @@ import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
-/** Own-action flash tone (`useLocalFeedback`'s good/bad/near) → the shared
- *  `<GenericFeedbackPill>` tone vocabulary. waffle only ever flashes `bad` (a rejected
- *  swap / failed End), but the full map keeps it honest. */
-const PILL_TONE = { good: 'success', bad: 'error', near: 'near' } as const
-
 /** Local feedback pills are never closeable here, so the × is never rendered and
  *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
@@ -130,7 +125,7 @@ export function PlayArea({
       })
       // Own-action error → the local below-board flash. Success: the swap mutated
       // waffle.players → realtime refetch re-renders the board + colors.
-      if (error) showLocalFeedback('bad', error.message)
+      if (error) showLocalFeedback('error', error.message)
     },
     [gameId, showLocalFeedback],
   )
@@ -142,7 +137,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('bad', `End game failed: ${error.message}`)
+    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
   }, [gameId, isTerminal, showLocalFeedback])
 
   if (loading) return <p>Loading game…</p>
@@ -256,7 +251,7 @@ export function PlayArea({
             ) : localFeedback ? (
               <GenericFeedbackPill
                 msg={{
-                  tone: PILL_TONE[localFeedback.tone],
+                  tone: localFeedback.tone,
                   text: localFeedback.label,
                   variant: 'outline',
                   dismiss: { kind: 'sticky' },

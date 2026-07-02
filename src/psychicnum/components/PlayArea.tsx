@@ -275,7 +275,7 @@ export function PlayArea({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!game.words.includes(guess)) {
-      showLocalFeedback('bad', 'Not on the board')
+      showLocalFeedback('error', 'Not on the board')
       return
     }
     setSubmitting(true)
@@ -288,11 +288,11 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback('bad', capitalize(error.message))
+      showLocalFeedback('error', capitalize(error.message))
       return
     }
     showLocalFeedback(
-      data === 'won' || data === 'correct' ? 'good' : 'bad',
+      data === 'won' || data === 'correct' ? 'success' : 'error',
       data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
     )
   }
@@ -304,14 +304,14 @@ export function PlayArea({
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) showLocalFeedback('bad', capitalize(error.message))
+    if (error) showLocalFeedback('error', capitalize(error.message))
   }
 
   const getReveal = async () => {
     setRevealing(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
     setRevealing(false)
-    if (error) showLocalFeedback('bad', capitalize(error.message))
+    if (error) showLocalFeedback('error', capitalize(error.message))
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -319,7 +319,7 @@ export function PlayArea({
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('bad', capitalize(error.message))
+    if (error) showLocalFeedback('error', capitalize(error.message))
   }
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
@@ -408,7 +408,7 @@ export function PlayArea({
               pill={
                 localFeedback && pending === ''
                   ? {
-                      tone: localFeedback.tone === 'good' ? 'success' : 'error',
+                      tone: localFeedback.tone,
                       text: localFeedback.label,
                       variant: 'outline',
                       dismiss: { kind: 'sticky' },

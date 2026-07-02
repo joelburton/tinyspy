@@ -259,7 +259,7 @@ export function PlayArea({
       setPendingPos(null)
       if (error) {
         console.error('submit_guess failed', error)
-        showLocalFeedback('bad', error.message)
+        showLocalFeedback('error', error.message)
       }
       // Success: the reveal arrives via Realtime → useBoard refetches → the tile
       // re-renders with its result color. No optimistic update, no flash.
@@ -278,7 +278,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('bad', `End game failed: ${error.message}`)
+    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
   }, [gameId, isTerminal, showLocalFeedback])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
@@ -390,7 +390,7 @@ export function PlayArea({
                 msg={{
                   // Own-action flash is error-only here (a rejected guess / failed
                   // End); the success path shows on the board + turn log instead.
-                  tone: localFeedback.tone === 'bad' ? 'error' : 'success',
+                  tone: localFeedback.tone,
                   text: localFeedback.label,
                   variant: 'outline', // transient
                   dismiss: { kind: 'sticky' }, // host clears it (the flash timer)
@@ -411,7 +411,7 @@ export function PlayArea({
               // beat, never grows it). The AI clue suggestion opens its own
               // draggable panel (rendered at the .layout level below, so it's
               // on-screen) — the requester's helper output, not peer feedback.
-              onError={(m) => showLocalFeedback('bad', m)}
+              onError={(m) => showLocalFeedback('error', m)}
               onSuggestionChange={setClueSuggestion}
             />
             </div>
