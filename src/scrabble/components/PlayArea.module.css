@@ -114,7 +114,7 @@
 /* One horizontal row: the rack on the left, then the controls filling the rest.
  * nowrap so it never grows a second line (which would reflow the board height) —
  * labels + messages are kept terse to fit. */
-.actionRow {
+.moveArea {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -153,30 +153,36 @@
   gap: 6px;
 }
 
-/* The commit slot — the "local feedback area" too. Normally holds the commit
- * buttons [Swap] [Submit] [Pass], right-aligned (sized to content; `margin-left:
- * auto` shoves them to the row's right edge). When an own-move result / terminal
- * verdict shows, it instead holds a <FeedbackPill> and switches to
- * `.commitSlotFill` — flex:1, so the pill gets ALL the width from Recall to the
- * right edge (not just the buttons' narrow width), letting a longer message read
- * before it ellipsis-clips. The board never moves when this resizes — the flex:1
+/* scrabble's PARTIAL-SWAP box: it holds EITHER the commit buttons OR (when an
+ * own-move result / terminal verdict shows) the local feedback pill — the rack
+ * beside it stays, so only this sub-area swaps. Sized to content + shoved to the
+ * row's right edge (`margin-left: auto`). This is the AREA only; the buttons'
+ * right-justify is the SEPARATE `.commitButtons` (docs/code-conventions.md →
+ * below-board structure). The board never moves when it resizes — the flex:1
  * `.controls` free space absorbs it (belowBoard is pinned). */
-.commitSlot {
+.moveAreaOrLocalFeedback {
   flex: 0 0 auto;
   margin-left: auto;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
 }
 
-/* Feedback-pill mode: fill the whole space left of the right edge. flex:1 eats
- * the row's free space (so the `margin-left: auto` resolves to 0) — everything
- * right of Recall becomes the (full-width) feedback area. */
-.commitSlotFill {
+/* Pill mode: fill the whole space left of the right edge (so `margin-left: auto`
+ * resolves to 0) — everything right of Recall becomes the full-width feedback
+ * area, letting a longer message read before it ellipsis-clips. */
+.moveAreaOrLocalFeedbackPill {
   flex: 1 1 auto;
-  justify-content: center;
   min-width: 0;
+}
+
+/* The commit BUTTONS [Swap] [Submit] [Pass], right-justified — the button layout,
+ * kept separate from the area above (which just says "this is where the buttons
+ * or the feedback go"). */
+.commitButtons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 /* The own-move / terminal pill, constrained to the commit slot so a long message

@@ -703,7 +703,7 @@ export function PlayArea({
             </div>
           )}
           {self ? (
-            <div className={styles.actionRow}>
+            <div className={styles.moveArea}>
               <div className={styles.rackWrap}>
                 <Rack tiles={rackTiles} used={usedRackIdx} selected={selected} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
                 {/* Shuffle floats over the rack's top-right corner — a quick

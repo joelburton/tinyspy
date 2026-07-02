@@ -242,6 +242,46 @@ export async function createBoggleGame(
   return { id: (row as { id: string }).id, gametype: `boggle_${mode}` }
 }
 
+/** Start a wordle game (coop by default). Returns id + gametype for the URL. */
+export async function createWordleGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('wordle')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`wordle.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `wordle_${mode}` }
+}
+
+/** Start a scrabble game (coop by default). Returns id + gametype for the URL. */
+export async function createScrabbleGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('scrabble')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`scrabble.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `scrabble_${mode}` }
+}
+
 /**
  * Start a codenamesduet game in the club (exactly 2 players — it's a fixed-seat
  * game). `firstClueGiverUserId` is seated as A (opens the game); the other

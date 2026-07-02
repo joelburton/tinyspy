@@ -104,7 +104,7 @@ export function EntryRow({
   }
 
   return (
-    <div className={cls(styles.row, className)}>
+    <div className={cls(styles.moveArea, className)}>
       <DeleteButton iconOnly onClick={handleDelete} disabled={empty || disabled} />
       <EntryBox value={value} placeholder={placeholder}>
         {children}

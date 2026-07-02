@@ -366,6 +366,7 @@ export function PlayArea({
                 feedback split; turn-state changes go to the header pill);
               - else → the CluePanel (clue form / clue display + Pass / waiting). */}
         <div className={styles.belowBoard}>
+          <div className={shared.moveAreaOrLocalFeedback}>
           {over ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
@@ -398,6 +399,7 @@ export function PlayArea({
               />
             </div>
           ) : (
+            <div className={styles.moveArea}>
             <CluePanel
               gameId={gameId}
               isClueGiver={isClueGiver}
@@ -412,7 +414,9 @@ export function PlayArea({
               onError={(m) => showLocalFeedback('bad', m)}
               onSuggestionChange={setClueSuggestion}
             />
+            </div>
           )}
+          </div>
         </div>
       </div>
 

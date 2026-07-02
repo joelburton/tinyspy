@@ -243,6 +243,7 @@ export function PlayArea(ctx: GamePageCtx) {
             `pill` is set (terminal takes precedence; an own-move result shows only
             while the entry is empty so typing reclaims the slot). */}
         <div className={styles.belowBoard}>
+          <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}
             onChange={setWord}
@@ -266,6 +267,7 @@ export function PlayArea(ctx: GamePageCtx) {
                   : null
             }
           />
+          </div>
         </div>
       </div>
 

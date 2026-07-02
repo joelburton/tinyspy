@@ -474,9 +474,42 @@ Same role → same name across games (a peer-narration hook is `useGlobalFeedbac
 | per-game hook computing peer messages → global area | `useGlobalFeedback` | Global |
 | hook holding the own-move below-board message | `useLocalFeedback` | Local |
 | set / clear the local pill | `showLocalFeedback` / `clearLocalFeedback` | Local |
-| the below-board slot CSS | `.localFeedbackSlot` | Local |
+| the local pill's CSS wrapper | `.localFeedback` (shared; centers the pill, reserves its own height) | Local |
 
 Peer feedback goes to the **global** area; own-move feedback goes to the **local** area. Because that split is 1:1, `Global` and `Local` are effectively synonyms for "peer" and "own" — naming by channel loses no information and keeps the invariant visible.
+
+### Below-board structure
+
+Every game's `.boardCol` reads the same skeleton below the board, so a reader can map any game onto it. The class names are universal; the CSS behind each is per-game (like the board grid itself).
+
+```
+.boardCol
+  <board>
+  .belowBoard              ← the region: everything below the board. ALWAYS present.
+    .moveArea              ← the below-board move controls (keyboard / EntryBox+buttons /
+                              rack / mistakes+buttons). ALWAYS present — EMPTY (with a short
+                              comment) where the move is made on the board itself (bananagrams,
+                              waffle). A game has zero or one.
+    .localFeedback         ← the own-move pill wrapper (shared). Present only when a pill shows;
+                              reserves its own min-height so the board never reflows.
+```
+
+**The swap.** In many games the move controls and the feedback pill occupy the **same** spot — the pill replaces the controls (connections, the `EntryRow` games, codenamesduet, and scrabble's *commit buttons only*). There, a `.moveAreaOrLocalFeedback` box holds the reserved height and swaps `.moveArea` ↔ `.localFeedback`:
+
+```
+.belowBoard
+  .moveAreaOrLocalFeedback   ← reserved-height swap box (shared; min-height via
+                               --swap-box-min-height, default 2.75rem)
+    .moveArea  |  .localFeedback
+```
+
+Games where the two are **separate and both always shown** (wordle: keyboard + feedback; stackdown: WordEntry + feedback) don't use the swap box — `.moveArea` and `.localFeedback` sit side by side, each reserving its own height.
+
+Two rules learned the hard way:
+- **`.moveArea` names the *controls*, not the swap box.** Don't rename a controls-holding element to a feedback name — the controls and the feedback are separate concepts even when they share a spot (scrabble's commit buttons keep their own `.commitButtons` right-justify; the *area* is `.moveAreaOrLocalFeedback`).
+- **Never rename to lose a bare `feedback`.** `.localFeedback` / `.moveAreaOrLocalFeedback` carry the channel; there's no unqualified `feedback` class.
+
+This is a **naming + structure** convention, not a layout change — added wrappers use `display: contents` (they generate no box) and reserved heights move to the equivalently-sized renamed element, so the rendered pixels are identical.
 
 ### Grid coordinates
 

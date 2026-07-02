@@ -370,6 +370,7 @@ export function PlayArea({
               - out of guesses but not over (compete, others still playing) → a
                 sticky "waiting" pill. */}
         <div className={styles.belowBoard}>
+          <div className={shared.moveAreaOrLocalFeedback}>
           {over ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
@@ -428,6 +429,7 @@ export function PlayArea({
               />
             </div>
           )}
+          </div>
         </div>
       </div>
       <div className={shared.infoCol}>

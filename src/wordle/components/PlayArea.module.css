@@ -12,17 +12,23 @@
   --info-col-width: 22rem;
 }
 
-/* The local feedback area — a fixed-height slot BETWEEN the board and the
- * keyboard (Joel's call; the keyboard is always present, so feedback can't
- * replace an entry row the way it does in the other v3 games). The reserved
- * height keeps the board above and the keyboard below from reflowing when the
- * own-move pill appears or clears; it centers the pill (the "local feedback is
- * centered" rule). */
-.feedbackSlot {
-  min-height: 2.75rem;
+/* The below-board REGION (universal). wordle is a NON-SWAP game: the feedback
+ * and the move controls (keyboard) are SEPARATE and both always present, so
+ * this holds `shared.localFeedback` (which reserves its own height) ABOVE the
+ * `.moveArea` (keyboard). A real flex column whose `gap` reproduces the board
+ * column's own 0.75rem gap the two used to get as direct .boardCol children —
+ * so wrapping them here shifts nothing. See docs/code-conventions.md → below-
+ * board structure. */
+.belowBoard {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* wordle's move controls are the on-screen keyboard. `display: contents` so
+ * this naming wrapper generates no box — the keyboard keeps its exact place. */
+.moveArea {
+  display: contents;
 }
 
 /* The info-column terminal answer-reveal line. Drop the browser's default <p>

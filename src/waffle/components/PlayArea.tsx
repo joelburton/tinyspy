@@ -222,8 +222,11 @@ export function PlayArea({
             viewport (the page must never scroll); it lives in the info column's
             `.terminalExtra` instead. */}
         <div className={styles.belowBoard}>
-          {over ? (
-            <div className={shared.localFeedback}>
+          {/* No below-board move controls: waffle's input is swapping tiles on
+              the board itself, so `.moveArea` is empty. */}
+          <div className={styles.moveArea} />
+          <div className={shared.localFeedback}>
+            {over ? (
               <GenericFeedbackPill
                 msg={{
                   tone:
@@ -238,9 +241,7 @@ export function PlayArea({
                 }}
                 onClose={noop}
               />
-            </div>
-          ) : selfDone ? (
-            <div className={shared.localFeedback}>
+            ) : selfDone ? (
               <GenericFeedbackPill
                 msg={{
                   tone: 'neutral',
@@ -252,9 +253,7 @@ export function PlayArea({
                 }}
                 onClose={noop}
               />
-            </div>
-          ) : localFeedback ? (
-            <div className={shared.localFeedback}>
+            ) : localFeedback ? (
               <GenericFeedbackPill
                 msg={{
                   tone: PILL_TONE[localFeedback.tone],
@@ -264,8 +263,8 @@ export function PlayArea({
                 }}
                 onClose={noop}
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 

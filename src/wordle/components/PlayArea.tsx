@@ -393,22 +393,27 @@ export function PlayArea({
           active={canGuess}
           brand={brand}
         />
-        {/* Local feedback area — between the board and the keyboard (Joel's call).
-            A fixed-height slot so neither the board above nor the keyboard below
-            reflows when its pill appears/clears. Holds exactly one centered pill —
-            the own-move soft-reject during play, a sticky "you're out" when
-            locally done, or the permanent terminal verdict (see `localFeedbackMsg`) — or
-            nothing. */}
-        <div className={styles.feedbackSlot}>
-          {localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
+        {/* The below-board region (universal). wordle is NON-SWAP: the feedback
+            and the keyboard are separate and both always present, so the local
+            feedback area sits BETWEEN the board and the keyboard (Joel's call).
+            `.localFeedback` reserves its own height so neither the board above nor
+            the keyboard below reflows when its pill appears/clears; it holds
+            exactly one centered pill (own-move soft-reject, sticky "you're out",
+            or the permanent terminal verdict — see `localFeedbackMsg`) — or nothing. */}
+        <div className={styles.belowBoard}>
+          <div className={shared.localFeedback}>
+            {localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
+          </div>
+          <div className={styles.moveArea}>
+            <Keyboard
+              keyStates={keyStates}
+              onKey={typeLetter}
+              onEnter={() => void doSubmit(current)}
+              onBackspace={deleteLetter}
+              disabled={!canGuess}
+            />
+          </div>
         </div>
-        <Keyboard
-          keyStates={keyStates}
-          onKey={typeLetter}
-          onEnter={() => void doSubmit(current)}
-          onBackspace={deleteLetter}
-          disabled={!canGuess}
-        />
       </div>
 
       <div className={shared.infoCol}>

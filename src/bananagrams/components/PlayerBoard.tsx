@@ -624,9 +624,16 @@ export function PlayerBoard({ gameId, initialBoard, tiles, infoTop, infoActions,
             <ZoomFitButton onClick={centerAndFit} label="Fit to screen" />
           </div>
         </div>
-        {/* Local feedback slot — fixed height so the arena never reflows when
-            the pill appears/clears. */}
-        <div className={styles.localSlot}>{localPill}</div>
+        {/* The below-board region (universal). bananagrams is NON-SWAP and has
+            NO below-board move controls — you make moves by dragging tiles on the
+            arena itself — so `.moveArea` is intentionally empty. The feedback area
+            (shared `.localFeedback`) reserves its own height so the arena never
+            reflows when the pill appears/clears. */}
+        <div className={styles.belowBoard}>
+          {/* No below-board move controls: input is dragging tiles on the arena. */}
+          <div className={styles.moveArea} />
+          <div className={shared.localFeedback}>{localPill}</div>
+        </div>
       </div>
 
       {/* Info column — bananagrams' documented exception to the canonical order:

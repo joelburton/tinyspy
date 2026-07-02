@@ -13,8 +13,10 @@
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
  *                   same height as a tile row and sharing the one grid gap.
  *   - .tileShaking — the wrong-guess shake.
- *   - .inputRow / .inputButton / .mistakesInline — the commit row below the
- *     board (shared names with psychicnum; see docs/ui.md → "Text entry").
+ *   - .moveArea / .inputButton / .mistakesInline — the commit controls below the
+ *     board (the mistakes readout + Clear/Submit, right-justified; they live in
+ *     the shared `.moveAreaOrLocalFeedback` swap box). See docs/code-conventions.md
+ *     → below-board structure.
  *
  * The shared dark hover-ring + dark selected fill (a player's own pick) come
  * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
@@ -160,28 +162,29 @@
   font-size: 1rem;
 }
 
-/* The input row below the board (`.inputRow` — the shared name psychicnum uses
- * too; here the board-side commit affordance — selecting tiles is the input,
- * these buttons commit it). Buttons sit at the RIGHT; in coop the mistakes group
- * pushes them there via margin-right:auto. Mirrors psychicnum's entry row
- * position. */
-.inputRow {
+/* The below-board REGION (universal). `display: contents` — the swap box inside
+ * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. */
+.belowBoard {
+  display: contents;
+}
+
+/* connections' move controls: the "mistakes" readout + Clear/Submit, right-
+ * justified (in coop the mistakes group pushes the buttons there via
+ * margin-right:auto). Lives inside the shared `.moveAreaOrLocalFeedback` swap box
+ * — which reserves the height — and the pill takes its place when there's
+ * feedback. */
+.moveArea {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
-  /* Reserve the button-row height so the slot is the SAME height whether it
-   * holds the buttons (play) or the outcome message (terminal/eliminated) — the
-   * board above can't shift when one swaps for the other (docs/ui.md → Layout
-   * stability). */
-  min-height: 2.75rem;
 }
 
 /* Own-result feedback + the terminal/eliminated message both render as the shared
- * <FeedbackPill> (centered via the shared `.localFeedback`) in this same commit
- * slot — the local feedback area (v4). It reserves no height of its own: the
- * `.inputRow`'s min-height (above) keeps the slot stable whether it holds the
- * Clear/Submit buttons, the result pill, or the terminal pill. */
+ * <FeedbackPill> (centered via the shared `.localFeedback`) in the same swap box
+ * as the controls. It reserves no height of its own: the shared
+ * `.moveAreaOrLocalFeedback`'s min-height keeps the slot stable whether it holds
+ * the `.moveArea` (Clear/Submit buttons), the result pill, or the terminal pill. */
 
 /* A button in the input row (`.inputButton` — the shared name psychicnum uses
  * for its Submit too). The icon+label look is the global `.icon-button` class

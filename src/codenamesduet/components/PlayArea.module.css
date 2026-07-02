@@ -29,22 +29,22 @@
   color: var(--codenamesduet-assassin);
 }
 
-/* The below-board move-input slot (docs/design-decisions.md → BoardCol →
- * belowBoard) — holds the CluePanel (clue form / clue display + Pass / waiting
- * copy, each on one line), a centered local <FeedbackPill> for an own-action
- * error, or the permanent terminal verdict pill. A FIXED height (not min-height)
- * so the slot is immutable: every state's content fits within it and centers, and
- * NOTHING can grow it — so the top-anchored board never shifts as the state swaps
- * (docs/ui.md → "Layout stability"). `3rem` clears codenamesduet's clue-form
- * controls (taller than a single button/entry). Errors + the AI reasoning are
- * routed to the local pill / header pill rather than rendered inline, so no state
- * adds a second line. A lone pill centers via the shared `.localFeedback`. */
+/* The below-board REGION (universal). `display: contents` — the swap box inside
+ * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. It
+ * raises the swap box's reserved height to `3rem` (via the shared var) to clear
+ * codenamesduet's clue-form controls — taller than a single button/entry — so
+ * the top-anchored board never shifts as the CluePanel ↔ pill swap (docs/ui.md →
+ * "Layout stability"). Every state's content fits within it. */
 .belowBoard {
-  flex-shrink: 0;
-  height: 3rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: contents;
+  --swap-box-min-height: 3rem;
+}
+
+/* codenamesduet's move controls: the CluePanel (clue form / clue display + Pass
+ * / waiting copy). `display: contents` — a naming wrapper; the panel keeps its
+ * place inside the swap box, and a local/terminal pill takes its spot. */
+.moveArea {
+  display: contents;
 }
 
 /* Finished-player banner in the info column. Shown to a player whose agents are

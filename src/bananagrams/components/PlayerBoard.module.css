@@ -49,16 +49,21 @@
   background: radial-gradient(circle at 50% 40%, var(--color-surface), var(--color-bg));
 }
 
-/* Local feedback slot — a fixed-height row below the board so the arena never
- * reflows when the pill appears/clears (docs/design-decisions.md → the local
- * feedback area is a fixed-height slot). Centered, the "local feedback is
- * centered" look. */
-.localSlot {
+/* The below-board REGION (universal). Shrink-wraps to its content (the feedback
+ * area), and sets `--local-feedback-min-height` so the shared `.localFeedback`
+ * inside reserves bananagrams' 2.5rem (a touch tighter than the 2.75rem default)
+ * — the arena never reflows when the pill appears/clears. */
+.belowBoard {
   flex: 0 0 auto;
-  min-height: 2.5rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  --local-feedback-min-height: 2.5rem;
+}
+
+/* bananagrams has NO below-board move controls — you drag tiles on the arena —
+ * so `.moveArea` is empty. `display: contents` (generates no box). */
+.moveArea {
+  display: contents;
 }
 
 /* ---- floating controls (top-right of the board) ---- */

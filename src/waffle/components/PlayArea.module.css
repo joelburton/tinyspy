@@ -21,16 +21,19 @@
   --info-col-width: 22rem;
 }
 
-/* The below-board slot — a fixed-height COLUMN that vertically centers its single
- * child, the local <FeedbackPill> wrapped in the shared `.localFeedback` (waffle's
- * move is made on the board, so there are no input controls here). Fixed height so
- * the slot reserves the same space whether it shows a pill or nothing, and the
- * flex board above never reflows (docs/ui.md → Layout stability). Same shape as
- * psychicnum's `.belowBoard`. */
+/* The below-board REGION (universal). waffle is NON-SWAP and feedback-only —
+ * the move is made on the board, so `.moveArea` is empty and the shared
+ * `.localFeedback` reserves its own height (the board never reflows as the pill
+ * appears/clears; docs/ui.md → Layout stability). `flex-shrink: 0` keeps the
+ * region from being squeezed. */
 .belowBoard {
   flex-shrink: 0;
-  min-height: 2.75rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+}
+
+/* waffle has NO below-board move controls — the move is swapping tiles on the
+ * board — so `.moveArea` is empty. `display: contents` (generates no box). */
+.moveArea {
+  display: contents;
 }

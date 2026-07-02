@@ -87,25 +87,18 @@
   opacity: 0.4;
 }
 
-/* The below-board slot — holds exactly ONE of: the input row, the own-action
- * feedback pill, or the terminal pill (they replace each other). A reserved
- * min-height (the input row's) keeps the top-anchored board from shifting as they
- * swap. Width pinned to the board's --side so a long typed word can't widen the
- * column and shift the board. `margin-top` drops the row down off the board for
- * breathing room (on top of the board column's 0.75rem gap) — counted into
- * `--avail-h` above. */
+/* The below-board REGION (universal). Board-matched width (a long typed word
+ * can't widen the column and shift the board) + `margin-top` drops it off the
+ * board (on top of the board column's 0.75rem gap) — counted into `--avail-h`.
+ * The fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
+ * swap box inside it. Column so that box STRETCHES to the full board width
+ * (column flex's default align-items: stretch) — that's what lets the input row
+ * span the board and its EntryBox flex-fill between the buttons. */
 .belowBoard {
   width: var(--side);
-  min-height: 2.75rem;
   margin-top: 1.5rem;
-  /* Column (like psychicnum's belowBoard) so the child — the input row or the
-   * lone feedback pill — STRETCHES to the full board width (column flex's default
-   * align-items: stretch). That's what lets the input row span the board and its
-   * EntryBox flex-fill the space between the buttons; a row flex here would shrink-
-   * wrap the input row and the box would just hug the placeholder. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 /* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */

@@ -388,20 +388,21 @@ export function PlayArea({
         />
 
         <div className={styles.belowBoard}>
-          <WordEntry
-            tiles={game.tiles}
-            currentWord={currentWord}
-            active={canPlay}
-            onRetract={retractTo}
-            flash={flash}
-          />
-          {/* Fixed-height LOCAL feedback slot: reserved whether or not a pill
-              shows, so the board above never reflows when feedback appears. */}
-          <div className={styles.localSlot}>
+          <div className={styles.moveArea}>
+            <WordEntry
+              tiles={game.tiles}
+              currentWord={currentWord}
+              active={canPlay}
+              onRetract={retractTo}
+              flash={flash}
+            />
+          </div>
+          {/* The LOCAL feedback area — reserves its own height (shared
+              `.localFeedback`) so the board above never reflows when the pill
+              appears/clears. */}
+          <div className={shared.localFeedback}>
             {localPill && (
-              <div className={shared.localFeedback}>
-                <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />
-              </div>
+              <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />
             )}
           </div>
         </div>

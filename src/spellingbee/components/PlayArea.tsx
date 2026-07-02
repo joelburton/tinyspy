@@ -421,6 +421,7 @@ export function PlayArea(ctx: GamePageCtx) {
             (permanent fill) takes precedence over an own-move result, which shows
             only while the entry is empty so typing reclaims the slot. */}
         <div className={styles.belowBoard}>
+          <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}
             onChange={setWord}
@@ -447,6 +448,7 @@ export function PlayArea(ctx: GamePageCtx) {
           >
             <TypedWord word={word} allowedLetters={allowedLetters} />
           </EntryRow>
+          </div>
         </div>
       </div>
 

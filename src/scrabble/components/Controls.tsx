@@ -6,6 +6,7 @@ import { SubmitWithScore } from '../../common/components/buttons/SubmitWithScore
 import { PassButton } from '../../common/components/buttons/PassButton'
 import { cls } from '../../common/lib/cls'
 import styles from './PlayArea.module.css'
+import shared from '../../common/components/PlayArea.module.css'
 
 /**
  * The action half of scrabble's below-board row (the rack — with its floating
@@ -67,13 +68,17 @@ export function Controls({
     <div className={styles.controls}>
       <ClearButton iconOnly label="Recall" disabled={!hasTentative} onClick={onRecall} />
 
-      <div className={cls(styles.commitSlot, pill && styles.commitSlotFill)}>
+      <div
+        className={cls(styles.moveAreaOrLocalFeedback, pill && styles.moveAreaOrLocalFeedbackPill)}
+      >
         {pill ? (
           // Sticky local feedback — no × (the next move dismisses it). onClose is
           // unused for a sticky pill, but the prop is required.
-          <GenericFeedbackPill msg={pill} onClose={() => {}} />
+          <div className={shared.localFeedback}>
+            <GenericFeedbackPill msg={pill} onClose={() => {}} />
+          </div>
         ) : (
-          <>
+          <div className={styles.commitButtons}>
             <ExchangeButton
               iconOnly
               disabled={!canCommit || hasTentative || selectedCount === 0 || !canExchange}
@@ -92,7 +97,7 @@ export function Controls({
               <PassButton iconOnly disabled={!canCommit || hasTentative} onClick={onPass} />
             )}
             <SubmitWithScore score={submitScore} disabled={!canSubmit || submitting} onClick={onSubmit} />
-          </>
+          </div>
         )}
       </div>
     </div>

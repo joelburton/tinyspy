@@ -52,18 +52,15 @@
  * width so a long typed word can't widen the column and shift the centered board.
  * `margin-top` drops the row down off the board for breathing room (on top of the
  * board column's 0.75rem gap) — counted into `--avail-h` above. */
+/* The below-board REGION (universal). Board-matched width + the gap off the
+ * board; the fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
+ * swap box inside it. Column so that box STRETCHES to the full board width (so
+ * the input row spans the board and its EntryBox flex-fills between the buttons). */
 .belowBoard {
   width: var(--board-width);
-  min-height: 2.75rem;
   margin-top: 1.5rem;
-  /* Column (like psychicnum's belowBoard) so the child — the input row or the
-   * lone feedback pill — STRETCHES to the full board width (column flex's default
-   * align-items: stretch). That's what lets the input row span the board and its
-   * EntryBox flex-fill the space between the buttons; a row flex here would shrink-
-   * wrap the input row and the box would just hug the placeholder. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 /* (The input row + its EntryBox/Delete/Submit live in the shared

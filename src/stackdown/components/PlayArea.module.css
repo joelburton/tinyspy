@@ -37,16 +37,13 @@
   align-items: center;
 }
 
-/* The LOCAL feedback slot — holds the own-move / terminal <FeedbackPill> (or
- * nothing). A reserved min-height keeps the top-anchored board from shifting as
- * the pill appears and clears (docs/ui.md → Layout stability). Full width so the
- * shared `.localFeedback` centering resolves against the board width. */
-.localSlot {
-  width: 100%;
-  min-height: 2.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* stackdown is NON-SWAP: the move controls (WordEntry) and the feedback are
+ * separate, both under the board. `.moveArea` is `display: contents` (a naming
+ * wrapper — the WordEntry keeps its place); the feedback area is the shared
+ * `.localFeedback`, which reserves its own min-height so the board doesn't shift
+ * as the pill appears/clears. */
+.moveArea {
+  display: contents;
 }
 
 /* Terminal-only reveal of the six solution words, in the info column below the

@@ -414,8 +414,10 @@ export function PlayArea({
                 mirrors psychicnum's entry-box flash;
               - once input goes away (terminal / eliminated), the outcome
                 message fills it, the way psychicnum's reveal does.
-            The `.inputRow` min-height keeps every state the same height. */}
-        <div className={styles.inputRow}>
+            The shared `.moveAreaOrLocalFeedback` swap box reserves the height so
+            every state is the same height. */}
+        <div className={styles.belowBoard}>
+          <div className={shared.moveAreaOrLocalFeedback}>
           {showInput ? (
             localFeedback ? (
               // My own guess result — a centered local <GenericFeedbackPill> (sticky;
@@ -432,7 +434,7 @@ export function PlayArea({
                 />
               </div>
             ) : (
-              <>
+              <div className={styles.moveArea}>
                 {/* "Mistakes (lose at 4)" — the caller's OWN mistakes MADE (shared
                     team count in coop, personal in compete; never an opponent
                     comparison). Fills left-to-right, reading the same direction as
@@ -452,7 +454,7 @@ export function PlayArea({
                   disabled={!canSubmit}
                   className={styles.inputButton}
                 />
-              </>
+              </div>
             )
           ) : (
             // Terminal / eliminated — the local feedback area carries the message
@@ -484,6 +486,7 @@ export function PlayArea({
               />
             </div>
           )}
+          </div>
         </div>
       </div>
 

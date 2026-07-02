@@ -80,10 +80,35 @@
  * commit row); a game's entry/commit CONTROLS don't use this — only the lone
  * pill/message does. */
 .localFeedback {
+  /* `flex: 1` fills a swap box (`.moveAreaOrLocalFeedback`); `min-height`
+   * reserves its own height where it stands ALONE next to a `.moveArea` in a
+   * non-swap game (wordle / stackdown / bananagrams / waffle), so the board
+   * doesn't reflow when the pill clears. The two coexist: in a swap box (already
+   * ≥ this height) the min-height is inert; standing alone it's what holds the
+   * space. */
   flex: 1;
+  min-height: var(--local-feedback-min-height, 2.75rem);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* The reserved-height box that holds EITHER a game's `.moveArea` (its below-board
+ * move controls) OR the `.localFeedback` pill, in the games where the two swap in
+ * one spot (an own-move result / terminal pill replaces the controls). The fixed
+ * min-height is what keeps the board above from reflowing as the content swaps
+ * (docs/code-conventions.md → below-board structure; docs/ui.md → Layout
+ * stability). A flex column that vertically centers its single child. Games where
+ * the move area and feedback are SEPARATE (wordle, stackdown, bananagrams, waffle)
+ * don't use this — each reserves its own height. */
+.moveAreaOrLocalFeedback {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* The reserved height. A var so a game with a taller swap area can raise it
+   * (codenamesduet's clue panel wants 3rem) without a bespoke class. */
+  min-height: var(--swap-box-min-height, 2.75rem);
 }
 
 /* Shuffle floats over the board's top-right corner — purely a fresh visual
