@@ -10,6 +10,7 @@ import { useClubPresence } from '../hooks/useClubPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
+import { ClubHelp } from './ClubHelp'
 import { EditClubDialog } from './EditClubDialog'
 import { Menu, type MenuHandle } from './Menu'
 import { PuzpuzpuzLogo } from './PuzpuzpuzLogo'
@@ -94,6 +95,9 @@ export function ClubPage({ handle, session }: Props) {
   const [activeGameId, setActiveGameId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Whether the club Help modal is mounted — toggled by the menu's "Help" item
+  // (the club-page counterpart to each game's Help modal on GamePage).
+  const [helpOpen, setHelpOpen] = useState(false)
 
   // Club presence: who's in the club orbit right now (this page, or
   // any game page of the club) and which game they're viewing. We
@@ -499,12 +503,19 @@ export function ClubPage({ handle, session }: Props) {
   // Menu sections for the club logo's dropdown. Mirrors the
   // GamePage menu shape (a single common section, no per-game
   // dynamic section because there's no PlayArea here to push
-  // items in). Two of the three items are placeholders today —
-  // they fire a "coming soon" toast so a click still has visible
-  // feedback. See docs/ui.md → "ClubPage header" for the spec.
+  // items in). Help opens the club Help modal (parity with the
+  // GamePage menu; also what `?` reaches); rename + delete are
+  // placeholders today — they fire a "coming soon" toast so a
+  // click still has visible feedback. See docs/ui.md → "ClubPage
+  // header" for the spec.
   const menuSections: MenuSection[] = [
     {
       items: [
+        {
+          id: 'help',
+          label: 'Help',
+          onClick: () => setHelpOpen(true),
+        },
         {
           id: 'home',
           label: 'Back to home',
@@ -656,6 +667,10 @@ export function ClubPage({ handle, session }: Props) {
       {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null
           when closed; a FloatingPanel when open. */}
       {lookupDialog}
+
+      {/* The club Help modal — opened from the menu's "Help" item (or `?`,
+          which opens the menu). Parity with each game's Help on GamePage. */}
+      {helpOpen && <ClubHelp onClose={() => setHelpOpen(false)} />}
 
       {pendingSetup && (
         <SetupGameDialog
