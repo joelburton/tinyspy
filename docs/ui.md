@@ -870,23 +870,39 @@ viewport-math shrink-wrap form ([below](#the-older-shrink-wrap-form-scrabble--bo
 
 In `common/components/PlayArea.module.css`:
 - **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
-- **`.layout`** defines **`--avail-w`** = `calc(100vw - var(--scrollbar-width, 0px)
-  - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding))` — the
+- **`.layout`** defines **`--avail-w`** = `calc(var(--client-width, 100vw) -
+  var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding))` — the
   width left beside the fixed info column, built from shared tokens (so a change to
   the info-column width, the layout gap, or the page padding flows through to every
   board automatically). This is the *input* to each game's board width — see [Why
   the width is computed](#why-the-width-is-computed) for why it can't just flex.
-  - **Why subtract `--scrollbar-width`:** `100vw` *includes* the vertical
-    scrollbar, but the content box doesn't. On classic (space-taking) scrollbars —
-    macOS "always show", most Windows — that overstates the usable width by ~15px,
-    so the board is sized too wide and the whole board+info pair overflows to the
-    right, dragging the info column off-screen (it hit hardest at game-over, when
-    the shared `WordList` reveal fills the info column and forces a scrollbar).
-    It's invisible with overlay scrollbars (0px) — so headless browsers can't
-    reproduce it. `--scrollbar-width` is measured in JS
-    (`common/lib/scrollbarWidth.ts`) and defaults to `0px`; `html` also sets
-    `scrollbar-gutter: stable` (theme.css) so a scrollbar toggling never reflows
-    the width.
+  `.layout` also carries an explicit `width` (the content area) — see below.
+
+**Two things had to be right for the board+info pair to stop drifting off the
+right edge at the game-over `WordList` reveal (a big list forces the info column
+tall/wide):**
+
+1. **`.layout` has a definite `width`, not shrink-to-fit** (`calc(var(--client-width, 100vw) - 2 * var(--page-padding))`).
+   `body` is `place-items: start center`, which sizes its grid item to its content's
+   *max-content* width. The shared `WordList`'s column-major grid has an enormous
+   max-content (every column laid out) at the reveal, and **WebKit (Safari) leaks
+   that up through the grid's `overflow` clamp into the shrink-to-fit sizing** —
+   ballooning the whole frame to ~9500px and shoving the board+info pair
+   off-screen. Blink (Chrome) bounds it, so it only showed in Safari/Firefox.
+   Pinning `.layout`'s width breaks the cycle: the list's intrinsic width can't
+   inflate a fixed-width layout, and `justify-content: center` still centers the
+   pair. **Verified in the Playwright WebKit + Firefox engines** (Chromium never
+   reproduced it — see [layout verification](#) note in the memory).
+2. **`--client-width`, not `100vw`, for the width math.** `100vw` *includes* the
+   vertical scrollbar; the content box doesn't. On classic (space-taking)
+   scrollbars (macOS "always show", most Windows) that overstates the width by
+   ~15px and the board overflows right — invisible with overlay scrollbars (0px),
+   so headless can't see it. `--client-width` (`document.documentElement.clientWidth`)
+   excludes the scrollbar in every engine; it's measured and kept current with a
+   **ResizeObserver** (`common/lib/layoutWidth.ts`) so a *content-driven* scrollbar
+   (the reveal) updates it — a `resize` listener misses that. `html {
+   scrollbar-gutter: stable }` (theme.css) additionally avoids a cosmetic
+   board-resize when the scrollbar toggles, where supported.
 
 ### Each game's board
 

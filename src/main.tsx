@@ -2,11 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './common/theme.css'
 import App from './App.tsx'
-import { trackScrollbarWidth } from './common/lib/scrollbarWidth'
+import { trackLayoutWidth } from './common/lib/layoutWidth'
 
-// Publish `--scrollbar-width` for the board-sizing math (see the helper's
-// docstring + common/components/PlayArea.module.css `--avail-w`).
-trackScrollbarWidth()
+// Publish `--client-width` (usable viewport width, scrollbar excluded) for the
+// board-sizing math (see the helper's docstring + PlayArea.module.css `--avail-w`).
+trackLayoutWidth()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
