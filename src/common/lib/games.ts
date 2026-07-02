@@ -41,8 +41,9 @@ export type GamePageCtx = {
   brand: string
   /** Everyone in this game's `common.game_players`. See
    *  [Member] for why this is `players` (game context) and
-   *  not `members` (club context). */
-  players: Member[]
+   *  not `members` (club context). A [GamePlayer] carries the
+   *  per-player `conceded` / `result` bits on top of the profile. */
+  players: GamePlayer[]
   /** Gametype-specific play_state string from
    *  `common.games.play_state`. Pair with `isTerminal` for the
    *  gate; use the string itself for specific banner copy. See
@@ -190,6 +191,42 @@ export type Member = {
    *  `colorVarFor` (src/common/lib/memberColor.ts) for the
    *  matching CSS variable. */
   color: string
+}
+
+/**
+ * A game player: a [Member] plus the per-player bits that live on
+ * `common.game_players` (as opposed to the profile). Distinct from
+ * Member because a chat sender is a Member but never a game player.
+ * `GamePlayer` is a superset, so anything typed `Member[]` still
+ * accepts `GamePlayer[]` — a game's OpponentStrip / turn-log can keep
+ * their `Member` props while the PlayArea reads `conceded` off the
+ * same roster.
+ *
+ *   - `conceded`     — this player willfully quit a compete race
+ *                      (common.concede). Drives the OpponentStrip
+ *                      "out" marker and the "Quit at …" vs "Lost at
+ *                      …" terminal wording.
+ *   - `result`       — the per-player end-state jsonb from
+ *                      common.game_players.result; null until the
+ *                      game ends.
+ */
+export type GamePlayer = Member & {
+  conceded: boolean
+  conceded_at: string | null
+  result: Record<string, unknown> | null
+}
+
+/** Outcome verb for one player at game-over, from their common
+ *  end-state. Won trumps everything; a conceder "quit"; anyone else
+ *  who didn't win "lost" (beaten to the win, or eliminated). Games
+ *  render it as e.g. `${playerOutcome(p)} at ${rankName}`. */
+export function playerOutcome(p: {
+  conceded: boolean
+  result: Record<string, unknown> | null
+}): 'won' | 'quit' | 'lost' {
+  if (p.result?.won === true) return 'won'
+  if (p.conceded) return 'quit'
+  return 'lost'
 }
 
 /**

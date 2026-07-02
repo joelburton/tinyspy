@@ -147,10 +147,25 @@ const GAME_ROW = {
   ended_at: null,
 }
 
-const PLAYER_ROWS = [{ user_id: 'ada' }, { user_id: 'bea' }]
+const PLAYER_ROWS = [
+  { user_id: 'ada', conceded: false, conceded_at: null, result: null },
+  { user_id: 'bea', conceded: true, conceded_at: '2026-01-01T00:00:00Z', result: null },
+]
 const PROFILES = [
   { user_id: 'ada', username: 'ada', color: 'red' },
   { user_id: 'bea', username: 'bea', color: 'blue' },
+]
+// The hook merges the game_players concede/result bits onto each profile.
+const GAME_PLAYERS = [
+  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, result: null },
+  {
+    user_id: 'bea',
+    username: 'bea',
+    color: 'blue',
+    conceded: true,
+    conceded_at: '2026-01-01T00:00:00Z',
+    result: null,
+  },
 ]
 
 beforeEach(() => {
@@ -222,7 +237,7 @@ describe('useCommonGame — initial load', () => {
       gametype: 'codenamesduet',
       title: 'Game One',
     })
-    expect(result.current.players).toEqual(PROFILES)
+    expect(result.current.players).toEqual(GAME_PLAYERS)
   })
 })
 

@@ -7,7 +7,9 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { EntryRow } from '../../common/components/EntryRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
+import { playerOutcome } from '../../common/lib/games'
 import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -165,12 +167,17 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.requiredWords, game?.bonusWords])
 
+  // Concede state (from the common roster). A conceder can't submit and sees the
+  // locally-terminal look while the others race; peers show as "out" in the strip.
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
+
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
-      isTerminal,
+      isTerminal: isTerminal || myConceded,
       minWordLength: 4,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
@@ -231,6 +238,18 @@ export function PlayArea(ctx: GamePageCtx) {
       showFeedback('error', `End game failed: ${error.message}`)
     }
   }, [gameId, isTerminal, showFeedback])
+
+  // ─── Concede (compete) — drop out of the race ──────────
+  // A real loss for the conceder; the others keep racing (spellingbee.concede →
+  // common.concede). Distinct from End, which is coop's neutral mutual stop.
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) {
+      showFeedback('error', `Concede failed: ${error.message}`)
+    }
+  }, [gameId, isTerminal, myConceded, showFeedback])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -309,6 +328,10 @@ export function PlayArea(ctx: GamePageCtx) {
   }
 
   const isCompete = game.mode === 'compete'
+  // Locally terminal (compete only): I conceded but the game continues for the
+  // others. spellingbee has no other per-player "done" state (no elimination),
+  // so conceding is the only way to reach it.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // Caller's current rank in the local ladder. For compete this
   // is the value the OpponentStrip surfaces for the "You:
@@ -445,7 +468,20 @@ export function PlayArea(ctx: GamePageCtx) {
                   const rankIdx = isSelf
                     ? selfRankIdx
                     : (byUserId.get(p.user_id)?.rank_idx ?? 0)
-                  return RANKS[rankIdx]
+                  const rank = RANKS[rankIdx]
+                  // Mid-game: a conceder reads as "out". At terminal, prefix the
+                  // outcome verb so the two "no longer active" states read
+                  // differently — "Quit at Amazing" vs "Lost at Amazing" vs
+                  // "Won at Genius" (the distinction the conceded flag buys us).
+                  if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
+                  const member = players.find((m) => m.user_id === p.user_id)
+                  const verb =
+                    member && playerOutcome(member) === 'won'
+                      ? 'Won'
+                      : member && playerOutcome(member) === 'quit'
+                        ? 'Quit'
+                        : 'Lost'
+                  return `${verb} at ${rank}`
                 }}
               />
             )
@@ -461,12 +497,28 @@ export function PlayArea(ctx: GamePageCtx) {
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
+          ) : isLocallyDone ? (
+            // I conceded; the others race on. Terminal LOOK (a status line + the
+            // now-disabled Concede) so the state change reads loudly.
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                You conceded
+              </span>
+              <ConcedeGameButton className={shared.helperButton} disabled />
+            </div>
           ) : (
             <div className={shared.infoActions}>
-              <EndGameButton
-                className={shared.helperButton}
-                onClick={() => void handleEndGame()}
-              />
+              {isCompete ? (
+                <ConcedeGameButton
+                  className={shared.helperButton}
+                  onClick={() => void handleConcede()}
+                />
+              ) : (
+                <EndGameButton
+                  className={shared.helperButton}
+                  onClick={() => void handleEndGame()}
+                />
+              )}
             </div>
           )}
 

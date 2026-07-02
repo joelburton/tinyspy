@@ -17,7 +17,9 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
+import { gp } from '../../common/test/gamePlayers'
 import type { WordleGame, WordlePlayerState, WordleGuess } from '../hooks/useGame'
+import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
@@ -34,14 +36,13 @@ const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+
 const me: WordlePlayerState = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
 const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
 
 /** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
-const twoMembers = [
-  { user_id: 'u1', username: 'me', color: 'red' },
-  { user_id: 'u2', username: 'moth', color: 'blue' },
-]
+const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
 /** A loaded game-hook result; override the game header + players per test. */
 function loaded(
@@ -57,7 +58,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'WordNerd',
-    players: [{ user_id: 'u1', username: 'me', color: 'red' }],
+    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
@@ -74,6 +75,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 
 beforeEach(() => {
   h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+  rpc.mockReset()
+  rpc.mockResolvedValue({ error: null })
 })
 
 describe('wordle PlayArea — render smoke', () => {
@@ -182,7 +185,7 @@ describe('wordle PlayArea — turn-log picker label', () => {
     // u2 (a club member, not in the game) is watching u1's solo game.
     const ctx = makeCtx({
       session: { user: { id: 'u2' } } as unknown as GamePageCtx['session'],
-      players: [{ user_id: 'u1', username: 'joel', color: 'red' }],
+      players: [gp('u1', 'joel', 'red')],
     })
     h.result = loaded(
       { id: 'g1', mode: 'coop', max_guesses: 6, target: null },
@@ -197,5 +200,46 @@ describe('wordle PlayArea — turn-log picker label', () => {
   it('shows "Team" in a multi-player coop game', () => {
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     expect(screen.getByRole('option', { name: 'Team' })).toBeInTheDocument()
+  })
+})
+
+describe('wordle PlayArea — concede', () => {
+  it('compete shows Concede and calls wordle.concede on click', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    await user.click(screen.getByRole('button', { name: /concede/i }))
+    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+  })
+
+  it('coop shows End (not Concede) and calls end_game', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^end$/i }))
+    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+  })
+
+  it('marks a conceded opponent "out" in the strip', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    render(
+      <PlayArea
+        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })] })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
+  it('shows the "You conceded" locally-terminal look after I concede', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    render(
+      <PlayArea
+        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })

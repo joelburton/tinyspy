@@ -1272,3 +1272,31 @@ $$;
 
 revoke execute on function spellingbee.end_game(uuid) from public;
 grant execute on function spellingbee.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- spellingbee.concede — a player drops out of a compete race
+-- ============================================================
+-- spellingbee has NO independent per-player "eliminated" state (a
+-- player is only ever done by winning — first to the target rank —
+-- which ends the game, or by conceding), so the active set is exactly
+-- "not conceded" and the generic common.concede handles everything:
+-- mark the caller out, and if that was the last racer, end the game
+-- as a collective loss. This wrapper just keeps the FE uniform (every
+-- game calls its own-schema `concede`) and gates concede to compete —
+-- coop is a team, it ends via the shared End, never a concede.
+create function spellingbee.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = spellingbee, common, public, extensions
+as $$
+begin
+  if (select mode from spellingbee.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common.concede(target_game);
+end;
+$$;
+
+revoke execute on function spellingbee.concede(uuid) from public;
+grant execute on function spellingbee.concede(uuid) to authenticated;

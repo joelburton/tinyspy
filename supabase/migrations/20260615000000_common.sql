@@ -453,11 +453,26 @@ grant select on common.timers to authenticated;
 -- transition. The gametype's manifest knows the shape (won/lost
 -- flag for cooperative games, score for boggle, etc.) and how
 -- to render it.
+--
+-- `conceded` / `conceded_at` are the per-player DROP-OUT flag: a
+-- player who willfully quit a *compete* game mid-race (see
+-- common.concede). It's the one bit of per-player terminal state
+-- that exists BEFORE common.end_game runs, because it must be
+-- visible to peers (the OpponentStrip shows a conceded player as
+-- "out") and, crucially, it distinguishes the two "no longer an
+-- active player" conditions at game-over: a conceder reads as
+-- "Quit at <rank>", everyone else who didn't win reads as "Lost
+-- at <rank>" (beaten to the win, or eliminated). Concede ALWAYS
+-- means "I quit, the game continues for the others" — it never
+-- ends the table (the last active player conceding is the only
+-- exception, and that's a collective loss, not a shared decision).
 
 create table common.game_players (
   game_id uuid not null references common.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   result jsonb,
+  conceded boolean not null default false,
+  conceded_at timestamptz,
   joined_at timestamptz not null default now(),
   primary key (game_id, user_id)
 );
@@ -1225,6 +1240,125 @@ $$;
 
 -- No grant to authenticated; internal helper.
 revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
+
+-- ─── common._set_conceded ──────────────────────────────────
+-- The shared first half of "a player concedes": guard the action
+-- and flip the per-player `conceded` flag. Split out from
+-- common.concede so that gametypes whose game-over rule is
+-- game-specific (the ELIMINATION games — wordle, connections,
+-- psychicnum, waffle — where a player can be "done" without the
+-- table ending) can reuse the exact same guarded flag-flip and
+-- then run their OWN terminal check + winner computation. The
+-- non-elimination games (spellingbee, boggle, stackdown, scrabble,
+-- bananagrams) don't need that and call common.concede below,
+-- which pairs this with the generic "everyone's out" end.
+--
+-- Guards, in order:
+--   - game exists + is locked FOR UPDATE (serialize concurrent
+--     concedes / a concede racing a move that ends the game)
+--   - caller is a player of this game
+--   - the game isn't already over (is_terminal)
+--   - the caller hasn't already conceded (idempotency: concede once)
+--
+-- Returns the caller's user_id (the concede RPCs use it downstream).
+create function common._set_conceded(target_game uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  is_over boolean;
+  already boolean;
+begin
+  perform 1 from common.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  select is_terminal into is_over from common.games where id = target_game;
+  if is_over then
+    raise exception 'game is already over' using errcode = 'P0001';
+  end if;
+
+  select conceded into already
+    from common.game_players
+   where game_id = target_game and user_id = caller_id;
+  if already then
+    raise exception 'you have already conceded' using errcode = 'P0001';
+  end if;
+
+  update common.game_players
+     set conceded = true, conceded_at = now()
+   where game_id = target_game and user_id = caller_id;
+
+  return caller_id;
+end;
+$$;
+
+-- No grant to authenticated; internal helper (reached via the
+-- concede RPCs).
+revoke execute on function common._set_conceded(uuid) from public;
+
+-- ─── common.concede ────────────────────────────────────────
+-- The player-drops-out action for compete games whose game-over
+-- rule is NOT game-specific — i.e. games with no independent
+-- per-player "eliminated" state, where the only reason a
+-- non-conceded player isn't still racing is that they already
+-- WON (which would have ended the game). For those
+-- (spellingbee / boggle / stackdown / scrabble / bananagrams) the
+-- active set is exactly "not conceded", so the whole game ends
+-- precisely when the LAST active player concedes.
+--
+-- Semantics (docs/common.md → Concede): mark the caller out; if
+-- anyone is still racing, return and let them finish (concede
+-- NEVER ends the table for others). Only when the caller was the
+-- last one standing does the game end — as a collective loss
+-- (everyone {"won": false}, outcome 'conceded'), the same shape as
+-- a whole-table timeout. That's not "we all agreed to stop": each
+-- player who wants out clicks Concede, and the final click happens
+-- to be the one that ends it.
+--
+-- ELIMINATION games do NOT use this — they call common._set_conceded
+-- and then their own terminal check (which counts conceded as
+-- "done" alongside solved / out-of-guesses). See wordle.concede.
+create function common.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  player_results jsonb;
+begin
+  caller_id := common._set_conceded(target_game);
+
+  -- Anyone still in the race? If so, the game continues for them.
+  if exists (
+    select 1 from common.game_players
+     where game_id = target_game and not conceded
+  ) then
+    return;
+  end if;
+
+  -- The caller was the last active player → collective loss.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'lost',
+    jsonb_build_object('outcome', 'conceded'),
+    player_results
+  );
+end;
+$$;
+
+grant execute on function common.concede(uuid) to authenticated;
 
 -- ─── common.set_current_view ───────────────────────────────
 -- Fired from the FE when the first viewer mounts a game's

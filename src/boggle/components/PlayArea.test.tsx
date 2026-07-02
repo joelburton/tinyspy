@@ -16,6 +16,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
+import { gp } from '../../common/test/gamePlayers'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -55,17 +56,14 @@ function loaded(game: BoggleGame, foundWords: FoundWordRow[] = []): GameHook {
   return { game, foundWords, loading: false }
 }
 
-const twoMembers = [
-  { user_id: 'u1', username: 'me', color: 'red' },
-  { user_id: 'u2', username: 'moth', color: 'blue' },
-]
+const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   return {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'MothCubes',
-    players: [{ user_id: 'u1', username: 'me', color: 'red' }],
+    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },

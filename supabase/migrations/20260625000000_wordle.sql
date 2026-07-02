@@ -400,6 +400,83 @@ revoke execute on function wordle.create_game(text, jsonb, uuid[], text) from pu
 grant execute on function wordle.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
+-- wordle._maybe_finish_compete — end the compete game if it's over
+-- ============================================================
+-- A compete game ends when NO player is still racing. A player is
+-- racing while they're not conceded, not solved, and have guesses
+-- left. Shared by submit_guess (a guess can be the last move) and
+-- wordle.concede (a drop-out can be — if everyone else already
+-- finished, the concede is what empties the racing set).
+--
+-- Winner = the player who solved in the FEWEST guesses (tie-break
+-- earliest solved_at), EXCLUDING conceders — a drop-out forfeits any
+-- win. NULL if nobody eligible solved → a collective loss.
+--
+-- Returns true when it ended the game (submit_guess surfaces this as
+-- its `terminal` flag), false when someone is still racing.
+create function wordle._maybe_finish_compete(target_game uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  winner_id      uuid;
+  player_results jsonb;
+  term_state     text;
+  v_max          int;
+begin
+  select max_guesses into v_max from wordle.games where id = target_game;
+
+  -- Anyone still racing? (not conceded, not solved, guesses left)
+  if exists (
+    select 1
+      from wordle.players wp
+      join common.game_players gp
+        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+     where wp.game_id = target_game
+       and not gp.conceded
+       and not wp.solved
+       and wp.guesses_used < v_max
+  ) then
+    return false;
+  end if;
+
+  -- Everyone's done → pick the winner among solved, non-conceded players.
+  select wp.user_id into winner_id
+    from wordle.players wp
+    join common.game_players gp
+      on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+   where wp.game_id = target_game and wp.solved and not gp.conceded
+   order by wp.guesses_used asc, wp.solved_at asc
+   limit 1;
+
+  select jsonb_object_agg(
+           wp.user_id::text,
+           jsonb_build_object(
+             'won',     coalesce(wp.user_id = winner_id, false),
+             'solved',  wp.solved,
+             'guesses', wp.guesses_used
+           )
+         )
+    into player_results
+    from wordle.players wp
+   where wp.game_id = target_game;
+
+  term_state := case when winner_id is not null
+                     then 'won_compete' else 'lost_compete' end;
+  perform common.end_game(
+    target_game, term_state,
+    jsonb_build_object('mode', 'compete', 'winner', winner_id),
+    player_results
+  );
+  return true;
+end;
+$$;
+
+revoke execute on function wordle._maybe_finish_compete(uuid) from public;
+
+-- ============================================================
 -- wordle.submit_guess — the core move
 -- ============================================================
 -- Submit a 5-letter guess. Soft rejections (no guess consumed, no row
@@ -436,7 +513,6 @@ declare
   new_used           int;
   out_terminal       boolean := false;
   term_state         text;
-  winner_id          uuid;
   player_results     jsonb;
 begin
   caller_id := common.require_game_player(target_game);
@@ -550,44 +626,12 @@ begin
            solved_at    = case when did_solve then now() else solved_at end
      where game_id = target_game and user_id = caller_id;
 
-    -- The game ends when EVERY player is done — solved, or out of
-    -- guesses (each player plays their board out even once they can't
-    -- win). The finite budget guarantees this happens.
-    if not exists (
-      select 1 from wordle.players
-       where game_id = target_game
-         and not solved
-         and guesses_used < g_row.max_guesses
-    ) then
-      out_terminal := true;
-      -- Winner = solved with the FEWEST guesses; tie-break the earliest
-      -- solved_at (fastest). NULL if nobody solved.
-      select user_id into winner_id
-        from wordle.players
-       where game_id = target_game and solved
-       order by guesses_used asc, solved_at asc
-       limit 1;
-
-      select jsonb_object_agg(
-               user_id::text,
-               jsonb_build_object(
-                 'won',     coalesce(user_id = winner_id, false),
-                 'solved',  solved,
-                 'guesses', guesses_used
-               )
-             )
-        into player_results
-        from wordle.players
-       where game_id = target_game;
-
-      term_state := case when winner_id is not null
-                         then 'won_compete' else 'lost_compete' end;
-      perform common.end_game(
-        target_game, term_state,
-        jsonb_build_object('mode', 'compete', 'winner', winner_id),
-        player_results
-      );
-    end if;
+    -- The game ends when EVERY player is done — solved, out of
+    -- guesses, or conceded (each player plays their board out even
+    -- once they can't win). Shared with wordle.concede, which also
+    -- has to run this check because a drop-out can be the move that
+    -- leaves nobody racing. Returns true when it ended the game.
+    out_terminal := wordle._maybe_finish_compete(target_game);
   end if;
 
   return jsonb_build_object(
@@ -602,6 +646,34 @@ $$;
 
 revoke execute on function wordle.submit_guess(uuid, text) from public;
 grant execute on function wordle.submit_guess(uuid, text) to authenticated;
+
+-- ============================================================
+-- wordle.concede — a player drops out of a compete race
+-- ============================================================
+-- The per-player quit (compete only — coop is a team, so it ends via
+-- the shared End → common.end_game, never a concede). wordle is an
+-- ELIMINATION game (a player can be "done" without the table ending),
+-- so it can't use the generic common.concede: after flipping the
+-- flag, it re-runs its own terminal check, which now counts a
+-- conceder as done. The conceder takes a real loss; the others keep
+-- racing (or, if this was the last racer, the game ends here).
+create function wordle.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+begin
+  if (select mode from wordle.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common._set_conceded(target_game);
+  perform wordle._maybe_finish_compete(target_game);
+end;
+$$;
+
+revoke execute on function wordle.concede(uuid) from public;
+grant execute on function wordle.concede(uuid) to authenticated;
 
 -- ============================================================
 -- wordle.submit_timeout — countdown-timer expiry
@@ -648,10 +720,13 @@ begin
       player_results
     );
   else
-    select user_id into winner_id
-      from wordle.players
-     where game_id = target_game and solved
-     order by guesses_used asc, solved_at asc
+    -- Winner among solved, non-conceded players (a drop-out forfeits).
+    select wp.user_id into winner_id
+      from wordle.players wp
+      join common.game_players gp
+        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+     where wp.game_id = target_game and wp.solved and not gp.conceded
+     order by wp.guesses_used asc, wp.solved_at asc
      limit 1;
     select jsonb_object_agg(
              user_id::text,

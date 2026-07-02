@@ -20,6 +20,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
+import { gp } from '../../common/test/gamePlayers'
 import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
@@ -63,17 +64,14 @@ function loaded(game: SpellingbeeGame, foundWords: FoundWordRow[] = []): GameHoo
   return { game, foundWords, loading: false }
 }
 
-const twoMembers = [
-  { user_id: 'u1', username: 'me', color: 'red' },
-  { user_id: 'u2', username: 'moth', color: 'blue' },
-]
+const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
   return {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'FreeBee',
-    players: [{ user_id: 'u1', username: 'me', color: 'red' }],
+    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
@@ -252,5 +250,81 @@ describe('spellingbee PlayArea — compete opponent rank climb', () => {
         dismiss: { kind: 'sticky' },
       }),
     )
+  })
+})
+
+describe('spellingbee PlayArea — concede', () => {
+  const competeSetup = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+
+  it('compete shows Concede and calls spellingbee.concede on click', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(<PlayArea {...makeCtx({ players: twoMembers, setup: competeSetup })} />)
+    await user.click(screen.getByRole('button', { name: /concede/i }))
+    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+  })
+
+  it('coop shows End (not Concede) and calls end_game', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^end$/i }))
+    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+  })
+
+  it('marks a conceded opponent "out" in the strip (mid-game)', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
+          setup: competeSetup,
+        })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
+  it('shows the "You conceded" locally-terminal look after I concede', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          setup: competeSetup,
+        })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+
+  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          playState: 'ended',
+          players: [
+            gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
+            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Quit
+            gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
+          ],
+          setup: competeSetup,
+          status: {
+            winner: 'u3',
+            leaderboard: [
+              { user_id: 'u2', rank_idx: 4, found_words_score: 40, found_words_count: 4 },
+              { user_id: 'u3', rank_idx: 5, found_words_score: 60, found_words_count: 6 },
+            ],
+          },
+        })}
+      />,
+    )
+    expect(screen.getByText(/Quit at/)).toBeInTheDocument()
+    expect(screen.getByText(/Won at/)).toBeInTheDocument()
+    expect(screen.getByText(/Lost at/)).toBeInTheDocument()
   })
 })

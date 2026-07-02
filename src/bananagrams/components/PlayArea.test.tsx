@@ -18,6 +18,7 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
+import { gp } from '../../common/test/gamePlayers'
 import type { BananagramsProgress } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 
@@ -68,7 +69,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'MonkeyGrams',
-    players: [{ user_id: 'u1', username: 'me', color: 'red' }],
+    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
@@ -97,8 +98,8 @@ describe('bananagrams PlayArea — render smoke', () => {
 
   it('renders the opponent strip in a compete game', () => {
     const two = [
-      { user_id: 'u1', username: 'me', color: 'red' },
-      { user_id: 'u2', username: 'moth', color: 'blue' },
+      gp('u1', 'me', 'red'),
+      gp('u2', 'moth', 'blue'),
     ]
     h.progress = [
       progressRow({ user_id: 'u1', unplaced: 7 }),

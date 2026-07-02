@@ -110,6 +110,9 @@ export function PlayArea({
   const maxGuesses = game?.max_guesses ?? 6
   const guessesUsed = self?.guesses_used ?? 0
   const mySolved = self?.solved ?? false
+  // Concede lives on the common roster (ctx `members`), not wordle.players.
+  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
   // Coop: the shared board. Compete: my own guesses (RLS-filtered).
   const myGuesses = isCompete
     ? guesses.filter((g) => g.user_id === session.user.id)
@@ -126,6 +129,7 @@ export function PlayArea({
     !!self &&
     !isTerminal &&
     !mySolved &&
+    !myConceded &&
     guessesUsed < maxGuesses &&
     !submitting &&
     !pendingWord
@@ -332,7 +336,7 @@ export function PlayArea({
   // (one shared board: over for me ⇒ over for everyone). Shown as the terminal
   // LOOK (a status line + Concede), not a quietly-swapped help line.
   const isLocallyDone =
-    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses)
+    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
 
   const wordleSetup = setup as WordleSetup
 
@@ -345,11 +349,25 @@ export function PlayArea({
     if (error) showLocalFeedback(localPill('error', error.message))
   }
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
-  // up, you win"); coop uses the neutral "End" (a mutual "we're done"). Shared by
-  // the playing and the locally-terminal action rows.
+  // Concede — drop out of a compete race (a real loss; the others keep racing).
+  // Distinct from End: wordle.concede flips the shared conceded flag then re-runs
+  // the compete terminal check (which now counts me as done).
+  const handleConcede = async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(localPill('error', error.message))
+  }
+
+  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out
+  // of the race → wordle.concede); coop uses the neutral "End" (a mutual "we're
+  // done" → end_game). Shared by the playing and the locally-terminal action rows.
   const endButton = isCompete ? (
-    <ConcedeGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
+    <ConcedeGameButton
+      onClick={() => void handleConcede()}
+      className={shared.helperButton}
+      disabled={myConceded}
+    />
   ) : (
     <EndGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
   )
@@ -378,7 +396,9 @@ export function PlayArea({
     : isLocallyDone
       ? {
           tone: 'neutral',
-          text: "You're out — the rest are still racing.",
+          text: myConceded
+            ? 'You conceded — the rest are still racing.'
+            : "You're out — the rest are still racing.",
           variant: 'outline',
           dismiss: { kind: 'sticky' },
         }
@@ -437,9 +457,11 @@ export function PlayArea({
               selfId={session.user.id}
               metricLabel="Guesses"
               metricFor={(p, isSelf) =>
-                isSelf
-                  ? guessesUsed
-                  : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
+                concededIds.has(p.user_id)
+                  ? 'out'
+                  : isSelf
+                    ? guessesUsed
+                    : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
               }
             />
           )}
@@ -458,7 +480,7 @@ export function PlayArea({
           ) : isLocallyDone ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                Waiting for others
+                {myConceded ? 'You conceded' : 'Waiting for others'}
               </span>
               {endButton}
             </div>

@@ -4,7 +4,7 @@ import { db as commonDb } from '../db'
 import { navigate } from '../lib/router'
 import { supabase } from '../lib/supabase'
 import { computePause } from '../lib/pause'
-import type { Member, TimerMode } from '../lib/games'
+import type { GamePlayer, Member, TimerMode } from '../lib/games'
 import { useGameTimer } from './useGameTimer'
 
 /**
@@ -137,7 +137,7 @@ export function useCommonGame(
   session: Session,
 ): {
   commonGame: CommonGame | null
-  players: Member[]
+  players: GamePlayer[]
   paused: boolean
   missing: Member[]
   manuallyPausedBy: Member | null
@@ -148,7 +148,7 @@ export function useCommonGame(
   loading: boolean
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
-  const [players, setPlayers] = useState<Member[]>([])
+  const [players, setPlayers] = useState<GamePlayer[]>([])
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
   )
@@ -221,7 +221,7 @@ export function useCommonGame(
           .maybeSingle(),
         commonDb
           .from('game_players')
-          .select('user_id')
+          .select('user_id, conceded, conceded_at, result')
           .eq('game_id', gameId),
       ])
       if (!mounted) return
@@ -233,7 +233,7 @@ export function useCommonGame(
         return
       }
 
-      let playerList: Member[] = []
+      let playerList: GamePlayer[] = []
       const userIds = (playerRows ?? []).map((r) => r.user_id)
       if (userIds.length > 0) {
         const { data: profileData } = await commonDb
@@ -241,7 +241,20 @@ export function useCommonGame(
           .select('user_id, username, color')
           .in('user_id', userIds)
         if (!mounted) return
-        playerList = (profileData ?? []) as Member[]
+        // Merge the profile (username/color) with the per-player
+        // game_players bits (conceded/result) into one GamePlayer.
+        const byId = new Map(
+          (playerRows ?? []).map((r) => [r.user_id, r]),
+        )
+        playerList = (profileData ?? []).map((prof) => {
+          const gp = byId.get(prof.user_id)
+          return {
+            ...(prof as Member),
+            conceded: gp?.conceded ?? false,
+            conceded_at: gp?.conceded_at ?? null,
+            result: (gp?.result as GamePlayer['result']) ?? null,
+          }
+        })
       }
 
       clubHandleRef.current = gameData.club_handle
@@ -273,6 +286,23 @@ export function useCommonGame(
         schema: 'common',
         table: 'games',
         filter: `id=eq.${gameId}`,
+      },
+      load,
+    )
+
+    // Postgres-changes on common.game_players for this game. A
+    // mid-game concede (common.concede) flips a player's `conceded`
+    // WITHOUT touching common.games, so the games listener above
+    // wouldn't fire — but every peer's OpponentStrip needs to see
+    // the drop-out. This makes any per-player change (concede now,
+    // end-of-game `result` writes too) refetch the roster.
+    ch.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'common',
+        table: 'game_players',
+        filter: `game_id=eq.${gameId}`,
       },
       load,
     )

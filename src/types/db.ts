@@ -566,18 +566,24 @@ export type Database = {
       }
       game_players: {
         Row: {
+          conceded: boolean
+          conceded_at: string | null
           game_id: string
           joined_at: string
           result: Json | null
           user_id: string
         }
         Insert: {
+          conceded?: boolean
+          conceded_at?: string | null
           game_id: string
           joined_at?: string
           result?: Json | null
           user_id: string
         }
         Update: {
+          conceded?: boolean
+          conceded_at?: string | null
           game_id?: string
           joined_at?: string
           result?: Json | null
@@ -836,6 +842,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _set_conceded: { Args: { target_game: string }; Returns: string }
       cache_definition: {
         Args: { p_def: string; p_source: string; p_word: string }
         Returns: undefined
@@ -845,6 +852,7 @@ export type Database = {
         Returns: string
       }
       color_for_username: { Args: { username: string }; Returns: string }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_club: {
         Args: { club_name: string; member_usernames: string[] }
         Returns: string
@@ -1765,6 +1773,7 @@ export type Database = {
           word: string
         }[]
       }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           board: Json
@@ -2425,11 +2434,13 @@ export type Database = {
       }
     }
     Functions: {
+      _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _target_for: { Args: { g_id: string }; Returns: string }
       compute_colors: {
         Args: { answer: string; guess: string }
         Returns: string
       }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string
