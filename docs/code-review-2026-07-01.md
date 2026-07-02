@@ -29,9 +29,10 @@ was edited — this is a findings report, not a change.
 >   drift remains.
 >
 > Verified **still open** (the §1.1 work did *not* touch these, despite living
-> nearby): **§1.2** (codenamesduet clue-draft loss), **GAP 1** (boggle peer
-> feedback), and the §3.1 `--avail-h` derivation. Each item is annotated inline
-> below. *(Unrelated to this review: a shared board-overflow bug on classic
+> nearby): **GAP 1** (boggle peer feedback) and the §3.1 `--avail-h` derivation.
+> **§1.2** (codenamesduet clue-draft loss) was investigated and closed **WONTFIX**
+> — `submit_clue` has no content-rejection path, so the draft is moot whenever the
+> error fires (see §1.2). Each item is annotated inline below. *(Unrelated to this review: a shared board-overflow bug on classic
 > scrollbars / Safari+Firefox was fixed separately, `64b878a`+`7bc2a64`.)*
 
 ## Headline
@@ -120,6 +121,19 @@ single best extraction target (see [§4.1](#41-usepeereventfeedback--kills-the-1
   other three should converge on.
 
 ### 1.2 codenamesduet: a rejected clue wipes the giver's typed word + count
+
+> **✗ WONTFIX (2026-07-02).** Investigated the premise and it doesn't hold up.
+> `codenamesduet.submit_clue` has **no clue-content validation** — it rejects on
+> exactly four things, all state/race conditions: `game not found`, `clues only
+> allowed during active play`, `not your turn to give a clue`, and `a clue has
+> already been submitted this turn` (see the migration). There is no length /
+> dictionary / "clue can't be a board word" check, so the "retype to fix a typo"
+> scenario **can't occur** — any rejection means the game has already moved on
+> (ended, turn changed, or a clue exists this turn), and in every one of those
+> the giver can't submit a clue this turn *anyway*. The draft is worthless at the
+> exact moment it's lost, so preserving it has no user value; not worth the
+> in-slot-error layout complexity (a prototype fix either shrank the board or
+> needed pixel-matching to avoid reflow). Left as-is. *Original finding below.*
 
 **[confirmed — UX/state-loss]** `src/codenamesduet/components/PlayArea.tsx:368`.
 The `belowBoard` slot renders the error flash *in place of* `<CluePanel>`, and
@@ -503,8 +517,9 @@ by design.
 1. ~~**`usePeerEventFeedback`** (§4.1) — extract the correct hook, migrate all five
    consumers. Fixes §1.1 (wordle backlog replay + psychicnum/connections
    dropped-first-guess) as a side effect.~~ **✅ DONE (`9b311aa`).**
-2. **Correctness one-offs** — §1.2 (codenamesduet clue-draft loss), §1.3
-   (spellingbee `rankPoints` integer math), then the §1.4 smells as convenient.
+2. **Correctness one-offs** — ~~§1.2 (codenamesduet clue-draft loss)~~ **WONTFIX**
+   (no content-rejection path); §1.3 (spellingbee `rankPoints` integer math), then
+   the §1.4 smells as convenient.
 3. ~~The `.belowBoard` slot + token (§3.1)~~ **✅ done (`67f566c`)**; still: the
    `--avail-h` derivation (§3.1 para 2) and the **hug-board formula** (§3.2) —
    the remaining highest-leverage CSS collapses.
