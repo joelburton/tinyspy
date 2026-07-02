@@ -1,6 +1,8 @@
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { ActorTag } from '../../common/components/ActorTag'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
+import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
@@ -47,7 +49,26 @@ export function GameTurnLog({ guesses, players }: Props) {
     </td>
   )
 
+  // Click-to-define (a common feature — see common/hooks/useDefinePopover). The
+  // guessed / revealed word is a real dictionary word, so it's definable; a HINT
+  // row's `word` is a clue sentence, so it is NOT wired up.
+  const { define, popover } = useDefinePopover()
+  const defineProps = (word: string) => ({
+    className: styles.definable,
+    role: 'button' as const,
+    tabIndex: 0,
+    title: 'Click to define',
+    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word.toLowerCase(), e.currentTarget),
+    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        define(word.toLowerCase(), e.currentTarget)
+      }
+    },
+  })
+
   return (
+    <>
     <TurnLog
       heading="Guesses"
       empty={guesses.length === 0}
@@ -80,12 +101,16 @@ export function GameTurnLog({ guesses, players }: Props) {
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `who` sits snug at the right. */}
-            <td className={cls(turnLog.other, turnLog.primary)}>{g.word.toUpperCase()}</td>
+            <td className={cls(turnLog.other, turnLog.primary)}>
+              <span {...defineProps(g.word)}>{g.word.toUpperCase()}</span>
+            </td>
             <td className={turnLog.main}>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
           </tr>
         )
       })}
     </TurnLog>
+    {popover}
+    </>
   )
 }

@@ -380,7 +380,9 @@ src/psychicnum/
                           red=wrong / amber=hint+reveal) + #n + word + result +
                           actor with their identity dot, and turnLog.turnLogDivider
                           for the between-turns line. A hint row collapses the
-                          word+result columns into a colspan "Hint: <clue>".
+                          word+result columns into a colspan "Hint: <clue>". The
+                          guessed/revealed WORD is click-to-define (useDefinePopover)
+                          — a real dictionary word; the hint's clue sentence is NOT.
     GameTurnLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
                           mounted in the common SetupGameDialog.

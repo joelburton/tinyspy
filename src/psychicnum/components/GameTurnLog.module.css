@@ -9,3 +9,15 @@
 .hint {
   white-space: normal;
 }
+
+/* A click-to-define word (common/hooks/useDefinePopover) — the subtle
+ * underline-on-hover affordance the other text-word logs use (scrabble PlayLog,
+ * stackdown FoundWords, the shared WordList). Only the guessed/revealed word
+ * carries it, never a hint sentence. */
+.definable {
+  cursor: pointer;
+}
+.definable:hover,
+.definable:focus-visible {
+  text-decoration: underline;
+}

@@ -528,9 +528,13 @@ neither). Genuine gaps, ranked:
 turn log / no word list / compete-only / desktop-only carve-out); codenamesduet
 (coop-only / no OpponentStrip — peer status in the global feedback area / no
 DifficultyField / AI clue suggester is a one-off); connections (Calendar picker
-instead of DifficultyField); psychicnum (no define — it's a toy slated for
-removal); shuffle only where the tile set is permutable; turn-log-XOR-word-list
-by design.
+instead of DifficultyField); shuffle only where the tile set is permutable;
+turn-log-XOR-word-list by design. *(Update 2026-07-02: psychicnum's turn-log
+words ARE now click-to-define — the "toy, so skip it" reasoning was retired, it
+gets every option a word game should. The only click-to-define WONTFIXes are
+**connections** (tiles are Connections phrases, not dictionary words) and
+**codenamesduet** (its board words come from the Codenames word set, not our
+dictionary).)*
 
 ---
 

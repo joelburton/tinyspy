@@ -133,3 +133,25 @@ describe('psychicnum PlayArea — concede', () => {
     expect(screen.getByText(/You conceded — the rest are still racing/)).toBeInTheDocument()
   })
 })
+
+describe('psychicnum PlayArea — click-to-define (turn log)', () => {
+  it('makes a guessed word in the log a define affordance (not the hint sentence)', () => {
+    h.result = {
+      game: coopGame,
+      players: [me],
+      guesses: [
+        { id: 'g-1', user_id: 'u1', word: 'bravo', was_correct: false, kind: 'guess', guessed_at: '2026-07-02' },
+        { id: 'h-1', user_id: 'u1', word: 'a paid assassin', was_correct: false, kind: 'hint', guessed_at: '2026-07-02' },
+      ],
+      loading: false,
+    }
+    render(<PlayArea {...makeCtx()} />)
+    // The guessed word is definable...
+    const define = screen.getByTitle('Click to define')
+    expect(define).toHaveAttribute('role', 'button')
+    expect(define).toHaveTextContent('BRAVO')
+    // ...but the hint sentence is not (only the one define affordance in the log).
+    expect(screen.getAllByTitle('Click to define')).toHaveLength(1)
+    expect(screen.getByText(/a paid assassin/)).toBeInTheDocument()
+  })
+})
