@@ -45,8 +45,14 @@
    * (it hugs its board), so each game's board computes its width as
    * `min(--avail-w, <its tile caps>)`. Built from the shared tokens, so changing
    * the info-column width / layout gap / page padding flows through to every
-   * board automatically. See docs/ui.md → "Board sizing". */
-  --avail-w: calc(100vw - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding));
+   * board automatically. See docs/ui.md → "Board sizing".
+   *
+   * `--scrollbar-width` is subtracted because `100vw` INCLUDES the vertical
+   * scrollbar but the content box doesn't — without it, a classic (space-taking)
+   * scrollbar makes the board ~15px too wide and the whole pair overflows right
+   * (info column off-screen). It's measured in JS (common/lib/scrollbarWidth.ts)
+   * and defaults to 0px, so overlay-scrollbar systems are unaffected. */
+  --avail-w: calc(100vw - var(--scrollbar-width, 0px) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding));
 }
 
 /* Board column: HUGS its board (`flex: 0 0 auto`). The board grows to fill up to

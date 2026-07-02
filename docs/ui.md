@@ -870,12 +870,23 @@ viewport-math shrink-wrap form ([below](#the-older-shrink-wrap-form-scrabble--bo
 
 In `common/components/PlayArea.module.css`:
 - **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
-- **`.layout`** defines **`--avail-w`** = `calc(100vw - var(--info-col-width) -
-  var(--layout-gap) - 2 * var(--page-padding))` — the width left beside the fixed
-  info column, built from shared tokens (so a change to the info-column width, the
-  layout gap, or the page padding flows through to every board automatically).
-  This is the *input* to each game's board width — see [Why the width is
-  computed](#why-the-width-is-computed) for why it can't just flex.
+- **`.layout`** defines **`--avail-w`** = `calc(100vw - var(--scrollbar-width, 0px)
+  - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding))` — the
+  width left beside the fixed info column, built from shared tokens (so a change to
+  the info-column width, the layout gap, or the page padding flows through to every
+  board automatically). This is the *input* to each game's board width — see [Why
+  the width is computed](#why-the-width-is-computed) for why it can't just flex.
+  - **Why subtract `--scrollbar-width`:** `100vw` *includes* the vertical
+    scrollbar, but the content box doesn't. On classic (space-taking) scrollbars —
+    macOS "always show", most Windows — that overstates the usable width by ~15px,
+    so the board is sized too wide and the whole board+info pair overflows to the
+    right, dragging the info column off-screen (it hit hardest at game-over, when
+    the shared `WordList` reveal fills the info column and forces a scrollbar).
+    It's invisible with overlay scrollbars (0px) — so headless browsers can't
+    reproduce it. `--scrollbar-width` is measured in JS
+    (`common/lib/scrollbarWidth.ts`) and defaults to `0px`; `html` also sets
+    `scrollbar-gutter: stable` (theme.css) so a scrollbar toggling never reflows
+    the width.
 
 ### Each game's board
 

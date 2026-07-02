@@ -265,6 +265,17 @@
   box-sizing: border-box;
 }
 
+/* Always reserve the vertical scrollbar's gutter, so a scrollbar
+   appearing/disappearing (e.g. the word list growing at game-over) never
+   reflows the page width. Paired with the measured `--scrollbar-width` that the
+   board-sizing math subtracts (see common/lib/scrollbarWidth.ts +
+   PlayArea.module.css `--avail-w`): stable gutter → stable measurement → the
+   board is sized against the real content width, not `100vw` (which includes
+   the scrollbar). No effect on overlay-scrollbar systems (0px gutter). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
