@@ -39,13 +39,21 @@ export function rankThreshold(i: number): number {
   return (i / (RANKS.length - 1)) * GENIUS_AT
 }
 
-/** Absolute score that unlocks rank `i` given the puzzle's
- *  total possible score. `Math.ceil` so the displayed "needs N
- *  points" matches the surfaceable integer; the actual win check
- *  uses `>=` so a player at exactly the ceil'd threshold counts
- *  as having unlocked the rank. */
+/** Absolute score that unlocks rank `i` given the puzzle's total
+ *  possible score — the minimal integer score at which the rank is
+ *  awarded. `Math.ceil` so a fractional threshold rounds up to a
+ *  reachable integer; the actual win check uses `>=` so a player at
+ *  exactly this score counts as having unlocked the rank.
+ *
+ *  Integer math on purpose: `rankThreshold(i) * total` is
+ *  `(i/6)*0.7*total`, whose float result can land a hair above a whole
+ *  number (e.g. i=5, total=108 → 63.00000000000001) and make `Math.ceil`
+ *  overshoot by one. The algebraically-identical `(i * 7 * total) / 60`
+ *  keeps the numerator an exact integer, so the label matches the
+ *  integer win-check in `spellingbee._rank_idx` and the bar fill in
+ *  `currentRankIndex` (see the lockstep note atop this file). */
 export function rankPoints(i: number, total: number): number {
-  return Math.ceil(rankThreshold(i) * total)
+  return Math.ceil((i * 7 * total) / 60)
 }
 
 /** Highest rank index whose threshold is reached at this score.

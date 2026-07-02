@@ -65,6 +65,37 @@ describe('rankPoints', () => {
     expect(rankPoints(3, 0)).toBe(0)
     expect(rankPoints(6, 0)).toBe(0)
   })
+
+  it('does not overshoot the real Amazing threshold (float-ceil regression)', () => {
+    // (5/6)*0.7*108 is mathematically exactly 63, but IEEE-754 yields
+    // 63.00000000000001, so a naive Math.ceil(rankThreshold(i)*total) returns
+    // 64 — one point ABOVE where the bar fills Amazing and the compete race is
+    // actually won (both integer-based). The displayed "needs N" must be that
+    // real integer unlock point. (code-review §1.3)
+    expect(rankPoints(5, 108)).toBe(63)
+  })
+
+  it('the displayed threshold is the real integer unlock point for every rank/total', () => {
+    // The "needs N points" label must be the MINIMAL score at which the rank is
+    // actually awarded — i.e. it must agree with the integer win-check that
+    // spellingbee._rank_idx runs: least(6, (score*60)/(total*7)). This is the
+    // "keep the two implementations in lockstep" invariant from ranks.ts, applied
+    // to the display. A float-drifted rankPoints breaks it (34 totals in 1..2000,
+    // all at Amazing).
+    const sqlIdx = (s: number, t: number) =>
+      t ? Math.min(6, Math.floor((s * 60) / (t * 7))) : 0
+    const drifted: Array<{ total: number; rank: number; pts: number }> = []
+    for (let total = 1; total <= 2000; total++) {
+      for (let rank = 1; rank <= 6; rank++) {
+        const pts = rankPoints(rank, total)
+        // `pts` reaches the rank, and one point below it does NOT (so it's minimal).
+        if (sqlIdx(pts, total) < rank || (pts > 0 && sqlIdx(pts - 1, total) >= rank)) {
+          drifted.push({ total, rank, pts })
+        }
+      }
+    }
+    expect(drifted).toEqual([])
+  })
 })
 
 describe('currentRankIndex', () => {
