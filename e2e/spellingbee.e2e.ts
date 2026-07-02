@@ -41,27 +41,27 @@ test.describe('spellingbee play loop', () => {
     }
     const pill = () => page.locator('[class*="pill"]').first()
 
-    // Required word → optimistic "Good! +1pts", then it lands in the list via
-    // realtime and the score advances.
+    // Required word → optimistic "BEAD — +1", then it lands in the list via
+    // realtime and the score advances. (The shared `WORD — …` format, identical
+    // to boggle.)
     await submit('bead')
-    await expect(pill()).toContainText('Good!')
+    await expect(pill()).toContainText('BEAD — +1')
     await expect(page.getByRole('button', { name: 'BEAD' })).toBeVisible({ timeout: 10000 })
 
-    // Bonus word → the trailing bonus dot on the pill (the fix: spellingbee now
-    // shows it like boggle).
+    // Bonus word → the dot right after the word ("BCDFGE • — +6").
     await submit('bcdfge')
-    await expect(pill()).toContainText('•')
+    await expect(pill()).toContainText('BCDFGE • — +6')
 
-    // Pangram → the "Pangram!" flourish.
+    // Pangram → the "pangram +N" body.
     await submit('abcdefg')
-    await expect(pill()).toContainText('Pangram!')
+    await expect(pill()).toContainText(/pangram \+17/)
 
     // Non-legal words are rejected client-side with the specific reason, and
     // never appear in the list.
     await submit('zzzz')
-    await expect(pill()).toContainText('Bad letters')
+    await expect(pill()).toContainText(/bad letters/)
     await submit('bcdf') // valid letters but no center 'e'
-    await expect(pill()).toContainText('Missing center letter')
+    await expect(pill()).toContainText(/missing center letter/)
     await expect(page.getByRole('button', { name: 'ZZZZ' })).toHaveCount(0)
 
     await ctx.close()

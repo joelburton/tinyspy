@@ -28,8 +28,7 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
     foundWords: [],
     lookup,
     commit: vi.fn().mockResolvedValue({ error: null }),
-    explainReject: () => ({ text: 'not a word', tone: 'error' }),
-    successText: (e) => `${e.word.toUpperCase()} +${e.points}`,
+    explainReject: () => 'not a word',
     ...over,
   }
 }
@@ -60,7 +59,7 @@ describe('useWordSubmit', () => {
     expect(cfg.commit).toHaveBeenCalledTimes(1)
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
     expect(result.current.localFeedback?.tone).toBe('success')
-    expect(result.current.localFeedback?.text).toBe('APPLE +5')
+    expect(result.current.localFeedback?.text).toBe('APPLE — +5')
     expect(result.current.word).toBe('') // box cleared
     expect(result.current.lastWord).toBe('apple')
   })
@@ -69,13 +68,25 @@ describe('useWordSubmit', () => {
     const cfg = makeCfg()
     const { result, type, submit } = setup(cfg)
 
+    // Bonus dot sits right after the word, before the em-dash.
     type('zesty')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('ZESTY +9 •')
+    expect(result.current.localFeedback?.text).toBe('ZESTY • — +9')
 
     type('apple')
     await submit()
-    expect(result.current.localFeedback?.text).toBe('APPLE +5')
+    expect(result.current.localFeedback?.text).toBe('APPLE — +5')
+  })
+
+  it('keeps the bonus dot on an already-found bonus word', async () => {
+    const cfg = makeCfg()
+    const { result, type, submit } = setup(cfg)
+
+    type('zesty') // ZESTY is a bonus word
+    await submit()
+    type('zesty')
+    await submit()
+    expect(result.current.localFeedback?.text).toBe('ZESTY • — already found')
   })
 
   it('guards against a same-word re-submit during the realtime-lag window', async () => {
@@ -139,15 +150,27 @@ describe('useWordSubmit', () => {
     expect(result.current.localFeedback?.text).toMatch(/too short/i)
   })
 
-  it('rejects a non-legal word via explainReject with no commit', async () => {
-    const cfg = makeCfg({ explainReject: () => ({ text: 'not on the board', tone: 'error' }) })
+  it('rejects a non-legal word via explainReject (wrapped as WORD — reason)', async () => {
+    const cfg = makeCfg({ explainReject: () => 'not on board' })
     const { result, type, submit } = setup(cfg)
 
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
     expect(result.current.localFeedback?.tone).toBe('error')
-    expect(result.current.localFeedback?.text).toBe('not on the board')
+    expect(result.current.localFeedback?.text).toBe('QQQQ — not on board')
+  })
+
+  it('formats a pangram accept as "WORD — pangram +N"', async () => {
+    // A pangram entry (spellingbee) gets the "pangram" prefix; a bonus pangram
+    // also gets the dot after the word.
+    const PANGRAM = { word: 'abcdefg', points: 17, isBonus: true, isPangram: true }
+    const cfg = makeCfg({ lookup: (w) => (w === 'abcdefg' ? PANGRAM : null) })
+    const { result, type, submit } = setup(cfg)
+
+    type('abcdefg')
+    await submit()
+    expect(result.current.localFeedback?.text).toBe('ABCDEFG • — pangram +17')
   })
 
   it('is a no-op once terminal', async () => {

@@ -124,7 +124,7 @@ describe('boggle PlayArea — render smoke', () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('zzz{Enter}')
-    expect(screen.getByText(/not on the board/i)).toBeInTheDocument()
+    expect(screen.getByText(/not on board/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 })
@@ -136,7 +136,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('cat{Enter}')
-    expect(screen.getByText(/CAT \+1/)).toBeInTheDocument()
+    expect(screen.getByText(/CAT — \+1/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith(
       'submit_word',
       expect.objectContaining({ word: 'cat', points: 1, is_bonus: false }),
@@ -148,7 +148,7 @@ describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('dog{Enter}')
-    expect(screen.getByText(/DOG \+2 •/)).toBeInTheDocument()
+    expect(screen.getByText(/DOG • — \+2/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
   })
 

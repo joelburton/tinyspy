@@ -101,15 +101,10 @@ export function PlayArea(ctx: GamePageCtx) {
         })
         return { error }
       },
-      // A miss is either untraceable ("not on the board") or traceable-but-not-a-
-      // word — the distinction boggle keeps, computed from the board on the FE.
-      explainReject: (w) => ({
-        text: game && traceableStr(game.board, w)
-          ? `${w.toUpperCase()} — not a word`
-          : `${w.toUpperCase()} — not on the board`,
-        tone: 'error',
-      }),
-      successText: (e) => `${e.word.toUpperCase()} +${e.points}`,
+      // A miss is either untraceable ("not on board") or traceable-but-not-a-word
+      // — the distinction boggle keeps, computed from the board on the FE. The
+      // hook wraps the reason as `WORD — reason`.
+      explainReject: (w) => (game && traceableStr(game.board, w) ? 'not a word' : 'not on board'),
     })
 
   const grid = useMemo(

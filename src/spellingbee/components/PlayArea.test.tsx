@@ -122,7 +122,7 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('bead{Enter}')
-    expect(screen.getByText(/BEAD:\s*Good!/)).toBeInTheDocument()
+    expect(screen.getByText(/BEAD — \+1/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith(
       'submit_word',
       expect.objectContaining({ word: 'bead', points: 1, is_bonus: false, is_pangram: false }),
@@ -133,7 +133,7 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('bcdfge{Enter}')
-    expect(screen.getByText(/BCDFGE:\s*Good!.*•/)).toBeInTheDocument()
+    expect(screen.getByText(/BCDFGE • — \+6/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_bonus: true }))
   })
 
@@ -141,7 +141,7 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('abcdefg{Enter}')
-    expect(screen.getByText(/Pangram!/)).toBeInTheDocument()
+    expect(screen.getByText(/pangram \+17/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_pangram: true }))
   })
 
@@ -149,7 +149,7 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('zzzz{Enter}') // z is not a puzzle letter
-    expect(screen.getByText(/Bad letters/i)).toBeInTheDocument()
+    expect(screen.getByText(/bad letters/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -157,7 +157,7 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('bcdf{Enter}') // valid letters, but no center 'e'
-    expect(screen.getByText(/Missing center letter/i)).toBeInTheDocument()
+    expect(screen.getByText(/missing center letter/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 })

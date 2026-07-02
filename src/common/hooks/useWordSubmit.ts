@@ -62,13 +62,11 @@ export type WordSubmitConfig = {
   /** The trusting-commit RPC. The hook fires this in the background and only
    *  awaits to surface an error + release the pending word. */
   commit: (entry: WordEntry) => Promise<{ error: { message: string } | null }>
-  /** Why did `lookup` miss? Per-game so each keeps its own vocabulary — boggle:
-   *  "not on the board" (untraceable) vs "not a word"; spellingbee: "bad letters"
-   *  / "missing center" / "not in word list". `word` is the normalized lowercase. */
-  explainReject: (word: string) => { text: string; tone: GenericFeedbackTone }
-  /** The success label for an accepted word, WITHOUT the bonus dot (the hook
-   *  appends that uniformly). This is where spellingbee adds its pangram flourish. */
-  successText: (entry: WordEntry) => string
+  /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
+   *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
+   *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing
+   *  center letter" / "not a word". `word` is the normalized lowercase. */
+  explainReject: (word: string) => string
 }
 
 export type WordSubmitApi = {
@@ -98,6 +96,19 @@ const ownMove = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg =>
   variant: 'outline',
   dismiss: { kind: 'sticky' },
 })
+
+/**
+ * The one own-move line format, shared by both games so their feedback reads
+ * identically: `WORD — body`, always leading with the word in caps. A **bonus**
+ * find gets the ` •` dot right after the word (not at the end of the line):
+ *   accept       → `GOOD — +2`      (bonus: `GOOD • — +2`)
+ *   pangram      → `ABCDEFG — pangram +17`
+ *   too short    → `AB — too short`
+ *   already found→ `CAT — already found`
+ *   reject       → `ZZZ — not on board`   (the reason comes from explainReject)
+ */
+const line = (word: string, body: string, isBonus = false): string =>
+  `${word.toUpperCase()}${isBonus ? ' •' : ''} — ${body}`
 
 export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [word, setWordState] = useState('')
@@ -137,9 +148,14 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      showLocalFeedback(ownMove('warning', `Too short (min ${c.minWordLength})`))
+      showLocalFeedback(ownMove('warning', line(w, 'too short')))
       return
     }
+
+    // Look the word up FIRST so the bonus dot can ride any WORD-prefixed line —
+    // including the already-found one (a duplicate is, by definition, a legal word
+    // that was accepted before, so its `isBonus` is known).
+    const entry = c.lookup(w)
 
     const alreadyFound =
       pendingRef.current.has(w) ||
@@ -147,21 +163,22 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      showLocalFeedback(ownMove('warning', `${w.toUpperCase()} — already found`))
+      showLocalFeedback(ownMove('warning', line(w, 'already found', entry?.isBonus)))
       return
     }
 
-    const entry = c.lookup(w)
     if (!entry) {
-      const { text, tone } = c.explainReject(w)
-      showLocalFeedback(ownMove(tone, text))
+      showLocalFeedback(ownMove('error', line(w, c.explainReject(w))))
       return
     }
 
     // Accept optimistically: reserve the word, show it, commit in the background.
+    // Body is universal — `+N`, or `pangram +N` when the entry is a pangram (a
+    // spellingbee-only flag; boggle entries never set it). The bonus dot rides
+    // right after the word.
     pendingRef.current.add(w)
-    const dot = entry.isBonus ? ' •' : ''
-    showLocalFeedback(ownMove('success', `${c.successText(entry)}${dot}`))
+    const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
+    showLocalFeedback(ownMove('success', line(w, body, entry.isBonus)))
 
     const release = (message: string) => {
       pendingRef.current.delete(w) // free it so the player can retry

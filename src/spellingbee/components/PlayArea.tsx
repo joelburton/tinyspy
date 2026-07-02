@@ -185,20 +185,15 @@ export function PlayArea(ctx: GamePageCtx) {
         return { error }
       },
       // A miss at/above min length: name why (a letter off the board, or the
-      // center letter missing) else it's simply not in the word list.
+      // center letter missing) else it's simply not a word. The hook wraps the
+      // reason as `WORD — reason`.
       explainReject: (w) => {
         for (const ch of w) {
-          if (!allowedLetters.has(ch)) {
-            return { text: `${w.toUpperCase()}: Bad letters`, tone: 'error' }
-          }
+          if (!allowedLetters.has(ch)) return 'bad letters'
         }
-        if (center && !w.includes(center)) {
-          return { text: `${w.toUpperCase()}: Missing center letter`, tone: 'error' }
-        }
-        return { text: `${w.toUpperCase()}: Not a word`, tone: 'error' }
+        if (center && !w.includes(center)) return 'missing center letter'
+        return 'not a word'
       },
-      successText: (e) =>
-        `${e.word.toUpperCase()}: ${e.isPangram ? 'Pangram!' : 'Good!'} +${e.points}pts`,
     })
 
   const handleLetterClick = useCallback(
