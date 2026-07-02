@@ -162,10 +162,10 @@ export function PlayArea(ctx: GamePageCtx) {
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
   const selfId = ctx.session.user.id
-  const selfProgress = progress.find((p) => p.user_id === selfId)
   // Locally terminal: I've conceded but the game is still live for the others.
   // Shown as the terminal LOOK (frozen board + "you're out"), not a silent swap.
-  const isConceded = !!selfProgress?.conceded && !isTerminal
+  // Concede lives on the shared roster (ctx.players → common.game_players).
+  const isConceded = !!ctx.players.find((p) => p.user_id === selfId)?.conceded && !isTerminal
 
   // ─── Terminal verdict ──────────────────────────────────────────────────
   // Three terminal shapes: a peel-win (status.winner_username set), a countdown

@@ -168,15 +168,12 @@ create table bananagrams.player_boards (
 -- save_player_board recomputes these on every snapshot; the win
 -- inside peel sets done + finished_at on the winner.
 --
--- `conceded` is the per-player DROP-OUT flag (see `concede` below).
--- It's the game's one bit of per-player terminal state: a conceded
--- player is out of the race (they can't peel/dump/place any more and
--- take a loss when the game finally ends), while the OTHERS keep
--- racing. It's public (on `progress`, not the owner-only board) so
--- peers see who has bowed out, and `peel` reads it to count/deal only
--- the still-active players. The game itself stays 'playing' until a
--- real terminal (a peel-win, the timeout, or the LAST active player
--- conceding).
+-- The per-player DROP-OUT flag is NOT here — it lives on
+-- `common.game_players.conceded` (the shared concede mechanism every
+-- compete game uses; see common.concede). `peel` / `save_player_board`
+-- read it from there to skip a dropped-out player, and the FE reads it
+-- off `ctx.players`. The game stays 'playing' until a real terminal (a
+-- peel-win, the timeout, or the LAST active player conceding).
 --
 -- In the realtime publication so a peer's count updates live.
 
@@ -186,7 +183,6 @@ create table bananagrams.progress (
   unplaced int not null,
   placed int not null default 0,
   done boolean not null default false,
-  conceded boolean not null default false,
   finished_at timestamptz,
   primary key (game_id, user_id)
 );
@@ -521,7 +517,7 @@ begin
   end if;
 
   select conceded into is_conceded
-    from bananagrams.progress
+    from common.game_players
    where game_id = target_game and user_id = caller_id;
   if is_conceded then
     return; -- the caller has dropped out; their board is frozen
@@ -716,8 +712,9 @@ begin
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
-  -- A conceded player is out of the race — they can't peel.
-  if (select conceded from bananagrams.progress
+  -- A conceded player is out of the race — they can't peel. Conceded now
+  -- lives on common.game_players (the shared per-player drop-out flag).
+  if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
     raise exception 'you have conceded' using errcode = 'P0001';
   end if;
@@ -744,7 +741,7 @@ begin
   -- to refill is the active count, and the winning-peel threshold below is
   -- against THAT, not the raw roster.
   select count(*)::int into player_count
-    from bananagrams.progress
+    from common.game_players
    where game_id = target_game and not conceded;
   needed := player_count * s_peel_count;
 
@@ -796,7 +793,7 @@ begin
   -- over the active set and line up with `needed` = active_count × peel_count.
   with ranked as (
     select user_id, row_number() over (order by user_id) as pi
-      from bananagrams.progress
+      from common.game_players
      where game_id = target_game and not conceded
   )
   update bananagrams.player_boards pb
@@ -806,10 +803,15 @@ begin
    where pb.game_id = target_game and pb.user_id = r.user_id;
 
   -- Each active player's unplaced count grows by what they just drew (placed is
-  -- unchanged by a peel; conceded players didn't draw, so leave them be).
-  update bananagrams.progress
+  -- unchanged by a peel; conceded players didn't draw, so leave them be). Active
+  -- = has a non-conceded common.game_players row.
+  update bananagrams.progress p
      set unplaced = unplaced + s_peel_count
-   where game_id = target_game and not conceded;
+   where p.game_id = target_game
+     and exists (
+       select 1 from common.game_players gp
+        where gp.game_id = p.game_id and gp.user_id = p.user_id and not gp.conceded
+     );
 
   -- Advance the bunch past the drawn tiles.
   update bananagrams.games
@@ -1034,100 +1036,25 @@ grant execute on function bananagrams.submit_timeout(uuid) to authenticated;
 -- ============================================================
 -- bananagrams.concede — a player drops out of the race
 -- ============================================================
---
--- bananagrams's automatic terminals are the win inside `peel` (a player
--- goes out when the bunch can't refill the table) and — if a countdown
--- was chosen — the collective loss in `bananagrams.submit_timeout` above
--- (time's up, nobody out). `concede` is the third: a PER-PLAYER giving-up.
---
--- Unlike a whole-game stop, one player conceding does NOT end the game —
--- it marks JUST the caller out (`progress.conceded = true`) and the OTHERS
--- keep racing. bananagrams is compete, so conceding is a real loss for the
--- conceder (they're recorded `{"won": false}` when the game finally ends,
--- since they can never be the winner) — not a neutral quit. This replaces
--- the old whole-table `end_game`: there's no neutral "we all stop, nobody
--- loses" anymore; if a whole group wants to abandon a stale race, everyone
--- concedes (see the all-conceded terminal below) and everyone takes the loss.
---
--- After marking the caller out, we check whether anyone active remains:
---   - ≥ 1 active player left → the game stays 'playing'; the conceder just
---     watches the terminal-look locally (the FE reads their own conceded
---     flag off `progress`). `peel` already counts/deals only active players.
---   - 0 active left (the LAST racer conceded — including a solo game, N = 1)
---     → the whole game ends as a COLLECTIVE loss, the same shape as the
---     timeout: play_state 'lost', status.outcome 'conceded', every player
---     `{"won": false}`, NO winner.
---
--- Locks the gametype row so a concede and a concurrent peel serialize on the
--- shared state — a last-player concede and a peel-win can't both write the
--- terminal, and `peel`'s active-count read sees a consistent conceded set.
--- Idempotent: a double-concede (or a click racing a real terminal) raises
--- P0001, which the FE swallows like any "already terminal / already out" race.
+-- bananagrams is compete-only with no per-player "eliminated" state (a
+-- player is only ever done by peeling out — a win — or by conceding), so
+-- concede is exactly the generic common.concede: mark the caller out;
+-- while anyone's still racing the game stays 'playing' (peel already
+-- counts/deals only non-conceded players); when the LAST active player
+-- concedes — including a solo game, N = 1 — the whole game ends as a
+-- collective loss (play_state 'lost', status.outcome 'conceded', every
+-- player {"won": false}, no winner). The conceded flag now lives on
+-- common.game_players (was bananagrams.progress); the FE reads it off
+-- ctx.players and common.end_game wakes the terminal via useCommonGame.
+-- This wrapper just keeps the FE uniform (`db.rpc('concede')`).
 create function bananagrams.concede(target_game uuid)
 returns void
 language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
 as $$
-declare
-  caller_id uuid;
-  current_play_state text;
-  already boolean;
-  active_left int;
-  player_results jsonb;
 begin
-  -- Serialize against a concurrent peel / another concede on the shared state.
-  perform 1 from bananagrams.games where id = target_game for update;
-  if not found then
-    raise exception 'game not found' using errcode = 'P0002';
-  end if;
-
-  caller_id := common.require_game_player(target_game);
-
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
-  end if;
-
-  -- Idempotency: you can only concede once.
-  select conceded into already
-    from bananagrams.progress
-   where game_id = target_game and user_id = caller_id;
-  if already then
-    raise exception 'you have already conceded' using errcode = 'P0001';
-  end if;
-
-  -- Mark the caller out. This write is also the realtime nudge: the FE's
-  -- useProgress subscribes to bananagrams.progress, so the conceded flag
-  -- reaches every player (the conceder sees their own terminal-look; peers
-  -- see them marked "out" in the strip).
-  update bananagrams.progress
-     set conceded = true
-   where game_id = target_game and user_id = caller_id;
-
-  -- Anyone still racing? If so, the game continues for them.
-  select count(*)::int into active_left
-    from bananagrams.progress
-   where game_id = target_game and not conceded;
-  if active_left > 0 then
-    return;
-  end if;
-
-  -- The last active player just conceded → the whole game ends as a
-  -- collective loss (everyone {"won": false}, no winner) — the timeout
-  -- shape, but outcome 'conceded'. common.end_game writes common.games,
-  -- which wakes the terminal modal via useCommonGame; the progress write
-  -- above already nudged the bananagrams channels.
-  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-    into player_results
-    from common.game_players where game_id = target_game;
-
-  perform common.end_game(
-    target_game, 'lost',
-    jsonb_build_object('outcome', 'conceded'),
-    player_results
-  );
+  perform common.concede(target_game);
 end;
 $$;
 

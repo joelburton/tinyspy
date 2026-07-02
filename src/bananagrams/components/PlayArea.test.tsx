@@ -51,7 +51,7 @@ function loaded(tiles = 'ABCDEFG'): GameHook {
 }
 
 function progressRow(over: Partial<BananagramsProgress> & { user_id: string }): BananagramsProgress {
-  return { unplaced: 0, placed: 0, done: false, conceded: false, ...over }
+  return { unplaced: 0, placed: 0, done: false, ...over }
 }
 
 const SETUP = {
@@ -122,8 +122,9 @@ describe('bananagrams PlayArea — render smoke', () => {
   })
 
   it('renders the locally-terminal "you conceded" state (frozen, others racing)', () => {
-    h.progress = [progressRow({ user_id: 'u1', conceded: true })]
-    render(<PlayArea {...makeCtx()} />)
+    // Concede now lives on the common roster (ctx.players), not progress.
+    h.progress = [progressRow({ user_id: 'u1' })]
+    render(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true })] })} />)
     // The action row shows "You're out" + back-to-club — no Peel and no Concede
     // (the conceder is frozen out; the row is the terminal look).
     expect(screen.getAllByText(/you.?re out/i).length).toBeGreaterThan(0)

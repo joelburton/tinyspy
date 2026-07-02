@@ -73,7 +73,6 @@ export type Database = {
       }
       progress: {
         Row: {
-          conceded: boolean
           done: boolean
           finished_at: string | null
           game_id: string
@@ -82,7 +81,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          conceded?: boolean
           done?: boolean
           finished_at?: string | null
           game_id: string
@@ -91,7 +89,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          conceded?: boolean
           done?: boolean
           finished_at?: string | null
           game_id?: string
@@ -237,6 +234,7 @@ export type Database = {
         Returns: undefined
       }
       _refresh_status: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           board: Json
@@ -1074,6 +1072,8 @@ export type Database = {
       }
     }
     Functions: {
+      _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string
@@ -1278,6 +1278,7 @@ export type Database = {
         }
         Returns: string
       }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string
@@ -1569,6 +1570,7 @@ export type Database = {
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
       _title: { Args: { g_id: string }; Returns: string }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string
@@ -2001,6 +2003,7 @@ export type Database = {
       }
       _solution_for: { Args: { g_id: string }; Returns: string[] }
       _word: { Args: { ids: number[]; tiles: Json }; Returns: string }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string
@@ -2244,6 +2247,7 @@ export type Database = {
         Returns: boolean
       }
       _color_rank: { Args: { c: string }; Returns: number }
+      _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _player_board_for: {
         Args: { g_id: string; row_user: string }
         Returns: string
@@ -2261,6 +2265,7 @@ export type Database = {
         Args: { board: string; solution: string }
         Returns: string
       }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           board: Json

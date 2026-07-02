@@ -53,14 +53,14 @@ export function useGame(gameId: string) {
 }
 
 /** One row of `bananagrams.progress` — the public per-player projection peers
- *  read: unplaced/placed counts, the done flag, and the per-player `conceded`
- *  drop-out flag (a conceded player is out of the race; see the concede RPC). */
+ *  read: unplaced/placed counts + the done flag. The per-player `conceded`
+ *  drop-out flag is NOT here — it moved to the shared `common.game_players`
+ *  roster (read off ctx.players; see common.concede). */
 export type BananagramsProgress = {
   user_id: string
   unplaced: number
   placed: number
   done: boolean
-  conceded: boolean
 }
 
 /**
@@ -79,7 +79,7 @@ export function useProgress(gameId: string): BananagramsProgress[] {
     load: async ({ mounted }) => {
       const { data } = await db
         .from('progress')
-        .select('user_id, unplaced, placed, done, conceded')
+        .select('user_id, unplaced, placed, done')
         .eq('game_id', gameId)
       if (!mounted()) return
       setRows(data ?? [])

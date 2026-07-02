@@ -539,6 +539,75 @@ revoke execute on function waffle.create_game(text, jsonb, uuid[], text, jsonb) 
 grant execute on function waffle.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
 -- ============================================================
+-- waffle._maybe_finish_compete — end the compete game if it's over
+-- ============================================================
+-- A compete game ends when NO player is still racing — racing means not
+-- conceded, not solved, swaps left. Shared by submit_swap (a swap can be
+-- the last move) and waffle.concede (a drop-out can be, if everyone else
+-- already finished). Winner = fewest swaps among solved, non-conceded
+-- players (a drop-out forfeits). NULL if nobody eligible solved.
+-- Returns true when it ended the game.
+create function waffle._maybe_finish_compete(target_game uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  winner_id      uuid;
+  player_results jsonb;
+  term_state     text;
+  v_max          int;
+begin
+  select max_swaps into v_max from waffle.games where id = target_game;
+
+  if exists (
+    select 1
+      from waffle.players wp
+      join common.game_players gp
+        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+     where wp.game_id = target_game
+       and not gp.conceded
+       and not wp.solved
+       and wp.swaps_used < v_max
+  ) then
+    return false;
+  end if;
+
+  select wp.user_id into winner_id
+    from waffle.players wp
+    join common.game_players gp
+      on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+   where wp.game_id = target_game and wp.solved and not gp.conceded
+   order by wp.swaps_used asc, wp.solved_at asc
+   limit 1;
+
+  select jsonb_object_agg(
+           wp.user_id::text,
+           jsonb_build_object(
+             'won',    coalesce(wp.user_id = winner_id, false),
+             'solved', wp.solved,
+             'swaps',  wp.swaps_used
+           )
+         )
+    into player_results
+    from waffle.players wp
+   where wp.game_id = target_game;
+
+  term_state := case when winner_id is not null
+                     then 'won_compete' else 'lost_compete' end;
+  perform common.end_game(
+    target_game, term_state,
+    jsonb_build_object('mode', 'compete', 'winner', winner_id),
+    player_results
+  );
+  return true;
+end;
+$$;
+
+revoke execute on function waffle._maybe_finish_compete(uuid) from public;
+
+-- ============================================================
 -- waffle.submit_swap — the core move
 -- ============================================================
 -- Swap the letters of two filled cells. Returns the resulting per-
@@ -573,7 +642,6 @@ declare
   did_solve          boolean;
   out_terminal       boolean := false;
   term_state         text;
-  winner_id          uuid;
   player_results     jsonb;
 begin
   caller_id := common.require_game_player(target_game);
@@ -670,44 +738,10 @@ begin
            solved_at  = case when did_solve then now() else solved_at end
      where game_id = target_game and user_id = caller_id;
 
-    -- The game ends when EVERY player is done — solved, or out of
-    -- swaps. The finite budget guarantees this happens (no stall).
-    if not exists (
-      select 1 from waffle.players
-       where game_id = target_game
-         and not solved
-         and swaps_used < g_row.max_swaps
-    ) then
-      out_terminal := true;
-      -- Winner = solved with the FEWEST swaps; tie-break the earliest
-      -- solved_at (least time). NULL if nobody solved.
-      select user_id into winner_id
-        from waffle.players
-       where game_id = target_game and solved
-       order by swaps_used asc, solved_at asc
-       limit 1;
-
-      select jsonb_object_agg(
-               user_id::text,
-               jsonb_build_object(
-                 'won',    coalesce(user_id = winner_id, false),
-                 'solved', solved,
-                 'swaps',  swaps_used
-               )
-             )
-        into player_results
-        from waffle.players
-       where game_id = target_game;
-
-      term_state := case when winner_id is not null
-                         then 'won_compete' else 'lost_compete' end;
-      perform common.end_game(
-        target_game, term_state,
-        jsonb_build_object('mode', 'compete',
-                           'winner', winner_id),
-        player_results
-      );
-    end if;
+    -- The game ends when EVERY player is done — solved, out of swaps,
+    -- or conceded. Shared with waffle.concede (a drop-out can be the
+    -- move that empties the racing set). Returns true when it ended.
+    out_terminal := waffle._maybe_finish_compete(target_game);
   end if;
 
   return jsonb_build_object(
@@ -721,6 +755,32 @@ $$;
 
 revoke execute on function waffle.submit_swap(uuid, int, int) from public;
 grant execute on function waffle.submit_swap(uuid, int, int) to authenticated;
+
+-- ============================================================
+-- waffle.concede — a player drops out of a compete race
+-- ============================================================
+-- waffle is an ELIMINATION game (a player can be done — solved or out
+-- of swaps — without the table ending), so it can't use the generic
+-- common.concede: after flipping the shared flag it re-runs its own
+-- terminal check, which now counts a conceder as done and excludes
+-- them from the win. Compete only (coop ends via the shared End).
+create function waffle.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+begin
+  if (select mode from waffle.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common._set_conceded(target_game);
+  perform waffle._maybe_finish_compete(target_game);
+end;
+$$;
+
+revoke execute on function waffle.concede(uuid) from public;
+grant execute on function waffle.concede(uuid) to authenticated;
 
 -- ============================================================
 -- waffle.submit_timeout — countdown-timer expiry
@@ -768,11 +828,14 @@ begin
       player_results
     );
   else
-    -- Compete: winner among whoever solved before the clock ran out.
-    select user_id into winner_id
-      from waffle.players
-     where game_id = target_game and solved
-     order by swaps_used asc, solved_at asc
+    -- Compete: winner among whoever solved before the clock ran out,
+    -- excluding conceders (a drop-out forfeits any win).
+    select wp.user_id into winner_id
+      from waffle.players wp
+      join common.game_players gp
+        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+     where wp.game_id = target_game and wp.solved and not gp.conceded
+     order by wp.swaps_used asc, wp.solved_at asc
      limit 1;
     select jsonb_object_agg(
              user_id::text,

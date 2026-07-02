@@ -43,14 +43,14 @@ select lives_ok(
   'a player can concede'
 );
 select is(
-  (select conceded from bananagrams.progress
+  (select conceded from common.game_players
     where game_id = (select id from g1)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   true,
   'the conceder is marked conceded'
 );
 select is(
-  (select conceded from bananagrams.progress
+  (select conceded from common.game_players
     where game_id = (select id from g1)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   false,
@@ -170,7 +170,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.concede(%L) $$, (select id from g1)),
   'P0001',
-  'game is not in progress',
+  'game is already over',
   'conceding a finished game is rejected'
 );
 

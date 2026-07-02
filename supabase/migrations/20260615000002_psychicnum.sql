@@ -630,9 +630,13 @@ begin
 
   -- Total remaining budget across the whole game (coop: N × the shared value;
   -- compete: sum of independent counters). Drives the all-exhausted loss.
-  select sum(guesses_remaining) into total_remaining
-    from psychicnum.players
-   where game_id = target_game;
+  -- A CONCEDER contributes 0 — they've dropped out, so their leftover budget
+  -- must not keep the game alive (coop never concedes, so this is a no-op there).
+  select coalesce(sum(pp.guesses_remaining), 0) into total_remaining
+    from psychicnum.players pp
+    join common.game_players gp
+      on gp.game_id = pp.game_id and gp.user_id = pp.user_id
+   where pp.game_id = target_game and not gp.conceded;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the secrets_found tally.
@@ -732,6 +736,57 @@ $$;
 
 revoke execute on function psychicnum.submit_guess(uuid, text) from public;
 grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
+
+-- ============================================================
+-- psychicnum.concede — a player drops out of a compete race
+-- ============================================================
+-- psychicnum is an ELIMINATION game: each player has an independent
+-- guess budget, and the compete game ends only when EVERY player is
+-- done — either someone completed the set (immediate win, handled in
+-- submit_guess) or all budgets are exhausted. A conceder is done too,
+-- so after flipping the shared flag we check whether any NON-conceded
+-- player still has budget; if not (and nobody won — a win would have
+-- ended the game already), the game ends as a collective loss.
+-- Compete only (coop is a team; it ends via the shared End).
+create function psychicnum.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  player_results jsonb;
+begin
+  if (select mode from psychicnum.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+
+  perform common._set_conceded(target_game);
+
+  -- Anyone still racing? (not conceded, budget left)
+  if exists (
+    select 1 from psychicnum.players pp
+      join common.game_players gp
+        on gp.game_id = pp.game_id and gp.user_id = pp.user_id
+     where pp.game_id = target_game and not gp.conceded and pp.guesses_remaining > 0
+  ) then
+    return;
+  end if;
+
+  -- Everyone out (exhausted or conceded), nobody completed the set → loss.
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+  perform common.end_game(
+    target_game, 'lost_compete',
+    jsonb_build_object('outcome', 'lost_compete'),
+    player_results
+  );
+end;
+$$;
+
+revoke execute on function psychicnum.concede(uuid) from public;
+grant execute on function psychicnum.concede(uuid) to authenticated;
 
 -- ============================================================
 -- psychicnum._unfound_secret — pick an as-yet-unfound secret

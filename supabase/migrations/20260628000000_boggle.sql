@@ -481,6 +481,33 @@ $$;
 revoke execute on function boggle.end_game(uuid) from public;
 grant execute on function boggle.end_game(uuid) to authenticated;
 
+-- ============================================================
+-- boggle.concede — a player drops out of a compete race
+-- ============================================================
+-- boggle compete is a timed hunt (no per-player "eliminated" state —
+-- everyone plays until the countdown or, untimed, until they stop), so
+-- the active set is exactly "not conceded" and the generic
+-- common.concede handles it: mark the caller out; if that was the last
+-- racer, end as a collective loss. This wrapper keeps the FE uniform
+-- (`db.rpc('concede')`) and gates concede to compete (coop ends via
+-- the shared End, never a concede).
+create function boggle.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = boggle, common, public, extensions
+as $$
+begin
+  if (select mode from boggle.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common.concede(target_game);
+end;
+$$;
+
+revoke execute on function boggle.concede(uuid) from public;
+grant execute on function boggle.concede(uuid) to authenticated;
+
 create function boggle.submit_timeout(target_game uuid)
 returns void
 language plpgsql

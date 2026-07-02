@@ -749,3 +749,29 @@ end;
 $$;
 revoke execute on function stackdown.end_game(uuid) from public;
 grant execute on function stackdown.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- stackdown.concede — a player drops out of a compete race
+-- ============================================================
+-- stackdown compete is a race to clear the stack (first to clear wins,
+-- ending the game via submit_word) — there's no per-player
+-- "eliminated" state, so the active set is exactly "not conceded" and
+-- the generic common.concede handles it: mark the caller out; if that
+-- was the last racer, end as a collective loss. Wrapper keeps the FE
+-- uniform and gates concede to compete (coop ends via the shared End).
+create function stackdown.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+begin
+  if (select mode from stackdown.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common.concede(target_game);
+end;
+$$;
+
+revoke execute on function stackdown.concede(uuid) from public;
+grant execute on function stackdown.concede(uuid) to authenticated;

@@ -411,16 +411,31 @@ declare
   n_players int;
   cur_seat  int;
   next_user uuid;
+  i         int;
 begin
   select count(*) into n_players from scrabble.players where game_id = g_id;
   select p.seat into cur_seat
     from scrabble.players p
     join scrabble.games g on g.id = p.game_id
    where p.game_id = g_id and p.user_id = g.current_user_id;
-  select user_id into next_user
-    from scrabble.players
-   where game_id = g_id and seat = (cur_seat + 1) % n_players;
-  update scrabble.games set current_user_id = next_user where id = g_id;
+  -- Walk forward to the next seat whose player hasn't CONCEDED — a drop-out is
+  -- skipped in the turn order (with no conceders this is just seat+1). We never
+  -- loop forever: scrabble.concede ends the game before the last active player
+  -- is gone, so at least one non-conceded seat always exists here.
+  next_user := null;
+  for i in 1..n_players loop
+    select p.user_id into next_user
+      from scrabble.players p
+      join common.game_players gp
+        on gp.game_id = p.game_id and gp.user_id = p.user_id
+     where p.game_id = g_id
+       and p.seat = (cur_seat + i) % n_players
+       and not gp.conceded;
+    exit when next_user is not null;
+  end loop;
+  if next_user is not null then
+    update scrabble.games set current_user_id = next_user where id = g_id;
+  end if;
 end;
 $$;
 
@@ -486,21 +501,38 @@ begin
        where game_id = g_id and user_id = out_user;
     end if;
 
-    select max(score) into v_max from scrabble.players where game_id = g_id;
+    -- Winner = highest score among NON-conceded players — a drop-out forfeits
+    -- any win regardless of the score they'd banked. v_max is NULL if everyone
+    -- conceded (jsonb comparison below then yields won:false for all).
+    select max(p.score) into v_max
+      from scrabble.players p
+      join common.game_players gp
+        on gp.game_id = p.game_id and gp.user_id = p.user_id
+     where p.game_id = g_id and not gp.conceded;
     select count(*) into v_winners
-      from scrabble.players where game_id = g_id and score = v_max;
+      from scrabble.players p
+      join common.game_players gp
+        on gp.game_id = p.game_id and gp.user_id = p.user_id
+     where p.game_id = g_id and not gp.conceded and p.score = v_max;
     -- A unique top score names a winner; a tie → co-winners (winner null,
     -- each top-scorer flagged {won:true} in player_results).
     if v_winners = 1 then
-      select user_id into v_winner
-        from scrabble.players where game_id = g_id and score = v_max;
+      select p.user_id into v_winner
+        from scrabble.players p
+        join common.game_players gp
+          on gp.game_id = p.game_id and gp.user_id = p.user_id
+       where p.game_id = g_id and not gp.conceded and p.score = v_max;
     end if;
 
+    -- A conceder is never a winner even if their banked score ties v_max.
     select jsonb_object_agg(
-             user_id::text,
-             jsonb_build_object('won', score = v_max, 'score', score))
+             p.user_id::text,
+             jsonb_build_object('won', not gp.conceded and p.score = v_max, 'score', p.score))
       into player_results
-      from scrabble.players where game_id = g_id;
+      from scrabble.players p
+      join common.game_players gp
+        on gp.game_id = p.game_id and gp.user_id = p.user_id
+     where p.game_id = g_id;
 
     v_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome, 'winner', v_winner,
@@ -976,6 +1008,64 @@ $$;
 
 revoke execute on function scrabble.pass_turn(uuid, int) from public;
 grant execute on function scrabble.pass_turn(uuid, int) to authenticated;
+
+-- ============================================================
+-- scrabble.concede — a player drops out of a compete game
+-- ============================================================
+-- Turn-based, so concede is more than a flag: the conceder is removed
+-- from the turn order (_advance_turn skips them), forfeits any win
+-- (_finish picks the winner among non-conceded players), and if it was
+-- their turn we hand off so the game isn't stuck. When the LAST active
+-- player concedes the game ends — final scoring with nobody eligible to
+-- win (a collective loss). Compete only (coop has no turns / no race).
+create function scrabble.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  caller_id  uuid;
+  v_active   int;
+  is_current boolean;
+begin
+  if (select mode from scrabble.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+
+  -- Lock the game row so a concede can't race a move / another concede.
+  perform 1 from scrabble.games where id = target_game for update;
+  caller_id := common._set_conceded(target_game);
+
+  -- Any non-conceded players still in it?
+  select count(*) into v_active
+    from scrabble.players p
+    join common.game_players gp
+      on gp.game_id = p.game_id and gp.user_id = p.user_id
+   where p.game_id = target_game and not gp.conceded;
+
+  if v_active = 0 then
+    -- The last active player conceded → final scoring, nobody eligible to
+    -- win (collective loss). _finish excludes conceders, so winner is null.
+    perform scrabble._finish(target_game, 'conceded', null);
+    return;
+  end if;
+
+  -- Others are still playing. If it was the conceder's turn, hand off to the
+  -- next non-conceded player (else the game would stall on a drop-out).
+  select (current_user_id = caller_id) into is_current
+    from scrabble.games where id = target_game;
+  if is_current then
+    perform scrabble._advance_turn(target_game);
+  end if;
+  -- Bump version so optimistic-concurrency readers refetch, and mirror state.
+  update scrabble.games set version = version + 1 where id = target_game;
+  perform common.update_state(target_game, 'playing', scrabble._status(target_game));
+end;
+$$;
+
+revoke execute on function scrabble.concede(uuid) from public;
+grant execute on function scrabble.concede(uuid) to authenticated;
 
 -- ============================================================
 -- scrabble.submit_timeout — countdown-timer expiry

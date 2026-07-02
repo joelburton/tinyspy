@@ -607,6 +607,50 @@ revoke execute on function connections.create_game(text, jsonb, uuid[], text) fr
 grant execute on function connections.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
+-- connections._maybe_finish_compete — end the game if nobody's alive
+-- ============================================================
+-- A compete game ends when NO player is still alive — alive means not
+-- conceded and fewer than 4 mistakes (a solve is an immediate win,
+-- handled inline in submit_guess). Shared by submit_guess (a 4th
+-- mistake can eliminate the last player) and connections.concede (a
+-- drop-out can leave nobody alive). Ends as a collective loss (nobody
+-- solved). Returns true when it ended the game.
+create function connections._maybe_finish_compete(target_game uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = connections, common, public, extensions
+as $$
+declare
+  player_results jsonb;
+begin
+  if exists (
+    select 1
+      from connections.players cp
+      join common.game_players gp
+        on gp.game_id = cp.game_id and gp.user_id = cp.user_id
+     where cp.game_id = target_game
+       and not gp.conceded
+       and cp.mistake_count < 4
+  ) then
+    return false;
+  end if;
+
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+  perform common.end_game(
+    target_game, 'lost_compete',
+    jsonb_build_object('outcome', 'lost_compete_mistakes'),
+    player_results
+  );
+  return true;
+end;
+$$;
+
+revoke execute on function connections._maybe_finish_compete(uuid) from public;
+
+-- ============================================================
 -- connections.submit_guess — record a submission (mode-aware)
 -- ============================================================
 -- The FE-knows model: the caller has already evaluated the guess
@@ -657,7 +701,6 @@ declare
   caller_matched int;
   matched_count int;
   player_results jsonb;
-  min_mistakes int;
   winner_name text;
 begin
   -- Lock the game row for atomic mistake_count++ and play_state
@@ -890,37 +933,14 @@ begin
       from connections.players
      where game_id = target_game and user_id = caller_id;
 
-    -- Collective-loss check: every player's mistake_count >= 4
-    -- (nobody alive, nobody won) ⇒ lost_compete. MIN across the
-    -- table is the cheap way to ask "is the lowest still alive?"
-    select min(mistake_count) into min_mistakes
-      from connections.players
-     where game_id = target_game;
-
-    if min_mistakes >= 4 then
-      select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
-        into player_results
-        from common.game_players
-       where game_id = target_game;
-
-      perform common.end_game(
-        target_game,
-        'lost_compete',
-        jsonb_build_object(
-          'outcome', 'lost_compete_mistakes'
-        ),
-        player_results
-      );
-    else
-      -- caller may have just been eliminated (mistake_count=4)
-      -- but other players are still alive. The game continues;
-      -- the eliminated player's FE will render the spectator-
-      -- with-own-reveal view based on their own row.
-      perform common.update_state(
-        target_game,
-        'playing',
-        '{}'::jsonb
-      );
+    -- Collective-loss check: nobody alive (every player is eliminated
+    -- — mistake_count >= 4 — or conceded) and nobody won ⇒ lost_compete.
+    -- Shared with connections.concede (a drop-out can be the move that
+    -- leaves nobody alive). If someone's still alive the game continues;
+    -- the just-eliminated caller's FE renders the spectator-with-own-
+    -- reveal view from their own row.
+    if not connections._maybe_finish_compete(target_game) then
+      perform common.update_state(target_game, 'playing', '{}'::jsonb);
     end if;
   end if;
 end;
@@ -928,6 +948,32 @@ $$;
 
 revoke execute on function connections.submit_guess(uuid, text[], text, int) from public;
 grant execute on function connections.submit_guess(uuid, text[], text, int) to authenticated;
+
+-- ============================================================
+-- connections.concede — a player drops out of a compete race
+-- ============================================================
+-- connections is an ELIMINATION game (a player can be out — 4 mistakes
+-- — without the table ending), so it can't use the generic
+-- common.concede: after flipping the shared flag it re-runs its own
+-- terminal check, which counts a conceder as "not alive" alongside the
+-- eliminated. Compete only (coop is a team; it ends via the shared End).
+create function connections.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = connections, common, public, extensions
+as $$
+begin
+  if (select mode from connections.games where id = target_game) <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+  perform common._set_conceded(target_game);
+  perform connections._maybe_finish_compete(target_game);
+end;
+$$;
+
+revoke execute on function connections.concede(uuid) from public;
+grant execute on function connections.concede(uuid) to authenticated;
 
 -- ============================================================
 -- connections.submit_timeout — countdown expiry handler (mode-aware)
