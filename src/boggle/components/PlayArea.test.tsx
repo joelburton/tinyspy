@@ -228,3 +228,77 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     expect(ctx.globalFeedback.show).not.toHaveBeenCalled()
   })
 })
+
+describe('boggle PlayArea — concede', () => {
+  // Concede = a per-player "I quit, the game continues for the others" action for
+  // COMPETE (boggle is non-elimination, so it's the only way to a locally-done
+  // state). Coop keeps the neutral whole-table End. Mirrors spellingbee's block.
+
+  it('compete shows Concede and calls boggle.concede on click', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    await user.click(screen.getByRole('button', { name: /concede/i }))
+    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+  })
+
+  it('coop shows End (not Concede) and calls end_game', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^end$/i }))
+    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+  })
+
+  it('marks a conceded opponent "out" in the strip (mid-game)', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
+        })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
+  it('shows the "You conceded" locally-terminal look after I concede', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+        })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+
+  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          playState: 'ended',
+          players: [
+            gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
+            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Quit
+            gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
+          ],
+          status: {
+            leaderboard: [
+              { user_id: 'u2', count: 4, score: 12 },
+              { user_id: 'u3', count: 6, score: 40 },
+            ],
+          },
+        })}
+      />,
+    )
+    expect(screen.getByText(/Quit at/)).toBeInTheDocument()
+    expect(screen.getByText(/Won at/)).toBeInTheDocument()
+    expect(screen.getByText(/Lost at/)).toBeInTheDocument()
+  })
+})

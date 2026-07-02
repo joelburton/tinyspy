@@ -19,7 +19,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { PlayRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
+import { db } from '../db'
 import { PlayArea } from './PlayArea'
+
+const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 type GameHook = {
   game: ScrabbleGame | null
@@ -97,7 +100,17 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 
 beforeEach(() => {
   h.result = loaded(loadedGame(), [selfPlayer()])
+  rpc.mockReset()
+  rpc.mockResolvedValue({ error: null })
 })
+
+/** A loaded compete game with two seated players (u1 + u2). */
+function loadedCompete(over: Partial<ScrabbleGame> = {}) {
+  return loaded(
+    loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1', ...over }),
+    [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7 }],
+  )
+}
 
 describe('scrabble PlayArea — render smoke', () => {
   it('renders the 15×15 board + the 7-tile rack + state line in coop play', () => {
@@ -141,5 +154,45 @@ describe('scrabble PlayArea — render smoke', () => {
     // The neutral coop terminal: "0 pts" in the action row AND the permanent
     // verdict pill below the board (both places, by rule).
     expect(screen.getAllByText('0 pts').length).toBeGreaterThan(0)
+  })
+})
+
+describe('scrabble PlayArea — concede', () => {
+  it('compete shows Concede and calls scrabble.concede on click', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    h.result = loadedCompete()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    await user.click(screen.getByRole('button', { name: /concede/i }))
+    expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' })
+  })
+
+  it('coop shows End (not Concede) and calls end_game', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^end$/i }))
+    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+  })
+
+  it('marks a conceded opponent "out" in the strip', () => {
+    h.result = loadedCompete()
+    render(
+      <PlayArea
+        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })] })}
+      />,
+    )
+    expect(screen.getByText('out')).toBeInTheDocument()
+  })
+
+  it('shows the "You conceded" look after I concede', () => {
+    h.result = loadedCompete({ currentUserId: 'u2' }) // turn already handed to u2
+    render(
+      <PlayArea
+        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })

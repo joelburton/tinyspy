@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { playerOutcome } from '../../common/lib/games'
 import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -198,13 +199,17 @@ export function PlayArea({
     () => (mode === 'coop' ? (sharedRack ?? []) : (myRack ?? [])),
     [mode, sharedRack, myRack],
   )
+  // Concede lives on the common roster (ctx.players → `members`). A conceder is
+  // out of the turn order (the server skips them), so they can't place or commit.
+  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
   const myTurn = !isCompete || game?.currentUserId === session.user.id
   // Two gates. `canPlace` — may stage / recall / reorder tiles: in COMPETE this is
   // allowed even when it ISN'T your turn ("pre-play": line a move up while waiting,
   // and see its score). `canCommit` — may actually commit a turn-consuming move
   // (Submit / Swap / Pass), which requires it to be your turn. In coop there are no
   // turns (myTurn is always true), so the two coincide.
-  const canPlace = !!self && !isTerminal && !submitting
+  const canPlace = !!self && !isTerminal && !myConceded && !submitting
   const canCommit = canPlace && myTurn
 
   const usedRackIdx = useMemo(() => new Set(staged.map((s) => s.rackIdx)), [staged])
@@ -600,6 +605,16 @@ export function PlayArea({
     if (error) showLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
   }, [gameId, isTerminal, showLocalFeedback])
 
+  // Concede (compete) — drop out of the race. Turn-based, so the server hands
+  // off the turn / ends the game (scrabble.concede); the conceder forfeits any
+  // win. Distinct from End, which is coop's neutral mutual stop.
+  const handleConcede = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback({ tone: 'error', text: `Concede failed: ${error.message}` })
+  }, [gameId, isTerminal, showLocalFeedback])
+
   useGlobalKeyHandler((e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
     // While viewing a past turn, ANY key exits to the live board — navigation is by
@@ -775,22 +790,37 @@ export function PlayArea({
               metricLabel="Score"
               metricFor={(player) => {
                 const ps = playerStates.find((p) => p.user_id === player.user_id)
-                return ps?.score ?? 0
+                const score = ps?.score ?? 0
+                // Mid-game a conceder reads as "out"; at terminal the score line
+                // is prefixed with the outcome verb (Quit / Lost / Won). The strip
+                // types `player` as Member, so read the concede/result bits back
+                // off the GamePlayer roster (`members`).
+                if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : score
+                const gpm = members.find((m) => m.user_id === player.user_id)
+                const outcome = gpm ? playerOutcome(gpm) : 'lost'
+                const verb = outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
+                return `${verb} · ${score}`
               }}
             />
           )}
 
-          {/* Action row — End (coop) / Concede (compete) during play; at terminal
-              the bold outcome line + a compact back-to-club button. */}
+          {/* Action row — End (coop) / Concede (compete) during play; the
+              "You conceded" terminal look once I've dropped out (others race on);
+              at terminal the bold outcome line + a compact back-to-club button. */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
+          ) : isCompete && myConceded ? (
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>
+              <ConcedeGameButton className={shared.helperButton} disabled />
+            </div>
           ) : (
             <div className={shared.infoActions}>
               {isCompete ? (
-                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
+                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleConcede()} />
               ) : (
                 <EndGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
               )}

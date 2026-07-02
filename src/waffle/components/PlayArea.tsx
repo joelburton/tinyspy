@@ -158,6 +158,13 @@ export function PlayArea({
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
 
+  // Concede lives on the COMMON roster (ctx `members` = GamePlayer[]), not on
+  // waffle.players — it's a cross-game concept the common layer owns. `myConceded`
+  // gates my own input + drives the "You conceded" copy; `concededIds` marks a
+  // conceded opponent 'out' in the strip mid-game.
+  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+
   // The left grid always shows the caller's own board + live colors — including
   // at game-over (their final state). The solved answer is revealed separately
   // below the board (SolutionReveal).
@@ -175,23 +182,36 @@ export function PlayArea({
 
   // LOCALLY TERMINAL: the game is still going, but *I* can't act any more —
   // compete-only, because in coop a solve/exhaustion ends the whole game. I've
-  // either solved my board (waiting for opponents) or run out of swaps. We show
-  // this with the TERMINAL LOOK (a bold status line + my Concede), not a quietly
-  // swapped help line — being unable to act is basically terminal for me
+  // either solved my board (waiting for opponents), run out of swaps, OR conceded
+  // (dropped out — a real loss, the rest keep racing). We show this with the
+  // TERMINAL LOOK (a bold status line + my Concede), not a quietly swapped help
+  // line — being unable to act is basically terminal for me
   // (docs/design-decisions.md → InfoCol action buttons / Locally terminal).
-  const selfDone = isPlayer && (self?.solved === true || remaining === 0)
+  const selfDone = isPlayer && (self?.solved === true || remaining === 0 || myConceded)
 
   const difficultyLabel = DIFFICULTY_LABELS[waffleSetup.difficulty - 1] ?? '—'
 
+  // Concede — drop out of a compete race (a real loss; the rest keep racing).
+  // Distinct from End: waffle.concede flips the shared conceded flag then re-runs
+  // the compete terminal check (which now counts me as done). Confirmed because
+  // it's irreversible; an RPC failure flashes in the local below-board slot.
+  const handleConcede = async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the rest keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(ownAction('error', `Concede failed: ${error.message}`))
+  }
+
   // The End / Concede button — error-toned (red), shared by the "playing" and the
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
-  // ("I give up, you win"); coop ENDS (a neutral mutual "we're done"). Two
-  // components for two semantically distinct actions (docs/design-decisions.md →
-  // End vs Concede).
+  // ("I give up, you keep racing" → waffle.concede); coop ENDS (a neutral mutual
+  // "we're done" → end_game). Two components for two semantically distinct actions
+  // (docs/design-decisions.md → End vs Concede).
   const endButton = isCompete ? (
     <ConcedeGameButton
-      onClick={() => void handleEndGame()}
+      onClick={() => void handleConcede()}
       className={shared.helperButton}
+      disabled={myConceded}
     />
   ) : (
     <EndGameButton
@@ -250,9 +270,11 @@ export function PlayArea({
               <GenericFeedbackPill
                 msg={{
                   tone: 'neutral',
-                  text: self?.solved
-                    ? 'Solved — waiting on the rest.'
-                    : 'Out of swaps — waiting on the rest.',
+                  text: myConceded
+                    ? 'You conceded — the rest are still racing.'
+                    : self?.solved
+                      ? 'Solved — waiting on the rest.'
+                      : 'Out of swaps — waiting on the rest.',
                   variant: 'outline',
                   dismiss: { kind: 'sticky' },
                 }}
@@ -293,6 +315,9 @@ export function PlayArea({
               selfId={session.user.id}
               metricLabel="Swaps"
               metricFor={(player) => {
+                // A conceded player is 'out' mid-game — they dropped out, so their
+                // swap count is moot (mirrors wordle's strip).
+                if (concededIds.has(player.user_id)) return 'out'
                 const ps = playerStates.find((p) => p.user_id === player.user_id)
                 const used = ps?.swaps_used ?? 0
                 const solved = ps?.solved ?? false
@@ -323,7 +348,7 @@ export function PlayArea({
           ) : selfDone ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                {self?.solved ? 'Solved — waiting' : 'Out of swaps'}
+                {myConceded ? 'You conceded' : self?.solved ? 'Solved — waiting' : 'Out of swaps'}
               </span>
               {endButton}
             </div>

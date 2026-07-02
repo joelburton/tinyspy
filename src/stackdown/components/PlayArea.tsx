@@ -156,8 +156,23 @@ export function PlayArea({
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isCompete = game?.mode === 'compete'
   const mySolved = self?.solved ?? false
+
+  // Concede state (from the common roster, `members` — the GamePlayer list that
+  // carries per-player concede flags). A conceder drops out of the compete race:
+  // they can't play, they see the locally-terminal "You conceded" look, and they
+  // read as "out" in every peer's OpponentStrip while the others race on. Coop
+  // never concedes (it uses the neutral whole-table End), so these stay false.
+  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+
   const canPlay =
-    !!self && !isTerminal && !submitting && !(isCompete && mySolved)
+    !!self && !isTerminal && !submitting && !(isCompete && mySolved) && !myConceded
+
+  // Locally terminal (compete only): I conceded but the game continues for the
+  // others. stackdown has no elimination, so conceding is the only path to it —
+  // it drives a terminal LOOK (a status line + a disabled Concede) so the drop-
+  // out reads loudly, without actually ending the game for anyone else.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // ─── Submit a completed (5-tile) word ─────────────────────────
   // Each player builds their own word locally (selections aren't shared
@@ -283,14 +298,25 @@ export function PlayArea({
     }
   })
 
-  // ─── End / Concede — an info-column action-row button (both modes) ──
-  // Manual end (stackdown.end_game) → a neutral stop. Confirmed; irreversible.
+  // ─── End (coop) — an info-column action-row button ────────────
+  // Manual end (stackdown.end_game) → a neutral whole-table stop. Confirmed;
+  // irreversible. Coop's answer to "we're done"; compete uses Concede instead.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
   }, [gameId, isTerminal, showLocalFeedback])
+
+  // ─── Concede (compete) — drop out of the race ─────────────────
+  // A real loss for the conceder; the others keep racing (stackdown.concede →
+  // common.concede). Distinct from End, which is coop's neutral mutual stop.
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(`Concede failed: ${error.message}`, 'error')
+  }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log
@@ -432,6 +458,10 @@ export function PlayArea({
               selfId={session.user.id}
               metricLabel="Found"
               metricFor={(player, isSelf) => {
+                // Mid-game a conceder reads as "out" (dropped from the race). At
+                // terminal we keep the found/✓ tally so the final board still
+                // shows how far each player got before it ended.
+                if (!isTerminal && concededIds.has(player.user_id)) return 'out'
                 const ps = playerStates.find((p) => p.user_id === player.user_id)
                 const found = isSelf ? self?.found_count ?? 0 : ps?.found_count ?? 0
                 return (
@@ -454,6 +484,15 @@ export function PlayArea({
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
+          ) : isLocallyDone ? (
+            // I conceded; the others race on. Terminal LOOK (a status line + the
+            // now-disabled Concede) so the drop-out reads loudly.
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                You conceded
+              </span>
+              <ConcedeGameButton className={shared.helperButton} disabled />
+            </div>
           ) : self ? (
             <div className={shared.infoActions}>
               {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
@@ -471,7 +510,7 @@ export function PlayArea({
               />
               {isCompete ? (
                 <ConcedeGameButton
-                  onClick={() => void handleEndGame()}
+                  onClick={() => void handleConcede()}
                   className={shared.helperButton}
                 />
               ) : (
@@ -483,8 +522,10 @@ export function PlayArea({
             </div>
           ) : null}
 
-          {/* Help — only while the player can act on it (never silently swapped). */}
-          {!over && self && (
+          {/* Help — only while the player can act on it (never silently swapped).
+              Hidden once conceded: the "click tiles" prompt would contradict the
+              now-disabled entry. */}
+          {!over && self && !isLocallyDone && (
             <p className={shared.infoHelp}>
               Click exposed tiles — or type a letter — to spell a word.{' '}
               <kbd>Backspace</kbd> takes one back.

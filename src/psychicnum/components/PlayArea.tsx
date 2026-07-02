@@ -234,6 +234,13 @@ export function PlayArea({
   const selfSecretsFound =
     playerBudgets.find((p) => p.user_id === session.user.id)?.secrets_found ?? 0
 
+  // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
+  // psychicnum.players (the budget rows). `myConceded` = I dropped out of a
+  // compete race (a real loss; the others keep racing). `concededIds` marks the
+  // players who've bowed out, for the opponent strip's "out" cell.
+  const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
+
   // Per-status modal + indicator copy. Mode-aware so compete-mode
   // winners get the "you won the race" vs "Bea won the race"
   // distinction, while coop stays the simple team verdict. In compete the
@@ -271,7 +278,9 @@ export function PlayArea({
   // (A partially-typed word won't equal any board word, so the board only
   // highlights once a tile is clicked or the full word is typed.)
   const selected = pending === '' ? null : pending
-  const canGuess = !over && selfBudget > 0
+  // Conceding (compete drop-out) locks guessing the same way running out of
+  // budget does — I'm done, but the game continues for the others.
+  const canGuess = !over && selfBudget > 0 && !myConceded
 
   // const arrow (not a hoisted `function`) so the `if (!game) return` narrowing
   // above still applies inside — a function declaration is hoisted above it.
@@ -328,21 +337,37 @@ export function PlayArea({
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
-  // wins/loses). Confirmed because it's irreversible.
+  // wins/loses). Confirmed because it's irreversible. Coop only — a compete race
+  // ends per-player via concede, not by one player ending it for everyone.
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
   }
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
-  // up, you win"); solo / coop use the neutral "End" (a mutual "we're done").
-  // Two components because they're semantically different actions
-  // (docs/design-decisions.md → Action buttons). Shared by the "playing" and the
-  // "out of guesses, waiting" action rows below — you can still bow out either way.
+  // Concede — drop out of a compete race (a real loss; the others keep racing).
+  // Distinct from End: psychicnum.concede flips MY shared conceded flag then
+  // re-runs the compete terminal check (which now counts me as done), so it
+  // never ends the game for the rest — the opposite of the whole-table end_game.
+  const handleConcede = async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
+  }
+
+  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out
+  // of the race → psychicnum.concede); solo / coop use the neutral "End" (a
+  // mutual "we're done" → end_game). Two components because they're semantically
+  // different actions (docs/design-decisions.md → Action buttons). Shared by the
+  // "playing" and the "out of guesses / conceded, waiting" action rows below.
   const endButton =
     mode === 'compete' ? (
-      <ConcedeGameButton onClick={endGame} className={shared.helperButton} />
+      <ConcedeGameButton
+        onClick={handleConcede}
+        className={shared.helperButton}
+        disabled={myConceded}
+      />
     ) : (
       <EndGameButton onClick={endGame} className={shared.helperButton} />
     )
@@ -380,8 +405,8 @@ export function PlayArea({
                 permanent local feedback (design-decisions.md → Feedback);
               - playing + can guess → the GuessForm (entry, or a transient pill
                 for the player's own last result);
-              - out of guesses but not over (compete, others still playing) → a
-                sticky "waiting" pill. */}
+              - locally done but game not over (compete: out of guesses OR
+                conceded, others still playing) → a sticky "waiting" pill. */}
         <div className={styles.belowBoard}>
           <div className={shared.moveAreaOrLocalFeedback}>
           {over ? (
@@ -425,7 +450,9 @@ export function PlayArea({
               <GenericFeedbackPill
                 msg={{
                   tone: 'neutral',
-                  text: 'Out of guesses — waiting on the rest.',
+                  text: myConceded
+                    ? 'You conceded — the rest are still racing.'
+                    : 'Out of guesses — waiting on the rest.',
                   variant: 'outline',
                   dismiss: { kind: 'sticky' },
                 }}
@@ -454,8 +481,12 @@ export function PlayArea({
               selfId={session.user.id}
               metricLabel="Found"
               metricFor={(p) =>
-                playerBudgets.find((b) => b.user_id === p.user_id)
-                  ?.secrets_found ?? 0
+                // A player who's conceded reads as "out" mid-game (they're done,
+                // whatever their found count was); everyone else shows progress.
+                concededIds.has(p.user_id)
+                  ? 'out'
+                  : (playerBudgets.find((b) => b.user_id === p.user_id)
+                      ?.secrets_found ?? 0)
               }
             />
           )}
@@ -463,8 +494,8 @@ export function PlayArea({
           {/* The action row has three states. TERMINAL (game over): a bold,
               outcome-colored result line + a compact back-to-club button.
               PLAYING (can guess): Hint / Reveal + End/Concede. WAITING (out of
-              guesses but the game's still going — basically terminal for ME):
-              reuse the terminal LOOK (a bold status line + the action on the
+              guesses OR conceded but the game's still going — basically terminal
+              for ME): reuse the terminal LOOK (a bold status line + the action on the
               right) so the state change reads loudly, not as a silently-swapped
               help line (docs/design-decisions.md → InfoCol help). */}
           {over ? (
@@ -496,7 +527,7 @@ export function PlayArea({
           ) : (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                Waiting for others
+                {myConceded ? 'You conceded' : 'Waiting for others'}
               </span>
               {endButton}
             </div>

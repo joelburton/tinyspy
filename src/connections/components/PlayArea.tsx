@@ -309,6 +309,16 @@ export function PlayArea({
   if (loading) return <p>Loading board…</p>
   if (!game) return <p>Game not found.</p>
 
+  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
+  // connections.players. `myConceded` folds into the locally-terminal branch
+  // below (same treatment as a 4-mistake elimination); `concededIds` marks a
+  // dropped-out opponent 'out' in the strip.
+  const myConceded =
+    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(
+    players.filter((p) => p.conceded).map((p) => p.user_id),
+  )
+
   const matchedTiles = new Set<string>()
   for (const mc of matchedCategories) {
     for (const t of mc.tiles) matchedTiles.add(t)
@@ -332,11 +342,13 @@ export function PlayArea({
 
   const colorByUserId = colorByUserIdMap(players)
 
-  // Eliminated-but-not-terminal: caller hit 4 mistakes in compete
-  // but the game continues for survivors. Treat the reveal +
-  // input-freeze like a personal game-over while the rest play on.
-  const showReveal = isTerminal || isEliminated
-  const showInput = !isTerminal && !isEliminated
+  // Locally terminal (compete, not game-over): caller is out of the race but
+  // the game continues for the survivors — either eliminated (hit 4 mistakes)
+  // OR they conceded (dropped out). Both freeze this player's input + reveal
+  // the unmatched bands, a personal game-over while the rest play on.
+  const locallyDone = isEliminated || myConceded
+  const showReveal = isTerminal || locallyDone
+  const showInput = !isTerminal && !locallyDone
 
   const canSubmit =
     unionTiles.length === 4
@@ -364,12 +376,30 @@ export function PlayArea({
   const connSetup = setup as ConnectionsSetup
   const found = matchedCategories.length
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE ("I give
-  // up"); coop uses the neutral "End" (a mutual "we're done"). Shared by the
-  // playing and the eliminated (locally-terminal) action rows.
+  // Concede — drop out of a compete race (a real loss; the others keep racing).
+  // Distinct from End: connections.concede flips the caller's conceded flag then
+  // re-runs the compete terminal check (which now counts them as done). A plain
+  // function (not the useCallback handleEndGame is) because it reads `myConceded`,
+  // which is derived after the hooks/loading guard. An RPC failure flashes in the
+  // local commit slot.
+  const handleConcede = async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(ownGuess('error', `Concede failed: ${error.message}`))
+  }
+
+  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out
+  // of the race → connections.concede); coop uses the neutral "End" (a mutual
+  // "we're done" → end_game). Shared by the playing and the locally-terminal
+  // (eliminated / conceded) action rows.
   const endButton =
     game.mode === 'compete' ? (
-      <ConcedeGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
+      <ConcedeGameButton
+        onClick={() => void handleConcede()}
+        className={shared.helperButton}
+        disabled={myConceded}
+      />
     ) : (
       <EndGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
     )
@@ -475,7 +505,9 @@ export function PlayArea({
                       }
                     : {
                         tone: 'neutral',
-                        text: "You're out — the rest are still racing.",
+                        text: myConceded
+                          ? 'You conceded — the rest are still racing.'
+                          : "You're out — the rest are still racing.",
                         variant: 'outline',
                         dismiss: { kind: 'sticky' },
                       }
@@ -506,17 +538,23 @@ export function PlayArea({
               selfId={session.user.id}
               metricLabel="Found"
               metricFor={(p, isSelf) =>
-                isSelf
-                  ? matchedCategories.length
-                  : (opponentFound.get(p.user_id) ?? 0)
+                // A dropped-out racer reads 'out' mid-game (their found-count is
+                // frozen and no longer part of the race); everyone else shows
+                // their live categories-found.
+                concededIds.has(p.user_id)
+                  ? 'out'
+                  : isSelf
+                    ? matchedCategories.length
+                    : (opponentFound.get(p.user_id) ?? 0)
               }
             />
           )}
 
-          {/* Action row — three states. Playing: Hints + End/Concede. Eliminated
-              (locally terminal — out of mistakes, the rest race on): the terminal
-              LOOK, a bold status + End/Concede (like psychicnum's out-of-guesses).
-              Terminal: the outcome line + a compact back-to-club button. */}
+          {/* Action row — three states. Playing: Hints + End/Concede. Locally
+              terminal (out of mistakes OR conceded, the rest race on): the
+              terminal LOOK, a bold status ("You're out" / "You conceded") +
+              Concede (like psychicnum's out-of-guesses). Terminal: the outcome
+              line + a compact back-to-club button. */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
@@ -524,10 +562,10 @@ export function PlayArea({
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
-          ) : isEliminated ? (
+          ) : locallyDone ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                You&rsquo;re out
+                {myConceded ? 'You conceded' : 'You’re out'}
               </span>
               {endButton}
             </div>

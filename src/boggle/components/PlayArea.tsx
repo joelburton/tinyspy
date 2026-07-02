@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
+import { playerOutcome } from '../../common/lib/games'
 import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { GameOverModal } from '../../common/components/GameOverModal'
@@ -86,11 +87,17 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.required_words, game?.bonus_words])
 
+  // Concede state (from the common roster). A conceder can't submit and sees the
+  // locally-terminal look while the others race; peers show as "out" in the strip.
+  const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
+
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
-      isTerminal,
+      // A conceder is locally done: gate word entry as if the game were terminal.
+      isTerminal: isTerminal || myConceded,
       minWordLength: game?.min_word_length ?? 3,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
@@ -147,6 +154,17 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showFeedback('error', `End game failed: ${error.message}`)
   }, [gameId, isTerminal, showFeedback])
 
+  // ─── Concede (compete) — drop out of the race ──────────
+  // A real loss for the conceder; the others keep racing (boggle.concede →
+  // common.concede). Distinct from End, which is coop's neutral mutual stop. Its
+  // error shares the same below-board pill as a word submit (via showFeedback).
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showFeedback('error', `Concede failed: ${error.message}`)
+  }, [gameId, isTerminal, myConceded, showFeedback])
+
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
   // `foundWords`; surface it in the shared header slot (the twin of spellingbee's
@@ -182,6 +200,9 @@ export function PlayArea(ctx: GamePageCtx) {
   if (loading || !game || !view) return <div className={styles.loading}>Loading…</div>
 
   const isCompete = game.mode === 'compete'
+  // Locally terminal (compete only): I conceded but the game continues for the
+  // others. boggle has no elimination, so conceding is the only path to it.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // Post-terminal reveal: the required words nobody found.
   const revealWords = isTerminal
@@ -237,7 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
             onChange={setWord}
             onSubmit={submit}
             placeholder="Type a word"
-            disabled={isTerminal}
+            disabled={isTerminal || myConceded}
             onAnyKey={clearLocalFeedback}
             charFor={asciiLetters('upper')}
             recall={lastWord}
@@ -276,7 +297,20 @@ export function PlayArea(ctx: GamePageCtx) {
               players={players}
               selfId={myId}
               metricLabel="Score"
-              metricFor={(p, isSelf) => (isSelf ? myScore : (scoreByUser.get(p.user_id) ?? 0))}
+              metricFor={(p, isSelf) => {
+                const score = isSelf ? myScore : (scoreByUser.get(p.user_id) ?? 0)
+                // Mid-game: a conceder reads as "out" (dropped out, still racing
+                // for the rest). At terminal, prefix the outcome verb so the two
+                // "no longer active" states read differently — "Quit at 12" vs
+                // "Lost at 12" vs "Won at 40" (the distinction the conceded flag
+                // buys us); an ordinary player just shows the number.
+                if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : score
+                const member = players.find((m) => m.user_id === p.user_id)
+                const outcome = member ? playerOutcome(member) : 'lost'
+                if (outcome === 'won') return `Won at ${score}`
+                if (outcome === 'quit') return `Quit at ${score}`
+                return `Lost at ${score}`
+              }}
             />
           )}
 
@@ -289,12 +323,21 @@ export function PlayArea(ctx: GamePageCtx) {
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
+          ) : isLocallyDone ? (
+            // I conceded; the others race on. Terminal LOOK (a status line + the
+            // now-disabled Concede) so the state change reads loudly.
+            <div className={cls(shared.infoActions, shared.terminalActions)}>
+              <span className={cls(shared.outcome, shared.outcome_neutral)}>
+                You conceded
+              </span>
+              <ConcedeGameButton className={shared.helperButton} disabled />
+            </div>
           ) : (
             <div className={shared.infoActions}>
               {isCompete ? (
                 <ConcedeGameButton
                   className={shared.helperButton}
-                  onClick={() => void handleEndGame()}
+                  onClick={() => void handleConcede()}
                 />
               ) : (
                 <EndGameButton
@@ -305,8 +348,9 @@ export function PlayArea(ctx: GamePageCtx) {
             </div>
           )}
 
-          {/* Help — only while the player can act on it (never silently swapped). */}
-          {!over && (
+          {/* Help — only while the player can act on it (never silently swapped);
+              hidden once conceded, when entry is disabled. */}
+          {!over && !isLocallyDone && (
             <p className={shared.infoHelp}>
               Type a word, then Enter. <kbd>↑</kbd> recalls your last word.
             </p>
