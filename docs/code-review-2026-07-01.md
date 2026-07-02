@@ -18,6 +18,22 @@ was edited — this is a findings report, not a change.
 > When an item gets picked up, move it to [`deferred.md`](deferred.md) or delete
 > it.
 
+> **Status update — 2026-07-02.** The **feedback refactor** (branch
+> `playarea-layout`, commits `7f160b4` → `2af0e4d`) has closed the review's
+> highest-value cluster:
+> - **§1.1 (peer-narration seed-timing) — ✅ RESOLVED**, and with it its
+>   extraction target **§4.1 `usePeerEventFeedback` — ✅ RESOLVED** (shipped as
+>   `common/hooks/useGlobalFeedback.ts`; `9b311aa`).
+> - **§3.1 (below-board slot) — ◐ PARTLY DONE**: the slot structure + reserved
+>   height are now shared/tokenized (`67f566c`); the per-game `--avail-h`
+>   drift remains.
+>
+> Verified **still open** (the §1.1 work did *not* touch these, despite living
+> nearby): **§1.2** (codenamesduet clue-draft loss), **GAP 1** (boggle peer
+> feedback), and the §3.1 `--avail-h` derivation. Each item is annotated inline
+> below. *(Unrelated to this review: a shared board-overflow bug on classic
+> scrollbars / Safari+Firefox was fixed separately, `64b878a`+`7bc2a64`.)*
+
 ## Headline
 
 The sweep **landed well**. The two-column shell, `.tile`/`.tileWord`, the
@@ -26,17 +42,21 @@ info-column readouts, `<TurnLog>`/`<WordList>`, `<FeedbackPill>`,
 `useRealtimeRefetch`, `GameOverModal`+`useTerminalModal`, `DifficultyField`/
 `TimerField`/`StartGameButtons` are all genuinely shared, and most per-game files
 are thin composers. Correctness is strong: the game-logic layer (433 tests) is
-essentially clean; the one class of bug that recurs is **not** in the logic but
+essentially clean; the one class of bug that recurred was **not** in the logic but
 in one shared *pattern* — the "seen-set bootstrap" that narrates peer moves,
-which three games seed at the wrong moment.
+which three games seeded at the wrong moment. **(That pattern has since been
+extracted to one correct `common/hooks/useGlobalFeedback.ts` and the bugs are
+fixed — see the status update above and §1.1/§4.1.)**
 
 The remaining work clusters into four seams the sweep didn't quite finish:
 
-1. **The peer-narration bootstrap** — same idea, three implementations, two of
+1. ~~**The peer-narration bootstrap** — same idea, three implementations, two of
    them buggy. Extract one correct `usePeerEventFeedback` and the bugs die with
-   the duplication. *(Correctness + decomposition converge here — do it first.)*
+   the duplication.~~ **✅ DONE** (`useGlobalFeedback`, `9b311aa`).
 2. **The below-board slot + hug-board sizing** — copied CSS boilerplate with
    value drift (three reserved-height values, four copies of the width formula).
+   *(Below-board slot: **◐ the reserved-height half is done**, `67f566c`; the
+   `--avail-h` drift + the hug-board width formula remain.)*
 3. **A batch of literal colors/radii** that duplicate existing tokens, plus a
    couple of near-miss color drifts.
 4. **A few almost-universal features** with one or two games missing them
@@ -51,6 +71,17 @@ Ranked by severity. Ratings: **confirmed** (traced + reproducible), **likely**
 (strong reasoning, not run), **smell** (works today, fragile).
 
 ### 1.1 Peer-narration seed-timing bugs — the recurring one
+
+> **✅ RESOLVED — feedback refactor stage 3 (`9b311aa`).** All five bucket-A
+> consumers (wordle coop+compete, psychicnum / connections / spellingbee /
+> stackdown coop) now use the extracted `common/hooks/useGlobalFeedback.ts`,
+> which **gates before seeding** (`if (!enabled) return` before the ref
+> bootstrap) — so the backlog seeds from the real, populated first-load batch.
+> The wordle backlog-replay and the psychicnum/connections dropped-first-guess
+> bugs are both gone; verified by 7 regression tests in `useGlobalFeedback.test.ts`
+> and by grep (the old `seenGuessesRef` / `guesses.length === 0`-before-seed
+> stencils no longer exist). See [§4.1](#41-usepeereventfeedback--kills-the-11-bug).
+> *Original finding preserved below for the record.*
 
 Four capture/coop games narrate peer moves by diffing incoming rows against a
 "seen" ref, seeding the ref silently on first load so history isn't replayed.
@@ -214,6 +245,16 @@ Ranked by leverage.
 
 ### 3.1 The `.belowBoard` slot — collapse + tokenize the height *(highest leverage)*
 
+> **◐ MOSTLY DONE — feedback refactor stage 4 (`67f566c`).** The slot structure
+> is now shared: `.belowBoard` (region) > `.moveArea` + `.localFeedback` +
+> `.moveAreaOrLocalFeedback` (swap box) live in `common/components/PlayArea.module.css`,
+> with the reserved height as tokens — `--local-feedback-min-height` /
+> `--swap-box-min-height` (both default `2.75rem`), games overriding only where
+> genuinely taller (codenamesduet `3rem`, scrabble `3.4rem`, bananagrams `2.5rem`).
+> The three-way *accidental* drift is gone. **Still open:** the second paragraph
+> below — the per-game `--avail-h` chrome-subtraction (`- 5rem` / `- 4.4rem` /
+> `- 8.5rem` / `- 3.5rem`) is still hand-synced and NOT derived from the slot token.
+
 The below-board local-feedback/entry slot is re-authored per game with the same
 column-flex body, and its reserved height (which keeps the board from reflowing
 when the pill swaps in) has drifted to **three values**:
@@ -307,6 +348,14 @@ abstraction. Ranked by payoff. (The full agent report has ~14 items; the
 high-value ones are here.)
 
 ### 4.1 `usePeerEventFeedback` — kills the §1.1 bug
+
+> **✅ RESOLVED (`9b311aa`).** Shipped as **`common/hooks/useGlobalFeedback.ts`**
+> `{ enabled, items, keyOf, messageFor, globalFeedback }` — the two refs +
+> gate-before-seed bootstrap live there once. Both per-game
+> `usePeerFeedback.ts` hooks (spellingbee, stackdown) were **deleted**, and the
+> three inlined stencils (psychicnum, connections, wordle) migrated onto it.
+> As predicted, spellingbee's compete rank-threshold effect stays hand-rolled
+> (it's a delta detector, not a seen-set). *Original recommendation below.*
 
 Consolidate the seen-set bootstrap: `spellingbee/hooks/usePeerFeedback.ts` +
 `stackdown/hooks/usePeerFeedback.ts` share a bug-prone skeleton (seen-Set ref +
@@ -451,15 +500,14 @@ by design.
 
 ## Suggested sequencing
 
-1. **`usePeerEventFeedback`** (§4.1) — extract the correct hook, migrate all five
+1. ~~**`usePeerEventFeedback`** (§4.1) — extract the correct hook, migrate all five
    consumers. Fixes §1.1 (wordle backlog replay + psychicnum/connections
-   dropped-first-guess) as a side effect. *Highest value: correctness ×
-   decomposition.*
+   dropped-first-guess) as a side effect.~~ **✅ DONE (`9b311aa`).**
 2. **Correctness one-offs** — §1.2 (codenamesduet clue-draft loss), §1.3
    (spellingbee `rankPoints` integer math), then the §1.4 smells as convenient.
-3. **The `.belowBoard` slot + token** (§3.1) and the **hug-board formula** (§3.2) —
-   the two highest-leverage CSS collapses; removes the manual `--avail-h` sync
-   fragility.
+3. ~~The `.belowBoard` slot + token (§3.1)~~ **✅ done (`67f566c`)**; still: the
+   `--avail-h` derivation (§3.1 para 2) and the **hug-board formula** (§3.2) —
+   the remaining highest-leverage CSS collapses.
 4. **Dead-CSS sweep** (§2) — mechanical, after confirming the `--tile-*` ramp and
    the `Menu` `.divider` name-collision.
 5. **Token sweep** (§3.3) — drop colors/radii, name `--color-drop-ok/no`.
