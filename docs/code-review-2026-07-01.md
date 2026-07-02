@@ -29,8 +29,9 @@ was edited — this is a findings report, not a change.
 >   drift remains.
 >
 > Verified **still open** (the §1.1 work did *not* touch these, despite living
-> nearby): the §3.1 `--avail-h` derivation. (**GAP 1**, boggle peer feedback, was
-> since closed on `2026-07-02` — see §5.)
+> nearby): the §3.1 `--avail-h` derivation. (**GAP 1** boggle peer feedback and
+> **GAP 2** per-player concede were both since closed on `2026-07-02` — the
+> concede work became a whole-app common feature; see §5 + `docs/common.md`.)
 > **§1.2** (codenamesduet clue-draft loss) was investigated and closed **WONTFIX**
 > — `submit_clue` has no content-rejection path, so the draft is moot whenever the
 > error fires (see §1.2). Each item is annotated inline below. *(Unrelated to this review: a shared board-overflow bug on classic
@@ -401,9 +402,13 @@ Each verified as near-identical in most/all PlayAreas; a normalization pass:
   swap with `shared[\`outcome_${tone}\`]` in 10/10 (~90 lines); folds in
   stackdown's lone `over.status`-drifter and single-sources the `outcome_${tone}`
   contract.
-- **`<EndOrConcedeButton compete>`** — the `isCompete ? Concede : End` ternary in
-  7 games; **and see [§5 GAP 2](#5-cross-game-feature-gaps)** — spellingbee is
-  wrong here.
+- **`<EndOrConcedeButton compete>`** — the `isCompete ? Concede : End` ternary now
+  recurs in every compete game (the [GAP 2](#5-cross-game-feature-gaps) concede
+  work made it uniform + correct — the ternary + its two handlers are copy-pasted).
+  Still a valid extraction target: one `<EndOrConcedeButton compete onEnd onConcede>`
+  would fold the ternary + the handler-choice. *Deferred as a cleanup* — the two
+  underlying button components (`EndGameButton`/`ConcedeGameButton`) are shared;
+  only the per-game ternary + handlers duplicate.
 - **`<SetupDisclosure>`** — the `<details><summary>Setup options</summary>`
   wrapper is structurally identical in 10/10.
 - Prerequisite: normalize every `buildOver()` onto the single `TerminalCopy` type
@@ -541,7 +546,8 @@ by design.
    `TerminalCopy`; then `<SelectField>` (§4.4, fixes drift), `useRealtimeRefetch`
    conversions (§4.3), `<RadioRow>`/`<TurnLogActor>` (§4.5).
 7. **Feature gaps** (§5) — ~~boggle peer feedback~~ **✅ done (`useGlobalFeedback`,
-   2026-07-02)**; still: the End→Concede fix, then click-to-define and wordle capture.
+   2026-07-02)**; ~~the End→Concede fix~~ **✅ done (whole-app per-player concede,
+   2026-07-02)**; still: **click-to-define (GAP 3)**, then wordle capture (GAP 4).
 8. **Focused decompositions** (§4.6) — scrabble PlayArea, then bananagrams
    PlayerBoard; each its own scoped effort.
 
