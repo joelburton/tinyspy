@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Database } from '../../types/db'
@@ -43,8 +43,9 @@ export type GuessRow = {
  * history — `codenamesduet.guesses` does. The board reads the denormalized `words`
  * state; the log reads `guesses`.
  *
- * The peer key is sensitive during play (it would leak the partner's view) and
- * is only fetched when `revealPeer` is true.
+ * The partner's key is read as part of the same `games` row the main load
+ * already pulls, so no extra fetch is needed; the returned `peerKey` stays null
+ * until `revealPeer` is true (the post-game "show both keys" view).
  *
  * Realtime: drives off `useRealtimeRefetch`, watching both `words` (the board)
  * and `guesses` (the log) — full refetch on any event. Every guess updates
@@ -64,12 +65,13 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   // board's post-game reveal; the banner just needs "are they done?".
   const [myAgentsDone, setMyAgentsDone] = useState(false)
   const [peerAgentsDone, setPeerAgentsDone] = useState(false)
-  // The peer key is fetched into `fetchedPeerKey` and tagged with the
-  // gameId+userId it was fetched for. The publicly-returned `peerKey`
+  // `load` stashes the partner's key into `fetchedPeerKey`, tagged with
+  // the gameId+userId it was loaded for. The publicly-returned `peerKey`
   // (derived below) is null unless the caller currently wants the peer
-  // key AND the cached fetch matches the active game/user — this
-  // avoids the "setState in effect body" anti-pattern that arose when
-  // the hook synchronously cleared peerKey on revealPeer flipping off.
+  // key AND the cached value matches the active game/user — this keeps
+  // the reveal a pure derivation (no "clear peerKey in an effect body"
+  // anti-pattern when revealPeer flips off) even though the key is now
+  // loaded eagerly.
   const [fetchedPeerKey, setFetchedPeerKey] = useState<KeyLabel[] | null>(null)
   const [fetchedFor, setFetchedFor] = useState<string | null>(null)
   const peerKey =
@@ -131,6 +133,16 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
         if (myKeyJson) {
           setMyKey(myKeyJson as unknown as KeyLabel[])
         }
+        // The load already has the partner's key column in hand, so stash
+        // it here rather than firing a second games fetch at game-over.
+        // It's only exposed once `revealPeer` is true (the derived
+        // `peerKey` above gates on it), so holding it in state during play
+        // is invisible to the board — and the trust model doesn't treat
+        // the FE as the secrecy boundary anyway (see CLAUDE.md).
+        if (peerKeyJson) {
+          setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
+          setFetchedFor(`${gameId}:${userId}`)
+        }
         // Recomputed on every refetch (the realtime word reveals flow
         // through here), so both flags stay live as agents are found.
         setMyAgentsDone(
@@ -145,35 +157,6 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       setLoading(false)
     },
   })
-
-  // Peer key for post-game review. Fetched lazily — only loaded once
-  // the game is in a terminal state and the board switches to the
-  // "show both keys" rendering. The hook-returned `peerKey` is null
-  // when revealPeer is false (derivation above), so we don't need an
-  // explicit clear path here; we just skip the fetch.
-  useEffect(function loadPeerKey() {
-    if (!revealPeer) return
-    let mounted = true
-    db
-      .from('games')
-      .select('user_a_id, key_card_a, key_card_b')
-      .eq('id', gameId)
-      .single()
-      .then(({ data }) => {
-        if (!mounted || !data) return
-        // Peer = the seat I'm NOT in. If I'm A (userId === user_a_id),
-        // the peer key is key_card_b; otherwise key_card_a.
-        const peerKeyJson =
-          userId === data.user_a_id ? data.key_card_b : data.key_card_a
-        if (peerKeyJson) {
-          setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
-          setFetchedFor(`${gameId}:${userId}`)
-        }
-      })
-    return () => {
-      mounted = false
-    }
-  }, [gameId, userId, revealPeer])
 
   return { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading }
 }

@@ -126,7 +126,7 @@ describe('useBoard', () => {
     expect(result.current.peerKey).toBeNull()
   })
 
-  it('fetches the peer key only when revealPeer is true', async () => {
+  it('exposes the peer key only when revealPeer is true — from the single load, no second fetch', async () => {
     const { result, rerender } = renderHook(
       ({ revealPeer }: { revealPeer: boolean }) => useBoard(GAME_ID, USER_ID, revealPeer),
       { initialProps: { revealPeer: false } },
@@ -136,9 +136,16 @@ describe('useBoard', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.peerKey).toBeNull()
 
-    // Game ends → revealPeer flips true → peer key arrives.
+    // Game ends → revealPeer flips true → the peer key (loaded eagerly
+    // as part of the same games row, held back by the derivation) appears.
     rerender({ revealPeer: true })
     await waitFor(() => expect(result.current.peerKey).toEqual(peerKey))
+
+    // Regression guard for the removed lazy `loadPeerKey` effect: the peer
+    // key rides along on the ONE games row the main load already reads, so
+    // revealing it must not trigger a second `.from('games')` round-trip.
+    const gamesFetches = mockFrom.mock.calls.filter(([table]) => table === 'games')
+    expect(gamesFetches).toHaveLength(1)
   })
 
   it('clears the peer key when revealPeer flips back to false', async () => {
