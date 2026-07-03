@@ -1,46 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/cls'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { EntryRow } from '../../common/components/EntryRow'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import { playerOutcome } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/timerLabel'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
-import { Letters } from './Letters'
-import { RankBar } from './RankBar'
-import { Stats } from './Stats'
-import { TypedWord } from './TypedWord'
-import { WordList } from '../../common/components/WordList'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../lib/displayRows'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
-
-/** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
-function shuffled<T>(arr: readonly T[]): T[] {
-  const out = arr.slice()
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
 
 /**
  * spellingbee's play surface — shared between the coop and compete
@@ -120,35 +96,8 @@ export function PlayArea(ctx: GamePageCtx) {
     return s
   }, [game])
 
-  // ─── Local visual shuffle of the outer letters ─────────
-  // Rather than store the shuffled order in state (which would
-  // need a useEffect to sync from the loaded game and trip the
-  // set-state-in-effect lint rule), we store a `shuffleSeed`
-  // counter and recompute via useMemo. The first computation
-  // happens once outer_letters is non-null; each Shuffle click
-  // bumps the seed, which re-runs the memo and produces a fresh
-  // order.
-  //
-  // **Dep is the outer_letters STRING, not the `game` object.**
-  // useGame refetches on every realtime event (e.g., every
-  // accepted submit_word echo), each refetch returns a fresh
-  // game object reference even when outer_letters didn't change.
-  // Depending on `game` would re-shuffle the tiles on every
-  // submission — same bug spellingbee-ws didn't have because that
-  // codebase held the letters in a different state shape. The
-  // string is a primitive so identity equality matches.
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const outerLetters = game?.outer_letters
-
-  const outerShuffled = useMemo(() => {
-    if (!outerLetters) return []
-    void shuffleSeed
-    return shuffled(Array.from(outerLetters))
-  }, [outerLetters, shuffleSeed])
-
-  const handleShuffle = useCallback(() => {
-    setShuffleSeed((s) => s + 1)
-  }, [])
+  // (The local outer-letter shuffle + the letter-click / Space-shuffle input moved
+  // into BoardCol, beside the honeycomb + entry.)
 
   // ─── Move entry + own-move feedback (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
@@ -203,27 +152,6 @@ export function PlayArea(ctx: GamePageCtx) {
         return 'not a word'
       },
     })
-
-  const handleLetterClick = useCallback(
-    (letter: string) => {
-      clearLocalFeedback()
-      setWord((prev) => prev + letter.toUpperCase())
-    },
-    [clearLocalFeedback, setWord],
-  )
-
-  // Space shuffles the outer letters — spellingbee's one capture-entry extra key
-  // (passed to the shared <EntryRow> below, which owns the rest of the keyboard:
-  // letters/Backspace/Enter + the ArrowUp-recall / ArrowDown-clear history). The
-  // `~` word-lookup shortcut is app-global (useAppShortcuts), not here.
-  const handleEntryExtraKey = useCallback((e: KeyboardEvent) => {
-    if (e.key === ' ') {
-      e.preventDefault()
-      handleShuffle()
-      return true
-    }
-    return false
-  }, [handleShuffle])
 
   // ─── End-game action (info-column button) ──────────────
   // The manual "we're done" stop — an info-column action-row button now (like
@@ -346,6 +274,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const leaderboard = isCompete
     ? readLeaderboard(status)
     : null
+  // Each peer's rank index, keyed by user — the OpponentStrip metric reads it.
+  const rankByUser = new Map(leaderboard?.map((e) => [e.user_id, e.rank_idx]) ?? [])
   // Target rank reads off `setup`, NOT `status.target_rank`. Setup
   // is fixed at create_game time and lives on every code path; the
   // status copy is written by submit_word's mid-game path and by
@@ -371,59 +301,27 @@ export function PlayArea(ctx: GamePageCtx) {
     })
     : null
 
+  // Merged, alphabetized rows for the shared WordList (found + the terminal reveal).
+  const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
+
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div className={cls(shared.boardCol, styles.boardCol)}>
-        <Letters
-          outerLetters={outerShuffled}
-          centerLetter={game.center_letter}
-          onLetterClick={handleLetterClick}
-        />
-        {/* Shuffle floats over the board's top-right — a fresh visual scan of the
-            SAME board, not a turn action (psychicnum's pattern). Always
-            clickable, even when locked (a harmless rearrange). */}
-        <ShuffleButton
-          onShuffle={handleShuffle}
-          label="Shuffle outer letters"
-          className={shared.floatingShuffle}
-        />
-        {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the
-            EntryBox + icon-only Submit + the capture keyboard; Space shuffles via
-            onExtraKey). The EntryBox renders spellingbee's per-character illegal-
-            letter dim via <TypedWord> children. When `pill` is set, EntryRow shows
-            it in place of the controls (same slot, no reflow): the terminal verdict
-            (permanent fill) takes precedence over an own-move result, which shows
-            only while the entry is empty so typing reclaims the slot. */}
-        <div className={styles.belowBoard}>
-          <div className={shared.moveAreaOrLocalFeedback}>
-          <EntryRow
-            value={word}
-            onChange={setWord}
-            onSubmit={submit}
-            placeholder="Type or click letters"
-            disabled={isTerminal}
-            onAnyKey={clearLocalFeedback}
-            charFor={asciiLetters('upper')}
-            onExtraKey={handleEntryExtraKey}
-            recall={lastWord}
-            pill={
-              isTerminal && over
-                ? {
-                    tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                    text: `Game over — ${over.indicator}`,
-                    variant: 'fill', // permanent → lightened-tone fill
-                    dismiss: { kind: 'sticky' },
-                  }
-                : word === ''
-                  ? localFeedback
-                  : null
-            }
-          >
-            <TypedWord word={word} allowedLetters={allowedLetters} />
-          </EntryRow>
-          </div>
-        </div>
-      </div>
+      <BoardCol
+        // ── Board to render ──
+        outerLetters={game.outer_letters}
+        centerLetter={game.center_letter}
+        allowedLetters={allowedLetters}
+        // ── Word entry (engine here; rendered in BoardCol) ──
+        word={word}
+        setWord={setWord}
+        submit={submit}
+        localFeedback={localFeedback}
+        clearLocalFeedback={clearLocalFeedback}
+        lastWord={lastWord}
+        isTerminal={isTerminal}
+        // ── Below-board pill ──
+        over={over}
+      />
 
       {/* The info column. Its top region — the readouts + action row + setup — is
           wrapped in the shared `.actionSlot` (same as psychicnum / connections /
@@ -434,111 +332,34 @@ export function PlayArea(ctx: GamePageCtx) {
           the RankBar + Stats are ONE "state" unit and lead (the thing you watch),
           and there's no help line — the honeycomb makes the move obvious. The
           WordList fills the rest. */}
-      <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>
-          {/* State — RankBar + Stats are one unit (score progress + the figures),
-              kept together and leading. */}
-          <RankBar score={foundWordsScore} total={game.required_words_score} />
-          <Stats
-            foundWordsScore={foundWordsScore}
-            requiredWordsScore={game.required_words_score}
-            foundWordsCount={foundWordsCount}
-            requiredWordsCount={game.required_words_count}
-          />
-
-          {/* Opponent strip — below the state unit, per the canonical order. */}
-          {isCompete && targetRankIdx !== null && (() => {
-            // Index the leaderboard by user so the metric callback can
-            // pull each opponent's rank by id. leaderboard is null until
-            // the compete branch above populates it (and stays null in
-            // coop, which never reaches this guard), so default to [].
-            const byUserId = new Map(
-              leaderboard?.map((e) => [e.user_id, e]) ?? [],
-            )
-            return (
-              <OpponentStrip
-                players={players}
-                selfId={session.user.id}
-                metricLabel="Rank"
-                leading={<>target: <strong>{RANKS[targetRankIdx]}</strong></>}
-                // Self reads its rank from the local FE computation
-                // (selfRankIdx) so "You" updates in lock step with the
-                // RankBar above; peers read from the leaderboard payload.
-                metricFor={(p, isSelf) => {
-                  const rankIdx = isSelf
-                    ? selfRankIdx
-                    : (byUserId.get(p.user_id)?.rank_idx ?? 0)
-                  const rank = RANKS[rankIdx]
-                  // Mid-game: a conceder reads as "out". At terminal, prefix the
-                  // outcome verb so the two "no longer active" states read
-                  // differently — "Quit at Amazing" vs "Lost at Amazing" vs
-                  // "Won at Genius" (the distinction the conceded flag buys us).
-                  if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
-                  const member = players.find((m) => m.user_id === p.user_id)
-                  const verb =
-                    member && playerOutcome(member) === 'won'
-                      ? 'Won'
-                      : member && playerOutcome(member) === 'quit'
-                        ? 'Quit'
-                        : 'Lost'
-                  return `${verb} at ${rank}`
-                }}
-              />
-            )
-          })()}
-
-          {/* Action row: the End-game button during play; at terminal it's
-              replaced by the bold, outcome-colored result line + a compact
-              back-to-club button. */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : isLocallyDone ? (
-            // I conceded; the others race on. Terminal LOOK (a status line + the
-            // now-disabled Concede) so the state change reads loudly.
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                You conceded
-              </span>
-              <ConcedeGameButton className={shared.helperButton} disabled />
-            </div>
-          ) : (
-            <div className={shared.infoActions}>
-              {isCompete ? (
-                <ConcedeGameButton
-                  className={shared.helperButton}
-                  onClick={() => void handleConcede()}
-                />
-              ) : (
-                <EndGameButton
-                  className={shared.helperButton}
-                  onClick={() => void handleEndGame()}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Setup options — what was picked at create time, behind the shared
-              disclosure. Closed by default so it doesn't crowd the status above. */}
-          <SetupDisclosure>
-              <li>{DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '—'} required words</li>
-              <li>{DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '—'} legal (bonus) words</li>
-              {isCompete && targetRankIdx !== null && (
-                <li>Target rank: {RANKS[targetRankIdx]}</li>
-              )}
-              <li>{timerLabel(spellingbeeSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        {/* The required-words answer key now ships from game start, so the
-            missed-words reveal is gated on `isTerminal` (not on the list being
-            present): during play only found rows show; at terminal the unfound
-            required words are revealed (bonus words are never revealed). */}
-        <WordList
-          rows={buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)}
-          players={players}
-          reveal={isTerminal}
-        />
-      </div>
+      <InfoCol
+        // ── Mode + phase ──
+        isCompete={isCompete}
+        isTerminal={isTerminal}
+        over={over}
+        isLocallyDone={isLocallyDone}
+        // ── State (RankBar + Stats) ──
+        foundWordsScore={foundWordsScore}
+        requiredWordsScore={game.required_words_score}
+        foundWordsCount={foundWordsCount}
+        requiredWordsCount={game.required_words_count}
+        // ── Opponent strip (compete) ──
+        players={players}
+        selfId={session.user.id}
+        targetRankIdx={targetRankIdx}
+        selfRankIdx={selfRankIdx}
+        rankByUser={rankByUser}
+        concededIds={concededIds}
+        // ── Action row ──
+        onEndGame={() => void handleEndGame()}
+        onConcede={() => void handleConcede()}
+        onBackToClub={goToClub}
+        // ── Setup disclosure ──
+        setup={spellingbeeSetup}
+        // ── Found-words list ──
+        wordRows={wordRows}
+        reveal={isTerminal}
+      />
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
