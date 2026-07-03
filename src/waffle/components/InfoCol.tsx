@@ -24,71 +24,73 @@ import shared from '../../common/components/PlayArea.module.css'
  * docs/playarea-decomposition-plan.md).
  */
 export function InfoCol({
-  // ── Mode + phase ──
+  // Props are grouped by the region they drive (mirroring the render order below), so
+  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
+  // block below name each group. Names are shared with the other games' columns for the
+  // same idea — see docs/playarea-decomposition-plan.md.
   isCompete,
   over,
   isPlayer,
   selfDone,
   myConceded,
   selfSolved,
-
-  // ── State readout (the swap count line) ──
   swapsUsed,
   maxSwaps,
   remaining,
   parSwaps,
-
-  // ── Players (the OpponentStrip) ──
   members,
   selfId,
   playerStates,
   concededIds,
-
-  // ── Action row (End/Concede, back-to-club at terminal) ──
   onEndGame,
   onConcede,
   onBackToClub,
-
-  // ── Setup disclosure + terminal answer reveal ──
   setup,
   solution,
-
-  // ── Turn-history log (GameTurnLog — coop only) ──
   swaps,
   viewingIndex,
   onSelectTurn,
 }: {
+  // ── Mode + phase ──
   isCompete: boolean
   /** Terminal copy when the game is over (drives the action row + modal), else null. */
   over: TerminalCopy | null
   /** Am I a player in this game (gates the action row + help). */
   isPlayer: boolean
   /** I can't act any more, but the game continues for others (compete: solved / out
-   *  of swaps / conceded) — drives the terminal LOOK. */
+   *  of swaps / conceded) — drives the terminal LOOK. The broader analog of the other
+   *  games' concede-only `isLocallyDone`: waffle is a per-player-board race, so you can
+   *  also be locally done by solving your board or running out of swaps, not just by
+   *  conceding — which is why it needs its own name. */
   selfDone: boolean
   /** I conceded (vs solved / out of swaps) — picks the `selfDone` status wording. */
   myConceded: boolean
   /** I solved my board — picks the `selfDone` status wording. */
   selfSolved: boolean
 
+  // ── State readout (the swap count line) ──
   swapsUsed: number
   maxSwaps: number
   remaining: number
   parSwaps: number
 
+  // ── Players (the OpponentStrip) ──
   members: Member[]
   selfId: string
   playerStates: WafflePlayerState[]
   concededIds: Set<string>
 
+  // ── Action row (End/Concede, back-to-club at terminal) ──
   onEndGame: () => void
   onConcede: () => void
   onBackToClub: () => void
 
+  // ── Setup disclosure + terminal answer reveal ──
   setup: WaffleSetup
   /** The 25-char solution board, revealed at game-over (terminal only). */
   solution: string | null
 
+  // ── Turn-history log (GameTurnLog — coop only) ──
   swaps: WaffleSwap[]
   /** The swap currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null

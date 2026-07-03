@@ -111,6 +111,18 @@ function nextRackOrder(
  * emit one action up, scrabble's owns its RPCs; PlayArea hands it the game data +
  * gameId + the feedback channel + the history-view inputs, and renders it beside the
  * InfoCol. See docs/playarea-decomposition-plan.md.
+ *
+ * Two more deliberate divergences from the stackdown/waffle contract, for the same
+ * reason (the raw play data already lives here):
+ *   - **It reconstructs the viewed board itself.** stackdown/waffle compute the
+ *     historical snapshot in PlayArea and hand a ready-to-render board *down*;
+ *     scrabble takes the raw `plays` + `viewingSeq` and runs `boardUpToSeq` (and
+ *     builds the banner via `turnSummary`) in here, since `plays` is already the
+ *     input the live board reads.
+ *   - **It keys the viewer by `seq`, not log position.** The shared history hook
+ *     returns a neutral `viewingId`; scrabble aliases it to `viewingSeq` (a stable
+ *     turn number `boardUpToSeq` indexes by), where stackdown/waffle alias it to
+ *     `viewingIndex` (an array position). Same hook, deliberately different key.
  */
 export function BoardCol({
   game,
@@ -121,7 +133,7 @@ export function BoardCol({
   myConceded,
   showLocalFeedback,
   clearLocalFeedback,
-  localFeedbackMsg,
+  localPill,
   plays,
   viewingSeq,
   viewing,
@@ -145,7 +157,7 @@ export function BoardCol({
   /** Clear the sticky own-move pill (a board/rack interaction or a keystroke dismisses it). */
   clearLocalFeedback: () => void
   /** The pill to render in the commit slot (terminal verdict or own-move result), or null. */
-  localFeedbackMsg: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
 
   // ── History viewer (state owned by PlayArea; this renders the snapshot) ──
   plays: PlayRow[]
@@ -672,7 +684,7 @@ export function BoardCol({
                 submitting={submitting}
                 submitScore={submitScore}
                 canSubmit={canSubmit}
-                pill={localFeedbackMsg}
+                pill={localPill}
                 onSubmit={() => void submit()}
                 onRecall={recallAll}
                 onExchange={() => void exchange()}

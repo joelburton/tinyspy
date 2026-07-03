@@ -351,8 +351,8 @@ export function PlayArea({
         retractTo={retractTo}
         onSubmitWord={submit}
         localPill={localPill}
-        showFeedback={showLocalFeedback}
-        clearFeedback={clearLocalFeedback}
+        showLocalFeedback={showLocalFeedback}
+        clearLocalFeedback={clearLocalFeedback}
         flash={flash}
         clearFlash={clearFlash}
       />

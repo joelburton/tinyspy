@@ -23,37 +23,31 @@ import shared from '../../common/components/PlayArea.module.css'
  * same idea (docs/playarea-decomposition-plan.md).
  */
 export function InfoCol({
-  // ── Mode + phase ──
+  // Props are grouped by the region they drive (mirroring the render order below), so
+  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
+  // block below name each group. Names are shared with the other games' columns for the
+  // same idea — see docs/playarea-decomposition-plan.md.
   isCompete,
   myTurn,
   over,
   myConceded,
   isTerminal,
-
-  // ── State readout (turn / team score + the bag) ──
   currentMember,
   teamScore,
   bagCount,
-
-  // ── Players (the OpponentStrip) ──
   members,
   selfId,
   playerStates,
   concededIds,
-
-  // ── Action row (End/Concede, back-to-club at terminal) ──
   onEndGame,
   onConcede,
   onBackToClub,
-
-  // ── Setup disclosure ──
   setup,
-
-  // ── Turn-history log (Moves) ──
   plays,
   viewingSeq,
   onSelectTurn,
 }: {
+  // ── Mode + phase ──
   isCompete: boolean
   /** Whose turn it is is mine (compete); always true in coop. */
   myTurn: boolean
@@ -63,6 +57,7 @@ export function InfoCol({
   myConceded: boolean
   isTerminal: boolean
 
+  // ── State readout (turn / team score + the bag) ──
   /** The player whose turn it is (compete) — its color + name drive the "Turn: ● name"
    *  line; undefined in coop / when unknown. */
   currentMember: Member | undefined
@@ -70,18 +65,22 @@ export function InfoCol({
   teamScore: number | null
   bagCount: number
 
+  // ── Players (the OpponentStrip) ──
   /** The roster (GamePlayer — carries the concede/result bits playerOutcome reads). */
   members: GamePlayer[]
   selfId: string
   playerStates: PlayerRow[]
   concededIds: Set<string>
 
+  // ── Action row (End/Concede, back-to-club at terminal) ──
   onEndGame: () => void
   onConcede: () => void
   onBackToClub: () => void
 
+  // ── Setup disclosure ──
   setup: ScrabbleSetup
 
+  // ── Turn-history log (Moves) ──
   plays: PlayRow[]
   /** The play currently open in the board viewer (by seq), or null. */
   viewingSeq: number | null

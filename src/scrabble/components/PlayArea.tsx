@@ -98,7 +98,7 @@ export function PlayArea({
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
   // buttons show). Passed down to BoardCol, which renders it in the Controls.
-  const localFeedbackMsg: GenericFeedbackMsg | null = over
+  const localPill: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
         text: over.message,
@@ -118,7 +118,7 @@ export function PlayArea({
         myConceded={myConceded}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
-        localFeedbackMsg={localFeedbackMsg}
+        localPill={localPill}
         plays={plays}
         viewingSeq={viewingSeq}
         viewing={viewing}

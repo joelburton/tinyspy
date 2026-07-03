@@ -141,12 +141,43 @@ already knew. Drift here causes real head-scratching.
   site. That answers "what is this prop for?" by eye at zero cost. (No React.memo
   anywhere in the app, so grouping into objects would buy nothing; if a future
   memoized *child* ever needs a grouped object, `useMemo` it — but that's not today.)
+  **Header placement: the `// ── Section ──` headers live on the TYPE block** (next
+  to the per-prop docstrings, which document each group); the destructure above is a
+  flat list with a short lead comment pointing at them. All six columns
+  (stackdown/waffle/scrabble × BoardCol/InfoCol) follow this — don't put the headers
+  in the destructure and leave the type block bare (waffle/scrabble InfoCol drifted
+  that way and were realigned in the game-4 pre-flight review).
 - **One vocabulary across all games.** For the same idea, use the same prop name
   everywhere: `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
-  `onExitViewing`, `viewingIndex`/`viewingDescription`, `onSelectTurn`, `members`,
-  `selfId`, `onBackToClub`, … When a new game needs a prop that an earlier column
+  `viewingDescription`, `onExitViewing`, `onSelectTurn`, `members`, `selfId`,
+  `playerStates`, `concededIds`, `myConceded`, `setup`, `solution`, `onEndGame`,
+  `onConcede`, `onBackToClub`, … When a new game needs a prop that an earlier column
   already has under some name, REUSE that name; only diverge when the meaning truly
   differs, and say so. Treat this list as the seed glossary; grow it as games land.
+  Settled during the 3-game review, and worth calling out because they're easy to
+  re-drift:
+  - **Below-board feedback follows the `useLocalFeedback` hook's own names:** the
+    folded pill to render is **`localPill`** (`GenericFeedbackMsg | null` — the hook's
+    raw `localFeedback` with the terminal verdict folded in by PlayArea), and the
+    input-engine callbacks are **`showLocalFeedback` / `clearLocalFeedback`** (not
+    `showFeedback` / `localFeedbackMsg` — both had drifted).
+  - **`isLocallyDone`** = "I'm out (conceded), the others race on" — the codebase
+    majority (boggle/spellingbee/wordle/stackdown share the identical
+    `isCompete && myConceded && !isTerminal`). waffle deliberately uses **`selfDone`**
+    instead because its condition is *broader* (per-player-board race: solved / out of
+    swaps / conceded); the different name flags the different meaning. Don't "unify"
+    these — the split is the point.
+  - **Deliberate, documented divergences** (same idea, different name because the
+    meaning genuinely differs): `viewingIndex` (log position — stackdown/waffle) vs
+    `viewingSeq` (stable turn `seq` — scrabble, which `boardUpToSeq` indexes by);
+    `greenTiles`/`green` (a viewed turn's played-word ring, coloured green — stackdown)
+    vs `highlight` (a viewed swap's neutral cell ring — waffle). Both aliases of the
+    shared history hook's neutral `viewingId`.
+  - **Snapshot ownership is NOT uniform, on purpose.** stackdown/waffle compute the
+    historical board in PlayArea and hand a ready board *down* (the load-bearing
+    contract); scrabble's fat BoardCol takes the raw `plays` + `viewingSeq` and runs
+    `boardUpToSeq` itself, because the raw play data already lives there for the live
+    board (same exception that makes it own its RPCs). Documented in its header.
 - **A real object only for a genuinely cohesive cluster** that always travels
   together to one child (e.g. the OpponentStrip's inputs) — never to hit a number.
 

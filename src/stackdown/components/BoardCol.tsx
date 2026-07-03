@@ -29,9 +29,10 @@ const NO_TILES: ReadonlySet<number> = new Set()
  *     tile) — purely this column's own input feedback.
  *   - Owned by PlayArea, rendered here via props: the word-slot flash (`flash` —
  *     own-accepted or a coop teammate's word) and the below-board local pill
- *     (`localPill`, written via `showFeedback`/`clearFeedback`). Those channels have
- *     triggers outside this column (coop peer narration; the reveal/hint cheats), so
- *     the coordinator owns them — see the plan's note on cross-column feedback.
+ *     (`localPill`, written via `showLocalFeedback`/`clearLocalFeedback`). Those
+ *     channels have triggers outside this column (coop peer narration; the
+ *     reveal/hint cheats), so the coordinator owns them — see the plan's note on
+ *     cross-column feedback.
  */
 export function BoardCol({
   tiles,
@@ -45,8 +46,8 @@ export function BoardCol({
   retractTo,
   onSubmitWord,
   localPill,
-  showFeedback,
-  clearFeedback,
+  showLocalFeedback,
+  clearLocalFeedback,
   flash,
   clearFlash,
 }: {
@@ -83,9 +84,9 @@ export function BoardCol({
   /** The below-board pill to show (terminal verdict / own-move message), or null. */
   localPill: GenericFeedbackMsg | null
   /** Report an input-engine message (no matching tile / ambiguous letter). */
-  showFeedback: (text: string, tone: GenericFeedbackTone) => void
+  showLocalFeedback: (text: string, tone: GenericFeedbackTone) => void
   /** Clear the below-board pill (a new move dismisses the previous one). */
-  clearFeedback: () => void
+  clearLocalFeedback: () => void
 
   // ── Word-slot flash (own-accepted / coop peer word — timer owned by PlayArea) ──
   /** The word-slot flash (own-accepted / peer word), owned by PlayArea's timer. */
@@ -105,11 +106,11 @@ export function BoardCol({
     (tileId: number) => {
       if (readOnly) return
       clearFlash() // starting a new word drops any lingering word flash
-      clearFeedback() // …and the previous move's local pill (next-move-dismisses rule)
+      clearLocalFeedback() // …and the previous move's local pill (next-move-dismisses rule)
       const word = appendTile(tileId)
       if (word && word.length === 5) onSubmitWord(word)
     },
-    [readOnly, appendTile, onSubmitWord, clearFlash, clearFeedback],
+    [readOnly, appendTile, onSubmitWord, clearFlash, clearLocalFeedback],
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
@@ -130,7 +131,7 @@ export function BoardCol({
     if (readOnly) return // not viewing ⇒ readOnly === "can't play right now"
     // Any handled keystroke is a "next move" — clear the previous local pill. The
     // no-match / ambiguous branches below set a fresh one after this.
-    clearFeedback()
+    clearLocalFeedback()
     if (e.key === 'Backspace') {
       e.preventDefault()
       if (currentWord.length > 0) retractTo(currentWord.length - 1)
@@ -146,11 +147,11 @@ export function BoardCol({
       if (matches.length === 1) {
         onTileClick(matches[0].id)
       } else if (matches.length === 0) {
-        showFeedback(`No “${letter}” tile is on top`, 'error')
+        showLocalFeedback(`No “${letter}” tile is on top`, 'error')
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
         flashTiles(matches.map((m) => m.id))
-        showFeedback(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
+        showLocalFeedback(`${matches.length} “${letter}” tiles are on top — click one`, 'warning')
       }
     }
   })
@@ -207,7 +208,7 @@ export function BoardCol({
             `.localFeedback`) so the board above never reflows when the pill
             appears/clears. */}
         <div className={shared.localFeedback}>
-          {localPill && <GenericFeedbackPill msg={localPill} onClose={clearFeedback} />}
+          {localPill && <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />}
         </div>
       </div>
     </div>
