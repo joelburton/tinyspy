@@ -305,6 +305,54 @@ export async function createWordleGame(
   return { id: (row as { id: string }).id, gametype: `wordle_${mode}` }
 }
 
+/**
+ * Seed `n` accepted guesses on a wordle game so a test loads a board that already
+ * has turn-log rows (for the turn-history viewer). Picks `n` distinct legal words —
+ * real 5-letter words of difficulty ≤ the game's `legal_guess` band, EXCLUDING the
+ * hidden target so the game stays mid-play (a correct guess would end it) — then
+ * submits each through `wordle.submit_guess` as the player (the same path the FE
+ * uses, so the rows + colors are real). Returns the guessed words (upper-cased), in
+ * order, for assertions. Reads the target + word list via the admin client (service
+ * role bypasses RLS; the target is otherwise hidden until terminal).
+ */
+export async function seedWordleGuesses(
+  member: E2EMember,
+  gameId: string,
+  n: number,
+): Promise<string[]> {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  // The wordle schema isn't exposed to PostgREST (its tables are reached only via
+  // SECURITY DEFINER RPCs + the games_state view), and the hidden `target` is
+  // gated until terminal — so read the target + n legal words as the local
+  // superuser via psql, the same test-only pattern as drainBananagramsPool.
+  const q = (sql: string): string[] =>
+    execFileSync(
+      'psql',
+      ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-tAX', '-c', sql],
+      { encoding: 'utf8' },
+    )
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+  const [target, band] = q(`select target, legal_guess from wordle.games where id = '${gameId}';`)[0].split('|')
+  const words = q(
+    `select word from common.words ` +
+      `where len = 5 and difficulty <= ${Number(band)} and word <> '${target}' limit ${Number(n)};`,
+  )
+  if (words.length < n) throw new Error(`legal words: got ${words.length}/${n}`)
+
+  for (const word of words) {
+    const res = await asUser(member.session.access_token)
+      .schema('wordle')
+      .rpc('submit_guess', { target_game: gameId, guess: word })
+    if (res.error) throw new Error(`submit_guess(${word}): ${res.error.message}`)
+    const result = (res.data as { result?: string })?.result
+    if (result !== 'incorrect') throw new Error(`submit_guess(${word}) → ${result}, expected incorrect`)
+  }
+  return words.map((w) => w.toUpperCase())
+}
+
 /** Start a scrabble game (coop by default). Returns id + gametype for the URL. */
 export async function createScrabbleGame(
   club: E2EClub,

@@ -1,0 +1,25 @@
+/* wordle's board-column chrome. The two-column SHELL (.boardCol) + the board grid
+ * (WordleGrid.module.css) + keyboard live elsewhere; this owns only the below-board
+ * REGION under the board. See docs/ui.md → "PlayArea layout". */
+
+/* The below-board REGION (universal). wordle is a NON-SWAP game: the feedback and
+ * the move controls (keyboard) are SEPARATE and both always present, so this holds
+ * `shared.localFeedback` (which reserves its own height) ABOVE the `.moveArea`
+ * (keyboard). A real flex column whose `gap` reproduces the board column's own
+ * 0.75rem gap the two used to get as direct .boardCol children — so wrapping them
+ * here shifts nothing. See docs/code-conventions.md → below-board structure. */
+.belowBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* Positioning context for the turn-history banner, which overlays this whole
+   * region (`inset: 0`) while inspecting a past turn. `relative` keeps the element
+   * in normal flow, so it changes nothing when no banner is shown (no reflow). */
+  position: relative;
+}
+
+/* wordle's move controls are the on-screen keyboard. `display: contents` so this
+ * naming wrapper generates no box — the keyboard keeps its exact place. */
+.moveArea {
+  display: contents;
+}

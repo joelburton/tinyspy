@@ -1,46 +1,13 @@
-/* wordle play surface. The two-column SHELL (.layout / .boardCol / .infoCol)
- * comes from the shared common/components/PlayArea.module.css (imported as
- * `shared` in PlayArea.tsx) and is composed via cls(); only what's specific to
- * wordle lives here. The board grid + keyboard chrome live in their own
- * modules. See docs/ui.md → "PlayArea layout". */
+/* wordle play surface. The two-column SHELL (.layout / .boardCol / .infoCol) comes
+ * from the shared common/components/PlayArea.module.css (imported as `shared` in
+ * PlayArea.tsx) and is composed via cls(); only the info-column WIDTH is wordle-
+ * specific. The board grid + keyboard + the two columns' own chrome live in their
+ * own modules (WordleGrid / BoardCol / InfoCol). See docs/ui.md → "PlayArea layout". */
 
 /* The info column's width — game-specific (the shared scaffold has no default).
- * wordle's right column (guess counter + guess list) fits a narrow column. A
- * rem, never a pixel lock; the shared `.infoCol` and the board's --avail-w math
- * both read it. */
+ * wordle's right column (guess counter + guess list) fits a narrow column. A rem,
+ * never a pixel lock; the shared `.infoCol` and the board's --avail-w math both
+ * read it. */
 .layout {
   --info-col-width: 22rem;
-}
-
-/* The below-board REGION (universal). wordle is a NON-SWAP game: the feedback
- * and the move controls (keyboard) are SEPARATE and both always present, so
- * this holds `shared.localFeedback` (which reserves its own height) ABOVE the
- * `.moveArea` (keyboard). A real flex column whose `gap` reproduces the board
- * column's own 0.75rem gap the two used to get as direct .boardCol children —
- * so wrapping them here shifts nothing. See docs/code-conventions.md → below-
- * board structure. */
-.belowBoard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* wordle's move controls are the on-screen keyboard. `display: contents` so
- * this naming wrapper generates no box — the keyboard keeps its exact place. */
-.moveArea {
-  display: contents;
-}
-
-/* The info-column terminal answer-reveal line. Drop the browser's default <p>
- * margin (this <p> sits outside .actionSlot, which zeroes its own paragraphs),
- * so the spacing matches the info column's own 1rem gap — like waffle's
- * terminalExtra, which wraps a margin-less component. */
-.answerLine {
-  margin: 0;
-}
-
-/* The revealed word itself — letter-spaced so the five letters read as the word,
- * like the board tiles (only the word, not the "The answer was" lead-in). */
-.answerReveal {
-  letter-spacing: 0.08em;
 }

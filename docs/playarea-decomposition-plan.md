@@ -138,7 +138,29 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   the viewed turn's 4 tiles stay on the grid, tinted by outcome + ringed; needed a
   `#N` column added to its two-`<tr>` log) + **decomposed** (BoardCol owns the guess
   dispatch + shuffle; the tile SELECTION stays in useGame — broadcast-coupled — so it's
-  passed down; `ownGuess` → `lib/ownGuess.ts`); waffle ✅) — now a drop-in against the contract.
+  passed down; `ownGuess` → `lib/ownGuess.ts`); waffle ✅; wordle ✅ viewer + **decomposed**
+  (BoardCol/InfoCol, no-op verified): ADD-style (like psychicnum), keyed by log position,
+  INCLUSIVE — the snapshot (`src/wordle/lib/history.ts`) is just the first N guess rows,
+  the last ringed history-yellow (`WordleGrid` gains `viewing` + `highlightRow`;
+  `.viewedRow` ring). wordle's twist: the log has a **"whose board" picker**, so the `#N`
+  handle is a live control ONLY when the log shows the board that replays (coop team / my
+  own — `boardIsShown = teamView || picked === selfId`); an opponent's revealed log (compete
+  terminal) keeps a plain read-only `#N`. Keystroke-exit rides `useGlobalKeyHandler(exitOnKey)`
+  alongside `useCaptureKeys` (frozen via `disabled: !canGuess || viewing`); the banner overlays
+  the whole below-board region (feedback slot + keyboard). e2e seeds guesses via a new
+  `seedWordleGuesses` fixture (psql reads the hidden target + legal words, then the real RPC).
+  **Decomposition** (617→350): `BoardCol` (261) OWNS the input engine — `current`/`pending`/
+  `submitting` + `submit_guess` (Pattern A, like psychicnum's board-gesture BoardCol) +
+  `useCaptureKeys` + the on-screen keyboard + `keyStates`; it takes the LIVE `rows` + the `snap`
+  and picks live-vs-snapshot itself, derives `viewing = snap !== null`, and computes `canGuess =
+  guessingAllowed && !submitting && !pendingWord` (PlayArea passes only the GAME-STATE half,
+  `guessingAllowed`, so behavior is byte-identical). `InfoCol` (207) is presentational (guess
+  count + OpponentStrip + action row + setup + terminal answer-reveal + GameTurnLog). Feedback
+  channel stays in PlayArea (both columns write it); shared `localPill` builder → `lib/localPill.ts`
+  (like psychicnum's `ownMove`); the below-board pill is RESOLVED in PlayArea and passed down as
+  `localFeedbackMsg`. CSS split (psychicnum-style): `belowBoard`/`moveArea` → BoardCol.module.css,
+  `answerLine`/`answerReveal` → InfoCol.module.css, only `.layout` left in PlayArea.module.css) —
+  now a drop-in against the contract.
   codenamesduet keys the viewer by `turn_number` (game-wide ordinal, like scrabble's
   `seq`, not log position); its snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and

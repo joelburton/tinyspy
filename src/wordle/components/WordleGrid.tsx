@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { revealVar, tileColor } from '../lib/colors'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './WordleGrid.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
@@ -30,6 +31,14 @@ type Props = {
    *  screen-reader label — kept out of this chunk's source so the brand
    *  lives only in the manifest. */
   brand: string
+  /** Turn-history: wear the shared yellow viewing frame and make the board
+   *  click-through (so a board click falls to the document exit listener).
+   *  While viewing, PlayArea also hands historical `rows` + `active={false}` +
+   *  no `pending`, and rows never flip (they're already-final history). */
+  viewing?: boolean
+  /** Turn-history: ring this row (the guess the viewed turn added), or -1 = none.
+   *  The row keeps its g/y/x tile colors; the ring just marks which one. */
+  highlightRow?: number
 }
 
 /**
@@ -49,7 +58,16 @@ type Props = {
  * flipping tiles — the keyframes (with `forwards`) hold the final color —
  * so each tile reads blank until its flip reaches halfway.
  */
-export function WordleGrid({ rows, current, pending, maxGuesses, active, brand }: Props) {
+export function WordleGrid({
+  rows,
+  current,
+  pending,
+  maxGuesses,
+  active,
+  brand,
+  viewing = false,
+  highlightRow = -1,
+}: Props) {
   const activeIndex = active ? rows.length : -1
   // Rows present at first render — these don't flip (only fresh guesses do).
   // A lazy useState initializer captures the count once at mount and is
@@ -58,15 +76,25 @@ export function WordleGrid({ rows, current, pending, maxGuesses, active, brand }
 
   return (
     <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
-      <div className={cls(shared.hugRectWidth, styles.grid)} role="grid" aria-label={`${brand} board`}>
+      <div
+        className={cls(shared.hugRectWidth, styles.grid, viewing && history.frame)}
+        role="grid"
+        aria-label={`${brand} board`}
+        data-board
+      >
         {Array.from({ length: maxGuesses }, (_, r) => {
           const submitted = rows[r]
           const isActive = r === activeIndex
           // The pending (in-flight) word sits in the first empty slot.
           const isPending = !submitted && !!pending && r === rows.length
-          const flipping = !!submitted && r >= firstRows
+          // Historical rows never flip — they're already-final, not fresh guesses.
+          const flipping = !viewing && !!submitted && r >= firstRows
           return (
-            <div key={r} className={styles.row} role="row">
+            <div
+              key={r}
+              className={cls(styles.row, r === highlightRow && styles.viewedRow)}
+              role="row"
+            >
               {Array.from({ length: 5 }, (_, c) => {
                 let letter = ''
                 let color = tileColor(undefined)

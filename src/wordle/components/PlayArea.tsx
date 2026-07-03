@@ -1,70 +1,39 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/timerLabel'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
-import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
-import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
-import { colorRank, tileColor, type TileColor } from '../lib/colors'
+import { turnSnapshot } from '../lib/history'
+import { localPill } from '../lib/localPill'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '../../common/lib/peers'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { WordleGrid } from './WordleGrid'
-import { Keyboard } from './Keyboard'
-import { GameTurnLog } from './GameTurnLog'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
 import { cls } from '../../common/lib/cls'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * wordle's play surface, shared by the coop and compete manifests.
- * Two columns: the board + on-screen keyboard on the left, the
- * guesses-used counter + guess list on the right. Mode is read from
- * `game.mode`.
+ * wordle's play surface, shared by the coop and compete manifests. The thin
+ * COORDINATOR of the two columns: it owns the game data (`useGame`), the below-board
+ * feedback channel (both columns write it), the turn-history viewer, the peer
+ * narration, and the cross-column derivations — then hands each column what it needs.
  *
- * Guesses go through `wordle.submit_guess`; the board/keyboard update
- * via the realtime refetch in `useGame` (Pattern A). Soft rejects
- * (notAWord / duplicate / invalid) keep the typed row and flash a timed
- * pill; an accepted guess clears the input and arrives as a new row.
+ *   - `<BoardCol>` — the board + on-screen keyboard: the input engine (the pending
+ *     guess + `submit_guess`, Pattern A). See BoardCol.tsx.
+ *   - `<InfoCol>` — the guess counter + guess list + action row + setup. Presentational.
  *
- * Coop renders the SHARED guess list (everyone's), the budget is the
- * team's. Compete renders only the caller's own guesses (RLS hides
- * opponents) plus an OpponentStrip of their guess counts.
+ * Mode (`game.mode`) branches the derivations: coop shows the SHARED guess list +
+ * team budget; compete shows only the caller's own guesses (RLS hides opponents) plus
+ * an OpponentStrip of their guess counts.
  */
-
-/** Local feedback pills are never closeable, so the × never renders and this is
- *  never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
-/** Build the own-move local pill: outline (transient) + STICKY — it sits in the
- *  local feedback area until the player's next keypress dismisses it (the typed
- *  letters stay on the board so they can fix the guess). Tone is per case:
- *  `error` for an invalid / failed guess (not a real word, an RPC error),
- *  `warning` for a non-error nudge ("already guessed", "not enough letters"). */
-const localPill = (tone: 'warning' | 'error', text: string): GenericFeedbackMsg => ({
-  tone,
-  text,
-  variant: 'outline',
-  dismiss: { kind: 'sticky' },
-})
-
-/** Where the hidden target is drawn from, for the setup disclosure. `0` = the
- *  curated NYT-Wordle answer list; `1..6` = a clean word of that difficulty band
- *  or easier. */
-const answerSourceLabel = (n: number): string =>
-  n === 0 ? 'NYT Wordle list' : `${DIFFICULTY_LABELS[n - 1] ?? 'any'} or easier`
-
 export function PlayArea({
   session,
   gameId,
@@ -79,19 +48,21 @@ export function PlayArea({
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
-  const [current, setCurrent] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   // The own-move local feedback pill (soft reject / RPC error), shown in the
-  // fixed-height slot between the board and the keyboard. Sticky (localPill):
-  // cleared by the player's next edit (typeLetter / deleteLetter below), the
-  // "next move dismisses it" rule (docs/design-decisions.md → Dismissal modes).
-  // Accepted guesses get NO pill — the colored row that lands IS the feedback.
+  // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
+  // by the player's next edit (in BoardCol), the "next move dismisses it" rule. Lives
+  // HERE because BOTH columns write it: BoardCol's guess dispatch AND InfoCol's End /
+  // Concede. Accepted guesses get NO pill — the colored row that lands IS the feedback.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
-  // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
-  // from the moment we submit until its colored server row arrives via
-  // realtime, so the letters don't blink out during the round-trip. The
-  // row then flips in place. Cleared on soft-reject, or once it lands.
-  const [pending, setPending] = useState<string | null>(null)
+
+  // ─── Turn-history viewer ───────────────────────────────
+  // Click a turn-log #N to replay that turn's board (the guess rows up to that turn,
+  // with that turn's row ringed history-yellow). Keyed by log position. Exit is
+  // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
+  // BoardCol freezes its capture while viewing, so exitOnKey has the keys to itself.
+  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+    useHistoryViewer<number>()
+  useGlobalKeyHandler(exitOnKey)
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -106,113 +77,15 @@ export function PlayArea({
   const myGuesses = isCompete
     ? guesses.filter((g) => g.user_id === session.user.id)
     : guesses
-  // The pending word, shown until its colored server row actually lands.
-  // Once it's in myGuesses we stop showing it (the real row flips in its
-  // place) — `pending` state may linger stale, but `pendingWord` is the
-  // value everything reads, so that's harmless. Deriving it (vs. clearing
-  // `pending` in an effect) also dodges a one-frame double-render.
-  const pendingLanded =
-    pending != null && myGuesses.some((g) => g.guess === pending)
-  const pendingWord = pending && !pendingLanded ? pending : ''
-  const canGuess =
-    !!self &&
-    !isTerminal &&
-    !mySolved &&
-    !myConceded &&
-    guessesUsed < maxGuesses &&
-    !submitting &&
-    !pendingWord
-
-  // ─── Edit the active row (dismisses any sticky local pill) ─────
-  // Typing a letter or backspacing is the player's "next move", so it clears the
-  // last soft-reject pill (the analog of psychicnum's "typing dismisses the
-  // entry flash"). Both the physical and on-screen keyboards route through these,
-  // so the clear lives in one place. `clearLocalFeedback` is stable (the hook
-  // memoizes it), so these stay effectively constant.
-  const typeLetter = useCallback((ch: string) => {
-    clearLocalFeedback()
-    setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
-  }, [clearLocalFeedback])
-  const deleteLetter = useCallback(() => {
-    clearLocalFeedback()
-    setCurrent((c) => c.slice(0, -1))
-  }, [clearLocalFeedback])
-
-  // ─── Submit a guess (stable across keystrokes) ────────────────
-  const doSubmit = useCallback(
-    async (word: string) => {
-      if (word.length !== 5) {
-        showLocalFeedback(localPill('warning', 'Not enough letters'))
-        return
-      }
-      setSubmitting(true)
-      // Optimistically keep the letters on the board through the round-trip
-      // so they don't blink out. Reverted on any soft-reject below.
-      setPending(word)
-      const { data, error } = await db.rpc('submit_guess', {
-        target_game: gameId,
-        guess: word,
-      })
-      setSubmitting(false)
-      if (error) {
-        setPending(null)
-        // A real failure (not a soft reject) → error-toned, still sticky.
-        showLocalFeedback(localPill('error', error.message))
-        return
-      }
-      const res = data as { result: string }
-      // Soft rejects (no guess burned, the typed row stays). An invalid word
-      // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
-      if (res.result === 'notAWord') {
-        setPending(null)
-        showLocalFeedback(localPill('error', 'Not in word list'))
-        return
-      }
-      if (res.result === 'duplicate') {
-        setPending(null)
-        showLocalFeedback(localPill('warning', 'Already guessed'))
-        return
-      }
-      if (res.result === 'invalid') {
-        setPending(null)
-        showLocalFeedback(localPill('warning', 'Not enough letters'))
-        return
-      }
-      // accepted (correct/incorrect): clear the typing buffer. `pending`
-      // holds the word in place until its colored row lands (then flips).
-      setCurrent('')
-    },
-    [gameId, showLocalFeedback],
-  )
-
-  // ─── Physical keyboard ────────────────────────────────────────
-  // Drives the same pending-guess state (`current`) as the on-screen <Keyboard>
-  // below, off the shared capture CORE — so wordle can't drift from the modifier
-  // bail / focused-input guard / any-key-dismiss that the EntryBox games get.
-  // wordle is NOT an EntryBox (letters land on the WordleGrid, not a box), so it
-  // uses useCaptureKeys ALONE — no ArrowUp-recall / ArrowDown-clear (those are
-  // useArrowHistory, layered on by <EntryRow> for the EntryBox games only).
-  useCaptureKeys({
-    value: current,
-    onChange: setCurrent,
-    onSubmit: () => void doSubmit(current),
-    charFor: asciiLetters('lower'),
-    onAnyKey: clearLocalFeedback,
-    // Hard-off when the player can't act (loading / terminal / out of guesses /
-    // mid-submit): no dispatch AND no feedback dismissal (the sticky verdict
-    // survives a stray key — and clearLocalFeedback is a no-op at terminal anyway).
-    disabled: !canGuess,
-    maxLength: 5, // a guess is one 5-letter word
-  })
 
   // ─── Coop peer-guess narration (global header) ─────────────────
-  // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth
-  // guessed CRANE", neutral-toned with their identity dot. Only accepted guesses
-  // reach here — `wordle.guesses` holds nothing else (a soft reject writes no
-  // row). My own guesses are excluded (they land on the shared board). Compete
-  // never narrates a guess: RLS scopes `guesses` to the caller, and we gate on
-  // coop besides. The shared hook's seen-set (not "the last row") handles coop
-  // interleaving two players' rows by guess_index, so the newest isn't last.
+  // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth guessed
+  // CRANE", neutral-toned with their identity dot. Only accepted guesses reach here —
+  // `wordle.guesses` holds nothing else (a soft reject writes no row). My own guesses
+  // are excluded (they land on the shared board). Compete never narrates a guess: RLS
+  // scopes `guesses` to the caller, and we gate on coop besides. The shared hook's
+  // seen-set (not "the last row") handles coop interleaving two players' rows by
+  // guess_index, so the newest isn't last.
   useGlobalFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
@@ -232,12 +105,12 @@ export function PlayArea({
   })
 
   // ─── Compete opponent-solve narration (global header) ──────────
-  // In compete, RLS hides opponents' guesses, so the only peer event we can
-  // surface is a SOLVE (the public `players.solved` flag flips): "● moth solved
-  // it". SUCCESS-toned (green) — a solve is a solve regardless of whose it is;
-  // tone follows the event, not my competitive stake (docs/design-decisions.md →
-  // "Tone follows the event"). My own solve is excluded (covered by the terminal
-  // feedback). `solvedIds` is memoized so the hook re-runs only when it changes.
+  // In compete, RLS hides opponents' guesses, so the only peer event we can surface is
+  // a SOLVE (the public `players.solved` flag flips): "● moth solved it". SUCCESS-toned
+  // (green) — a solve is a solve regardless of whose it is; tone follows the event, not
+  // my competitive stake (docs/design-decisions.md → "Tone follows the event"). My own
+  // solve is excluded (covered by the terminal feedback). `solvedIds` is memoized so
+  // the hook re-runs only when it changes.
   const solvedIds = useMemo(
     () => playerStates.filter((p) => p.solved).map((p) => p.user_id),
     [playerStates],
@@ -263,25 +136,20 @@ export function PlayArea({
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
-  // Per-key feedback state — strongest color each letter has earned.
-  const keyStates = new Map<string, TileColor>()
-  for (const g of myGuesses) {
-    for (let i = 0; i < 5; i++) {
-      const ch = g.guess[i]
-      const col = tileColor(g.colors[i])
-      const prev = keyStates.get(ch)
-      if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
-    }
-  }
-
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
+
+  // Turn-history: when a past turn is open, `snap` is that turn's board (the guess rows
+  // up to it, the last one ringed); else null = live. `myGuesses` is exactly the board
+  // BoardCol shows (coop team / compete self), and the log only hangs its #N handles on
+  // THAT board — so `viewingId` indexes `myGuesses` 1:1. Stable: a later realtime guess
+  // only grows the log past `viewingId`, so a past turn holds.
+  const snap = viewing && viewingId !== null ? turnSnapshot(myGuesses, viewingId) : null
 
   const winnerId = status?.winner as string | undefined
   const selfWon = winnerId === session.user.id
-  // Tie-break inference (no backend flag needed): the server picks the
-  // winner by fewest guesses, then earliest solved_at. So if any OTHER
-  // solver used the same guess count as the winner, the clock broke the
-  // tie — say "same guesses, but faster" rather than "fewest guesses".
+  // Tie-break inference (no backend flag needed): the server picks the winner by fewest
+  // guesses, then earliest solved_at. So if any OTHER solver used the same guess count
+  // as the winner, the clock broke the tie — say "same guesses, but faster".
   const winnerState = playerStates.find((p) => p.user_id === winnerId)
   const wonByClock =
     !!winnerState &&
@@ -291,8 +159,8 @@ export function PlayArea({
         p.solved &&
         p.guesses_used === winnerState.guesses_used,
     )
-  // Did the viewer lose specifically on the clock (tied the winner's
-  // guess count but solved later)?
+  // Did the viewer lose specifically on the clock (tied the winner's guess count but
+  // solved later)?
   const selfTiedWinner =
     !selfWon &&
     !!self &&
@@ -310,17 +178,21 @@ export function PlayArea({
       })
     : null
 
-  // Locally terminal (compete only): I'm done — solved, or out of my own guesses
-  // — but the game continues for the others still racing. Coop has no such state
-  // (one shared board: over for me ⇒ over for everyone). Shown as the terminal
-  // LOOK (a status line + Concede), not a quietly-swapped help line.
+  // Locally terminal (compete only): I'm done — solved, or out of my own guesses — but
+  // the game continues for the others still racing. Coop has no such state (one shared
+  // board: over for me ⇒ over for everyone). Shown as the terminal LOOK (a status line +
+  // Concede), not a quietly-swapped help line.
   const isLocallyDone =
     !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
 
+  // The GAME-STATE half of "can I guess?" — BoardCol ANDs its own not-mid-submit state.
+  const guessingAllowed =
+    !!self && !isTerminal && !mySolved && !myConceded && guessesUsed < maxGuesses
+
   const wordleSetup = setup as WordleSetup
 
-  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed
-  // because it's irreversible; an RPC failure flashes in the local feedback slot.
+  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed because
+  // it's irreversible; an RPC failure flashes in the local feedback slot.
   const handleEndGame = async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
@@ -328,9 +200,9 @@ export function PlayArea({
     if (error) showLocalFeedback(localPill('error', error.message))
   }
 
-  // Concede — drop out of a compete race (a real loss; the others keep racing).
-  // Distinct from End: wordle.concede flips the shared conceded flag then re-runs
-  // the compete terminal check (which now counts me as done).
+  // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
+  // from End: wordle.concede flips the shared conceded flag then re-runs the compete
+  // terminal check (which now counts me as done).
   const handleConcede = async () => {
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
@@ -338,33 +210,17 @@ export function PlayArea({
     if (error) showLocalFeedback(localPill('error', error.message))
   }
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out
-  // of the race → wordle.concede); coop uses the neutral "End" (a mutual "we're
-  // done" → end_game). Shared by the playing and the locally-terminal action rows.
-  const endButton = isCompete ? (
-    <ConcedeGameButton
-      onClick={() => void handleConcede()}
-      className={shared.helperButton}
-      disabled={myConceded}
-    />
-  ) : (
-    <EndGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
-  )
-
   // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
-  // The fixed-height feedback slot under the board shows exactly one pill, chosen
-  // here by priority:
-  //   - terminal → a PERMANENT (fill) verdict pill with the answer folded in (the
-  //     answer also shows in the info column's terminalExtra — it lands in both
-  //     places, deliberately);
-  //   - locally terminal (compete: I'm done while the others race) → a sticky
-  //     "you're out" pill (the target isn't revealed until the whole game ends);
+  // The fixed-height feedback slot under the board shows exactly one pill, chosen here
+  // by priority (BoardCol just renders it):
+  //   - terminal → a PERMANENT (fill) verdict pill with the answer folded in (the answer
+  //     also shows in the info column's terminalExtra — it lands in both places);
+  //   - locally terminal (compete: I'm done while the others race) → a sticky "you're
+  //     out" pill (the target isn't revealed until the whole game ends);
   //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
-  // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the
-  // info column's terminalExtra carries the fuller "The answer was …" sentence.
-  const answerSuffix = game.target
-    ? `Answer: ${game.target.toUpperCase()}.`
-    : ''
+  // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the info
+  // column's terminalExtra carries the fuller "The answer was …" sentence.
+  const answerSuffix = game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
   const localFeedbackMsg: GenericFeedbackMsg | null = over
     ? {
         tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
@@ -385,124 +241,52 @@ export function PlayArea({
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div className={shared.boardCol}>
-        <WordleGrid
-          rows={rows}
-          current={current}
-          pending={pendingWord}
-          maxGuesses={game.max_guesses}
-          active={canGuess}
-          brand={brand}
-        />
-        {/* The below-board region (universal). wordle is NON-SWAP: the feedback
-            and the keyboard are separate and both always present, so the local
-            feedback area sits BETWEEN the board and the keyboard (Joel's call).
-            `.localFeedback` reserves its own height so neither the board above nor
-            the keyboard below reflows when its pill appears/clears; it holds
-            exactly one centered pill (own-move soft-reject, sticky "you're out",
-            or the permanent terminal verdict — see `localFeedbackMsg`) — or nothing. */}
-        <div className={styles.belowBoard}>
-          <div className={shared.localFeedback}>
-            {localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
-          </div>
-          <div className={styles.moveArea}>
-            <Keyboard
-              keyStates={keyStates}
-              onKey={typeLetter}
-              onEnter={() => void doSubmit(current)}
-              onBackspace={deleteLetter}
-              disabled={!canGuess}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>
-          {!self && (
-            <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
-          )}
-
-          {/* State — the live guess count (the viewer's own; coop shares it). */}
-          <p className={shared.infoState}>
-            <strong>{guessesUsed}/{maxGuesses}</strong> guesses
-          </p>
-
-          {/* Opponent strip (compete) — each racer's guess COUNT (not their
-              letters, which RLS hides until terminal). */}
-          {isCompete && (
-            <OpponentStrip
-              players={members}
-              selfId={session.user.id}
-              metricLabel="Guesses"
-              metricFor={(p, isSelf) =>
-                concededIds.has(p.user_id)
-                  ? 'out'
-                  : isSelf
-                    ? guessesUsed
-                    : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
-              }
-            />
-          )}
-
-          {/* Action row — three states. Terminal: the outcome line + back-to-club.
-              Locally terminal (compete, I'm done while others race): the terminal
-              LOOK — "Waiting for others" + Concede. Playing: just End/Concede
-              (wordle has no hint/reveal). */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : isLocallyDone ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                {myConceded ? 'You conceded' : 'Waiting for others'}
-              </span>
-              {endButton}
-            </div>
-          ) : (
-            <div className={shared.infoActions}>{endButton}</div>
-          )}
-
-          {/* Help — only while you can act (never a silent swap; the locally-done
-              state is carried loudly by the action row above). */}
-          {!over && !isLocallyDone && (
-            <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
-          )}
-
-          {/* Setup — last, behind a disclosure (closed by default). */}
-          <SetupDisclosure>
-              <li>{maxGuesses} guesses</li>
-              <li>Answer: {answerSourceLabel(wordleSetup.answer_source)}</li>
-              <li>
-                Legal guesses: {DIFFICULTY_LABELS[wordleSetup.legal_guess - 1] ?? '—'} or easier
-              </li>
-              <li>{timerLabel(wordleSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        {/* Terminal-only answer reveal — the one info-column region allowed to
-            grow at game over (docs/ui.md → Layout stability). Shown in BOTH here
-            and the below-board pill, deliberately. */}
-        {over && game.target && (
-          <div className={shared.terminalExtra}>
-            <p className={cls(shared.infoState, styles.answerLine)}>
-              The answer was{' '}
-              <strong className={styles.answerReveal}>{game.target.toUpperCase()}</strong>
-            </p>
-          </div>
-        )}
-
-        {/* Bottom region: the turn log. It takes the RAW `guesses` (not myGuesses)
-            so its header dropdown can switch whose guesses show — coop is one
-            shared "Team"; compete defaults to You and lists opponents (their rows
-            fill in once the game ends and RLS reveals them). */}
-        <GameTurnLog
-          guesses={guesses}
-          players={members}
-          selfId={session.user.id}
-          mode={game.mode}
-          isTerminal={isTerminal}
-        />
-      </div>
+      <BoardCol
+        // ── Board to render (live rows + the history snapshot) ──
+        rows={rows}
+        snap={snap}
+        maxGuesses={game.max_guesses}
+        brand={brand}
+        // ── History viewer ──
+        onExitViewing={exitViewing}
+        // ── Guess dispatch (BoardCol owns submit_guess) ──
+        gameId={gameId}
+        guessingAllowed={guessingAllowed}
+        showLocalFeedback={showLocalFeedback}
+        clearLocalFeedback={clearLocalFeedback}
+        // ── Below-board pill ──
+        localFeedbackMsg={localFeedbackMsg}
+      />
+      <InfoCol
+        // ── Mode + phase ──
+        isCompete={isCompete}
+        isTerminal={isTerminal}
+        over={over}
+        isLocallyDone={isLocallyDone}
+        myConceded={myConceded}
+        isPlayer={!!self}
+        // ── State ──
+        guessesUsed={guessesUsed}
+        maxGuesses={maxGuesses}
+        // ── Opponent strip (compete) ──
+        players={members}
+        selfId={session.user.id}
+        playerStates={playerStates}
+        concededIds={concededIds}
+        // ── Action row ──
+        onEndGame={() => void handleEndGame()}
+        onConcede={() => void handleConcede()}
+        onBackToClub={goToClub}
+        // ── Setup disclosure ──
+        setup={wordleSetup}
+        // ── Terminal answer reveal ──
+        target={game.target}
+        // ── Turn log ──
+        guesses={guesses}
+        mode={game.mode}
+        viewingTurn={viewingId}
+        onSelectTurn={selectTurn}
+      />
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
@@ -511,9 +295,8 @@ export function PlayArea({
 
 /**
  * Per-status terminal copy. `outcome` + `verdict` drive the `<GameOverModal>`;
- * `message` + `tone` drive the short, color-coded info-column outcome line (the
- * shared `TerminalCopy` shape, like psychicnum / connections). Mode- and
- * (compete) self-aware.
+ * `message` + `tone` drive the short, color-coded info-column outcome line (the shared
+ * `TerminalCopy` shape, like psychicnum / connections). Mode- and (compete) self-aware.
  */
 function buildOver({
   mode,
@@ -545,8 +328,8 @@ function buildOver({
       tone: 'lost',
     }
   }
-  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the
-  // copy distinguishes "fewest guesses" from "same guesses, but faster".
+  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the copy distinguishes
+  // "fewest guesses" from "same guesses, but faster".
   if (playState === 'won_compete') {
     if (selfWon) {
       return wonByClock

@@ -40,6 +40,16 @@
   gap: var(--grid-gap);
 }
 
+/* Turn-history: the guess row the viewed turn added — a yellow ring around it
+ * (mirrors the board `.frame`), applied while inspecting a past turn. The row's
+ * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
+ * outline (not a border) so it layers outside the tiles without resizing them. */
+.viewedRow {
+  outline: 3px solid var(--color-history-viewer);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .tile {
   display: flex;
   align-items: center;

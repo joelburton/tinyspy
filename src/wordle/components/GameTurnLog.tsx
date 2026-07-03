@@ -4,7 +4,7 @@ import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById, orderSelfFirst } from '../../common/lib/peers'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
-import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
 import { tileColor } from '../lib/colors'
@@ -22,6 +22,11 @@ type Props = {
   /** Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
    *  a genuinely empty one (at terminal, when their guesses reveal). */
   isTerminal: boolean
+  /** Turn-history: the turn currently open in the board viewer (by log position),
+   *  or null when live. Its `#N` handle wears the shared yellow ring. */
+  viewingTurn: number | null
+  /** Open a turn in the board viewer (click its `#N`). */
+  onSelectTurn: (index: number) => void
 }
 
 /**
@@ -32,7 +37,9 @@ type Props = {
  * guess as its five colored letter-squares, and the guesser's identity.
  *   - **outcome bar** — `neutral` for an ordinary guess (a non-winning guess is
  *     progress, not pass/fail), `good` (green) only on the guess that solves it.
- *   - **`#n`** — the log position (`turnLog.meta`, muted).
+ *   - **`#n`** — the log position. On the board being replayed (team / my own) it's
+ *     the shared `<TurnLogNumber>` handle — click it to open that turn on the board;
+ *     on an opponent's read-only log (compete) it's a plain muted number.
  *   - **the squares** — the guess + its g/y/x feedback; the row's headline, so it
  *     takes the slack-absorbing `turnLog.main` column (keeping `who` snug right).
  *   - **who** — the guesser's `<ActorTag>` in the right-aligned `turnLog.who`
@@ -50,7 +57,15 @@ type Props = {
  * "see opponents' boards" affordance — an opponent's rows are empty during play
  * (RLS hides them) and fill in once the game ends and their guesses reveal.
  */
-export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Props) {
+export function GameTurnLog({
+  guesses,
+  players,
+  selfId,
+  mode,
+  isTerminal,
+  viewingTurn,
+  onSelectTurn,
+}: Props) {
   // Coop with 2+ players is one shared board → a single "Team" option. Every
   // OTHER case (compete, or a SOLO coop game) lists the actual players, so a
   // viewer — including a club member spectating — can pick whose board to see.
@@ -66,6 +81,14 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
   )
 
   const shown = teamView ? guesses : guesses.filter((g) => g.user_id === picked)
+
+  // The turn-history `#N` is a LIVE (clickable) control only when the log is showing
+  // the same board that replays on the main grid — the coop team board, or my own
+  // board (compete). In those cases the displayed rows ARE the board's rows, so log
+  // position lines up 1:1 with the board row and clicking `#N` opens the right turn.
+  // When an OPPONENT's board is picked (compete, at terminal), the main grid still
+  // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
+  const boardIsShown = teamView || picked === selfId
 
   // Click-to-define (a common feature — see common/hooks/useDefinePopover). Every
   // wordle guess is a legal dictionary word, so the whole guess is definable — the
@@ -127,7 +150,11 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
       {shown.map((g, i) => (
         <tr key={`${g.user_id}-${g.guess_index}`} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={g.is_correct ? 'good' : 'neutral'} />
-          <td className={turnLog.meta}>#{i + 1}</td>
+          {boardIsShown ? (
+            <TurnLogNumber n={i + 1} viewing={viewingTurn === i} onSelect={() => onSelectTurn(i)} />
+          ) : (
+            <td className={turnLog.meta}>#{i + 1}</td>
+          )}
           <td className={turnLog.main}>
             <span {...defineProps(g.guess)}>
               {[...g.guess].map((ch, c) => (
