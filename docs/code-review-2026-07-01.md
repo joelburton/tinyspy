@@ -513,16 +513,17 @@ neither). Genuine gaps, ranked:
     is a legal dictionary word, so all log rows are definable; the unsolved answer
     lives outside the log and stays out of scope.) The board tiles are left alone,
     dodging the interactive-tile conflict the review flagged.
-- **GAP 4 [low] — wordle and bananagrams hand-roll their keyboard guard.**
-  *(Corrected: an earlier reviewer claimed wordle uses the shared `useCaptureKeys`
-  — verified false.)* `wordle/components/PlayArea.tsx:198` uses `useGlobalKeyHandler`
-  and re-implements `useCaptureKeys`' modifier-bail/dismiss/Enter-Backspace-letter
-  ordering by hand (its own comments admit the drift: "the EntryBox grabber had
-  this exact gap before"). It's box-independent and could adopt `useCaptureKeys`
-  directly (~20 lines, inherits Tab-swallow/arrow-recall, can't drift again).
-  bananagrams' raw `window` keydown (`PlayerBoard.tsx:420`) genuinely can't use
-  the single-token `EntryBox` (crossword cursor) but could ride `useGlobalKeyHandler`
-  for drift-proof guarding.
+- ~~**GAP 4 [low] — wordle and bananagrams hand-roll their keyboard guard.**~~
+  **✅ RESOLVED (2026-07-02), as part of a broader keyboard cleanup.** wordle now
+  adopts the shared capture — `useCaptureKeys` was split into a generic core +
+  `useArrowHistory` (the EntryBox-only arrows), and wordle uses the core ALONE
+  (it isn't an EntryBox, so no arrow-recall). bananagrams stopped hand-rolling its
+  `window` listener: both it and scrabble moved onto a new shared
+  `useBoardCursorKeys` (on `useGlobalKeyHandler`), which also fixed bananagrams'
+  guard *omitting* `<select>`. Two more keyboard truths were made fundamental in
+  the same pass: terminal local feedback is permanent (`clearLocalFeedback`
+  no-ops at terminal), and "any key dismisses the own-move pill" is now universal
+  (`useDismissLocalFeedbackOnKey`). See [`docs/ui.md` → Text entry](../ui.md#text-entry--capture-not-input).
 
 **Deliberate omissions — confirmed from docs, do not re-flag:** bananagrams (no
 turn log / no word list / compete-only / desktop-only carve-out); codenamesduet
@@ -558,7 +559,9 @@ dictionary).)*
 7. **Feature gaps** (§5) — ~~boggle peer feedback~~ **✅ done (`useGlobalFeedback`,
    2026-07-02)**; ~~the End→Concede fix~~ **✅ done (whole-app per-player concede,
    2026-07-02)**; ~~click-to-define (GAP 3)~~ **✅ done (wordle turn-log;
-   connections WONTFIX, 2026-07-02)**; still: **wordle capture (GAP 4)** — the last one.
+   connections WONTFIX, 2026-07-02)**; ~~wordle capture (GAP 4)~~ **✅ done
+   (keyboard cleanup: core/arrows split, `useBoardCursorKeys`, terminal-permanent
+   feedback, 2026-07-02)**. **All §5 feature gaps are now closed.**
 8. **Focused decompositions** (§4.6) — scrabble PlayArea, then bananagrams
    PlayerBoard; each its own scoped effort.
 

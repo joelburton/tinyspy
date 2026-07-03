@@ -711,9 +711,13 @@ The contract for the capture model:
   gates. **spellingbee, boggle, psychicnum** are the EntryBox games (core + arrows,
   via `<EntryRow>`). **wordle uses the core ALONE** — its letters land on the
   WordleGrid, not an EntryBox, so it gets the shared guards / letter / dismiss but
-  **no arrow behavior**. (The board-cursor games — bananagrams, scrabble — are a
-  different capture shape again: a 2-D cursor where arrows *move* it; see their
-  game docs.)
+  **no arrow behavior**. The board-cursor games (bananagrams, scrabble) are a
+  different capture shape again — a 2-D cursor where arrows *move* it — with their
+  own shared hook, **`useBoardCursorKeys`** (also on `useGlobalKeyHandler`): it
+  owns the arrows→cursor / letter / Backspace / Enter dispatch + the skip-Enter-
+  when-a-button-is-focused, and each game supplies the per-cell edit rule
+  (bananagrams overwrites any tile; scrabble locks committed ones) and what a
+  letter / Enter does (place-from-hand + peel vs stage + play word).
 - **Terminal local feedback is permanent.** `clearLocalFeedback` is a no-op once
   the game is over (`useLocalFeedback`'s `locked: isTerminal`), so no key, click,
   or future entry method can dismiss a verdict — the permanence lives in the one
