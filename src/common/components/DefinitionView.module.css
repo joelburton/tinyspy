@@ -36,7 +36,7 @@
 
 .error {
   font-size: 0.9rem;
-  color: var(--color-error);
+  color: var(--color-sys-error-red);
 }
 
 /* A clickable cross-reference rendered inline in the definition.

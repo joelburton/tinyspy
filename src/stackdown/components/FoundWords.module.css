@@ -23,7 +23,7 @@
 /* The "not a word" tag on an invalid attempt. */
 .tag {
   font-size: 0.75rem;
-  color: var(--color-error);
+  color: var(--color-outcome-lost-strong);
 }
 
 /* A logged cheat request row ("Hint: <clue>" / "Revealed: <WORD>"). Normal

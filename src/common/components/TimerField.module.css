@@ -63,6 +63,6 @@
 }
 
 .timerInput[aria-invalid='true'] {
-  outline: 2px solid var(--color-error);
+  outline: 2px solid var(--color-sys-error-red);
   outline-offset: -1px;
 }

@@ -20,8 +20,8 @@
 }
 
 .error {
-  --color-control-border-2: var(--color-error);
-  --color-control-text-2: var(--color-error);
+  --color-control-border-2: var(--color-sys-error-red);
+  --color-control-text-2: var(--color-sys-error-red);
 }
 
 /* The "dark amber" — important, not good or bad (Hint / Reveal). */

@@ -28,7 +28,7 @@
   font-weight: 600;
 }
 .scoreNeg {
-  color: var(--color-error);
+  color: var(--color-outcome-lost-strong);
   font-weight: 600;
 }
 .word {

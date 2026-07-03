@@ -43,9 +43,9 @@
  * the candidates. The red ring (box-shadow) is the always-visible signal;
  * the red border is a bonus (hover may recolor it, but the ring stays). */
 .flash {
-  border-color: var(--color-error);
+  border-color: var(--color-outcome-lost-strong);
   box-shadow:
-    0 0 0 0.5cqi var(--color-error),
+    0 0 0 0.5cqi var(--color-outcome-lost-strong),
     0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
 }
 

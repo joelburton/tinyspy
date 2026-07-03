@@ -40,7 +40,7 @@
 .playerHint {
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
-  color: var(--color-error);
+  color: var(--color-sys-error-red);
 }
 
 /* The "(you)" marker on the creator's row — they can't deselect

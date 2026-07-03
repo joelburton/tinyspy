@@ -139,7 +139,7 @@
   left: 0.4rem;
   width: 7px;
   border-radius: 3px;
-  background: var(--color-surface-border); /* neutral default */
+  background: var(--color-outcome-neutral-border); /* neutral default */
 }
 
 .barInner_good {
@@ -152,7 +152,7 @@
   background: var(--color-outcome-near-border);
 }
 .barInner_neutral {
-  background: var(--color-surface-border);
+  background: var(--color-outcome-neutral-border);
 }
 
 /* ─── Content library ────────────────────────────────────────────────────

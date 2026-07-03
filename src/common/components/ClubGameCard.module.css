@@ -235,7 +235,7 @@
   width: auto;
   padding: 0.3rem 0.7rem;
   background: var(--color-outcome-lost-bg);
-  color: var(--color-error);
+  color: var(--color-sys-error-red);
   border-color: var(--color-outcome-lost-border);
   font-size: 0.85rem;
   font-weight: 600;
@@ -243,8 +243,8 @@
 
 .deleteButtonActive:hover:not(:disabled) {
   background: var(--color-outcome-lost-bg);
-  color: var(--color-error);
-  border-color: var(--color-error);
+  color: var(--color-sys-error-red);
+  border-color: var(--color-sys-error-red);
   /* Slight darken on hover so the user sees the confirm tap
      register. */
   filter: brightness(0.96);

@@ -44,8 +44,14 @@
   --color-muted:              #6b6b6b;
   --color-divider:            #8a8a8a;
   --color-dot:                #a0a0a0;
-  --color-error:              #c62828;
-  --color-error-soft-text:    #d32f2f;
+  /* System-error red — validation failures, RPC/API errors, and destructive
+     actions (delete buttons). Deliberately DARKER + COOLER (a deep crimson) than
+     --color-outcome-lost-strong (#c62828) so a *system failure* or a *destructive
+     action* never reads the same as a *game loss*. The two reds are intentionally
+     distinct — do NOT "de-dup" them. The literal "red" is in the name on purpose:
+     we colloquially call bad game moves "errors" too, so `sys-error` disambiguates,
+     and error UI is canonically-and-permanently red. */
+  --color-sys-error-red:      #8e1b2e;
 
   /* Accent — links, primary buttons, focus outlines. Material
      Blue 700; white-on-this passes AA contrast for button labels. */
@@ -102,6 +108,23 @@
      so a glance reads "the current game" before "still open
      ones"). */
   --color-outcome-current-border: #fb8c00;  /* orange 600 */
+
+  /* ── Vocabulary completeness ──────────────────────────────────────────────
+     Every outcome carries the full bg / border / strong trio, even where a tier
+     has no consumer YET. This is deliberate (like the --tile-* ramp): a complete,
+     predictable grid tells the next contributor "there's already a color for
+     active / current / neutral — use it" instead of minting a new one. Do NOT
+     treat these as dead CSS in a sweep. */
+  --color-outcome-active-strong:  #f9a825;  /* gold 800 — the legible-on-white active tone */
+  --color-outcome-current-bg:     #ffcc80;  /* orange 200 */
+  --color-outcome-current-strong: #e65100;  /* orange 900 */
+  /* Neutral = a non-result (a turn that was neither good nor bad). Its OWN gray
+     ramp — NOT an alias of --color-surface-border: an outcome color must not ride
+     on a chrome token (a surface tweak shouldn't recolor outcomes). Same value is
+     fine, but the token stands on its own. */
+  --color-outcome-neutral-bg:     #f5f5f5;  /* gray 100 */
+  --color-outcome-neutral-border: #bdbdbd;  /* gray 400 */
+  --color-outcome-neutral-strong: #616161;  /* gray 700 */
 
   /* Game-mode pills — "Co-op" vs "Compete", shown next to a
      gametype's name in start buttons / the games list / the club
@@ -410,7 +433,7 @@ a {
 }
 
 .error {
-  color: var(--color-error);
+  color: var(--color-sys-error-red);
   margin-top: 1rem;
 }
 
