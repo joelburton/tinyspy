@@ -112,15 +112,17 @@
   background: transparent;
   cursor: pointer;
 }
+/* Drag-drop feedback: an OUTLINE only, never a background — the letter already
+ * in the cell (red = occupied) must stay readable. A thick, saturated inset
+ * outline in the app's standard success/error colors (the outcome-strong pair),
+ * matching scrabble's board and the app-wide green=good / red=bad vocabulary. */
 .dropOk {
-  background: rgba(120, 200, 130, 0.22);
-  outline: 2px solid rgba(120, 200, 130, 0.6);
-  outline-offset: -2px;
+  outline: 3px solid var(--color-outcome-won-strong);
+  outline-offset: -3px;
 }
 .dropNo {
-  background: rgba(210, 110, 110, 0.22);
-  outline: 2px solid rgba(210, 110, 110, 0.6);
-  outline-offset: -2px;
+  outline: 3px solid var(--color-outcome-lost-strong);
+  outline-offset: -3px;
 }
 
 /* ---- tiles (board + hand + ghost) ---- */

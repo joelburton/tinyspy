@@ -55,15 +55,27 @@
 .cell.TL { background: var(--scrabble-tl); color: #fff; }
 .cell.center { font-size: 4.6cqi; color: #7a3b34; }
 
-/* Drag-drop feedback on the hovered target cell. */
+/* Drag-drop feedback on the hovered target cell: a thick, saturated RING in the
+ * app's standard success/error colors (the outcome-strong pair — same green=good
+ * / red=bad vocabulary as everything else), an inset outline so the cell's own
+ * fill stays visible (the tile already there = red/occupied, and the premium
+ * marking DW/TL/… both carry meaning we mustn't paint over).
+ *
+ * The green (dropOk) case is always an EMPTY cell, so the ring goes on the cell.
+ * The red (dropNo) case is always an OCCUPIED cell, whose `.tile` is
+ * `position: absolute; inset: 0`, opaque, and — via `container-type: size` — its
+ * own stacking context, so it paints over a cell-level ring. Ring the TILE
+ * instead (z-index above its neighbours), exactly like the `.viewingTile`
+ * turn-highlight below does with the green token. (bananagrams needs neither
+ * trick — its occupied cell is plain text, not an opaque overlay tile.) */
 .dropOk {
-  outline: 2px solid rgba(120, 200, 130, 0.7);
-  outline-offset: -2px;
-  background: rgba(120, 200, 130, 0.25);
+  outline: 3px solid var(--color-outcome-won-strong);
+  outline-offset: -3px;
 }
-.dropNo {
-  outline: 2px solid rgba(210, 110, 110, 0.7);
-  outline-offset: -2px;
+.dropNo .tile {
+  outline: 3px solid var(--color-outcome-lost-strong);
+  outline-offset: -3px;
+  z-index: 2;
 }
 
 .tile {
