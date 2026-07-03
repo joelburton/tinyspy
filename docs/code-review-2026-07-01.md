@@ -518,9 +518,13 @@ lines and it fixes a real consistency bug.
 
 ### 4.5 Smaller extractions
 
-- **`<RadioRow>`** — the `options.map(<label><input radio>)` group is byte-identical
-  in 7 setup forms (`renderLabel` covers waffle's `(+N)` suffix). Reuses existing
-  `.radioRow`/`.radio` CSS.
+- ~~**`<RadioRow>`** — the `options.map(<label><input radio>)` group~~ **✅ DONE
+  (`b4a6a8f`)** — extracted `common/components/RadioRow` (reuses the shared
+  `.radioRow`/`.radio` CSS). It was **7 groups / 6 forms** (not "7 byte-identical"):
+  wrinkles absorbed via `{value,label}` options + a `prefix` prop — waffle's `(+N)`
+  suffix (label node), boggle's leading span (prefix), codenamesduet first-clue-giver
+  keyed on `user_id` (value≠option), spellingbee's optional `target_rank`
+  (`value?: T`). bananagrams/boggle LOCAL `.radioRow` now dead drift (→ §2 sweep).
 - **`<TurnLogActor>`** — the `<td className={who}><ActorTag …/></td>` who-column
   recurs in all 5 GameTurnLogs + scrabble PlayLog + stackdown FoundWords;
   psychicnum already wrapped it locally (`whoCell`) — evidence it wants to be
