@@ -15,13 +15,8 @@
 .row:focus-visible {
   outline: none;
 }
-/* The row whose turn is currently open in the viewer — a YELLOW outline, matching
- * the yellow frame around the board (not a fill). outline-offset pulls it inside the
- * row box so it doesn't collide with neighbouring rows. */
-.viewedRow {
-  outline: 2px solid var(--scrabble-viewer);
-  outline-offset: -2px;
-}
+/* The "currently viewing this turn" row highlight is the shared yellow outline —
+ * see common/components/historyViewer.module.css (.viewedRow), applied in PlayLog. */
 
 .score {
   color: var(--color-outcome-won-strong);

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { cls } from '../../common/lib/cls'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './Board.module.css'
 
 // Tile size is decoupled from grid spacing for readability (ported from
@@ -45,6 +46,7 @@ export function Board({
   active,
   highlight,
   green = NO_TILES,
+  viewing = false,
   onTileClick,
 }: {
   tiles: Tile[]
@@ -55,6 +57,9 @@ export function Board({
   /** Tile ids to ring green — the word a viewed past turn played (turn-history).
    *  Omitted / empty during live play. */
   green?: ReadonlySet<number>
+  /** Turn-history: draw the yellow "viewing a past turn" frame around the whole
+   *  board (the same marker scrabble uses). Off during live play. */
+  viewing?: boolean
   onTileClick: (tileId: number) => void
 }) {
   const present = useMemo(
@@ -75,7 +80,7 @@ export function Board({
   const pct = (px: number) => `${(px / natural) * 100}%`
 
   return (
-    <div className={styles.canvas}>
+    <div className={cls(styles.canvas, viewing && history.frame)}>
       {present.map((t) => {
         const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)

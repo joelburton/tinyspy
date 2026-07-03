@@ -18,16 +18,8 @@
   touch-action: none;
 }
 
-/* Turn-viewer: a YELLOW frame (the placed-tile color, --scrabble-viewer) around
-   the whole board signals "you're looking at a past turn, not the live board".
-   Yellow (not green) because it's a neutral historical-view marker — a pass turn is
-   no success, so a green frame would mislead. (The tiles that turn placed take the
-   same yellow FILL + a green outline below.) An outline (not a border) so it doesn't
-   resize the board. */
-.board.viewing {
-  outline: 4px solid var(--scrabble-viewer);
-  outline-offset: 3px;
-}
+/* The "you're viewing a past turn" board frame is the shared yellow outline — see
+   common/components/historyViewer.module.css (.frame), applied in Board.tsx. */
 
 .cell,
 .tile {

@@ -8,6 +8,7 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */
@@ -125,5 +126,5 @@ export function Board({
       )
     }
   }
-  return <div className={cls(styles.board, viewing && styles.viewing)}>{cells}</div>
+  return <div className={cls(styles.board, viewing && history.frame)}>{cells}</div>
 }

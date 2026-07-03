@@ -1,0 +1,87 @@
+/*
+ * History-view appearance — the shared "you're looking at a past turn, not the
+ * live board" marker, worn identically by every game that supports turn-history
+ * replay (scrabble, stackdown, …). One yellow token (`--color-history-viewer`)
+ * drives three coordinated signifiers so the viewer reads the same everywhere:
+ *
+ *   .frame       — a yellow outline around the whole board
+ *   .viewedRow   — a yellow outline on the log row whose turn is open
+ *   .banner      — an opaque overlay (with .bannerLabel + .bannerExit) covering the
+ *                  below-board input area with the turn's description and a ✕
+ *
+ * Yellow (not an outcome green/red) on purpose: viewing history is neutral — a
+ * pass or a rejected word is no success, so a green frame would mislead. (The
+ * word a turn PLAYED is highlighted separately, in each game's own green, by that
+ * game — that's a different signal from "you're in the viewer".)
+ *
+ * What stays GAME-SPECIFIC and is deliberately NOT here: WHICH element wears the
+ * board frame (each Board applies `.frame` to its own board box) and the HEIGHT /
+ * position of the banner's parent — the banner is `inset: 0`, filling whatever
+ * below-board region the game gives it (each game sizes that region and makes it a
+ * positioning context with `position: relative`). See docs/playarea-decomposition-plan.md.
+ */
+
+/* Board frame: a yellow outline around the board. An outline (not a border) so it
+ * layers outside the board's own frame without resizing it. Applied by each game's
+ * Board alongside its own board class. */
+.frame {
+  outline: 4px solid var(--color-history-viewer);
+  outline-offset: 3px;
+}
+
+/* The log row whose turn is currently open in the viewer — a yellow outline (not a
+ * fill). outline-offset pulls it inside the row box so it doesn't collide with
+ * neighbouring rows. */
+.viewedRow {
+  outline: 2px solid var(--color-history-viewer);
+  outline-offset: -2px;
+}
+
+/* The overlay banner — covers the below-board input area while inspecting a past
+ * turn (the game's input stays mounted underneath, so an in-progress entry
+ * survives). `inset: 0` fills the parent, which each game sizes and makes a
+ * positioning context. Opaque surface fill (so it hides the input) + normal text
+ * (colored-on-colored was unreadable) + a yellow border. The whole banner is a
+ * click-to-exit target; the ✕ (pinned far right) also exits. */
+.banner {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.5rem 0 0.75rem;
+  cursor: pointer;
+  border: 2px solid var(--color-history-viewer);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* The description label fills the row and centers; a long summary ellipsis-
+ * truncates (min-width:0 lets it shrink so the ✕ never gets pushed off). */
+.bannerLabel {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The ✕ exit — pinned at the far right of the overlay (not beside the text). */
+.bannerExit {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.35rem;
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.bannerExit:hover {
+  background: color-mix(in oklab, var(--color-text) 10%, var(--color-surface));
+}

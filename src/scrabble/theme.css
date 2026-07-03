@@ -21,12 +21,6 @@
   --scrabble-tile-attention: linear-gradient(var(--tile-attention), var(--tile-attention)), var(--scrabble-tile-bg);
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
   --scrabble-cursor: var(--grid-cursor); /* the shared grid keyboard-entry cursor */
-  /* The turn-viewer OUTLINE — the board frame, selected log row, and "Viewing
-     turn" overlay border. A distinct amber, DECOUPLED from the tile shades on
-     purpose: the tiles a turn placed now fill with the light shade-1, but the
-     history outline stays this stronger amber so "you're viewing history" still
-     reads. Not an outcome color (a pass turn isn't a success). */
-  --scrabble-viewer: #ffd21a;
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */

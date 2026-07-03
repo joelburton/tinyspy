@@ -5,6 +5,7 @@ import { memberById } from '../../common/lib/peers'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
@@ -98,7 +99,7 @@ export function FoundWords({
               className={cls(
                 turnLog.turnLogDivider,
                 styles.row,
-                viewingIndex === i && styles.viewedRow,
+                viewingIndex === i && history.viewedRow,
               )}
               role="button"
               tabIndex={0}

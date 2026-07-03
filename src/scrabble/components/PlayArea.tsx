@@ -28,6 +28,7 @@ import { BlankPicker } from './BlankPicker'
 import { PlayLog } from './PlayLog'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -709,11 +710,11 @@ export function PlayArea({
               underneath, so `staged` is preserved). Click anywhere to exit; the ✕
               at the far right also exits. Navigation is by clicking Moves-log rows. */}
           {viewing && viewedPlay && (
-            <div className={styles.viewingBanner} onClick={exitViewing} title="Click to exit">
-              <span className={styles.viewLabel}>{turnSummary(viewedPlay, nameOf)}</span>
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{turnSummary(viewedPlay, nameOf)}</span>
               <button
                 type="button"
-                className={styles.viewExit}
+                className={history.bannerExit}
                 onClick={(e) => {
                   e.stopPropagation()
                   exitViewing()

@@ -58,57 +58,11 @@
   width: var(--side);
   min-height: 3.4rem;
   margin-top: 0.25rem;
-  /* Positioning context for the turn-viewer banner, which overlays this slot. */
+  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
+     common/components/historyViewer.module.css), which overlays this slot while a
+     past turn is being viewed. This region's height (game-specific) sets the
+     banner's; the banner's appearance is common. */
   position: relative;
-}
-
-/* Turn-viewer banner — covers the input area while inspecting a past turn (the
- * rack stays mounted underneath, so `staged` survives). Just a YELLOW OUTLINE (the
- * placed-tile color / historical marker — see Board's .viewing); a plain surface
- * fill (so it's opaque over the rack) and NORMAL text color (colored-on-colored was
- * unreadable). The
- * whole banner is a click-to-exit target; the ✕ (pinned far right) also exits. */
-.viewingBanner {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0 0.5rem 0 0.75rem;
-  cursor: pointer;
-  border: 2px solid var(--scrabble-viewer);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-/* The label fills the row and centers; a long play summary ellipsis-truncates
- * (min-width:0 lets it shrink so the ✕ never gets pushed off). */
-.viewLabel {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The ✕ exit — pinned at the far right of the overlay (not beside the text). */
-.viewExit {
-  flex: 0 0 auto;
-  background: transparent;
-  border: none;
-  padding: 0.15rem 0.35rem;
-  color: var(--color-text);
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-.viewExit:hover {
-  background: color-mix(in oklab, var(--color-text) 10%, var(--color-surface));
 }
 
 /* One horizontal row: the rack on the left, then the controls filling the rest.

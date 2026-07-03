@@ -58,6 +58,14 @@
   --color-accent:             #1976d2;
   --color-accent-hover:       #1565c0;
 
+  /* History-view marker — the yellow "you're viewing a past turn, not the live
+     board" signal shared by every turn-history-capable game (drives the board
+     frame, the open log row, and the overlay banner; see
+     common/components/historyViewer.module.css). A neutral amber, NOT an outcome
+     color: reviewing a pass or a rejected word is no success, so green would
+     mislead. */
+  --color-history-viewer:     #ffd21a;
+
   /* Outcome palette — used wherever a game's outcome state needs
      to be summarized visually (calendar date squares, future
      ClubPage outcome chips, stats badges, etc.). Soft pastel

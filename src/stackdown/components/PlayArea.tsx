@@ -30,6 +30,7 @@ import { WordEntry, type WordFlash } from './WordEntry'
 import { FoundWords } from './FoundWords'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -408,16 +409,10 @@ export function PlayArea({
   const viewing = viewingIndex != null
   const snap = viewing ? turnSnapshot(logWords, viewingIndex) : null
 
-  // The below-board local pill. Precedence: the turn-viewer's description (while
-  // peeking) → the permanent terminal verdict → the transient own-move message.
-  const localPill: GenericFeedbackMsg | null = snap
-    ? {
-        tone: 'neutral',
-        text: snap.description,
-        variant: 'outline',
-        dismiss: { kind: 'closeable' }, // its ✕ returns to live
-      }
-    : over
+  // The below-board local pill. Precedence: the permanent terminal verdict → the
+  // transient own-move message. While viewing a past turn the pill is irrelevant —
+  // the yellow overlay banner covers this whole region with the turn's description.
+  const localPill: GenericFeedbackMsg | null = over
     ? {
         tone: over.outcome === 'won' ? 'success' : 'error',
         text: over.verdict,
@@ -440,10 +435,33 @@ export function PlayArea({
           active={canPlay && !viewing}
           highlight={snap ? NO_TILES : flashIds}
           green={snap?.greenTiles}
+          viewing={viewing}
           onTileClick={onTileClick}
         />
 
         <div className={styles.belowBoard}>
+          {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
+              below-board region (the WordEntry + feedback stay mounted underneath, so
+              the built-up `currentWord` survives). An opaque surface with a yellow
+              border = the same "viewing history" marker scrabble uses (matching the
+              board frame + viewed-row outline). Click anywhere to exit; the ✕ far
+              right also exits. Navigation is by clicking log rows. */}
+          {snap && (
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{snap.description}</span>
+              <button
+                type="button"
+                className={history.bannerExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className={styles.moveArea}>
             <WordEntry
               tiles={game.tiles}
@@ -458,7 +476,7 @@ export function PlayArea({
               appears/clears. */}
           <div className={shared.localFeedback}>
             {localPill && (
-              <GenericFeedbackPill msg={localPill} onClose={viewing ? exitViewing : clearLocalFeedback} />
+              <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />
             )}
           </div>
         </div>

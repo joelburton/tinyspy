@@ -206,12 +206,12 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     // word span, carries the view handler; the span stopPropagation's to define).
     await user.click(screen.getByText('CLEAR').closest('tr')!)
 
-    // Viewing turn 0: the description pill shows, and CLEAR's tiles are back on
-    // the historical board (nothing was cleared before it).
+    // Viewing turn 0: the yellow viewer banner shows the description, and CLEAR's
+    // tiles are back on the historical board (nothing was cleared before it).
     expect(screen.getByText('Cleared CLEAR')).toBeInTheDocument()
     expect(screen.getByText('L')).toBeInTheDocument()
 
-    // Any key returns to live — the pill clears and the tiles leave again.
+    // Any key returns to live — the banner clears and the tiles leave again.
     await user.keyboard('x')
     expect(screen.queryByText('Cleared CLEAR')).not.toBeInTheDocument()
     expect(screen.queryByText('L')).not.toBeInTheDocument()
@@ -224,7 +224,7 @@ describe('stackdown PlayArea — turn-history viewer', () => {
 
     await user.click(screen.getByText('Hint: a fruit').closest('tr')!)
 
-    // The hint's description now also appears in the pill (2 = log row + pill).
+    // The hint's description now also appears in the banner (2 = log row + banner).
     expect(screen.getAllByText('Hint: a fruit')).toHaveLength(2)
     // A hint cleared nothing, and CLEAR (before it) had — so the historical board
     // still has CLEAR's tiles OFF (strictly-before boundary).

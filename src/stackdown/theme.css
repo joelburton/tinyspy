@@ -6,5 +6,8 @@
  */
 :root {
   --stackdown-felt: #f4f1ea;
-  --stackdown-tile-ink: #2a2a2a;
+  /* Letter ink = the shared tile ink (common/theme.css --tile-text), same as
+     scrabble/boggle: stackdown's tiles use the same warm --tile-1..4 fill ramp, so
+     they take the same near-black ink. A game-named alias keeps the override seam. */
+  --stackdown-tile-ink: var(--tile-text);
 }
