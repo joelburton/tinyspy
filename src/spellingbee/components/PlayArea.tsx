@@ -10,7 +10,8 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { playerOutcome } from '../../common/lib/games'
-import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
+import type { GamePageCtx, Member } from '../../common/lib/games'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
@@ -557,18 +558,6 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
     </div>
   )
-}
-
-/** One-line timer summary for the setup disclosure (same shape the other migrated
- *  games use). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
 }
 
 /** Wraps a rank name for terminal copy: `rank "Solid"`. The bare ladder words

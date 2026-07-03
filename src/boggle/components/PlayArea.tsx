@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { playerOutcome } from '../../common/lib/games'
-import type { GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
+import type { GamePageCtx, Member } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -386,18 +387,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
 type StatusBlob = Record<string, unknown>
 type LeaderRow = { user_id: string; count: number; score: number }
-
-/** One-line timer summary for the setup disclosure (same shape the other migrated
- *  games use). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
-}
 
 /**
  * Per-status terminal copy. boggle has no intrinsic win threshold — a game ends

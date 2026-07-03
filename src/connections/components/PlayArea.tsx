@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -60,17 +61,6 @@ function formatPuzzleDate(d: string | null): string {
     day: 'numeric',
     timeZone: 'UTC',
   })
-}
-
-/** One-line timer summary for the setup disclosure. */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
 }
 
 /**

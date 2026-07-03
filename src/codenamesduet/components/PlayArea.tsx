@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, TimerMode } from '../../common/lib/games'
+import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
@@ -73,18 +74,6 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
   variant: 'outline',
   dismiss: { kind: 'timed' },
 })
-
-/** One-line timer summary for the setup disclosure (same shape connections
- *  uses). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
-}
 
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
  *  input — only terminal states appear here. Returns the shared `TerminalCopy`

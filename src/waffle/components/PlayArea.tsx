@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { colorVarFor } from '../../common/lib/memberColor'
@@ -416,18 +417,6 @@ export function PlayArea({
       )}
     </div>
   )
-}
-
-/** One-line timer summary for the setup disclosure (same shape codenamesduet
- *  uses). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
 }
 
 /**

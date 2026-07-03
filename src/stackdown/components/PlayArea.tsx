@@ -4,8 +4,8 @@ import type {
   GenericFeedbackMsg,
   GenericFeedbackTone,
   GamePageCtx,
-  TimerMode,
 } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
@@ -568,18 +568,6 @@ export function PlayArea({
       )}
     </div>
   )
-}
-
-/** One-line timer summary for the setup disclosure (same shape the other migrated
- *  games use). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
 }
 
 /** Terminal verdict + status copy, mode- and (compete) self-aware. `outcome` +

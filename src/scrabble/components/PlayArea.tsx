@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { playerOutcome } from '../../common/lib/games'
-import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member, TimerMode } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
+import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { GameOverModal } from '../../common/components/GameOverModal'
@@ -880,18 +881,6 @@ export function PlayArea({
       )}
     </div>
   )
-}
-
-/** One-line timer summary for the setup disclosure (same shape the other v3
- *  games use). */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
 }
 
 /**

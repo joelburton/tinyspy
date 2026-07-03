@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { GamePageCtx, GenericFeedbackMsg, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -63,17 +64,6 @@ const localPill = (tone: 'warning' | 'error', text: string): GenericFeedbackMsg 
  *  or easier. */
 const answerSourceLabel = (n: number): string =>
   n === 0 ? 'NYT Wordle list' : `${DIFFICULTY_LABELS[n - 1] ?? 'any'} or easier`
-
-/** One-line timer summary for the setup disclosure. */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
-}
 
 export function PlayArea({
   session,

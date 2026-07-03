@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { GamePageCtx, GenericFeedbackMsg, TimerMode } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import { timerLabel } from '../../common/lib/timerLabel'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
@@ -48,17 +49,6 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 /** Local feedback pills here are never closeable, so the × never renders and
  *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
-
-/** One-line timer summary for the setup disclosure. */
-function timerLabel(t: TimerMode): string {
-  if (t.kind === 'countup') return 'count-up timer'
-  if (t.kind === 'countdown') {
-    const m = Math.floor(t.seconds / 60)
-    const s = t.seconds % 60
-    return `${m}:${String(s).padStart(2, '0')} countdown`
-  }
-  return 'no timer'
-}
 
 export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
