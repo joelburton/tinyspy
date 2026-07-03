@@ -58,6 +58,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'WordNerd',
+    title: 'Test game',
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,

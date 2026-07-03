@@ -39,6 +39,12 @@ export type GamePageCtx = {
    *  buried inside a game's lazy chunk, where importing the registry
    *  would defeat code-splitting. */
   brand: string
+  /** This game instance's human title from `common.games.title` — the
+   *  per-gametype title-builder's output (scrabble's first three words,
+   *  connections's puzzle date, …), the same string GamePage shows in the
+   *  header and the club list. Threaded through so a PlayArea can name the
+   *  specific game (e.g. on a printout). */
+  title: string
   /** Everyone in this game's `common.game_players`. See
    *  [Member] for why this is `players` (game context) and
    *  not `members` (club context). A [GamePlayer] carries the

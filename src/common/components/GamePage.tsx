@@ -320,6 +320,7 @@ export function GamePage({
           session,
           gameId,
           brand: manifest.name,
+          title: commonGame.title,
           players,
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,

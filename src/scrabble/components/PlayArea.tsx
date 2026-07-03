@@ -5,6 +5,7 @@ import { TerminalModal } from '../../common/components/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import { useGame, type PlayRow } from '../hooks/useGame'
@@ -45,6 +46,8 @@ export function PlayArea({
   setup,
   goToClub,
   menu,
+  brand,
+  title,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
 
@@ -111,8 +114,14 @@ export function PlayArea({
   useEffect(() => {
     if (!game) return
     const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
+    const s = setup as unknown as ScrabbleSetup
+    const band = (n: number) => `${DIFFICULTY_LABELS[n - 1] ?? '?'} (band ${n})`
     const model = {
-      title: `Scrabble — ${new Date().toLocaleDateString()}`,
+      // "Brand: game title" (brand from the manifest via ctx — never the "scrabble"
+      // code-name; title = common.games.title, this game's own name) + today's date.
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
       summary: isCompete
         ? `${game.bagCount} tiles in the bag`
         : `Team score: ${game.teamScore ?? 0} · ${game.bagCount} tiles in the bag`,
@@ -120,12 +129,17 @@ export function PlayArea({
       moves: plays.map((p) => ({ seq: p.seq, who: nameOf(p.user_id), text: moveText(p) })),
       rack,
       rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
+      // Relevant setup only — the dictionary bands (the timer isn't relevant on a print).
+      setup: [
+        { label: '2-letter words', value: band(s.dict_2) },
+        { label: 'Longer words (3+)', value: band(s.dict_3plus) },
+      ],
     }
     menu.setGameItems([
       { id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) },
     ])
     return () => menu.setGameItems([])
-  }, [menu, game, plays, self, isCompete, nameOf])
+  }, [menu, game, plays, self, isCompete, nameOf, setup, brand, title])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return

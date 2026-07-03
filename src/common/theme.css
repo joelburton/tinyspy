@@ -516,3 +516,29 @@ a {
 .dot-separator {
   color: var(--color-dot);
 }
+
+/* Browser printing (Cmd/Ctrl-P) isn't supported — the app is a live, scrolling,
+   dark-on-tinted surface that doesn't reduce to paper. Games offer a proper
+   "Print board (PDF)" option instead (see the game menu). So when someone prints
+   the page, replace the whole thing with a short note pointing them there. The
+   note is a `body::before` (a pseudo-element isn't matched by `body *`, so it
+   stays visible), covering the hidden page with an opaque white sheet. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  body::before {
+    content: 'This app isn’t designed for browser printing. To print a game board, open the game and choose “Print board (PDF)” from the menu (the logo, top-left).';
+    visibility: visible;
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12% 14%;
+    text-align: center;
+    font: 600 18pt/1.6 system-ui, -apple-system, sans-serif;
+    color: #111;
+    background: #fff;
+  }
+}
