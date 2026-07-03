@@ -1,6 +1,7 @@
 import { TimerField } from '../../common/components/TimerField'
 import { DifficultyField } from '../../common/components/DifficultyField'
 import { SelectField } from '../../common/components/SelectField'
+import { RadioRow } from '../../common/components/RadioRow'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
@@ -53,19 +54,12 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         <p className="muted">
           How many guesses each player starts with.
         </p>
-        <div className={styles.radioRow}>
-          {GUESS_OPTIONS.map((n) => (
-            <label key={n} className={styles.radio}>
-              <input
-                type="radio"
-                name="guesses"
-                checked={s.guesses === n}
-                onChange={() => onChange({ ...s, guesses: n })}
-              />
-              {n}
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="guesses"
+          options={GUESS_OPTIONS.map((n) => ({ value: n, label: n }))}
+          value={s.guesses}
+          onChange={(guesses) => onChange({ ...s, guesses })}
+        />
       </fieldset>
       <fieldset className={styles.fieldset}>
         <legend>Words on the board</legend>

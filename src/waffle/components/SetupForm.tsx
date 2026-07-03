@@ -1,4 +1,5 @@
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { RadioRow } from '../../common/components/RadioRow'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
@@ -41,19 +42,19 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         <p className="muted">
           Extra swaps beyond the puzzle's minimum — fewer is harder.
         </p>
-        <div className={styles.radioRow}>
-          {EXTRA_SWAP_OPTIONS.map((opt) => (
-            <label key={opt.value} className={styles.radio}>
-              <input
-                type="radio"
-                name="extra_swaps"
-                checked={s.extra_swaps === opt.value}
-                onChange={() => onChange({ ...s, extra_swaps: opt.value })}
-              />
-              {opt.label} <span className="muted">(+{opt.value})</span>
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="extra_swaps"
+          options={EXTRA_SWAP_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: (
+              <>
+                {opt.label} <span className="muted">(+{opt.value})</span>
+              </>
+            ),
+          }))}
+          value={s.extra_swaps}
+          onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
+        />
       </fieldset>
       <TimerField
         value={s.timer}

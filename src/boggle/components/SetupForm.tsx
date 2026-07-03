@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { RadioRow } from '../../common/components/RadioRow'
 import { SelectField } from '../../common/components/SelectField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -121,20 +122,13 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-        <div className={shared.radioRow}>
-          <span>Minimum word length:</span>
-          {MIN_WORD_LENGTHS.map((len) => (
-            <label key={len} className={shared.radio}>
-              <input
-                type="radio"
-                name="min_word_length"
-                checked={s.min_word_length === len}
-                onChange={() => onChange({ ...s, min_word_length: len })}
-              />
-              {len}
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="min_word_length"
+          prefix="Minimum word length:"
+          options={MIN_WORD_LENGTHS.map((len) => ({ value: len, label: len }))}
+          value={s.min_word_length}
+          onChange={(min_word_length) => onChange({ ...s, min_word_length })}
+        />
       </fieldset>
 
       <fieldset className={shared.fieldset}>

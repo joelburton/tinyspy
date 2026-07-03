@@ -1,4 +1,5 @@
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { RadioRow } from '../../common/components/RadioRow'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
@@ -55,19 +56,12 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       {mode === 'compete' && (
         <fieldset className={styles.fieldset}>
           <legend>Target rank — first to reach it wins</legend>
-          <div className={styles.radioRow}>
-            {TARGET_RANK_CHOICES.map((idx) => (
-              <label key={idx} className={styles.radio}>
-                <input
-                  type="radio"
-                  name="target_rank"
-                  checked={s.target_rank === idx}
-                  onChange={() => onChange({ ...s, target_rank: idx })}
-                />
-                {RANKS[idx]}
-              </label>
-            ))}
-          </div>
+          <RadioRow
+            name="target_rank"
+            options={TARGET_RANK_CHOICES.map((idx) => ({ value: idx, label: RANKS[idx] }))}
+            value={s.target_rank}
+            onChange={(target_rank) => onChange({ ...s, target_rank })}
+          />
         </fieldset>
       )}
 

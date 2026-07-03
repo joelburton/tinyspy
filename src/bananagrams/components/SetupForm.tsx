@@ -1,4 +1,5 @@
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { RadioRow } from '../../common/components/RadioRow'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
@@ -51,19 +52,12 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         <p className="muted">
           How many tiles each player is dealt. First to place them all wins.
         </p>
-        <div className={form.radioRow}>
-          {HAND_SIZE_OPTIONS.map((n) => (
-            <label key={n} className={form.radio}>
-              <input
-                type="radio"
-                name="hand_size"
-                checked={s.hand_size === n}
-                onChange={() => onChange({ ...s, hand_size: n })}
-              />
-              {n}
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="hand_size"
+          options={HAND_SIZE_OPTIONS.map((n) => ({ value: n, label: n }))}
+          value={s.hand_size}
+          onChange={(hand_size) => onChange({ ...s, hand_size })}
+        />
       </fieldset>
 
       <fieldset className={form.fieldset}>

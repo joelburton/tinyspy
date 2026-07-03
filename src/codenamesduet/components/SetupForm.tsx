@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { RadioRow } from '../../common/components/RadioRow'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
@@ -59,19 +60,12 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           The standard game is 9. Pick 10 or 11 for an easier
           warm-up (matches the rulebook's mission difficulties).
         </p>
-        <div className={styles.radioRow}>
-          {TURN_OPTIONS.map((t) => (
-            <label key={t} className={styles.radio}>
-              <input
-                type="radio"
-                name="turns"
-                checked={s.turns === t}
-                onChange={() => onChange({ ...s, turns: t })}
-              />
-              {t}
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="turns"
+          options={TURN_OPTIONS.map((t) => ({ value: t, label: t }))}
+          value={s.turns}
+          onChange={(turns) => onChange({ ...s, turns })}
+        />
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -80,21 +74,12 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
           The first clue-giver is seated as A; the other player
           opens as the guesser.
         </p>
-        <div className={styles.radioRow}>
-          {members.map((m) => (
-            <label key={m.user_id} className={styles.radio}>
-              <input
-                type="radio"
-                name="firstClueGiver"
-                checked={s.firstClueGiverUserId === m.user_id}
-                onChange={() =>
-                  onChange({ ...s, firstClueGiverUserId: m.user_id })
-                }
-              />
-              {m.username}
-            </label>
-          ))}
-        </div>
+        <RadioRow
+          name="firstClueGiver"
+          options={members.map((m) => ({ value: m.user_id, label: m.username }))}
+          value={s.firstClueGiverUserId}
+          onChange={(firstClueGiverUserId) => onChange({ ...s, firstClueGiverUserId })}
+        />
       </fieldset>
 
       <TimerField
