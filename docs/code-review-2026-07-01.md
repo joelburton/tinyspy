@@ -525,10 +525,11 @@ lines and it fixes a real consistency bug.
   suffix (label node), boggle's leading span (prefix), codenamesduet first-clue-giver
   keyed on `user_id` (value≠option), spellingbee's optional `target_rank`
   (`value?: T`). bananagrams/boggle LOCAL `.radioRow` now dead drift (→ §2 sweep).
-- **`<TurnLogActor>`** — the `<td className={who}><ActorTag …/></td>` who-column
-  recurs in all 5 GameTurnLogs + scrabble PlayLog + stackdown FoundWords;
-  psychicnum already wrapped it locally (`whoCell`) — evidence it wants to be
-  shared.
+- ~~**`<TurnLogActor>`** — the `<td className={who}><ActorTag …/></td>` who-column~~
+  **✅ DONE (`6cea6af`)** — accurately described (7 identical wrappers); extracted
+  `common/components/TurnLogActor` forwarding `actor`/`fallback`/`className` to
+  `<ActorTag>` in the shared `.who` `<td>`; psychicnum's local `whoCell` now returns
+  it. Byte-identical DOM. tsc + 150 tests + eslint green.
 - **`useFlash()`** — the identical green/yellow/red `setTimeout` flash effect
   appears 3× in scrabble and 2× in stackdown.
 
