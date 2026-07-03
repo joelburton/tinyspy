@@ -24,7 +24,7 @@
 }
 
 .score {
-  color: #2e7d52;
+  color: var(--color-outcome-won-strong);
   font-weight: 600;
 }
 .scoreNeg {
