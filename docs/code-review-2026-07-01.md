@@ -481,6 +481,15 @@ Each verified as near-identical in most/all PlayAreas; a normalization pass:
 
 ### 4.3 Convert scrabble + stackdown `useGame` to `useRealtimeRefetch`
 
+> **✅ DONE (`e5328b8`).** Accurately described — both hand-rolled Pattern-A with
+> no Broadcast (stackdown's comments admit the vestigial shell). Swapped for a
+> `useRealtimeRefetch` call each; `load` + all local reducer state unchanged; same
+> tables/filters so propagation is preserved; deleted two untested StrictMode-dedup
+> copies. connections left hand-rolled (Pattern B). Verified initial-load-via-factory
+> renders both boards in a real browser (board-geometry harness); tsc + tests + eslint
+> green. (Did NOT build a bespoke 2-client move-propagation test — preserved by
+> construction via the tested factory + unchanged config.)
+
 Both hand-roll the Pattern-A subscription shape (dedup-suffixed channel → `.on`
 loop → SUBSCRIBED-refetch → `removeChannel`) **while having no Broadcast** — the
 exact thing the tested factory absorbs; both docstrings admit the shell is
