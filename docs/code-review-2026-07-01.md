@@ -457,8 +457,9 @@ first — it's where correctness and decomposition converge.**
 
 Each verified as near-identical in most/all PlayAreas; a normalization pass:
 
-- **`timerLabel()`** — verbatim copy in 9 PlayAreas → `common/lib/timerLabel.ts`
-  (~80 lines). Several copies even comment that they're copies.
+- ~~**`timerLabel()`** — verbatim copy in 9 PlayAreas → `common/lib/timerLabel.ts`~~
+  **✅ DONE (`44ed5b2`)** — confirmed byte-identical (hash), extracted + Vitest;
+  −97 lines. (The other §4.2 pieces below remain.)
 - **`<TerminalModal over isTerminal onBackToClub>`** — the identical
   `useTerminalModal` + guarded `<GameOverModal>` tail in 10/10 → one line each
   (~70 lines); also removes the "call the hook before early returns" footgun.
