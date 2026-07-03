@@ -25,7 +25,7 @@ export function Rack({
   used: Set<number>
   selected: Set<number>
   /** Rack slots to outline yellow for a beat (freshly-drawn tiles). */
-  flashIds: Set<number>
+  flashIds: ReadonlySet<number>
   active: boolean
   onPointerDown: (rackIdx: number, glyph: string, e: React.PointerEvent) => void
 }) {

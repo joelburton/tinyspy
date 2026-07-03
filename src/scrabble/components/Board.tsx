@@ -51,9 +51,9 @@ export function Board({
   cursor: Cursor
   hover: XY | null
   /** Cell indices to outline green for a beat (a just-accepted word). */
-  greenCells: Set<number>
+  greenCells: ReadonlySet<number>
   /** Cell indices to outline red for a beat (new tiles in a rejected word). */
-  redCells: Set<number>
+  redCells: ReadonlySet<number>
   dragSource: XY | null
   dragging: boolean
   /** Turn-viewer: the board is a historical replay — green frame, no cursor. */

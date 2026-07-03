@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { playerOutcome } from '../../common/lib/games'
+import { useFlash } from '../../common/hooks/useFlash'
 import { timerLabel } from '../../common/lib/timerLabel'
 import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
@@ -163,12 +164,12 @@ export function PlayArea({
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.
   const [optimistic, setOptimistic] = useState<Placement[]>([])
-  // Brief outlines: green on the cells just played, yellow on the rack slots
-  // just drawn (from a play or an exchange). Both clear after ~1s.
-  const [greenFlash, setGreenFlash] = useState<Set<number>>(new Set())
-  const [yellowFlash, setYellowFlash] = useState<Set<number>>(new Set())
-  // Red on the new cells of a rejected (not-in-dictionary) word.
-  const [redFlash, setRedFlash] = useState<Set<number>>(new Set())
+  // Brief outlines (all self-clearing after ~1s via useFlash): green on the
+  // cells just played, yellow on the rack slots just drawn (from a play or an
+  // exchange), red on the new cells of a rejected (not-in-dictionary) word.
+  const [greenFlash, flashGreen] = useFlash<number>()
+  const [yellowFlash, flashYellow] = useFlash<number>()
+  const [redFlash, flashRed] = useFlash<number>()
 
   // The player's own-move result — a sticky pill in the commit slot (the local
   // feedback area). v3: own-move feedback is LOCAL (docs/design-decisions.md →
@@ -315,27 +316,10 @@ export function PlayArea({
     lastActionRef.current = null
     if (pendingDrawRef.current > 0 && rackLen > 0) {
       const n = Math.min(pendingDrawRef.current, rackLen)
-      setYellowFlash(new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)))
+      flashYellow(Array.from({ length: n }, (_, i) => rackLen - n + i))
     }
     pendingDrawRef.current = 0
-  }, [game, game?.version, rackLen, isCompete, showLocalFeedback])
-
-  // Flash timers — each outline clears itself after ~1s.
-  useEffect(() => {
-    if (greenFlash.size === 0) return
-    const id = setTimeout(() => setGreenFlash(new Set()), 1000)
-    return () => clearTimeout(id)
-  }, [greenFlash])
-  useEffect(() => {
-    if (yellowFlash.size === 0) return
-    const id = setTimeout(() => setYellowFlash(new Set()), 1000)
-    return () => clearTimeout(id)
-  }, [yellowFlash])
-  useEffect(() => {
-    if (redFlash.size === 0) return
-    const id = setTimeout(() => setRedFlash(new Set()), 1000)
-    return () => clearTimeout(id)
-  }, [redFlash])
+  }, [game, game?.version, rackLen, isCompete, showLocalFeedback, flashYellow])
 
   // ─── Cell-state helpers (ref-based; used by stable handlers) ──
   const committedAt = useCallback((x: number, y: number) => !!boardRef.current[cellIndex(x, y)], [])
@@ -557,7 +541,7 @@ export function PlayArea({
       // refetch lands, so they don't blink out; green-flash them. The new rack
       // tiles get the yellow flash once the rack arrives.
       setOptimistic(placements)
-      setGreenFlash(new Set(placements.map((p) => cellIndex(p.x, p.y))))
+      flashGreen(placements.map((p) => cellIndex(p.x, p.y)))
       pendingDrawRef.current = res.drawn?.length ?? 0 // exact draw count now known
       setStaged([])
       setSelected(new Set())
@@ -579,9 +563,9 @@ export function PlayArea({
         if (!bad.has(w.word.toUpperCase())) continue
         for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
       }
-      setRedFlash(cells)
+      flashRed(cells)
     }
-  }, [game, board, staged, actingRack, gameId, showLocalFeedback])
+  }, [game, board, staged, actingRack, gameId, showLocalFeedback, flashGreen, flashRed])
 
   const exchange = useCallback(async () => {
     if (!game) return

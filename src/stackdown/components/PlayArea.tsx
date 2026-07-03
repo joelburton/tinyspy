@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
+import { useFlash } from '../../common/hooks/useFlash'
 import type {
   GenericFeedbackMsg,
   GenericFeedbackTone,
@@ -102,22 +103,7 @@ export function PlayArea({
 
   // Tiles to briefly outline in red — set when a typed letter is ambiguous
   // (more than one exposed tile bears it), cleared after a beat.
-  const [flashIds, setFlashIds] = useState<readonly number[]>([])
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const flashTiles = useCallback((ids: number[]) => {
-    setFlashIds(ids)
-    if (flashTimer.current) clearTimeout(flashTimer.current)
-    flashTimer.current = setTimeout(() => {
-      setFlashIds([])
-      flashTimer.current = null
-    }, 900)
-  }, [])
-  useEffect(
-    () => () => {
-      if (flashTimer.current) clearTimeout(flashTimer.current)
-    },
-    [],
-  )
+  const [flashIds, flashTiles] = useFlash<number>(900)
 
   // A word flashes in the entry row for a beat, then clears — or sooner,
   // when the player starts a new word (onTileClick clears it). Two sources
@@ -410,7 +396,7 @@ export function PlayArea({
           tiles={game.tiles}
           offBoard={offBoard}
           active={canPlay}
-          highlight={new Set(flashIds)}
+          highlight={flashIds}
           onTileClick={onTileClick}
         />
 
