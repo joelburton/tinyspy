@@ -63,6 +63,19 @@ navigate-away, and shelve uniformly; on remount you rehydrate from the snapshot,
 not from memory. A debounced autosave (~800 ms) during play bounds crash-loss
 (acceptable per the alpha posture).
 
+**Known race — accepted (code-review §1.4).** The unmount `save()` is
+**fire-and-forget** (React unmount cleanup can't `await`), while the remount reads
+the board back with a one-shot SELECT that fires immediately. So on a fast
+pause→resume, the SELECT can out-race the in-flight save and read a **stale**
+board — losing up to one debounce window (~800 ms) of un-autosaved placements; the
+FE then rehydrates from the stale snapshot and its next autosave overwrites the
+good one. It's inherent to the FE-owns-board design (the board isn't
+server-authoritative per move) and the loss is a few re-placeable tiles, so it's
+left as-is under the alpha posture. The real fix, if it ever matters, is a
+monotonic board version / `updated_at`: `save_player_board` stamps it and the
+remount SELECT (with a short retry) refuses a snapshot older than the last one
+this client wrote.
+
 ## The player board — a fixed 25×25 arena
 
 The player board is a **fixed 25×25 grid**: a flat 625-char string
