@@ -347,6 +347,18 @@ composes one and keeps its own fill behavior.
 
 ### 3.3 Literal values that duplicate existing tokens
 
+> **Red-token rationalization — ✅ DONE (`edb68bf`).** The `--color-error` ≡
+> `--color-outcome-lost-strong` (`#c62828`) duplicate is resolved by splitting it
+> into two *deliberately-distinct* semantics: **game outcome** (`outcome-lost-strong`,
+> unchanged) vs **system failure / destructive action** (new `--color-sys-error-red`
+> `#8e1b2e`, a darker+cooler crimson). All 17 `--color-error` refs migrated by that
+> rule (outcome sites keep `#c62828` = no visual change; system/destructive sites go
+> crimson); `--color-error` + the dead `--color-error-soft-text` deleted. Also
+> **completed the outcome vocabulary** (every outcome now has bg/border/strong: new
+> `active-strong`, `current-bg/strong`, `neutral-bg/border/strong`) so the grid is a
+> full predictable set — marked as deliberate, do NOT sweep as dead. Neutral got its
+> own gray ramp; TurnLog neutral bars rewired off `--color-surface-border`.
+
 - ~~**[high] Drag-drop placement green/red is an un-named shared token.**~~ **✅
   DONE (`be812e6`)** — resolved by *reusing* the app's standard success/error
   tokens (`--color-outcome-won-strong` / `-lost-strong`) rather than minting
