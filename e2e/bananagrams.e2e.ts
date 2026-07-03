@@ -51,7 +51,7 @@ test.describe('bananagrams renders', () => {
     // the middle of the arena, so the center cell (12,12) must sit INSIDE the
     // viewport, not scrolled off-screen (the "blank PlayArea" regression).
     expect(await page.locator('[data-cell]').count(), 'all arena cells rendered').toBe(25 * 25)
-    const center = page.locator('[data-cell][data-row="12"][data-col="12"]')
+    const center = page.locator('[data-cell][data-x="12"][data-y="12"]')
     await expect(center).toBeVisible()
     const cbox = await center.boundingBox()
     expect(cbox, 'center cell has a box').not.toBeNull()
@@ -104,7 +104,7 @@ test.describe('bananagrams persistence', () => {
     const firstTile = page.locator('[data-zone="hand"] > *').first()
     await expect(firstTile).toBeVisible({ timeout: 15000 })
     const letter = (await firstTile.textContent())!.trim()
-    const centerCell = page.locator('[data-cell][data-row="12"][data-col="12"]')
+    const centerCell = page.locator('[data-cell][data-x="12"][data-y="12"]')
     await centerCell.click()
     await page.keyboard.type(letter)
     await expect(centerCell).toContainText(letter)
@@ -116,7 +116,7 @@ test.describe('bananagrams persistence', () => {
 
     await page.reload()
     await expect(
-      page.locator('[data-cell][data-row="12"][data-col="12"]'),
+      page.locator('[data-cell][data-x="12"][data-y="12"]'),
       'tile survived the reload',
     ).toContainText(letter, { timeout: 15000 })
 
@@ -149,8 +149,9 @@ test.describe('bananagrams win', () => {
     await expect(peel).toBeEnabled({ timeout: 15000 })
     await peel.click()
 
-    // The terminal modal appears with the Bananas win verdict.
-    await expect(page.getByText('Bananas! You went out first')).toBeVisible({ timeout: 15000 })
+    // The win verdict appears (in BOTH the below-board pill and the GameOverModal,
+    // by design — hence .first()).
+    await expect(page.getByText('Bananas! You went out first').first()).toBeVisible({ timeout: 15000 })
 
     await ctx.close()
   })
@@ -217,7 +218,7 @@ test.describe('bananagrams dump', () => {
 
     // Full hand (15); the bunch holds 144 − 15 = 129.
     await expect(page.locator('[data-hand-tile]')).toHaveCount(15, { timeout: 15000 })
-    await expect(page.getByText('129 in bunch')).toBeVisible()
+    await expect(page.getByText('129 in the bunch')).toBeVisible()
 
     // Drag the first hand tile onto the dump slot.
     const tile = page.locator('[data-hand-tile]').first()
@@ -233,7 +234,7 @@ test.describe('bananagrams dump', () => {
 
     // Net +2 tiles in hand, −2 in the bunch.
     await expect(page.locator('[data-hand-tile]')).toHaveCount(17)
-    await expect(page.getByText('127 in bunch')).toBeVisible()
+    await expect(page.getByText('127 in the bunch')).toBeVisible()
 
     await ctx.close()
   })

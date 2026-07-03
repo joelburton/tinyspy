@@ -194,7 +194,9 @@ export async function createBananagramsGame(
     .schema('bananagrams')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { hand_size: 15, timer: { kind: 'none' } },
+      // bag_size is required by bananagrams.create_game (full 144-tile bag; the
+      // win test drains the pool directly rather than relying on a small bag).
+      setup: { hand_size: 15, bag_size: 144, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
     })
   if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)
