@@ -340,7 +340,7 @@ menu: {
 
 **Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
 
-**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic PuzPuzPuz logo as the trigger and items "Back to home," "Rename club," "Delete club."
+**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic PuzPuzPuz logo as the trigger and items "Help" (a placeholder `<ClubHelp>` modal, so the club menu has the same Help affordance games do — also what `?` reaches), "Back to home," "Rename club," "Delete club."
 
 ### ClubPage header
 
@@ -356,6 +356,7 @@ The club page wears the same chrome the game page does. Same "no title in the he
 
 **ClubPage menu items:**
 
+- **Help** — opens the placeholder `<ClubHelp>` modal (parity with the GamePage menu's Help; also what the `?` shortcut reaches on the club page).
 - **Back to home** — `navigate('/')`. Real link.
 - **Rename club** — placeholder. Click pops a "Coming soon" `timed` feedback pill.
 - **Delete club** — placeholder. Same.
@@ -695,20 +696,32 @@ The contract for the capture model:
 - **Modified keystrokes pass through.** Bail before capturing anything when a
   `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
   the browser's.
-- **What can be entered is per-game; the rest is shared.** The universal key
-  plumbing lives in **`useCaptureKeys`** (`common/hooks/useCaptureKeys.ts`): the
-  modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
-  Backspace / Enter (Enter only when non-empty), the ~16-char cap, and the
-  **last-move history** (`ArrowUp` recalls the game's `recall` value, `ArrowDown`
-  clears) — identical everywhere. A game supplies only *what may be entered* —
-  `charFor` (letters vs digits + the stored case; the exported
+- **What can be entered is per-game; the rest is shared, in two layers.** The
+  GENERIC key-capture **core** is `useCaptureKeys` (`common/hooks/useCaptureKeys.ts`):
+  the modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
+  Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
+  for every key-capture game. The **last-move history** — `ArrowUp` recalls the
+  `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,
+  which `<EntryRow>` composes on top of the core; it's specific to the single-word
+  EntryBox, so it applies to those games and **only** them. A game supplies *what
+  may be entered* — `charFor` (letters vs digits + the stored case; the exported
   `asciiLetters('lower' | 'upper')` covers the word games) — plus any extra keys via
-  `onExtraKey` (spellingbee's `Space` = shuffle), the `recall` value (its
-  last-submitted word, for ArrowUp), and the `disabled` (loading / terminal — a true
-  no-op, won't dismiss a terminal pill) / `busy` (mid-submit — block edits, still
-  dismiss) gates. psychicnum's GuessForm, spellingbee's PlayArea, and boggle's
-  PlayArea all use it — the shared shape a second/third `<EntryBox>` consumer
-  revealed.
+  `onExtraKey` (spellingbee's `Space` = shuffle), the `recall` value (for the
+  ArrowUp layer), and the `disabled` (loading / terminal) / `busy` (mid-submit)
+  gates. **spellingbee, boggle, psychicnum** are the EntryBox games (core + arrows,
+  via `<EntryRow>`). **wordle uses the core ALONE** — its letters land on the
+  WordleGrid, not an EntryBox, so it gets the shared guards / letter / dismiss but
+  **no arrow behavior**. (The board-cursor games — bananagrams, scrabble — are a
+  different capture shape again: a 2-D cursor where arrows *move* it; see their
+  game docs.)
+- **Terminal local feedback is permanent.** `clearLocalFeedback` is a no-op once
+  the game is over (`useLocalFeedback`'s `locked: isTerminal`), so no key, click,
+  or future entry method can dismiss a verdict — the permanence lives in the one
+  function that removes feedback, not re-checked at each dismissal site. During
+  play, the shared `useDismissLocalFeedbackOnKey` makes "any key clears the
+  own-move pill" universal (even games with no keyboard capture, like waffle /
+  connections), while the focused-input guard keeps a chat keystroke from wiping a
+  game's feedback.
 
 **Local own-result feedback.** The player's own last move shows a result for the
 *local* half of the feedback split (the *group* half is the header pill, [Feedback
