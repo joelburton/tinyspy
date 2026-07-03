@@ -373,10 +373,9 @@ composes one and keeps its own fill behavior.
   `8px`(=`--radius-lg`) recur across ~12 sites (scrabble, wordle, codenamesduet,
   bananagrams, boggle, waffle). Mechanical sweep onto the tokens; leave the
   sub-grain `2px`/`3px` micro-radii and boggle's tuned `12px` tray.
-- **[med] scrabble score green is a near-miss drift.** `PlayLog.module.css:27`
-  `#2e7d52` vs the app's `--color-outcome-won-strong: #2e7d32` (differs only in the
-  blue channel) — textbook accidental drift. Use the token unless the teal-lean is
-  deliberate.
+- ~~**[med] scrabble score green is a near-miss drift.**~~ **✅ DONE (`0002e32`)** —
+  `PlayLog.module.css:27` `#2e7d52` → `--color-outcome-won-strong`; completes the
+  good/bad pair now that `.scoreNeg` is on `--color-outcome-lost-strong`.
 - **[low] tile shadow / popover elevation drift.** bananagrams tile shadow
   `rgba(0,0,0,0.2)` vs `--tile-shadow`'s `0.18`; `0 8px 24px rgba(0,0,0,0.18)`
   recurs in DefinitionPopover/Menu with a `0.12` variant in FloatingPanel — a
