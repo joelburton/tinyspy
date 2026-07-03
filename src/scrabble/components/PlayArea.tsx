@@ -26,6 +26,7 @@ import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { BlankPicker } from './BlankPicker'
 import { PlayLog } from './PlayLog'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -834,14 +835,11 @@ export function PlayArea({
           )}
 
           {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>2-letter words: {DIFFICULTY_LABELS[scrabbleSetup.dict_2 - 1] ?? '—'}</li>
               <li>Longer words: {DIFFICULTY_LABELS[scrabbleSetup.dict_3plus - 1] ?? '—'}</li>
               <li>{timerLabel(scrabbleSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={setViewingSeq} />

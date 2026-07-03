@@ -22,6 +22,7 @@ import { useGame } from '../hooks/useGame'
 import { EntryRow } from '../../common/components/EntryRow'
 import { GameTurnLog } from './GameTurnLog'
 import { WordBoard } from './WordBoard'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
@@ -540,14 +541,11 @@ export function PlayArea({
               (which we normally avoid), but it's closable so it reclaims the
               space — "what did I pick at setup?" without it taking room by
               default. (See docs/ui.md → Layout stability.) */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{game.words.length} tiles on the board</li>
               <li>{SECRET_COUNT} secret words</li>
               <li>{difficultyLabel} difficulty</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
         <GameTurnLog guesses={guesses} players={players} />
       </div>

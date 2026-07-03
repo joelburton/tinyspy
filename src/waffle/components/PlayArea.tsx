@@ -18,6 +18,7 @@ import type { WaffleSetup } from '../lib/setup'
 import { SolutionReveal } from './SolutionReveal'
 import { GameTurnLog } from './GameTurnLog'
 import { WaffleGrid } from './WaffleGrid'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -370,17 +371,14 @@ export function PlayArea({
 
           {/* Setup — LAST before the log, behind a disclosure (closed by default
               so it doesn't claim space). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{difficultyLabel} difficulty</li>
               <li>
                 Par {game.par_swaps} + {waffleSetup.extra_swaps} extra ={' '}
                 {game.max_swaps} swaps
               </li>
               <li>{timerLabel(waffleSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         {/* Terminal-only extra: the answer (the six solution words, each

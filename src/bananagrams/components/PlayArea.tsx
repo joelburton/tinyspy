@@ -16,6 +16,7 @@ import { useGame, useProgress } from '../hooks/useGame'
 import type { BananagramsSetup } from '../lib/setup'
 import { PlayerBoard } from './PlayerBoard'
 import { PeersStrip } from './PeersStrip'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 
@@ -240,9 +241,7 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       {/* Setup — behind a disclosure (closed by default). */}
-      <details className={shared.infoSetup}>
-        <summary>Setup options</summary>
-        <ul>
+      <SetupDisclosure>
           <li>{setup.hand_size}-tile starter hand</li>
           <li>{setup.bag_size}-tile bag</li>
           {setup.check_words ? (
@@ -255,8 +254,7 @@ export function PlayArea(ctx: GamePageCtx) {
           )}
           <li>Dumped tiles {setup.dump_to_box ? 'set aside (box)' : 'return to the bunch'}</li>
           <li>{timerLabel(setup.timer)}</li>
-        </ul>
-      </details>
+        </SetupDisclosure>
     </>
   )
 

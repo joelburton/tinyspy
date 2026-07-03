@@ -22,6 +22,7 @@ import { WordleGrid } from './WordleGrid'
 import { Keyboard } from './Keyboard'
 import { GameTurnLog } from './GameTurnLog'
 import { cls } from '../../common/lib/cls'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -468,17 +469,14 @@ export function PlayArea({
           )}
 
           {/* Setup — last, behind a disclosure (closed by default). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{maxGuesses} guesses</li>
               <li>Answer: {answerSourceLabel(wordleSetup.answer_source)}</li>
               <li>
                 Legal guesses: {DIFFICULTY_LABELS[wordleSetup.legal_guess - 1] ?? '—'} or easier
               </li>
               <li>{timerLabel(wordleSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         {/* Terminal-only answer reveal — the one info-column region allowed to

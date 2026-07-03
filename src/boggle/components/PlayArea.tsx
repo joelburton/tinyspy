@@ -23,6 +23,7 @@ import { useGame } from '../hooks/useGame'
 import { WordList } from '../../common/components/WordList'
 import { buildDisplayRows } from '../lib/displayRows'
 import { db } from '../db'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -351,16 +352,13 @@ export function PlayArea(ctx: GamePageCtx) {
           )}
 
           {/* Setup — LAST before the list, behind a disclosure (closed by default). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{diceLabel} board</li>
               <li>{DIFFICULTY_LABELS[boggleSetup.band - 1] ?? '—'} required words</li>
               <li>{DIFFICULTY_LABELS[boggleSetup.legal_band - 1] ?? '—'} legal (bonus) words</li>
               <li>{ladderLabel} scoring · min length {game.min_word_length}</li>
               <li>{timerLabel(boggleSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         <WordList rows={wordRows} players={players} reveal={revealWords !== null} />

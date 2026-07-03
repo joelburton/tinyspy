@@ -21,6 +21,7 @@ import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel, ClueSuggestionModal, type SuggestState } from './CluePanel'
 import { GameTurnLog } from './GameTurnLog'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
@@ -515,14 +516,11 @@ export function PlayArea({
           {/* Setup — a disclosure, LAST before the turn log (closed by default so
               it doesn't claim space; opening it grows the slot, the one allowed
               exception since it's closable). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{codenamesduetSetup.turns} turns</li>
               <li>First clue: {firstClueGiver?.username ?? '—'}</li>
               <li>{timerLabel(codenamesduetSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         <GameTurnLog

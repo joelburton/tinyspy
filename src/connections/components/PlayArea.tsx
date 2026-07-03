@@ -27,6 +27,7 @@ import { Board } from './Board'
 import { GameTurnLog } from './GameTurnLog'
 import { HintModal } from './HintModal'
 import { StrikeMarks } from '../../common/components/StrikeMarks'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
@@ -579,16 +580,13 @@ export function PlayArea({
 
           {/* Setup — last, behind a disclosure (closed by default so it doesn't
               claim space). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>Puzzle: {formatPuzzleDate(game.puzzleDate)}</li>
               <li>{game.board.tileOrder.length} words</li>
               <li>{CATEGORY_COUNT} categories to find</li>
               <li>{MISTAKE_BUDGET} mistakes allowed</li>
               <li>{timerLabel(connSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         {/* Turn log: coop shows every player's guesses; in compete RLS already

@@ -26,6 +26,7 @@ import { Stats } from './Stats'
 import { TypedWord } from './TypedWord'
 import { WordList } from '../../common/components/WordList'
 import { buildDisplayRows } from '../lib/displayRows'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -518,17 +519,14 @@ export function PlayArea(ctx: GamePageCtx) {
 
           {/* Setup options — what was picked at create time, behind the shared
               disclosure. Closed by default so it doesn't crowd the status above. */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>{DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '—'} required words</li>
               <li>{DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '—'} legal (bonus) words</li>
               {isCompete && targetRankIdx !== null && (
                 <li>Target rank: {RANKS[targetRankIdx]}</li>
               )}
               <li>{timerLabel(spellingbeeSetup.timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         {/* The required-words answer key now ships from game start, so the

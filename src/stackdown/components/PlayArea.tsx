@@ -27,6 +27,7 @@ import { colorVarFor } from '../../common/lib/memberColor'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
 import { FoundWords } from './FoundWords'
+import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -516,14 +517,11 @@ export function PlayArea({
           )}
 
           {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-          <details className={shared.infoSetup}>
-            <summary>Setup options</summary>
-            <ul>
+          <SetupDisclosure>
               <li>30 tiles · 6 words to clear</li>
               <li>Common 5-letter words</li>
               <li>{timerLabel((setup as unknown as StackdownSetup).timer)}</li>
-            </ul>
-          </details>
+            </SetupDisclosure>
         </div>
 
         {/* Terminal-only reveal of the six solution words — the one info-column
