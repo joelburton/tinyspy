@@ -16,6 +16,8 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
@@ -23,12 +25,14 @@ import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
+import { turnSnapshot } from '../lib/history'
 import { Board } from './Board'
 import { GameTurnLog } from './GameTurnLog'
 import { HintModal } from './HintModal'
 import { StrikeMarks } from '../../common/components/StrikeMarks'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 
@@ -40,6 +44,10 @@ const MISTAKE_BUDGET = 4
 /** Local feedback pills are never closeable, so the × never renders and this is
  *  never called — but `<GenericFeedbackPill>` requires the prop. */
 const noop = () => {}
+
+/** Empty selection map — passed to the board while viewing a past turn so the live
+ *  selection isn't drawn over the historical snapshot. */
+const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 
 /** Build connections' own-guess local pill: outline + STICKY (a tile click
  *  dismisses it). A pure msg-builder over the shared `useLocalFeedback`. */
@@ -177,6 +185,15 @@ export function PlayArea({
   // connections has no keyboard entry (guesses are tile clicks). No-op at
   // terminal (locked).
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
+
+  // ─── Turn-history viewer ───────────────────────────────
+  // Click a turn-log #N to replay that turn (the bands matched before it + this
+  // turn's 4 guessed tiles ringed in their outcome color, on the board as it was).
+  // Keyed by log position. Exit is intrinsic to the hook (a click anywhere / the
+  // banner ✕); a keystroke also exits (connections has no keyboard input to clash).
+  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+    useHistoryViewer<number>()
+  useGlobalKeyHandler(exitOnKey)
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess is narrated in the GamePage header: correct →
@@ -325,6 +342,12 @@ export function PlayArea({
     ? reconcileLocalOrder(localOrder, remainingTiles)
     : remainingTiles
 
+  // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
+  // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
+  // the outcome color). Keyed by log position; a later realtime guess only grows the
+  // log past viewingId, so a past turn holds.
+  const snap = viewingId !== null ? turnSnapshot(guesses, game.board, viewingId) : null
+
   // tile → user_id mapping. In coop this carries every peer's
   // contribution; in compete it only ever has the caller's tiles
   // (broadcast is local-only there) so every tile reads as "mine"
@@ -411,15 +434,18 @@ export function PlayArea({
             tiles. Tiles only while input is live (terminal/eliminated shows the
             revealed bands alone). */}
         <Board
-          matched={matchedCategories}
-          unmatched={unmatched}
-          tiles={showInput ? displayedTiles : []}
-          ownerByTile={ownerByTile}
+          matched={snap ? snap.matched : matchedCategories}
+          unmatched={snap ? [] : unmatched}
+          tiles={snap ? snap.tiles : showInput ? displayedTiles : []}
+          ownerByTile={viewing ? NO_OWNERS : ownerByTile}
           selfUserId={session.user.id}
           onToggle={handleToggle}
           onSubmit={() => void handleSubmit()}
           shakingTiles={shakingTiles}
           colorByUserId={colorByUserId}
+          viewing={viewing}
+          highlightTiles={snap?.highlightTiles}
+          highlightOutcome={snap?.outcome}
         />
 
         {/* Shuffle floats over the board's top-right — a fresh visual scan of
@@ -447,7 +473,27 @@ export function PlayArea({
             The shared `.moveAreaOrLocalFeedback` swap box reserves the height so
             every state is the same height. */}
         <div className={styles.belowBoard}>
-          <div className={shared.moveAreaOrLocalFeedback}>
+          <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+          {/* Turn-viewer banner — while inspecting a past turn it overlays this
+              below-board slot (the commit row / pill stays mounted underneath).
+              Opaque surface + yellow border = the shared "viewing history" marker;
+              the description names the turn. Click anywhere / the ✕ returns to live. */}
+          {viewing && snap && (
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{snap.description}</span>
+              <button
+                type="button"
+                className={history.bannerExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {showInput ? (
             localFeedback ? (
               // My own guess result — a centered local <GenericFeedbackPill> (sticky;
@@ -595,6 +641,8 @@ export function PlayArea({
           guesses={guesses}
           matchedCategories={matchedCategories}
           players={players}
+          viewingTurn={viewingId}
+          onSelectTurn={selectTurn}
         />
       </div>
 

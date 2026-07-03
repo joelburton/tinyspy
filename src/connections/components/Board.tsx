@@ -1,11 +1,22 @@
 import { cls } from '../../common/lib/cls'
 import type { Category } from '../lib/board'
-import type { MatchedCategory } from '../hooks/useGame'
+import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 import { RANK_TOKEN } from '../lib/rankColors'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4
+
+/** Turn-history: a guessed tile's tint class by the viewed turn's outcome. */
+const VIEWED_TINT: Record<GuessRow['result'], string> = {
+  correct: styles.viewedTile_correct,
+  oneAway: styles.viewedTile_oneAway,
+  wrong: styles.viewedTile_wrong,
+}
+
+/** Empty highlight set — a stable reference so a live render never rings a tile. */
+const NO_TILES: ReadonlySet<string> = new Set()
 
 type Props = {
   /** Categories resolved by a correct guess — full-width colored bands at the
@@ -29,6 +40,14 @@ type Props = {
   shakingTiles?: ReadonlySet<string>
   /** user_id → resolved color var, for a peer's selection frame. */
   colorByUserId: ReadonlyMap<string, string>
+  /** Turn-history: render read-only under the yellow viewer frame (a past turn's
+   *  board). Off during live play. */
+  viewing?: boolean
+  /** Turn-history: the four tiles the viewed turn guessed — ring them + tint them the
+   *  outcome color (`highlightOutcome`). Empty / omitted when live. */
+  highlightTiles?: ReadonlySet<string>
+  /** Turn-history: the viewed turn's verdict — the tint for `highlightTiles`. */
+  highlightOutcome?: GuessRow['result']
 }
 
 /**
@@ -57,6 +76,9 @@ export function Board({
   onSubmit,
   shakingTiles,
   colorByUserId,
+  viewing = false,
+  highlightTiles = NO_TILES,
+  highlightOutcome = 'wrong',
 }: Props) {
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)
   // Total rows = one per band + the tile rows. Always 4 for a standard
@@ -84,8 +106,11 @@ export function Board({
     // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
     // board's max-height (both computed in CSS from the --max-tile-* caps — see
     // PlayArea.module.css). A band is one of these rows spanning all columns.
-    <div className={styles.board} style={{ ['--rows' as string]: rows }}>
-      <div className={cls(shared.hugRectWidth, styles.grid)}>
+    <div className={styles.board} style={{ ['--rows' as string]: rows }} data-board>
+      {/* While viewing a past turn the shared yellow `.frame` rings the board AND
+          makes it click-through (pointer-events: none) so a click anywhere returns to
+          the live board (useHistoryViewer's document listener). */}
+      <div className={cls(shared.hugRectWidth, styles.grid, viewing && history.frame)}>
         {sortedMatched.map((mc) => band(mc, false))}
         {unmatched.map((c) => band(c, true))}
         {tiles.map((tile) => {
@@ -93,6 +118,9 @@ export function Board({
           const isMine = ownerId === selfUserId
           const isPeer = ownerId !== undefined && !isMine
           const isShaking = shakingTiles?.has(tile) ?? false
+          // Turn-history: this tile is one of the four the viewed turn guessed —
+          // tint it the outcome color + ring it history-yellow.
+          const isViewed = highlightTiles.has(tile)
           return (
             <button
               key={tile}
@@ -101,6 +129,8 @@ export function Board({
                 shared.tile,
                 isMine && shared.selected,
                 isShaking && styles.tileShaking,
+                isViewed && VIEWED_TINT[highlightOutcome],
+                isViewed && styles.viewedTile,
               )}
               style={
                 isPeer && ownerId

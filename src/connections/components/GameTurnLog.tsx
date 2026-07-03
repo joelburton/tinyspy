@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
-import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -11,6 +11,11 @@ type Props = {
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
   players: Player[]
+  /** Turn-history: the turn currently open in the board viewer (by log position),
+   *  or null when live. Its `#N` handle wears the shared yellow ring. */
+  viewingTurn: number | null
+  /** Open a turn in the board viewer (click its `#N`). */
+  onSelectTurn: (index: number) => void
 }
 
 /** connections's three guess verdicts → the shared turn-log outcome bar. */
@@ -43,7 +48,13 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * In compete mode RLS scopes `guesses` to the caller, so this shows only the
  * viewer's own attempts.
  */
-export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
+export function GameTurnLog({
+  guesses,
+  matchedCategories,
+  players,
+  viewingTurn,
+  onSelectTurn,
+}: Props) {
   // rank → name, for the matched-category attribution. Each rank appears at
   // most once in matchedCategories (one band per rank), so a Map is the honest
   // shape and the per-row lookup reads cleanly.
@@ -58,21 +69,23 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
       emptyText="No guesses yet."
       scrollKey={guesses}
     >
-      {guesses.map((g) => (
+      {guesses.map((g, i) => (
         <Fragment key={g.id}>
-          {/* Row 1, real columns: [bar ⇣rowSpan 2] | verdict (`.main`, absorbs
-              the slack) | actor (`.who`, shrinks to the username). `.turnLogDivider`
-              draws the line above this turn; `.entryHead`/`.entryCont` hug the two
-              rows together. */}
+          {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle | verdict (`.main`,
+              absorbs the slack) | actor (`.who`, shrinks to the username).
+              `.turnLogDivider` draws the line above this turn; `.entryHead`/
+              `.entryCont` hug the two rows together. The `#N` handle opens that turn
+              on the board viewer. */}
           <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
             <TurnLogBar outcome={OUTCOME[g.result]} rowSpan={2} />
+            <TurnLogNumber n={i + 1} viewing={viewingTurn === i} onSelect={() => onSelectTurn(i)} />
             <td className={turnLog.main}>{verdictLabel(g, nameByRank)}</td>
             <TurnLogActor actor={memberById(players, g.user_id)} />
           </tr>
-          {/* Row 2: the four guessed tiles, full width — spanning the verdict +
+          {/* Row 2: the four guessed tiles, full width — spanning the #N + verdict +
               who columns beneath the meta line. */}
           <tr className={turnLog.entryCont}>
-            <td colSpan={2} className={styles.words}>{g.tiles.join(' · ')}</td>
+            <td colSpan={3} className={styles.words}>{g.tiles.join(' · ')}</td>
           </tr>
         </Fragment>
       ))}

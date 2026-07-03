@@ -144,6 +144,34 @@
   }
 }
 
+/* Turn-history: the four tiles the VIEWED past turn guessed. Two parts, composed:
+ *   - a TINT by the turn's outcome (green correct / amber one-away / red wrong) —
+ *     the same saturated outcome tones the turn-log bars use, set on the shared
+ *     tile's --tile-* tokens so the fill wins (like psychicnum's decided tiles);
+ *   - a history-yellow ring (`.viewedTile`, the shared viewer color), inset so it
+ *     rings just inside the tile edge over the tint.
+ * A guessed tile stays on the grid in the strictly-before snapshot even for a
+ * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
+.viewedTile {
+  outline: 3px solid var(--color-history-viewer);
+  outline-offset: -3px;
+}
+.viewedTile_correct {
+  --tile-bg: var(--color-outcome-won-border);
+  --tile-border: var(--color-outcome-won-strong);
+  --tile-text: #fff;
+}
+.viewedTile_oneAway {
+  --tile-bg: var(--color-outcome-near-border);
+  --tile-border: var(--color-outcome-near-strong);
+  --tile-text: #fff;
+}
+.viewedTile_wrong {
+  --tile-bg: var(--color-outcome-lost-border);
+  --tile-border: var(--color-outcome-lost-strong);
+  --tile-text: #fff;
+}
+
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
  * board (margin-right:auto pushes the Clear/Submit buttons to the right). The
  * old NYT-style placement: the mistake dots on the same line as the buttons.
@@ -164,6 +192,14 @@
  * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. */
 .belowBoard {
   display: contents;
+}
+
+/* Turn-history: while a past turn is open in the viewer, the below-board banner
+ * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
+ * that box a positioning context. Applied only while viewing; inert otherwise (the
+ * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
+.slotViewing {
+  position: relative;
 }
 
 /* connections' move controls: the "mistakes" readout + Clear/Submit, right-
