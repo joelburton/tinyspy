@@ -14,7 +14,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, strips, action row — renders for real.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -154,5 +154,62 @@ describe('waffle PlayArea — concede', () => {
     // The bold action-row status (exact) — the below-board pill carries the
     // longer "You conceded — the rest are still racing." variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Turn-history viewer (coop). Clicking a swap-log row replays that swap's board;
+ * a keystroke / the ✕ returns to live. The snapshot + color logic is unit-tested
+ * in lib/{history,colors}.test.ts; this proves the PlayArea wiring. Uses the
+ * 21-distinct-letter reference board so cell 0's letter distinguishes the states.
+ */
+describe('waffle PlayArea — turn-history viewer (coop)', () => {
+  const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
+  const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
+  const swapRow = (
+    over: Partial<WaffleSwap> & Pick<WaffleSwap, 'swap_index' | 'pos_a' | 'pos_b'>,
+  ): WaffleSwap => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
+  // Solving sequence in log order: fix 2↔3 first, then 0↔1.
+  const swaps = [
+    swapRow({ swap_index: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+    swapRow({ swap_index: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+  ]
+  // A coop game whose live board is the solved arrangement (cell 0 = 'a').
+  const withHistory = (): GameHook =>
+    loaded({ ...coopGame, scramble: SCRAMBLE, solution: SOLUTION }, [{ ...me, board: SOLUTION }], swaps)
+
+  /** The first filled tile (cell 0) — its letter tells live ('A') from a snapshot. */
+  const cell0 = () => within(screen.getByRole('grid')).getAllByRole('button')[0]
+
+  it('clicking a swap row replays that swap; the ✕ returns to live', async () => {
+    const user = userEvent.setup()
+    h.result = withHistory()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+
+    // Live: cell 0 is 'a'.
+    expect(cell0()).toHaveTextContent('A')
+
+    // View swap #1 → the board AFTER only the 2↔3 swap (cell 0 still 'b'); the
+    // banner shows the swap description.
+    await user.click(screen.getByText('#1').closest('tr')!)
+    expect(screen.getByText('#1: D (C1) ↔ C (D1)')).toBeInTheDocument()
+    expect(cell0()).toHaveTextContent('B')
+
+    // The ✕ returns to live.
+    await user.click(screen.getByLabelText('Exit viewing'))
+    expect(cell0()).toHaveTextContent('A')
+    expect(screen.queryByText('#1: D (C1) ↔ C (D1)')).not.toBeInTheDocument()
+  })
+
+  it('a keystroke returns to live', async () => {
+    const user = userEvent.setup()
+    h.result = withHistory()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+
+    await user.click(screen.getByText('#2').closest('tr')!)
+    expect(screen.getByLabelText('Exit viewing')).toBeInTheDocument()
+
+    await user.keyboard('x')
+    expect(screen.queryByLabelText('Exit viewing')).not.toBeInTheDocument()
   })
 })

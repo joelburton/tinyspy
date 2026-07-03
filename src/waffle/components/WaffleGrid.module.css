@@ -108,6 +108,18 @@
   transform: translateY(-2px);
 }
 
+/* Turn-history: the two cells the viewed swap moved. A high-contrast DARK ring
+ * (not green/yellow — those are tile feedback colors) so it reads on any tile, the
+ * "here's what this swap did" marker paired with the yellow viewing frame. Drawn
+ * with `outline` (order-independent, like `.selected`); `position: relative` + a
+ * z-index lift it so the ring paints over neighbouring tiles rather than under. */
+.highlighted {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
+
 /* Recently-swapped tiles briefly pop, so the eye tracks the two that moved (the
  * only other change-signal is the recolor). Set for ~480ms after the board
  * updates, by diffing prev vs. next board (see WaffleGrid.tsx). A swapped tile is

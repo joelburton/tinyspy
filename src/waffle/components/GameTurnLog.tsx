@@ -1,6 +1,8 @@
+import { cls } from '../../common/lib/cls'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import type { Member } from '../../common/lib/games'
 import { coord } from '../lib/waffle'
 import type { WaffleSwap } from '../hooks/useGame'
@@ -9,6 +11,10 @@ import styles from './GameTurnLog.module.css'
 type Props = {
   swaps: WaffleSwap[]
   players: Member[]
+  /** The swap currently open in the board viewer (by log position), or null. */
+  viewingIndex: number | null
+  /** Open a swap in the board viewer (click a row). */
+  onSelectTurn: (index: number) => void
 }
 
 /**
@@ -28,7 +34,7 @@ type Props = {
  * sequence would leak an opponent's hidden board); PlayArea gates the render.
  * Stateless + presentational — the shared `<TurnLog>` snaps to the latest row.
  */
-export function GameTurnLog({ swaps, players }: Props) {
+export function GameTurnLog({ swaps, players, viewingIndex, onSelectTurn }: Props) {
   const playerFor = (userId: string) =>
     players.find((m) => m.user_id === userId)
 
@@ -39,10 +45,29 @@ export function GameTurnLog({ swaps, players }: Props) {
       emptyText="No swaps yet."
       scrollKey={swaps.length}
     >
-      {swaps.map((s) => {
+      {swaps.map((s, i) => {
         const swapper = playerFor(s.user_id)
+        // The whole row is clickable to replay that swap on the board viewer.
+        // Identified by POSITION in the log (mirrors stackdown's FoundWords).
         return (
-          <tr key={s.swap_index} className={turnLog.turnLogDivider}>
+          <tr
+            key={s.swap_index}
+            className={cls(
+              turnLog.turnLogDivider,
+              styles.row,
+              viewingIndex === i && history.viewedRow,
+            )}
+            role="button"
+            tabIndex={0}
+            title="Click to view this swap on the board"
+            onClick={() => onSelectTurn(i)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onSelectTurn(i)
+              }
+            }}
+          >
             <TurnLogBar outcome="neutral" />
             <td className={turnLog.meta}>#{s.swap_index}</td>
             <td className={turnLog.main}>

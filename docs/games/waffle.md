@@ -107,9 +107,15 @@ piece in the game.
 
 ## Schema: `waffle.*`
 
-The puzzle is shared + immutable on `waffle.games`; the **solution is hidden**
-(column-grant revoked from `authenticated`, revealed only post-terminal via the
-view — the spellingbee / psychicnum hidden-answer pattern).
+The puzzle is shared + immutable on `waffle.games`; the **solution is
+grant-hidden** (column-grant revoked from `authenticated`; the only read path is
+the `_solution_for` SECURITY DEFINER helper behind `games_state`). That helper is
+**mode-aware**: **compete** hides the solution until terminal (players race on
+independent boards); **coop** exposes it *during* play, because the turn-history
+viewer recomputes each past board's colors on the FE (a pure function of
+board+solution) and coop is a collaborative solve — per the trust model
+(server-authoritative for cleanliness, not anti-cheat) a friend peeking at the
+shared answer only spoils their own puzzle.
 
 Working state lives in `waffle.players`, **one table for both modes**. Compete
 forces a per-player row (each player solves their own copy, with their own
@@ -122,15 +128,17 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 
 | table | purpose |
 |---|---|
-| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (HIDDEN** — column-grant revoked; revealed post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
+| `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
+`_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 | `waffle.swaps` PK `(game_id, swap_index)` | The coop move log: one row per swap — `user_id`, `swap_index` (1-based, the shared coop count), `pos_a`/`pos_b`, and `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained). **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
 
 ### Views (`security_invoker`)
 
-- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution` only
-  when `common.games.is_terminal` (via a `SECURITY DEFINER` helper, exactly the
-  spellingbee `_required_words_for` shape).
+- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution`
+  via the `SECURITY DEFINER` `_solution_for` helper — exposed in **coop** always
+  (the turn-history viewer needs it) and in **compete** only once
+  `common.games.is_terminal`.
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
@@ -296,6 +304,18 @@ Mirrors the other game folders:
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
   rendering is the shared `common/lib/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
+- `lib/colors.ts` — a TS port of `waffle.compute_colors` / `_wordle_colors`, pinned
+  against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
+  LIVE colors; this exists only so the turn-history viewer can color a *historical*
+  board on the FE (see below).
+- `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given the
+  `scramble` + the swap log, `turnSnapshot(index)` reconstructs the board *after*
+  that swap (each swap is a reversible transposition), colors it via `lib/colors`,
+  and rings the two moved cells. **Coop only** — compete writes no swap log.
+  Clicking a `GameTurnLog` row opens that swap on the board (the yellow "viewing"
+  frame + banner from the shared `common/components/historyViewer.module.css`, input
+  frozen; a keystroke / board click / the ✕ returns to live), mirroring
+  scrabble/stackdown's history viewer.
 
 The PlayArea sits on the **shared two-column scaffold**
 (`common/components/PlayArea.module.css` — the same one psychicnum / connections /

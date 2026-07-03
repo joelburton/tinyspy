@@ -3,15 +3,21 @@ import { cls } from '../../common/lib/cls'
 import { tileColor } from '../../common/lib/tileColor'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './WaffleGrid.module.css'
 
 type Props = {
-  /** 25-char board string, holes = '.'. */
+  /** 25-char board string, holes = '.'. Live board OR a historical snapshot. */
   board: string
   /** 25-char per-tile color codes (g/y/x/.), or null before load. */
   colors: string | null
-  /** When true, tiles aren't interactive (terminal / paused). */
+  /** When true, tiles aren't interactive (terminal / paused / viewing history). */
   disabled?: boolean
+  /** Turn-history: draw the yellow "viewing a past turn" frame + suppress the
+   *  swap-pop flash (the ringed cells mark the move instead). */
+  viewing?: boolean
+  /** Turn-history: the cells the viewed swap moved — ring them. */
+  highlight?: ReadonlySet<number>
   /** Swap the letters of two filled cells. */
   onSwap: (a: number, b: number) => void
 }
@@ -29,7 +35,7 @@ type Props = {
  * skipped — it would bury the color). The square board lives in a `.board`
  * wrapper, top-aligned in the shared `.boardCol` (see WaffleGrid.module.css).
  */
-export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
+export function WaffleGrid({ board, colors, disabled, viewing = false, highlight, onSwap }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   // Drag source (HTML5 drag-and-drop, the desktop alternative to tap).
   const dragFrom = useRef<number | null>(null)
@@ -42,10 +48,17 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
   // effect body (rAF) so it reads as a transient, not a cascading render.
   const [flashing, setFlashing] = useState<ReadonlySet<number>>(() => new Set())
   const prevBoardRef = useRef<string | null>(null)
+  const prevViewingRef = useRef(false)
   useEffect(
     function flashSwappedTiles() {
       const prev = prevBoardRef.current
       prevBoardRef.current = board
+      const wasViewing = prevViewingRef.current
+      prevViewingRef.current = viewing
+      // Don't flash while viewing a past turn (the ringed cells mark the move),
+      // nor on the frame we return to live — the board jumps historical→live,
+      // which is navigation, not a swap.
+      if (viewing || wasViewing) return
       // Seed silently on first load / a length change — don't flash the whole
       // board into existence.
       if (prev === null || prev.length !== board.length) return
@@ -61,7 +74,7 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
         clearTimeout(clear)
       }
     },
-    [board],
+    [board, viewing],
   )
 
   function activate(pos: number) {
@@ -88,7 +101,13 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
 
   return (
     <div className={styles.board}>
-      <div className={styles.grid} role="grid" aria-label="Waffle board">
+      {/* The yellow frame marks "you're viewing a past turn" — the shared
+          history-view marker (common/components/historyViewer.module.css). */}
+      <div
+        className={cls(styles.grid, viewing && history.frame)}
+        role="grid"
+        aria-label="Waffle board"
+      >
         {Array.from({ length: CELLS }, (_, pos) => {
           if (isHole(pos)) {
             return <span key={pos} className={styles.hole} aria-hidden="true" />
@@ -104,6 +123,7 @@ export function WaffleGrid({ board, colors, disabled, onSwap }: Props) {
                 styles[color],
                 selected === pos && styles.selected,
                 flashing.has(pos) && styles.justSwapped,
+                highlight?.has(pos) && styles.highlighted,
               )}
               aria-label={`${letter.toUpperCase()} (${color})`}
               aria-pressed={selected === pos}

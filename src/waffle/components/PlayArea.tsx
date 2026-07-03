@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
@@ -12,14 +12,17 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
+import { turnSnapshot } from '../lib/history'
 import type { WaffleSetup } from '../lib/setup'
 import { SolutionReveal } from './SolutionReveal'
 import { GameTurnLog } from './GameTurnLog'
 import { WaffleGrid } from './WaffleGrid'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -80,6 +83,21 @@ export function PlayArea({
   // Any key is the player's next move → dismiss the own-move pill, even though
   // waffle has no keyboard entry (swaps are clicks). No-op at terminal (locked).
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
+
+  // ─── Turn-history viewer (coop only) ───────────────────
+  // The swap-log row currently open on the board, by its POSITION in the coop swap
+  // log, or null = live. When set, the board renders that swap's historical
+  // snapshot (replayed from the scramble, colored via the FE port) with the two
+  // swapped cells ringed, input frozen; any keystroke / a board click / the ✕
+  // returns to live. Only coop can reach this (compete renders no swap log).
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null)
+  const exitViewing = useCallback(() => setViewingIndex(null), [])
+  // While viewing, any (non-modifier) key returns to live — navigation is by
+  // clicking log rows. The shared handler already ignores keys aimed at chat/inputs.
+  useGlobalKeyHandler((e) => {
+    if (viewingIndex == null || e.metaKey || e.ctrlKey || e.altKey) return
+    exitViewing()
+  })
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran
@@ -169,11 +187,18 @@ export function PlayArea({
   const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
 
-  // The left grid always shows the caller's own board + live colors — including
-  // at game-over (their final state). The solved answer is revealed separately
-  // below the board (SolutionReveal).
-  const board = self?.board ?? game.scramble
-  const colors = self?.colors ?? null
+  // Turn viewer (coop only — compete writes no swap log): the historical board for
+  // the swap being viewed, or null when live. Replayed from the scramble + swap log,
+  // colored on the FE via the ported algorithm (coop exposes the solution). Works at
+  // terminal too (reviewing the finished solve).
+  const viewing = viewingIndex != null
+  const snap = viewing ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
+
+  // The left grid shows the caller's own board + live colors — including at
+  // game-over (their final state) — OR, while viewing, the historical snapshot. The
+  // solved answer is revealed separately below the board (SolutionReveal).
+  const board = snap ? snap.board : (self?.board ?? game.scramble)
+  const colors = snap ? snap.colors : (self?.colors ?? null)
 
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
@@ -226,11 +251,15 @@ export function PlayArea({
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div className={shared.boardCol}>
+      {/* While viewing a past swap, a click anywhere in the board column returns to
+          live (matches the other games' "click to exit"); a no-op when live. */}
+      <div className={shared.boardCol} onClick={viewing ? exitViewing : undefined}>
         <WaffleGrid
           board={board}
           colors={colors}
-          disabled={isTerminal || !isPlayer || selfDone}
+          disabled={isTerminal || !isPlayer || selfDone || viewing}
+          viewing={viewing}
+          highlight={snap?.highlight}
           onSwap={handleSwap}
         />
         {/* The below-board slot — waffle's LOCAL feedback area (a centered
@@ -251,6 +280,26 @@ export function PlayArea({
             viewport (the page must never scroll); it lives in the info column's
             `.terminalExtra` instead. */}
         <div className={styles.belowBoard}>
+          {/* Turn-viewer banner — while inspecting a past swap it overlays the
+              below-board region with the swap's description. Opaque surface + yellow
+              border = the shared "viewing history" marker (matching the board frame +
+              viewed-row outline). Click anywhere / the ✕ returns to live. */}
+          {snap && (
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{snap.description}</span>
+              <button
+                type="button"
+                className={history.bannerExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {/* No below-board move controls: waffle's input is swapping tiles on
               the board itself, so `.moveArea` is empty. */}
           <div className={styles.moveArea} />
@@ -394,8 +443,16 @@ export function PlayArea({
         )}
 
         {/* The shared swap log — coop only (compete writes none, and a swap
-            sequence would leak an opponent's hidden board). */}
-        {!isCompete && <GameTurnLog swaps={swaps} players={members} />}
+            sequence would leak an opponent's hidden board). Rows are clickable to
+            replay that swap on the board. */}
+        {!isCompete && (
+          <GameTurnLog
+            swaps={swaps}
+            players={members}
+            viewingIndex={viewingIndex}
+            onSelectTurn={setViewingIndex}
+          />
+        )}
       </div>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />

@@ -314,7 +314,14 @@ stable
 security definer
 set search_path = waffle, common, public, extensions
 as $$
-  select case when cg.is_terminal then wg.solution::text else null end
+  -- COOP exposes the solution during play: it's a collaborative solve, and the
+  -- turn-history viewer recomputes each past board's colors on the FE, which needs
+  -- the answer (colors are a pure function of board+solution). Per the trust model
+  -- (server-authoritative for cleanliness, NOT anti-cheat) a friend who peeks at the
+  -- shared answer just spoils their own puzzle — not worth gating against.
+  -- COMPETE keeps it hidden until terminal: players race on independent boards, and
+  -- compete writes no swap log, so there's no history feature that needs it there.
+  select case when cg.is_terminal or wg.mode = 'coop' then wg.solution::text else null end
     from waffle.games wg
     join common.games cg on cg.id = wg.id
    where wg.id = g_id;

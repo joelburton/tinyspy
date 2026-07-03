@@ -4,6 +4,20 @@
  * common/components/TurnLog (the swapper name + disc is the shared <ActorTag>);
  * only the move cell — "A (A1) ↔ B (C2)" — is waffle's. */
 
+/* A clickable swap row — opens the board viewer for that swap (the whole row is
+ * the hit target). Mirrors stackdown's FoundWords .row; the "currently viewing"
+ * yellow outline is the shared history.viewedRow. */
+.row {
+  cursor: pointer;
+}
+.row:hover td,
+.row:focus-visible td {
+  background: var(--color-surface-hover);
+}
+.row:focus-visible {
+  outline: none;
+}
+
 /* The move cell's content: "A (A1) ↔ B (C2)". `inline-flex` (not `flex`) so it
  * lays its pieces on one baseline-aligned row WITHOUT turning the host `<td>`
  * into a flex container — which would drop it out of the table layout and break

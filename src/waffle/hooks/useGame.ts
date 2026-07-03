@@ -23,8 +23,9 @@ export type WafflePlayerState = {
 
 /**
  * The game header, projected from `waffle.games_state`. `solution`
- * is NULL during play and materializes once the game is terminal
- * (the end-of-game reveal).
+ * visibility is mode-aware (see `waffle._solution_for`): COOP exposes it
+ * during play (the turn-history viewer recomputes past boards' colors on
+ * the FE, which needs the answer); COMPETE keeps it NULL until terminal.
  */
 export type WaffleGame = {
   id: string

@@ -59,9 +59,13 @@ select is(
   (select play_state from common.games where id = (select id from g1)),
   'playing',
   'game still in progress after a non-solving swap');
-select ok(
-  (select solution from waffle.games_state where id = (select id from g1)) is null,
-  'solution stays hidden (NULL) while playing');
+-- Coop exposes the solution during play (the turn-history viewer recomputes past
+-- boards' colors on the FE, which needs the answer; we don't gate this against
+-- friends). Compete's mid-game hiding lives in solution_hide_test.
+select is(
+  (select solution from waffle.games_state where id = (select id from g1))::text,
+  'abcdef.g.hijklmn.o.pqrstu',
+  'coop exposes the solution while playing (turn-history needs it)');
 
 -- Either player can swap (coop): bea undoes 2,3, then solves with 0,1.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
