@@ -1,12 +1,17 @@
 # PlayArea decomposition + turn-history — plan
 
-Status: **Phase A + B DONE on stackdown** (branch `stackdown-turn-history`);
-Phase C not started. Written 2026-07-02; updated as the stackdown prototype landed.
-This file is the source of truth for the work; read it first. Phase A shipped the
-turn-history viewer on the still-monolithic stackdown; Phase B decomposed stackdown
-into the four layers as a verified no-op. **What the prototype taught us** — the
-findings that should shape the Phase-C rollout — is recorded in its own section
-below; read it before extracting `InfoCol`/`BoardCol` for the next game.
+Status: **ALL PHASES DONE** (branch `stackdown-turn-history`). Every standard game
+is decomposed into `BoardCol` / `InfoCol` (bananagrams via its own engine-hook +
+views shape — see below); the shared turn-history viewer (`useHistoryViewer` +
+per-game `lib/history.ts`) ships in the seven games whose board can replay a past
+turn (scrabble, stackdown, connections, psychicnum, codenamesduet, wordle, waffle);
+spellingbee + boggle are decomposed but have no viewer (a `WordList` isn't
+chronological). Written 2026-07-02; updated as the work landed. This file is the
+source of truth for the work; read it first. Phase A shipped the turn-history viewer
+on the still-monolithic stackdown; Phase B decomposed stackdown into the four layers
+as a verified no-op; Phase C rolled both out. **What the prototype taught us** — the
+findings that shaped the rollout — is recorded in its own section below; read it
+before extracting `InfoCol`/`BoardCol` for a new game.
 
 ## Why
 
@@ -134,7 +139,7 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 - Verify: no-op (render tests + geometry harness unchanged); the Phase-A history
   feature still works through the new seam = proof the contract is right.
 
-### Phase C — roll out
+### Phase C — roll out — ✅ DONE
 
 - `InfoCol` to the other 7 standard games (waffle, boggle, wordle, connections,
   psychicnum, spellingbee, codenamesduet). bananagrams excepted.
@@ -338,10 +343,15 @@ building it on stackdown.
   from all games. Verified in a real browser (`e2e/codenamesduet-history.e2e.ts`
   exercises Space, a board click, and an info-column click).
 
-## Future / open
+## Resolved along the way
 
-- **`useHistoryViewer`** (rule of three): once turn-history lands in 3+ games, the
-  coordination itself (`viewingSeq` + snapshot selection + "am I viewing" flags)
-  becomes a shared hook, pulling that growth back out of `PlayArea`.
-- **bananagrams**: its right-column needs its own approach; revisit after the
-  standard-game pattern is proven.
+- **`useHistoryViewer`** (rule of three): once turn-history reached three games the
+  coordination itself (the `viewingId` + "am I viewing" flags + the enter/exit
+  affordances) lifted into `common/hooks/useHistoryViewer.ts`, pulling that growth
+  back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
+  `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See
+  the hook's own docstring.
+- **bananagrams**: handled via its own shape — the cross-column engine hook
+  `usePlayerBoard` + the `BoardArena` / `HandCard` views (NOT `BoardCol` / `InfoCol`,
+  since they own no input), under a two-level coordinator. See the bananagrams
+  caution above and docs/games/bananagrams.md.

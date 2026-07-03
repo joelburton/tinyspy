@@ -373,10 +373,10 @@ seeing each button whole.
 Where these rules differ from the code as of this writing — the work to make code
 match the doc:
 
-1. **Local feedback → pill.** Today local own-move feedback is `<ResultFlash>`, a
-   full-width bar that replaces the input row. The rule above makes it a
-   `<FeedbackPill>` (same component/CSS as global, centered) in a fixed-size local
-   feedback slot. Affects all four redesigned games.
+1. **Local feedback → pill. ✅ DONE.** Local own-move feedback now renders as the
+   shared `<GenericFeedbackPill>` (same component/CSS as global, centered) in the
+   fixed-size `.localFeedback` slot, driven by `useLocalFeedback`, across all ten
+   games. The earlier full-width `<ResultFlash>` bar has been removed.
 2. **Tone set.** `FeedbackTone` should be
    `success | error | warning | neutral | info | near`. `near` is the only tone
    missing today (`warning` is already styled in `FeedbackPill.module.css`); add
@@ -418,10 +418,8 @@ match the doc:
    no callers. A future game that needs a turn log renders its own `<tr>` rows the
    same way; there is no wrapper to fall back on.
 
-A few statements in [`ui.md`](ui.md) now lag this doc — local feedback described
-as the `<ResultFlash>` bar, the tone names, and the caret prose (which omits the
-non-empty condition the code already enforces). Reconcile `ui.md` to match when we
-do the implementation pass.
+Items 2, 3, and 5 above may also be partly or fully resolved — they weren't
+re-audited when item 1 landed; check the code before treating any as still-open.
 
 ### Conversion gotchas (learned converting codenamesduet)
 

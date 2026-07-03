@@ -327,23 +327,31 @@ src/spellingbee/
   logo.svg                Bee glyph (copied from spellingbee-ws).
 
   components/
-    PlayArea.tsx          Two-column composition on the shared scaffold (.boardCol /
-                          .infoCol). Owns the typed word, the shuffle seed, the sticky
-                          own-move feedback (a shared <FeedbackPill>, dismissed on the next
-                          move — no timer), the submit_word dispatch, and the End-game
-                          action button. Captures keystrokes via the shared useCaptureKeys
-                          (letters stored uppercase; the only per-game extra key is
-                          Space=shuffle — ArrowUp=recall last word / ArrowDown=clear are now
-                          universal built-ins, fed by the `recall` option). Wires usePeerFeedback
-                          to the common header slot
-                          for peer/opponent events (aliased as `headerFeedback` so it
-                          doesn't clash with the local pill state). The info column wraps
-                          its readouts in the shared .actionSlot: RankBar + Stats (the
-                          "state" unit) lead, then — compete-only — the OpponentStrip
-                          (rank), then the action row, then the Setup disclosure; the
-                          WordList fills the rest below. buildOver branches mode → terminal
-                          verdict copy. Mounts GameOverModal via useTerminalModal on the
-                          isTerminal flip.
+    PlayArea.tsx          The thin two-column coordinator on the shared scaffold (.boardCol /
+                          .infoCol). **Decomposed** into BoardCol + InfoCol (no-op verified; no
+                          history viewer — a WordList isn't chronological). PlayArea keeps the
+                          word-entry ENGINE — the shared `useWordSubmit` (the typed word, the
+                          `submit_word` dispatch, the sticky own-move feedback, a shared
+                          <FeedbackPill> dismissed on the next move, no timer) — in the
+                          coordinator, because its feedback channel is ALSO written by InfoCol's
+                          End / Concede; it passes the entry primitives (word / setWord / submit /
+                          localFeedback / …) DOWN to BoardCol (a thin-input game, like
+                          boggle/connections). Wires usePeerFeedback to the common header slot for
+                          peer/opponent events (aliased as `headerFeedback` so it doesn't clash
+                          with the local pill state). buildOver branches mode → terminal verdict
+                          copy. Mounts GameOverModal via useTerminalModal on the isTerminal flip.
+    BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
+                          top-right + the below-board <EntryRow> (the typed-word input + capture
+                          keyboard, whose <EntryBox> renders the per-character illegal-letter dim
+                          via <TypedWord>). Owns the local outer-letter shuffle (per-player,
+                          view-only, never persisted), a letter-click appending to the word, and
+                          the Space=shuffle capture extra key (letters stored uppercase;
+                          ArrowUp=recall / ArrowDown=clear are the shared built-ins).
+    InfoCol.tsx           The info column: near-zero state, arranging the shared readouts in the
+                          fixed order — RankBar + Stats (the "state" unit) lead, then — compete
+                          only — the OpponentStrip (rank), then the action row (End / Concede),
+                          then the Setup disclosure; the found-words WordList fills the rest.
+                          Every mutation is a named callback up; PlayArea owns the RPCs.
     PlayArea.module.css   Per-game bits only (layout vars, hex board sizing, the below-board
                           slot). The two-column shell + readout classes are the shared
                           common/components/PlayArea.module.css. Desktop-first, no @media

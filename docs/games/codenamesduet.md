@@ -285,21 +285,25 @@ src/codenamesduet/
                           <GameLogo gametype="codenamesduet" />. Imported via ?url in manifest.ts.
 
   components/
-    PlayArea.tsx          The shared two-column play shell — imports the common
-                          `playArea.module.css` scaffold (`shared.layout` /
-                          `.boardCol` / `.infoCol`). BoardGrid fills the board
-                          column; the info column carries the shared readouts in
-                          the canonical order (`.infoState` = "{green}/15 agents ·
-                          turn n/cap", then the finished-player banners,
-                          `.infoActions` = End, `.infoHelp` = phase copy, and the
-                          `.infoSetup` disclosure = turn cap + first clue-giver)
-                          above the GameTurnLog. The clue move-zone sits BELOW the
-                          board (see CluePanel).
-                          Loads via the three hooks, derives phase, and owns the
-                          guess move: `pendingPos` + the `submit_guess` RPC (lifted
-                          up out of BoardGrid) + the own-action local
-                          `<FeedbackPill>` (in the below-board slot). A
-                          local `useTurnPill` drives the header peer-status pill.
+    PlayArea.tsx          The thin two-column coordinator on the common
+                          `PlayArea.module.css` scaffold (`shared.layout` /
+                          `.boardCol` / `.infoCol`). **Decomposed** into a `BoardCol`
+                          (the BoardGrid + the clue move-zone; owns the **guess**
+                          `submit_guess` RPC — the guess is a board click, so it stays
+                          with the board's input engine, while CluePanel keeps the clue
+                          RPCs) and an `InfoCol` (the shared readouts + GameTurnLog).
+                          PlayArea loads via the three hooks, derives phase, and owns the
+                          cross-column bits: the below-board local `<FeedbackPill>` (both
+                          columns write it), the header peer-status pill (`useTurnPill`),
+                          and the turn-history `viewing` state keyed by `turn_number`.
+                          The info column runs the shared readouts in the canonical order
+                          (`.infoState` = "{green}/15 agents · turn n/cap", then the
+                          finished-player banners, `.infoActions` = End, `.infoHelp` =
+                          phase copy, and the `.infoSetup` disclosure = turn cap + first
+                          clue-giver) above the GameTurnLog. **Turn-history viewer:**
+                          clicking a log `#N` hands BoardGrid the `lib/history.ts` board
+                          for that turn (its own cells ringed) with input frozen until
+                          you leave (a keystroke / click / ✕).
                           Pops the shared `<GameOverModal>` on terminal and renders
                           the AI `<ClueSuggestionPanel>` at the `.layout` level (a
                           floating panel must mount high — see ui.md → Components).
@@ -307,10 +311,20 @@ src/codenamesduet/
                           cross-cutting chrome (logo, chat-bubble, players strip,
                           pause, timer, suspend-confirm, the global UserMenu) lives
                           on <GamePage> / App.
+    BoardCol.tsx          The board column: BoardGrid + the below-board CluePanel move-zone.
+                          Owns the guess dispatch (a tile click → `submit_guess`) and takes
+                          the board to render — the live denormalized board OR a `lib/history`
+                          snapshot — plus `readOnly` while viewing a past turn.
+    BoardCol.module.css
+    InfoCol.tsx           The info column: the shared readouts (state / finished banners /
+                          End / help / setup) above the GameTurnLog. Near-zero state —
+                          arranges shared pieces + emits `onSelectTurn` / `onEndGame` up.
+    InfoCol.module.css
     PlayArea.module.css
-    BoardGrid.tsx         The 5×5 board, now PRESENTATIONAL: receives `pendingPos`
-                          + an `onGuess(position)` callback (PlayArea owns the
-                          submit). Each tile composes the shared `.tile`/`.tileWord`
+    BoardGrid.tsx         The 5×5 board, PRESENTATIONAL: receives the board to render
+                          (live or a history snapshot) + `pendingPos` + an
+                          `onGuess(position)` callback (BoardCol owns the submit) + an
+                          optional ring for a viewed turn's own cells. Each tile composes the shared `.tile`/`.tileWord`
                           chrome with a per-game `.overlayTile` (adds
                           `position: relative` for the corner overlays) + a
                           token-override fill class (`.bgWhite`/`.bgNeutral`/
@@ -340,7 +354,9 @@ src/codenamesduet/
                           codenamesduet renders its OWN rows (row anatomy is the
                           game's — see ui.md → Turn log): a TWO-<tr> turn per
                           turn_number (grouped client-side). Row 1 = real columns
-                          [<TurnLogBar> ⇣rowSpan 2] | #n | {count} {WORD} | the
+                          [<TurnLogBar> ⇣rowSpan 2] | `#n` (the shared <TurnLogNumber>
+                          history handle, keyed by turn_number — click to replay that
+                          turn on the board) | {count} {WORD} | the
                           clue-giver via <ActorTag> (right-aligned via turnLog.who);
                           row 2 spans those content columns with the guesses (each
                           colored by reveal outcome) — or "(clue given)" while the
@@ -383,6 +399,19 @@ src/codenamesduet/
                           turn is a setback); mixed agent+neutral → 'partial'; all
                           agents (≥1) → 'good'; no guesses (passed) → 'neutral'.
     turnOutcome.test.ts   Pure unit test of the above.
+    history.ts            The turn-history replay (pure + unit-tested). Given the fixed 25
+                          board words + the guess log + a turn's clue, reconstruct the board
+                          at the END of any past turn — ADD-style (a guess only ADDS a reveal,
+                          so a past board folds every guess up to that turn onto the fixed
+                          words), boundary **inclusive** (viewing turn N shows the board AFTER
+                          N's guesses, with N's own cells ringed). The reveal alphabet is the
+                          denormalized board state: the GLOBAL `revealed_as` ('G'/'A') plus the
+                          PER-SEAT `neutral_a`/`neutral_b` (a neutral only locks the guesser's
+                          direction — the Duet per-direction rule). Keyed by **`turn_number`**
+                          (a game-wide turn ordinal, like scrabble's `seq` — not log position),
+                          which is the `#N` the log shows. Clicking a `GameTurnLog` `#N` opens
+                          that turn on the board via the shared viewer.
+    history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```
 
 **Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." After the modal closes the result stays visible the shared way: the info-column action row swaps the End button for a bold outcome-colored line + a compact back-to-club button ([ui.md → Info-column readouts](../ui.md#info-column-readouts)), and the below-board slot echoes the verdict where the clue UI was.

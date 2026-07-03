@@ -299,9 +299,26 @@ When porting a new game, the per-game `useGame` hook's shape depends on whether 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
 Concrete examples in the tree today:
-- Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`.
-- Same name, per-game body: `PlayArea` (every game), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum).
+- Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum), `lib/history` (every game with a turn-history viewer).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
+
+#### PlayArea decomposition — `BoardCol` / `InfoCol`
+
+A `PlayArea` grew too big to hold in your head (most were 450–900 lines), so every
+standard two-column game now splits it into three layers with one consistent recipe:
+a **`BoardCol`** (the live input engine — drag / cursor / keyboard / word-building —
+plus the below-board feedback slot; it renders the game's `Board`), an **`InfoCol`**
+(the info-column readouts + turn log / word list, near-zero internal state), and a
+thin **`PlayArea`** that owns the game data (`useGame`), the RPCs, and cross-column
+coordination (e.g. the turn-history `viewingId`). The load-bearing contract:
+**`BoardCol` owns *editing*; `PlayArea` hands it the *board to show*** (live *or* a
+historical snapshot) + a `readOnly` flag — which is what makes the turn-history
+viewer a drop-in. **bananagrams is the exception** (its input engine spans both
+columns, so it uses an engine-hook + two views instead — `usePlayerBoard` /
+`BoardArena` / `HandCard`). The full recipe, the prop conventions (one shared
+vocabulary across games), and the per-game deviations live in
+[docs/playarea-decomposition-plan.md](playarea-decomposition-plan.md).
 
 ### Import-direction rules
 

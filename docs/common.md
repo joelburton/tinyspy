@@ -445,6 +445,15 @@ src/
                            still broadcasting. Per-game useGame hooks own only their own
                            per-tab UUID-suffixed postgres-changes channel for the
                            gametype's own tables; cross-cutting state lives here.
+      useHistoryViewer.ts  The turn-history viewer's shared coordination — which past
+                           turn (if any) is open on the board, plus enter/exit
+                           affordances (click a `#N` handle to open; a keystroke,
+                           a click anywhere, or the banner ✕ to leave). Extracted at
+                           the rule of three (scrabble/stackdown/waffle). Each game
+                           keeps its own `lib/history.ts` (how a snapshot is COMPUTED
+                           from the viewed turn — the board shape differs per game).
+                           See docs/playarea-decomposition-plan.md and
+                           docs/ui.md → "Turn-history viewer".
     lib/
       supabase.ts          The supabase client (browser SDK)
       router.ts            Hand-rolled router — usePath() hook + navigate() function (~40 lines)

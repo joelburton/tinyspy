@@ -318,6 +318,18 @@ the local pill carries only the results a ring can't.
   prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
   quadrant). Pure; Vitest in `board.test.ts`.
+- **`lib/history.ts`** — the turn-history replay (pure + unit-tested; stackdown is
+  where this feature was born — see docs/playarea-decomposition-plan.md). Given the
+  submission log and a turn's **position** in it, reconstruct the board *as it was
+  about to be played*: the full stack minus tiles cleared by valid words at positions
+  **strictly before** it — so the viewed turn's own word is still ON the board (ringed
+  green) and the stack is *fuller* than live — plus a kind-aware description ("entered
+  EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
+  scrabble's `boardUpToSeq`; keyed by **log position** (the `#N` the log shows), not
+  `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
+  across a shared coop log. Clicking a `FoundWords` row's `#N` opens that turn on the
+  board via the shared viewer (`historyViewer.module.css` frame + banner; a keystroke /
+  click / ✕ returns to live) — the same viewer scrabble/waffle use.
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
   postgres-changes on `games_state` / `players` / `submissions` (no Broadcast).
   The board the player sees is `game.tiles` minus `removedTileIds`
@@ -360,11 +372,14 @@ the local pill carries only the results a ring can't.
   valid words green + clickable to define, invalid attempts red + struck through +
   tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
   "Revealed: <WORD>"); coop shows the actor via the shared `<ActorTag>`, compete
-  suppresses it), `PlayArea` (the shared two-column scaffold:
-  board + WordEntry + local feedback slot on the left, the info column [state,
+  suppresses it. Each row's `#N` is the shared `<TurnLogNumber>` history handle — see
+  `lib/history.ts`), `BoardCol` (the board + WordEntry input engine + the local
+  feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
+  `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  via the semantic buttons, help, setup, terminal words-reveal, log] on the right;
-  owns the submit + game-over; in compete it filters the log to the caller's own so
+  via the semantic buttons, help, setup, terminal words-reveal, and the FoundWords
+  log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
+  + the history `viewingIndex`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the
   timer — the board is dealt at random), `Help`.
 - **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):

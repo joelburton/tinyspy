@@ -536,14 +536,22 @@ never shared, never persisted, doesn't pause.
   `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
   exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
   `<ActorTag>`; words click-to-define via the common `DefinitionPopover`),
-  `PlayArea` (the composition + the gesture/keyboard plumbing, the live score
-  preview in the Submit button, the optimistic just-played hold, the sticky local
-  own-move feedback, the End/Concede action-row button + `GameOverModal`),
-  `SetupForm` (two `<DifficultyField>`s + timer), `Help`.
+  `BoardCol` (the turn machine — drag / cursor / keyboard staging, the live score
+  preview, the optimistic just-played hold, and — the **documented exception** to
+  the "PlayArea does the RPC" contract — the `play_word` / `exchange` RPCs
+  themselves, because their commit is inseparable from that input state [the
+  `lastActionRef` race + the version-reset effect]; PlayArea just hands it `game` +
+  `gameId`. Also takes the board to show — live or a `boardUpToSeq` snapshot — for
+  the history viewer), `InfoCol` (the readouts + score + the End/Concede action-row
+  button + the PlayLog), `PlayArea` (the thin coordinator: `useGame`, the shared
+  below-board feedback channel [both columns write it], the terminal
+  `GameOverModal`, and the history `viewingSeq`), `SetupForm` (two
+  `<DifficultyField>`s + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the
-"should this survive a pause?" rule it lives in `PlayArea`, clearing on
-pause/unmount, and — for *your own* commit — on the server `version` move). On an
+"should this survive a pause?" rule it lives in `BoardCol` [the turn machine],
+clearing on pause/unmount, and — for *your own* commit — on the server `version`
+move). On an
 accepted word the played tiles are held **optimistically** (rendered committed)
 until the realtime refetch lands, so they never blink off the board. **Compete
 allows placement off-turn** (pre-play, above) — only *committing* needs your turn;

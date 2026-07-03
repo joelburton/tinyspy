@@ -403,7 +403,7 @@ Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/theme.css`](../src/common/theme.css)
 and the shared `.tile` / `.tileWord` classes in
-[`common/components/playArea.module.css`](../src/common/components/playArea.module.css).
+[`common/components/PlayArea.module.css`](../src/common/components/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
 - **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg`, which
@@ -534,16 +534,15 @@ tile's size.
 
 ## PlayArea layout
 
-The shape every game's play surface converges on. Validated on **psychicnum**,
-then **connections** — so the scaffold + readout classes are
-**promoted to [`common/components/playArea.module.css`](../src/common/components/playArea.module.css)**
-(a CSS-only module imported the way `setupForm.module.css` is, composed with a
-thin per-game module via `cls()`). **codenamesduet** is now the third adopter and
-the rule-of-three stress test: it's the structural odd-one-out — turn-based, one
-clue then several guesses, per-viewer keycard overlays, and a real free-text
-`<input>` rather than capture-entry — so fitting it onto the *same* shell proves
-the pieces are general, not just "what the two similar games happened to share."
-Other games keep their old shells until we reach them.
+The shape every game's play surface takes — **all ten games** are on it. The
+scaffold + readout classes live in
+[`common/components/PlayArea.module.css`](../src/common/components/PlayArea.module.css)
+(a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
+per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
+then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
+clue then several guesses, per-viewer keycard overlays, a real free-text `<input>`
+rather than capture-entry) — proving the pieces are general, not just "what the two
+similar games happened to share"; the rest of the roster followed.
 
 **The contract:**
 
@@ -566,14 +565,15 @@ Other games keep their old shells until we reach them.
   column instead. (That's why the word/number **entry** lives below the board,
   not here — and it's the capture model, not an `<input>`; see
   [Text entry](#text-entry--capture-not-input).)
-- **Board column HUGS its board.** The four redesigned games converge on one
-  model: `.boardCol` is `flex: 0 0 auto` and only as wide as its board, which
-  grows to fill *up to* a per-game max tile size (see [Board sizing](#board-sizing)).
-  **Fill is the no-cap case** — with no cap the board grows to the full available
-  width, so a capless game still reads as "fills." The column is **top-aligned**
-  (`justify-content: flex-start`) — the board at the top — and anything stacked
-  below (the entry row, or the terminal reveal) stretches to the board width.
-  (scrabble + boggle still use the older viewport-math shrink-wrap; deferred.)
+- **Board column HUGS its board.** Every board-grid game shares one model:
+  `.boardCol` is `flex: 0 0 auto` and only as wide as its board, which grows to fill
+  *up to* a per-game max tile size (see [Board sizing](#board-sizing)). **Fill is the
+  no-cap case** — with no cap the board grows to the full available width, so a
+  capless game still reads as "fills." The column is **top-aligned**
+  (`justify-content: flex-start`) — the board at the top — and anything stacked below
+  (the entry row, or the terminal reveal) stretches to the board width. (bananagrams
+  is the exception — a fixed 25×25 arena that FILLS its column, documented in
+  docs/games/bananagrams.md.)
 - **`align-items: stretch`** makes both columns full-height (the divider spans;
   the log scrolls inside). The board-column + info-column pair is narrower than the
   play area, so `justify-content: center` centers them with equal outer margins.
@@ -586,13 +586,21 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 [local vs group](deferred.md#feedback-channels-local-vs-group).
 
 **Shared vs per-game:** the shell + readout classes now live in the shared
-`common/components/playArea.module.css` (a CSS-only scaffold, like
+`common/components/PlayArea.module.css` (a CSS-only scaffold, like
 `setupForm.module.css` — no behavior, so a stylesheet rather than a component).
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
 result/semantic tile fills, the board tray frame, and game-specific readout
 copy. `<TurnLog>` *is* a shared component (it has behavior); the two-column shell
 is just shared CSS. The shared **`.tile`** chrome lives in the same module.
+
+**Two columns, two components.** The `.boardCol` / `.infoCol` regions here are the
+CSS; each standard game also *splits* its `PlayArea` into a **`BoardCol`** component
+(the input engine + below-board feedback, renders the `Board`) and an **`InfoCol`**
+component (these readouts + the turn log). The board-vs-info CSS split mirrors the
+component split. See
+[code-conventions.md → PlayArea decomposition](code-conventions.md#playarea-decomposition--boardcol--infocol)
+and [docs/playarea-decomposition-plan.md](playarea-decomposition-plan.md).
 
 ### Info-column readouts
 
@@ -635,8 +643,7 @@ these names when a new game's info column needs the same.
   user; reuse it when a game needs an end-of-game readout that doesn't fit below
   the board.
 
-Now shared in `common/components/PlayArea.module.css` (promoted when connections
-became the second adopter) — `.infoSetup` / `.infoState` / `.infoHelp` /
+Shared in `common/components/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
 `.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
 `.terminalExtra`. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
@@ -732,23 +739,17 @@ The contract for the capture model:
 pill](#feedback-pill) above): "Correct!" / "Incorrect" / "One away!" or a
 validation error, in the green/red/amber outcome palette.
 
-**Decided direction:** this renders as the same `<FeedbackPill>` as the global
-area — identical CSS, centered, in the fixed-height **local feedback area** in the
-`belowBoard` region — so local and global feedback read as one register (see
-[design-decisions.md → Feedback](design-decisions.md#feedback)).
-
-**Current implementation, pending migration:** the four redesigned games still use
-the shared **`<ResultFlash tone label />`** (`common/components/ResultFlash`), a
-full-width bar that **replaces the whole input bar** for ~1.4s — psychicnum swaps
-it in for the entry + Submit row, connections for the Clear/Submit commit row. The
-host reserves the bar height (its input row's `min-height`) so the swap never
-reflows the board, and owns the flash's lifetime (a timer, cleared early when the
-player starts the next move — the next keystroke for psychicnum, a tile click for
-connections). The capture-input games keep their `<form>` mounted under the flash
-so the key handler keeps capturing while it shows. (The one-away amber,
-`tone: 'near'`, is connections-only; psychicnum has no near-miss state.) Converting
-`<ResultFlash>` to the centered pill is tracked in
-[design-decisions.md → Reconciliation](design-decisions.md#reconciliation-with-the-code).
+**How it renders.** It's the same **`<GenericFeedbackPill>`** as the header/global
+area — identical CSS, centered, in the fixed-height **local feedback area**
+(`.localFeedback`) in the `belowBoard` region — so local and global feedback read as
+one register (see [design-decisions.md → Feedback](design-decisions.md#feedback)).
+The pill is driven by the shared **`useLocalFeedback`** hook (holds one
+`GenericFeedbackMsg`, auto-clears on the next move / any key via
+`useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
+feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
+height so swapping the pill in for the move controls never reflows the board. All ten
+games share this; the earlier per-game full-width `<ResultFlash>` bar has been
+removed.
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the
@@ -870,18 +871,54 @@ own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
 `HistoryPanel` predecessor this whole system replaced was already **deleted** —
 scrabble's framed `PlayLog` is separate and unaffected.)
 
+## Turn-history viewer
+
+Every game whose board can replay past turns (scrabble, stackdown, connections,
+psychicnum, codenamesduet, wordle, waffle) lets you **click a past turn to see the
+board as it was then**. The affordance is shared and looks identical everywhere:
+
+- **The `#N` handle** (`<TurnLogNumber>` in `common/components/TurnLog.tsx`) — each
+  turn's number cell is the click target; clicking it opens that turn on the board.
+  **Not** the whole row: several games render a turn as multiple `<tr>`s
+  (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
+  box — a single small handle stays crisp regardless. It's a `<span>`, not a
+  `<button>` (a focused button re-fires its click on Space, and Space is a viewer
+  exit), and it carries `data-turn-number` so the click-to-exit handler can tell
+  "select a turn" from "click away."
+- **The framed board.** While viewing, the board wears the shared
+  `historyViewer.module.css → .frame` (a yellow "viewing" outline + banner, input
+  frozen) and the open turn's `#N` wears `.viewedNumber` (the matching yellow ring).
+  `.frame` also sets `pointer-events: none`, so a board click falls through to the
+  exit handler — a viewed board is a read-only snapshot.
+- **Three exits, all shared:** a keystroke, a click anywhere (except another `#N`
+  handle, which switches turns), or the banner **✕**. Two are intrinsic to the hook;
+  only the keystroke path is wired per game (it must cooperate with the game's own
+  key handler).
+
+The coordination — which turn is open + the enter/exit affordances — is the shared
+**`useHistoryViewer`** hook (`common/hooks/useHistoryViewer.ts`); the `PlayArea`
+holds it as its one cross-column "am I viewing" state. What stays **per-game** is how
+a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
+board shape and even the boundary differ: an ADD-style board shows the turn's own
+move *included*, a removal-style board like stackdown/connections shows the fuller
+*pre-move* board) and how a turn is *identified* (a game-wide ordinal like scrabble's
+`seq` or codenamesduet's `turn_number`, vs a log position). See
+[docs/playarea-decomposition-plan.md](playarea-decomposition-plan.md) for the full
+seam and the per-game keying.
+
 ## Board sizing
 
-A game board grows as large as the space allows. The **four redesigned games**
-(psychicnum, connections, codenamesduet, waffle) share **one model: the board
-column HUGS its board.** The column is only as wide as the board, and the
-board+info pair centers (`justify-content: center` on `.layout`). **"Fill" is
+A game board grows as large as the space allows. **Every board-grid game shares one
+model: the board column HUGS its board.** The column is only as wide as the board,
+and the board+info pair centers (`justify-content: center` on `.layout`). **"Fill" is
 just the no-cap case of hug** — with no max tile size the board grows to the full
-available width, so a capless game reads exactly like the old fill model. (Each
-of the four exposes a max-tile-size knob; psychicnum caps, the others ship
-uncapped today — so connections/codenamesduet/waffle still *look* like they fill,
-but they're on the hug structure.) scrabble + boggle are still on the older
-viewport-math shrink-wrap form ([below](#the-older-shrink-wrap-form-scrabble--boggle)); migrating them is deferred.
+available width, so a capless game reads exactly like the old fill model. (Each game
+exposes a max-tile-size knob; psychicnum caps, most ship uncapped today — so they
+still *look* like they fill, but they're on the hug structure.) The **square boards**
+(waffle, scrabble, boggle) compute a single **`--side`** bounded by BOTH the width
+left beside the info column (`--avail-w`) AND the height above their input/rack row
+(`--avail-h`); the non-square boards hug width alone. (bananagrams is the one FILL
+exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
 
 ### The shared scaffold
 
@@ -972,23 +1009,14 @@ spanning all columns at the same row height/padding/depth as a tile.
 A shrink-wrapped flex column can only hug a child whose width is *already known*.
 A square's width comes from its height; a `flex:1` / `container-type: size`
 board's width comes from the column — both circular, so the column **collapses**.
-Computing the width from the viewport (`--avail-w`, plus `--avail-h` for waffle)
-breaks the cycle. (This is exactly why the container-query square waffle used
-before couldn't be hugged: the size container collapsed in a hugging column.)
+Computing the width from the viewport (`--avail-w`, plus `--avail-h` for the square
+boards — waffle, scrabble, boggle) breaks the cycle. (This is exactly why the
+container-query square waffle used before couldn't be hugged: the size container
+collapsed in a hugging column.)
 
 **Single-glyph vs word tiles** is unchanged: scale a single glyph (a digit, an
 A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
 `cqi` + `--len` (see [Tile content](#tile-content-letter-vs-word-a-vs-b-games)).
-
-### The older shrink-wrap form (scrabble + boggle)
-
-scrabble + boggle still **drive the column width from the board** (the precursor
-to the hug model above): the board has a **definite viewport size** and the column
-shrink-wraps to it, the pair centered.
-`min(calc((100vh - var(--game-chrome-height) - <below>) * cols/rows), calc(100vw - <side+gaps>), <maxTile>*cols + gap*(cols-1))`.
-The viewport offsets there aren't accidental brittleness — subtracting the sibling
-column + chrome is *inherent* to hugging. Migrating them onto the shared scaffold
-(which now expresses the same idea via `--avail-w`) is deferred.
 
 ## Mode pills
 
@@ -1095,7 +1123,7 @@ chat bubble, the `×` close, and the `✓`/`✗` marks.
 - **A literal palette layer** (`--color-gray-100`, etc.). Overkill at ~15 tokens; revisit at ~50+.
 - **Font-size tokens** (`--text-sm`, `--text-base`, …). Components pick raw rem values ad-hoc; standardize when the variety becomes noise.
 - **Promoting the board `.board` wrapper + `.grid` base into the shared
-  `playArea.module.css`.** Today psychicnum's `WordBoard.module.css` and
+  `PlayArea.module.css`.** Today psychicnum's `WordBoard.module.css` and
   connections' `PlayArea.module.css` carry a byte-identical `.board` wrapper
   (`flex: 1 1 0; min-height: 0; display: flex; flex-direction: column`) and a
   near-identical `.grid` base (the per-game bits being the track definition + the

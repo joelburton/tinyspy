@@ -314,19 +314,24 @@ src/connections/
 
   components/
     PlayArea.tsx          Shared between the two manifests. Uses the SHARED PlayArea scaffold
-                          (common/components/playArea.module.css, imported as `shared`): a
+                          (common/components/PlayArea.module.css, imported as `shared`): a
                           board column (bands + tile grid + floating Shuffle + the Clear/Submit
                           commit row) and a fixed info column (setup disclosure, "N/4 categories
                           found" state, mistakes [coop dots / compete OpponentStrip], help,
                           Hints+End action row → terminal outcome line, and the TurnLog below).
                           No outer card — the only divider is the info column's left border.
                           Branches on game.mode for the OpponentStrip + eliminated-spectator
-                          state. Mounted by <GamePage> as its render-prop child.
+                          state. Mounted by <GamePage> as its render-prop child. **Decomposed**
+                          into `BoardCol` (bands + tile grid + Shuffle + the Clear/Submit input
+                          engine) + `InfoCol` (the readouts + TurnLog); PlayArea is the thin
+                          coordinator — `useGame`, the guess RPC, and the turn-history
+                          `viewingIndex`. The tile SELECTION stays in `useGame` (broadcast-coupled
+                          in coop) and passes down to BoardCol.
                           **Feedback splits local vs group** (like psychicnum; see ui.md +
-                          deferred.md → Feedback channels): my OWN guess result flashes
-                          green/amber/red via the shared <ResultFlash>, which replaces the
-                          Clear/Submit commit row for ~1.4s (the SAME bar psychicnum swaps in
-                          for its entry row), dismissed on the next tile click; a teammate's
+                          deferred.md → Feedback channels): my OWN guess result shows
+                          green/amber/red as the shared below-board <GenericFeedbackPill>
+                          (`useLocalFeedback`, in the fixed-height `.localFeedback` slot),
+                          dismissed on the next move; a teammate's
                           guess is a header pill ("Bea found ANIMALS!"). Only coop reaches the
                           header — compete's guesses log is RLS-scoped to the caller.
     PlayArea.module.css
@@ -345,11 +350,13 @@ src/connections/
     GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
                           Renders its OWN two-<tr> rows in the shared <TurnLog> panel
                           (row anatomy is the game's — see ui.md → Turn log): row 1 =
-                          [<TurnLogBar> ⇣rowSpan 2] | verdict | actor (right-aligned via
+                          [<TurnLogBar> ⇣rowSpan 2] | `#N` (the shared <TurnLogNumber>
+                          history handle) | verdict | actor (right-aligned via
                           turnLog.who) in REAL <td> columns; row 2 spans those columns
                           with the 4 guessed tiles. turnLog.turnLogDivider on row 1 draws
                           the between-turns line. No flexbox sub-line in a cell.
-                          Stateless/presentational.
+                          Stateless/presentational. Clicking a `#N` opens that turn on the
+                          board via the shared history viewer (see lib/history.ts).
     GameTurnLog.module.css
     HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
                           a "Reveal" button that surfaces that category's first tile. Purely
@@ -390,6 +397,21 @@ src/connections/
                           reset). Purely view-local — no broadcast, no server write; losing
                           the order on pause is fine.
     localOrder.test.ts    Unit tests for the shuffle/reset helpers.
+    ownGuess.ts           Builds the caller's own below-board guess pill (correct / one-away /
+                          wrong) — the local half of the feedback split, pulled out of PlayArea
+                          so BoardCol and PlayArea share one builder.
+    history.ts            The turn-history replay (pure + unit-tested). Given the guess log + the
+                          static board + a turn's **position** in the log, reconstruct the board
+                          *as it was when that turn was submitted*: the bands matched by correct
+                          guesses **strictly before** it, every other tile still on the grid — so
+                          THIS turn's own 4 tiles are still shown (even a correct guess's — they
+                          haven't collapsed into a band yet), ringed + tinted in the turn's
+                          outcome color. The removal-style twin of stackdown (a correct guess
+                          "consumes" 4 tiles into a band); keyed by **log position** (guesses have
+                          no per-turn ordinal). Clicking a `GameTurnLog` `#N` opens that turn on
+                          the board via the shared viewer. Compete's `guesses` are RLS-scoped to
+                          the caller, so a compete viewer replays only their own board.
+    history.test.ts       Unit tests for the snapshot boundary + outcome tinting.
     monthGrid.ts          Pure month-grid layout helper extracted from Calendar (so the
                           component file holds only React). Returns the 7-wide cell array
                           with leading-blank / trailing-pad nulls for a given year+month.

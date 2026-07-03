@@ -126,8 +126,8 @@ export function TurnLogBar({
 /**
  * The turn-log **"#N" handle** — the shared turn-history control. Clicking it opens
  * that turn on the board viewer; when that turn is the one being viewed, the number
- * wears a yellow outline (mirroring the board `.frame`). A real `<button>` living in
- * the muted `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
+ * wears a yellow outline (mirroring the board `.frame`). It lives in the muted
+ * `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
  *
  * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
  * (codenamesduet's clue + guess rows). A whole-row "viewing" outline then draws a

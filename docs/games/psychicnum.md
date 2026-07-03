@@ -348,7 +348,7 @@ src/psychicnum/
 
   components/
     PlayArea.tsx          Two-column composition on the SHARED PlayArea scaffold
-                          (common/components/playArea.module.css, imported as `shared`;
+                          (common/components/PlayArea.module.css, imported as `shared`;
                           shell + info-column readout classes + the shared .tile chrome —
                           PlayArea.module.css now holds only .inputMessage):
                             WordBoard (grid of word tiles on the shared beige --tile-*
@@ -377,7 +377,9 @@ src/psychicnum/
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see ui.md → Turn log):
                           each row = the shared <TurnLogBar> cell (green=correct /
-                          red=wrong / amber=hint+reveal) + #n + word + result +
+                          red=wrong / amber=hint+reveal) + `#n` (the shared
+                          <TurnLogNumber> history handle — click to replay that turn
+                          on the board) + word + result +
                           actor with their identity dot, and turnLog.turnLogDivider
                           for the between-turns line. A hint row collapses the
                           word+result columns into a colspan "Hint: <clue>". The
@@ -400,11 +402,23 @@ src/psychicnum/
   lib/
     setup.ts              PsychicnumSetup type + DEFAULT_PSYCHICNUM_SETUP + the
                           word_count picker bounds.
+    ownMove.ts            Builds the caller's own below-board pill (Correct / Incorrect /
+                          validation error) — pulled out of PlayArea so BoardCol and
+                          PlayArea share one builder.
+    history.ts            The turn-history replay (pure + unit-tested). Given the guess log
+                          + a turn's **position** in it, reconstruct the `word → was_correct`
+                          map as of that turn — ADD-style (a guess only ever ADDS a permanent
+                          green/red mark, so a past board is the guesses folded up to that
+                          turn), boundary **inclusive** (viewing turn N shows the board AFTER
+                          N's guess, with N's guessed tile ringed). Hint / reveal turns mark no
+                          tile. Keyed by **log position** (the `#N` the log shows). Clicking a
+                          `GameTurnLog` `#N` opens that turn on the board via the shared viewer.
+    history.test.ts       Unit tests for the fold + inclusive boundary + hint/reveal no-ops.
 ```
 
 ### `PlayArea`
 
-A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `goToClub`, `feedback` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../ui.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE"; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GameTurnLog>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess flashes "Correct"/"Incorrect" by **replacing the whole entry bar** with the shared `<ResultFlash>` (the same bar connections swaps in for its commit row — local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
+A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `status`, `goToClub`, `feedback` from `GamePageCtx`. The info column's non-log area is the four named readouts (see [`ui.md` → PlayArea layout](../ui.md#playarea-layout)): **setup** (a `<details>` "Setup options" — tiles / secrets / difficulty), **state** ("X/3 found · used/total guesses used"), **help** (muted "Click or type a word…"), and the **action row** (**Hint** / **Reveal** / **Shuffle** / **End**). On terminal, the guess entry's slot (below the board) shows the reveal — "The words were APPLE, RIVER, STONE"; setup + state stay; help hides; and the action row becomes a bold, outcome-colored result line ("You won!" green / "Out of guesses" red / "Game over" neutral) + a compact "‹ club" button. `<GameTurnLog>` always renders below it. The shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) pops on terminal entry with a per-status verdict — "You found all three!" / "You lost: out of guesses." **Feedback splits local vs group** (see [`ui.md`](../ui.md) + [`deferred.md`](../deferred.md#feedback-channels-local-vs-group)): the player's own guess shows "Correct"/"Incorrect" as the shared below-board `<GenericFeedbackPill>` (`useLocalFeedback`, in the fixed-height `.localFeedback` slot, dismissed on the next move — local); teammates' guesses/hints (coop) and opponents-found-a-secret (compete) are header pills (group). Guessed tiles stay permanently green (secret) / red (miss). **Decomposed** into a `BoardCol` (the WordBoard + `<EntryRow>` input engine + the below-board feedback + the `submit_guess` dispatch + Shuffle) and an `InfoCol` (the readouts + `GameTurnLog`); PlayArea is the thin coordinator (`useGame` + the turn-history `viewingIndex`). **Turn-history viewer:** clicking a log `#N` replays that turn — the guessed tile wears its green/red outcome color plus a yellow ring, input freezes until you leave (a keystroke / click / ✕). The snapshot is `lib/history.ts`; the own-move pill builder is `lib/ownMove.ts`. Everything cross-cutting (logo, chat, pause, timer, the global UserMenu) is the responsibility of `<GamePage>` / App.
 
 ### `useGame`
 
