@@ -121,7 +121,7 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 
 - `InfoCol` to the other 7 standard games (waffle, boggle, wordle, connections,
   psychicnum, spellingbee, codenamesduet). bananagrams excepted.
-- `BoardCol` to the heavy-input games (scrabble, spellingbee); `Board` for boggle.
+- `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee); `Board` for boggle.
 - Add turn-history to the games where the board history is meaningful
   (codenamesduet/tinyspy, connections, waffle) — now a drop-in against the contract.
 
@@ -196,6 +196,27 @@ building it on stackdown.
   both before and after a botched CSS-relocation; the geometry diff is what actually
   catches a moved boundary. Use the same stash/baseline/compare dance for each
   game's `BoardCol`/`InfoCol` extraction.
+
+- **`BoardCol` owns its RPCs when commit is inseparable from input state (scrabble).**
+  The target contract is "BoardCol emits ONE committed action up; PlayArea does the
+  RPC" (stackdown/waffle). scrabble breaks it: `play_word`/`exchange` claim
+  `lastActionRef` *before the await* (the realtime-beats-RPC race) and their results
+  mutate `optimistic`/`staged`/the flashes — all state the version-reset effect reads.
+  Splitting the RPC from that state tears one atomic machine in half, so scrabble's
+  `BoardCol` owns the RPCs directly (PlayArea hands it `game` + `gameId`). The rule:
+  emit-up when the coordinator can own the *result*; own-the-RPC when the result
+  mutates deep input state. (Feedback still lifted to PlayArea, like stackdown —
+  InfoCol's End/Concede write the same below-board pill, so that channel IS
+  cross-column even though the move RPCs aren't.)
+
+- **For a heavy-input game, gate the extraction behind a real gameplay e2e first.**
+  scrabble's component tests mock `useGame`/`db`, so they never exercise the turn
+  machine (drag/cursor staging → `play_word` → optimistic hold → version-reset rack
+  rebuild) — exactly what `BoardCol` moves. Before cutting, we added
+  `e2e/scrabble.e2e.ts` (pin the coop rack via `setScrabbleRack`, type a word at the
+  center, Submit, assert the "+score" acceptance + rack refill), ran it green on the
+  pre-refactor tree, then re-ran it after — a behavioral before/after gate alongside
+  the geometry one. Do this for any game whose input engine the tests can't reach.
 
 ## Future / open
 
