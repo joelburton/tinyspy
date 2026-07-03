@@ -3,6 +3,29 @@
  * TurnLog.module.css). Only the bits unique to stackdown's rows remain here. */
 
 
+/* A clickable turn row — opens the board viewer for that turn (the whole row is
+ * the hit target; the word span stopPropagation's so defining it doesn't also
+ * open the viewer). Mirrors scrabble's PlayLog .row. */
+.row {
+  cursor: pointer;
+}
+.row:hover td,
+.row:focus-visible td {
+  background: var(--color-surface-hover);
+}
+.row:focus-visible {
+  outline: none;
+}
+/* The row whose turn is open in the viewer — an accent outline (not a fill),
+ * marking "this is the turn you're viewing" for any kind of row. The board's
+ * green ring separately marks the word a valid turn cleared; the two colors are
+ * deliberately distinct (a hint / rejected row has no green). outline-offset
+ * pulls it inside the row box so it doesn't collide with neighbouring rows. */
+.viewedRow {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 /* An invalid attempt — struck through and dimmed (the red bar carries the
  * "rejected" signal). */
 .invalidWord {

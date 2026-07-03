@@ -19,6 +19,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { exposedIds } from '../lib/board'
+import { turnSnapshot } from '../lib/history'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
@@ -31,6 +32,9 @@ import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+
+/** Empty highlight set — while live, the board rings no tiles green (turn-viewer only). */
+const NO_TILES: ReadonlySet<number> = new Set()
 
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
@@ -83,6 +87,17 @@ export function PlayArea({
     loading,
   } = useGame(gameId)
   const [submitting, setSubmitting] = useState(false)
+
+  // ─── Turn-history viewer ──────────────────────────────────────
+  // Cross-column coordination state (the seam the PlayArea decomposition is
+  // built around — docs/playarea-decomposition-plan.md): the log row currently
+  // open on the board. Identified by the row's POSITION in the log, not its seq
+  // (stackdown's seq is per-user — see lib/history). null = live. When set, the
+  // board renders that turn's historical snapshot (the fuller stack, minus the
+  // words cleared strictly before it) with the played word ringed green, input
+  // frozen; any keystroke / a click on the board / the pill's ✕ returns to live.
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null)
+  const exitViewing = useCallback(() => setViewingIndex(null), [])
 
   // ─── Local own-move feedback (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched no
@@ -252,8 +267,16 @@ export function PlayArea({
   // candidates and asks you to click one. useGlobalKeyHandler reads this
   // closure fresh each render and ignores keys aimed at chat / inputs.
   useGlobalKeyHandler((e) => {
-    if (!game || !canPlay) return
+    if (!game) return
     if (e.metaKey || e.ctrlKey || e.altKey) return
+    // While viewing a past turn, any (non-modifier) key returns to the live board
+    // (navigation is by clicking log rows) and consumes the key — checked before
+    // the canPlay gate, since viewing can be active while it's still your turn.
+    if (viewingIndex != null) {
+      exitViewing()
+      return
+    }
+    if (!canPlay) return
     // Any handled keystroke is a "next move" — clear the previous local pill.
     // The no-match / ambiguous branches below set a fresh one after this.
     clearLocalFeedback()
@@ -378,9 +401,23 @@ export function PlayArea({
     ? submissions.filter((s) => s.user_id === session.user.id)
     : submissions
 
-  // The below-board local pill: the permanent terminal verdict takes precedence
-  // over any transient own-move message.
-  const localPill: GenericFeedbackMsg | null = over
+  // Turn viewer: the historical board for the row being viewed (or null when
+  // live). `viewingIndex` indexes `logWords` — the same chronological list the
+  // FoundWords log shows — so coop replays the shared board and compete the
+  // caller's own, for free. Works at terminal too (reviewing the finished stack).
+  const viewing = viewingIndex != null
+  const snap = viewing ? turnSnapshot(logWords, viewingIndex) : null
+
+  // The below-board local pill. Precedence: the turn-viewer's description (while
+  // peeking) → the permanent terminal verdict → the transient own-move message.
+  const localPill: GenericFeedbackMsg | null = snap
+    ? {
+        tone: 'neutral',
+        text: snap.description,
+        variant: 'outline',
+        dismiss: { kind: 'closeable' }, // its ✕ returns to live
+      }
+    : over
     ? {
         tone: over.outcome === 'won' ? 'success' : 'error',
         text: over.verdict,
@@ -391,12 +428,18 @@ export function PlayArea({
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* While viewing a past turn, a click anywhere in the board column returns
+          to live (matches scrabble's "click to exit"); it's a no-op when live. */}
+      <div
+        className={cls(shared.boardCol, styles.boardCol)}
+        onClick={viewing ? exitViewing : undefined}
+      >
         <Board
           tiles={game.tiles}
-          offBoard={offBoard}
-          active={canPlay}
-          highlight={flashIds}
+          offBoard={snap ? snap.offBoard : offBoard}
+          active={canPlay && !viewing}
+          highlight={snap ? NO_TILES : flashIds}
+          green={snap?.greenTiles}
           onTileClick={onTileClick}
         />
 
@@ -405,7 +448,7 @@ export function PlayArea({
             <WordEntry
               tiles={game.tiles}
               currentWord={currentWord}
-              active={canPlay}
+              active={canPlay && !viewing}
               onRetract={retractTo}
               flash={flash}
             />
@@ -415,7 +458,7 @@ export function PlayArea({
               appears/clears. */}
           <div className={shared.localFeedback}>
             {localPill && (
-              <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />
+              <GenericFeedbackPill msg={localPill} onClose={viewing ? exitViewing : clearLocalFeedback} />
             )}
           </div>
         </div>
@@ -533,7 +576,13 @@ export function PlayArea({
           </div>
         )}
 
-        <FoundWords submissions={logWords} players={members} showWho={!isCompete} />
+        <FoundWords
+          submissions={logWords}
+          players={members}
+          showWho={!isCompete}
+          viewingIndex={viewingIndex}
+          onSelectTurn={setViewingIndex}
+        />
       </div>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />

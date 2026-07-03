@@ -157,3 +157,77 @@ describe('stackdown PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })
+
+/**
+ * Turn-history viewer (docs/playarea-decomposition-plan.md, Phase A). Clicking a
+ * log row replays that turn's board; a keystroke / click returns to live. These
+ * prove the cross-column seam is wired right — the snapshot logic itself is
+ * unit-tested in lib/history.test.ts. Eight uniquely-lettered tiles so we can
+ * probe a single cleared tile by its letter (L is in the cleared word CLEAR, not
+ * in the remaining M/O/T).
+ */
+describe('stackdown PlayArea — turn-history viewer', () => {
+  const historyTiles: Tile[] = [
+    { id: 1, x: 0, y: 0, z: 0, letter: 'C' },
+    { id: 2, x: 1, y: 0, z: 0, letter: 'L' },
+    { id: 3, x: 2, y: 0, z: 0, letter: 'E' },
+    { id: 4, x: 3, y: 0, z: 0, letter: 'A' },
+    { id: 5, x: 4, y: 0, z: 0, letter: 'R' },
+    { id: 6, x: 5, y: 0, z: 0, letter: 'M' },
+    { id: 7, x: 6, y: 0, z: 0, letter: 'O' },
+    { id: 8, x: 7, y: 0, z: 0, letter: 'T' },
+  ]
+  // A valid word cleared tiles 1..5 (CLEAR), then a hint was requested. Coop, so
+  // the log shows both, in submitted_at order (index 0 = the word, 1 = the hint).
+  const submissions: SubmissionRow[] = [
+    { user_id: 'u2', seq: 1, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, submitted_at: '2026-01-01T00:00:01Z' },
+    { user_id: 'u1', seq: 1, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, submitted_at: '2026-01-01T00:00:02Z' },
+  ]
+
+  /** A loaded coop hook whose board is the 8-tile fixture with CLEAR's tiles
+   *  already off the live board. */
+  function historyHook(): GameHook {
+    return {
+      ...loaded(loadedGame({ mode: 'coop', tiles: historyTiles }), twoRows),
+      submissions,
+      removedTileIds: new Set([1, 2, 3, 4, 5]),
+    }
+  }
+
+  it('clicking a word row replays that turn; a keystroke returns to live', async () => {
+    const user = userEvent.setup()
+    h.result = historyHook()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+
+    // Live: CLEAR's tiles are off the board (L is one of them).
+    expect(screen.queryByText('L')).not.toBeInTheDocument()
+
+    // Click the CLEAR row (its word cell, going up to the row — the row, not the
+    // word span, carries the view handler; the span stopPropagation's to define).
+    await user.click(screen.getByText('CLEAR').closest('tr')!)
+
+    // Viewing turn 0: the description pill shows, and CLEAR's tiles are back on
+    // the historical board (nothing was cleared before it).
+    expect(screen.getByText('Cleared CLEAR')).toBeInTheDocument()
+    expect(screen.getByText('L')).toBeInTheDocument()
+
+    // Any key returns to live — the pill clears and the tiles leave again.
+    await user.keyboard('x')
+    expect(screen.queryByText('Cleared CLEAR')).not.toBeInTheDocument()
+    expect(screen.queryByText('L')).not.toBeInTheDocument()
+  })
+
+  it('viewing a later (hint) turn shows the board AS OF that turn — earlier word already cleared', async () => {
+    const user = userEvent.setup()
+    h.result = historyHook()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+
+    await user.click(screen.getByText('Hint: a fruit').closest('tr')!)
+
+    // The hint's description now also appears in the pill (2 = log row + pill).
+    expect(screen.getAllByText('Hint: a fruit')).toHaveLength(2)
+    // A hint cleared nothing, and CLEAR (before it) had — so the historical board
+    // still has CLEAR's tiles OFF (strictly-before boundary).
+    expect(screen.queryByText('L')).not.toBeInTheDocument()
+  })
+})

@@ -38,21 +38,34 @@ export function FoundWords({
   submissions,
   players,
   showWho,
+  viewingIndex,
+  onSelectTurn,
 }: {
   submissions: SubmissionRow[]
   players: Member[]
   showWho: boolean
+  /** The turn currently open in the board viewer (highlights its row), or null.
+   *  Identified by log POSITION, not seq — stackdown's seq is per-user (see
+   *  lib/history). */
+  viewingIndex: number | null
+  /** Open a turn in the board viewer (click any row — words, misses, cheats). */
+  onSelectTurn: (index: number) => void
 }) {
   // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
   const { define: openDefine, popover } = useDefinePopover()
 
   // Click / keyboard activation for a clickable word chip (mirrors
-  // spellingbee's WordList — same "Click to define" affordance).
+  // spellingbee's WordList — same "Click to define" affordance). stopPropagation
+  // so defining a word doesn't ALSO open that row's turn viewer.
   const defineActivation = (word: string) => ({
-    onClick: (e: MouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
+    onClick: (e: MouseEvent<HTMLSpanElement>) => {
+      e.stopPropagation()
+      openDefine(word, e.currentTarget)
+    },
     onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
+        e.stopPropagation()
         openDefine(word, e.currentTarget)
       }
     },
@@ -79,7 +92,25 @@ export function FoundWords({
           return (
             // Every submission is its own one-row "turn"; the divider draws the
             // between-rows line (:first-child suppresses it on the first row).
-            <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
+            // The whole row is clickable to open that turn on the board viewer.
+            <tr
+              key={`${s.user_id}-${s.seq}`}
+              className={cls(
+                turnLog.turnLogDivider,
+                styles.row,
+                viewingIndex === i && styles.viewedRow,
+              )}
+              role="button"
+              tabIndex={0}
+              title="Click to view this turn on the board"
+              onClick={() => onSelectTurn(i)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onSelectTurn(i)
+                }
+              }}
+            >
               <TurnLogBar outcome={outcome} />
               <td className={turnLog.meta}>#{i + 1}</td>
               <td className={turnLog.main}>
