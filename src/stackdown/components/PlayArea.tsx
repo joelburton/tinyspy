@@ -7,6 +7,7 @@ import type {
   GamePageCtx,
 } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
+import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { GameOverModal } from '../../common/components/GameOverModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
@@ -465,8 +466,8 @@ export function PlayArea({
               button. */}
           {over ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.outcome === 'won' ? 'won' : 'lost'}`])}>
-                {over.status}
+              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
+                {over.message}
               </span>
               <BackToClubButton onClick={goToClub} compact />
             </div>
@@ -556,9 +557,10 @@ export function PlayArea({
   )
 }
 
-/** Terminal verdict + status copy, mode- and (compete) self-aware. `outcome` +
- *  `verdict` drive the GameOverModal + the permanent below-board pill; `status`
- *  drives the short bold line in the info-column action row. */
+/** Terminal copy (the shared `TerminalCopy`), mode- and (compete) self-aware.
+ *  `outcome` + `verdict` drive the GameOverModal + the permanent below-board
+ *  pill; `message` + `tone` drive the short bold line in the info-column action
+ *  row (`tone` picks its `outcome_<tone>` color — incl. neutral for a manual end). */
 function buildOver({
   mode,
   playState,
@@ -569,37 +571,31 @@ function buildOver({
   playState: string
   timerExpired: boolean
   selfWon: boolean
-}): { outcome: 'won' | 'lost'; verdict: string; status: string } {
-  // Manual end (stackdown.end_game) → neutral 'ended'. We reuse the
-  // modal's 'won' (green) treatment; the verdict copy makes clear
-  // there's no winner.
-  if (playState === 'ended') {
-    return {
-      outcome: 'won',
-      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      status: 'Game ended',
-    }
-  }
+}): TerminalCopy {
+  // Manual end (stackdown.end_game) → the shared neutral copy (no winner).
+  if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Stack cleared! 🎉', status: 'Cleared!' }
+      return { outcome: 'won', verdict: 'Stack cleared! 🎉', message: 'Cleared!', tone: 'won' }
     }
     return {
       outcome: 'lost',
       verdict: timerExpired ? 'Out of time.' : 'Stack not cleared.',
-      status: timerExpired ? 'Out of time' : 'Not cleared',
+      message: timerExpired ? 'Out of time' : 'Not cleared',
+      tone: 'lost',
     }
   }
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'You won — cleared it first!', status: 'You won!' }
-      : { outcome: 'lost', verdict: 'Beaten to the clear.', status: 'Opponent won' }
+      ? { outcome: 'won', verdict: 'You won — cleared it first!', message: 'You won!', tone: 'won' }
+      : { outcome: 'lost', verdict: 'Beaten to the clear.', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete — nobody cleared, or time ran out
   return {
     outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody cleared it.',
-    status: timerExpired ? 'Out of time' : 'No winner',
+    message: timerExpired ? 'Out of time' : 'No winner',
+    tone: 'lost',
   }
 }
