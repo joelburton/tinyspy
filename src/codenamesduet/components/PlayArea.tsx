@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
@@ -21,12 +17,10 @@ import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { turnSnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
-import { BoardGrid } from './BoardGrid'
-import { CluePanel, ClueSuggestionModal, type SuggestState } from './CluePanel'
-import { GameTurnLog } from './GameTurnLog'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
+import { ClueSuggestionModal, type SuggestState } from './CluePanel'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
 
@@ -64,10 +58,6 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * hand each piece to the right sub-component. Realtime keeps
  * everything in sync.
  */
-
-/** Local feedback pills here are never closeable, so the × is never rendered and
- *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
 
 /** Build codenamesduet's own-action local pill: outline + TIMED (auto-clears
  *  after a beat — the only own-move feedback is a rejected guess / failed End /
@@ -232,15 +222,14 @@ export function PlayArea({
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss. See common/hooks/useTerminalModal.ts.
 
-  // ─── Own-action feedback (local) + guess dispatch ──────
-  // A board click is the guess move; PlayArea owns the submit_guess RPC + the
-  // pending-tile state (like psychicnum/connections own their submit) so the
-  // own-action local <GenericFeedbackPill> lives in the below-board slot next to the
-  // clue UI — the LOCAL half of the feedback split (turn-state changes go to the
-  // pill via useTurnPill). codenamesduet's guess RESULT shows on the board (the
-  // tile reveal) + the turn log, so this flash is ERROR-ONLY: a rejected guess
-  // or a failed End. Shared machinery; PlayArea owns where it renders.
-  const [pendingPos, setPendingPos] = useState<number | null>(null)
+  // ─── Own-action feedback (local) ───────────────────────
+  // The below-board local-feedback channel — the LOCAL half of the feedback split
+  // (own action → this pill; peer/turn-state news → the header pill via useTurnPill).
+  // It lives HERE, in the coordinator, because BOTH columns write it: BoardCol's
+  // guess dispatch (a rejected guess) AND InfoCol's End (a failed end-game). It's
+  // ERROR-ONLY (a successful guess shows on the board + turn log), plus the terminal
+  // verdict. PlayArea passes `localFeedback` down to BoardCol to render + an `onError`
+  // that wraps it; the guess RPC + pending-tile state moved into BoardCol.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
     useLocalFeedback({ locked: isTerminal })
   // Any key is the player's next move → dismiss the own-move pill. Guarded by
@@ -272,33 +261,8 @@ export function PlayArea({
   const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
-  // In-flight guard against a double-guess. A synchronous ref, not the `pendingPos`
-  // state, because it must block BEFORE any re-render: the tile's `disabled` gate
-  // only follows setPendingPos → re-render, so it misses a same-tick double-tap on
-  // the tile AND a click on a DIFFERENT tile while the first guess is still
-  // committing (you shouldn't guess again until the reveal resolves).
-  const guessInFlight = useRef(false)
-  const handleGuess = useCallback(
-    async (position: number) => {
-      if (guessInFlight.current) return
-      guessInFlight.current = true
-      clearLocalFeedback()
-      setPendingPos(position)
-      const { error } = await db.rpc('submit_guess', {
-        target_game: gameId,
-        target_position: position,
-      })
-      setPendingPos(null)
-      guessInFlight.current = false
-      if (error) {
-        console.error('submit_guess failed', error)
-        showLocalFeedback(ownAction('error', error.message))
-      }
-      // Success: the reveal arrives via Realtime → useBoard refetches → the tile
-      // re-renders with its result color. No optimistic update, no flash.
-    },
-    [gameId, showLocalFeedback, clearLocalFeedback],
-  )
+  // (The guess dispatch — submit_guess + the pending-tile state + the in-flight
+  // guard — moved into BoardCol, beside the board it gates.)
 
   // ─── End-game action (info-column action-row button) ───
   // The friends' explicit "we're done" affordance — an action-row button (like
@@ -394,212 +358,60 @@ export function PlayArea({
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      {/* Exit-on-click is handled document-wide while viewing (see the effect above)
-          — a click anywhere returns to live. The board grid drops its pointer-events
-          while viewing (`gridViewing`) so a click on a disabled tile still reaches
-          the document (a disabled <button> would otherwise swallow it). */}
-      <div className={shared.boardCol}>
-        <BoardGrid
-          words={snap ? snap.words : words}
-          myKey={myKey}
-          peerKey={peerKey}
-          mySeat={mySeat}
-          gameOver={gameOver}
-          cellsClickable={cellsClickable && !viewing}
-          pendingPos={pendingPos}
-          onGuess={handleGuess}
-          viewing={viewing}
-          highlight={snap?.highlight}
-        />
-        {/* The below-board slot — codenamesduet's move-input zone
-            (docs/design-decisions.md → BoardCol → belowBoard). Three states, all
-            in the same fixed-height slot so the top-anchored board never shifts as
-            it swaps:
-              - terminal → a PERMANENT (fill, outcome-colored) <GenericFeedbackPill>
-                carrying the verdict — the terminal state always also lands as
-                local feedback, alongside the info-column outcome line
-                (docs/design-decisions.md → Feedback);
-              - own-action error → a transient (outline, error) <GenericFeedbackPill> for
-                a beat (a rejected guess / failed End — the LOCAL half of the
-                feedback split; turn-state changes go to the header pill);
-              - else → the CluePanel (clue form / clue display + Pass / waiting). */}
-        <div className={styles.belowBoard}>
-          <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
-          {/* Turn-viewer banner — while inspecting a past turn it overlays this
-              below-board slot (the CluePanel / pill stays mounted underneath, so an
-              in-progress clue survives). Opaque surface + yellow border = the shared
-              "viewing history" marker; the description names the turn. Click anywhere
-              / the ✕ returns to live. */}
-          {viewing && snap && (
-            <div className={history.banner} onClick={exitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{snap.description}</span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  exitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-          {over ? (
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={{
-                  tone:
-                    over.tone === 'won'
-                      ? 'success'
-                      : over.tone === 'lost'
-                        ? 'error'
-                        : 'neutral',
-                  text: over.verdict,
-                  variant: 'fill', // permanent → lightened-tone fill
-                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
-                }}
-                onClose={noop}
-              />
-            </div>
-          ) : localFeedback ? (
-            <div className={shared.localFeedback}>
-              {/* Own-action flash is error-only here (a rejected guess / failed
-                  End); the success path shows on the board + turn log instead. */}
-              <GenericFeedbackPill msg={localFeedback} onClose={noop} />
-            </div>
-          ) : (
-            <div className={styles.moveArea}>
-            <CluePanel
-              gameId={gameId}
-              isClueGiver={isClueGiver}
-              isGuessPhase={isGuessPhase}
-              currentClue={currentTurnClue}
-              inSuddenDeath={inSuddenDeath}
-              peer={peer}
-              // Own-action errors → the local flash (replaces the slot for a
-              // beat, never grows it). The AI clue suggestion opens its own
-              // draggable panel (rendered at the .layout level below, so it's
-              // on-screen) — the requester's helper output, not peer feedback.
-              onError={(m) => showLocalFeedback(ownAction('error', m))}
-              onSuggestionChange={setClueSuggestion}
-            />
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
+      <BoardCol
+        // ── Board to render (live OR the historical snapshot — picked here) ──
+        words={snap ? snap.words : words}
+        myKey={myKey}
+        peerKey={peerKey}
+        mySeat={mySeat}
+        gameOver={gameOver}
+        cellsClickable={cellsClickable}
+        highlight={snap?.highlight}
+        // ── History viewer ──
+        viewing={viewing}
+        viewingDescription={snap?.description ?? null}
+        onExitViewing={exitViewing}
+        // ── Guess dispatch (BoardCol owns submit_guess) ──
+        gameId={gameId}
+        onError={(m) => showLocalFeedback(ownAction('error', m))}
+        clearLocalFeedback={clearLocalFeedback}
+        // ── Below-board slot content ──
+        over={over}
+        localPill={localFeedback}
+        // ── Clue panel ──
+        isClueGiver={isClueGiver}
+        isGuessPhase={isGuessPhase}
+        currentClue={currentTurnClue}
+        inSuddenDeath={inSuddenDeath}
+        peer={peer}
+        onSuggestionChange={setClueSuggestion}
+      />
 
-      <div className={shared.infoCol}>
-        {/* The non-log info column — the shared named readouts (.infoSetup /
-            .infoState / .infoHelp / .infoActions) from PlayArea.module.css, so
-            they read the same across games. */}
-        {/* Info-column readouts in the shared canonical order
-            (docs/design-decisions.md → Info column): STATE → [opponent strip —
-            n/a, peer status rides the header pill] → ACTIONS → HELP → SETUP
-            disclosure, then the turn log below. codenamesduet's finished-player
-            banners are a loud live-state announcement, so they sit right under
-            the state line. */}
-        <div className={shared.actionSlot}>
-          <p className={shared.infoState}>
-            <strong>{greenFound}</strong>/15 agents ·{' '}
-            {inSuddenDeath ? (
-              'sudden death'
-            ) : (
-              <>
-                <strong>{game.turn_number}</strong>/{codenamesduetSetup.turns} turns
-              </>
-            )}
-          </p>
-
-          {/* Duet's finished-player rule, surfaced to BOTH players so neither
-              reads the lopsided turn flow as a bug — a prominent colored banner
-              right under the live state it explains. */}
-          {viewerFinished && (
-            <div className={styles.finishedNote}>
-              All your agents have been found! From here{' '}
-              {peer ? (
-                <strong style={{ color: colorVarFor(peer.color) }}>
-                  {peer.username}
-                </strong>
-              ) : (
-                'your partner'
-              )}{' '}
-              gives every remaining clue — keep guessing to find theirs.
-            </div>
-          )}
-          {peerFinished && (
-            <div className={styles.peerDoneNote}>
-              {peer ? (
-                <strong style={{ color: colorVarFor(peer.color) }}>
-                  {peer.username}
-                </strong>
-              ) : (
-                'Your partner'
-              )}{' '}
-              has found all their agents — you give every remaining clue now, and
-              they do the guessing.
-            </div>
-          )}
-
-          {/* Action row. Playing: End. Terminal: the bold, outcome-colored
-              result line + a compact back-to-club button (the shared swap). */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : (
-            <div className={shared.infoActions}>
-              {/* Manual "we're done" stop — the shared EndGameButton (flag +
-                  error/red tone, the canonical "End" label). codenamesduet is coop,
-                  so End (a mutual stop), not Concede. It reads distinctly from this
-                  game's "Pass & end turn" below the board (a different component +
-                  glyph), so it keeps the same plain "End" as every other v3 game. */}
-              <EndGameButton
-                onClick={() => void handleEndGame()}
-                className={shared.helperButton}
-              />
-            </div>
-          )}
-
-          {/* Help — a stable orienting line during play (the per-phase guidance
-              lives below the board + in the header pill). In sudden death it
-              switches to the sudden-death rules; the help is muted and easily
-              skimmed-past as "unchanged", so it leads with a RED "SUDDEN DEATH:"
-              tag to flag that it's different now. */}
-          {!over && (
-            <p className={shared.infoHelp}>
-              {inSuddenDeath ? (
-                <>
-                  <strong className={styles.suddenDeathTag}>SUDDEN DEATH:</strong>{' '}
-                  no clues left — every reveal must be an agent. One non-green
-                  guess (a bystander or the assassin) ends the game.
-                </>
-              ) : (
-                'Give clues for your agents; guess the clues your partner gives you.'
-              )}
-            </p>
-          )}
-
-          {/* Setup — a disclosure, LAST before the turn log (closed by default so
-              it doesn't claim space; opening it grows the slot, the one allowed
-              exception since it's closable). */}
-          <SetupDisclosure>
-              <li>{codenamesduetSetup.turns} turns</li>
-              <li>First clue: {firstClueGiver?.username ?? '—'}</li>
-              <li>{timerLabel(codenamesduetSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        <GameTurnLog
-          clues={clues}
-          guesses={guesses}
-          players={players}
-          currentTurn={game.turn_number}
-          gameOver={gameOver}
-          viewingTurn={viewingId}
-          onSelectTurn={selectTurn}
-        />
-      </div>
+      <InfoCol
+        // ── Mode + phase ──
+        over={over}
+        inSuddenDeath={inSuddenDeath}
+        // ── State readout ──
+        greenFound={greenFound}
+        turnNumber={game.turn_number}
+        // ── Finished-player banners ──
+        viewerFinished={viewerFinished}
+        peerFinished={peerFinished}
+        peer={peer}
+        // ── Action row ──
+        onEndGame={() => void handleEndGame()}
+        onBackToClub={goToClub}
+        // ── Setup disclosure ──
+        setup={codenamesduetSetup}
+        firstClueGiver={firstClueGiver}
+        // ── Turn-history log ──
+        clues={clues}
+        guesses={guesses}
+        players={players}
+        gameOver={gameOver}
+        viewingTurn={viewingId}
+        onSelectTurn={selectTurn}
+      />
 
       {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
           (a flex row), like GameOverModal — so react-rnd places it on-screen.

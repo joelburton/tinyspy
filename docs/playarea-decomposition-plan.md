@@ -123,11 +123,14 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   psychicnum, spellingbee, codenamesduet). bananagrams excepted.
 - `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee); `Board` for boggle.
 - Add turn-history to the games where the board history is meaningful
-  (codenamesduet/tinyspy ✅ done — feature-first on the monolith, decomposition next;
-  connections, waffle ✅) — now a drop-in against the contract. codenamesduet keys the
-  viewer by `turn_number` (game-wide ordinal, like scrabble's `seq`, not log position);
-  its snapshot (`src/codenamesduet/lib/history.ts`) folds the guess log onto the fixed
-  board (global `revealed_as` + per-seat `neutral_a/b`) and rings that turn's own cells.
+  (codenamesduet/tinyspy ✅ done — viewer + **decomposed** (BoardCol/InfoCol, no-op
+  verified); connections next; waffle ✅) — now a drop-in against the contract.
+  codenamesduet keys the viewer by `turn_number` (game-wide ordinal, like scrabble's
+  `seq`, not log position); its snapshot (`src/codenamesduet/lib/history.ts`) folds the
+  guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
+  rings that turn's own cells. Its BoardCol owns the **guess** RPC (a two-input game —
+  the guess is a board click; `CluePanel` keeps the clue RPCs); feedback lifts to
+  PlayArea (both columns write the below-board pill).
 
 ### Prop conventions for the columns (decided during the stackdown prototype)
 

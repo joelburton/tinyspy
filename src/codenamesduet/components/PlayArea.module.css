@@ -1,19 +1,8 @@
-/* codenamesduet play surface. The two-column SHELL (.layout / .boardCol /
- * .infoCol), the info-column READOUTS (.infoSetup / .infoState / .infoHelp /
- * .infoActions + the terminal swap), and the tile chrome all come from the
- * shared common/components/PlayArea.module.css (imported as `shared`), the same
- * scaffold psychicnum and connections use. Only the bits unique to codenamesduet
- * live here:
- *   - .belowBoard — the below-board move-input slot (the clue UI during play, a
- *     local feedback pill for an own-action error or the terminal verdict);
- *   - .finishedNote / .peerDoneNote — the finished-player banners in the info
- *     column;
- *   - .suddenDeathTag — the red "SUDDEN DEATH:" lead-in on the info-column help.
- *
- * Sudden death (game.status === 'sudden_death') is signalled WITHOUT a
- * whole-layout frame — that border + padding shrank the viewport-height layout
- * and made the board jump. Instead it shows in the header pill, the below-board
- * CluePanel notice, and the info-column help (the red tag below). */
+/* codenamesduet play surface (the thin coordinator). The two-column SHELL
+ * (.layout / .boardCol / .infoCol), the info-column readouts, and the tile chrome
+ * all come from the shared common/components/PlayArea.module.css (imported as
+ * `shared`). The only class left here is the layout var; the column-specific bits
+ * live with their columns (BoardCol.module.css / InfoCol.module.css). */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). codenamesduet's right column (setup + agent/turn
@@ -21,62 +10,4 @@
  * rem, never a pixel lock. */
 .layout {
   --info-col-width: 22rem;
-}
-
-/* The red "SUDDEN DEATH:" lead-in on the otherwise-muted info-column help, so a
- * player skimming past "the help hasn't changed" still catches that it has. */
-.suddenDeathTag {
-  color: var(--codenamesduet-assassin);
-}
-
-/* The below-board REGION (universal). `display: contents` — the swap box inside
- * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. It
- * raises the swap box's reserved height to `3rem` (via the shared var) to clear
- * codenamesduet's clue-form controls — taller than a single button/entry — so
- * the top-anchored board never shifts as the CluePanel ↔ pill swap (docs/ui.md →
- * "Layout stability"). Every state's content fits within it. */
-.belowBoard {
-  display: contents;
-  --swap-box-min-height: 3rem;
-}
-
-/* codenamesduet's move controls: the CluePanel (clue form / clue display + Pass
- * / waiting copy). `display: contents` — a naming wrapper; the panel keeps its
- * place inside the swap box, and a local/terminal pill takes its spot. */
-.moveArea {
-  display: contents;
-}
-
-/* Turn-history: while a past turn is open in the viewer, the below-board banner
- * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
- * that box a positioning context. Applied only while viewing; inert otherwise (the
- * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
-.slotViewing {
-  position: relative;
-}
-
-/* Finished-player banner in the info column. Shown to a player whose agents are
- * all contacted, explaining that their partner gives every remaining clue
- * (Duet's finished-player rule). Painted in the "agent" green soft-banner fill so
- * it reads as an accomplishment ("you're done!"), not a warning. */
-.finishedNote {
-  font-size: 0.9rem;
-  line-height: 1.45;
-  padding: 0.55rem 0.7rem;
-  border-radius: 6px;
-  background: var(--codenamesduet-agent-soft-banner);
-  color: var(--codenamesduet-agent-text);
-}
-
-/* The mirror banner for the OTHER player — "your partner is done, you give all
- * the clues now." Informational rather than celebratory, so it's painted in the
- * calm neutral (bystander tan) tones instead of the agent green, keeping the two
- * notes visually distinct. */
-.peerDoneNote {
-  font-size: 0.9rem;
-  line-height: 1.45;
-  padding: 0.55rem 0.7rem;
-  border-radius: 6px;
-  background: var(--codenamesduet-neutral-soft-bright);
-  color: var(--codenamesduet-neutral-text);
 }

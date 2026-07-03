@@ -1,0 +1,31 @@
+/* codenamesduet's board-column bits. The board itself is <BoardGrid> (its own
+ * module); this file styles only the below-board move-input REGION under it — the
+ * slot that swaps between the CluePanel, an own-action / terminal pill, and (while
+ * viewing history) the banner overlay. The scaffold (.boardCol / .moveAreaOrLocal-
+ * Feedback / .localFeedback) is the shared common/components/PlayArea.module.css. */
+
+/* The below-board REGION (universal). `display: contents` — the swap box inside
+ * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. It
+ * raises the swap box's reserved height to `3rem` (via the shared var) to clear
+ * codenamesduet's clue-form controls — taller than a single button/entry — so the
+ * top-anchored board never shifts as the CluePanel ↔ pill swap (docs/ui.md →
+ * "Layout stability"). Every state's content fits within it. */
+.belowBoard {
+  display: contents;
+  --swap-box-min-height: 3rem;
+}
+
+/* codenamesduet's move controls: the CluePanel (clue form / clue display + Pass /
+ * waiting copy). `display: contents` — a naming wrapper; the panel keeps its place
+ * inside the swap box, and a local/terminal pill takes its spot. */
+.moveArea {
+  display: contents;
+}
+
+/* Turn-history: while a past turn is open in the viewer, the below-board banner
+ * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
+ * that box a positioning context. Applied only while viewing; inert otherwise (the
+ * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
+.slotViewing {
+  position: relative;
+}
