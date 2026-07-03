@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { TerminalModal } from '../../common/components/TerminalModal'
@@ -7,8 +7,9 @@ import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
-import { useGame } from '../hooks/useGame'
+import { useGame, type PlayRow } from '../hooks/useGame'
 import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
+import { printScrabblePdf } from '../pdf/printScrabblePdf'
 import { BoardCol, type LocalFeedbackMsg, type ViewTarget } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
@@ -43,6 +44,7 @@ export function PlayArea({
   status,
   setup,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
 
@@ -100,6 +102,30 @@ export function PlayArea({
   )
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
   const canShare = game?.mode === 'coop' && members.length >= 2
+
+  // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
+  // Builds the print model from the live state (RLS already scoped it to what I may
+  // see — my own rack, my visible moves) and hands it to the jsPDF renderer. Prints
+  // a snapshot at click time, so it works mid-game or at the end. Re-registers when
+  // the inputs change so the closure stays fresh; cleared on unmount.
+  useEffect(() => {
+    if (!game) return
+    const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
+    const model = {
+      title: `Scrabble — ${new Date().toLocaleDateString()}`,
+      summary: isCompete
+        ? `${game.bagCount} tiles in the bag`
+        : `Team score: ${game.teamScore ?? 0} · ${game.bagCount} tiles in the bag`,
+      board: game.board,
+      moves: plays.map((p) => ({ seq: p.seq, who: nameOf(p.user_id), text: moveText(p) })),
+      rack,
+      rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
+    }
+    menu.setGameItems([
+      { id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, game, plays, self, isCompete, nameOf])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
@@ -187,6 +213,17 @@ export function PlayArea({
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
+}
+
+/** SPIKE: format one play for the print moves table (mirrors BoardCol's turnSummary). */
+function moveText(p: PlayRow): string {
+  if (p.kind === 'word') {
+    const words = (p.words ?? []).map((w) => w.toUpperCase()).join(', ')
+    return `+${p.score ?? 0} ${words}`
+  }
+  if (p.kind === 'exchange') return `exchanged ${p.tile_count} tiles`
+  if (p.kind === 'pass') return 'passed'
+  return `ended — ${-(p.score ?? 0)} tiles unplayed` // forfeit
 }
 
 /**
