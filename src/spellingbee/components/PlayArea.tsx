@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/EntryRow'
@@ -490,12 +490,7 @@ export function PlayArea(ctx: GamePageCtx) {
               replaced by the bold, outcome-colored result line + a compact
               back-to-club button. */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : isLocallyDone ? (
             // I conceded; the others race on. Terminal LOOK (a status line + the
             // now-disabled Concede) so the state change reads loudly.

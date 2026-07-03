@@ -5,7 +5,7 @@ import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../..
 import type { PsychicnumSetup } from '../lib/setup'
 import { TerminalModal } from '../../common/components/TerminalModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { HintButton } from '../../common/components/buttons/HintButton'
@@ -497,14 +497,7 @@ export function PlayArea({
               right) so the state change reads loudly, not as a silently-swapped
               help line (docs/design-decisions.md → InfoCol help). */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span
-                className={cls(shared.outcome, shared[`outcome_${over.tone}`])}
-              >
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : canGuess ? (
             <div className={shared.infoActions}>
               {/* Hint = a clue (common.words.hint); Reveal = the answer word.

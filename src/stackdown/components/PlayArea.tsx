@@ -9,7 +9,7 @@ import type {
 import { timerLabel } from '../../common/lib/timerLabel'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { HintButton } from '../../common/components/buttons/HintButton'
@@ -463,12 +463,7 @@ export function PlayArea({
               play; at terminal the bold outcome line + a compact back-to-club
               button. */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : isLocallyDone ? (
             // I conceded; the others race on. Terminal LOOK (a status line + the
             // now-disabled Concede) so the drop-out reads loudly.

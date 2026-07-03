@@ -6,7 +6,7 @@ import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member } fro
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -809,10 +809,7 @@ export function PlayArea({
               "You conceded" terminal look once I've dropped out (others race on);
               at terminal the bold outcome line + a compact back-to-club button. */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : isCompete && myConceded ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>

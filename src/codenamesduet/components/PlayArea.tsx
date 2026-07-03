@@ -5,7 +5,7 @@ import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
@@ -478,12 +478,7 @@ export function PlayArea({
           {/* Action row. Playing: End. Terminal: the bold, outcome-colored
               result line + a compact back-to-club button (the shared swap). */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : (
             <div className={shared.infoActions}>
               {/* Manual "we're done" stop — the shared EndGameButton (flag +

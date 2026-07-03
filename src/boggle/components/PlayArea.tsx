@@ -5,7 +5,7 @@ import { timerLabel } from '../../common/lib/timerLabel'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EntryRow } from '../../common/components/EntryRow'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
@@ -316,12 +316,7 @@ export function PlayArea(ctx: GamePageCtx) {
           {/* Action row — End (coop) / Concede (compete) during play; at terminal
               the bold outcome line + a compact back-to-club button. */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : isLocallyDone ? (
             // I conceded; the others race on. Terminal LOOK (a status line + the
             // now-disabled Concede) so the state change reads loudly.

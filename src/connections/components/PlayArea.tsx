@@ -4,7 +4,7 @@ import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../..
 import { timerLabel } from '../../common/lib/timerLabel'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { BackToClubButton } from '../../common/components/BackToClubButton'
+import { TerminalActionRow } from '../../common/components/TerminalActionRow'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
@@ -549,12 +549,7 @@ export function PlayArea({
               Concede (like psychicnum's out-of-guesses). Terminal: the outcome
               line + a compact back-to-club button. */}
           {over ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>
-                {over.message}
-              </span>
-              <BackToClubButton onClick={goToClub} compact />
-            </div>
+            <TerminalActionRow over={over} onBackToClub={goToClub} />
           ) : locallyDone ? (
             <div className={cls(shared.infoActions, shared.terminalActions)}>
               <span className={cls(shared.outcome, shared.outcome_neutral)}>
