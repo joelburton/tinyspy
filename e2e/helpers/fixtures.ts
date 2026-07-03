@@ -325,6 +325,25 @@ export async function createScrabbleGame(
   return { id: (row as { id: string }).id, gametype: `scrabble_${mode}` }
 }
 
+/** Pin a scrabble game's COOP shared rack to a known set, so a test can type a
+ *  deterministic, dictionary-valid word (create_game draws a random rack). Reaches
+ *  the base table directly via psql (superuser), the same test-only pattern as
+ *  drainBananagramsPool — no prod grant required. Tiles are single uppercase letters
+ *  (or '?' for a blank); validated to keep the interpolation safe. */
+export function setScrabbleRack(gameId: string, rack: string[]): void {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  if (!rack.every((t) => /^[A-Z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
+  execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1',
+      '-c', `update scrabble.games set shared_rack = '{${rack.join(',')}}' where id = '${gameId}';`,
+    ],
+    { stdio: 'pipe' },
+  )
+}
+
 /**
  * Start a connections game (coop by default). connections.create_game references
  * a puzzle by id, so we first insert a deterministic fixture puzzle — 4 categories
