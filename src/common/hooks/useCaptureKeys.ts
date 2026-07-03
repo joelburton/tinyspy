@@ -57,35 +57,23 @@ export type CaptureKeysOptions = {
    * Game-specific keys beyond the universal set (spellingbee: Space = shuffle).
    * Runs after `onAnyKey` + the Tab swallow, before the universal dispatch; the
    * callback does its own `preventDefault` and returns true to **claim** the key
-   * (the helper then stops). Optional.
-   *
-   * Note: ArrowUp (recall) and ArrowDown (clear) are now BUILT IN below — a game
-   * no longer wires them here; pass `recall` for ArrowUp to restore. `onExtraKey`
-   * still gets first refusal, so a game *could* claim an arrow if it ever needs to.
+   * (the helper then stops). Optional. (The EntryBox ArrowUp-recall / ArrowDown-
+   * clear history lives in the separate `useArrowHistory`, not here.)
    */
   onExtraKey?: (e: KeyboardEvent) => boolean
-  /**
-   * The last submitted value, for **ArrowUp = "recall last entry"** — the
-   * universal last-move-history affordance every capture game shares (add an 'S'
-   * to your last word, fix a typo, re-guess). The game tracks it (set in its
-   * submit handler, so it covers both Enter and the Submit button) and passes it
-   * here; ArrowUp restores it into the entry. Omit (or pass '') to make ArrowUp a
-   * no-op. **ArrowDown always clears** the entry — no option, it's universal.
-   */
-  recall?: string
 }
 
 /**
- * The shared **capture-entry key handler** for board-first word/number games —
- * the keyboard half of the capture model (the display half is `<EntryBox>`). It
- * reads keystrokes off the window (via `useGlobalKeyHandler`, which already drops
- * keys aimed at a focused text field like chat) and turns them into edits on a
- * pending value, so there's no `<input>` to lose focus when the player clicks a
- * board tile.
+ * The shared **capture-entry key handler** — the GENERIC key-capture core every
+ * key-capture game builds on (the keyboard half of the capture model; the display
+ * half is `<EntryBox>`, when there is one). It reads keystrokes off the window
+ * (via `useGlobalKeyHandler`, which already drops keys aimed at a focused text
+ * field like chat) and turns them into edits on a pending value, so there's no
+ * `<input>` to lose focus when the player clicks a board tile.
  *
  * It owns the **universal** capture plumbing — the bits docs/design-decisions.md
- * → "Move entry: EntryBox" / "Text entry" mandate for *every* such game, so they
- * stay identical and can't drift:
+ * → "Move entry" / "Text entry" mandate for *every* such game, so they stay
+ * identical and can't drift:
  *
  *   1. **Modifier bail** — leave `Cmd-R`, `Ctrl-Tab`, etc. to the browser.
  *   2. **Tab swallow** — Tab can't move focus off the board while the caret
@@ -93,15 +81,15 @@ export type CaptureKeysOptions = {
  *   3. **Feedback dismissal** — any key is the player's next move (`onAnyKey`).
  *   4. **Backspace** deletes the last character; **Enter** submits when non-empty.
  *   5. **Length cap** (`maxLength`, default 16).
- *   6. **ArrowUp recalls** the last submitted value (`recall`); **ArrowDown clears**
- *      the entry. The shared last-move-history affordance, identical everywhere.
  *
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits, the
  * stored case) and any extra keys (`onExtraKey` — spellingbee's Space-shuffle).
  *
- * Driven through the shared `<EntryRow>` (common/components/EntryRow.tsx), which
- * every EntryBox game renders — so the capture keyboard, the icon Delete/Submit
- * buttons, and the feedback-pill swap are all shared, not re-wired per game.
+ * **Layering** (docs/common.md → keyboard): the EntryBox-only history arrows —
+ * `ArrowUp` recalls the last entry, `ArrowDown` clears it — are NOT here; they're
+ * the separate `useArrowHistory`, layered on top by `<EntryRow>` (which every
+ * EntryBox game renders). A key-capture game that ISN'T an EntryBox (wordle:
+ * letters land on a grid, no box) uses this core ALONE and gets no arrow behavior.
  */
 export function useCaptureKeys({
   value,
@@ -113,7 +101,6 @@ export function useCaptureKeys({
   charFor = asciiLetters('lower'),
   maxLength = 16,
   onExtraKey,
-  recall,
 }: CaptureKeysOptions): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {
     // 1. Let the browser/OS keep any modified keystroke — Cmd-R, Ctrl-Tab, Cmd-L,
@@ -145,22 +132,6 @@ export function useCaptureKeys({
 
     // Soft-busy (mid-submit): dismissal + Tab already handled; block edits + submit.
     if (busy) return
-
-    // 6. Last-move history — the universal arrow affordance, identical across every
-    //    capture game. ArrowUp restores the last submitted value (`recall`);
-    //    ArrowDown clears the entry. Both are edits (past the busy gate);
-    //    preventDefault either way so the arrows never scroll the page while the
-    //    entry owns the keyboard.
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      if (recall) onChange(recall)
-      return
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      onChange('')
-      return
-    }
 
     // 4/5. A character to append (per the game's `charFor`), capped at maxLength.
     const ch = charFor(e.key)

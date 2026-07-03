@@ -13,7 +13,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, keyboard, lists, modal — renders for real.
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -241,6 +241,44 @@ describe('wordle PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+})
+
+describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => {
+  it('builds a guess from window keydowns and submits it on Enter', async () => {
+    rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    render(<PlayArea {...makeCtx()} />)
+    // The capture core reads keydowns off the window (no focused input).
+    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
+    )
+  })
+
+  it('ignores keystrokes aimed at a focused text field (chat isolation)', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    render(<PlayArea {...makeCtx()} />)
+    const input = document.createElement('input')
+    document.body.append(input)
+    for (const key of ['c', 'r', 'a', 'n', 'e', 'Enter']) fireEvent.keyDown(input, { key })
+    expect(rpc).not.toHaveBeenCalled() // typing in an input never reaches the board
+    input.remove()
+  })
+
+  it('has NO ArrowUp-recall / ArrowDown-clear (wordle is not an EntryBox)', async () => {
+    rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    render(<PlayArea {...makeCtx()} />)
+    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
+    // In an EntryBox game ArrowDown would clear the entry; here it must do nothing,
+    // so Enter still submits the intact "crane".
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: 'crane' }),
+    )
   })
 })
 

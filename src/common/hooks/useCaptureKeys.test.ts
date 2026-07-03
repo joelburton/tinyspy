@@ -1,8 +1,9 @@
 /**
- * Tests for the shared capture-key helper — focused on the universal pieces every
- * capture game relies on (so they can't drift): the last-move history (ArrowUp
- * recalls `recall`, ArrowDown clears), plus the core append / Enter / disabled /
- * busy gating. The hook reads keystrokes off the window via useGlobalKeyHandler.
+ * Tests for the shared capture-key CORE — the universal pieces every key-capture
+ * game relies on (so they can't drift): the letter append, Backspace, Enter, and
+ * the disabled/busy gating. The hook reads keystrokes off the window via
+ * useGlobalKeyHandler. The EntryBox-only history arrows are a separate layer —
+ * see useArrowHistory.test.ts.
  */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -38,33 +39,6 @@ function setup(initial: Partial<CaptureKeysOptions> = {}) {
   }
 }
 
-describe('useCaptureKeys — last-move history (universal)', () => {
-  it('ArrowUp recalls the last submitted value', () => {
-    const { onChange } = setup({ value: '', recall: 'crane' })
-    press('ArrowUp')
-    expect(onChange).toHaveBeenCalledWith('crane')
-  })
-
-  it('ArrowUp is a no-op when there is nothing to recall', () => {
-    const { onChange } = setup({ value: '', recall: '' })
-    press('ArrowUp')
-    expect(onChange).not.toHaveBeenCalled()
-  })
-
-  it('ArrowDown clears the entry', () => {
-    const { onChange } = setup({ value: 'crane', recall: 'crane' })
-    press('ArrowDown')
-    expect(onChange).toHaveBeenCalledWith('')
-  })
-
-  it('recall/clear are blocked while busy (but still dismiss feedback)', () => {
-    const { onChange, onAnyKey } = setup({ value: 'cr', recall: 'crane', busy: true })
-    press('ArrowDown')
-    expect(onChange).not.toHaveBeenCalled()
-    expect(onAnyKey).toHaveBeenCalled() // dismissal runs even mid-submit
-  })
-})
-
 describe('useCaptureKeys — core entry', () => {
   it('appends a letter (default lowercase charFor)', () => {
     const { onChange } = setup({ value: 'ca' })
@@ -90,7 +64,7 @@ describe('useCaptureKeys — core entry', () => {
   it('disabled is a complete no-op (no dispatch, no dismissal)', () => {
     const { onChange, onAnyKey } = setup({ value: 'ca', disabled: true })
     press('t')
-    press('ArrowDown')
+    press('Backspace')
     expect(onChange).not.toHaveBeenCalled()
     expect(onAnyKey).not.toHaveBeenCalled()
   })

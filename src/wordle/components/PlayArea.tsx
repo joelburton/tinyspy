@@ -9,7 +9,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
-import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
@@ -197,33 +197,23 @@ export function PlayArea({
   )
 
   // ─── Physical keyboard ────────────────────────────────────────
-  // Mirrors the on-screen <Keyboard>. The handler reads canGuess /
-  // current / doSubmit fresh through useGlobalKeyHandler's ref, so the
-  // window listener registers once rather than re-binding per keystroke.
-  // Same ordering as useCaptureKeys (the EntryBox grabber): modifier bail →
-  // hard-off → dismiss-on-ANY-key → dispatch.
-  useGlobalKeyHandler((e) => {
-    // Leave browser/OS shortcuts (Cmd-R, Ctrl-Tab, …) alone — and don't let
-    // them count as a "next move" that dismisses feedback.
-    if (e.metaKey || e.ctrlKey || e.altKey) return
+  // Drives the same pending-guess state (`current`) as the on-screen <Keyboard>
+  // below, off the shared capture CORE — so wordle can't drift from the modifier
+  // bail / focused-input guard / any-key-dismiss that the EntryBox games get.
+  // wordle is NOT an EntryBox (letters land on the WordleGrid, not a box), so it
+  // uses useCaptureKeys ALONE — no ArrowUp-recall / ArrowDown-clear (those are
+  // useArrowHistory, layered on by <EntryRow> for the EntryBox games only).
+  useCaptureKeys({
+    value: current,
+    onChange: setCurrent,
+    onSubmit: () => void doSubmit(current),
+    charFor: asciiLetters('lower'),
+    onAnyKey: clearLocalFeedback,
     // Hard-off when the player can't act (loading / terminal / out of guesses /
-    // mid-submit): do nothing AND don't dismiss — matches useCaptureKeys'
-    // `disabled` gate, so a sticky pill survives a stray key.
-    if (!canGuess) return
-    // ANY key the player presses is their next move → clear the local pill,
-    // even keys we then pass up (space, punctuation, arrows). The on-screen
-    // keyboard dismisses via typeLetter/deleteLetter instead; doing it here too
-    // is a harmless no-op when those run. (Same rule as useCaptureKeys.onAnyKey
-    // — the EntryBox grabber had this exact gap before.)
-    clearLocalFeedback()
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      void doSubmit(current)
-    } else if (e.key === 'Backspace') {
-      deleteLetter()
-    } else if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
-      typeLetter(e.key)
-    }
+    // mid-submit): no dispatch AND no feedback dismissal (the sticky verdict
+    // survives a stray key — and clearLocalFeedback is a no-op at terminal anyway).
+    disabled: !canGuess,
+    maxLength: 5, // a guess is one 5-letter word
   })
 
   // ─── Coop peer-guess narration (global header) ─────────────────

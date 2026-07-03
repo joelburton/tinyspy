@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { cls } from '../lib/cls'
 import type { GenericFeedbackMsg } from '../lib/games'
 import { useCaptureKeys } from '../hooks/useCaptureKeys'
+import { useArrowHistory } from '../hooks/useArrowHistory'
 import { EntryBox } from './EntryBox'
 import { GenericFeedbackPill } from './GenericFeedbackPill'
 import { DeleteButton } from './buttons/DeleteButton'
@@ -86,8 +87,13 @@ export function EntryRow({
   className,
 }: Props) {
   // Always called (never behind the early return below), so the keyboard stays
-  // live while a sticky pill is shown — the next keystroke dismisses it.
-  useCaptureKeys({ value, onChange, onSubmit, disabled, busy, onAnyKey, charFor, onExtraKey, recall })
+  // live while a sticky pill is shown — the next keystroke dismisses it. The
+  // generic capture core + the EntryBox-only history arrows are two layers:
+  // useCaptureKeys handles letters/Backspace/Enter; useArrowHistory adds the
+  // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
+  // EntryRow IS the EntryBox). They gate together: no arrows while disabled/busy.
+  useCaptureKeys({ value, onChange, onSubmit, disabled, busy, onAnyKey, charFor, onExtraKey })
+  useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
 
   if (pill) {
     return (
