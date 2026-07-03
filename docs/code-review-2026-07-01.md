@@ -460,13 +460,20 @@ Each verified as near-identical in most/all PlayAreas; a normalization pass:
 - ~~**`timerLabel()`** — verbatim copy in 9 PlayAreas → `common/lib/timerLabel.ts`~~
   **✅ DONE (`44ed5b2`)** — confirmed byte-identical (hash), extracted + Vitest;
   −97 lines. (The other §4.2 pieces below remain.)
-- **`<TerminalModal over isTerminal onBackToClub>`** — the identical
-  `useTerminalModal` + guarded `<GameOverModal>` tail in 10/10 → one line each
-  (~70 lines); also removes the "call the hook before early returns" footgun.
-- **`<InfoActionRow>`** — the `over ? (outcome line + BackToClub) : (buttons)`
-  swap with `shared[\`outcome_${tone}\`]` in 10/10 (~90 lines); folds in
-  stackdown's lone `over.status`-drifter and single-sources the `outcome_${tone}`
-  contract.
+- ~~**`<TerminalModal over isTerminal onBackToClub>`**~~ **✅ DONE (`911896c`)** —
+  identical `useTerminalModal` + guarded `<GameOverModal>` tail in 10/10 (verified
+  showModal/closeModal used ONLY there) → one `<TerminalModal/>`; removes the
+  hooks-ordering footgun. Byte-identical output.
+- ~~**`<InfoActionRow>`**~~ **✅ DONE as `<TerminalActionRow>` (`8f9d00a`)** — the
+  review overclaimed: it's only the **terminal branch** that's identical (the
+  non-terminal else-branches genuinely differ — plain buttons vs a compete "you
+  conceded" sub-state), so the extraction is the terminal outcome line only, named
+  for what it is. Migrated 9/10; **bananagrams left** (its branch is a Fragment
+  wrapped in a shared div elsewhere — structural outlier). Single-sources the
+  `outcome_${tone}` + message + BackToClub contract. **Prereq (`9a050b2`):**
+  normalized stackdown's `buildOver` onto the shared `TerminalCopy` (status→message,
+  +tone, shared endedCopy) — the only remaining drift; a manual end now shows the
+  neutral tone like the others.
 - **`<EndOrConcedeButton compete>`** — the `isCompete ? Concede : End` ternary now
   recurs in every compete game (the [GAP 2](#5-cross-game-feature-gaps) concede
   work made it uniform + correct — the ternary + its two handlers are copy-pasted).
@@ -474,10 +481,16 @@ Each verified as near-identical in most/all PlayAreas; a normalization pass:
   would fold the ternary + the handler-choice. *Deferred as a cleanup* — the two
   underlying button components (`EndGameButton`/`ConcedeGameButton`) are shared;
   only the per-game ternary + handlers duplicate.
-- **`<SetupDisclosure>`** — the `<details><summary>Setup options</summary>`
-  wrapper is structurally identical in 10/10.
-- Prerequisite: normalize every `buildOver()` onto the single `TerminalCopy` type
-  (9/10 already import it; spellingbee/stackdown drift the field names).
+- ~~**`<SetupDisclosure>`** — the `<details><summary>Setup options</summary>`
+  wrapper~~ **✅ DONE (`8bb2644`)** — byte-identical in 10/10; folded into
+  `<SetupDisclosure>{rows}</SetupDisclosure>`.
+- Prerequisite: **done** — all 10 now use `TerminalCopy` (stackdown normalized in
+  `9a050b2`; spellingbee already conformed by the time this was picked up).
+
+> **§4.2 status: COMPLETE** except the review-deferred `<EndOrConcedeButton>`.
+> timerLabel (`44ed5b2`) + TerminalModal (`911896c`) + TerminalActionRow
+> (`8f9d00a`) + SetupDisclosure (`8bb2644`), prereq `9a050b2`. bananagrams left
+> out of TerminalActionRow only (Fragment outlier). 541 tests + tsc + eslint green.
 
 ### 4.3 Convert scrabble + stackdown `useGame` to `useRealtimeRefetch`
 
