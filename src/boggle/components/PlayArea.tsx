@@ -1,17 +1,7 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { cls } from '../../common/lib/cls'
-import { playerOutcome } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/timerLabel'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { EntryRow } from '../../common/components/EntryRow'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
@@ -20,20 +10,13 @@ import { traceableStr } from '../lib/boardTrace'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { WordList } from '../../common/components/WordList'
 import { buildDisplayRows } from '../lib/displayRows'
 import { db } from '../db'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
-
-/** Rotate a square grid 90° clockwise — repositions tiles; the letters
- *  themselves render upright (no spin). new[i][j] = old[n-1-j][i]. */
-function rotateCW(g: string[][]): string[][] {
-  const n = g.length
-  return g.map((_, i) => g.map((_, j) => g[n - 1 - j][i]))
-}
 
 /**
  * MothCubes play surface, shared by the coop and compete manifests, on the shared
@@ -66,9 +49,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // which TS won't treat as index-compatible with Record, so route through unknown.
   const boggleSetup = setup as unknown as BoggleSetup
   const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'
-
-  // number of 90° clockwise turns applied to the displayed grid (local view only).
-  const [turns, setTurns] = useState(0)
 
   // ─── Move entry + own-move feedback (shared engine) ────
   // The board ships with its full legal list (required ∪ bonus), so a guess is
@@ -117,18 +97,11 @@ export function PlayArea(ctx: GamePageCtx) {
       explainReject: (w) => (game && traceableStr(game.board, w) ? 'not a word' : 'not on board'),
     })
 
+  // The display grid (letters in board order). BoardCol owns the local rotate on top.
   const grid = useMemo(
     () => (game ? boardToDisplay(game.board, game.n) : null),
     [game],
   )
-  // Rotating the board repositions the tiles but keeps each letter upright (a
-  // matrix rotation, not a visual spin) — so it stays readable from any side.
-  const view = useMemo(() => {
-    if (!grid) return null
-    let g = grid
-    for (let i = 0; i < turns; i++) g = rotateCW(g)
-    return g
-  }, [grid, turns])
 
   // The viewer/team's own found rows: coop sees the whole team's; compete sees
   // only the caller's (filtered explicitly so the post-terminal reveal — which
@@ -197,7 +170,7 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
 
-  if (loading || !game || !view) return <div className={styles.loading}>Loading…</div>
+  if (loading || !game || !grid) return <div className={styles.loading}>Loading…</div>
 
   const isCompete = game.mode === 'compete'
   // Locally terminal (compete only): I conceded but the game continues for the
@@ -224,145 +197,50 @@ export function PlayArea(ctx: GamePageCtx) {
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div
-        className={cls(shared.boardCol, styles.boardCol)}
-        style={{ ['--cols' as string]: game.n, ['--rows' as string]: game.n }}
-      >
-        <div className={styles.grid}>
-          {view.flatMap((row, y) =>
-            row.map((cell, x) => (
-              <div key={`${y}-${x}`} className={styles.tile} data-boggle-tile>
-                {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
-                <span className={cell === '?' ? styles.blank : undefined}>{cell}</span>
-              </div>
-            )),
-          )}
-        </div>
-        {/* Rotate floats over the board's top-right — a fresh visual scan of the
-            SAME board (letters stay upright), not a turn action. Local to this
-            player in both modes; never persisted, never seen by others. */}
-        <ShuffleButton
-          onShuffle={() => setTurns((t) => (t + 1) % 4)}
-          label="Rotate board"
-          className={shared.floatingShuffle}
-        />
-        {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the
-            EntryBox + icon-only Submit, plus the capture keyboard). It renders the
-            terminal verdict / own-move feedback pill in place of the controls when
-            `pill` is set (terminal takes precedence; an own-move result shows only
-            while the entry is empty so typing reclaims the slot). */}
-        <div className={styles.belowBoard}>
-          <div className={shared.moveAreaOrLocalFeedback}>
-          <EntryRow
-            value={word}
-            onChange={setWord}
-            onSubmit={submit}
-            placeholder="Type a word"
-            disabled={isTerminal || myConceded}
-            onAnyKey={clearLocalFeedback}
-            charFor={asciiLetters('upper')}
-            recall={lastWord}
-            pill={
-              over
-                ? {
-                    tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                    text: over.verdict,
-                    variant: 'fill', // permanent → lightened-tone fill
-                    dismiss: { kind: 'sticky' },
-                  }
-                : word === ''
-                  ? localFeedback
-                  : null
-            }
-          />
-          </div>
-        </div>
-      </div>
+      <BoardCol
+        // ── Board to render ──
+        grid={grid}
+        n={game.n}
+        // ── Word entry (engine here; rendered in BoardCol) ──
+        word={word}
+        onChange={setWord}
+        onSubmit={submit}
+        onAnyKey={clearLocalFeedback}
+        lastWord={lastWord}
+        entryDisabled={isTerminal || myConceded}
+        // ── Below-board pill ──
+        over={over}
+        localFeedback={localFeedback}
+      />
 
-      <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>
-          {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
-              state → opponent strip → action row → help → setup disclosure → list. */}
-
-          {/* State — words found / required + score earned. */}
-          <p className={shared.infoState}>
-            <strong>{myCount}</strong> / {game.required_words_count} words ·{' '}
-            <strong>{myScore}</strong> pts
-          </p>
-
-          {/* Opponent strip (compete) — each peer's score, identity on a leading
-              disc; word counts stay private (the compete privacy line). */}
-          {isCompete && (
-            <OpponentStrip
-              players={players}
-              selfId={myId}
-              metricLabel="Score"
-              metricFor={(p, isSelf) => {
-                const score = isSelf ? myScore : (scoreByUser.get(p.user_id) ?? 0)
-                // Mid-game: a conceder reads as "out" (dropped out, still racing
-                // for the rest). At terminal, prefix the outcome verb so the two
-                // "no longer active" states read differently — "Quit at 12" vs
-                // "Lost at 12" vs "Won at 40" (the distinction the conceded flag
-                // buys us); an ordinary player just shows the number.
-                if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : score
-                const member = players.find((m) => m.user_id === p.user_id)
-                const outcome = member ? playerOutcome(member) : 'lost'
-                if (outcome === 'won') return `Won at ${score}`
-                if (outcome === 'quit') return `Quit at ${score}`
-                return `Lost at ${score}`
-              }}
-            />
-          )}
-
-          {/* Action row — End (coop) / Concede (compete) during play; at terminal
-              the bold outcome line + a compact back-to-club button. */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : isLocallyDone ? (
-            // I conceded; the others race on. Terminal LOOK (a status line + the
-            // now-disabled Concede) so the state change reads loudly.
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                You conceded
-              </span>
-              <ConcedeGameButton className={shared.helperButton} disabled />
-            </div>
-          ) : (
-            <div className={shared.infoActions}>
-              {isCompete ? (
-                <ConcedeGameButton
-                  className={shared.helperButton}
-                  onClick={() => void handleConcede()}
-                />
-              ) : (
-                <EndGameButton
-                  className={shared.helperButton}
-                  onClick={() => void handleEndGame()}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Help — only while the player can act on it (never silently swapped);
-              hidden once conceded, when entry is disabled. */}
-          {!over && !isLocallyDone && (
-            <p className={shared.infoHelp}>
-              Type a word, then Enter. <kbd>↑</kbd> recalls your last word.
-            </p>
-          )}
-
-          {/* Setup — LAST before the list, behind a disclosure (closed by default). */}
-          <SetupDisclosure>
-              <li>{diceLabel} board</li>
-              <li>{DIFFICULTY_LABELS[boggleSetup.band - 1] ?? '—'} required words</li>
-              <li>{DIFFICULTY_LABELS[boggleSetup.legal_band - 1] ?? '—'} legal (bonus) words</li>
-              <li>{ladderLabel} scoring · min length {game.min_word_length}</li>
-              <li>{timerLabel(boggleSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        <WordList rows={wordRows} players={players} reveal={revealWords !== null} />
-      </div>
+      <InfoCol
+        // ── Mode + phase ──
+        isCompete={isCompete}
+        isTerminal={isTerminal}
+        over={over}
+        isLocallyDone={isLocallyDone}
+        // ── State readout ──
+        myCount={myCount}
+        requiredWordsCount={game.required_words_count}
+        myScore={myScore}
+        // ── Players (OpponentStrip, compete) ──
+        players={players}
+        selfId={myId}
+        scoreByUser={scoreByUser}
+        concededIds={concededIds}
+        // ── Action row ──
+        onEndGame={() => void handleEndGame()}
+        onConcede={() => void handleConcede()}
+        onBackToClub={goToClub}
+        // ── Setup disclosure ──
+        setup={boggleSetup}
+        diceLabel={diceLabel}
+        ladderLabel={ladderLabel}
+        minWordLength={game.min_word_length}
+        // ── Found-words list ──
+        wordRows={wordRows}
+        reveal={revealWords !== null}
+      />
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

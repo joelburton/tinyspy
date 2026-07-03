@@ -121,7 +121,11 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 
 - `InfoCol` to the other 7 standard games (waffle, boggle, wordle, connections,
   psychicnum, spellingbee, codenamesduet). bananagrams excepted.
-- `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee); `Board` for boggle.
+- `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee). boggle ✅
+  decomposed (BoardCol/InfoCol, no-op verified) — NO history viewer (no turn log,
+  just a WordList); its inline tile grid moved into BoardCol (boggle was the one game
+  whose board wasn't a component), which also owns the local Rotate; the `useWordSubmit`
+  entry engine stays in the coordinator (a thin-input game, like connections).
 - Add turn-history to the games where the board history is meaningful
   (codenamesduet/tinyspy ✅ done — viewer + **decomposed** (BoardCol/InfoCol, no-op
   verified); psychicnum ✅ viewer + **decomposed** (BoardCol/InfoCol, no-op verified —
