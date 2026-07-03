@@ -161,7 +161,15 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
 
 ### 1.4 Smells (work today; worth a note)
 
-- **[smell] scrabble compete: realtime-beats-RPC race mis-attributes my move.**
+> **Status — 2026-07-02.** Being worked one-by-one. **✅ Done:** scrabble
+> realtime race (`8284450`), bananagrams snapshot race (documented-accepted,
+> `c9208a6`), codenamesduet `handleGuess` guard (`37a6093`), boggle double-submit
+> (fixed earlier by the `useWordSubmit` move, `71562f8`). **⬜ Still open:**
+> connections over-deps on `session.user.id`, codenamesduet duplicate peer-key
+> fetch. Each item annotated inline below.
+
+- ~~**[smell] scrabble compete: realtime-beats-RPC race mis-attributes my move.**~~
+  **✅ DONE (`8284450`).**
   `src/scrabble/components/PlayArea.tsx:266` + `:505`. `lastActionRef` is set only
   *after* `await db.rpc('play_word')` returns; if the postgres_changes refetch
   bumps `game.version` during that await, the version effect takes the opponent
@@ -169,27 +177,31 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
   *next* (real opponent) bump → one wrong rack reorder. Low-likelihood (RPC
   usually returns first); coop unaffected. *Fix:* set `lastActionRef`/
   `pendingDrawRef` optimistically *before* the await, rolling back on reject.
-- **[smell] bananagrams snapshot-on-unmount vs remount reload race.**
+- ~~**[smell] bananagrams snapshot-on-unmount vs remount reload race.**~~
+  **✅ DONE — documented-accepted (`c9208a6`)**, in `bananagrams.md` → Persistence.
   `src/bananagrams/components/PlayerBoard.tsx:194`. The unmount `save_player_board`
   is fire-and-forget (not awaited) while the remount SELECT fires immediately, so
   a fast pause→resume can read a board stale by up to one 800ms debounce window
   and discard the last placements. Inherent to the FE-owns-board design and
   documented as acceptable — but it *is* a real lost-write window; note it in the
   game doc if not already there.
-- **[smell] codenamesduet `handleGuess` has no in-flight guard** (`:251`) — unlike
-  connections (`if (submitting) return`); a fast double-click fires `submit_guess`
-  twice. Add `if (pendingPos !== null) return`.
-- **[smell] boggle required-word double-submit** (`:133`) — the dup guard reads
-  `foundWords` (only updated on refetch) and the path sets no `submitting` flag,
-  so a double-tap shows two "+N" successes then the raw unique-violation error.
-  Also a fulfilment-only `.then` leaves a network reject unhandled.
-- **[smell] connections subscription effect over-deps on `session.user.id`**
+- ~~**[smell] codenamesduet `handleGuess` has no in-flight guard**~~ **✅ DONE
+  (`37a6093`)** — a synchronous `guessInFlight` ref (the suggested `pendingPos`
+  state guard is stale in the memoized closure; the ref also blocks a *different*
+  tile mid-guess). Tested. Original note: a fast double-click fires `submit_guess`
+  twice.
+- ~~**[smell] boggle required-word double-submit**~~ **✅ DONE (`71562f8`)** — fixed
+  by construction when boggle moved onto the shared `useWordSubmit` (synchronous
+  pending-set guard + a real `.catch`). Original note: the dup guard read
+  `foundWords` (refetch-lagged), so a double-tap showed two "+N" then a raw
+  unique-violation.
+- **⬜ [smell] connections subscription effect over-deps on `session.user.id`**
   (`src/connections/hooks/useGame.ts:287`) — the id isn't read in the effect body;
   a token refresh needlessly tears down and rebuilds the stable-named broadcast
-  room. Tighten to `[applySelection, gameId]`.
-- **[smell] codenamesduet duplicate peer-key fetch** (`useBoard.ts`) — `load`
+  room. Tighten to `[applySelection, gameId]`. **STILL OPEN.**
+- **⬜ [smell] codenamesduet duplicate peer-key fetch** (`useBoard.ts`) — `load`
   already selects `key_card_a/b`; a separate `loadPeerKey` re-fetches the same row
-  for the terminal reveal. One redundant round-trip.
+  for the terminal reveal. One redundant round-trip. **STILL OPEN.**
 
 ### 1.5 Server-side, flagged not fixed (out of FE scope)
 
