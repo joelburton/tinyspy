@@ -1,0 +1,97 @@
+/* scrabble's board column — the SQUARE 15×15 board (the waffle/boggle hug model)
+ * plus the below-board RACK + ACTION row (scrabble's GameEntryArea — the rack is
+ * the input, so it lives in the board column with everything needed to play). The
+ * layout-root vars it reads (--avail-w/-h, --rack-tile-size) are on `.layout` in
+ * PlayArea.module.css; the commit-row inner classes (.controls / .commitButtons /
+ * …) live there too (Controls imports them). */
+
+/* The board column. Computes `--side` — the largest square that fits — HERE (not on
+ * the board) so the below-board rack row can match the board's width from the same
+ * source. scrabble is always 15×15, so `--cols` is the literal 15.
+ *
+ * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
+ * Like waffle/boggle this is a SQUARE board with ONE knob: the max tile SIZE. Ships
+ * effectively UNCAPPED (999rem) so the per-tile term never wins the min() and the
+ * board grows to the largest square that fits (bounded by --avail-w beside the info
+ * column and --avail-h above the rack row). LOWER it (e.g. 2.6rem) to cap tile size.
+ * A real value (not a commented-out knob + var() fallback) so the token isn't
+ * "phantom" (src/cssTokens.test.ts). Relative units (rem). */
+.boardCol {
+  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
+  --grid-gap: 2px;
+  --side: min(
+    var(--avail-w),
+    var(--avail-h),
+    calc(15 * var(--max-tile-size) + 14 * var(--grid-gap))
+  );
+}
+
+/* ─── Below the board: the rack + action row (scrabble's GameEntryArea) ───────
+ * Pinned to the board's --side so it spans exactly the board width and never widens
+ * the column (the board column hugs the board). A reserved min-height keeps the
+ * top-anchored board from shifting; a SMALL `margin-top` drops the row just off the
+ * board (on top of the board column's 0.75rem gap) — kept tight so the board grows
+ * as large as possible, counted into `--avail-h` (PlayArea.module.css .layout). The
+ * action buttons are compact so the rack + actions fit on one line within the board
+ * width. Keep the height math in sync with `.layout`'s --avail-h. */
+.belowBoard {
+  width: var(--side);
+  min-height: 3.4rem;
+  margin-top: 0.25rem;
+  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
+     common/components/historyViewer.module.css), which overlays this slot while a
+     past turn is being viewed. This region's height (game-specific) sets the
+     banner's; the banner's appearance is common. */
+  position: relative;
+}
+
+/* One horizontal row: the rack on the left, then the controls filling the rest.
+ * nowrap so it never grows a second line (which would reflow the board height) —
+ * labels + messages are kept terse to fit. */
+.moveArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+/* Positioning context for the shuffle button floating over the rack's top-right
+ * corner (so the ⟲ reads as "shuffle the rack"). Sized to the rack. */
+.rackWrap {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+/* The shuffle control, floated over the rack's top-right corner and scaled down
+ * (it's a quick reshuffle of the rack, not a turn action — like the board games'
+ * shuffle floating over the board corner). */
+.rackShuffle {
+  position: absolute;
+  top: -9px;
+  right: -14px;
+  z-index: 3;
+  transform: scale(0.68);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* The dragged tile, following the pointer — sized to match the (responsive) rack
+ * tile so the drag image is the same size as the tile it lifted. Reads
+ * --rack-tile-size + the tile tokens from ancestors (.layout / :root). */
+.ghost {
+  position: fixed;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  width: var(--rack-tile-size);
+  height: var(--rack-tile-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrabble-tile-bg);
+  color: var(--scrabble-tile-ink);
+  border: 1px solid var(--scrabble-tile-edge);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: calc(var(--rack-tile-size) * 0.5);
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}

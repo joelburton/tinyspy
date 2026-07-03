@@ -1,97 +1,22 @@
 /* scrabble's play surface, on the shared two-column scaffold
- * (common/components/PlayArea.module.css, imported as `shared`) — the same
- * .layout / .boardCol / .infoCol / .actionSlot the other v3 games use. This
- * module holds only scrabble's own bits: the per-game layout vars, the SQUARE
- * board sizing (the waffle/boggle hug model), and the below-board RACK + ACTION
- * row (scrabble's GameEntryArea — the rack is the input, so it lives in the board
- * column with everything else needed to play). */
+ * (common/components/PlayArea.module.css, imported as `shared`). PlayArea holds the
+ * layout-root vars here; the board column's own styles (board sizing + the rack row)
+ * live in BoardCol.module.css. The commit-row inner classes below are imported by
+ * <Controls> (a BoardCol child) — they stay here so its import is untouched. */
 
-/* Per-game layout vars the shared scaffold reads. The info column is moderate —
- * it holds the live state, the action row, the setup disclosure, and the Moves
- * log. --avail-h is the vertical space left for the square board: viewport −
- * chrome − the below-board stack, which is EXACTLY the board column's 0.75rem gap
- * + the belowBoard's 0.25rem margin-top + the rack/action row (the belowBoard
- * min-height, 3.4rem) = 4.4rem. Matching it exactly makes the board fill all the
- * height it can and the bottom of the rack land at the bottom of the column (no
- * leftover margin). Keep in sync with `.belowBoard`. */
+/* Per-game layout vars the shared scaffold + BoardCol read. --avail-h is the
+ * vertical space left for the square board: viewport − chrome − the below-board
+ * stack, which is EXACTLY the board column's 0.75rem gap + the belowBoard's 0.25rem
+ * margin-top + the rack/action row (the belowBoard min-height, 3.4rem) = 4.4rem.
+ * Matching it exactly makes the board fill all the height it can. Keep in sync with
+ * BoardCol.module.css `.belowBoard`. */
 .layout {
   --info-col-width: 25rem;
   --avail-h: calc(100vh - var(--game-chrome-height) - 4.4rem);
-  /* Rack tile size — tied to the board's available space (≈ --side, the min of
-   * the width/height left for the board) so the rack shrinks on a cramped laptop
-   * and the rack + action row keep fitting on one line within the board width.
-   * Defined on .layout (not .boardCol) so the floating drag ghost can read it
-   * too. clamp() floors/caps it to a sane tile size. */
+  /* Rack tile size — tied to the board's available space (≈ --side) so the rack
+   * shrinks on a cramped laptop and the rack + action row keep fitting on one line.
+   * Defined on .layout (not .boardCol) so the floating drag ghost can read it too. */
   --rack-tile-size: clamp(22px, calc(min(var(--avail-w), var(--avail-h)) / 18), 38px);
-}
-
-/* The board column. Computes `--side` — the largest square that fits — HERE
- * (not on the board) so the below-board rack row can match the board's width
- * from the same source. scrabble is always 15×15, so `--cols` is the literal 15.
- *
- * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
- * Like waffle/boggle this is a SQUARE board with ONE knob: the max tile SIZE.
- * Ships effectively UNCAPPED (999rem) so the per-tile term never wins the min()
- * and the board grows to the largest square that fits (bounded by --avail-w
- * beside the info column and --avail-h above the rack row). LOWER it (e.g. 2.6rem)
- * to cap tile size. A real value (not a commented-out knob + var() fallback) so
- * the token isn't "phantom" (src/cssTokens.test.ts). Relative units (rem). */
-.boardCol {
-  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
-  --grid-gap: 2px;
-  --side: min(
-    var(--avail-w),
-    var(--avail-h),
-    calc(15 * var(--max-tile-size) + 14 * var(--grid-gap))
-  );
-}
-
-/* ─── Below the board: the rack + action row (scrabble's GameEntryArea) ───────
- * Pinned to the board's --side so it spans exactly the board width and never
- * widens the column (the board column hugs the board). A reserved min-height
- * keeps the top-anchored board from shifting; a SMALL `margin-top` drops the row
- * just off the board (on top of the board column's 0.75rem gap) — kept tight so
- * the board grows as large as possible, counted into `--avail-h` above. The
- * action buttons are compact (Swap is icon-only, Submit shows just the score) so
- * the rack + actions fit on one line within the board width. */
-.belowBoard {
-  width: var(--side);
-  min-height: 3.4rem;
-  margin-top: 0.25rem;
-  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/components/historyViewer.module.css), which overlays this slot while a
-     past turn is being viewed. This region's height (game-specific) sets the
-     banner's; the banner's appearance is common. */
-  position: relative;
-}
-
-/* One horizontal row: the rack on the left, then the controls filling the rest.
- * nowrap so it never grows a second line (which would reflow the board height) —
- * labels + messages are kept terse to fit. */
-.moveArea {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-/* Positioning context for the shuffle button floating over the rack's top-right
- * corner (so the ⟲ reads as "shuffle the rack"). Sized to the rack. */
-.rackWrap {
-  flex: 0 0 auto;
-  position: relative;
-}
-
-/* The shuffle control, floated over the rack's top-right corner and scaled down
- * (it's a quick reshuffle of the rack, not a turn action — like the board games'
- * shuffle floating over the board corner). */
-.rackShuffle {
-  position: absolute;
-  top: -9px;
-  right: -14px;
-  z-index: 3;
-  transform: scale(0.68);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* The controls fill the space beside the rack: Recall on the left, the commit
