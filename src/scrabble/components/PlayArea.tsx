@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { playerOutcome } from '../../common/lib/games'
 import { useFlash } from '../../common/hooks/useFlash'
-import { timerLabel } from '../../common/lib/timerLabel'
 import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
-import { colorVarFor } from '../../common/lib/memberColor'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
 import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
@@ -26,8 +18,7 @@ import { Board, type Cursor, type Tentative } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { BlankPicker } from './BlankPicker'
-import { PlayLog } from './PlayLog'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
+import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
 import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -761,95 +752,27 @@ export function PlayArea({
         </div>
       </div>
 
-      <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>
-          {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
-              state → opponent strip → action row → help → setup disclosure → log. */}
-
-          {/* State — whose turn (compete) / team score (coop) + the bag count.
-              The other player's turn reads "Turn: ● name" (a leading color disc +
-              the bare name) — never the possessive "name's turn" (we don't
-              apostrophize usernames). */}
-          <p className={shared.infoState}>
-            {isCompete ? (
-              myTurn ? (
-                <strong>Your turn</strong>
-              ) : (
-                <>
-                  Turn:{' '}
-                  <span style={{ color: colorVarFor(currentMember?.color) }} aria-hidden>
-                    ●
-                  </span>{' '}
-                  {currentMember?.username ?? 'someone'}
-                </>
-              )
-            ) : (
-              <>Team score: <strong>{game.teamScore ?? 0}</strong></>
-            )}{' · '}
-            {game.bagCount} in bag
-          </p>
-
-          {/* Opponent strip (compete) — each peer's score, identity on a leading
-              disc. Scores aren't hidden (the board reveals them). */}
-          {isCompete && (
-            <OpponentStrip
-              players={members}
-              selfId={session.user.id}
-              metricLabel="Score"
-              metricFor={(player) => {
-                const ps = playerStates.find((p) => p.user_id === player.user_id)
-                const score = ps?.score ?? 0
-                // Mid-game a conceder reads as "out"; at terminal the score line
-                // is prefixed with the outcome verb (Quit / Lost / Won). The strip
-                // types `player` as Member, so read the concede/result bits back
-                // off the GamePlayer roster (`members`).
-                if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : score
-                const gpm = members.find((m) => m.user_id === player.user_id)
-                const outcome = gpm ? playerOutcome(gpm) : 'lost'
-                const verb = outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
-                return `${verb} · ${score}`
-              }}
-            />
-          )}
-
-          {/* Action row — End (coop) / Concede (compete) during play; the
-              "You conceded" terminal look once I've dropped out (others race on);
-              at terminal the bold outcome line + a compact back-to-club button. */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : isCompete && myConceded ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>
-              <ConcedeGameButton className={shared.helperButton} disabled />
-            </div>
-          ) : (
-            <div className={shared.infoActions}>
-              {isCompete ? (
-                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleConcede()} />
-              ) : (
-                <EndGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
-              )}
-            </div>
-          )}
-
-          {/* Help — only while the player can act on it (never silently swapped). */}
-          {!over && (
-            <p className={shared.infoHelp}>
-              Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways
-              arrow turns it ↓). Enter plays.
-            </p>
-          )}
-
-          {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-          <SetupDisclosure>
-              <li>2-letter words: {DIFFICULTY_LABELS[scrabbleSetup.dict_2 - 1] ?? '—'}</li>
-              <li>Longer words: {DIFFICULTY_LABELS[scrabbleSetup.dict_3plus - 1] ?? '—'}</li>
-              <li>{timerLabel(scrabbleSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={select} />
-      </div>
+      <InfoCol
+        isCompete={isCompete}
+        myTurn={myTurn}
+        over={over}
+        myConceded={myConceded}
+        isTerminal={isTerminal}
+        currentMember={currentMember}
+        teamScore={game.teamScore}
+        bagCount={game.bagCount}
+        members={members}
+        selfId={session.user.id}
+        playerStates={playerStates}
+        concededIds={concededIds}
+        onEndGame={() => void handleEndGame()}
+        onConcede={() => void handleConcede()}
+        onBackToClub={goToClub}
+        setup={scrabbleSetup}
+        plays={plays}
+        viewingSeq={viewingSeq}
+        onSelectTurn={select}
+      />
 
       {blankAt && <BlankPicker onPick={pickBlank} onCancel={() => setBlankAt(null)} />}
 
