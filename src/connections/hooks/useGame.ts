@@ -284,7 +284,7 @@ export function useGame(
       supabase.removeChannel(ch)
       setChannel(null)
     }
-  }, [applySelection, gameId, session.user.id])
+  }, [applySelection, gameId])
 
   // Send a broadcast event + apply locally (optimistic). The local
   // apply ensures the clicker sees the change immediately; the
