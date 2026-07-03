@@ -57,9 +57,26 @@ everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
   (verify via the render tests + `e2e/board-geometry.e2e.ts`); a feature adds
   behavior. Never mix them in one commit.
 - **bananagrams is the v3 layout exception** (board fills / hand+peel+dump in the
-  info area / no turn log; whole shell delegated to `<PlayerBoard>`, 735 lines). It
-  does NOT map onto the two-column `InfoCol` model. Handle it separately / later; it
-  is explicitly out of scope for the `InfoCol` rollout.
+  info area / no turn log). It does NOT map onto the two-column `BoardCol`/`InfoCol`
+  model, because its input engine spans BOTH columns (the hand tiles are drag SOURCES
+  into the board; the dump zone is a drop TARGET during a board drag; the derived hand
+  is a function of board state; the keyboard cursor types onto the board but checks the
+  hand). ✅ **DONE via its OWN shape** — the honest analog of "engine + views + thin
+  coordinator": the cross-column engine lifted into a hook **`usePlayerBoard`** (557),
+  two thin presentational VIEWS **`BoardArena`** (board column, 137) + **`HandCard`**
+  (info column, 125) — deliberately NOT named `BoardCol`/`InfoCol` since they own no
+  input — and a now-thin **`PlayerBoard`** (711→183) that lays out the two columns.
+  Note the TWO-LEVEL coordinator: `PlayArea` (298, UNCHANGED) stays the OUTER
+  coordinator (data / peel-dump-concede RPCs / feedback channel / terminal verdict, via
+  the `infoTop`/`infoActions`/`localPill` slots) above `PlayerBoard`, the columns'
+  coordinator. CSS left INTACT (`PlayerBoard.module.css` imported by all three) — the
+  board + hand tiles SHARE `.tile`/`.handTile`/`.lifted`, so a split would duplicate
+  them (same call as connections). Verified NO-OP: bananagrams is OUT of the geometry
+  harness (a fill arena, not a hug board), so the net is the 4 `PlayArea.test.tsx`
+  render tests + the full **`e2e/bananagrams.e2e.ts`** (6 tests: render, keyboard place
+  + reload-persist, peel-win, peel-draw, drag-to-dump, live peer count) — which
+  exercises the whole DOM/data-attr + drag + keyboard contract the extraction had to
+  preserve. Full suite (587). See docs/games/bananagrams.md.
 
 ## The driving feature — stackdown turn-history
 
