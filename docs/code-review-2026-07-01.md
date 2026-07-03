@@ -312,6 +312,13 @@ Related fragility: each square/height-bound game hardcodes a different
 kept in sync with the slot height *by hand* (the comments say so). Deriving
 `--avail-h` from the same token removes the manual-sync footgun.
 
+> **⏸ PARKED (Joel, 2026-07-02).** Accurately described (unlike the §3.2/§3.4
+> overclaims) — the manual sync is real. But modest + per-game (each game
+> subtracts *different* chrome: waffle slot+gap, boggle/spellingbee slot+gap+margin,
+> scrabble rack+gap+margin, stackdown a taller stack), so it's decomposition not
+> dedup. Low urgency; the footgun only bites when the slot token changes. Harness-
+> provable (`--avail-h` drives `--side`), so safe to pick up later.
+
 ### 3.2 The hug-board sizing formula — extract the arithmetic, keep the behavior
 
 > **Status — 2026-07-02.** **✅ Rect done (`d7484a6`)** — extracted to shared
