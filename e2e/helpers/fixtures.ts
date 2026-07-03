@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { createClient, type Session } from '@supabase/supabase-js'
 
 /**
@@ -322,6 +323,140 @@ export async function createScrabbleGame(
   if (res.error) throw new Error(`scrabble.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: `scrabble_${mode}` }
+}
+
+/**
+ * Start a connections game (coop by default). connections.create_game references
+ * a puzzle by id, so we first insert a deterministic fixture puzzle — 4 categories
+ * × 4 tiles, mirroring the pgTAP `connections_puzzle` helper. The insert uses the
+ * admin (service-role) client because connections.puzzles has no INSERT grant to
+ * `authenticated`. `source_id` is randomized per call so repeated runs (no
+ * db:reset between) don't collide on its UNIQUE constraint; `nyt_date` is left
+ * null (NULLs are distinct under UNIQUE) to stay clear of real imported dates.
+ * Returns id + gametype for `/g/connections_<mode>/<id>`.
+ */
+export async function createConnectionsGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const puzzle = await admin
+    .schema('connections')
+    .from('puzzles')
+    .insert({
+      source_id: `E2E-${randomUUID().slice(0, 8)}`,
+      nyt_date: null,
+      categories: [
+        { rank: 0, name: 'Words starting with A', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
+        { rank: 1, name: 'Words starting with B', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'] },
+        { rank: 2, name: 'Words starting with C', tiles: ['CASTLE', 'CIRCLE', 'CLOUD', 'CROWN'] },
+        { rank: 3, name: 'Words starting with D', tiles: ['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON'] },
+      ],
+    })
+    .select('id')
+    .single()
+  if (puzzle.error || !puzzle.data) throw new Error(`insert puzzle: ${puzzle.error?.message}`)
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('connections')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { puzzleId: puzzle.data.id, timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`connections.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `connections_${mode}` }
+}
+
+/**
+ * Start a waffle game (coop by default) on a fixed, deterministic board passed
+ * straight to create_game (bypassing the waffle-build-board edge function). The
+ * board is the pgTAP `waffle_board` fixture: solved `abcdef.g.hijklmn.o.pqrstu`
+ * with the scramble one swap away (cells 0/1). Returns id + gametype.
+ */
+export async function createWaffleGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('waffle')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        solution: 'abcdef.g.hijklmn.o.pqrstu',
+        scramble: 'bacdef.g.hijklmn.o.pqrstu',
+        par_swaps: 1,
+      },
+    })
+  if (res.error) throw new Error(`waffle.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `waffle_${mode}` }
+}
+
+/**
+ * Start a stackdown game (coop by default). stackdown.create_game claims a random
+ * board from the `stackdown.boards` library (populated by the offline import), so
+ * we only guarantee the library is non-empty: seed the pgTAP fixture board
+ * (EAGLE/TABLE/PLANS/APPLE/JUICE/LEMON) if it's empty. The stackdown schema isn't
+ * exposed to PostgREST (its tables are reached only via SECURITY DEFINER RPCs), so
+ * like `drainBananagramsPool` we go through psql as the local superuser — an
+ * atomic insert-if-empty that leaves any imported boards untouched. Any valid
+ * board yields the same 9×9 arena geometry, which is all the layout harness
+ * measures. Returns id + gametype.
+ */
+export async function createStackdownGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const tiles = [
+    { id: 0, z: 0, y: 0, x: 2, letter: 'E' }, { id: 1, z: 0, y: 0, x: 6, letter: 'A' },
+    { id: 2, z: 1, y: 1, x: 3, letter: 'L' }, { id: 3, z: 1, y: 1, x: 5, letter: 'N' },
+    { id: 4, z: 0, y: 2, x: 0, letter: 'C' }, { id: 5, z: 2, y: 2, x: 2, letter: 'B' },
+    { id: 6, z: 2, y: 2, x: 4, letter: 'T' }, { id: 7, z: 2, y: 2, x: 6, letter: 'P' },
+    { id: 8, z: 0, y: 2, x: 8, letter: 'S' }, { id: 9, z: 1, y: 3, x: 1, letter: 'E' },
+    { id: 10, z: 3, y: 3, x: 3, letter: 'E' }, { id: 11, z: 3, y: 3, x: 5, letter: 'A' },
+    { id: 12, z: 1, y: 3, x: 7, letter: 'L' }, { id: 13, z: 0, y: 4, x: 0, letter: 'N' },
+    { id: 14, z: 2, y: 4, x: 2, letter: 'L' }, { id: 15, z: 2, y: 4, x: 6, letter: 'G' },
+    { id: 16, z: 0, y: 4, x: 8, letter: 'A' }, { id: 17, z: 1, y: 5, x: 1, letter: 'L' },
+    { id: 18, z: 3, y: 5, x: 3, letter: 'P' }, { id: 19, z: 3, y: 5, x: 5, letter: 'E' },
+    { id: 20, z: 1, y: 5, x: 7, letter: 'A' }, { id: 21, z: 0, y: 6, x: 0, letter: 'E' },
+    { id: 22, z: 2, y: 6, x: 2, letter: 'U' }, { id: 23, z: 2, y: 6, x: 4, letter: 'J' },
+    { id: 24, z: 2, y: 6, x: 6, letter: 'L' }, { id: 25, z: 0, y: 6, x: 8, letter: 'P' },
+    { id: 26, z: 1, y: 7, x: 3, letter: 'I' }, { id: 27, z: 1, y: 7, x: 5, letter: 'M' },
+    { id: 28, z: 0, y: 8, x: 2, letter: 'E' }, { id: 29, z: 0, y: 8, x: 6, letter: 'O' },
+  ]
+  const seedSql =
+    `insert into stackdown.boards (tiles, words) ` +
+    `select '${JSON.stringify(tiles)}'::jsonb, ` +
+    `array['eagle','table','plans','apple','juice','lemon']::text[] ` +
+    `where not exists (select 1 from stackdown.boards);`
+  execFileSync(
+    'psql',
+    ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-v', 'ON_ERROR_STOP=1', '-c', seedSql],
+    { stdio: 'pipe' },
+  )
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('stackdown')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`stackdown.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `stackdown_${mode}` }
 }
 
 /**

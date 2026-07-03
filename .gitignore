@@ -51,3 +51,5 @@ import-to-hosted.secrets.sh
 /test-results/
 /playwright-report/
 /playwright/.cache/
+# Local before/after board-geometry baseline (machine-specific pixel golden)
+/e2e/.artifacts/
