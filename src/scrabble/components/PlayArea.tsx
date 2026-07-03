@@ -12,7 +12,7 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
-import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import { db } from '../db'
@@ -615,34 +615,29 @@ export function PlayArea({
     if (error) showLocalFeedback({ tone: 'error', text: `Concede failed: ${error.message}` })
   }, [gameId, isTerminal, showLocalFeedback])
 
-  useGlobalKeyHandler((e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return
-    // While viewing a past turn, ANY key exits to the live board — navigation is by
-    // clicking Moves-log rows, so the next keystroke plays normally.
-    if (viewingSeq != null) {
-      setViewingSeq(null)
-      return
-    }
-    // ANY key dismisses the sticky local feedback (matches the capture-entry games'
-    // "next keystroke clears feedback" behavior) — before the canPlace gate, so it
-    // clears even for keys this handler otherwise ignores.
-    clearLocalFeedback()
-    // (The "~" word-lookup shortcut is now app-global; see useAppShortcuts.)
-    if (!game || !canPlace) return
-    const k = e.key
-    if (k === 'Enter') {
-      e.preventDefault()
+  // Board-cursor keyboard — the shared 2-D placement engine (bananagrams's twin;
+  // it owns the modifier bail, focused-input guard, arrows→cursor, Backspace/Enter
+  // dispatch, and the skip-Enter-when-a-button-is-focused). scrabble supplies its
+  // 5%: type stages a tile (committed tiles are locked, unlike bananagrams), Enter
+  // plays the staged word, and the first keystroke exits a turn-viewer.
+  useBoardCursorKeys({
+    enabled: !!game && canPlace,
+    onAnyKey: () => {
+      // While viewing a past turn, ANY key exits to the live board (navigation is
+      // by clicking Moves-log rows) — consume this key.
+      if (viewingSeq != null) {
+        setViewingSeq(null)
+        return true
+      }
+      // Otherwise any key dismisses the sticky local feedback (no-op at terminal).
+      clearLocalFeedback()
+    },
+    onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
+    onLetter: (letter) => typeLetter(letter),
+    onBackspace: backspace,
+    onEnter: () => {
       if (staged.length > 0 && canCommit) void submit()
-    } else if (k === 'Backspace') {
-      e.preventDefault()
-      backspace()
-    } else if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
-      e.preventDefault()
-      setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1))
-    } else if (k.length === 1 && /^[a-z]$/i.test(k)) {
-      e.preventDefault()
-      typeLetter(k.toUpperCase())
-    }
+    },
   })
 
   if (loading) return <p className={styles.loading}>Loading game…</p>

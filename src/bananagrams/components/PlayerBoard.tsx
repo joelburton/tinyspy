@@ -18,6 +18,7 @@ import { ZoomFitButton } from '../../common/components/buttons/ZoomFitButton'
 import { IconExchange } from '../../common/components/icons'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
+import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
 import { isEditableField } from '../../common/hooks/useGameHasKeyboard'
 import { cls } from '../../common/lib/cls'
 import shared from '../../common/components/PlayArea.module.css'
@@ -417,73 +418,41 @@ export function PlayerBoard({ gameId, initialBoard, tiles, infoTop, infoActions,
     }
   }, [onPeel, isTerminal, isConceded, gameId])
 
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (frozenRef.current) return // conceded → no keyboard placing / peel
-      // Leave browser/OS shortcuts alone (Cmd-R, Ctrl-C, Alt-…): a bare letter
-      // key with a modifier isn't a tile placement. Without this, Cmd-R matched
-      // the a–z branch below and got swallowed as an "R" placement + preventDefault.
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      const k = e.key
-
-      // Enter / Space → peel (when legal), with or without an active board
-      // cursor — "my hand's empty, draw again" is the move you reach for most,
-      // so it shouldn't require a click. Skip when a <button> is focused so we
-      // don't double-fire alongside its native Space/Enter activation; doPeel
-      // itself no-ops when a peel isn't legal right now.
-      if (k === 'Enter' || k === ' ') {
-        if (t && t.tagName === 'BUTTON') return
-        e.preventDefault()
-        void doPeel()
-        return
-      }
-
+  // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin; it
+  // owns the modifier bail, the focused-input guard, arrows→cursor, and the
+  // skip-Enter/Space-when-a-<button>-is-focused so a focused Peel button doesn't
+  // double-fire). bananagrams supplies its 5%: EVERY cell is editable (typing over
+  // a filled cell swaps its tile back to the hand — no "committed" tiles, unlike
+  // scrabble), Backspace returns the tile under the cursor, and Enter/Space peels
+  // (`doPeel` self-no-ops when a peel isn't legal). Disabled while conceded (the
+  // board freezes; the others keep racing).
+  useBoardCursorKeys({
+    enabled: !isConceded,
+    enterOnSpace: true,
+    onEnter: () => void doPeel(),
+    onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
+    onBackspace: () => {
       const cur = cursorRef.current
-
-      if (k === 'Backspace') {
-        e.preventDefault()
-        if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
-        setCursor(stepBack(cur, GRID - 1))
-        return
-      }
-      if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown') {
-        e.preventDefault()
-        setCursor(moveCursor(cur, k, GRID - 1))
-        return
-      }
-      if (k.length === 1 && /[a-z]/i.test(k)) {
-        e.preventDefault()
-        const letter = k.toUpperCase()
-        const i = idx(cur.x, cur.y)
-        // Typing on a FILLED cell swaps: the tile under the cursor returns to
-        // the hand and the typed letter takes its place. So the hand we can
-        // place FROM is the held tiles minus everything placed EXCEPT this
-        // cell — clear it first, then ask "do I hold the typed letter?". (On
-        // an empty cell that clear is a no-op, so this collapses to the plain
-        // check.) Because the hand is DERIVED from the board, the single
-        // overwrite below does BOTH halves of the swap: the old letter
-        // re-derives back into the hand, the typed letter leaves it. (Typing
-        // a letter over its own twin is a harmless no-op for the same reason.)
-        const freed =
-          boardRef.current[i] === '.'
-            ? boardRef.current
-            : setChar(boardRef.current, i, '.')
-        if (!deriveHand(tilesRef.current, freed).includes(letter)) {
-          flashHandError() // you don't hold that tile → red flash around the hand
-          return
-        }
-        handToBoard(letter, cur.x, cur.y)
-        advance(cur)
-      }
+      if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
+      setCursor(stepBack(cur, GRID - 1))
     },
-    [advance, flashHandError, boardToHand, handToBoard, doPeel],
-  )
-  useEffect(() => {
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onKeyDown])
+    onLetter: (letter) => {
+      const cur = cursorRef.current
+      const i = idx(cur.x, cur.y)
+      // Typing on a FILLED cell swaps: clear it first (its tile re-derives back
+      // into the hand), then ask "do I hold the typed letter?". On an empty cell
+      // that clear is a no-op. Because the hand is DERIVED from the board, the one
+      // overwrite below does both halves of the swap.
+      const freed =
+        boardRef.current[i] === '.' ? boardRef.current : setChar(boardRef.current, i, '.')
+      if (!deriveHand(tilesRef.current, freed).includes(letter)) {
+        flashHandError() // you don't hold that tile → red flash around the hand
+        return
+      }
+      handToBoard(letter, cur.x, cur.y)
+      advance(cur)
+    },
+  })
 
   // --- Center + fit -----------------------------------------------------
   const centerAndFit = useCallback(() => {
