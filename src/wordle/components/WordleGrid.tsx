@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cls } from '../../common/lib/cls'
 import { revealVar, tileColor } from '../lib/colors'
+import shared from '../../common/components/PlayArea.module.css'
 import styles from './WordleGrid.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
@@ -57,7 +58,7 @@ export function WordleGrid({ rows, current, pending, maxGuesses, active, brand }
 
   return (
     <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
-      <div className={styles.grid} role="grid" aria-label={`${brand} board`}>
+      <div className={cls(shared.hugRectWidth, styles.grid)} role="grid" aria-label={`${brand} board`}>
         {Array.from({ length: maxGuesses }, (_, r) => {
           const submitted = rows[r]
           const isActive = r === activeIndex

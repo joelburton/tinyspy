@@ -42,7 +42,7 @@ export function WordBoard({ words, results, selected, onPick }: Props) {
       style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
       <div
-        className={styles.grid}
+        className={cls(shared.hugRectWidth, styles.grid)}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,

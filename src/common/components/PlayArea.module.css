@@ -93,6 +93,27 @@
   background: rgba(40, 120, 255, 0.0);
 }
 
+/* The rectangular HUG width, shared by every non-square grid board. The board
+ * is as wide as its columns + gaps need, capped per tile by --max-tile-width,
+ * and never wider than --avail-w (the space left beside the info column). With
+ * --max-tile-width uncapped (999rem) the cap term goes huge and the board just
+ * fills --avail-w — "fill" is the no-cap case of hug.
+ *
+ * Composed onto each game's own `.grid` (via `cls(shared.hugRectWidth,
+ * styles.grid)`), which keeps its per-game fill behaviour — psychicnum/
+ * connections/codenamesduet flex-fill height (`flex: 1`), wordle derives a
+ * square height from `aspect-ratio`. That behaviour lives in flex/grid-rows,
+ * NOT this width arithmetic, which was byte-identical across all four before
+ * this extraction. Each game supplies --cols / --max-tile-width / --grid-gap.
+ * See docs/ui.md → "Board sizing". (Square boards compute --side instead — see
+ * each square game's board module; they are NOT identical enough to share.) */
+.hugRectWidth {
+  width: min(
+    var(--avail-w),
+    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
+  );
+}
+
 /* The LOCAL feedback area — centers a lone <FeedbackPill> (or terminal message)
  * in the below-board slot, the universal "local feedback is centered" look
  * (docs/design-decisions.md → Terms / Feedback; the global header pill is

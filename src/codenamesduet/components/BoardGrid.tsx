@@ -78,7 +78,7 @@ export function BoardGrid({
     // measures this element's height across below-board states (it must not
     // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
     <div className={styles.board} data-board>
-      <div className={styles.grid}>
+      <div className={cls(shared.hugRectWidth, styles.grid)}>
         {words.map((w) => {
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null

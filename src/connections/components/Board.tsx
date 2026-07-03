@@ -85,7 +85,7 @@ export function Board({
     // board's max-height (both computed in CSS from the --max-tile-* caps — see
     // PlayArea.module.css). A band is one of these rows spanning all columns.
     <div className={styles.board} style={{ ['--rows' as string]: rows }}>
-      <div className={styles.grid}>
+      <div className={cls(shared.hugRectWidth, styles.grid)}>
         {sortedMatched.map((mc) => band(mc, false))}
         {unmatched.map((c) => band(c, true))}
         {tiles.map((tile) => {

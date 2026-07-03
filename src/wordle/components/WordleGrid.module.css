@@ -24,13 +24,13 @@
  * (a keyboard shares this column below the board, so the board hugs its height
  * rather than filling the column). Each row is its own 5-col grid (`.row`). */
 .grid {
+  /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
+   * element in WordleGrid.tsx). `aspect-ratio` then derives the HEIGHT from that
+   * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
+   * keyboard shares this column below the board, so the board hugs its height. */
   display: grid;
   grid-auto-rows: 1fr;
   gap: var(--grid-gap);
-  width: min(
-    var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
-  );
   aspect-ratio: var(--cols) / var(--rows);
 }
 

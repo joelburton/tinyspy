@@ -57,13 +57,11 @@
   flex: 1;
   min-height: 0;
   display: grid;
+  /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
+   * element in BoardGrid.tsx). */
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: var(--grid-gap);
-  width: min(
-    var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
-  );
   /* Tune the shared `.tileWord` auto-fit (clamp by `--len`) for a 5-col board of
    * single words. Starting values — adjust during manual verification. */
   --tile-font-min: 0.8rem;

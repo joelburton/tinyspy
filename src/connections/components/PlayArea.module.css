@@ -73,13 +73,11 @@
   flex: 1;
   min-height: 0;
   display: grid;
+  /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
+   * element in Board.tsx). */
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: var(--grid-gap);
-  width: min(
-    var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
-  );
   --tile-font-min: 1rem;
   --tile-font-factor: 0.94;
   --tile-font-max: 1.95rem;

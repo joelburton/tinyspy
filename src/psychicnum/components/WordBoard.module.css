@@ -45,14 +45,12 @@
  * scaffold token, set on .layout in common/components/PlayArea.module.css — every
  * hug game reads the same one. --cols is set inline. */
 .grid {
+  /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
+   * element in WordBoard.tsx). This game keeps its own fill behaviour below. */
   flex: 1;
   min-height: 0;
   display: grid;
   gap: var(--grid-gap);
-  width: min(
-    var(--avail-w),
-    calc(var(--cols) * var(--max-tile-width) + (var(--cols) - 1) * var(--grid-gap))
-  );
   --tile-font-min: 0.85rem;
   --tile-font-factor: 0.9;
   --tile-font-max: 2.6rem;
