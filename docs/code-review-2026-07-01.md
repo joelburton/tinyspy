@@ -385,14 +385,20 @@ composes one and keeps its own fill behavior.
 
 ### 3.4 Small shared behaviors re-authored
 
-- **Click-to-define affordance** — `scrabble/PlayLog.module.css:38` and
-  `stackdown/FoundWords.module.css:6` have byte-identical `.clickable`
-  (`cursor:pointer; hover→underline`); `WordList.module.css:103` does the same a
-  third way. *Recommend:* one shared `.definable`.
-- **Turn-log word emphasis** — codenamesduet/connections/scrabble/waffle each
-  re-declare `font-weight:700` + `letter-spacing` that shared `turnLog.primary`
-  already provides (with 0.03 vs 0.04 drift). *Recommend:* compose it, keep only
-  the color delta.
+- ~~**Click-to-define affordance**~~ **✅ DONE (`10fd881`)** — scrabble/PlayLog +
+  stackdown/FoundWords `.clickable` were byte-identical; promoted to a global
+  `.definable` utility in theme.css. `WordList.module.css` `.word` left as-is: it
+  deliberately does MORE (accent focus-ring + finder-color recent-flash), a real
+  variant, not drift.
+- **Turn-log word emphasis** — **⚠ premise overclaimed (like §3.2 square); recommend
+  SKIP.** On inspection the four word classes are NOT "primary + letter-spacing":
+  **none compose `turnLog.primary`**; **connections** `.words` is `font-weight:600`
+  + `uppercase` + `word-break` (category words — deliberately different); **waffle**
+  styles per-*letter* at `1.1rem` (not a word); only codenamesduet + scrabble are
+  `700 + letter-spacing`, and composing `primary` would pull in its `font-size:1rem`
+  + `tabular-nums` (a behavior change) to dedup one property. The 0.03↔0.04
+  `letter-spacing` drift is marginal and possibly deliberate (connections uppercase
+  wants more). Not worth flattening the per-game differences.
 
 ### 3.5 Per-game `theme.css` — generally healthy
 
