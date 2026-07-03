@@ -49,6 +49,19 @@
     0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
 }
 
+/* Green ring on the word a viewed turn played — the turn-history highlight
+ * (PlayArea passes these tile ids while you're peeking at a past turn). Same
+ * ring geometry as `.flash`, in the shared "won/placed" green scrabble's
+ * turn-viewer uses for a turn's tiles, so the two games read alike. These
+ * tiles stay ON the board in the snapshot (the strictly-before boundary), so
+ * the ring is always visible. */
+.viewed {
+  border-color: var(--color-outcome-won-strong);
+  box-shadow:
+    0 0 0 0.5cqi var(--color-outcome-won-strong),
+    0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+}
+
 /* Covered (disabled) tiles fade back so the clickable frontier reads as
  * the bright layer. */
 .tile:disabled {

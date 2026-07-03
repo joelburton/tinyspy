@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { cls } from '../../common/lib/cls'
 import { depthMap, exposedIds, letterCorner, type Tile } from '../lib/board'
 import styles from './Board.module.css'
 
@@ -24,6 +25,9 @@ function depthColor(depth: number): string {
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')
 
+/** Shared empty highlight set — the live board rings no tiles green. */
+const NO_TILES: ReadonlySet<number> = new Set()
+
 /**
  * The stackdown board: the 30 lettered tiles drawn on their fixed grid,
  * stacked by layer. Only the tiles still on the board are painted (the
@@ -40,6 +44,7 @@ export function Board({
   offBoard,
   active,
   highlight,
+  green = NO_TILES,
   onTileClick,
 }: {
   tiles: Tile[]
@@ -47,6 +52,9 @@ export function Board({
   active: boolean
   /** Tile ids to outline in red (a typed letter matched more than one). */
   highlight: ReadonlySet<number>
+  /** Tile ids to ring green — the word a viewed past turn played (turn-history).
+   *  Omitted / empty during live play. */
+  green?: ReadonlySet<number>
   onTileClick: (tileId: number) => void
 }) {
   const present = useMemo(
@@ -75,9 +83,11 @@ export function Board({
           <button
             type="button"
             key={t.id}
-            className={
-              highlight.has(t.id) ? `${styles.tile} ${styles.flash}` : styles.tile
-            }
+            className={cls(
+              styles.tile,
+              highlight.has(t.id) && styles.flash,
+              green.has(t.id) && styles.viewed,
+            )}
             disabled={!isExp || !active}
             onClick={() => onTileClick(t.id)}
             style={{
