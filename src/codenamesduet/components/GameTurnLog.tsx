@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
-import { ActorTag } from '../../common/components/ActorTag'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import turnLog from '../../common/components/TurnLog.module.css'
 import { cls } from '../../common/lib/cls'
 import type { ClueRow } from '../hooks/useClues'
@@ -100,9 +100,7 @@ export function GameTurnLog({ clues, guesses, players, currentTurn, gameOver }: 
                   {clue.count} {clue.word.toUpperCase()}
                 </span>
               </td>
-              <td className={turnLog.who}>
-                <ActorTag actor={clueGiver} fallback={clue.by_seat} />
-              </td>
+              <TurnLogActor actor={clueGiver} fallback={clue.by_seat} />
             </tr>
             {/* Row 2: the turn's guesses, spanning the three content columns
                 (#, clue, clue-giver) beneath the clue line. No divider class — the

@@ -1,7 +1,7 @@
 import { type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
@@ -106,9 +106,7 @@ export function PlayLog({
               </>
             )}
           </td>
-          <td className={turnLog.who}>
-            <ActorTag actor={players.find((m) => m.user_id === p.user_id)} fallback="someone" />
-          </td>
+          <TurnLogActor actor={players.find((m) => m.user_id === p.user_id)} fallback="someone" />
         </tr>
       ))}
     </TurnLog>

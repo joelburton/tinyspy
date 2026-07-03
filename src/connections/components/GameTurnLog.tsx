@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
@@ -67,9 +67,7 @@ export function GameTurnLog({ guesses, matchedCategories, players }: Props) {
           <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
             <TurnLogBar outcome={OUTCOME[g.result]} rowSpan={2} />
             <td className={turnLog.main}>{verdictLabel(g, nameByRank)}</td>
-            <td className={turnLog.who}>
-              <ActorTag actor={memberById(players, g.user_id)} />
-            </td>
+            <TurnLogActor actor={memberById(players, g.user_id)} />
           </tr>
           {/* Row 2: the four guessed tiles, full width — spanning the verdict +
               who columns beneath the meta line. */}

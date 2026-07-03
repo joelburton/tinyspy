@@ -1,5 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from 'react'
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
@@ -40,13 +40,11 @@ type Props = {
  * own attempts + helpers.
  */
 export function GameTurnLog({ guesses, players }: Props) {
-  // The actor's identity cell — shared by every row kind. The shared <ActorTag>
-  // is the name + identity disc; the right-aligned `turnLog.who` column aligns
-  // the discs down the log.
+  // The actor's identity cell — shared by every row kind. The shared
+  // <TurnLogActor> is the right-aligned `.who` <td> wrapping the name + disc;
+  // this local helper just resolves the userId to a member first.
   const whoCell = (userId: string) => (
-    <td className={turnLog.who}>
-      <ActorTag actor={memberById(players, userId)} />
-    </td>
+    <TurnLogActor actor={memberById(players, userId)} />
   )
 
   // Click-to-define (a common feature — see common/hooks/useDefinePopover). The

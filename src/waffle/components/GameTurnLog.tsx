@@ -1,4 +1,4 @@
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
@@ -54,9 +54,7 @@ export function GameTurnLog({ swaps, players }: Props) {
                 <span className={styles.coord}>({coord(s.pos_b)})</span>
               </span>
             </td>
-            <td className={turnLog.who}>
-              <ActorTag actor={swapper} fallback="someone" />
-            </td>
+            <TurnLogActor actor={swapper} fallback="someone" />
           </tr>
         )
       })}

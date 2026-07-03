@@ -2,7 +2,7 @@ import { type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
@@ -117,9 +117,7 @@ export function FoundWords({
                 )}
               </td>
               {showWho && (
-                <td className={turnLog.who}>
-                  <ActorTag actor={memberById(players, s.user_id)} />
-                </td>
+                <TurnLogActor actor={memberById(players, s.user_id)} />
               )}
             </tr>
           )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
-import { ActorTag } from '../../common/components/ActorTag'
+import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById, orderSelfFirst } from '../../common/lib/peers'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
@@ -137,9 +137,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
               ))}
             </span>
           </td>
-          <td className={turnLog.who}>
-            <ActorTag actor={memberById(players, g.user_id)} />
-          </td>
+          <TurnLogActor actor={memberById(players, g.user_id)} />
         </tr>
       ))}
     </TurnLog>
