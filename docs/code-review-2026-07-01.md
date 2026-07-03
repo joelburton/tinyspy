@@ -491,6 +491,15 @@ selection Broadcast on a stable-name channel).
 
 ### 4.4 `<SelectField>` — fixes live CSS drift
 
+> **✅ DONE (`d18e781`).** Confirmed the three looks (DifficultyField/boggle custom
+> chevron; wordle smaller + native arrow + surface colors; **psychicnum fully
+> unstyled**). Extracted `common/components/SelectField` with DifficultyField's
+> canonical styling; DifficultyField reframed onto it (its CSS moved → module
+> deleted; provable no-op for its 6 consumers). boggle dice/ladder + wordle guesses
+> + psychicnum word-count migrated; drifted CSS deleted. wordle + psychicnum
+> converge to canonical — **verified in headless setup dialogs** (both now match the
+> DifficultyField dropdowns beside them). tsc + 320 tests + eslint green.
+
 Four native `<select>`s live outside `DifficultyField` (boggle ×2, wordle,
 psychicnum) and their CSS has **already drifted into three looks** — boggle's
 `.select` comment literally says "Mirrors DifficultyField's .field." A shared
