@@ -39,6 +39,10 @@ export {
   // lineage (brand MonkeyGrams) and reads as its own distinct action, not a
   // generic submit. Local to the PeelButton — no other game peels.
   Banana as IconPeel,
+  // share your in-progress move with coop teammates (scrabble's "show a move" —
+  // broadcasts your staged tiles for the team to preview read-only). The share
+  // node-graph glyph is the near-universal "send this to others" idiom.
+  Share as IconShare,
   ChevronLeft as IconBack, // back to club
   Pause as IconPause, // pause the game
   // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The

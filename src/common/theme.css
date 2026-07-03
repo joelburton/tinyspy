@@ -66,6 +66,15 @@
      mislead. */
   --color-history-viewer:     #ffd21a;
 
+  /* Share-preview marker — the frame + banner color when a coop teammate is
+     "showing a move" (scrabble). Deliberately its OWN token (initialized to the
+     same amber as the history marker) so the preview overlay can be tinted
+     independently of history — change this to tell "a teammate is showing me a
+     move" apart from "I'm reviewing a past turn". Feeds the same shared
+     historyViewer `.frame` / `.banner`, via the `--viewer-accent` override on
+     scrabble's `.sharePreview` wrapper. */
+  --color-share-preview:      #ffd21a;
+
   /* Outcome palette — used wherever a game's outcome state needs
      to be summarized visually (calendar date squares, future
      ClubPage outcome chips, stats badges, etc.). Soft pastel

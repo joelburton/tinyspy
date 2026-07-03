@@ -9,6 +9,7 @@ import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { boardUpToSeq, evaluatePlay, type Placement } from '../lib/play'
+import type { SharedMovePayload } from '../hooks/useSharedMove'
 import type { ScrabbleGame, PlayerRow, PlayRow } from '../hooks/useGame'
 import { Board, type Cursor, type Tentative } from './Board'
 import { Rack } from './Rack'
@@ -26,6 +27,20 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  *  turn machine reports these UP via `onFeedback`; PlayArea owns the channel (it
  *  also folds the terminal verdict in), because InfoCol's End/Concede write to it too. */
 export type LocalFeedbackMsg = { tone: GenericFeedbackTone; text: string }
+
+/**
+ * What read-only overlay is open on the board — the shared history viewer's id,
+ * widened for scrabble to carry BOTH kinds of read-only board it can show:
+ *   - **`turn`** — a past turn's committed board (the history viewer).
+ *   - **`shared`** — a coop teammate's in-progress move (their staged tiles laid
+ *     on the live board), received over Broadcast (see useSharedMove).
+ * Both wear the same viewer chrome (frame + banner + frozen input) and the same
+ * exits (click / keystroke / ✕ / a new move) — so they ride one `useHistoryViewer`
+ * as `useHistoryViewer<ViewTarget>`, and this switches on `kind` to render.
+ */
+export type ViewTarget =
+  | { kind: 'turn'; seq: number }
+  | { kind: 'shared'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
 /** The board cell under a screen point (via data-cell), or null. */
 function cellAtPoint(x: number, y: number): XY | null {
@@ -135,11 +150,15 @@ export function BoardCol({
   clearLocalFeedback,
   localPill,
   plays,
-  viewingSeq,
+  viewTarget,
   viewing,
-  viewingSeqRef,
+  viewTargetRef,
   onExitViewing,
   nameOf,
+  memberColorOf,
+  canShare,
+  shareMove,
+  selfId,
 }: {
   // ── Game data (the turn machine reads board/version/rack/bag off this) ──
   game: ScrabbleGame
@@ -159,18 +178,29 @@ export function BoardCol({
   /** The pill to render in the commit slot (terminal verdict or own-move result), or null. */
   localPill: GenericFeedbackMsg | null
 
-  // ── History viewer (state owned by PlayArea; this renders the snapshot) ──
+  // ── Board viewer (state owned by PlayArea; this renders the snapshot) ──
   plays: PlayRow[]
-  /** The play whose historical board is open, or null when live. */
-  viewingSeq: number | null
-  /** viewingSeq !== null. */
+  /** The read-only overlay open on the board (a past turn OR a teammate's shared
+   *  move), or null when live. */
+  viewTarget: ViewTarget | null
+  /** viewTarget !== null. */
   viewing: boolean
-  /** A ref to viewingSeq, read by the once-registered board-drag pointerdown. */
-  viewingSeqRef: RefObject<number | null>
-  /** Return to the live board (a board interaction / a keystroke). */
+  /** A ref to viewTarget, read by the once-registered board-drag pointerdown. */
+  viewTargetRef: RefObject<ViewTarget | null>
+  /** Return to the live board (a board interaction / a keystroke / a new move). */
   onExitViewing: () => void
-  /** Username for a user id — for the viewer banner's turn summary. */
+  /** Username for a user id — for the viewer banners. */
   nameOf: (id: string | null) => string
+  /** Identity-disc color for a user id — for the share banner's disc. */
+  memberColorOf: (id: string) => string
+
+  // ── Show-a-move (coop only — see useSharedMove) ──
+  /** Coop with ≥2 players — gates the Share button (there's a teammate to show). */
+  canShare: boolean
+  /** Broadcast my staged tiles to teammates for a read-only preview. */
+  shareMove: (payload: SharedMovePayload) => void
+  /** My user id — stamped on a broadcast as its `sharerId`. */
+  selfId: string
 }) {
   const [staged, setStaged] = useState<Staged[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
@@ -390,9 +420,9 @@ export function BoardCol({
 
   const onCellPointerDown = useCallback(
     (x: number, y: number, e: React.PointerEvent) => {
-      // While viewing a past turn the board is read-only; a click exits to live
-      // (interacting ends the peek) rather than placing a tile.
-      if (viewingSeqRef.current != null) {
+      // While a read-only overlay is open (a past turn or a teammate's shared
+      // move) the board is read-only; a click exits to live rather than placing.
+      if (viewTargetRef.current != null) {
         onExitViewing()
         return
       }
@@ -401,9 +431,9 @@ export function BoardCol({
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
-    // onExitViewing + viewingSeqRef are stable (from useHistoryViewer), so listing
+    // onExitViewing + viewTargetRef are stable (from useHistoryViewer), so listing
     // them keeps this handler's single-registration without churn.
-    [stagedAt, start, clearLocalFeedback, onExitViewing, viewingSeqRef],
+    [stagedAt, start, clearLocalFeedback, onExitViewing, viewTargetRef],
   )
 
   const onRackPointerDown = useCallback(
@@ -585,6 +615,24 @@ export function BoardCol({
     if (error) showLocalFeedback({ tone: 'error', text: error.message })
   }, [game.version, gameId, showLocalFeedback])
 
+  // Show-a-move (coop): broadcast my staged tiles to teammates for a read-only
+  // preview. Snapshot semantics — one send per click; re-click to re-show an
+  // updated move. `words`/`score` ride along for the banner (empty/0 if the
+  // arrangement isn't a legal play yet). Ephemeral: never stored, and a teammate
+  // who misses it simply doesn't see it (see useSharedMove).
+  const shareCurrentMove = useCallback(() => {
+    if (staged.length === 0) return
+    const placements: Placement[] = staged.map(({ x, y, letter, blank }) => ({ x, y, letter, blank }))
+    const ev = evaluatePlay(board, placements)
+    shareMove({
+      placements,
+      sharerId: selfId,
+      baseVersion: game.version,
+      words: ev.valid ? ev.words.map((w) => w.word) : [],
+      score: ev.valid ? ev.score : 0,
+    })
+  }, [staged, board, shareMove, selfId, game.version])
+
   // Board-cursor keyboard — the shared 2-D placement engine (bananagrams's twin;
   // it owns the modifier bail, focused-input guard, arrows→cursor, Backspace/Enter
   // dispatch, and the skip-Enter-when-a-button-is-focused). scrabble supplies its
@@ -618,23 +666,43 @@ export function BoardCol({
   // (a disabled Submit displaying "+N") and enables the moment your turn starts.
   const canSubmit = staged.length > 0 && canCommit
 
-  // Turn viewer: when active, the board renders the replayed historical state with
-  // that turn's tiles outlined; the live overlays (staged/cursor/flashes) are off.
-  // (`viewing` is a prop; the direct `!== null` checks let TS narrow the seq.)
-  const viewedPlay: PlayRow | null =
-    viewingSeq !== null ? (plays.find((p) => p.seq === viewingSeq) ?? null) : null
-  const renderBoard = viewingSeq !== null ? boardUpToSeq(plays, viewingSeq) : board
-  const viewingCells =
-    viewing && viewedPlay?.kind === 'word'
+  // Board viewer: two read-only overlays share the chrome (frame + banner + frozen
+  // input + suppressed live overlays), picked by `viewTarget.kind`:
+  //   - a past TURN — the replayed historical board, that turn's played cells
+  //     outlined (via boardUpToSeq); or
+  //   - a teammate's SHARED move — the live board with their staged tiles laid on
+  //     as tentative, those cells outlined.
+  const viewTurn = viewTarget?.kind === 'turn' ? viewTarget : null
+  const viewShared = viewTarget?.kind === 'shared' ? viewTarget : null
+  const viewedPlay: PlayRow | null = viewTurn
+    ? (plays.find((p) => p.seq === viewTurn.seq) ?? null)
+    : null
+  const renderBoard = viewTurn ? boardUpToSeq(plays, viewTurn.seq) : board
+  // A shared move's tiles, as a tentative map over the live board (stable ref when
+  // not sharing, like NO_TENT, so the Board doesn't churn).
+  const sharedTent = useMemo(() => {
+    if (!viewShared) return NO_TENT
+    const m = new Map<number, Tentative>()
+    for (const p of viewShared.placements) m.set(cellIndex(p.x, p.y), { letter: p.letter, blank: p.blank })
+    return m
+  }, [viewShared])
+  const viewingCells = viewTurn
+    ? viewedPlay?.kind === 'word'
       ? new Set((viewedPlay.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
+      : NO_CELLS
+    : viewShared
+      ? new Set(viewShared.placements.map((pl) => cellIndex(pl.x, pl.y)))
       : NO_CELLS
 
   return (
     <>
-      <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* `.sharePreview` on the column recolors the frame + banner via the
+          cascading `--viewer-accent` var, so a teammate's shared move reads
+          distinctly from a history replay (theme.css → --color-share-preview). */}
+      <div className={cls(shared.boardCol, styles.boardCol, viewShared && history.sharePreview)}>
         <Board
           board={renderBoard}
-          tentative={viewing ? NO_TENT : tentativeMap}
+          tentative={viewTurn ? NO_TENT : viewShared ? sharedTent : tentativeMap}
           cursor={cursor}
           hover={viewing ? null : hover}
           greenCells={viewing ? NO_CELLS : greenFlash}
@@ -647,12 +715,27 @@ export function BoardCol({
         />
 
         <div className={styles.belowBoard}>
-          {/* Turn-viewer banner — overlays the input area (the rack stays mounted
+          {/* Viewer banner — overlays the input area (the rack stays mounted
               underneath, so `staged` is preserved). Click anywhere to exit; the ✕
-              at the far right also exits. Navigation is by clicking Moves-log rows. */}
-          {viewing && viewedPlay && (
+              at the far right also exits. Either a past turn's summary, or a
+              teammate's shared move ("● moth showing: +18 BERRY"). */}
+          {viewing && (viewedPlay || viewShared) && (
             <div className={history.banner} onClick={onExitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{turnSummary(viewedPlay, nameOf)}</span>
+              <span className={history.bannerLabel}>
+                {viewShared ? (
+                  <>
+                    <span style={{ color: memberColorOf(viewShared.sharerId) }} aria-hidden>
+                      ●
+                    </span>{' '}
+                    {nameOf(viewShared.sharerId)} showing:{' '}
+                    {viewShared.words.length > 0
+                      ? `+${viewShared.score} ${viewShared.words.map((w) => w.toUpperCase()).join(', ')}`
+                      : `${viewShared.placements.length} tile${viewShared.placements.length === 1 ? '' : 's'}`}
+                  </>
+                ) : (
+                  turnSummary(viewedPlay!, nameOf)
+                )}
+              </span>
               <button
                 type="button"
                 className={history.bannerExit}
@@ -684,6 +767,8 @@ export function BoardCol({
                 submitting={submitting}
                 submitScore={submitScore}
                 canSubmit={canSubmit}
+                canShare={canShare}
+                onShare={shareCurrentMove}
                 pill={localPill}
                 onSubmit={() => void submit()}
                 onRecall={recallAll}

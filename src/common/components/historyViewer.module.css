@@ -1,8 +1,9 @@
 /*
  * History-view appearance — the shared "you're looking at a past turn, not the
  * live board" marker, worn identically by every game that supports turn-history
- * replay (scrabble, stackdown, …). One yellow token (`--color-history-viewer`)
- * drives three coordinated signifiers so the viewer reads the same everywhere:
+ * replay (scrabble, stackdown, …). One yellow token (`--color-history-viewer`,
+ * overridable per-overlay via `--viewer-accent` — see `.sharePreview`) drives
+ * three coordinated signifiers so the viewer reads the same everywhere:
  *
  *   .frame        — a yellow outline around the whole board
  *   .viewedNumber — a yellow outline on the "#N" handle whose turn is open (the
@@ -32,9 +33,23 @@
  * click-anywhere-to-exit (see useHistoryViewer) — so clicking the board returns to
  * live just like clicking anywhere else, uniformly across games. */
 .frame {
-  outline: 4px solid var(--color-history-viewer);
+  /* `--viewer-accent` defaults to the history token, so every history game is
+   *  unchanged; a wrapper can override it (scrabble's `.sharePreview` sets it to
+   *  `--color-share-preview`) to recolor the frame + banner for a different kind
+   *  of read-only overlay. Custom properties cascade, so setting it on the board
+   *  column reaches both the board `.frame` and the below-board `.banner`. */
+  outline: 4px solid var(--viewer-accent, var(--color-history-viewer));
   outline-offset: 3px;
   pointer-events: none;
+}
+
+/* Recolor the frame + banner for scrabble's coop "showing a move" preview — the
+ * SAME overlay chrome as history, but with its own tinkerable accent (theme.css →
+ * --color-share-preview). Applied to the board column so the var cascades to both
+ * the board frame and the banner. The `.viewedNumber` #N ring stays history-only
+ * (a shared move has no log handle). */
+.sharePreview {
+  --viewer-accent: var(--color-share-preview);
 }
 
 /* The "#N" turn handle whose turn is currently open in the viewer — a yellow ring
@@ -63,7 +78,7 @@
   gap: 0.6rem;
   padding: 0 0.5rem 0 0.75rem;
   cursor: pointer;
-  border: 2px solid var(--color-history-viewer);
+  border: 2px solid var(--viewer-accent, var(--color-history-viewer));
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);

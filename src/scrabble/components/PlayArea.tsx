@@ -4,10 +4,12 @@ import { cls } from '../../common/lib/cls'
 import { TerminalModal } from '../../common/components/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
+import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { BoardCol, type LocalFeedbackMsg } from './BoardCol'
+import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
+import { BoardCol, type LocalFeedbackMsg, type ViewTarget } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -15,9 +17,11 @@ import '../theme.css'
 
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
- * the game data (`useGame`), the turn-history coordination (`useHistoryViewer`), the
- * below-board feedback channel (`useLocalFeedback` — lifted here because InfoCol's
- * End/Concede write to it too), and the terminal copy; it wires two columns:
+ * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
+ * `ViewTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
+ * coop "show a move" Broadcast transport (`useSharedMove`), the below-board feedback
+ * channel (`useLocalFeedback` — lifted here because InfoCol's End/Concede write to it
+ * too), and the terminal copy; it wires two columns:
  *
  *   - **`<BoardCol>`** — the 15×15 board + the rack + the whole turn machine
  *     (staging via drag/keyboard, the blank picker, the optimistic hold, and the
@@ -53,10 +57,30 @@ export function PlayArea({
     [showMsg],
   )
 
-  // Turn viewer coordination (shared hook): which play `seq` is open on the board.
-  // Cross-column — BoardCol renders the snapshot, InfoCol's Moves log selects it.
-  const { viewingId: viewingSeq, viewingIdRef: viewingSeqRef, viewing, select, exitViewing } =
-    useHistoryViewer()
+  // Board-viewer coordination (shared hook): which read-only overlay is open — a
+  // past turn OR a teammate's shared move (the `ViewTarget` union). Cross-column:
+  // BoardCol renders it, InfoCol's Moves log selects a turn, a broadcast opens a
+  // shared move. A new committed move (the version effect in BoardCol) exits either.
+  const { viewingId: viewTarget, viewingIdRef: viewTargetRef, viewing, select, exitViewing } =
+    useHistoryViewer<ViewTarget>()
+  // Only a TURN is highlighted in the Moves log (`#N`) — a shared move has no row.
+  const viewingSeq = viewTarget?.kind === 'turn' ? viewTarget.seq : null
+
+  // Show-a-move transport (coop only): a teammate's broadcast opens a read-only
+  // preview of their staged tiles. Ignore a stale one (their board version no
+  // longer matches ours — a real move landed in between), so we never overlay a
+  // move that no longer fits. `select` opens it on the same viewer as history.
+  const { shareMove } = useSharedMove({
+    gameId,
+    mode: game?.mode,
+    onReceive: useCallback(
+      (p: SharedMovePayload) => {
+        if (!game || p.baseVersion !== game.version) return
+        select({ kind: 'shared', placements: p.placements, sharerId: p.sharerId, words: p.words, score: p.score })
+      },
+      [game, select],
+    ),
+  })
 
   // ─── Derived (null-safe until the loading guard) ──────────────
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -69,6 +93,13 @@ export function PlayArea({
     (userId: string | null) => members.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [members],
   )
+  // Identity-disc color for the share banner's ● (the shared member-color scheme).
+  const memberColorOf = useCallback(
+    (userId: string) => colorVarFor(members.find((m: Member) => m.user_id === userId)?.color),
+    [members],
+  )
+  // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
+  const canShare = game?.mode === 'coop' && members.length >= 2
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
@@ -120,11 +151,15 @@ export function PlayArea({
         clearLocalFeedback={clearLocalFeedback}
         localPill={localPill}
         plays={plays}
-        viewingSeq={viewingSeq}
+        viewTarget={viewTarget}
         viewing={viewing}
-        viewingSeqRef={viewingSeqRef}
+        viewTargetRef={viewTargetRef}
         onExitViewing={exitViewing}
         nameOf={nameOf}
+        memberColorOf={memberColorOf}
+        canShare={canShare}
+        shareMove={shareMove}
+        selfId={session.user.id}
       />
 
       <InfoCol
@@ -146,7 +181,7 @@ export function PlayArea({
         setup={scrabbleSetup}
         plays={plays}
         viewingSeq={viewingSeq}
-        onSelectTurn={select}
+        onSelectTurn={(seq: number) => select({ kind: 'turn', seq })}
       />
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />

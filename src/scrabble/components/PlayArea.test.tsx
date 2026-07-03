@@ -13,7 +13,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the board, rack, controls, log, modal — renders real.
  */
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -36,6 +36,21 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// The coop "show a move" transport opens a real Broadcast channel; stub it so the
+// render tests never hit the network (a real `supabase.channel().subscribe()`
+// throws an undici WebSocket error under jsdom). The stub captures the `onReceive`
+// callback so a test can simulate an incoming broadcast (the cross-client wire
+// itself is exercised in the e2e).
+const sm = vi.hoisted(() => ({
+  onReceive: null as null | ((p: unknown) => void),
+  shareMove: vi.fn(),
+}))
+vi.mock('../hooks/useSharedMove', () => ({
+  useSharedMove: (opts: { onReceive: (p: unknown) => void }) => {
+    sm.onReceive = opts.onReceive
+    return { shareMove: sm.shareMove }
+  },
+}))
 
 const RACK = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 
@@ -194,5 +209,61 @@ describe('scrabble PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+})
+
+describe('scrabble PlayArea — show a move (coop)', () => {
+  it('renders the Share button in coop with ≥2 players, disabled with nothing staged', () => {
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(screen.getByLabelText('Show move to team')).toBeDisabled()
+  })
+
+  it('hides the Share button in a solo coop game (no teammate to show)', () => {
+    render(<PlayArea {...makeCtx()} />) // makeCtx defaults to one player
+    expect(screen.queryByLabelText('Show move to team')).not.toBeInTheDocument()
+  })
+
+  it('hides the Share button in compete', () => {
+    h.result = loadedCompete()
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    expect(screen.queryByLabelText('Show move to team')).not.toBeInTheDocument()
+  })
+
+  it("opens a teammate's shared move as a read-only preview, and exits on ✕", async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ version: 3 }), [selfPlayer()])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    // Simulate the broadcast landing (baseVersion matches our board's version).
+    act(() =>
+      sm.onReceive!({
+        placements: [
+          { x: 7, y: 7, letter: 'A', blank: false },
+          { x: 8, y: 7, letter: 'B', blank: false },
+        ],
+        sharerId: 'u2',
+        baseVersion: 3,
+        words: ['AB'],
+        score: 5,
+      }),
+    )
+    // The share banner: "● moth showing: +5 AB".
+    expect(screen.getByText(/moth showing: \+5 AB/)).toBeInTheDocument()
+    await user.click(screen.getByLabelText('Exit viewing'))
+    expect(screen.queryByText(/moth showing: \+5 AB/)).not.toBeInTheDocument()
+  })
+
+  it('ignores a stale shared move (its baseVersion no longer matches the board)', () => {
+    h.result = loaded(loadedGame({ version: 5 }), [selfPlayer()])
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    act(() =>
+      sm.onReceive!({
+        placements: [{ x: 7, y: 7, letter: 'A', blank: false }],
+        sharerId: 'u2',
+        baseVersion: 2, // a move landed since — this is stale
+        words: ['A'],
+        score: 1,
+      }),
+    )
+    expect(screen.queryByText(/showing:/)).not.toBeInTheDocument()
   })
 })

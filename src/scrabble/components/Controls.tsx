@@ -1,6 +1,7 @@
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
+import { SharePreviewButton } from '../../common/components/buttons/SharePreviewButton'
 import { ExchangeButton } from '../../common/components/buttons/ExchangeButton'
 import { SubmitWithScore } from '../../common/components/buttons/SubmitWithScore'
 import { PassButton } from '../../common/components/buttons/PassButton'
@@ -27,6 +28,10 @@ import shared from '../../common/components/PlayArea.module.css'
  *     enables it for any placed tiles (an illegal shape is explained by a pill on
  *     submit, not by disabling).
  *
+ * The **Share** button (coop, ≥2 players only) sits beside Recall on the LEFT — not
+ * in the commit slot — so it stays visible when a pill takes the slot over. It
+ * broadcasts the staged tiles for teammates to preview (see useSharedMove).
+ *
  * Disabled-state logic is computed in PlayArea and passed down.
  */
 export function Controls({
@@ -38,6 +43,8 @@ export function Controls({
   submitting,
   submitScore,
   canSubmit,
+  canShare,
+  onShare,
   pill,
   onSubmit,
   onRecall,
@@ -56,6 +63,10 @@ export function Controls({
   submitScore: number | null
   /** Whether the staged play is submittable (tiles placed + the player can act). */
   canSubmit: boolean
+  /** Coop with ≥2 players — render the Share button (a teammate can be shown). */
+  canShare: boolean
+  /** Broadcast the staged tiles to teammates for a read-only preview. */
+  onShare: () => void
   /** An own-move / terminal pill to show IN the commit slot (replacing the commit
    *  buttons + filling its width), or null to show the buttons. */
   pill: GenericFeedbackMsg | null
@@ -67,6 +78,11 @@ export function Controls({
   return (
     <div className={styles.controls}>
       <ClearButton iconOnly label="Recall" disabled={!hasTentative} onClick={onRecall} />
+      {/* Show a move to teammates (coop, ≥2 players). On the left with Recall so a
+          pill in the commit slot never hides it; enabled only with tiles staged. */}
+      {canShare && (
+        <SharePreviewButton label="Show move to team" disabled={!hasTentative} onClick={onShare} />
+      )}
 
       <div
         className={cls(styles.moveAreaOrLocalFeedback, pill && styles.moveAreaOrLocalFeedbackPill)}
