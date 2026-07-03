@@ -530,8 +530,12 @@ lines and it fixes a real consistency bug.
   `common/components/TurnLogActor` forwarding `actor`/`fallback`/`className` to
   `<ActorTag>` in the shared `.who` `<td>`; psychicnum's local `whoCell` now returns
   it. Byte-identical DOM. tsc + 150 tests + eslint green.
-- **`useFlash()`** — the identical green/yellow/red `setTimeout` flash effect
-  appears 3× in scrabble and 2× in stackdown.
+- ~~**`useFlash()`** — the identical green/yellow/red `setTimeout` flash effect~~
+  **✅ DONE (`ebb62eb`)** — extracted `common/hooks/useFlash` (`[flashedSet,
+  flash(items)]`, self-clearing; fake-timer test). scrabble's 3 (state+effect ×3)
+  + stackdown's `flashIds` (1) migrated. NB the "2× stackdown" was overcounted —
+  stackdown's other flash is `WordFlash` (a nullable tagged value, a different
+  primitive), left as-is. **§4.5 complete** (RadioRow + TurnLogActor + useFlash).
 
 ### 4.6 Oversized files to decompose (readability)
 
