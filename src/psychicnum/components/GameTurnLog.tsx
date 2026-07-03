@@ -3,7 +3,7 @@ import { TurnLogActor } from '../../common/components/TurnLogActor'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
-import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
 import type { Player, PsychicnumGuess } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
@@ -11,6 +11,11 @@ import styles from './GameTurnLog.module.css'
 type Props = {
   guesses: PsychicnumGuess[]
   players: Player[]
+  /** Turn-history: the turn currently open in the board viewer (by log position),
+   *  or null when live. Its `#N` handle wears the shared yellow ring. */
+  viewingTurn: number | null
+  /** Open a turn in the board viewer (click its `#N`). */
+  onSelectTurn: (index: number) => void
 }
 
 /**
@@ -39,7 +44,7 @@ type Props = {
  * In compete mode RLS scopes all to the caller, so this shows only the viewer's
  * own attempts + helpers.
  */
-export function GameTurnLog({ guesses, players }: Props) {
+export function GameTurnLog({ guesses, players, viewingTurn, onSelectTurn }: Props) {
   // The actor's identity cell — shared by every row kind. The shared
   // <TurnLogActor> is the right-aligned `.who` <td> wrapping the name + disc;
   // this local helper just resolves the userId to a member first.
@@ -80,7 +85,7 @@ export function GameTurnLog({ guesses, players }: Props) {
           return (
             <tr key={g.id} className={turnLog.turnLogDivider}>
               <TurnLogBar outcome="partial" />
-              <td className={turnLog.meta}>#{i + 1}</td>
+              <TurnLogNumber n={i + 1} viewing={viewingTurn === i} onSelect={() => onSelectTurn(i)} />
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `who` stays snug). */}
               <td colSpan={2} className={cls(turnLog.main, styles.hint)}>
@@ -95,7 +100,7 @@ export function GameTurnLog({ guesses, players }: Props) {
         return (
           <tr key={g.id} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'} />
-            <td className={turnLog.meta}>#{i + 1}</td>
+            <TurnLogNumber n={i + 1} viewing={viewingTurn === i} onSelect={() => onSelectTurn(i)} />
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `who` sits snug at the right. */}

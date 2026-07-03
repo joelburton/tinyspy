@@ -124,7 +124,9 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 - `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee); `Board` for boggle.
 - Add turn-history to the games where the board history is meaningful
   (codenamesduet/tinyspy ✅ done — viewer + **decomposed** (BoardCol/InfoCol, no-op
-  verified); connections next; waffle ✅) — now a drop-in against the contract.
+  verified); psychicnum ✅ viewer (feature-first on the monolith — the guessed tile
+  shows its green/red outcome color + a yellow ring, keyed by log position);
+  connections next; waffle ✅) — now a drop-in against the contract.
   codenamesduet keys the viewer by `turn_number` (game-wide ordinal, like scrabble's
   `seq`, not log position); its snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and

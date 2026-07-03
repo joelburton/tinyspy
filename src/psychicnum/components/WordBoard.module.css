@@ -77,3 +77,11 @@
   --tile-border: var(--color-outcome-lost-strong);
   font-weight: 700;
 }
+
+/* Turn-history: the tile the VIEWED past turn guessed — the shared history-yellow
+ * (`--color-history-viewer`), the same signal the board frame + viewed log #N wear.
+ * An inset outline so it rings just inside the tile edge, over its green/red fill. */
+.viewed {
+  outline: 3px solid var(--color-history-viewer);
+  outline-offset: -3px;
+}

@@ -38,3 +38,11 @@
   --entrybox-font-size: 2rem;
 }
 
+/* Turn-history: while a past turn is open in the viewer, the below-board banner
+ * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
+ * that box a positioning context. Applied only while viewing; inert otherwise (the
+ * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
+.slotViewing {
+  position: relative;
+}
+

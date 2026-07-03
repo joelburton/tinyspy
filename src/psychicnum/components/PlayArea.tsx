@@ -14,16 +14,20 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
+import { turnSnapshot } from '../lib/history'
 import { EntryRow } from '../../common/components/EntryRow'
 import { GameTurnLog } from './GameTurnLog'
 import { WordBoard } from './WordBoard'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 
@@ -223,6 +227,15 @@ export function PlayArea({
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedback])
 
+  // ─── Turn-history viewer ───────────────────────────────
+  // Click a turn-log #N to replay that turn's board (the tiles decided up to that
+  // turn, with that turn's guessed tile ringed history-yellow). Keyed by log
+  // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
+  // click anywhere / the banner ✕); a keystroke also exits — the entry's capture is
+  // frozen while viewing (see `disabled` below), so exitOnKey has the keys to itself.
+  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+    useHistoryViewer<number>()
+  useGlobalKeyHandler(exitOnKey)
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -259,6 +272,11 @@ export function PlayArea({
   const results = new Map(
     guesses.filter((g) => g.kind === 'guess').map((g) => [g.word, g.was_correct]),
   )
+
+  // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
+  // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
+  // a later realtime guess only grows the log past viewingId, so a past turn holds.
+  const snap = viewingId !== null ? turnSnapshot(guesses, viewingId) : null
 
   // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
   // correct guesses are visible); compete = the caller's own count.
@@ -380,9 +398,11 @@ export function PlayArea({
       <div className={cls(shared.boardCol, styles.boardCol)}>
         <WordBoard
           words={shuffledWords}
-          results={results}
-          selected={selected}
-          onPick={canGuess ? handleEntryChange : undefined}
+          results={snap ? snap.results : results}
+          selected={viewing ? null : selected}
+          onPick={canGuess && !viewing ? handleEntryChange : undefined}
+          viewing={viewing}
+          highlightWord={snap?.highlightWord ?? null}
         />
         {/* Shuffle floats over the board's top-right — it's purely visual (a
             fresh scan of the SAME board), not a turn action, so it lives on the
@@ -407,7 +427,27 @@ export function PlayArea({
               - locally done but game not over (compete: out of guesses OR
                 conceded, others still playing) → a sticky "waiting" pill. */}
         <div className={styles.belowBoard}>
-          <div className={shared.moveAreaOrLocalFeedback}>
+          <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+          {/* Turn-viewer banner — while inspecting a past turn it overlays this
+              below-board slot (the entry / pill stays mounted underneath, its capture
+              frozen). Opaque surface + yellow border = the shared "viewing history"
+              marker; the description names the turn. Click anywhere / the ✕ exits. */}
+          {viewing && snap && (
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{snap.description}</span>
+              <button
+                type="button"
+                className={history.bannerExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {over ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
@@ -439,6 +479,9 @@ export function PlayArea({
               onSubmit={submitGuess}
               placeholder="Click on a tile or type"
               busy={submitting}
+              // While viewing history the capture is a hard no-op — so typing behind
+              // the banner never accumulates, and the keystroke goes to exitOnKey.
+              disabled={viewing}
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}
@@ -547,7 +590,12 @@ export function PlayArea({
               <li>{difficultyLabel} difficulty</li>
             </SetupDisclosure>
         </div>
-        <GameTurnLog guesses={guesses} players={players} />
+        <GameTurnLog
+          guesses={guesses}
+          players={players}
+          viewingTurn={viewingId}
+          onSelectTurn={selectTurn}
+        />
       </div>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
