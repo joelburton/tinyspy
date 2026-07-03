@@ -166,8 +166,9 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
 > `c9208a6`), codenamesduet `handleGuess` guard (`37a6093`), boggle double-submit
 > (fixed earlier by the `useWordSubmit` move, `71562f8`), connections over-deps
 > on `session.user.id` (`19ac972`, with a `useGame.test.ts` channel-lifecycle
-> guard). **⬜ Still open:** codenamesduet duplicate peer-key fetch. Each item
-> annotated inline below.
+> guard), codenamesduet duplicate peer-key fetch (`1424341`, eager stash from the
+> main load + a no-second-fetch test guard). **§1.4 is now fully closed.** Each
+> item annotated inline below.
 
 - ~~**[smell] scrabble compete: realtime-beats-RPC race mis-attributes my move.**~~
   **✅ DONE (`8284450`).**
@@ -202,9 +203,12 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
   stable-named broadcast room. Tightened to `[applySelection, gameId]`. New
   `useGame.test.ts` locks the contract (fresh Session ⇒ no rebuild; gameId change
   ⇒ rebuild); it fails on the pre-fix deps.
-- **⬜ [smell] codenamesduet duplicate peer-key fetch** (`useBoard.ts`) — `load`
-  already selects `key_card_a/b`; a separate `loadPeerKey` re-fetches the same row
-  for the terminal reveal. One redundant round-trip. **STILL OPEN.**
+- ~~**[smell] codenamesduet duplicate peer-key fetch** (`useBoard.ts`)~~ **✅ DONE
+  (`1424341`)** — `load` already selected `key_card_a/b`; a separate `loadPeerKey`
+  re-fetched the same row for the terminal reveal. Now `load` stashes the
+  partner's key into `fetchedPeerKey` and the lazy effect is gone; the returned
+  `peerKey` stays a pure `revealPeer`-gated derivation. `useBoard.test.ts` gained a
+  no-second-`games`-fetch guard (fails against the pre-refactor code).
 
 ### 1.5 Server-side, flagged not fixed (out of FE scope)
 
