@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
@@ -13,6 +13,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
@@ -86,18 +87,14 @@ export function PlayArea({
 
   // ─── Turn-history viewer (coop only) ───────────────────
   // The swap-log row currently open on the board, by its POSITION in the coop swap
-  // log, or null = live. When set, the board renders that swap's historical
-  // snapshot (replayed from the scramble, colored via the FE port) with the two
-  // swapped cells ringed, input frozen; any keystroke / a board click / the ✕
-  // returns to live. Only coop can reach this (compete renders no swap log).
-  const [viewingIndex, setViewingIndex] = useState<number | null>(null)
-  const exitViewing = useCallback(() => setViewingIndex(null), [])
-  // While viewing, any (non-modifier) key returns to live — navigation is by
-  // clicking log rows. The shared handler already ignores keys aimed at chat/inputs.
-  useGlobalKeyHandler((e) => {
-    if (viewingIndex == null || e.metaKey || e.ctrlKey || e.altKey) return
-    exitViewing()
-  })
+  // log, or null = live. When set, the board renders that swap's historical snapshot
+  // (replayed from the scramble, colored via the FE port) with the two swapped cells
+  // ringed, input frozen; a board click / the ✕ / any keystroke returns to live.
+  // Only coop can reach this (compete renders no swap log). waffle has no keyboard
+  // play, so `exitOnKey` is its ONLY key handler — a bare key just exits the viewer.
+  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing, exitOnKey } =
+    useHistoryViewer()
+  useGlobalKeyHandler(exitOnKey)
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran
@@ -191,8 +188,8 @@ export function PlayArea({
   // the swap being viewed, or null when live. Replayed from the scramble + swap log,
   // colored on the FE via the ported algorithm (coop exposes the solution). Works at
   // terminal too (reviewing the finished solve).
-  const viewing = viewingIndex != null
-  const snap = viewing ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
+  const snap =
+    viewingIndex !== null ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
 
   // The left grid shows the caller's own board + live colors — including at
   // game-over (their final state) — OR, while viewing, the historical snapshot. The

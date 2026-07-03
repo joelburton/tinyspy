@@ -14,6 +14,7 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/gridCursor'
 import { db } from '../db'
@@ -187,9 +188,10 @@ export function PlayArea({
 
   // Turn viewer: the play `seq` whose historical board is being inspected, or null
   // (live). Local + view-only — never shared/persisted, doesn't pause; the live
-  // `staged` is untouched (it re-renders on exit). See exitViewing below.
-  const [viewingSeq, setViewingSeq] = useState<number | null>(null)
-  const exitViewing = useCallback(() => setViewingSeq(null), [])
+  // `staged` is untouched (it re-renders on exit). The shared hook owns the state +
+  // its ref (read by the once-registered board-drag handler below) + `exitViewing`.
+  const { viewingId: viewingSeq, viewingIdRef: viewingSeqRef, viewing, select, exitViewing } =
+    useHistoryViewer()
 
   // ─── Derived (null-safe until the loading guard) ──────────────
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -253,15 +255,14 @@ export function PlayArea({
   const actingRackRef = useRef(actingRack)
   const canPlaceRef = useRef(canPlace)
   const orderRef = useRef(order)
-  const viewingSeqRef = useRef(viewingSeq)
+  // (viewingSeqRef is owned by useHistoryViewer — synced there.)
   useEffect(() => {
     boardRef.current = board
     stagedRef.current = staged
     actingRackRef.current = actingRack
     canPlaceRef.current = canPlace
     orderRef.current = order
-    viewingSeqRef.current = viewingSeq
-  }, [board, staged, actingRack, canPlace, order, viewingSeq])
+  }, [board, staged, actingRack, canPlace, order])
 
   // How many tiles the last play/exchange drew — turned into a yellow rack
   // flash once the new rack arrives (the drawn tiles are the rack's last N).
@@ -284,7 +285,7 @@ export function PlayArea({
     if (prevVersion.current === game.version) return
     prevVersion.current = game.version
     setSelected(new Set())
-    setViewingSeq(null) // a new move landed — drop back to the live board
+    exitViewing() // a new move landed — drop back to the live board
     setOptimistic([]) // the server board now holds any just-played tiles
     // Leave the cursor where it is — the next word is usually nearby.
 
@@ -319,7 +320,7 @@ export function PlayArea({
       flashYellow(Array.from({ length: n }, (_, i) => rackLen - n + i))
     }
     pendingDrawRef.current = 0
-  }, [game, game?.version, rackLen, isCompete, showLocalFeedback, flashYellow])
+  }, [game, game?.version, rackLen, isCompete, showLocalFeedback, flashYellow, exitViewing])
 
   // ─── Cell-state helpers (ref-based; used by stable handlers) ──
   const committedAt = useCallback((x: number, y: number) => !!boardRef.current[cellIndex(x, y)], [])
@@ -413,7 +414,7 @@ export function PlayArea({
       // While viewing a past turn the board is read-only; a click exits to live
       // (interacting ends the peek) rather than placing a tile.
       if (viewingSeqRef.current != null) {
-        setViewingSeq(null)
+        exitViewing()
         return
       }
       if (!canPlaceRef.current) return
@@ -421,7 +422,9 @@ export function PlayArea({
       const tent = stagedAt(x, y) // only staged tiles are draggable; committed are locked
       start({ kind: 'board', x, y }, tent ? tent.letter : null, { x, y }, e)
     },
-    [stagedAt, start, clearLocalFeedback],
+    // exitViewing + viewingSeqRef are stable (from useHistoryViewer), so listing them
+    // keeps this handler's single-registration without churn.
+    [stagedAt, start, clearLocalFeedback, exitViewing, viewingSeqRef],
   )
 
   const onRackPointerDown = useCallback(
@@ -632,9 +635,10 @@ export function PlayArea({
     enabled: !!game && canPlace,
     onAnyKey: () => {
       // While viewing a past turn, ANY key exits to the live board (navigation is
-      // by clicking Moves-log rows) — consume this key.
-      if (viewingSeq != null) {
-        setViewingSeq(null)
+      // by clicking Moves-log rows) — consume this key. (onAnyKey carries no event,
+      // so this uses `viewing`/`exitViewing` rather than the hook's `exitOnKey`.)
+      if (viewing) {
+        exitViewing()
         return true
       }
       // Otherwise any key dismisses the sticky local feedback (no-op at terminal).
@@ -680,9 +684,10 @@ export function PlayArea({
 
   // Turn viewer: when active, the board renders the replayed historical state with
   // that turn's tiles outlined; the live overlays (staged/cursor/flashes) are off.
-  const viewing = viewingSeq != null
-  const viewedPlay: PlayRow | null = viewing ? (plays.find((p) => p.seq === viewingSeq) ?? null) : null
-  const renderBoard = viewing ? boardUpToSeq(plays, viewingSeq) : board
+  // (`viewing` is from the hook; the direct `!== null` checks let TS narrow the seq.)
+  const viewedPlay: PlayRow | null =
+    viewingSeq !== null ? (plays.find((p) => p.seq === viewingSeq) ?? null) : null
+  const renderBoard = viewingSeq !== null ? boardUpToSeq(plays, viewingSeq) : board
   const viewingCells =
     viewing && viewedPlay?.kind === 'word'
       ? new Set((viewedPlay.placements ?? []).map((pl) => cellIndex(pl.x, pl.y)))
@@ -843,7 +848,7 @@ export function PlayArea({
             </SetupDisclosure>
         </div>
 
-        <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={setViewingSeq} />
+        <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={select} />
       </div>
 
       {blankAt && <BlankPicker onPick={pickBlank} onCancel={() => setBlankAt(null)} />}

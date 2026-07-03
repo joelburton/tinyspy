@@ -13,6 +13,7 @@ import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
@@ -77,14 +78,13 @@ export function PlayArea({
   const [submitting, setSubmitting] = useState(false)
 
   // ─── Turn-history viewer ──────────────────────────────────────
-  // Cross-column coordination state (the seam the PlayArea decomposition is built
-  // around — docs/playarea-decomposition-plan.md): the log row currently open on the
-  // board. Identified by the row's POSITION in the log, not its seq (stackdown's seq
-  // is per-user — see lib/history). null = live. When set, PlayArea feeds BoardCol
-  // that turn's historical snapshot + readOnly; BoardCol shows the yellow frame +
-  // banner and freezes input, and any keystroke / board click / the ✕ returns to live.
-  const [viewingIndex, setViewingIndex] = useState<number | null>(null)
-  const exitViewing = useCallback(() => setViewingIndex(null), [])
+  // The shared coordination state (docs/playarea-decomposition-plan.md): which log
+  // row is open on the board. Identified by the row's POSITION in the log, not its
+  // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
+  // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the yellow
+  // frame + banner and freezes input, and any keystroke / board click / ✕ exits.
+  const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing } =
+    useHistoryViewer()
 
   // ─── Local own-move feedback (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched no
@@ -322,9 +322,8 @@ export function PlayArea({
   // Turn viewer: the historical board for the row being viewed (or null when live).
   // `viewingIndex` indexes `logWords` — the same chronological list the FoundWords log
   // shows — so coop replays the shared board and compete the caller's own, for free.
-  // Works at terminal too (reviewing the finished stack).
-  const viewing = viewingIndex != null
-  const snap = viewing ? turnSnapshot(logWords, viewingIndex) : null
+  // Works at terminal too (reviewing the finished stack). (`viewing` is from the hook.)
+  const snap = viewingIndex !== null ? turnSnapshot(logWords, viewingIndex) : null
 
   // The below-board local pill. Precedence: the permanent terminal verdict → the
   // transient own-move message. While viewing a past turn the pill is irrelevant —
