@@ -263,8 +263,16 @@ export function PlayArea({
   const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
+  // In-flight guard against a double-guess. A synchronous ref, not the `pendingPos`
+  // state, because it must block BEFORE any re-render: the tile's `disabled` gate
+  // only follows setPendingPos → re-render, so it misses a same-tick double-tap on
+  // the tile AND a click on a DIFFERENT tile while the first guess is still
+  // committing (you shouldn't guess again until the reveal resolves).
+  const guessInFlight = useRef(false)
   const handleGuess = useCallback(
     async (position: number) => {
+      if (guessInFlight.current) return
+      guessInFlight.current = true
       clearLocalFeedback()
       setPendingPos(position)
       const { error } = await db.rpc('submit_guess', {
@@ -272,6 +280,7 @@ export function PlayArea({
         target_position: position,
       })
       setPendingPos(null)
+      guessInFlight.current = false
       if (error) {
         console.error('submit_guess failed', error)
         showLocalFeedback(ownAction('error', error.message))
