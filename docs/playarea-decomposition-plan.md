@@ -130,7 +130,9 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   pulled to `lib/ownMove.ts`); connections ✅ viewer (the first MUTATING board — a
   correct guess collapses tiles into a band — so **strictly-before** like stackdown:
   the viewed turn's 4 tiles stay on the grid, tinted by outcome + ringed; needed a
-  `#N` column added to its two-`<tr>` log); waffle ✅) — now a drop-in against the contract.
+  `#N` column added to its two-`<tr>` log) + **decomposed** (BoardCol owns the guess
+  dispatch + shuffle; the tile SELECTION stays in useGame — broadcast-coupled — so it's
+  passed down; `ownGuess` → `lib/ownGuess.ts`); waffle ✅) — now a drop-in against the contract.
   codenamesduet keys the viewer by `turn_number` (game-wide ordinal, like scrabble's
   `seq`, not log position); its snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and

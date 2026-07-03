@@ -1,18 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/timerLabel'
+import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
 import { TerminalModal } from '../../common/components/TerminalModal'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
-import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
-import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { SubmitButton } from '../../common/components/buttons/SubmitButton'
-import { ClearButton } from '../../common/components/buttons/ClearButton'
-import { HintButton } from '../../common/components/buttons/HintButton'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
@@ -23,16 +13,11 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
-import { evaluateGuess, sameTileSet } from '../lib/evaluate'
-import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import { turnSnapshot } from '../lib/history'
-import { Board } from './Board'
-import { GameTurnLog } from './GameTurnLog'
-import { HintModal } from './HintModal'
-import { StrikeMarks } from '../../common/components/StrikeMarks'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
+import { ownGuess } from '../lib/ownGuess'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
 import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 
@@ -40,36 +25,6 @@ import '../theme.css'  // connections-specific color tokens (lazy with this chun
  *  constants, shown in the setup disclosure + the "N/4 found" state line. */
 const CATEGORY_COUNT = 4
 const MISTAKE_BUDGET = 4
-
-/** Local feedback pills are never closeable, so the × never renders and this is
- *  never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
-/** Empty selection map — passed to the board while viewing a past turn so the live
- *  selection isn't drawn over the historical snapshot. */
-const NO_OWNERS: ReadonlyMap<string, string> = new Map()
-
-/** Build connections' own-guess local pill: outline + STICKY (a tile click
- *  dismisses it). A pure msg-builder over the shared `useLocalFeedback`. */
-const ownGuess = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
-  tone,
-  text,
-  variant: 'outline',
-  dismiss: { kind: 'sticky' },
-})
-
-/** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
- *  UTC so a calendar date never shifts by a local-tz offset (matches Calendar). */
-function formatPuzzleDate(d: string | null): string {
-  if (!d) return 'custom puzzle'
-  const [y, m, day] = d.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
-}
 
 /**
  * connections's play surface, shared between the coop and compete
@@ -142,28 +97,10 @@ export function PlayArea({
     sendClear,
     loading,
   } = useGame(session, gameId)
-  const [submitting, setSubmitting] = useState(false)
+  // Hints modal open/closed — set by InfoCol's Hints button, the modal renders in
+  // BoardCol (it's about the board). (The guess dispatch, the local tile shuffle, and
+  // the wrong-guess shake all moved into BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
-  // Per-player local tile order. NULL = use upstream
-  // `remainingTiles` as-is (the shuffle the create_game RPC
-  // baked in, same for every player). Setting to a permutation
-  // gives this client its own view; doesn't broadcast.
-  const [localOrder, setLocalOrder] = useState<string[] | null>(null)
-  // Tiles currently playing the wrong-guess shake. PlayArea sets
-  // this for ~500ms after `submit_guess` returns 'wrong', then
-  // the cleanup effect below clears it. Board reads the set
-  // and applies its shake class.
-  const [shakingTiles, setShakingTiles] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  )
-
-  // Auto-clear the shake set ~500ms after we set it (just past
-  // the animation's 400ms duration).
-  useEffect(function autoClearShakeAfterAnimation() {
-    if (shakingTiles.size === 0) return
-    const t = setTimeout(() => setShakingTiles(new Set()), 500)
-    return () => clearTimeout(t)
-  }, [shakingTiles])
 
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
@@ -254,68 +191,8 @@ export function PlayArea({
   // GamePage menu — see the .infoActions block below. Hints opens the HintModal
   // (disabled once the caller can't submit); End fires handleEndGame.
 
-  // Shared terminal-modal scaffold: open on mount if already-
-  // terminal, re-pop when isTerminal flips during play, no re-pop
-  // after dismiss.
-
-  async function handleSubmit() {
-    if (submitting) return
-    if (unionTiles.length !== 4 || !game) return
-
-    // Dup detection (FE-side per the FE-knows model). My own action, so it
-    // flashes locally (the selection stays put; clicking a tile dismisses it).
-    if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback(ownGuess('error', 'You already tried that'))
-      return
-    }
-
-    const verdict = evaluateGuess(unionTiles, game.board.categories)
-    setSubmitting(true)
-    const { error } = await db.rpc('submit_guess', {
-      target_game: gameId,
-      tiles: unionTiles,
-      result: verdict.kind,
-      ...(verdict.kind === 'correct'
-        ? { matched_category_rank: verdict.rank }
-        : {}),
-    })
-    setSubmitting(false)
-    if (error) {
-      showLocalFeedback(ownGuess('error', error.message))
-      return
-    }
-    // Own-result flash in the commit slot (green/near/red), then clear the
-    // selection in EVERY case: correct (those four tiles become a solved band and
-    // leave the grid) and wrong / one-away (start fresh rather than leave a
-    // rejected set selected). The sticky flash shows over the cleared board;
-    // clicking a tile dismisses it (handleToggle) and starts the next guess.
-    if (verdict.kind === 'correct') {
-      showLocalFeedback(ownGuess('success', 'Correct!'))
-    } else if (verdict.kind === 'oneAway') {
-      showLocalFeedback(ownGuess('near', 'One away!'))
-    } else {
-      showLocalFeedback(ownGuess('error', 'Incorrect'))
-      setShakingTiles(new Set(unionTiles))
-    }
-    sendClear()
-  }
-
-  function handleClear() {
-    sendClear()
-  }
-
-  // Tile click: dismiss any lingering own-result flash first (the commit
-  // buttons return), then toggle the tile. This is connections's analog of
-  // psychicnum's "typing dismisses the entry flash" — the player has moved on
-  // to the next selection, so the last guess's result should clear at once.
-  function handleToggle(tile: string) {
-    clearLocalFeedback()
-    toggleTile(tile)
-  }
-
-  function handleShuffle() {
-    setLocalOrder(shuffleTiles(displayedTiles))
-  }
+  // (The guess dispatch — submit_guess + dup detection + the wrong-guess shake — and
+  // the local tile shuffle moved into BoardCol, beside the board + commit row.)
 
   if (loading) return <p>Loading board…</p>
   if (!game) return <p>Game not found.</p>
@@ -337,10 +214,6 @@ export function PlayArea({
   const remainingTiles = game.board.tileOrder.filter(
     (t) => !matchedTiles.has(t),
   )
-
-  const displayedTiles = localOrder
-    ? reconcileLocalOrder(localOrder, remainingTiles)
-    : remainingTiles
 
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
@@ -366,11 +239,6 @@ export function PlayArea({
   const locallyDone = isEliminated || myConceded
   const showReveal = isTerminal || locallyDone
   const showInput = !isTerminal && !locallyDone
-
-  const canSubmit =
-    unionTiles.length === 4
-    && !submitting
-    && showInput
 
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
   const unmatched = showReveal
@@ -406,245 +274,73 @@ export function PlayArea({
     if (error) showLocalFeedback(ownGuess('error', `Concede failed: ${error.message}`))
   }
 
-  // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out
-  // of the race → connections.concede); coop uses the neutral "End" (a mutual
-  // "we're done" → end_game). Shared by the playing and the locally-terminal
-  // (eliminated / conceded) action rows.
-  const endButton =
-    game.mode === 'compete' ? (
-      <ConcedeGameButton
-        onClick={() => void handleConcede()}
-        className={shared.helperButton}
-        disabled={myConceded}
-      />
-    ) : (
-      <EndGameButton onClick={() => void handleEndGame()} className={shared.helperButton} />
-    )
-
   return (
     <div className={cls(shared.layout, styles.layout)}>
-      <div className={shared.boardCol}>
-        <HintModal
-          categories={game.board.categories}
-          open={hintsOpen}
-          onClose={() => setHintsOpen(false)}
-        />
+      <BoardCol
+        // ── Board to render (live OR the historical snapshot via `snap`) ──
+        game={game}
+        matchedCategories={matchedCategories}
+        remainingTiles={remainingTiles}
+        unmatched={unmatched}
+        snap={snap}
+        viewing={viewing}
+        showInput={showInput}
+        onExitViewing={exitViewing}
+        // ── Tile selection (state in useGame; rendered + committed here) ──
+        ownerByTile={ownerByTile}
+        toggleTile={toggleTile}
+        sendClear={sendClear}
+        unionTiles={unionTiles}
+        selfUserId={session.user.id}
+        colorByUserId={colorByUserId}
+        // ── Own-guess feedback (channel owned by PlayArea) ──
+        localFeedback={localFeedback}
+        showLocalFeedback={showLocalFeedback}
+        clearLocalFeedback={clearLocalFeedback}
+        // ── Guess dispatch ──
+        gameId={gameId}
+        guesses={guesses}
+        // ── Below-board readout / slot content ──
+        mistakeCount={mistakeCount}
+        mistakeBudget={MISTAKE_BUDGET}
+        over={over}
+        myConceded={myConceded}
+        // ── Hints (state here; the modal renders in the board column) ──
+        hintsOpen={hintsOpen}
+        onCloseHints={() => setHintsOpen(false)}
+      />
 
-        {/* One grid: solved categories as full-width band rows + the remaining
-            tiles. Tiles only while input is live (terminal/eliminated shows the
-            revealed bands alone). */}
-        <Board
-          matched={snap ? snap.matched : matchedCategories}
-          unmatched={snap ? [] : unmatched}
-          tiles={snap ? snap.tiles : showInput ? displayedTiles : []}
-          ownerByTile={viewing ? NO_OWNERS : ownerByTile}
-          selfUserId={session.user.id}
-          onToggle={handleToggle}
-          onSubmit={() => void handleSubmit()}
-          shakingTiles={shakingTiles}
-          colorByUserId={colorByUserId}
-          viewing={viewing}
-          highlightTiles={snap?.highlightTiles}
-          highlightOutcome={snap?.outcome}
-        />
-
-        {/* Shuffle floats over the board's top-right — a fresh visual scan of
-            the SAME tiles (not a turn action), like psychicnum. Only while the
-            grid is shown: at terminal the bands replace the tiles, so there's
-            nothing to reshuffle. */}
-        {showInput && (
-          <ShuffleButton
-            onShuffle={handleShuffle}
-            disabled={displayedTiles.length === 0}
-            label="Shuffle tiles"
-            className={shared.floatingShuffle}
-          />
-        )}
-
-        {/* The slot below the board: during play it's the commit row (clicking
-            tiles is the input; these commit the current 4-tile selection). Two
-            things can REPLACE the buttons in the SAME reserved height (so the
-            flex:1 board above never shifts — docs/ui.md → Layout stability):
-              - while input is live, my own guess result flashes here for ~1.4s
-                (green/neutral/red), the local half of the feedback split —
-                mirrors psychicnum's entry-box flash;
-              - once input goes away (terminal / eliminated), the outcome
-                message fills it, the way psychicnum's reveal does.
-            The shared `.moveAreaOrLocalFeedback` swap box reserves the height so
-            every state is the same height. */}
-        <div className={styles.belowBoard}>
-          <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
-          {/* Turn-viewer banner — while inspecting a past turn it overlays this
-              below-board slot (the commit row / pill stays mounted underneath).
-              Opaque surface + yellow border = the shared "viewing history" marker;
-              the description names the turn. Click anywhere / the ✕ returns to live. */}
-          {viewing && snap && (
-            <div className={history.banner} onClick={exitViewing} title="Click to exit">
-              <span className={history.bannerLabel}>{snap.description}</span>
-              <button
-                type="button"
-                className={history.bannerExit}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  exitViewing()
-                }}
-                aria-label="Exit viewing"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-          {showInput ? (
-            localFeedback ? (
-              // My own guess result — a centered local <GenericFeedbackPill> (sticky;
-              // clicking a tile dismisses it). Same register as the header pill.
-              <div className={shared.localFeedback}>
-                <GenericFeedbackPill msg={localFeedback} onClose={noop} />
-              </div>
-            ) : (
-              <div className={styles.moveArea}>
-                {/* "Mistakes (lose at 4)" — the caller's OWN mistakes MADE (shared
-                    team count in coop, personal in compete; never an opponent
-                    comparison). Fills left-to-right, reading the same direction as
-                    the info-column "N/4 mistakes". margin-right:auto pushes the
-                    buttons right. */}
-                <div className={styles.mistakesInline}>
-                  Mistakes (lose at 4) <StrikeMarks used={mistakeCount} total={MISTAKE_BUDGET} />
-                </div>
-                <ClearButton
-                  onClick={handleClear}
-                  disabled={unionTiles.length === 0}
-                  className={styles.inputButton}
-                />
-                <SubmitButton
-                  label={submitting ? 'Submitting…' : 'Submit'}
-                  onClick={handleSubmit}
-                  disabled={!canSubmit}
-                  className={styles.inputButton}
-                />
-              </div>
-            )
-          ) : (
-            // Terminal / eliminated — the local feedback area carries the message
-            // (no separate below-board element): a PERMANENT outcome pill at game
-            // over, or a sticky "you're out" while the rest race on.
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={
-                  over
-                    ? {
-                        tone:
-                          over.tone === 'won'
-                            ? 'success'
-                            : over.tone === 'lost'
-                              ? 'error'
-                              : 'neutral',
-                        text: over.verdict,
-                        variant: 'fill',
-                        dismiss: { kind: 'sticky' },
-                      }
-                    : {
-                        tone: 'neutral',
-                        text: myConceded
-                          ? 'You conceded — the rest are still racing.'
-                          : "You're out — the rest are still racing.",
-                        variant: 'outline',
-                        dismiss: { kind: 'sticky' },
-                      }
-                }
-                onClose={noop}
-              />
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-
-      <div className={shared.infoCol}>
-        <div className={shared.actionSlot}>
-          {/* State — categories found + mistakes (the mistakes dots live below
-              the board; this is the at-a-glance textual count, kept here too). */}
-          <p className={shared.infoState}>
-            <strong>{found}/{CATEGORY_COUNT}</strong> categories found ·{' '}
-            <strong>{mistakeCount}/{MISTAKE_BUDGET}</strong> mistakes
-          </p>
-
-          {/* Opponent strip (compete) — the race comparison: each player's
-              categories FOUND (public via players.matched_count). Mirrors
-              psychicnum's compete opponent strip. */}
-          {game.mode === 'compete' && (
-            <OpponentStrip
-              players={players}
-              selfId={session.user.id}
-              metricLabel="Found"
-              metricFor={(p, isSelf) =>
-                // A dropped-out racer reads 'out' mid-game (their found-count is
-                // frozen and no longer part of the race); everyone else shows
-                // their live categories-found.
-                concededIds.has(p.user_id)
-                  ? 'out'
-                  : isSelf
-                    ? matchedCategories.length
-                    : (opponentFound.get(p.user_id) ?? 0)
-              }
-            />
-          )}
-
-          {/* Action row — three states. Playing: Hints + End/Concede. Locally
-              terminal (out of mistakes OR conceded, the rest race on): the
-              terminal LOOK, a bold status ("You're out" / "You conceded") +
-              Concede (like psychicnum's out-of-guesses). Terminal: the outcome
-              line + a compact back-to-club button. */}
-          {over ? (
-            <TerminalActionRow over={over} onBackToClub={goToClub} />
-          ) : locallyDone ? (
-            <div className={cls(shared.infoActions, shared.terminalActions)}>
-              <span className={cls(shared.outcome, shared.outcome_neutral)}>
-                {myConceded ? 'You conceded' : 'You’re out'}
-              </span>
-              {endButton}
-            </div>
-          ) : (
-            <div className={shared.infoActions}>
-              {/* Hints opens the per-player HintModal (warning-toned, amber). */}
-              <HintButton
-                label="Hints"
-                onClick={() => setHintsOpen(true)}
-                className={shared.helperButton}
-              />
-              {endButton}
-            </div>
-          )}
-
-          {/* Help — shown only while you can act on it (never silently swaps);
-              the eliminated state is carried loudly by the action row above. */}
-          {showInput && (
-            <p className={shared.infoHelp}>
-              Pick 4 tiles that share a connection, then Submit.
-            </p>
-          )}
-
-          {/* Setup — last, behind a disclosure (closed by default so it doesn't
-              claim space). */}
-          <SetupDisclosure>
-              <li>Puzzle: {formatPuzzleDate(game.puzzleDate)}</li>
-              <li>{game.board.tileOrder.length} words</li>
-              <li>{CATEGORY_COUNT} categories to find</li>
-              <li>{MISTAKE_BUDGET} mistakes allowed</li>
-              <li>{timerLabel(connSetup.timer)}</li>
-            </SetupDisclosure>
-        </div>
-
-        {/* Turn log: coop shows every player's guesses; in compete RLS already
-            filters to the caller's own, so the FE does nothing special. */}
-        <GameTurnLog
-          guesses={guesses}
-          matchedCategories={matchedCategories}
-          players={players}
-          viewingTurn={viewingId}
-          onSelectTurn={selectTurn}
-        />
-      </div>
+      <InfoCol
+        // ── Mode + phase ──
+        isCompete={game.mode === 'compete'}
+        over={over}
+        showInput={showInput}
+        myConceded={myConceded}
+        // ── State readout ──
+        found={found}
+        categoryCount={CATEGORY_COUNT}
+        mistakeCount={mistakeCount}
+        mistakeBudget={MISTAKE_BUDGET}
+        // ── Players (OpponentStrip, compete) ──
+        players={players}
+        selfId={session.user.id}
+        opponentFound={opponentFound}
+        concededIds={concededIds}
+        // ── Action row ──
+        onHints={() => setHintsOpen(true)}
+        onEndGame={() => void handleEndGame()}
+        onConcede={() => void handleConcede()}
+        onBackToClub={goToClub}
+        // ── Setup disclosure ──
+        setup={connSetup}
+        puzzleDate={game.puzzleDate}
+        tileCount={game.board.tileOrder.length}
+        // ── Turn-history log ──
+        guesses={guesses}
+        matchedCategories={matchedCategories}
+        viewingTurn={viewingId}
+        onSelectTurn={selectTurn}
+      />
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
