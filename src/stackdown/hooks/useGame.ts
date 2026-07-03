@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../../common/lib/supabase'
-import { channelDedupSuffix } from '../../common/lib/channelDedup'
+import { useCallback, useState } from 'react'
+import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Tile } from '../lib/board'
@@ -158,14 +157,20 @@ export function useGame(gameId: string): {
     })
   }, [])
 
-  // Join this game's stackdown room: load games_state + players +
-  // submissions and attach postgres-changes on all three. No Broadcast
-  // any more — selections are local, so the only cross-client traffic is
-  // the durable submission rows (which carry the shared board + history).
-  useEffect(function joinStackdownRoom() {
-    let mounted = true
-
-    async function load() {
+  // Join this game's stackdown room: load games_state + players + submissions
+  // on any change to those three tables, via the shared `useRealtimeRefetch`
+  // factory. No Broadcast any more — selections are local, so the only
+  // cross-client traffic is the durable submission rows (which carry the shared
+  // board + history).
+  useRealtimeRefetch({
+    tables: [
+      { schema: 'stackdown', table: 'games', filter: `id=eq.${gameId}` },
+      { schema: 'stackdown', table: 'players', filter: `game_id=eq.${gameId}` },
+      { schema: 'stackdown', table: 'submissions', filter: `game_id=eq.${gameId}` },
+    ],
+    channelPrefix: 'stackdown',
+    id: gameId,
+    load: async ({ mounted }) => {
       const [gameRes, playersRes, subsRes] = await Promise.all([
         db
           .from('games_state')
@@ -182,7 +187,7 @@ export function useGame(gameId: string): {
           .eq('game_id', gameId)
           .order('submitted_at', { ascending: true }),
       ])
-      if (!mounted) return
+      if (!mounted()) return
       if (!gameRes.data) {
         setGame(null)
         setLoading(false)
@@ -215,38 +220,8 @@ export function useGame(gameId: string): {
       setCurrentWord((prev) => (prev.some((id) => confirmed.has(id)) ? [] : prev))
 
       setLoading(false)
-    }
-
-    // Per-effect-run channel name (no shared Broadcast room any more), so
-    // a StrictMode/remount double-subscribe doesn't collide on the
-    // supabase-js name cache. See channelDedupSuffix.
-    const ch = supabase.channel(`stackdown:${gameId}:${channelDedupSuffix()}`)
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'stackdown', table: 'games', filter: `id=eq.${gameId}` },
-      load,
-    )
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'stackdown', table: 'players', filter: `game_id=eq.${gameId}` },
-      load,
-    )
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'stackdown', table: 'submissions', filter: `game_id=eq.${gameId}` },
-      load,
-    )
-    // SUBSCRIBED fires on initial subscribe AND every reconnect, so this
-    // covers both the mount-time fetch and the missed-events refetch.
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') load()
-    })
-
-    return () => {
-      mounted = false
-      supabase.removeChannel(ch)
-    }
-  }, [gameId])
+    },
+  })
 
   // Local tile click: pick the tile up onto the end of the word. Returns
   // the resulting word so the PlayArea can submit when it hits five.
