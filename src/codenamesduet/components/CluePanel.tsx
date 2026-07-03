@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase'
 import { cls } from '../../common/lib/cls'
 import { ActorTag } from '../../common/components/ActorTag'
@@ -174,6 +174,23 @@ function ClueForm({
   // high in the tree where react-rnd positions it on-screen.
   const [suggesting, setSuggesting] = useState(false)
 
+  // Keep Tab INSIDE the clue form: it toggles between the count and word inputs and
+  // goes nowhere else — not the turn-log #N handles, page links, or the browser
+  // tab bar (the wander codenamesduet uniquely allowed, since it uses plain inputs
+  // rather than the Tab-swallowing capture-entry the single-field games share).
+  // With only two fields, Tab and Shift+Tab are the same toggle. Submit is Enter
+  // (the form's submit button); the AI button is a click.
+  const countRef = useRef<HTMLInputElement>(null)
+  const wordRef = useRef<HTMLInputElement>(null)
+  function trapTab(
+    e: KeyboardEvent<HTMLInputElement>,
+    other: RefObject<HTMLInputElement | null>,
+  ) {
+    if (e.key !== 'Tab') return
+    e.preventDefault()
+    other.current?.focus()
+  }
+
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setBusy(true)
@@ -237,11 +254,13 @@ function ClueForm({
       <div className={styles.clueLine}>
         {/* Digit-only text input (not type=number — no spinner chrome). */}
         <input
+          ref={countRef}
           type="text"
           inputMode="numeric"
           placeholder="#"
           value={count}
           onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
+          onKeyDown={(e) => trapTab(e, wordRef)}
           disabled={eitherBusy}
           required
           className={styles.countInput}
@@ -250,10 +269,12 @@ function ClueForm({
           autoFocus
         />
         <input
+          ref={wordRef}
           type="text"
           placeholder="word"
           value={word}
           onChange={(e) => setWord(e.target.value.toUpperCase())}
+          onKeyDown={(e) => trapTab(e, countRef)}
           disabled={eitherBusy}
           required
           className={styles.wordInput}

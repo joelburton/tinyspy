@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { cls } from '../lib/cls'
 import styles from './TurnLog.module.css'
+import history from './historyViewer.module.css'
 
 /** The outcome a row's left bar paints. Shared across games:
  *  good (won/correct), bad (lost/wrong), partial (near/one-away), neutral. */
@@ -118,6 +119,53 @@ export function TurnLogBar({
     // can be sized/positioned reliably.
     <td className={styles.bar} rowSpan={rowSpan}>
       <span className={cls(styles.barInner, styles[`barInner_${outcome}`])} />
+    </td>
+  )
+}
+
+/**
+ * The turn-log **"#N" handle** — the shared turn-history control. Clicking it opens
+ * that turn on the board viewer; when that turn is the one being viewed, the number
+ * wears a yellow outline (mirroring the board `.frame`). A real `<button>` living in
+ * the muted `.meta` column, so a game drops it in where it rendered a bare `#N` cell.
+ *
+ * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
+ * (codenamesduet's clue + guess rows). A whole-row "viewing" outline then draws a
+ * broken box across those rows, and a per-row hover lights only half the turn. A
+ * single small handle stays crisp no matter how many rows a turn spans — so every
+ * history game hangs its click + outline here, and they all read identically. See
+ * docs/playarea-decomposition-plan.md.
+ *
+ * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
+ * on Space — so pressing Space to leave the viewer (the shared "any key exits")
+ * would instead re-select the turn. A span with an `onClick` isn't focusable, so it
+ * takes no keystroke and Space falls through to the game's exit-on-key handler. The
+ * `data-turn-number` marker lets a click-anywhere-to-exit handler tell "the user is
+ * selecting a turn" from "the user clicked away" (see codenamesduet's PlayArea).
+ */
+export function TurnLogNumber({
+  n,
+  viewing,
+  onSelect,
+}: {
+  /** The turn ordinal shown after the "#" — each game's own (scrabble's `seq`,
+   *  codenamesduet's `turn_number`, stackdown/waffle's 1-based log position). */
+  n: number
+  /** Is this the turn currently open in the board viewer? Rings the number yellow. */
+  viewing: boolean
+  /** Open this turn on the board viewer. */
+  onSelect: () => void
+}) {
+  return (
+    <td className={styles.meta}>
+      <span
+        className={cls(styles.turnNumber, viewing && history.viewedNumber)}
+        title="Click to view this turn on the board"
+        data-turn-number
+        onClick={onSelect}
+      >
+        #{n}
+      </span>
     </td>
   )
 }

@@ -198,6 +198,28 @@
   color: var(--color-muted);
 }
 
+/* The clickable "#N" turn handle (see <TurnLogNumber>) — the turn-history control
+ * that opens that turn on the board viewer. A `<span>` (not a button — Space on a
+ * focused button would re-select instead of exiting the viewer), styled as the plain
+ * muted number it replaces (inherits the `.meta` font/color) so the log reads
+ * unchanged until hovered. The tight negative margin keeps the number sitting where
+ * the bare text did, so adopting the handle shifts no layout. The `outline` channel
+ * is left to the yellow "viewing" marker (historyViewer `.viewedNumber`). */
+.turnNumber {
+  display: inline-block;
+  padding: 1px 5px;
+  margin: -1px -3px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* Hover = a background tint + the number darkens to full-strength (a span can't take
+ * focus, so there's no focus state to style). */
+.turnNumber:hover {
+  background: var(--color-surface-hover);
+  color: black;
+}
+
 /* The right-aligned "who" column. Shrinks to its content (the `<ActorTag>`'s
  * "name ●"), so the discs line up at the right edge across rows and the slack
  * goes to `.main` instead — NOT `width: 100%`, which would steal the slack and

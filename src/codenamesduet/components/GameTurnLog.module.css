@@ -5,6 +5,11 @@
  * the shared <ActorTag>. The ONLY codenamesduet-specific styling is the colored
  * clue/guess words below. */
 
+/* Turn-history: the turn is opened on the board viewer by clicking its "#N" handle
+ * (the shared <TurnLogNumber>), not its rows — so no per-row click affordance here.
+ * The number-on-a-handle keeps the marker crisp across a two-<tr> turn (a whole-turn
+ * outline would draw a broken box). See common/components/TurnLog.tsx. */
+
 /* Row 1, the clue word inside the `.main` cell — bold + lightly spaced. */
 .clueWord {
   font-weight: 700;

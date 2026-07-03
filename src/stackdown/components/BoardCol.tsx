@@ -157,12 +157,10 @@ export function BoardCol({
   })
 
   return (
-    // While viewing a past turn, a click anywhere in the board column returns to
-    // live (matches scrabble's "click to exit"); it's a no-op when live.
-    <div
-      className={cls(shared.boardCol, styles.boardCol)}
-      onClick={viewing ? onExitViewing : undefined}
-    >
+    // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
+    // listener + the click-through `.frame`), so the board column needs no click
+    // handler — a click anywhere returns to live.
+    <div className={cls(shared.boardCol, styles.boardCol)}>
       <Board
         tiles={tiles}
         offBoard={offBoard}

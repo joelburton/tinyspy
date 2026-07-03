@@ -3,9 +3,8 @@ import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { memberById } from '../../common/lib/peers'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
-import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
-import history from '../../common/components/historyViewer.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { SubmissionRow } from '../hooks/useGame'
 import styles from './FoundWords.module.css'
@@ -92,28 +91,17 @@ export function FoundWords({
               : 'bad'
           return (
             // Every submission is its own one-row "turn"; the divider draws the
-            // between-rows line (:first-child suppresses it on the first row).
-            // The whole row is clickable to open that turn on the board viewer.
-            <tr
-              key={`${s.user_id}-${s.seq}`}
-              className={cls(
-                turnLog.turnLogDivider,
-                styles.row,
-                viewingIndex === i && history.viewedRow,
-              )}
-              role="button"
-              tabIndex={0}
-              title="Click to view this turn on the board"
-              onClick={() => onSelectTurn(i)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onSelectTurn(i)
-                }
-              }}
-            >
+            // between-rows line (:first-child suppresses it on the first row). The
+            // "#N" handle opens that turn on the board viewer (words / misses /
+            // cheats all viewable), keyed by log POSITION — stackdown's seq is
+            // per-user (see lib/history).
+            <tr key={`${s.user_id}-${s.seq}`} className={turnLog.turnLogDivider}>
               <TurnLogBar outcome={outcome} />
-              <td className={turnLog.meta}>#{i + 1}</td>
+              <TurnLogNumber
+                n={i + 1}
+                viewing={viewingIndex === i}
+                onSelect={() => onSelectTurn(i)}
+              />
               <td className={turnLog.main}>
                 {isRequest ? (
                   // A logged cheat request, now carrying the text it revealed

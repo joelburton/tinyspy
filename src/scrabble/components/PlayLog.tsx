@@ -2,9 +2,8 @@ import { type KeyboardEvent, type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
-import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
-import history from '../../common/components/historyViewer.module.css'
 import { useDefinePopover } from '../../common/hooks/useDefinePopover'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './PlayLog.module.css'
@@ -66,27 +65,15 @@ export function PlayLog({
     <>
     <TurnLog heading="Moves" empty={plays.length === 0} emptyText="No moves yet." scrollKey={plays.length}>
       {plays.map((p) => (
-        <tr
-          key={p.seq}
-          className={cls(
-            turnLog.turnLogDivider,
-            styles.row,
-            viewingSeq === p.seq && history.viewedRow,
-          )}
-          role="button"
-          tabIndex={0}
-          title="Click to view this turn on the board"
-          onClick={() => onSelectTurn(p.seq)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              onSelectTurn(p.seq)
-            }
-          }}
-        >
+        <tr key={p.seq} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={outcomeFor(p.kind)} />
-          {/* Turn number — the play's 1-based seq, in the shared muted meta column. */}
-          <td className={turnLog.meta}>#{p.seq}</td>
+          {/* Turn number — the play's 1-based seq; the shared handle opens that
+              turn on the board viewer and rings itself yellow while it's open. */}
+          <TurnLogNumber
+            n={p.seq}
+            viewing={viewingSeq === p.seq}
+            onSelect={() => onSelectTurn(p.seq)}
+          />
           <td className={turnLog.main}>
             {p.kind === 'word' && (
               <>

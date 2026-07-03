@@ -136,6 +136,16 @@
   outline-offset: -2px;
 }
 
+/* Turn-history: a cell the VIEWED past turn decided — the shared history-yellow
+ * (`--color-history-viewer`), the same signal the board frame + viewed log row
+ * wear. An inset outline so it hugs just inside the tile edge (over the fill,
+ * clear of the grid gap and neighbours). Pairs with the board-level `.frame`. */
+.viewedCell {
+  outline: 3px solid var(--color-history-viewer);
+  outline-offset: -3px;
+}
+
+
 /* Keycard squares — small corner chips showing what a key card SAYS about the
  * cell, always in the soft/unrevealed palette (independent of what's been
  * guessed). My own is bottom-left and always shown (it's how I read which cells

@@ -3,21 +3,10 @@
  * TurnLog.module.css). Only the bits unique to stackdown's rows remain here. */
 
 
-/* A clickable turn row — opens the board viewer for that turn (the whole row is
- * the hit target; the word span stopPropagation's so defining it doesn't also
- * open the viewer). Mirrors scrabble's PlayLog .row. */
-.row {
-  cursor: pointer;
-}
-.row:hover td,
-.row:focus-visible td {
-  background: var(--color-surface-hover);
-}
-.row:focus-visible {
-  outline: none;
-}
-/* The "currently viewing this turn" row highlight is the shared yellow outline —
- * see common/components/historyViewer.module.css (.viewedRow), applied in FoundWords. */
+/* A turn is opened on the board viewer by clicking its "#N" handle (the shared
+ * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and
+ * the "currently viewing" yellow ring lives on that handle
+ * (common/components/historyViewer.module.css → .viewedNumber). */
 
 /* An invalid attempt — struck through and dimmed (the red bar carries the
  * "rejected" signal). */

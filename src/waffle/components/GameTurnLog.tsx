@@ -1,8 +1,6 @@
-import { cls } from '../../common/lib/cls'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
-import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/TurnLog'
 import turnLog from '../../common/components/TurnLog.module.css'
-import history from '../../common/components/historyViewer.module.css'
 import type { Member } from '../../common/lib/games'
 import { coord } from '../lib/waffle'
 import type { WaffleSwap } from '../hooks/useGame'
@@ -47,29 +45,16 @@ export function GameTurnLog({ swaps, players, viewingIndex, onSelectTurn }: Prop
     >
       {swaps.map((s, i) => {
         const swapper = playerFor(s.user_id)
-        // The whole row is clickable to replay that swap on the board viewer.
-        // Identified by POSITION in the log (mirrors stackdown's FoundWords).
+        // The "#N" handle replays that swap on the board viewer. Identified by
+        // POSITION in the log (mirrors stackdown's FoundWords), shown as swap_index.
         return (
-          <tr
-            key={s.swap_index}
-            className={cls(
-              turnLog.turnLogDivider,
-              styles.row,
-              viewingIndex === i && history.viewedRow,
-            )}
-            role="button"
-            tabIndex={0}
-            title="Click to view this swap on the board"
-            onClick={() => onSelectTurn(i)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onSelectTurn(i)
-              }
-            }}
-          >
+          <tr key={s.swap_index} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome="neutral" />
-            <td className={turnLog.meta}>#{s.swap_index}</td>
+            <TurnLogNumber
+              n={s.swap_index}
+              viewing={viewingIndex === i}
+              onSelect={() => onSelectTurn(i)}
+            />
             <td className={turnLog.main}>
               <span className={styles.move}>
                 <span className={styles.letter}>{s.letter_a.toUpperCase()}</span>

@@ -10,6 +10,8 @@ import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
+import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
+import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
@@ -17,12 +19,14 @@ import { useGame } from '../hooks/useGame'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
+import { turnSnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { BoardGrid } from './BoardGrid'
 import { CluePanel, ClueSuggestionModal, type SuggestState } from './CluePanel'
 import { GameTurnLog } from './GameTurnLog'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
 
@@ -244,6 +248,23 @@ export function PlayArea({
   // triggers it — only a key with nothing focused does. No-op at terminal (locked).
   useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
+  // ─── Turn-history viewer ───────────────────────────────
+  // Click a turn-log row to replay that turn's board (the reveal state after that
+  // turn's guesses, with those cells ringed history-yellow). Keyed by turn_number
+  // — one clue per turn, a stable game-wide ordinal (like scrabble's seq). Feature
+  // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol
+  // decomposition; see docs/playarea-decomposition-plan.md.
+  // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
+  // the effect deps honest: `exitViewing` is a stable useCallback, so the effect
+  // below re-arms only when `viewing` flips.
+  const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
+    useHistoryViewer<number>()
+  // A bare keystroke (nothing focused) returns to the live board — the shared
+  // "type anywhere to exit". useGlobalKeyHandler ignores keys aimed at the clue
+  // input, so typing a clue never kicks you out; exitOnKey no-ops when not viewing.
+  useGlobalKeyHandler(exitOnKey)
+  // (Click-anywhere-to-exit is intrinsic to useHistoryViewer now — no per-game wiring.)
+
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
   // so the <ClueSuggestionModal> renders at the `.layout` level — a panel
   // rendered deep in the flex-column board lands off-screen (react-rnd positions
@@ -338,6 +359,25 @@ export function PlayArea({
   // Modal / indicator copy is derived once.
   const over = gameOver ? buildOver(playState) : null
 
+  // Turn-history: when a past turn is open in the viewer, `snap` is that turn's
+  // board (else null = live). `turnSnapshot` folds the guess log up to the viewed
+  // turn onto the fixed words and rings that turn's own cells; the turn's clue
+  // feeds the banner label. Snapshots are stable — a later realtime guess only
+  // grows turns > viewingId, so viewing a past turn never shifts under you.
+  const viewedClue =
+    viewingId !== null
+      ? clues.find((c) => c.turn_number === viewingId) ?? null
+      : null
+  const snap =
+    viewingId !== null
+      ? turnSnapshot(
+          words,
+          guesses,
+          viewedClue ? { word: viewedClue.word, count: viewedClue.count } : null,
+          viewingId,
+        )
+      : null
+
   // Duet's finished-player rule, surfaced to BOTH players so neither
   // reads the lopsided turn flow as a bug (enforced server-side in
   // `_end_turn`): once a seat's agents are all contacted it gives no
@@ -354,16 +394,22 @@ export function PlayArea({
 
   return (
     <div className={cls(shared.layout, styles.layout)}>
+      {/* Exit-on-click is handled document-wide while viewing (see the effect above)
+          — a click anywhere returns to live. The board grid drops its pointer-events
+          while viewing (`gridViewing`) so a click on a disabled tile still reaches
+          the document (a disabled <button> would otherwise swallow it). */}
       <div className={shared.boardCol}>
         <BoardGrid
-          words={words}
+          words={snap ? snap.words : words}
           myKey={myKey}
           peerKey={peerKey}
           mySeat={mySeat}
           gameOver={gameOver}
-          cellsClickable={cellsClickable}
+          cellsClickable={cellsClickable && !viewing}
           pendingPos={pendingPos}
           onGuess={handleGuess}
+          viewing={viewing}
+          highlight={snap?.highlight}
         />
         {/* The below-board slot — codenamesduet's move-input zone
             (docs/design-decisions.md → BoardCol → belowBoard). Three states, all
@@ -378,7 +424,28 @@ export function PlayArea({
                 feedback split; turn-state changes go to the header pill);
               - else → the CluePanel (clue form / clue display + Pass / waiting). */}
         <div className={styles.belowBoard}>
-          <div className={shared.moveAreaOrLocalFeedback}>
+          <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+          {/* Turn-viewer banner — while inspecting a past turn it overlays this
+              below-board slot (the CluePanel / pill stays mounted underneath, so an
+              in-progress clue survives). Opaque surface + yellow border = the shared
+              "viewing history" marker; the description names the turn. Click anywhere
+              / the ✕ returns to live. */}
+          {viewing && snap && (
+            <div className={history.banner} onClick={exitViewing} title="Click to exit">
+              <span className={history.bannerLabel}>{snap.description}</span>
+              <button
+                type="button"
+                className={history.bannerExit}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  exitViewing()
+                }}
+                aria-label="Exit viewing"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {over ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
@@ -529,6 +596,8 @@ export function PlayArea({
           players={players}
           currentTurn={game.turn_number}
           gameOver={gameOver}
+          viewingTurn={viewingId}
+          onSelectTurn={selectTurn}
         />
       </div>
 

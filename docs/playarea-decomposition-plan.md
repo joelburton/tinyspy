@@ -123,7 +123,11 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   psychicnum, spellingbee, codenamesduet). bananagrams excepted.
 - `BoardCol` to the heavy-input games (scrabble ✅ done, spellingbee); `Board` for boggle.
 - Add turn-history to the games where the board history is meaningful
-  (codenamesduet/tinyspy, connections, waffle) — now a drop-in against the contract.
+  (codenamesduet/tinyspy ✅ done — feature-first on the monolith, decomposition next;
+  connections, waffle ✅) — now a drop-in against the contract. codenamesduet keys the
+  viewer by `turn_number` (game-wide ordinal, like scrabble's `seq`, not log position);
+  its snapshot (`src/codenamesduet/lib/history.ts`) folds the guess log onto the fixed
+  board (global `revealed_as` + per-seat `neutral_a/b`) and rings that turn's own cells.
 
 ### Prop conventions for the columns (decided during the stackdown prototype)
 
@@ -248,6 +252,35 @@ building it on stackdown.
   center, Submit, assert the "+score" acceptance + rack refill), ran it green on the
   pre-refactor tree, then re-ran it after — a behavioral before/after gate alongside
   the geometry one. Do this for any game whose input engine the tests can't reach.
+
+- **The turn-viewer affordance is the "#N handle", shared across all history games.**
+  A turn is opened on the board viewer by clicking its **`#N` number** (the shared
+  `<TurnLogNumber>` in `common/components/TurnLog.tsx`), which rings *itself* yellow
+  while that turn is open — NOT by clicking the whole row (the earlier Phase-A/B
+  pattern, since replaced). Why: several games render a turn as multiple `<tr>`s
+  (codenamesduet's clue + guess rows), where a whole-row "viewing" outline draws a
+  broken box and a per-row hover lights only half the turn — a single small handle
+  stays crisp regardless of row count. The yellow "viewing" marker is
+  `historyViewer.module.css → .viewedNumber` (was `.viewedRow`). A history log therefore
+  needs a `#N` cell to hang the handle on (all four current ones had it; a future
+  history game without one must add it). The handle is a **`<span>`, not a
+  `<button>`** — a focused button re-fires its click on Space, so pressing Space to
+  leave the viewer would re-select the turn; a span takes no keystroke, so Space
+  falls through to the exit-on-key handler. (No `outline` on the span for the same
+  reason it isn't needed: `outline` is reserved for the yellow `.viewedNumber` marker.)
+
+- **Exiting the viewer is intrinsic to `useHistoryViewer` — no per-game wiring.**
+  Three exits, all shared: (1) a **keystroke** — `exitOnKey`, the one path a game
+  still wires (it must cooperate with the game's own key handler); (2) a **click
+  anywhere** — a document-level listener *inside the hook* that exits on any click
+  except one on a `#N` handle (`[data-turn-number]`, which selects that turn); (3)
+  the banner **✕**. For the click path to also cover the board, the shared
+  `historyViewer.module.css → .frame` sets `pointer-events: none` (a framed board is
+  a read-only snapshot), so a board click falls through to the document listener.
+  This replaced the earlier per-game board-column `onClick={viewing ? exitViewing :
+  undefined}` (and codenamesduet's dense-grid `pointer-events` workaround) — deleted
+  from all games. Verified in a real browser (`e2e/codenamesduet-history.e2e.ts`
+  exercises Space, a board click, and an info-column click).
 
 ## Future / open
 

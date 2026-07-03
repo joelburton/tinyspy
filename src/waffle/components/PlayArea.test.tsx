@@ -191,7 +191,7 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
 
     // View swap #1 → the board AFTER only the 2↔3 swap (cell 0 still 'b'); the
     // banner shows the swap description.
-    await user.click(screen.getByText('#1').closest('tr')!)
+    await user.click(screen.getByText('#1', { exact: true, selector: 'span' }))
     expect(screen.getByText('#1: D (C1) ↔ C (D1)')).toBeInTheDocument()
     expect(cell0()).toHaveTextContent('B')
 
@@ -206,7 +206,7 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
     h.result = withHistory()
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
 
-    await user.click(screen.getByText('#2').closest('tr')!)
+    await user.click(screen.getByText('#2', { exact: true, selector: 'span' }))
     expect(screen.getByLabelText('Exit viewing')).toBeInTheDocument()
 
     await user.keyboard('x')

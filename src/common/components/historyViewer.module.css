@@ -4,10 +4,11 @@
  * replay (scrabble, stackdown, …). One yellow token (`--color-history-viewer`)
  * drives three coordinated signifiers so the viewer reads the same everywhere:
  *
- *   .frame       — a yellow outline around the whole board
- *   .viewedRow   — a yellow outline on the log row whose turn is open
- *   .banner      — an opaque overlay (with .bannerLabel + .bannerExit) covering the
- *                  below-board input area with the turn's description and a ✕
+ *   .frame        — a yellow outline around the whole board
+ *   .viewedNumber — a yellow outline on the "#N" handle whose turn is open (the
+ *                   shared <TurnLogNumber> control that opens a turn on the board)
+ *   .banner       — an opaque overlay (with .bannerLabel + .bannerExit) covering the
+ *                   below-board input area with the turn's description and a ✕
  *
  * Yellow (not an outcome green/red) on purpose: viewing history is neutral — a
  * pass or a rejected word is no success, so a green frame would mislead. (The
@@ -23,18 +24,28 @@
 
 /* Board frame: a yellow outline around the board. An outline (not a border) so it
  * layers outside the board's own frame without resizing it. Applied by each game's
- * Board alongside its own board class. */
+ * Board alongside its own board class while viewing.
+ *
+ * It also makes the board (and its tiles) CLICK-THROUGH (`pointer-events: none`): a
+ * framed board is a read-only snapshot, so nothing in it needs pointer events, and
+ * dropping them lets a click on the board fall through to the document
+ * click-anywhere-to-exit (see useHistoryViewer) — so clicking the board returns to
+ * live just like clicking anywhere else, uniformly across games. */
 .frame {
   outline: 4px solid var(--color-history-viewer);
   outline-offset: 3px;
+  pointer-events: none;
 }
 
-/* The log row whose turn is currently open in the viewer — a yellow outline (not a
- * fill). outline-offset pulls it inside the row box so it doesn't collide with
- * neighbouring rows. */
-.viewedRow {
+/* The "#N" turn handle whose turn is currently open in the viewer — a yellow ring
+ * around the number (mirrors the board `.frame`), applied by the shared
+ * <TurnLogNumber>. A small positive offset sits the ring just outside the number
+ * chip. Replaces an earlier whole-row outline: many games render a turn as several
+ * <tr>s, where a row outline draws a broken box — a single #N handle stays crisp. */
+.viewedNumber {
   outline: 2px solid var(--color-history-viewer);
-  outline-offset: -2px;
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
 }
 
 /* The overlay banner — covers the below-board input area while inspecting a past

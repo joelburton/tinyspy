@@ -3,20 +3,10 @@
  * the in-cell content styling: the score color and the played word (which
  * composes the shared global `.definable` click-to-define affordance). */
 
-/* A clickable turn row — opens the board viewer for that turn. The whole row is
- * the hit target (the word spans stopPropagation so they still define). */
-.row {
-  cursor: pointer;
-}
-.row:hover td,
-.row:focus-visible td {
-  background: var(--color-surface-hover);
-}
-.row:focus-visible {
-  outline: none;
-}
-/* The "currently viewing this turn" row highlight is the shared yellow outline —
- * see common/components/historyViewer.module.css (.viewedRow), applied in PlayLog. */
+/* A turn is opened on the board viewer by clicking its "#N" handle (the shared
+ * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and
+ * the "currently viewing" yellow ring lives on that handle
+ * (common/components/historyViewer.module.css → .viewedNumber). */
 
 .score {
   color: var(--color-outcome-won-strong);

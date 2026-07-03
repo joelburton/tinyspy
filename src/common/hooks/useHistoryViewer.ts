@@ -39,12 +39,15 @@ export interface HistoryViewer<Id> {
  * `const snap = viewing ? gameSnapshot(viewingId) : null`.
  *
  * Wiring per game:
- *   - board renders `snapshot ?? live`; the board column exits on click:
- *     `onClick={viewing ? exitViewing : undefined}`
- *   - the turn log is clickable + highlights the row: `onSelectTurn={select}`,
- *     `viewingId`
+ *   - board renders `snapshot ?? live` and applies the shared `.frame` while
+ *     `viewing` (which also makes it click-through — see below)
+ *   - the turn log hangs a `<TurnLogNumber>` on each turn: `onSelect={() =>
+ *     select(id)}`, `viewing={viewingId === id}`
  *   - a bare keystroke returns to live: `exitOnKey` (event-carrying key handlers) or
  *     `viewing` + `exitViewing` (event-less ones)
+ *
+ * Exit-on-CLICK is NOT wired per game — it's built in here: a click anywhere returns
+ * to live (skipping the `#N` handles). Games needn't add a board-click handler.
  */
 export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   const [viewingId, setViewingId] = useState<Id | null>(null)
@@ -56,6 +59,27 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
   useEffect(() => {
     viewingIdRef.current = viewingId
   })
+
+  // Click-anywhere-to-exit — INTRINSIC to the viewer (every game gets it, no wiring).
+  // While a past turn is open, a click ANYWHERE returns to the live board, EXCEPT a
+  // click on a turn-# handle (the shared `<TurnLogNumber>`, marked
+  // `data-turn-number`), which selects that turn instead — so you can switch turns
+  // without leaving the viewer. A document-level listener so it catches clicks
+  // outside the board too (the info column, the log, the page chrome); the board is
+  // click-through while framed (historyViewer `.frame` sets `pointer-events: none`),
+  // so board clicks reach here as well. The opening click is on a `#N` handle (and
+  // this only arms once `viewingId` is set), so it never self-dismisses. (Keystroke
+  // exit stays game-wired via `exitOnKey` — it must cooperate with each game's own
+  // key handler.)
+  useEffect(() => {
+    if (viewingId === null) return
+    const onDocClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest('[data-turn-number]')) return
+      setViewingId(null)
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [viewingId])
 
   const exitOnKey = useCallback(
     (e: KeyboardEvent): boolean => {

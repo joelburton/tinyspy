@@ -3,7 +3,11 @@ import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import shared from '../../common/components/PlayArea.module.css'
+import history from '../../common/components/historyViewer.module.css'
 import styles from './BoardGrid.module.css'
+
+/** Empty highlight set — a stable reference so a live render never rings a cell. */
+const NO_CELLS: ReadonlySet<number> = new Set()
 
 /**
  * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
@@ -42,6 +46,13 @@ type Props = {
   /** Fire a guess on the given board position. PlayArea owns the submit_guess
    *  RPC + the own-action error flash; this component just reports the click. */
   onGuess: (position: number) => void
+  /** Turn-history: render read-only under the yellow viewer frame (a past turn's
+   *  board). `words` is then the historical snapshot; PlayArea gates clicks off and
+   *  the board column catches a click to exit. Off during live play. */
+  viewing?: boolean
+  /** Turn-history: the board positions the viewed turn decided — ring each one
+   *  history-yellow ("added this turn"). Empty / omitted when live. */
+  highlight?: ReadonlySet<number>
 }
 
 /**
@@ -67,6 +78,8 @@ export function BoardGrid({
   cellsClickable,
   pendingPos,
   onGuess,
+  viewing = false,
+  highlight = NO_CELLS,
 }: Props) {
   // .board wrapper + .grid mirror psychicnum/connections (the shared "board"
   // shape — the single place a future framed board would live); the tiles
@@ -78,7 +91,17 @@ export function BoardGrid({
     // measures this element's height across below-board states (it must not
     // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
     <div className={styles.board} data-board>
-      <div className={cls(shared.hugRectWidth, styles.grid)}>
+      {/* While viewing a past turn the yellow history `.frame` rings the board AND
+          makes it click-through (pointer-events: none), so a click anywhere on the
+          board falls through to the viewer's document click-to-exit — no per-game
+          handler needed. */}
+      <div
+        className={cls(
+          shared.hugRectWidth,
+          styles.grid,
+          viewing && history.frame,
+        )}
+      >
         {words.map((w) => {
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null
@@ -106,8 +129,9 @@ export function BoardGrid({
             : styles.bgWhite
 
           // Clickable unless globally revealed or *I* already neutraled it. A
-          // partner-only neutral stays clickable (it may be my agent).
-          const clickable = cellsClickable && !revealed && !iNeutraled
+          // partner-only neutral stays clickable (it may be my agent). Never while
+          // viewing a past turn (the board is read-only then).
+          const clickable = cellsClickable && !revealed && !iNeutraled && !viewing
           const isPending = pendingPos === w.position
 
           return (
@@ -119,6 +143,8 @@ export function BoardGrid({
                 styles.overlayTile,
                 bgCls,
                 isPending && styles.tilePending,
+                // Turn-history: this cell was decided on the turn being viewed.
+                highlight.has(w.position) && styles.viewedCell,
               )}
               disabled={!clickable || isPending}
               onClick={() => clickable && onGuess(w.position)}

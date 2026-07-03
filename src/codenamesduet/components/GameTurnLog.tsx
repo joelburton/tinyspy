@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { TurnLog, TurnLogBar } from '../../common/components/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/TurnLog'
 import { TurnLogActor } from '../../common/components/TurnLogActor'
 import turnLog from '../../common/components/TurnLog.module.css'
 import { cls } from '../../common/lib/cls'
@@ -25,6 +25,11 @@ type Props = {
   /** Whether the game has ended. A guess-less *current* turn at terminal is no
    *  longer "in progress," so it reads "(no guesses)", not "(clue given)". */
   gameOver: boolean
+  /** Turn-history: the turn currently open in the board viewer (by `turn_number`),
+   *  or null when live. That turn's two rows wear the shared yellow `viewedRow`. */
+  viewingTurn: number | null
+  /** Open a turn in the board viewer — click (or Enter/Space) any of its rows. */
+  onSelectTurn: (turnNumber: number) => void
 }
 
 /**
@@ -45,8 +50,22 @@ type Props = {
  * distinguished by `currentTurn` + `gameOver`, since both look identical in the
  * data (a clue, no guess rows). All grouping is client-side (the data set is
  * tiny); the shared `<TurnLog>` snaps to the latest row.
+ *
+ * **Turn-history:** the turn's `#N` handle (the shared `<TurnLogNumber>`) opens that
+ * turn on the board (PlayArea's `useHistoryViewer`) and rings itself yellow while
+ * open. The click + marker live on the number, not the row, precisely because a
+ * codenamesduet turn is TWO `<tr>`s — a whole-turn outline would draw a broken box
+ * and a per-row hover would light only half of it (see `<TurnLogNumber>`).
  */
-export function GameTurnLog({ clues, guesses, players, currentTurn, gameOver }: Props) {
+export function GameTurnLog({
+  clues,
+  guesses,
+  players,
+  currentTurn,
+  gameOver,
+  viewingTurn,
+  onSelectTurn,
+}: Props) {
   // seat letter → Player, so each clue row resolves to its clue-giver's
   // identity. Key type `string` (not the narrower 'A'|'B') so it matches the
   // db-derived `by_seat` without a cast. Both seats are always populated.
@@ -87,14 +106,18 @@ export function GameTurnLog({ clues, guesses, players, currentTurn, gameOver }: 
         const inProgress = turnGuesses.length === 0 && t === currentTurn && !gameOver
         return (
           <Fragment key={t}>
-            {/* Row 1, real columns: [bar ⇣rowSpan 2] | # (`.meta`) | count WORD
-                (`.main`, absorbs the slack) | clue-giver (`.who`, shrinks to the
-                username). `.turnLogDivider` draws the line above this turn
-                (suppressed on the first); `.entryHead`/`.entryCont` hug the two
-                rows together. */}
+            {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (`.meta`) | count
+                WORD (`.main`, absorbs the slack) | clue-giver (`.who`, shrinks to
+                the username). `.turnLogDivider` draws the line above this turn
+                (suppressed on the first); `.entryHead`/`.entryCont` hug the two rows
+                together. The `#N` handle is the turn-viewer control (see the note). */}
             <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
               <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
-              <td className={turnLog.meta}>#{t}</td>
+              <TurnLogNumber
+                n={t}
+                viewing={viewingTurn === t}
+                onSelect={() => onSelectTurn(t)}
+              />
               <td className={turnLog.main}>
                 <span className={styles.clueWord}>
                   {clue.count} {clue.word.toUpperCase()}

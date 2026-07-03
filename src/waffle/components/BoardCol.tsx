@@ -56,9 +56,10 @@ export function BoardCol({
   const viewing = viewingDescription !== null
 
   return (
-    // While viewing a past swap, a click anywhere in the board column returns to
-    // live (matches the other games' "click to exit"); a no-op when live.
-    <div className={shared.boardCol} onClick={viewing ? onExitViewing : undefined}>
+    // Exit-on-click is intrinsic to the viewer now (useHistoryViewer's document
+    // listener + the click-through `.frame`), so the board column needs no click
+    // handler — a click anywhere returns to live.
+    <div className={shared.boardCol}>
       <WaffleGrid
         board={board}
         colors={colors}

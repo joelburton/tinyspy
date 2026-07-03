@@ -13,7 +13,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; the board, entry row, opponent strip, and log all render real.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -202,9 +202,14 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     // Live: CLEAR's tiles are off the board (L is one of them).
     expect(screen.queryByText('L')).not.toBeInTheDocument()
 
-    // Click the CLEAR row (its word cell, going up to the row — the row, not the
-    // word span, carries the view handler; the span stopPropagation's to define).
-    await user.click(screen.getByText('CLEAR').closest('tr')!)
+    // Open the viewer via the turn's "#N" handle (the click target is the number,
+    // not the row). The CLEAR row has two titled controls — the #N handle + the
+    // definable word — so target the handle by its title.
+    await user.click(
+      within(screen.getByText('CLEAR').closest('tr')!).getByTitle(
+        'Click to view this turn on the board',
+      ),
+    )
 
     // Viewing turn 0: the yellow viewer banner shows the description, and CLEAR's
     // tiles are back on the historical board (nothing was cleared before it).
@@ -222,7 +227,11 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     h.result = historyHook()
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
 
-    await user.click(screen.getByText('Hint: a fruit').closest('tr')!)
+    await user.click(
+      within(screen.getByText('Hint: a fruit').closest('tr')!).getByTitle(
+        'Click to view this turn on the board',
+      ),
+    )
 
     // The hint's description now also appears in the banner (2 = log row + banner).
     expect(screen.getAllByText('Hint: a fruit')).toHaveLength(2)
