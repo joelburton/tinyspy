@@ -1,17 +1,8 @@
-/* waffle play surface. The two-column SHELL (.layout / .boardCol / .infoCol),
- * the info-column READOUTS (.infoSetup / .infoState / .infoHelp / .infoActions +
- * the terminal swap), and the shared .tile chrome all come from the shared
- * common/components/PlayArea.module.css (imported as `shared`), the same scaffold
- * psychicnum / connections / codenamesduet use. The square board grid lives in
- * WaffleGrid.module.css. Only the below-board local-feedback slot is here.
- *
- * waffle has no text entry (the board IS the input — tap two tiles), so this
- * slot is feedback-only; it holds a centered <FeedbackPill> — the own-action
- * error flash, the locally-terminal "waiting" pill, or the permanent terminal
- * verdict (the LOCAL half of the feedback split) — else nothing. A reserved
- * height keeps the top-anchored board from shifting as the slot's content
- * changes. (The multi-line answer reveal is NOT here — it would overflow the
- * viewport; it lives in the info column's shared `.terminalExtra`.) */
+/* waffle play surface. The two-column SHELL (.layout / .boardCol / .infoCol), the
+ * info-column READOUTS, and the shared .tile chrome all come from the shared
+ * common/components/PlayArea.module.css (imported as `shared`). PlayArea holds only
+ * the layout-root var here; the board column's below-board region lives in
+ * BoardCol.module.css, the square grid in WaffleGrid.module.css. */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). waffle's right column (setup + swap state + the
@@ -19,25 +10,4 @@
  * a pixel lock. */
 .layout {
   --info-col-width: 22rem;
-}
-
-/* The below-board REGION (universal). waffle is NON-SWAP and feedback-only —
- * the move is made on the board, so `.moveArea` is empty and the shared
- * `.localFeedback` reserves its own height (the board never reflows as the pill
- * appears/clears; docs/ui.md → Layout stability). `flex-shrink: 0` keeps the
- * region from being squeezed. */
-.belowBoard {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/components/historyViewer.module.css), which covers this region while a
-     past swap is being viewed. */
-  position: relative;
-}
-
-/* waffle has NO below-board move controls — the move is swapping tiles on the
- * board — so `.moveArea` is empty. `display: contents` (generates no box). */
-.moveArea {
-  display: contents;
 }

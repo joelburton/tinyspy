@@ -1,0 +1,24 @@
+/* waffle's board column — the square WaffleGrid (its own sizing lives in
+ * WaffleGrid.module.css) plus the below-board region. This is the visual half of
+ * <BoardCol>; the board column shell (.boardCol) is the shared scaffold. */
+
+/* The below-board REGION (universal). waffle is NON-SWAP and feedback-only —
+ * the move is made on the board, so `.moveArea` is empty and the shared
+ * `.localFeedback` reserves its own height (the board never reflows as the pill
+ * appears/clears; docs/ui.md → Layout stability). `flex-shrink: 0` keeps the
+ * region from being squeezed. */
+.belowBoard {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
+     common/components/historyViewer.module.css), which covers this region while a
+     past swap is being viewed. */
+  position: relative;
+}
+
+/* waffle has NO below-board move controls — the move is swapping tiles on the
+ * board — so `.moveArea` is empty. `display: contents` (generates no box). */
+.moveArea {
+  display: contents;
+}
