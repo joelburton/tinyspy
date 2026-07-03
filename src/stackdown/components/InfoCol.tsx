@@ -24,18 +24,21 @@ import styles from './InfoCol.module.css'
  * RPCs and the coordination state. See docs/playarea-decomposition-plan.md.
  */
 export function InfoCol({
-  foundCount,
-  hintCount,
-  revealCount,
+  // Props are grouped by the region they drive (mirroring the render order below),
+  // so "what is this prop for?" is answerable by eye. Names are shared verbatim with
+  // the other games' columns for the same idea — see docs/playarea-decomposition-plan.md.
   isCompete,
-  members,
-  selfId,
-  playerStates,
-  concededIds,
   isTerminal,
   over,
   isPlayer,
   isLocallyDone,
+  foundCount,
+  hintCount,
+  revealCount,
+  members,
+  selfId,
+  playerStates,
+  concededIds,
   onHint,
   onReveal,
   onEndGame,
@@ -48,19 +51,9 @@ export function InfoCol({
   viewingIndex,
   onSelectTurn,
 }: {
-  /** State readout: words cleared out of six, plus the cheat tallies. */
-  foundCount: number
-  hintCount: number
-  revealCount: number
-  /** Mode split — compete shows the OpponentStrip + Concede; coop shows End. */
+  // ── Mode + phase (read by several regions below) ──
+  /** compete shows the OpponentStrip + Concede; coop shows End. */
   isCompete: boolean
-  /** The roster (identity + per-player concede flags). */
-  members: Member[]
-  selfId: string
-  /** Public per-player tallies (found_count / solved); `self` is derived from these. */
-  playerStates: PlayerRow[]
-  /** Who has conceded (drives the OpponentStrip "out" mid-game). */
-  concededIds: Set<string>
   isTerminal: boolean
   /** Terminal copy when the game is over (drives the action row + words reveal), else null. */
   over: TerminalCopy | null
@@ -68,18 +61,40 @@ export function InfoCol({
   isPlayer: boolean
   /** I conceded but the others race on — a terminal LOOK without ending the game. */
   isLocallyDone: boolean
+
+  // ── State readout (the count line at the top) ──
+  /** Words cleared, out of six. */
+  foundCount: number
+  /** Cheat tallies shown beneath the count. */
+  hintCount: number
+  revealCount: number
+
+  // ── Players (the OpponentStrip + the log's identity discs) ──
+  /** The roster (identity + per-player concede flags). */
+  members: Member[]
+  selfId: string
+  /** Public per-player tallies (found_count / solved); `self` is derived from these. */
+  playerStates: PlayerRow[]
+  /** Who has conceded (drives the OpponentStrip "out" mid-game). */
+  concededIds: Set<string>
+
+  // ── Action row (cheats + End/Concede, back-to-club at terminal) ──
   onHint: () => void
   onReveal: () => void
   onEndGame: () => void
   onConcede: () => void
   onBackToClub: () => void
+
+  // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
   /** The six solution words, revealed at game-over (terminal only). */
   solution: string[] | null
-  /** The submission log for the turn-history viewer. */
+
+  // ── Turn-history log (FoundWords) ──
+  /** The submission log the log renders + the viewer indexes (by position). */
   submissions: SubmissionRow[]
   showWho: boolean
-  /** The log row currently open in the board viewer (by position), or null. */
+  /** The log row currently open in the board viewer, or null. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {

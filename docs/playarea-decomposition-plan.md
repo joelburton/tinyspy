@@ -125,6 +125,31 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 - Add turn-history to the games where the board history is meaningful
   (codenamesduet/tinyspy, connections, waffle) — now a drop-in against the contract.
 
+### Prop conventions for the columns (decided during the stackdown prototype)
+
+These keep the columns legible AND consistent across games — the second is
+load-bearing: a `BoardCol`/`InfoCol` prop that means the same thing in two games
+MUST be spelled the same, or reading the second game means re-deriving what you
+already knew. Drift here causes real head-scratching.
+
+- **Flat prop lists, grouped by region, NOT prefixed.** A long, explicit prop list
+  beats a giant component with no seams. Keep the props flat (no `actionsOnHint` /
+  `oppStripHintCount` prefixes — they stutter against the `on*` convention, reinvent
+  namespacing as strings, and force a single taxonomy onto props that serve two
+  regions). Instead, order the props to mirror the render order and separate them
+  with `// ── Section ──` header comments, and mirror that same order at the call
+  site. That answers "what is this prop for?" by eye at zero cost. (No React.memo
+  anywhere in the app, so grouping into objects would buy nothing; if a future
+  memoized *child* ever needs a grouped object, `useMemo` it — but that's not today.)
+- **One vocabulary across all games.** For the same idea, use the same prop name
+  everywhere: `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
+  `onExitViewing`, `viewingIndex`/`viewingDescription`, `onSelectTurn`, `members`,
+  `selfId`, `onBackToClub`, … When a new game needs a prop that an earlier column
+  already has under some name, REUSE that name; only diverge when the meaning truly
+  differs, and say so. Treat this list as the seed glossary; grow it as games land.
+- **A real object only for a genuinely cohesive cluster** that always travels
+  together to one child (e.g. the OpponentStrip's inputs) — never to hit a number.
+
 ## What the prototype taught us (Phase A + B findings)
 
 Read this before extracting `InfoCol`/`BoardCol` for the next game — these are the

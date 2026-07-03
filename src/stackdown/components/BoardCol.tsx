@@ -50,6 +50,7 @@ export function BoardCol({
   flash,
   clearFlash,
 }: {
+  // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   /** The full tile set (fixed geometry). */
   tiles: Tile[]
   /** Tiles NOT to paint — the live board's removed+picked-up tiles, OR a snapshot's
@@ -60,11 +61,15 @@ export function BoardCol({
   /** Board inert + input frozen: `viewing || !canPlay`. When NOT viewing this is
    *  exactly "can't play right now", which is why the key handler can gate on it. */
   readOnly: boolean
+
+  // ── History viewer (its overlay lives in the below-board region) ──
   /** The viewed turn's description while inspecting history (drives the banner + the
    *  yellow frame), or null when live. */
   viewingDescription: string | null
   /** Return to the live board (a board/banner click, the ✕, or any keystroke). */
   onExitViewing: () => void
+
+  // ── Word-building (the buffer stays in useGame; this column drives it) ──
   /** The word being built (tile ids in selection order). */
   currentWord: number[]
   /** Pick a tile onto the word; returns the new word (or null if it couldn't). */
@@ -73,12 +78,16 @@ export function BoardCol({
   retractTo: (index: number) => void
   /** Emit a completed 5-tile word up — PlayArea owns the RPC + commit/clear. */
   onSubmitWord: (tileIds: number[]) => void
+
+  // ── Below-board own-move feedback (the channel is owned by PlayArea) ──
   /** The below-board pill to show (terminal verdict / own-move message), or null. */
   localPill: GenericFeedbackMsg | null
   /** Report an input-engine message (no matching tile / ambiguous letter). */
   showFeedback: (text: string, tone: GenericFeedbackTone) => void
   /** Clear the below-board pill (a new move dismisses the previous one). */
   clearFeedback: () => void
+
+  // ── Word-slot flash (own-accepted / coop peer word — timer owned by PlayArea) ──
   /** The word-slot flash (own-accepted / peer word), owned by PlayArea's timer. */
   flash: WordFlash | null
   /** Drop any lingering word flash when a new word starts. */

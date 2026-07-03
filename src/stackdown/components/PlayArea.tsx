@@ -358,19 +358,21 @@ export function PlayArea({
         clearFlash={clearFlash}
       />
 
+      {/* Props grouped to match InfoCol's own grouping (mode+phase → state readout →
+          players → action row → setup+reveal → log). */}
       <InfoCol
-        foundCount={foundCount}
-        hintCount={hintCount}
-        revealCount={revealCount}
         isCompete={isCompete}
-        members={members}
-        selfId={session.user.id}
-        playerStates={playerStates}
-        concededIds={concededIds}
         isTerminal={isTerminal}
         over={over}
         isPlayer={!!self}
         isLocallyDone={isLocallyDone}
+        foundCount={foundCount}
+        hintCount={hintCount}
+        revealCount={revealCount}
+        members={members}
+        selfId={session.user.id}
+        playerStates={playerStates}
+        concededIds={concededIds}
         onHint={() => void revealHint()}
         onReveal={() => void revealNext()}
         onEndGame={() => void handleEndGame()}
