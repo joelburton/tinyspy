@@ -370,9 +370,11 @@ composes one and keeps its own fill behavior.
   `.dumpHot` green (dump-zone arming, a different affordance) — fold in during the
   token sweep if wanted.
 - **[med] Literal radii equal to tokens.** `4px`(=`--radius-sm`), `6px`(=`--radius-md`),
-  `8px`(=`--radius-lg`) recur across ~12 sites (scrabble, wordle, codenamesduet,
-  bananagrams, boggle, waffle). Mechanical sweep onto the tokens; leave the
-  sub-grain `2px`/`3px` micro-radii and boggle's tuned `12px` tray.
+  `8px`(=`--radius-lg`) recur across 16 sites / 13 files. **⏸ DEFERRED TO JOEL
+  (2026-07-02)** — NOT to be done as a mechanical value-swap. Joel wants each site
+  tokenized by *semantic intent* (is this element a card→`lg`, a panel→`md`, a
+  tile→`sm`?), which is a human judgment, not `4px→-sm` stamping. Leave the
+  sub-grain `2px`/`3px` micro-radii and boggle's tuned `12px` tray regardless.
 - ~~**[med] scrabble score green is a near-miss drift.**~~ **✅ DONE (`0002e32`)** —
   `PlayLog.module.css:27` `#2e7d52` → `--color-outcome-won-strong`; completes the
   good/bad pair now that `.scoreNeg` is on `--color-outcome-lost-strong`.
