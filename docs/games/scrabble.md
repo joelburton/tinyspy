@@ -521,15 +521,22 @@ never shared, never persisted, doesn't pause.
 - **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer).
 - **`hooks/useGame.ts`** — postgres-changes on `scrabble.{games_state,
   players_state, plays}` (Pattern A, per-tab UUID-suffixed channel).
+- **`hooks/useSharedMove.ts`** — the coop "show a move" transport: a **stable-name**
+  Broadcast channel (`scrabble:${gameId}`, so teammates merge into one room, like
+  connections' peer-selection channel), separate from `useGame`'s postgres-changes
+  channel because the shared move is ephemeral (a not-yet-committed move, never
+  stored). **Coop only** — in compete the channel never opens (`shareMove` no-ops),
+  and supabase Broadcast doesn't echo to the sender, so only teammates preview it.
 - **`components/`** — `Board` (15×15 premium grid; committed / tentative tiles,
   blanks shown on a brighter golden face; the cursor overlay; drag drop-highlights
   + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
   7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
   just-drawn tiles flashed yellow, blanks greyed), `Controls` (the action half of
-  the below-board row: the icon-only Recall `ClearButton` on the left, then the
-  **commit slot** pushed right [Swap `ExchangeButton` icon-only / Pass `PassButton`
-  icon-only, compete / Submit `SubmitWithScore`]; that slot doubles as the local
-  feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
+  the below-board row: the icon-only Recall `ClearButton` on the left, then — coop,
+  ≥2 players — the icon-only `SharePreviewButton` (see [Show a move](#show-a-move-coop)),
+  then the **commit slot** pushed right [Swap `ExchangeButton` icon-only / Pass
+  `PassButton` icon-only, compete / Submit `SubmitWithScore`]; that slot doubles as the
+  local feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
   when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
   floats over the rack corner, not in this row), `BlankPicker` (declare a
   dragged blank's letter on drop), `PlayLog` (the move log on the shared
@@ -541,12 +548,13 @@ never shared, never persisted, doesn't pause.
   the "PlayArea does the RPC" contract — the `play_word` / `exchange` RPCs
   themselves, because their commit is inseparable from that input state [the
   `lastActionRef` race + the version-reset effect]; PlayArea just hands it `game` +
-  `gameId`. Also takes the board to show — live or a `boardUpToSeq` snapshot — for
-  the history viewer), `InfoCol` (the readouts + score + the End/Concede action-row
+  `gameId`. Also takes the board to show — live, a `boardUpToSeq` history snapshot,
+  OR a coop teammate's shared move — the `ViewTarget` union it switches on; and owns
+  the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
   button + the PlayLog), `PlayArea` (the thin coordinator: `useGame`, the shared
-  below-board feedback channel [both columns write it], the terminal
-  `GameOverModal`, and the history `viewingSeq`), `SetupForm` (two
-  `<DifficultyField>`s + timer), `Help`.
+  below-board feedback channel [both columns write it], the coop `useSharedMove`
+  transport, the terminal `GameOverModal`, and the board-viewer state), `SetupForm`
+  (two `<DifficultyField>`s + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the
 "should this survive a pause?" rule it lives in `BoardCol` [the turn machine],
@@ -557,12 +565,38 @@ until the realtime refetch lands, so they never blink off the board. **Compete
 allows placement off-turn** (pre-play, above) — only *committing* needs your turn;
 coop is always-live (race to commit).
 
+### Show a move (coop)
+
+In coop (≥2 players) a player building a word can click **Share** (the info-tone,
+icon-only `SharePreviewButton`, beside Recall) to broadcast their **staged tiles** to
+teammates, who see them laid on their own board in a **read-only preview** — the
+deliberate **twin of the turn-history viewer**: the shared `historyViewer` chrome
+(framed board + a banner `● moth showing: +18 BERRY`, input frozen) and the same
+exits (click / keystroke / ✕ / a new committed move). The one difference from history
+is the board content — the live board + the sharer's *tentative* tiles, vs history's
+committed *past* board — so both ride one `useHistoryViewer` via the `ViewTarget`
+union (`{kind:'turn'} | {kind:'shared'}`), and `BoardCol` switches on `kind`.
+
+It's **ephemeral** — a stable Broadcast channel (`useSharedMove`), never stored; a
+teammate who misses it simply doesn't see it, matching the trust model (friends, no
+anti-cheat needed). The committed board is already shared in coop, so the payload is
+just the placements (+ `sharerId` / `words` / `score` for the banner) overlaid on the
+receiver's live board; a **stale** broadcast — its `baseVersion` no longer matches the
+receiver's board, i.e. a real move landed in between — is dropped, so it never renders
+a move that no longer fits. The preview wears its **own** color token
+(`--color-share-preview`, initialized to the history yellow but tinkerable
+independently, via a `--viewer-accent` override on the `.sharePreview` column). Coop
+only — compete has private racks and no shared board, so the button and channel are
+absent. Verified cross-client in `e2e/scrabble-show-move.e2e.ts` (two contexts:
+Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).
+
 ### Realtime channels
 
 | channel | opener | carries |
 |---|---|---|
 | `game:${gameId}` (stable) | `useCommonGame` | presence + pause + suspend + `common.games` (incl. compete leaderboard via `status`) |
 | `scrabble:${gameId}:${uuid}` | `useGame` | postgres-changes on `scrabble.{games, players, plays}` |
+| `scrabble:${gameId}` (stable) | `useSharedMove` | **coop only** — the "show a move" Broadcast (`show-move` event: a teammate's staged tiles for a read-only preview). Ephemeral, never stored; stable name so teammates merge into one room. |
 
 ---
 
