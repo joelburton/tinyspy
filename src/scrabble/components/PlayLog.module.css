@@ -1,7 +1,7 @@
 /* scrabble's move-log cell bits. The panel / scroll-box / outcome-bar / row
  * chrome now come from the shared <TurnLog> (TurnLog.module.css); this holds only
- * the in-cell content styling: the score color and the clickable (definable)
- * word. */
+ * the in-cell content styling: the score color and the played word (which
+ * composes the shared global `.definable` click-to-define affordance). */
 
 /* A clickable turn row — opens the board viewer for that turn. The whole row is
  * the hit target (the word spans stopPropagation so they still define). */
@@ -34,14 +34,4 @@
 .word {
   font-weight: 700;
   letter-spacing: 0.04em;
-}
-/* A clickable (definable) word — subtle underline-on-hover affordance. */
-.clickable {
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-.clickable:hover,
-.clickable:focus-visible {
-  text-decoration: underline;
-  outline: none;
 }

@@ -2,16 +2,6 @@
  * box, table, outcome bars, #n / word / who columns all come from
  * TurnLog.module.css). Only the bits unique to stackdown's rows remain here. */
 
-/* A clickable (definable) word — subtle underline-on-hover affordance. */
-.clickable {
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-.clickable:hover,
-.clickable:focus-visible {
-  text-decoration: underline;
-  outline: none;
-}
 
 /* An invalid attempt — struck through and dimmed (the red bar carries the
  * "rejected" signal). */

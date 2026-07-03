@@ -100,7 +100,7 @@ export function FoundWords({
                   </span>
                 ) : s.valid && s.word ? (
                   <span
-                    className={cls(turnLog.primary, styles.clickable)}
+                    className={cls(turnLog.primary, 'definable')}
                     {...defineActivation(s.word)}
                   >
                     {s.word.toUpperCase()}

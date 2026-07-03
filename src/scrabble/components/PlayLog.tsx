@@ -40,7 +40,7 @@ export function PlayLog({
   const { define, popover } = useDefinePopover()
   const openDefine = (word: string, el: HTMLElement) => define(word.toLowerCase(), el)
   const defineProps = (word: string) => ({
-    className: cls(styles.word, styles.clickable),
+    className: cls(styles.word, 'definable'),
     role: 'button' as const,
     tabIndex: 0,
     title: 'Click to define',

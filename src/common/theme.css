@@ -437,6 +437,22 @@ a {
   margin-top: 1rem;
 }
 
+/* A click-to-define word — the shared affordance for "this word opens its
+   definition" (via the DefinitionPopover), a cross-game concept worth naming
+   once. A subtle underline-on-hover/focus; focus shows the underline rather than
+   a ring so it doesn't box a word mid-sentence. Compose onto the word span, e.g.
+   `cls('definable', styles.word)`. (WordList's `.word` deliberately does MORE —
+   an accent focus-ring + finder-color recent-flash — so it stays its own thing.) */
+.definable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.definable:hover,
+.definable:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
 /* Stack of buttons / form rows, separated by a generous gap.
    Used inside .card screens for the primary action region. */
 .actions {
