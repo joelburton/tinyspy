@@ -110,4 +110,30 @@ describe('useLocalFeedback', () => {
     expect(clearSpy).toHaveBeenCalled()
     clearSpy.mockRestore()
   })
+
+  // Terminal local feedback is permanent: while `locked`, clear() refuses — no
+  // key / click can wipe a verdict (the permanence lives in the hook, not the
+  // caller).
+  it('clearLocalFeedback is a no-op while locked (terminal)', () => {
+    const { result } = renderHook(() => useLocalFeedback({ locked: true }))
+    act(() => result.current.showLocalFeedback(sticky('You won!')))
+    expect(result.current.localFeedback).not.toBeNull()
+    act(() => result.current.clearLocalFeedback())
+    expect(result.current.localFeedback).not.toBeNull() // still there — locked
+  })
+
+  it('locked can flip: clear works during play, then is refused at terminal', () => {
+    const { result, rerender } = renderHook(({ locked }) => useLocalFeedback({ locked }), {
+      initialProps: { locked: false },
+    })
+    // During play: clear works.
+    act(() => result.current.showLocalFeedback(sticky('nope')))
+    act(() => result.current.clearLocalFeedback())
+    expect(result.current.localFeedback).toBeNull()
+    // Game ends → show the verdict, then a stray clear can't remove it.
+    rerender({ locked: true })
+    act(() => result.current.showLocalFeedback(sticky('Game over')))
+    act(() => result.current.clearLocalFeedback())
+    expect(result.current.localFeedback).not.toBeNull()
+  })
 })

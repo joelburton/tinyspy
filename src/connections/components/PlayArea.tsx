@@ -13,6 +13,7 @@ import { HintButton } from '../../common/components/buttons/HintButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { memberById } from '../../common/lib/peers'
@@ -181,7 +182,11 @@ export function PlayArea({
     localFeedback,
     showLocalFeedback,
     clearLocalFeedback,
-  } = useLocalFeedback()
+  } = useLocalFeedback({ locked: isTerminal })
+  // Any key is the player's next move → dismiss the own-move pill, even though
+  // connections has no keyboard entry (guesses are tile clicks). No-op at
+  // terminal (locked).
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess is narrated in the GamePage header: correct →

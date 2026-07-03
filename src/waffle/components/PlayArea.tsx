@@ -10,6 +10,7 @@ import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -75,7 +76,10 @@ export function PlayArea({
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
   // below-board slot — never the header pill (that's the peer/group channel).
-  const { localFeedback, showLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
+  // Any key is the player's next move → dismiss the own-move pill, even though
+  // waffle has no keyboard entry (swaps are clicks). No-op at terminal (locked).
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran

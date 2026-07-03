@@ -93,7 +93,7 @@ export function PlayArea({
   // WordEntry ring (below), so the pill is for the results that HAVE no ring.
   // The shared hook owns the state + timer + cleanup; this thin builder keeps
   // stackdown's terse `(text, tone, dismiss?)` call sites over it.
-  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
   const showLocalFeedback = useCallback(
     (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) =>
       showMsg({ tone, text, variant: 'outline', dismiss }),

@@ -177,7 +177,7 @@ export function PlayArea({
   // The shared hook owns the state + cleanup; this thin builder keeps scrabble's
   // terse `{ tone, text }` call sites over it (own-move results are outline +
   // sticky — the next move dismisses them via `clearLocalFeedback`).
-  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
   const showLocalFeedback = useCallback(
     (m: LocalFeedbackMsg) => showMsg({ ...m, variant: 'outline', dismiss: { kind: 'sticky' } }),
     [showMsg],

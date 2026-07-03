@@ -8,6 +8,7 @@ import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -249,7 +250,11 @@ export function PlayArea({
   // or a failed End. Shared machinery; PlayArea owns where it renders.
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
-    useLocalFeedback()
+    useLocalFeedback({ locked: isTerminal })
+  // Any key is the player's next move → dismiss the own-move pill. Guarded by
+  // useGlobalKeyHandler, so typing in the clue field (a focused input) never
+  // triggers it — only a key with nothing focused does. No-op at terminal (locked).
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
   // so the <ClueSuggestionModal> renders at the `.layout` level — a panel

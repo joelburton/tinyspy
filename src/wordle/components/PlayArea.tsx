@@ -97,7 +97,7 @@ export function PlayArea({
   // cleared by the player's next edit (typeLetter / deleteLetter below), the
   // "next move dismisses it" rule (docs/design-decisions.md → Dismissal modes).
   // Accepted guesses get NO pill — the colored row that lands IS the feedback.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored)
   // from the moment we submit until its colored server row arrives via
   // realtime, so the letters don't blink out during the round-trip. The

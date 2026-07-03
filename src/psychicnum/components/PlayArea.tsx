@@ -138,7 +138,7 @@ export function PlayArea({
   // the EntryBox, both routed through `handleEntryChange` below (which calls the
   // hook's `clear`). The pill's `dismiss: { kind: 'sticky' }` (via `ownMove`) is
   // what keeps it up — no auto-timer.
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // also the gesture that dismisses a sticky local result, so route both through

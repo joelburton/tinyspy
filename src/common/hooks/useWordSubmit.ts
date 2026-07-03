@@ -123,7 +123,7 @@ const line = (word: string, body: string, isBonus = false): string =>
 export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [word, setWordState] = useState('')
   const [lastWord, setLastWord] = useState('')
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
 
   // Latest config + word held in refs so `submit`/`setWord` stay referentially
   // stable across renders while still reading current values. Reading `word` from

@@ -6,6 +6,7 @@ import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
+import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/terminalCopy'
@@ -71,7 +72,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // auto-clears it), or an RPC error (sticky). The terminal verdict and the
   // locally-terminal "you're out" message are layered on top of this in
   // `localFeedbackMsg` below.
-  const { localFeedback, showLocalFeedback } = useLocalFeedback()
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
+  // Any key is the player's next move → dismiss the own-move pill. (bananagrams's
+  // own board-key handler lives in PlayerBoard; this is the shared clear-on-key,
+  // guarded against chat by useGlobalKeyHandler.) No-op at terminal (locked).
+  useDismissLocalFeedbackOnKey(clearLocalFeedback)
 
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })

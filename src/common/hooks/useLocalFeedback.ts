@@ -15,8 +15,21 @@ export type LocalFeedbackApi = {
    *  (or the host swaps it). */
   showLocalFeedback: (msg: GenericFeedbackMsg) => void
   /** Clear the message now — e.g. when the player starts the next move (a
-   *  keystroke, a tile click). No-op if nothing's showing. */
+   *  keystroke, a tile click). No-op if nothing's showing, AND a **no-op while
+   *  `locked`** (terminal): terminal local feedback is permanent (see below). */
   clearLocalFeedback: () => void
+}
+
+export type LocalFeedbackOptions = {
+  /**
+   * When true, `clearLocalFeedback()` is a no-op — the message is **permanent**.
+   * Games pass `locked: isTerminal`, because terminal local feedback (the verdict
+   * pill) can't be dismissed by anything: not a keystroke, not a click, not a
+   * future exotic entry method. Putting the permanence HERE — in the one function
+   * that removes feedback — means no dismissal site has to re-check terminal
+   * state; they all just call `clearLocalFeedback()` and it refuses when locked.
+   */
+  locked?: boolean
 }
 
 /**
@@ -36,9 +49,13 @@ export type LocalFeedbackApi = {
  * The host owns the *policy* (WHERE it renders, WHEN a sticky one clears); the
  * hook owns the *mechanics* — the state, the re-armable timer, the unmount cleanup.
  */
-export function useLocalFeedback(): LocalFeedbackApi {
+export function useLocalFeedback({ locked = false }: LocalFeedbackOptions = {}): LocalFeedbackApi {
   const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Read `locked` through a ref so the memoized `clearLocalFeedback` (registered
+  // once) always sees the latest value without re-creating the callback.
+  const lockedRef = useRef(locked)
+  lockedRef.current = locked
 
   const cancelTimer = () => {
     if (timerRef.current !== null) {
@@ -62,6 +79,9 @@ export function useLocalFeedback(): LocalFeedbackApi {
   }, [])
 
   const clearLocalFeedback = useCallback(() => {
+    // Terminal local feedback is permanent — refuse to clear while locked, so no
+    // key / click / future entry method can wipe a verdict. See LocalFeedbackOptions.
+    if (lockedRef.current) return
     cancelTimer()
     setLocalFeedback(null)
   }, [])
