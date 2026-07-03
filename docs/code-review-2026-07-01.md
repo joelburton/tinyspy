@@ -314,6 +314,20 @@ kept in sync with the slot height *by hand* (the comments say so). Deriving
 
 ### 3.2 The hug-board sizing formula — extract the arithmetic, keep the behavior
 
+> **Status — 2026-07-02.** **✅ Rect done (`d7484a6`)** — extracted to shared
+> `.hugRectWidth` (in `common/components/PlayArea.module.css`), composed onto each
+> of the four games' `.grid`; proven a pixel-for-pixel no-op by the new
+> `e2e/board-geometry.e2e.ts` guard (all 8 boards within 0.5px of the pre-refactor
+> baseline). **⚠ Square NOT done — the premise is false.** On inspection the four
+> "square" games are NOT byte-identical: **waffle + boggle** share the tile-cap
+> `--side` form (but compute it on *different* elements — waffle `.grid`, boggle
+> `.boardCol`); **scrabble** inlines `15`/`14` literals (its own comment says "always
+> 15×15" — deliberate); **stackdown** uses a fundamentally different formula
+> (`min(--avail-w, --avail-h, 620px)` — a fixed cap, no per-tile term). A shared
+> `.hugSquare` would either dedup only 2 structurally-divergent games or erase
+> scrabble/stackdown's deliberate differences. **Recommend: leave square as-is**
+> (Joel to confirm); the high-leverage collapse (rect) is banked.
+
 The rectangular hug width formula is **byte-identical** in four games
 (`psychicnum/WordBoard.module.css:52`, `connections/PlayArea.module.css:76`,
 `codenamesduet/BoardGrid.module.css:63`, `wordle/WordleGrid.module.css:28`):
