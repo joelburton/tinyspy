@@ -467,7 +467,10 @@ setup disclosure, and the Moves log filling the rest.
 (a press-past-threshold becomes a drag, with a floating ghost + drop highlights)
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
-advances). Drag a tile rack→board, board→board (move), board→rack (recall), or
+advances). The keyboard cursor rides the **shared `useBoardCursorKeys`** (the
+common 2-D board-cursor hook both games use); scrabble's 5% is that only STAGED
+tiles are editable — committed tiles are locked — and Enter plays the staged word
+(vs bananagrams's peel). Drag a tile rack→board, board→board (move), board→rack (recall), or
 **rack→rack to reorder** (people rearrange tiles to hunt for anagrams — the drop
 position is read off the rack tiles' midpoints and moves the tile in the display
 `order`); tap a square to position the cursor; tap a rack tile to mark it for

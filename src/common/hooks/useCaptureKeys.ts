@@ -85,7 +85,7 @@ export type CaptureKeysOptions = {
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits, the
  * stored case) and any extra keys (`onExtraKey` — spellingbee's Space-shuffle).
  *
- * **Layering** (docs/common.md → keyboard): the EntryBox-only history arrows —
+ * **Layering** (docs/ui.md → Text entry): the EntryBox-only history arrows —
  * `ArrowUp` recalls the last entry, `ArrowDown` clears it — are NOT here; they're
  * the separate `useArrowHistory`, layered on top by `<EntryRow>` (which every
  * EntryBox game renders). A key-capture game that ISN'T an EntryBox (wordle:

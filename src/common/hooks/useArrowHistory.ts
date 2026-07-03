@@ -21,7 +21,7 @@ export type ArrowHistoryOptions = {
  * `<EntryRow>`, so it applies to the EntryBox games (spellingbee / boggle /
  * psychicnum) and ONLY them — a key-capture game that isn't an EntryBox (wordle)
  * uses the core alone and never wires this, so it gets no arrow behavior. Keeping
- * it separate is what makes that boundary obvious (docs/common.md → keyboard).
+ * it separate is what makes that boundary obvious (docs/ui.md → Text entry).
  *
  * Rides `useGlobalKeyHandler`, so it inherits the focused-input guard (arrows in
  * chat / a game input aren't hijacked) and the once-registered listener; it adds
