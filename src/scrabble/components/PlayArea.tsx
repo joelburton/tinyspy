@@ -526,6 +526,16 @@ export function PlayArea({
       return
     }
     setSubmitting(true)
+    // Claim the move BEFORE the await: if my own realtime write bumps game.version
+    // during the RPC round-trip, the version effect must attribute it to ME (rebuild
+    // my rack), not take the OPPONENT branch — which would flash a spurious
+    // "Pre-play cleared: conflict" and leak lastActionRef into the next real opponent
+    // move (a scrambled rack). Snapshot for rollback: a rejected play never commits
+    // and never bumps the version, so it must un-claim.
+    const prevAction = lastActionRef.current
+    const prevDraw = pendingDrawRef.current
+    lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
+    pendingDrawRef.current = staged.length // optimistic; corrected to res.drawn on accept
     const { data, error } = await db.rpc('play_word', {
       target_game: gameId,
       base_version: game.version,
@@ -535,6 +545,8 @@ export function PlayArea({
     })
     setSubmitting(false)
     if (error) {
+      lastActionRef.current = prevAction // the move didn't land — un-claim it
+      pendingDrawRef.current = prevDraw
       showLocalFeedback({ tone: 'error', text: error.message })
       return
     }
@@ -545,15 +557,18 @@ export function PlayArea({
       // tiles get the yellow flash once the rack arrives.
       setOptimistic(placements)
       setGreenFlash(new Set(placements.map((p) => cellIndex(p.x, p.y))))
-      pendingDrawRef.current = res.drawn?.length ?? 0
-      lastActionRef.current = { removed: new Set(staged.map((s) => s.rackIdx)), oldLen: actingRack.length }
+      pendingDrawRef.current = res.drawn?.length ?? 0 // exact draw count now known
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
       showLocalFeedback({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
     } else if (res.result === 'stale') {
+      lastActionRef.current = prevAction // no commit — un-claim
+      pendingDrawRef.current = prevDraw
       showLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else if (res.result === 'invalid') {
+      lastActionRef.current = prevAction // no commit — un-claim
+      pendingDrawRef.current = prevDraw
       showLocalFeedback({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
@@ -571,17 +586,25 @@ export function PlayArea({
     if (!game) return
     const tiles = [...selected].map((i) => actingRack[i])
     setSubmitting(true)
+    // Claim before the await — same realtime-beats-RPC race as play_word.
+    const prevAction = lastActionRef.current
+    const prevDraw = pendingDrawRef.current
+    lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
+    pendingDrawRef.current = tiles.length // optimistic; corrected on success
     const { data, error } = await db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles })
     setSubmitting(false)
     if (error) {
+      lastActionRef.current = prevAction
+      pendingDrawRef.current = prevDraw
       showLocalFeedback({ tone: 'error', text: error.message })
       return
     }
     const res = data as { result: string; drawn?: string[] }
     if (res.result === 'stale') {
+      lastActionRef.current = prevAction // no commit — un-claim
+      pendingDrawRef.current = prevDraw
       showLocalFeedback({ tone: 'info', text: 'Board changed' })
     } else {
-      lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
       showLocalFeedback({ tone: 'success', text: `Swapped ${tiles.length}` })
