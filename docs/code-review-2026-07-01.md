@@ -164,9 +164,10 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
 > **Status — 2026-07-02.** Being worked one-by-one. **✅ Done:** scrabble
 > realtime race (`8284450`), bananagrams snapshot race (documented-accepted,
 > `c9208a6`), codenamesduet `handleGuess` guard (`37a6093`), boggle double-submit
-> (fixed earlier by the `useWordSubmit` move, `71562f8`). **⬜ Still open:**
-> connections over-deps on `session.user.id`, codenamesduet duplicate peer-key
-> fetch. Each item annotated inline below.
+> (fixed earlier by the `useWordSubmit` move, `71562f8`), connections over-deps
+> on `session.user.id` (`19ac972`, with a `useGame.test.ts` channel-lifecycle
+> guard). **⬜ Still open:** codenamesduet duplicate peer-key fetch. Each item
+> annotated inline below.
 
 - ~~**[smell] scrabble compete: realtime-beats-RPC race mis-attributes my move.**~~
   **✅ DONE (`8284450`).**
@@ -195,10 +196,12 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
   pending-set guard + a real `.catch`). Original note: the dup guard read
   `foundWords` (refetch-lagged), so a double-tap showed two "+N" then a raw
   unique-violation.
-- **⬜ [smell] connections subscription effect over-deps on `session.user.id`**
-  (`src/connections/hooks/useGame.ts:287`) — the id isn't read in the effect body;
-  a token refresh needlessly tears down and rebuilds the stable-named broadcast
-  room. Tighten to `[applySelection, gameId]`. **STILL OPEN.**
+- ~~**[smell] connections subscription effect over-deps on `session.user.id`**~~
+  **✅ DONE (`19ac972`)** — (`src/connections/hooks/useGame.ts:287`) the id wasn't
+  read in the effect body; a change to it needlessly tore down and rebuilt the
+  stable-named broadcast room. Tightened to `[applySelection, gameId]`. New
+  `useGame.test.ts` locks the contract (fresh Session ⇒ no rebuild; gameId change
+  ⇒ rebuild); it fails on the pre-fix deps.
 - **⬜ [smell] codenamesduet duplicate peer-key fetch** (`useBoard.ts`) — `load`
   already selects `key_card_a/b`; a separate `loadPeerKey` re-fetches the same row
   for the terminal reveal. One redundant round-trip. **STILL OPEN.**
