@@ -8,7 +8,7 @@ import type {
 } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
@@ -16,7 +16,6 @@ import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { db } from '../db'
 import { exposedIds } from '../lib/board'
@@ -82,7 +81,6 @@ export function PlayArea({
     commitWord,
     loading,
   } = useGame(gameId)
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [submitting, setSubmitting] = useState(false)
 
   // ─── Local own-move feedback (the below-board pill) ──────────────
@@ -545,14 +543,7 @@ export function PlayArea({
         <FoundWords submissions={logWords} players={members} showWho={!isCompete} />
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

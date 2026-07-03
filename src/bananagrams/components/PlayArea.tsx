@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
@@ -53,7 +52,6 @@ const noop = () => {}
 export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
-  const { showModal, closeModal } = useTerminalModal(ctx.isTerminal)
 
   const { gameId, isTerminal } = ctx
 
@@ -296,14 +294,7 @@ export function PlayArea(ctx: GamePageCtx) {
         infoActions={infoActions}
         localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
       />
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={ctx.goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={ctx.isTerminal} over={over} onBackToClub={ctx.goToClub} />
     </>
   )
 }

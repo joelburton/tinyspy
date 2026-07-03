@@ -3,7 +3,7 @@ import { cls } from '../../common/lib/cls'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/memberColor'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
@@ -15,7 +15,6 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
@@ -240,7 +239,6 @@ export function PlayArea({
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss.
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   async function handleSubmit() {
     if (submitting) return
@@ -607,14 +605,7 @@ export function PlayArea({
         />
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

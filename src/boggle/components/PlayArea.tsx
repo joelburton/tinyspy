@@ -4,7 +4,7 @@ import { playerOutcome } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EntryRow } from '../../common/components/EntryRow'
@@ -14,7 +14,6 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { asciiLetters } from '../../common/hooks/useCaptureKeys'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
@@ -196,7 +195,6 @@ export function PlayArea(ctx: GamePageCtx) {
     globalFeedback,
   })
 
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading || !game || !view) return <div className={styles.loading}>Loading…</div>
 
@@ -373,14 +371,7 @@ export function PlayArea(ctx: GamePageCtx) {
         <WordList rows={wordRows} players={players} reveal={revealWords !== null} />
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

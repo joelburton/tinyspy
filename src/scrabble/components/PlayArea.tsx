@@ -5,14 +5,13 @@ import { timerLabel } from '../../common/lib/timerLabel'
 import type { GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
 import { useDragGesture, type DragGesture } from '../../common/hooks/useDragGesture'
@@ -153,7 +152,6 @@ export function PlayArea({
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   const [staged, setStaged] = useState<Staged[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
@@ -860,9 +858,7 @@ export function PlayArea({
         </div>
       )}
 
-      {showModal && over && (
-        <GameOverModal outcome={over.outcome} verdict={over.verdict} onClose={closeModal} onBackToClub={goToClub} />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/cls'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { EntryRow } from '../../common/components/EntryRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -319,7 +318,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Called UNCONDITIONALLY here, before any early returns —
   // React forbids conditional hook calls.
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading) {
     return <div className={styles.loading}>Loading…</div>
@@ -548,14 +546,7 @@ export function PlayArea(ctx: GamePageCtx) {
           reveal={isTerminal}
         />
       </div>
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { colorVarFor } from '../../common/lib/memberColor'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
@@ -12,7 +12,6 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { WaffleSetup } from '../lib/setup'
@@ -73,7 +72,6 @@ export function PlayArea({
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
   // below-board slot — never the header pill (that's the peer/group channel).
@@ -407,14 +405,7 @@ export function PlayArea({
         {!isCompete && <GameTurnLog swaps={swaps} players={members} />}
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

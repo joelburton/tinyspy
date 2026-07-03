@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/timerLabel'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useCaptureKeys, asciiLetters } from '../../common/hooks/useCaptureKeys'
@@ -79,7 +78,6 @@ export function PlayArea({
   goToClub,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   // The own-move local feedback pill (soft reject / RPC error), shown in the
@@ -513,14 +511,7 @@ export function PlayArea({
         />
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

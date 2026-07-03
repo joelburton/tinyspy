@@ -3,7 +3,7 @@ import { cls } from '../../common/lib/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { OpponentStrip } from '../../common/components/OpponentStrip'
@@ -13,7 +13,6 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { memberById } from '../../common/lib/peers'
@@ -223,7 +222,6 @@ export function PlayArea({
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedback])
 
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -561,14 +559,7 @@ export function PlayArea({
         <GameTurnLog guesses={guesses} players={players} />
       </div>
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }

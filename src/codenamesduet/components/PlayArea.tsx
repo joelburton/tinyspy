@@ -4,13 +4,12 @@ import { timerLabel } from '../../common/lib/timerLabel'
 import { cls } from '../../common/lib/cls'
 import { colorVarFor } from '../../common/lib/memberColor'
 import { db } from '../db'
-import { GameOverModal } from '../../common/components/GameOverModal'
+import { TerminalModal } from '../../common/components/TerminalModal'
 import { BackToClubButton } from '../../common/components/BackToClubButton'
 import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/useDismissLocalFeedbackOnKey'
-import { useTerminalModal } from '../../common/hooks/useTerminalModal'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
@@ -227,7 +226,6 @@ export function PlayArea({
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
   // after dismiss. See common/hooks/useTerminalModal.ts.
-  const { showModal, closeModal } = useTerminalModal(isTerminal)
 
   // ─── Own-action feedback (local) + guess dispatch ──────
   // A board click is the guess move; PlayArea owns the submit_guess RPC + the
@@ -551,14 +549,7 @@ export function PlayArea({
         />
       )}
 
-      {showModal && over && (
-        <GameOverModal
-          outcome={over.outcome}
-          verdict={over.verdict}
-          onClose={closeModal}
-          onBackToClub={goToClub}
-        />
-      )}
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
 }
