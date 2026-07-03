@@ -1,48 +1,13 @@
-/* psychicnum play surface. The two-column SHELL, the info-column READOUTS, and
- * the TILE chrome all come from the shared common/components/PlayArea.module.css
- * (imported as `shared` in PlayArea.tsx / WordBoard.tsx); only the bits unique
- * to psychicnum live here:
- *   - .belowBoard — the v4 below-board region: a fixed-height slot holding the
- *     local feedback area + the guess entry. (Centering a lone <FeedbackPill> is
- *     the shared `.localFeedback`, promoted to common/components/PlayArea.module.css.)
- *   - .layout — psychicnum's info-column width (see below).
- *
- * The board column HUGS its board (`flex: 0 0 auto`) — now the shared default in
- * common/components/PlayArea.module.css, so no per-game override here. The board
- * wrapper + grid + guessed-result fills live in WordBoard.module.css. (The
- * board-column debug tint lives on the shared `.boardCol` itself.)
- * See docs/ui.md → "PlayArea layout" and "Modals for terminal results." */
+/* psychicnum play surface (the thin coordinator). The two-column SHELL, the
+ * info-column readouts, and the tile chrome all come from the shared
+ * common/components/PlayArea.module.css (imported as `shared`). The only class left
+ * here is the layout var; the column-specific bits live with their columns
+ * (BoardCol.module.css). See docs/ui.md → "PlayArea layout". */
 
 /* The info column's width — game-specific (the shared scaffold has no default).
- * psychicnum's right column holds short readouts + the turn log, so a narrow
- * column suffices. Both the shared `.infoCol` and this game's `.grid` --avail-w
- * math read it (it cascades from `.layout` to both columns). */
+ * psychicnum's right column holds short readouts + the turn log, so a narrow column
+ * suffices. Both the shared `.infoCol` and the board's `.grid` --avail-w math read
+ * it (it cascades from `.layout` to both columns). */
 .layout {
   --info-col-width: 22rem;
 }
-
-/* The below-board region wrapper (universal). `display: contents` so it's a
- * structure/naming wrapper that generates no box — the reserved-height swap box
- * inside it (`shared.moveAreaOrLocalFeedback`) keeps its exact place as a
- * `.boardCol` flex child. See docs/code-conventions.md → below-board structure.
- * The fixed-height reservation that keeps the board from reflowing lives on the
- * swap box now, not here. */
-.belowBoard {
-  display: contents;
-}
-
-/* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
- * entry font — a single short guess word reads large. Applied to the shared
- * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
-.bigEntry {
-  --entrybox-font-size: 2rem;
-}
-
-/* Turn-history: while a past turn is open in the viewer, the below-board banner
- * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
- * that box a positioning context. Applied only while viewing; inert otherwise (the
- * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
-.slotViewing {
-  position: relative;
-}
-

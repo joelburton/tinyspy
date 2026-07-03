@@ -1,0 +1,29 @@
+/* psychicnum's board-column bits. The board itself is <WordBoard> (its own module);
+ * this file styles only the below-board move-input REGION under it — the slot that
+ * swaps between the guess entry, an own-move / terminal / waiting pill, and (while
+ * viewing history) the banner overlay. The board-column scaffold (.boardCol /
+ * .moveAreaOrLocalFeedback / .localFeedback / .floatingShuffle) is the shared
+ * common/components/PlayArea.module.css. */
+
+/* The below-board region wrapper. `display: contents` so it's a structure/naming
+ * wrapper that generates no box — the reserved-height swap box inside it
+ * (`shared.moveAreaOrLocalFeedback`) keeps its exact place as a `.boardCol` flex
+ * child. See docs/code-conventions.md → below-board structure. */
+.belowBoard {
+  display: contents;
+}
+
+/* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
+ * entry font — a single short guess word reads large. Applied to the shared
+ * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
+.bigEntry {
+  --entrybox-font-size: 2rem;
+}
+
+/* Turn-history: while a past turn is open in the viewer, the below-board banner
+ * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
+ * that box a positioning context. Applied only while viewing; inert otherwise (the
+ * box is the shared `.moveAreaOrLocalFeedback`, which reserves the height). */
+.slotViewing {
+  position: relative;
+}
