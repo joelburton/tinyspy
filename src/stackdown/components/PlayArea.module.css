@@ -1,10 +1,8 @@
 /* stackdown play surface, on the shared two-column scaffold
  * (common/components/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
- * This module holds only stackdown's own bits: the per-game layout vars, the
- * SQUARE stacked-tile canvas sizing (the hug model — the board is a square like
- * waffle's/boggle's, so it's bounded by BOTH width and height), the below-board
- * region (word entry + the local feedback slot), and the terminal words reveal. */
+ * PlayArea holds only the layout-root vars here; the board column's own styles
+ * live in BoardCol.module.css and the terminal reveal in InfoCol.module.css. */
 
 /* Per-game layout vars the shared scaffold reads.
  *   --info-col-width: the log column (state + strip + the #n/word/who log) fits a
@@ -15,47 +13,4 @@
 .layout {
   --info-col-width: 22rem;
   --avail-h: calc(100vh - var(--game-chrome-height) - 8.5rem);
-}
-
-/* The board column hugs its square. `--side` is the largest square that fits —
- * bounded by the width left beside the info column (--avail-w, from the shared
- * scaffold), the height left above the below-board stack (--avail-h), and a hard
- * cap so it doesn't get silly on a huge monitor. Both the canvas and the
- * below-board region read `--side` so they share one width. */
-.boardCol {
-  --side: min(var(--avail-w), var(--avail-h), 620px);
-}
-
-/* Everything under the board: the five-slot WordEntry, then the fixed-height
- * local feedback slot. Pinned to the board's --side so a long feedback pill can't
- * widen the column and shift the board; centered so the word row + pill sit under
- * the board. */
-.belowBoard {
-  width: var(--side);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/components/historyViewer.module.css), which covers this region while a
-     past turn is being viewed. The banner's height is this region's height (game-
-     specific); its appearance is common. */
-  position: relative;
-}
-
-/* stackdown is NON-SWAP: the move controls (WordEntry) and the feedback are
- * separate, both under the board. `.moveArea` is `display: contents` (a naming
- * wrapper — the WordEntry keeps its place); the feedback area is the shared
- * `.localFeedback`, which reserves its own min-height so the board doesn't shift
- * as the pill appears/clears. */
-.moveArea {
-  display: contents;
-}
-
-/* Terminal-only reveal of the six solution words, in the info column below the
- * action slot (the shared `.terminalExtra` is the one region allowed to grow at
- * game-over). Roomy line-height so the `·`-joined words wrap readably. */
-.reveal {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  letter-spacing: 0.03em;
 }

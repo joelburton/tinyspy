@@ -1,0 +1,12 @@
+/* stackdown's info column is almost entirely the shared scaffold (state line,
+ * OpponentStrip, action row, SetupDisclosure, the FoundWords log) — see
+ * <InfoCol>. The only game-specific style is the terminal words reveal. */
+
+/* Terminal-only reveal of the six solution words, in the info column below the
+ * action slot (the shared `.terminalExtra` is the one region allowed to grow at
+ * game-over). Roomy line-height so the `·`-joined words wrap readably. */
+.reveal {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  letter-spacing: 0.03em;
+}

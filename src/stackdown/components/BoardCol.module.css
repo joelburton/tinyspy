@@ -1,0 +1,39 @@
+/* stackdown's board column — the square stacked-tile canvas plus the below-board
+ * region (the five-slot WordEntry + the local-feedback slot), on the shared
+ * scaffold's `.boardCol`. This is the visual half of <BoardCol>, which also owns
+ * the live input engine (tile clicks / keyboard word-building). See
+ * PlayArea.module.css for --avail-h / --avail-w (the layout vars this reads). */
+
+/* The board column hugs its square. `--side` is the largest square that fits —
+ * bounded by the width left beside the info column (--avail-w, from the shared
+ * scaffold), the height left above the below-board stack (--avail-h), and a hard
+ * cap so it doesn't get silly on a huge monitor. Both the canvas (Board.module.css)
+ * and the below-board region read `--side` so they share one width. */
+.boardCol {
+  --side: min(var(--avail-w), var(--avail-h), 620px);
+}
+
+/* Everything under the board: the five-slot WordEntry, then the fixed-height
+ * local feedback slot. Pinned to the board's --side so a long feedback pill can't
+ * widen the column and shift the board; centered so the word row + pill sit under
+ * the board. */
+.belowBoard {
+  width: var(--side);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
+     common/components/historyViewer.module.css), which covers this region while a
+     past turn is being viewed. The banner's height is this region's height (game-
+     specific); its appearance is common. */
+  position: relative;
+}
+
+/* stackdown is NON-SWAP: the move controls (WordEntry) and the feedback are
+ * separate, both under the board. `.moveArea` is `display: contents` (a naming
+ * wrapper — the WordEntry keeps its place); the feedback area is the shared
+ * `.localFeedback`, which reserves its own min-height so the board doesn't shift
+ * as the pill appears/clears. */
+.moveArea {
+  display: contents;
+}
