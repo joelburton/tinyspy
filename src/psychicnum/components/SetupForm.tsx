@@ -1,5 +1,6 @@
 import { TimerField } from '../../common/components/TimerField'
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { SelectField } from '../../common/components/SelectField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
@@ -73,16 +74,16 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         <p className="muted">
           {s.word_count} words on the board — find the 3 secrets among them.
         </p>
-        <select
+        <SelectField
           value={s.word_count}
-          onChange={(e) => onChange({ ...s, word_count: Number(e.target.value) })}
+          onChange={(v) => onChange({ ...s, word_count: Number(v) })}
         >
           {WORD_COUNT_OPTIONS.map((n) => (
             <option key={n} value={n}>
               {n}
             </option>
           ))}
-        </select>
+        </SelectField>
       </fieldset>
       <fieldset className={styles.fieldset}>
         <legend>Word difficulty</legend>

@@ -1,11 +1,8 @@
-/* A labeled vocabulary-difficulty <select>. Sits inside game setup forms.
- *
- * Native <select> isn't covered by theme.css's `input, textarea, button` rule,
- * so without this it renders as the browser default — tiny, system-styled, out
- * of place next to the app's chunkier inputs. We restyle it to match: same
- * padding / border / radius tokens as the other controls, plus `appearance:
- * none` and a custom chevron so the trigger looks deliberate rather than
- * system-default. */
+/* The shared styled setup <select> (see SelectField.tsx). Native <select> isn't
+ * covered by theme.css's `input, textarea, button` rule, so we restyle it to
+ * match: the same padding / border / radius tokens as the other controls, plus
+ * `appearance: none` and a custom chevron so the trigger looks deliberate rather
+ * than system-default. */
 .field {
   display: flex;
   flex-direction: column;

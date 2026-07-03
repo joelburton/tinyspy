@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { SelectField } from '../../common/components/SelectField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
@@ -65,20 +66,17 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
       <fieldset className={shared.fieldset}>
         <legend>Board</legend>
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Dice set</span>
-          <select
-            className={styles.select}
-            value={s.dice_set}
-            onChange={(e) => onChange({ ...s, dice_set: e.target.value })}
-          >
-            {DICE_SETS.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.desc}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Dice set"
+          value={s.dice_set}
+          onChange={(dice_set) => onChange({ ...s, dice_set })}
+        >
+          {DICE_SETS.map((d) => (
+            <option key={d.name} value={d.name}>
+              {d.desc}
+            </option>
+          ))}
+        </SelectField>
       </fieldset>
 
       <fieldset className={shared.fieldset}>
@@ -112,20 +110,17 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
 
       <fieldset className={shared.fieldset}>
         <legend>Scoring</legend>
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Ladder</span>
-          <select
-            className={styles.select}
-            value={s.scoring_ladder}
-            onChange={(e) => onChange({ ...s, scoring_ladder: e.target.value as LadderName })}
-          >
-            {SCORING_LADDERS.map((l) => (
-              <option key={l.name} value={l.name}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Ladder"
+          value={s.scoring_ladder}
+          onChange={(ladder) => onChange({ ...s, scoring_ladder: ladder as LadderName })}
+        >
+          {SCORING_LADDERS.map((l) => (
+            <option key={l.name} value={l.name}>
+              {l.label}
+            </option>
+          ))}
+        </SelectField>
         <div className={shared.radioRow}>
           <span>Minimum word length:</span>
           {MIN_WORD_LENGTHS.map((len) => (

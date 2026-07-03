@@ -1,5 +1,5 @@
 import { DIFFICULTY_LABELS, sampleWordsFor, type WordLength } from '../lib/difficulty'
-import styles from './DifficultyField.module.css'
+import { SelectField } from './SelectField'
 
 type Props = {
   /** Optional field label, e.g. "Required words" — rendered above the select.
@@ -45,12 +45,12 @@ export function DifficultyField({
   extraLowOption,
 }: Props) {
   const samples = sampleWordsFor(length)
-  const select = (
-    <select
-      className={styles.select}
+  return (
+    <SelectField
+      label={label}
       value={value}
       disabled={disabled}
-      onChange={(e) => onChange(Number(e.target.value))}
+      onChange={(v) => onChange(Number(v))}
     >
       {extraLowOption && (
         <option value={extraLowOption.value}>
@@ -70,14 +70,6 @@ export function DifficultyField({
           </option>
         )
       })}
-    </select>
-  )
-
-  if (!label) return select
-  return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
-      {select}
-    </label>
+    </SelectField>
   )
 }

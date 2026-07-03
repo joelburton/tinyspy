@@ -1,9 +1,9 @@
 import { DifficultyField } from '../../common/components/DifficultyField'
+import { SelectField } from '../../common/components/SelectField'
 import { TimerField } from '../../common/components/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
 import form from '../../common/components/setupForm.module.css'
-import styles from './SetupForm.module.css'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameDialog.
@@ -27,20 +27,17 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
       <fieldset className={form.fieldset}>
         <legend>Guesses</legend>
         <p className="muted">How many guesses you get (6 is classic).</p>
-        <select
-          className={styles.select}
+        <SelectField
           name="max_guesses"
           value={s.max_guesses}
-          onChange={(e) =>
-            onChange({ ...s, max_guesses: Number(e.target.value) })
-          }
+          onChange={(v) => onChange({ ...s, max_guesses: Number(v) })}
         >
           {GUESS_OPTIONS.map((n) => (
             <option key={n} value={n}>
               {n} guesses
             </option>
           ))}
-        </select>
+        </SelectField>
       </fieldset>
       <fieldset className={form.fieldset}>
         <legend>Words</legend>
