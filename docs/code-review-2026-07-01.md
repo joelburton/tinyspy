@@ -347,11 +347,16 @@ composes one and keeps its own fill behavior.
 
 ### 3.3 Literal values that duplicate existing tokens
 
-- **[high] Drag-drop placement green/red is an un-named shared token.** scrabble
-  (`Board.module.css:60`) and bananagrams (`PlayerBoard.module.css:110,304`) both
-  use `rgb(120,200,130)` valid / `rgb(210,110,110)` invalid, differing only in
-  alpha, for the identical semantic. *Recommend:* `--color-drop-ok`/`--color-drop-no`
-  in `common/`.
+- ~~**[high] Drag-drop placement green/red is an un-named shared token.**~~ **✅
+  DONE (`be812e6`)** — resolved by *reusing* the app's standard success/error
+  tokens (`--color-outcome-won-strong` / `-lost-strong`) rather than minting
+  `--color-drop-ok/no` (Joel's call: don't make drag-specific colors). Also
+  redesigned per Joel: **outline-only** (no background fill, so the tile/premium
+  underneath stays visible), thicker (3px) + saturated. scrabble's red rings the
+  `.tile` (not the cell) — the tile is `container-type:size` opaque and paints
+  over a cell-level ring; mirrors `.viewingTile`. **Still literal:** bananagrams
+  `.dumpHot` green (dump-zone arming, a different affordance) — fold in during the
+  token sweep if wanted.
 - **[med] Literal radii equal to tokens.** `4px`(=`--radius-sm`), `6px`(=`--radius-md`),
   `8px`(=`--radius-lg`) recur across ~12 sites (scrabble, wordle, codenamesduet,
   bananagrams, boggle, waffle). Mechanical sweep onto the tokens; leave the
