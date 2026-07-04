@@ -3,8 +3,9 @@
 Status: **ALL PHASES DONE** (branch `stackdown-turn-history`). Every standard game
 is decomposed into `BoardCol` / `InfoCol` (bananagrams via its own engine-hook +
 views shape — see below); the shared turn-history viewer (`useHistoryViewer` +
-per-game `lib/history.ts`) ships in the seven games whose board can replay a past
-turn (scrabble, stackdown, connections, psychicnum, codenamesduet, wordle, waffle);
+per-game replay helper) ships in the seven games whose board can replay a past
+turn (stackdown, connections, psychicnum, codenamesduet, wordle, waffle via
+`lib/history.ts`; scrabble via `boardUpToSeq` in `lib/play.ts`);
 spellingbee + boggle are decomposed but have no viewer (a `WordList` isn't
 chronological). Written 2026-07-02; updated as the work landed. This file is the
 source of truth for the work; read it first. Phase A shipped the turn-history viewer

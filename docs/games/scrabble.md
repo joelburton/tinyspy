@@ -705,7 +705,7 @@ All shipped in migration `20260627000000_scrabble.sql` (which registers
   `dict_3plus` (3+), the bananagrams split ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
 - **Coop manual end forfeits** the leftover-tile value (a `forfeit` log row,
   red "−N tiles unplayed") instead of the uniform neutral stop — it nudges a
-  solo/coop team to play its last tiles ([§2.7](#27-ending-the-game), [§5.5](#55-end_game--submit_timeout)).
+  solo/coop team to play its last tiles ([§2.7](#27-ending-the-game), [§5.5](#55-end_game--concede--submit_timeout)).
 - **Title = first three words played** ([§8](#8-title-formula)); the label adds
   tiles-left mid-game and names the winner / "tie" at terminal ([§9](#9-status-jsonb--labels)).
 - **Word definitions** — click a word in the move log, or press `~` for the

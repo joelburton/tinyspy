@@ -285,7 +285,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
    - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
    - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
 
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GuessHistory`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
+2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameTurnLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
 The reason both rules matter: this codebase is shaped to host ~7–8 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
@@ -300,7 +300,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum), `lib/history` (every game with a turn-history viewer).
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (the five turn-log games — stackdown still names its `FoundWords`, scrabble its `PlayLog`; unifying on `GameTurnLog` is tracked in naming §5.1), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
@@ -415,7 +415,7 @@ The codebase has a single canonical identity shape — `Member` in [`src/common/
 Why both names exist for what's often the same shape:
 
 - A reader scanning `ClubPage.tsx` sees `members: Member[]` and reads "people in this club" — the chat sender lookup, the member-list rendering, the setup-form's "who picks first?" picker. Club-wide.
-- A reader scanning `connections/components/GuessHistory.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
+- A reader scanning `connections/components/GameTurnLog.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
 
 The per-game `Player` alias earns its keep even when it's a pure re-export:
 
@@ -440,7 +440,7 @@ Where to use which:
 | Context | Type | Variable name | Examples |
 |---|---|---|---|
 | Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `FloatingChat.members` |
-| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GuessHistory players={...} />`, `computePause(presentUserIds, players)` |
+| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GameTurnLog players={...} />`, `computePause(presentUserIds, players)` |
 
 The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (codenamesduet's seat); otherwise the rename happens at the variable-name level only.
 

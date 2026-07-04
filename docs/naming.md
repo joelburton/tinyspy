@@ -130,7 +130,7 @@ Every game declares the alias even when it's a pure re-export, because cross-gam
 **Variable naming follows context, not type:**
 
 - Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameDialog's pickers): variable name is `members`, type is `Member[]`.
-- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GuessHistory props): variable name is `players`, type is `Player[]`.
+- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GameTurnLog props): variable name is `players`, type is `Player[]`.
 
 So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
 
@@ -140,7 +140,7 @@ So `useCommonGame` returns `players: Member[]` — the type is `Member` (the ide
 
 Wherever code needs to discriminate "is this me or someone else in this game?" — pick the `peer` half of the binary instead of generic words like `other`. Concretely:
 
-- `isMine` / `isPeer` for per-tile attribution in `connections/components/TileGrid.tsx`.
+- `isMine` / `isPeer` for per-tile attribution in `connections/components/Board.tsx`.
 - "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that name the relationship rather than describing it as "the other player."
 - codenamesduet's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
 - The pause-on-disconnect pattern phrases the trigger as "a peer is missing" because the predicate is viewer-relative: if Ada disconnects, Bea sees a missing peer; Ada sees Bea still there.

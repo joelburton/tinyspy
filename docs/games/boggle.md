@@ -82,7 +82,7 @@ at guess time.
   **legal band** and traceable on the board. Scored normally; **never listed**
   when unfound (the reveal is required-only). Enumerated once on the accepted
   board (a second `listWords` pass against the legal-band trie — see
-  [§5](#5-board-generation)) and stored in `bonus_words`.
+  [§4](#4-board-generation-boggle-build-board-edge-function)) and stored in `bonus_words`.
 
 - **Legal words** = required ∪ bonus — the acceptance set. A guess is legal iff it
   is a member of that shipped list (membership implies traceable + real, since the

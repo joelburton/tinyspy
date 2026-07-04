@@ -14,7 +14,7 @@ The metaphor that anchors everything: this app **replaces a group of friends on 
 
 - **everyone present is playing** (there aren't spectators);
 - **only one game happens at a time** — the whole group is on the same thing;
-- **starting a new game pulls the whole group into it** (you don't half-join a Zoom call).
+- **starting a new game invites the group into it** — each friend gets a "join this game" popup and the game waits, paused, until everyone's joined (you don't half-join a Zoom call).
 
 The social primitive is the **club**: a named, fixed-membership room you create with the friends you want to play with. The club is the "Zoom call" — a persistent place where chat threads across every game the friends play. One game is the "current view" at a time across all gametypes; starting a new game suspends the previously-current one (which stays resumable). No invitations, no public lobby, no random pairings — friends-only by construction.
 
@@ -33,8 +33,10 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 src/
   App.tsx, main.tsx, games.ts    # shell + the games registry
   common/                         # cross-game UI, hooks, lib, db handle
-  codenamesduet/                        # Codenames Duet
-  psychicnum/                     # toy second game; exercises multi-game wiring
+  codenamesduet/                  # Codenames Duet
+  psychicnum/                     # toy game; exercises multi-game wiring
+  connections/  spellingbee/  bananagrams/  waffle/  wordle/
+  stackdown/  scrabble/  boggle/   # the other live games (one folder each)
 
 supabase/
   config.toml, seed.sql
@@ -145,6 +147,6 @@ The detail behind everything above lives in `docs/`. Read these by need, not in 
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). The multi-game architecture is complete; codenamesduet plays end-to-end and psychicnum exists as a deliberately-tiny second game to keep the architecture honest. Next games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Ten games are live — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle (every multiplayer one a coop + compete sibling pair); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest (slated for removal after beta). Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

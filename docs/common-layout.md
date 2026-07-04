@@ -160,5 +160,6 @@ if you reorganize again:
   reuses that server, so e2e breaks until it's restarted).
 
 `git mv` kept history for all 182 moved files. The pre-existing `react-hooks/refs`
-lint errors in `useGlobalFeedback` / `useLocalFeedback` / `useWordSubmit` are
-unrelated to this move (they fail at HEAD too) and were left alone.
+lint errors in `useGlobalFeedback` / `useLocalFeedback` / `useWordSubmit` were
+unrelated to this move (they failed at HEAD too) and have since been fixed
+(`f3b6cc2`).
