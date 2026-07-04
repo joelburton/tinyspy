@@ -9,7 +9,7 @@ export type TurnOutcome = 'good' | 'bad' | 'partial' | 'neutral'
 
 /**
  * The shared **turn log**: a game's per-turn history (one entry per turn — which
- * is per guess for most games, but a TinySpy turn can span several guesses). A
+ * is per guess for most games, but a codenamesduet turn can span several guesses). A
  * heading over an evident, fixed-height, bordered scroll box that auto-snaps to
  * the newest row like a chat panel.
  *

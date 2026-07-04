@@ -1,4 +1,4 @@
-/* MothCubes play surface, on the shared two-column scaffold
+/* boggle play surface, on the shared two-column scaffold
  * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
  * This module holds only boggle's own bits: the per-game layout vars, the SQUARE

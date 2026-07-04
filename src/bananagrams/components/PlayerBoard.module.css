@@ -94,7 +94,7 @@
   height: 132px;
   margin: 0;
   padding: 0;
-  accent-color: var(--mg-cursor);
+  accent-color: var(--bananagrams-cursor);
   cursor: pointer;
 }
 .grid {
@@ -104,7 +104,7 @@
    * thin internal cell lines. content-box so it sits OUTSIDE the GRID×cell
    * content and doesn't shrink the cells. */
   box-sizing: content-box;
-  border: 4px solid var(--mg-grid-edge);
+  border: 4px solid var(--bananagrams-grid-edge);
 }
 .cell {
   position: relative;
@@ -150,8 +150,8 @@
  * an invalid word, or split off the main mass. Red border + ring so it reads
  * clearly at any zoom; stays until the player edits the board. */
 .tileInvalid {
-  border-color: var(--mg-error);
-  box-shadow: 0 0 0 2px var(--mg-error);
+  border-color: var(--bananagrams-error);
+  box-shadow: 0 0 0 2px var(--bananagrams-error);
   z-index: 1;
 }
 .lifted {
@@ -184,7 +184,7 @@
 .handError {
   position: absolute;
   inset: 0;
-  border: 2px solid var(--mg-error);
+  border: 2px solid var(--bananagrams-error);
   border-radius: var(--radius-lg);
   pointer-events: none;
   z-index: 2;

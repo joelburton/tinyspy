@@ -5,7 +5,7 @@ import { stickyPill } from '../../lib/game/localPills'
 
 /**
  * The shared **type-a-word-and-submit** engine for the two word-list games
- * (boggle/MothCubes + spellingbee/FreeBee). Both ship their full legal word list
+ * (boggle + spellingbee). Both ship their full legal word list
  * (required ∪ bonus) to the FE, so both do the *same* thing on submit: validate
  * the typed word against that list, and — if it's good — show instant own-move
  * feedback and fire a trusting-commit RPC in the background. The only per-game

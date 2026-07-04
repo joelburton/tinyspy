@@ -1,4 +1,4 @@
-/** MothCubes rules modal. */
+/** boggle rules modal. */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (
     <div>

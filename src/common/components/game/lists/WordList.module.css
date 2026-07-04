@@ -1,6 +1,6 @@
 /* The shared found-words list — an alphabetical, column-major grid (down each
  * column, then right) in a fixed-height bordered card that scrolls horizontally
- * once words run past the third column. Modeled on FreeBee's; the same component
+ * once words run past the third column. Modeled on spellingbee's; the same component
  * every word-hunt game (spellingbee, boggle) uses, so the list looks identical
  * across games (docs/ui.md → "Consistency across games").
  *

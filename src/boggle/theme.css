@@ -1,4 +1,4 @@
-/* MothCubes (boggle) color tokens. Loaded with this game's chunk (imported from
+/* boggle color tokens. Loaded with this game's chunk (imported from
  * PlayArea.tsx) so they only ship when boggle is being played.
  *
  * Semantic names tied to boggle's vocabulary (`tile`, `accent`) rather than

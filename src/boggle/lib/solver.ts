@@ -1,5 +1,5 @@
 /**
- * Boggle board solver (the heart of MothCubes' board generator).
+ * Boggle board solver (the heart of boggle's board generator).
  *
  * Finds every dictionary word traceable on a board — through orthogonally or
  * diagonally adjacent tiles, no tile reused within a word — and reports the word

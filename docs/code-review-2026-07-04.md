@@ -943,7 +943,13 @@ internally consistent but contradicts the no-prefix principle — worth a
 one-line doc blessing rather than code churn; codenamesduet's private
 `GameRow` tracks a genuinely different shape.
 
-**5.9 Brand leaks + the `--mg-*` token prefix.** Brands belong only in the
+**5.9 Brand leaks + the `--mg-*` token prefix.** — **✅ DONE** (soft test-fixture
+item left). `--mg-cursor/-error/-grid-edge` → `--bananagrams-*` (defs +
+5 usages). Brand names in comments → codename: MothCubes→boggle (5 boggle
+files), TinySpy→codenamesduet (TurnLog), FreeBee→spellingbee (WordList,
+useWordSubmit), MonkeyGrams→bananagrams (icons). Left: `common/pdf/frame.ts`
++ `useClubSetupPresence` (both legitimately *illustrate* the brand value), and
+the soft `PlayArea.test.tsx` brand fixtures. Brands belong only in the
 manifest `BRAND`:
 
 - Comments using brands: `boggle/theme.css:1`,

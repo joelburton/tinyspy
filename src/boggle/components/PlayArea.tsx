@@ -22,7 +22,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /**
- * MothCubes play surface, shared by the coop and compete manifests, on the shared
+ * boggle play surface, shared by the coop and compete manifests, on the shared
  * two-column scaffold (board column + fixed info column — see docs/ui.md →
  * "PlayArea layout"):
  *

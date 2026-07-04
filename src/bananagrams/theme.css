@@ -12,9 +12,9 @@
   --bananagrams-tile-ink: #4a3b22;
   /* The game's blue ACCENT — zoom slider, icons, dump-armed state, done button.
      (The keyboard-entry cursor moved to the shared --grid-cursor.) */
-  --mg-cursor: #4aa3ff;
-  --mg-error: #d84a4a; /* the in-game error red (hand-miss flash) */
-  --mg-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
+  --bananagrams-cursor: #4aa3ff;
+  --bananagrams-error: #d84a4a; /* the in-game error red (hand-miss flash) */
+  --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
 }
 
 /* Set while a tile is being dragged (toggled on document.body by

@@ -36,7 +36,7 @@ export {
   RotateCw as IconShuffle, // reshuffle my own tiles for a fresh look
   // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
   // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
-  // lineage (brand MonkeyGrams) and reads as its own distinct action, not a
+  // lineage (bananagrams) and reads as its own distinct action, not a
   // generic submit. Local to the PeelButton — no other game peels.
   Banana as IconPeel,
   // share your in-progress move with coop teammates (scrabble's "show a move" —
