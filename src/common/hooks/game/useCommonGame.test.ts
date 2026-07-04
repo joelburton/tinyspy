@@ -147,21 +147,27 @@ const GAME_ROW = {
   ended_at: null,
 }
 
+// ada = self, bea = a live peer, cara = a peer who has conceded.
+// cara exercises the concede/result merge AND the concede-aware
+// presence-pause filter (a missing conceder must not pause the game).
 const PLAYER_ROWS = [
   { user_id: 'ada', conceded: false, conceded_at: null, result: null },
-  { user_id: 'bea', conceded: true, conceded_at: '2026-01-01T00:00:00Z', result: null },
+  { user_id: 'bea', conceded: false, conceded_at: null, result: null },
+  { user_id: 'cara', conceded: true, conceded_at: '2026-01-01T00:00:00Z', result: null },
 ]
 const PROFILES = [
   { user_id: 'ada', username: 'ada', color: 'red' },
   { user_id: 'bea', username: 'bea', color: 'blue' },
+  { user_id: 'cara', username: 'cara', color: 'green' },
 ]
 // The hook merges the game_players concede/result bits onto each profile.
 const GAME_PLAYERS = [
   { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, result: null },
+  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, result: null },
   {
-    user_id: 'bea',
-    username: 'bea',
-    color: 'blue',
+    user_id: 'cara',
+    username: 'cara',
+    color: 'green',
     conceded: true,
     conceded_at: '2026-01-01T00:00:00Z',
     result: null,
@@ -270,6 +276,24 @@ describe('useCommonGame — paused unification', () => {
     expect(result.current.paused).toBe(true)
     expect(result.current.missing.map((m) => m.user_id)).toEqual(['bea'])
     expect(result.current.manuallyPausedBy).toBeNull()
+  })
+
+  it('paused stays false when the only missing player has conceded', async () => {
+    // cara conceded (quit the race), then closed her tab. The
+    // remaining players must keep racing — a conceder's absence
+    // must NOT raise the presence-pause overlay for everyone else.
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // ada + bea present; cara (conceded) absent.
+    presenceStateRecord = {
+      ada: [{ user_id: 'ada' }],
+      bea: [{ user_id: 'bea' }],
+    }
+    act(() => firePresenceSync())
+
+    expect(result.current.paused).toBe(false)
+    expect(result.current.missing).toEqual([])
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {

@@ -64,7 +64,11 @@ The per-player concede feature (shipped 2026-07-02) is correct in its core
 several systems that predate it were never taught about it.
 
 **C1. [high] Presence-pause counts conceded players — a conceder who leaves
-wedges the race for everyone else.**
+wedges the race for everyone else.** — **✅ DONE.** `useCommonGame` now passes
+`players.filter((p) => !p.conceded)` to `computePause` (invited-but-not-yet-
+joined players still count). The test fixture gained a distinct conceded peer
+(`cara`) so the "peer missing → paused" test uses a live peer (`bea`) and a new
+test pins "a missing conceder does not pause". 11 tests + `tsc -b` green.
 `src/common/hooks/game/useCommonGame.ts:490` passes the **full** roster to
 `computePause`; `src/common/lib/game/pause.ts:26–33` never looks at `conceded`.
 The natural post-concede action — click Concede, close the tab — drops the

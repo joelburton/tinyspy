@@ -487,9 +487,17 @@ export function useCommonGame(
   // Without this, a terminal-during-pause edge case (stale-tab
   // peer fires submit_timeout, etc.) would leave the overlay
   // stuck up over a game that's already done.
+  // Conceded players are dropped from the presence-pause roster: a
+  // conceder has willfully quit the race, so their leaving the tab
+  // must NOT wedge everyone else behind a "Waiting for <quitter>…"
+  // overlay. This is the documented contract (docs/common.md: a
+  // conceder drops out "while the others keep racing"). Invited-but-
+  // not-yet-joined players stay counted — that presence-pause IS
+  // deliberate; only a real concede removes someone.
+  const activePlayers = players.filter((p) => !p.conceded)
   const { paused: presencePaused, missing } = computePause(
     presentUserIds,
-    players,
+    activePlayers,
   )
   const manuallyPausedBy = manuallyPausedById
     ? players.find((m) => m.user_id === manuallyPausedById) ?? null
