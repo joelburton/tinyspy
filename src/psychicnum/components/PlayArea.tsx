@@ -8,10 +8,12 @@ import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/useGlobalKeyHandler'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { memberById } from '../../common/lib/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
+import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { turnSnapshot } from '../lib/history'
 import { ownMove, capitalize } from '../lib/ownMove'
 import { BoardCol } from './BoardCol'
@@ -55,9 +57,56 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  menu,
+  brand,
+  title,
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
+
+  // "Print board (PDF)" GamePage menu item. Builds the print model from the live
+  // state (RLS already scoped `guesses`/`results` to what I may see) and hands it to
+  // the jsPDF renderer. A snapshot at click time — works mid-game or at the end.
+  useEffect(() => {
+    if (!game) return
+    // Board results: fold the 'guess' turns into word → was-a-secret (the same
+    // rule the live board + lib/history use).
+    const results = new Map<string, boolean>()
+    for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.was_correct)
+    const found = [...results.values()].filter(Boolean).length
+    const guessesUsed = guesses.filter((g) => g.kind === 'guess').length
+    const s = setup as unknown as PsychicnumSetup
+    const model = {
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
+      summary: `${found} of 3 secrets found · ${guessesUsed} guess${guessesUsed === 1 ? '' : 'es'} used`,
+      board: game.words.map((w) => ({
+        word: w.toUpperCase(),
+        state: results.has(w) ? (results.get(w) ? 'correct' : 'miss') : 'undecided',
+      })) as { word: string; state: 'correct' | 'miss' | 'undecided' }[],
+      cols: Math.ceil(Math.sqrt(game.words.length)),
+      turns: guesses.map((g, i) => ({
+        seq: i + 1,
+        who: memberById(players, g.user_id)?.username ?? 'someone',
+        text:
+          g.kind === 'hint'
+            ? `Hint: ${g.word}`
+            : g.kind === 'reveal'
+              ? `${g.word.toUpperCase()} — Answer`
+              : `${g.word.toUpperCase()} — ${g.was_correct ? 'Correct' : 'Incorrect'}`,
+      })),
+      // Relevant setup only (the timer isn't relevant on a print).
+      setup: [
+        { label: 'Difficulty', value: `${DIFFICULTY_LABELS[s.difficulty - 1] ?? '?'} (band ${s.difficulty})` },
+        { label: 'Guesses', value: String(s.guesses) },
+      ],
+    }
+    menu.setGameItems([
+      { id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, game, guesses, players, brand, title, setup])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())

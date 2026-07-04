@@ -73,9 +73,9 @@ export function GameTurnLog({ guesses, players, viewingTurn, onSelectTurn }: Pro
   return (
     <>
     <TurnLog
-      heading="Guesses"
+      heading="Turns"
       empty={guesses.length === 0}
-      emptyText="No guesses yet."
+      emptyText="No turns yet."
       scrollKey={guesses}
     >
       {guesses.map((g, i) => {
