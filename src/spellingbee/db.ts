@@ -1,4 +1,4 @@
-import { supabase } from '../common/lib/supabase'
+import { supabase } from '../common/lib/supabase/supabase'
 
 /**
  * spellingbee-schema-scoped supabase client. Imported by every

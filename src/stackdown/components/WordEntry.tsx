@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { Tile } from '../lib/board'
 import styles from './WordEntry.module.css'
 

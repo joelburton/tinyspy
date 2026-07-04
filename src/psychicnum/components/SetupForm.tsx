@@ -1,14 +1,14 @@
-import { TimerField } from '../../common/components/TimerField'
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { SelectField } from '../../common/components/SelectField'
-import { RadioRow } from '../../common/components/RadioRow'
+import { TimerField } from '../../common/components/fields/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { SelectField } from '../../common/components/fields/SelectField'
+import { RadioRow } from '../../common/components/fields/RadioRow'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
   WORD_COUNT_OPTIONS,
   type PsychicnumSetup,
 } from '../lib/setup'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * psychicnum's per-game setup form, rendered inside the common

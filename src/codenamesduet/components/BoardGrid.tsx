@@ -1,9 +1,9 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardGrid.module.css'
 
 /** Empty highlight set — a stable reference so a live render never rings a cell. */

@@ -1,9 +1,9 @@
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { RadioRow } from '../../common/components/RadioRow'
-import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { RadioRow } from '../../common/components/fields/RadioRow'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * waffle's setup form, rendered inside the common SetupGameDialog.

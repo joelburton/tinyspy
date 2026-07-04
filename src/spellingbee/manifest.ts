@@ -1,6 +1,6 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase'
+import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,

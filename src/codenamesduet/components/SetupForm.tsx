@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
-import { RadioRow } from '../../common/components/RadioRow'
-import { TimerField } from '../../common/components/TimerField'
+import { RadioRow } from '../../common/components/fields/RadioRow'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   TURN_OPTIONS,
   type CodenamesduetSetup,
 } from '../lib/setup'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * codenamesduet's per-game setup form, rendered inside the common

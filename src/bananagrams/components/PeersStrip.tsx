@@ -1,5 +1,5 @@
 import type { GamePlayer } from '../../common/lib/games'
-import { colorVarFor } from '../../common/lib/memberColor'
+import { colorVarFor } from '../../common/lib/color/memberColor'
 import type { BananagramsProgress } from '../hooks/useGame'
 import styles from './PeersStrip.module.css'
 

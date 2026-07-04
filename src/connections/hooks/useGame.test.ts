@@ -26,7 +26,7 @@ const { mockFrom, mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
   mockRemoveChannel: vi.fn(),
 }))
 
-vi.mock('../../common/lib/supabase', () => ({
+vi.mock('../../common/lib/supabase/supabase', () => ({
   supabase: {
     // connections' `db` is `supabase.schema('connections')`; collapse
     // .schema() to a passthrough exposing the chainable mockFrom.

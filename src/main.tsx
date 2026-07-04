@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './common/theme.css'
 import App from './App.tsx'
-import { trackLayoutWidth } from './common/lib/layoutWidth'
+import { trackLayoutWidth } from './common/lib/util/layoutWidth'
 
 // Publish `--client-width` (usable viewport width, scrollbar excluded) for the
 // board-sizing math (see the helper's docstring + PlayArea.module.css `--avail-w`).

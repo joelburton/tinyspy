@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { IconSubmit } from '../icons'
-import { cls } from '../../lib/cls'
+import { cls } from '../../lib/util/cls'
 import styles from './SubmitWithScore.module.css'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

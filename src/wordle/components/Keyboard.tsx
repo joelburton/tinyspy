@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { TileColor } from '../lib/colors'
 import styles from './Keyboard.module.css'
 

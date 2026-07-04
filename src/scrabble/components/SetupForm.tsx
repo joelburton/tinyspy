@@ -1,8 +1,8 @@
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { ScrabbleSetup } from '../lib/setup'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * scrabble's setup form. Shared by both modes:

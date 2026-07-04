@@ -1,16 +1,16 @@
-import { cls } from '../../common/lib/cls'
-import { timerLabel } from '../../common/lib/timerLabel'
-import type { TerminalCopy } from '../../common/lib/terminalCopy'
-import { TerminalActionRow } from '../../common/components/TerminalActionRow'
-import { OpponentStrip } from '../../common/components/OpponentStrip'
+import { cls } from '../../common/lib/util/cls'
+import { timerLabel } from '../../common/lib/game/timerLabel'
+import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { SetupDisclosure } from '../../common/components/SetupDisclosure'
+import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
-import shared from '../../common/components/PlayArea.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
  *  UTC so a calendar date never shifts by a local-tz offset (matches Calendar). */

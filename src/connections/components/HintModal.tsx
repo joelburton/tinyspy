@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { FloatingPanel } from '../../common/components/FloatingPanel'
-import { cls } from '../../common/lib/cls'
+import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { cls } from '../../common/lib/util/cls'
 import type { Board, CategoryRank } from '../lib/board'
 import { RANK_TOKEN } from '../lib/rankColors'
-import actionRow from '../../common/components/modalActions.module.css'
+import actionRow from '../../common/components/panels/modalActions.module.css'
 import styles from './HintModal.module.css'
 
 type Props = {

@@ -26,7 +26,7 @@ const { mockFrom, mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
   mockRemoveChannel: vi.fn(),
 }))
 
-vi.mock('../../common/lib/supabase', () => ({
+vi.mock('../../common/lib/supabase/supabase', () => ({
   supabase: {
     // .schema('codenamesduet').from(...) is how every table query in the hook
     // is built; the mock collapses .schema() to a passthrough that

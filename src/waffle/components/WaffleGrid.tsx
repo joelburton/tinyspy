@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { cls } from '../../common/lib/cls'
-import { tileColor } from '../../common/lib/tileColor'
+import { cls } from '../../common/lib/util/cls'
+import { tileColor } from '../../common/lib/color/tileColor'
 import { CELLS, isHole } from '../lib/waffle'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './WaffleGrid.module.css'
 
 type Props = {

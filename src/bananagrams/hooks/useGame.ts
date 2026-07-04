@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { db } from '../db'
-import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
+import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 
 /** Cross-game vocabulary: a player in a bananagrams game is just a

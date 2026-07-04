@@ -1,5 +1,5 @@
-import { FloatingPanel } from '../../common/components/FloatingPanel'
-import actionRow from '../../common/components/modalActions.module.css'
+import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import actionRow from '../../common/components/panels/modalActions.module.css'
 import styles from './Help.module.css'
 
 type Props = {

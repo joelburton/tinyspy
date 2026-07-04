@@ -22,7 +22,7 @@
  * Compete's `guesses` are RLS-scoped to the caller, so a compete viewer replays only
  * their own board — the projection degenerates naturally.
  */
-import type { Board, Category } from '../lib/board'
+import type { Board, Category } from './board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 
 export interface TurnSnapshot {

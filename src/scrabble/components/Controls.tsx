@@ -1,13 +1,13 @@
 import type { GenericFeedbackMsg } from '../../common/lib/games'
-import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { SharePreviewButton } from '../../common/components/buttons/SharePreviewButton'
 import { ExchangeButton } from '../../common/components/buttons/ExchangeButton'
 import { SubmitWithScore } from '../../common/components/buttons/SubmitWithScore'
 import { PassButton } from '../../common/components/buttons/PassButton'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import styles from './PlayArea.module.css'
-import shared from '../../common/components/PlayArea.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
  * The action half of scrabble's below-board row (the rack — with its floating

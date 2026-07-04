@@ -1,9 +1,9 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { Category } from '../lib/board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
 import { RANK_TOKEN } from '../lib/rankColors'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4

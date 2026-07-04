@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import { currentRankIndex, rankPoints, RANKS } from '../lib/ranks'
 import styles from './RankBar.module.css'
 

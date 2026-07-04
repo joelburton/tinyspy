@@ -1,10 +1,10 @@
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { RadioRow } from '../../common/components/RadioRow'
-import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { RadioRow } from '../../common/components/fields/RadioRow'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * Allowed target-rank choices for the compete picker. The full

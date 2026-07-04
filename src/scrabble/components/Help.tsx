@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/FloatingPanel'
+import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
 
 type Props = {
   onClose: () => void

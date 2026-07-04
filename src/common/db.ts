@@ -1,4 +1,4 @@
-import { supabase } from './lib/supabase'
+import { supabase } from './lib/supabase/supabase'
 
 /**
  * Pre-bound DB handle for the `common` Postgres schema.

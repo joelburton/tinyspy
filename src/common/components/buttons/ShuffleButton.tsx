@@ -1,5 +1,5 @@
 import { IconShuffle } from '../icons'
-import { cls } from '../../lib/cls'
+import { cls } from '../../lib/util/cls'
 import styles from './ShuffleButton.module.css'
 
 type Props = {

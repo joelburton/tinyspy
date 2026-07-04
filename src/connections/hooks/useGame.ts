@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../../common/lib/supabase'
+import { supabase } from '../../common/lib/supabase/supabase'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Member } from '../../common/lib/games'

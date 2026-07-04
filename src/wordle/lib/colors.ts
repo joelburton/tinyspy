@@ -4,8 +4,8 @@
  * it doesn't hold the target) plus the two wordle-only helpers below
  * that drive the reveal animation and the on-screen keyboard.
  */
-export { tileColor, type TileColor } from '../../common/lib/tileColor'
-import type { TileColor } from '../../common/lib/tileColor'
+export { tileColor, type TileColor } from '../../common/lib/color/tileColor'
+import type { TileColor } from '../../common/lib/color/tileColor'
 
 /**
  * The CSS custom-property reference for a feedback color, used to drive

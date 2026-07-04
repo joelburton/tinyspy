@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { TimerField } from '../../common/components/TimerField'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
 import { Calendar, type OutcomeBucket } from './Calendar'
-import styles from '../../common/components/setupForm.module.css'
+import styles from '../../common/components/fields/setupForm.module.css'
 
 /** A puzzle entry as the form needs it — id + date. Date is
  *  nullable on the table now (non-NYT puzzles may carry NULL),

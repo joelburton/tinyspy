@@ -1,4 +1,4 @@
-import type { WordListRow } from '../../common/components/WordList'
+import type { WordListRow } from '../../common/components/game/lists/WordList'
 import type { FoundWordRow } from '../hooks/useGame'
 
 /**

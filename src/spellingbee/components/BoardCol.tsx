@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { EntryRow } from '../../common/components/EntryRow'
-import { asciiLetters } from '../../common/hooks/useCaptureKeys'
+import { EntryRow } from '../../common/components/game/entry/EntryRow'
+import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
-import shared from '../../common/components/PlayArea.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */

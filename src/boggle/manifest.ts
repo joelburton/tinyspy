@@ -1,6 +1,6 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase'
+import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,

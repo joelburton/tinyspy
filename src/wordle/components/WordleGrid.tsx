@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import { revealVar, tileColor } from '../lib/colors'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './WordleGrid.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */

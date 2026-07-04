@@ -1,6 +1,6 @@
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { RadioRow } from '../../common/components/RadioRow'
-import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { RadioRow } from '../../common/components/fields/RadioRow'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
@@ -8,7 +8,7 @@ import {
   tilesNeeded,
   type BananagramsSetup,
 } from '../lib/setup'
-import form from '../../common/components/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
 /**

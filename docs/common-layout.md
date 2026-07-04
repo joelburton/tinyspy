@@ -7,11 +7,6 @@ and, more importantly, the **purpose of each folder** — so placement is decide
 by a folder's stated job, not by guessing from whatever files happen to sit next
 to each other.
 
-> **Status:** this is the **target** layout. The move hasn't been made yet — see
-> [Migration plan](#migration-plan-one-time--remove-this-section-once-done) at the
-> bottom. Until then, `common/` is still flat; use this doc to decide where things
-> *will* go (and, if you're adding a file now, drop it where this says it belongs).
-
 ## Principles
 
 - **Organized by feature-DOMAIN** (club, game, chat, setup, definitions, …),
@@ -149,48 +144,21 @@ lib/
 - **`games.ts`** stays at `lib/` root (not `lib/game/`) — it's THE registry, and
   a dead-obvious top-level path beats one more level of nesting.
 
-## Migration plan (one-time — remove this section once done)
+## How this was applied (for the next reorg)
 
-This is a pure **move + import-path** refactor: no behavior changes, `tsc -b` is
-the safety net (it flags every stale import). Do it in small tranches so each diff
-is reviewable and stays green.
+The move was done as a **`git mv` + import-rewrite codemod** (a throwaway Node
+script), not by hand, then verified with `tsc -b` (the definitive net — it resolves
+every import in the project) + `vitest` + a club→game e2e. Two gotchas worth knowing
+if you reorganize again:
 
-**Before starting**
+- **`vi.mock('…relative…')` paths are NOT `import` statements**, so an
+  import-rewriting codemod misses them — the mocks silently stop intercepting and
+  ~50 tests fail with "real module ran." Rewrite `vi.mock()` path args in a second
+  pass (same resolve-old-path → map-to-new-path logic).
+- **Restart the vite dev server afterward.** HMR caches module resolutions, and a
+  rename storm leaves the running server serving 404s for old paths (Playwright
+  reuses that server, so e2e breaks until it's restarted).
 
-1. *(Optional but recommended)* add a path alias so future moves hurt less and the
-   path edits are find-replaceable: `"paths": { "@common/*": ["src/common/*"] }`
-   in `tsconfig` + the matching `resolve.alias` in `vite.config`. Not required —
-   relative imports work — but it caps the churn of the *next* reorg.
-2. **Shared CSS modules first.** A few `*.module.css` files have NO component and
-   are imported across directories (`PlayArea.module.css`, `historyViewer.module.css`,
-   `modalActions.module.css`, …). They can't just ride along with one component.
-   Decide a stable home for each (e.g. `PlayArea.module.css` → `components/game/`)
-   and update every importer in one focused commit, so later component moves don't
-   trip over them.
-
-**Then, one folder per commit** — lowest-coupling first, `game/` last:
-
-`buttons/` (done) → `branding/`, `text/`, `toasts/`, `feedback/`, `home/`, `auth/`
-→ `fields/`, `definitions/`, `panels/`, `chat/`, `account/` → `setup/` → `club/`
-→ `game/` (+ its `entry/` / `terminal/` / `lists/` subfolders). Hooks and lib can
-interleave or follow; same tranche discipline.
-
-**Each tranche**
-
-1. `git mv` the `.tsx` + co-located `.module.css` + `.test.tsx` together.
-2. Fix imports: the moved files' own relative imports (depth changed), and every
-   external importer's path to them. `npx tsc -b` enumerates all breakage — iterate
-   to zero.
-3. `npx tsc -b` + `npx eslint` + `npx vitest run` green.
-4. Commit (`refactor(common): move <folder> …`), one folder per commit.
-
-**Gotchas**
-
-- **Restart the vite dev server** after the mass moves — HMR caches module
-  resolutions and a rename storm leaves it serving 404s for old paths (a full dev
-  restart clears it).
-- **`git mv` preserves history** — use it, don't delete+create.
-- **eslint import-direction rules** govern game↔game imports; moving *within*
-  `common/` doesn't cross them, but re-run eslint each tranche to be sure.
-- Update **any docs that reference old paths** (grep `docs/` for `common/components/`
-  etc.) as part of the same tranche.
+`git mv` kept history for all 182 moved files. The pre-existing `react-hooks/refs`
+lint errors in `useGlobalFeedback` / `useLocalFeedback` / `useWordSubmit` are
+unrelated to this move (they fail at HEAD too) and were left alone.

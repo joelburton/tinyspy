@@ -1,10 +1,10 @@
 import type { ReactNode, RefObject } from 'react'
 import { PeelButton } from '../../common/components/buttons/PeelButton'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import { usePlayerBoard, LETTER_SCALE } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
-import shared from '../../common/components/PlayArea.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**

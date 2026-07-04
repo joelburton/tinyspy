@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import {
   BOARD_SIZE,
   CENTER,
@@ -8,7 +8,7 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
-import history from '../../common/components/historyViewer.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */

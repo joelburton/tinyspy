@@ -1,4 +1,4 @@
-import type { TurnOutcome } from '../../common/components/TurnLog'
+import type { TurnOutcome } from '../../common/components/game/lists/TurnLog'
 import type { GuessRow } from '../hooks/useBoard'
 
 /**

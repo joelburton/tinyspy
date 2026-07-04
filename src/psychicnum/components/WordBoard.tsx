@@ -1,6 +1,6 @@
-import { cls } from '../../common/lib/cls'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import { cls } from '../../common/lib/util/cls'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './WordBoard.module.css'
 
 type Props = {

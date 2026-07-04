@@ -20,10 +20,10 @@ import {
   reconcileHandOrder,
   shuffleString,
 } from '../lib/board'
-import { useDragGesture, type DragGesture, type DragState } from '../../common/hooks/useDragGesture'
-import { moveCursor, stepBack } from '../../common/lib/gridCursor'
-import { useBoardCursorKeys } from '../../common/hooks/useBoardCursorKeys'
-import { isEditableField } from '../../common/hooks/useGameHasKeyboard'
+import { useDragGesture, type DragGesture, type DragState } from '../../common/hooks/ui/useDragGesture'
+import { moveCursor, stepBack } from '../../common/lib/game/gridCursor'
+import { useBoardCursorKeys } from '../../common/hooks/input/useBoardCursorKeys'
+import { isEditableField } from '../../common/hooks/input/useGameHasKeyboard'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and

@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { cls } from '../../lib/cls'
+import { cls } from '../../lib/util/cls'
 import styles from './ActionButton.module.css'
 
 /** A button's visual WEIGHT — its emphasis, independent of semantic tone.

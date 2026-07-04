@@ -1,4 +1,4 @@
-import { supabase } from '../common/lib/supabase'
+import { supabase } from '../common/lib/supabase/supabase'
 
 /**
  * Pre-bound DB handle for the `codenamesduet` Postgres schema.

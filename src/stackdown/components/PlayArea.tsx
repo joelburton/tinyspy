@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
   GenericFeedbackTone,
   GamePageCtx,
 } from '../../common/lib/games'
-import { endedCopy, type TerminalCopy } from '../../common/lib/terminalCopy'
-import { TerminalModal } from '../../common/components/TerminalModal'
+import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { db } from '../db'
 import { turnSnapshot } from '../lib/history'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
-import { useLocalFeedback } from '../../common/hooks/useLocalFeedback'
-import { useHistoryViewer } from '../../common/hooks/useHistoryViewer'
-import { colorVarFor } from '../../common/lib/memberColor'
+import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
+import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { colorVarFor } from '../../common/lib/color/memberColor'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import shared from '../../common/components/PlayArea.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 

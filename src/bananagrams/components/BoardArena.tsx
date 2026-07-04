@@ -1,7 +1,7 @@
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { GRID, MAX_CELL } from '../lib/board'
 import { ZoomFitButton } from '../../common/components/buttons/ZoomFitButton'
-import type { DragState } from '../../common/hooks/useDragGesture'
+import type { DragState } from '../../common/hooks/ui/useDragGesture'
 import {
   LETTER_SCALE,
   blurActiveField,

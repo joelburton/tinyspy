@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { supabase } from '../../common/lib/supabase'
+import { supabase } from '../../common/lib/supabase/supabase'
 import type { Placement } from '../lib/play'
 
 /**

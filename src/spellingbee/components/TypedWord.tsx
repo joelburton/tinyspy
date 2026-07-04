@@ -1,4 +1,4 @@
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import styles from './TypedWord.module.css'
 
 type Props = {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useRealtimeRefetch } from '../../common/hooks/useRealtimeRefetch'
+import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
 import { db } from '../db'
 

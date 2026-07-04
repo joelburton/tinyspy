@@ -1,4 +1,4 @@
-import { useDefinePopover } from '../../common/hooks/useDefinePopover'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { boardWords } from '../lib/waffle'
 import styles from './SolutionReveal.module.css'
 

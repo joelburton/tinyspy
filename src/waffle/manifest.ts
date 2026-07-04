@@ -1,6 +1,6 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase'
+import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'

@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { cls } from '../../common/lib/cls'
+import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
-import type { TerminalCopy } from '../../common/lib/terminalCopy'
-import { EntryRow } from '../../common/components/EntryRow'
+import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
-import { asciiLetters } from '../../common/hooks/useCaptureKeys'
-import shared from '../../common/components/PlayArea.module.css'
+import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves

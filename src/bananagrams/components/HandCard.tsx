@@ -1,7 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { IconExchange } from '../../common/components/icons'
-import type { DragState } from '../../common/hooks/useDragGesture'
+import type { DragState } from '../../common/hooks/ui/useDragGesture'
 import { DUMP_COUNT, blurActiveField, type DragSource } from '../hooks/usePlayerBoard'
 import styles from './PlayerBoard.module.css'
 

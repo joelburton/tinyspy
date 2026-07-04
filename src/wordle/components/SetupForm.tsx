@@ -1,9 +1,9 @@
-import { DifficultyField } from '../../common/components/DifficultyField'
-import { SelectField } from '../../common/components/SelectField'
-import { TimerField } from '../../common/components/TimerField'
+import { DifficultyField } from '../../common/components/fields/DifficultyField'
+import { SelectField } from '../../common/components/fields/SelectField'
+import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
-import form from '../../common/components/setupForm.module.css'
+import form from '../../common/components/fields/setupForm.module.css'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameDialog.

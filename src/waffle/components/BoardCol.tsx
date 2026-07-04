@@ -1,8 +1,8 @@
 import type { GenericFeedbackMsg } from '../../common/lib/games'
-import { GenericFeedbackPill } from '../../common/components/GenericFeedbackPill'
+import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { WaffleGrid } from './WaffleGrid'
-import shared from '../../common/components/PlayArea.module.css'
-import history from '../../common/components/historyViewer.module.css'
+import shared from '../../common/components/game/PlayArea.module.css'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
 /** waffle's pills are never closeable (the × is never rendered), but the shared
