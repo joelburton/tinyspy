@@ -20,7 +20,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 |---|---|---|
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
-| `common/pdf/wordColumns.ts` | boggle (spellingbee next) | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in |
+| `common/pdf/wordColumns.ts` | boggle, spellingbee | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in |
 
 A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, draw its own
 board, call `drawTurnLog` **or** `drawWordColumns`, `savePrint`.
@@ -109,10 +109,14 @@ hand-managed column cursor). The log is titled **"Turns"** (the project's word f
 turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> table with a
 thin rule between turns; the Setup section is appended at the end of the flow.
 
-**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee next).** A
+**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee).** A
 **fixed-size** board top-left (so a 6×6 prints bigger than a 4×4 — it isn't scaled to a
 column), the Setup to its **right**, and below them the words in **N balanced,
 column-major, alphabetical columns** (each row `word (·bonus dot) … +score  finder`).
+The board is per-game: boggle draws a tile grid; spellingbee draws its 7-hex honeycomb
+(from `spellingbee/lib/honeycomb.ts`, the same geometry the on-screen SVG board uses —
+white hexes, the center distinguished only by a thicker border). Spellingbee also uses
+the `pangram` row flag (pangrams print **bold**).
 
 ## Plumbing
 

@@ -7,12 +7,15 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { memberById } from '../../common/lib/peers'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../lib/displayRows'
+import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import shared from '../../common/components/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -42,7 +45,7 @@ import '../theme.css'
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    setup, goToClub,
+    setup, goToClub, menu, brand, title,
     // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
     // the player's own word result. Two different surfaces.
@@ -86,6 +89,49 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     return { foundWordsScore: s, foundWordsCount: myFoundRows.length }
   }, [myFoundRows])
+
+  // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from the
+  // live state (RLS + the explicit compete filter already scope what I may see) and
+  // hands it to the jsPDF renderer. A snapshot at click time. See docs/pdf.md.
+  useEffect(() => {
+    if (!game) return
+    // The same reveal the on-screen list uses: at terminal, required-but-missed words
+    // fold in (`buildDisplayRows` dedups found + appends the unfound). Look up each
+    // found word's points (the shared row type carries finder/bonus/pangram, not score).
+    const foundSet = new Set(foundWords.map((w) => w.word))
+    const reveal = isTerminal ? game.requiredWords.filter((w) => !foundSet.has(w.word)) : null
+    const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
+    const words = buildDisplayRows(foundWords, reveal).map((r) => ({
+      word: r.word.toUpperCase(),
+      pangram: r.isPangram ?? false, // spellingbee's own difference: pangrams print bold
+      bonus: r.kind === 'found' ? (r.isBonus ?? false) : false,
+      found:
+        r.kind === 'found'
+          ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+          : null,
+    }))
+    const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
+    const model = {
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
+      // Exactly the on-screen InfoCol status (RankBar rank + the Score / Words stats).
+      summary: `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
+      outerLetters: game.outer_letters.split(''),
+      centerLetter: game.center_letter,
+      // Relevant setup only (the timer isn't relevant on a print).
+      setup: [
+        { label: 'Required words', value: `${DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '?'} (band ${spellingbeeSetup.required})` },
+        { label: 'Bonus words', value: `${DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '?'} (band ${spellingbeeSetup.legal})` },
+        ...(game.mode === 'compete' && spellingbeeSetup.target_rank != null
+          ? [{ label: 'Target rank', value: RANKS[spellingbeeSetup.target_rank] ?? '?' }]
+          : []),
+      ],
+      words,
+    }
+    menu.setGameItems([{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }])
+    return () => menu.setGameItems([])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, foundWordsScore, foundWordsCount])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {

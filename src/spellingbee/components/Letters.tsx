@@ -1,3 +1,4 @@
+import { HEX_POSITIONS } from '../lib/honeycomb'
 import { Letter } from './Letter'
 import styles from './Letters.module.css'
 
@@ -19,26 +20,14 @@ type Props = {
  * Only spellingbee uses hexes, so this stays local; the SVG also sets us up for a
  * future PDF export (vector polygons the PDF lib can reuse).
  *
- * Render order (matches `POSITIONS` below): center → top → upper-right →
- * lower-right → bottom → lower-left → upper-left; the parent (PlayArea) controls
- * the shuffle of `outerLetters` so the visual order changes on Shuffle.
+ * Render order (matches `HEX_POSITIONS`): center → top → upper-right → lower-right →
+ * bottom → lower-left → upper-left; the parent (PlayArea) controls the shuffle of
+ * `outerLetters` so the visual order changes on Shuffle. The geometry (positions +
+ * hex vertices) lives in `lib/honeycomb.ts`, shared with the PDF export.
  *
  * Clicking a letter doesn't validate — it just appends the character to the typed
  * word (server validates on submit).
  */
-
-/** Each hex's top-left, in the flower's 256×267 coordinate box, in RENDER order.
- *  Re-based to the flower's own top-left (the old spellingbee-ws layout, minus the
- *  32/37 origin offset) so the grid sits flush at the top of the board column. */
-const POSITIONS: ReadonlyArray<{ left: number; top: number }> = [
-  { left: 78, top: 90 }, //  center
-  { left: 78, top: 0 }, //   top
-  { left: 156, top: 45 }, // upper-right
-  { left: 156, top: 134 }, // lower-right
-  { left: 78, top: 180 }, // bottom
-  { left: 0, top: 134 }, //  lower-left
-  { left: 0, top: 45 }, //   upper-left
-]
 
 export function Letters({ outerLetters, centerLetter, onLetterClick }: Props) {
   const letters = [centerLetter, ...outerLetters]
@@ -50,7 +39,7 @@ export function Letters({ outerLetters, centerLetter, onLetterClick }: Props) {
             key={`${letter}-${i}`}
             letter={letter}
             isCenter={i === 0}
-            pos={POSITIONS[i] ?? POSITIONS[0]}
+            pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
             onClick={() => onLetterClick(letter)}
           />
         ))}

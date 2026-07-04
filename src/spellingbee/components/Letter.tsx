@@ -1,22 +1,6 @@
 import { cls } from '../../common/lib/cls'
+import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
 import styles from './Letters.module.css'
-
-/** Flat-top hex, 100×87 in the flower's coordinate units. Its 6 vertices as
- *  fractions of the box (vertical sides at 25%/75%) — the SVG equivalent of the
- *  old `clip-path: polygon(25% 0, 75% 0, 100% 50, 75% 100, 25% 100, 0% 50)`. */
-const HEX_W = 100
-const HEX_H = 87
-const VERTS: ReadonlyArray<readonly [number, number]> = [
-  [0.25, 0],
-  [0.75, 0],
-  [1, 0.5],
-  [0.75, 1],
-  [0.25, 1],
-  [0, 0.5],
-]
-/** Draw each hex slightly smaller than its cell (inset toward the cell centre), so
- *  the gaps between adjacent hexes are a touch bigger. Positions/centres unchanged. */
-const SHRINK = 0.97
 
 type Props = {
   letter: string
@@ -40,9 +24,9 @@ type Props = {
  */
 export function Letter({ letter, isCenter, pos, onClick }: Props) {
   const up = letter.toUpperCase()
-  const points = VERTS.map(([fx, fy]) => {
-    const sx = 0.5 + (fx - 0.5) * SHRINK
-    const sy = 0.5 + (fy - 0.5) * SHRINK
+  const points = HEX_VERTS.map(([fx, fy]) => {
+    const sx = 0.5 + (fx - 0.5) * HEX_SHRINK
+    const sy = 0.5 + (fy - 0.5) * HEX_SHRINK
     return `${pos.left + sx * HEX_W},${pos.top + sy * HEX_H}`
   }).join(' ')
   const cx = pos.left + HEX_W / 2
