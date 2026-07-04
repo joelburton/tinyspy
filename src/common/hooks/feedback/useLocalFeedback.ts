@@ -53,9 +53,13 @@ export function useLocalFeedback({ locked = false }: LocalFeedbackOptions = {}):
   const [localFeedback, setLocalFeedback] = useState<GenericFeedbackMsg | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Read `locked` through a ref so the memoized `clearLocalFeedback` (registered
-  // once) always sees the latest value without re-creating the callback.
+  // once) always sees the latest value without re-creating the callback. Synced in
+  // a passive effect — never written during render (react-hooks/refs forbids that);
+  // `clearLocalFeedback` only reads it from an event handler, so post-commit is fine.
   const lockedRef = useRef(locked)
-  lockedRef.current = locked
+  useEffect(() => {
+    lockedRef.current = locked
+  })
 
   const cancelTimer = () => {
     if (timerRef.current !== null) {

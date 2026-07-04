@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../lib/games'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
 
@@ -126,13 +126,18 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
 
   // Latest config + word held in refs so `submit`/`setWord` stay referentially
-  // stable across renders while still reading current values. Reading `word` from
-  // a ref (updated synchronously in `submit`) is also what makes a same-tick
-  // double-Enter safe: the first call blanks `wordRef` before the second runs.
+  // stable across renders while still reading current values. Synced in a passive
+  // effect — never written during render (react-hooks/refs forbids that); React
+  // flushes passive effects before the next discrete event, so `submit` (fired by
+  // Enter/click) always reads the latest typed word. The same-tick double-Enter
+  // safety is unchanged: `submit` blanks `wordRef` synchronously (below) before a
+  // second call can run.
   const cfgRef = useRef(cfg)
-  cfgRef.current = cfg
   const wordRef = useRef(word)
-  wordRef.current = word
+  useEffect(() => {
+    cfgRef.current = cfg
+    wordRef.current = word
+  })
 
   // Words accepted this session but whose `found_words` row may not have arrived
   // via realtime yet — dedup against these too, so a fast re-submit during the

@@ -54,10 +54,15 @@ export function useGlobalFeedback<T>({
   const seenRef = useRef<Set<string> | null>(null)
   // Read the callbacks through refs so a caller passing inline closures doesn't
   // re-run the effect every render — it should fire only when `items` changes.
+  // Synced in a passive effect (never written during render — react-hooks/refs
+  // forbids that); declared before the item-watching effect so the refs are
+  // current when it reads them.
   const keyOfRef = useRef(keyOf)
-  keyOfRef.current = keyOf
   const messageForRef = useRef(messageFor)
-  messageForRef.current = messageFor
+  useEffect(() => {
+    keyOfRef.current = keyOf
+    messageForRef.current = messageFor
+  })
 
   useEffect(() => {
     // Gate BEFORE seeding (the §1.1 fix): if the game isn't loaded / this mode
