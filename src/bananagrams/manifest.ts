@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import {
   bagSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
@@ -108,12 +109,9 @@ export const bananagramsGame: GameManifest = {
 
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
   // collective loss (nobody went out in time) via bananagrams.submit_timeout.
-  // Idempotent server-side, so a peer racing to fire it is fine.
-  submitTimeout: async (gameId) => {
-    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
+  // Idempotent server-side, so a peer racing to fire it is fine. The shared
+  // one-arg dispatcher (see common/lib/game/manifestRpcs).
+  submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
 
   // NO `endGame`: bananagrams has no whole-table "end the race now" — it retired
   // that for per-player `concede` (drop out = a real loss; others keep racing).

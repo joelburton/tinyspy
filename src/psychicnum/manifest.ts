@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -112,6 +113,11 @@ function labelMidGame(row: { status: StatusBlob | null }) {
 // keeps its display casing; code identifiers are the lowercase codename.
 const BRAND = 'PsychicNum'
 
+// Timeout + manual end — the shared one-arg RPC dispatchers, referenced by both
+// sibling manifests (see common/lib/game/manifestRpcs).
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
+
 export const psychicnumCoopGame: GameManifest = {
   gametype: 'psychicnum_coop',
   schema: 'psychicnum',
@@ -148,19 +154,8 @@ export const psychicnumCoopGame: GameManifest = {
     return 'lost'
   },
 
-  submitTimeout: async (gameId) => {
-    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
-
-  // Ends the game now (irreversible) via psychicnum.end_game — the RPC
-  // behind the in-game "End game" button.
-  endGame: async (gameId) => {
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
+  submitTimeout,
+  endGame,
 }
 
 export const psychicnumCompeteGame: GameManifest = {
@@ -200,17 +195,6 @@ export const psychicnumCompeteGame: GameManifest = {
     return 'time/budget out — no winner'
   },
 
-  submitTimeout: async (gameId) => {
-    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
-
-  // Ends the game now (irreversible) via psychicnum.end_game — the RPC
-  // behind the in-game "End game" button.
-  endGame: async (gameId) => {
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
+  submitTimeout,
+  endGame,
 }

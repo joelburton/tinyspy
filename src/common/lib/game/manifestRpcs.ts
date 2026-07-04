@@ -15,22 +15,23 @@ export type RpcResult = { error?: string }
 
 /**
  * A minimal structural view of a schema-scoped Supabase client's `.rpc`, narrow
- * enough that any game's `db` (`supabase.schema('<game>')`) satisfies it. The
- * game passes its concrete, fully-typed `db`; we only need the `{ error }` off
- * the awaited result.
+ * enough that any game's `db` (`supabase.schema('<game>')`) satisfies it —
+ * generic over the ONE function name being called so a game whose schema lacks,
+ * say, `end_game` (bananagrams, which uses per-player concede) still satisfies
+ * `RpcClient<'submit_timeout'>`. We only need the `{ error }` off the awaited
+ * result.
  */
-type TimeoutRpc = 'submit_timeout' | 'end_game'
-type RpcClient = {
+type RpcClient<F extends string> = {
   rpc: (
-    fn: TimeoutRpc,
+    fn: F,
     args: { target_game: string },
   ) => PromiseLike<{ error: { message: string } | null }>
 }
 
 /**
  * Build the game-agnostic `(gameId) => Promise<{ error? }>` dispatcher for a
- * per-game, single-`target_game`-arg RPC. Collapses the 14 byte-identical
- * `submitTimeout` / `endGame` wrappers across the seven turn/timeout games:
+ * per-game, single-`target_game`-arg RPC. Collapses the byte-identical
+ * `submitTimeout` / `endGame` wrappers across all ten games:
  *
  *     const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
  *     const endGame       = makeRpcDispatcher(db, 'end_game')
@@ -39,9 +40,9 @@ type RpcClient = {
  * raises "not in progress" once one call wins — GamePage swallows that, so the
  * dispatcher just surfaces the message verbatim.
  */
-export function makeRpcDispatcher(
-  db: RpcClient,
-  fnName: TimeoutRpc,
+export function makeRpcDispatcher<F extends string>(
+  db: RpcClient<F>,
+  fnName: F,
 ): (gameId: string) => Promise<RpcResult> {
   return async (gameId: string) => {
     const { error } = await db.rpc(fnName, { target_game: gameId })

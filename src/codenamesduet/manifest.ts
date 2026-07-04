@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -105,24 +106,13 @@ export const codenamesduetGame: GameManifest = {
   labelFor: (row) => STATUS_LABEL[row.play_state] ?? row.play_state,
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // The RPC flips codenamesduet.games.status to 'lost_timeout' (distinct
-  // from 'lost_clock', which is the Duet rulebook's turns-
-  // exhausted ending) and writes common.games.status.outcome=
-  // 'lost_timeout'. Idempotent on the terminal-state check, so
-  // peers racing to fire is fine.
-  submitTimeout: async (gameId) => {
-    const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
-
-  // Ends the game now (irreversible) via codenamesduet.end_game — the RPC
-  // behind the in-game "End game" button.
-  endGame: async (gameId) => {
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) return { error: error.message }
-    return {}
-  },
+  // submit_timeout flips codenamesduet.games.status to 'lost_timeout' (distinct
+  // from 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
+  // common.games.status.outcome='lost_timeout'. Idempotent, so peers racing to
+  // fire it is fine. end_game is the irreversible in-game "End game" button.
+  // Both are the shared one-arg dispatchers (see common/lib/game/manifestRpcs).
+  submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
+  endGame: makeRpcDispatcher(db, 'end_game'),
 }
 
 // Per-play-state display strings codenamesduet owns — the common

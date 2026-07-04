@@ -709,6 +709,23 @@ the repo — the fill-means-permanent / sticky-means-own-move contract from
 ui.md currently exists only as 25 conventions-by-copy. (Naming rider: see
 §5.4.)
 
+> **✅ DONE (submitTimeout/endGame + edge-invoke; create_game deliberately
+> left).** New `common/lib/game/manifestRpcs.ts`:
+> - `makeRpcDispatcher(db, fnName)` — collapses **all** `submitTimeout`/`endGame`
+>   wrappers, including the three games that had them inline in the export
+>   (psychicnum/codenamesduet/bananagrams), so all ten games now share it. Typed
+>   generic over the one fn name so bananagrams (no `end_game` RPC) still fits.
+> - `invokeStartGameEdgeFn(fnName, body, brand)` — owns the subtle edge-invoke
+>   `error.context` unwrap that boggle/spellingbee/waffle each copied verbatim;
+>   dropped the now-unused `supabase` import from all three.
+>
+> The **plain-RPC `create_game` starters were deliberately NOT factored**: they
+> vary too much for a clean helper — connections does a puzzle-dedup + roster-
+> match dance, wordle/psychicnum/stackdown use `.rpc(...).single()`, codenames-
+> duet/bananagrams are inline direct-rpc. Forcing a `makeCreateGameStarter`
+> would either be a leaky lowest-common-denominator or wouldn't fit connections.
+> `tsc -b` + eslint clean; 608 FE + boggle/spellingbee/board-geometry e2e green.
+
 **4.2 [HIGH] Manifest RPC boilerplate.** Three dispatchers hand-copied across
 manifests:
 
