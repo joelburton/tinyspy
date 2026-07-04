@@ -427,69 +427,76 @@ function PanelRnd({
   }, [fitContent])
 
   return (
-    <Rnd
-      className={styles.rnd}
-      style={{ zIndex }}
-      size={{ width: rect.width, height: rect.height }}
-      position={{ x: rect.x, y: rect.y }}
-      // Intentionally no `bounds` prop — we want users to be
-      // able to drag the panel past the viewport edges for
-      // juggling (slide chat to the corner so they can see more
-      // of a setup dialog). The soft clamp in setRect catches
-      // the drag-stop position and ensures at least ~60px stays
-      // visible on each axis, with the header always reachable
-      // (top edge can't go negative).
-      minWidth={minWidth}
-      minHeight={minHeight}
-      disableDragging={!draggable}
-      enableResizing={resizable}
-      // Header carries the dragHandle class; clicking the body
-      // doesn't initiate a drag, and clicking the X reliably
-      // closes the panel.
-      dragHandleClassName={draggable ? styles.dragHandle : undefined}
-      onDragStop={(_e, d) => {
-        userMovedRef.current = true // stop auto-re-centering after a manual move
-        setRect({ ...rect, x: d.x, y: d.y })
-      }}
-      onResizeStop={(_e, _dir, ref, _delta, position) => {
-        userMovedRef.current = true
-        setRect({
-          x: position.x,
-          y: position.y,
-          width: ref.offsetWidth,
-          height: ref.offsetHeight,
-        })
-      }}
-    >
-      {/* Inner shell with explicit width: 100%; height: 100% +
-          display: flex; flex-direction: column. The Rnd outer
-          element doesn't reliably propagate a definite height to
-          flex children — this 100%/100% wrapper does, which is
-          what lets the body's flex: 1 1 auto + min-height: 0
-          chain work for chat's scrollable region. Pattern
-          mirrors ../connections' ChatPanel.module.css. */}
-      <div className={styles.shell}>
-        <header
-          className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
-        >
-          <span className={styles.title}>{title}</span>
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={onClose}
-            aria-label="Close"
+    // The fixed, overflow-hidden clip layer keeps an off-screen-dragged panel
+    // from extending the document (which would scroll the whole page — a hard
+    // no). It also makes react-rnd's absolute coords viewport-relative, matching
+    // the `clampToViewport` math. `pointer-events` are off on the layer and back
+    // on for the panel (see the CSS), so the page beneath stays clickable.
+    <div className={styles.clipLayer} style={{ zIndex }}>
+      <Rnd
+        className={styles.rnd}
+        size={{ width: rect.width, height: rect.height }}
+        position={{ x: rect.x, y: rect.y }}
+        // Intentionally no `bounds` prop — we want users to be
+        // able to drag the panel past the viewport edges for
+        // juggling (slide chat to the corner so they can see more
+        // of a setup dialog). The soft clamp in setRect catches
+        // the drag-stop position and ensures at least ~60px stays
+        // visible on each axis, with the header always reachable
+        // (top edge can't go negative). The off-screen part is
+        // clipped by `.clipLayer`, so it never scrolls the page.
+        minWidth={minWidth}
+        minHeight={minHeight}
+        disableDragging={!draggable}
+        enableResizing={resizable}
+        // Header carries the dragHandle class; clicking the body
+        // doesn't initiate a drag, and clicking the X reliably
+        // closes the panel.
+        dragHandleClassName={draggable ? styles.dragHandle : undefined}
+        onDragStop={(_e, d) => {
+          userMovedRef.current = true // stop auto-re-centering after a manual move
+          setRect({ ...rect, x: d.x, y: d.y })
+        }}
+        onResizeStop={(_e, _dir, ref, _delta, position) => {
+          userMovedRef.current = true
+          setRect({
+            x: position.x,
+            y: position.y,
+            width: ref.offsetWidth,
+            height: ref.offsetHeight,
+          })
+        }}
+      >
+        {/* Inner shell with explicit width: 100%; height: 100% +
+            display: flex; flex-direction: column. The Rnd outer
+            element doesn't reliably propagate a definite height to
+            flex children — this 100%/100% wrapper does, which is
+            what lets the body's flex: 1 1 auto + min-height: 0
+            chain work for chat's scrollable region. Pattern
+            mirrors ../connections' ChatPanel.module.css. */}
+        <div className={styles.shell}>
+          <header
+            className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
           >
-            ×
-          </button>
-        </header>
-        {/* When fitting, the content is wrapped so its natural height can be
-            measured independent of the body's pinned box (see the fit effect).
-            Other panels render children directly — no structural change. */}
-        <div className={styles.body} ref={bodyRef}>
-          {fitContent ? <div ref={contentRef}>{children}</div> : children}
+            <span className={styles.title}>{title}</span>
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </header>
+          {/* When fitting, the content is wrapped so its natural height can be
+              measured independent of the body's pinned box (see the fit effect).
+              Other panels render children directly — no structural change. */}
+          <div className={styles.body} ref={bodyRef}>
+            {fitContent ? <div ref={contentRef}>{children}</div> : children}
+          </div>
         </div>
-      </div>
-    </Rnd>
+      </Rnd>
+    </div>
   )
 }
 

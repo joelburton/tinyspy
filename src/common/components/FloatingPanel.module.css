@@ -19,11 +19,28 @@
  * (chat's flex-grown messages region, modal scrolling) works
  * predictably. */
 
-/* The Rnd outer — positioning only, no visual treatment. */
+/* Viewport clip layer — a fixed, full-viewport box the panel lives INSIDE, so
+ * dragging the panel partly off-screen (the "park it aside" affordance) CLIPS
+ * the off-screen part instead of extending the document and making the whole
+ * PAGE scroll (a hard layout rule: the page must never scroll, horizontally or
+ * vertically). `pointer-events: none` so the layer itself never intercepts
+ * clicks meant for the page beneath; the panel re-enables events on itself.
+ * One layer per panel — its z-index stacks the whole panel; the backdrop, when
+ * present, sits just below at zIndex - 1. */
+.clipLayer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* The Rnd outer — positioning only, no visual treatment. Re-enable pointer
+   events (the clip layer turns them off) so the panel is interactive. */
 .rnd {
   /* react-rnd inlines transform/width/height. We only need the
      stacking-context's z-index, passed via inline style by the
      component. */
+  pointer-events: auto;
 }
 
 /* The 100%/100% wrapper that actually carries the surface
