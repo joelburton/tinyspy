@@ -175,6 +175,13 @@ async function submitTimeout(gameId: string) {
   return {}
 }
 
+/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
+async function endGame(gameId: string) {
+  const { error } = await db.rpc('end_game', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 // Shared listing-label helper for coop's familiar
 // "{matched}/4 categories · {mistakes}/4 mistakes" mid-game shape.
 // Coop terminal labels are also derived from the same status keys.
@@ -230,6 +237,7 @@ export const connectionsCoopGame: GameManifest = {
   },
 
   submitTimeout,
+  endGame,
 }
 
 export const connectionsCompeteGame: GameManifest = {
@@ -277,4 +285,5 @@ export const connectionsCompeteGame: GameManifest = {
   },
 
   submitTimeout,
+  endGame,
 }

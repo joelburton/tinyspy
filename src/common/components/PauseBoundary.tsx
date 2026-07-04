@@ -17,6 +17,11 @@ type Props = {
   /** Resume handler for the manual-pause case. Any connected
    *  player can call it — no privileged "original pauser" check. */
   onResume?: () => void
+  /** Escape hatches shown on the overlay whenever paused: leave for the club
+   *  (suspends the game) / end the game now. The reliable way out of a wedged
+   *  presence-pause — see PauseOverlay + the deadlock note. */
+  onReturnToClub?: () => void
+  onEndGame?: () => void
   /** The play surface. Rendered only when `paused === false`. */
   children: ReactNode
 }
@@ -58,6 +63,8 @@ export function PauseBoundary({
   missing,
   manuallyPausedBy,
   onResume,
+  onReturnToClub,
+  onEndGame,
   children,
 }: Props) {
   if (paused) {
@@ -66,6 +73,8 @@ export function PauseBoundary({
         missing={missing}
         manuallyPausedBy={manuallyPausedBy}
         onResume={onResume}
+        onReturnToClub={onReturnToClub}
+        onEndGame={onEndGame}
       />
     )
   }

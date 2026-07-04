@@ -153,6 +153,14 @@ export const psychicnumCoopGame: GameManifest = {
     if (error) return { error: error.message }
     return {}
   },
+
+  // Ends the game now (irreversible) via psychicnum.end_game — the RPC
+  // behind the in-game "End game" button.
+  endGame: async (gameId) => {
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
 }
 
 export const psychicnumCompeteGame: GameManifest = {
@@ -194,6 +202,14 @@ export const psychicnumCompeteGame: GameManifest = {
 
   submitTimeout: async (gameId) => {
     const { error } = await db.rpc('submit_timeout', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
+
+  // Ends the game now (irreversible) via psychicnum.end_game — the RPC
+  // behind the in-game "End game" button.
+  endGame: async (gameId) => {
+    const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) return { error: error.message }
     return {}
   },

@@ -94,6 +94,13 @@ async function submitTimeout(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
+/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
+async function endGame(gameId: string): Promise<{ error?: string }> {
+  const { error } = await db.rpc('end_game', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModePill>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
@@ -149,6 +156,7 @@ export const waffleCoopGame: GameManifest = {
   labelFor: labelFor('coop'),
 
   submitTimeout,
+  endGame,
 }
 
 export const waffleCompeteGame: GameManifest = {
@@ -179,4 +187,5 @@ export const waffleCompeteGame: GameManifest = {
   labelFor: labelFor('compete'),
 
   submitTimeout,
+  endGame,
 }

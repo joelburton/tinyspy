@@ -135,6 +135,13 @@ async function submitTimeout(gameId: string) {
   return {}
 }
 
+/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
+async function endGame(gameId: string) {
+  const { error } = await db.rpc('end_game', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 type StatusBlob = Record<string, unknown>
 
 // The single source of truth for this game's user-facing brand name.
@@ -196,6 +203,7 @@ export const spellingbeeCoopGame: GameManifest = {
   },
 
   submitTimeout,
+  endGame,
 }
 
 export const spellingbeeCompeteGame: GameManifest = {
@@ -250,4 +258,5 @@ export const spellingbeeCompeteGame: GameManifest = {
   },
 
   submitTimeout,
+  endGame,
 }

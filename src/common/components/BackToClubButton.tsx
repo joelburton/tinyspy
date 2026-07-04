@@ -13,6 +13,10 @@ type Props = {
    *  the meaning clear). For tight spots like an in-column terminal row. */
   compact?: boolean
   autoFocus?: boolean
+  /** Override the visible text — e.g. "Suspend and return to club" on the pause
+   *  overlay, where leaving *shelves* the game. Defaults to "Back to club"
+   *  ("Club" when compact). */
+  label?: string
 }
 
 /**
@@ -37,17 +41,21 @@ export function BackToClubButton({
   variant = 'secondary',
   compact,
   autoFocus,
+  label,
 }: Props) {
+  const text = label ?? (compact ? 'Club' : 'Back to club')
   return (
     <button
       type="button"
       className={cls('icon-button', variant === 'secondary' && 'secondary')}
       onClick={onClick}
-      aria-label={compact ? 'Back to club' : undefined}
+      // Compact hides the word "club" behind the chevron, so keep an accessible
+      // label — unless a full custom label already spells it out.
+      aria-label={compact && !label ? 'Back to club' : undefined}
       autoFocus={autoFocus}
     >
       <IconBack size={16} aria-hidden />
-      {compact ? 'Club' : 'Back to club'}
+      {text}
     </button>
   )
 }

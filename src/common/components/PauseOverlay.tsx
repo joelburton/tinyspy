@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { Member } from '../lib/games'
 import { colorVarFor } from '../lib/memberColor'
+import { BackToClubButton } from './BackToClubButton'
+import { EndGameButton } from './buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
 
 type Props = {
@@ -15,6 +17,14 @@ type Props = {
    *  `manuallyPausedBy` is set. Any connected player can call
    *  it; there's no privileged "original pauser" check. */
   onResume?: () => void
+  /** Leave for the club, shelving the game (`sendSuspend`). Shown as a
+   *  "Return to club" button whenever paused — the reliable escape when a
+   *  presence-pause won't clear (both players walked away, presence timed out).
+   *  It goes through PostgREST, so it works even if Realtime is wedged. */
+  onReturnToClub?: () => void
+  /** End the game now (irreversible; the caller confirms first). The other
+   *  escape from a stuck pause, dispatched to the gametype's own end_game. */
+  onEndGame?: () => void
 }
 
 /**
@@ -42,7 +52,13 @@ type Props = {
  * that concept surfaces in the ClubPage's "Suspended games"
  * section.
  */
-export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
+export function PauseOverlay({
+  missing,
+  manuallyPausedBy,
+  onResume,
+  onReturnToClub,
+  onEndGame,
+}: Props) {
   if (missing.length === 0 && !manuallyPausedBy) return null
 
   // Each name is its own colored span so the attribution stays
@@ -67,13 +83,21 @@ export function PauseOverlay({ missing, manuallyPausedBy, onResume }: Props) {
           The game waits until everyone's joined and connected, and any player
           can pause it. Your in-progress selections reset on every pause.
         </p>
-        {onResume && manuallyPausedBy && (
+        {/* Actions: Resume (manual pause only), plus the always-available
+            escapes — the reliable out if presence never comes back. */}
+        {(onResume && manuallyPausedBy) || onReturnToClub || onEndGame ? (
           <div className={styles.actions}>
-            <button type="button" onClick={onResume}>
-              Resume
-            </button>
+            {onResume && manuallyPausedBy && (
+              <button type="button" onClick={onResume}>
+                Resume
+              </button>
+            )}
+            {onReturnToClub && (
+              <BackToClubButton onClick={onReturnToClub} label="Suspend and return to club" />
+            )}
+            {onEndGame && <EndGameButton onClick={onEndGame} />}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )

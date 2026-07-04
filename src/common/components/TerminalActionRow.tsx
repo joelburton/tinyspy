@@ -23,7 +23,7 @@ export function TerminalActionRow({ over, onBackToClub }: Props) {
   return (
     <div className={cls(shared.infoActions, shared.terminalActions)}>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
-      <BackToClubButton onClick={onBackToClub} compact />
+      <BackToClubButton onClick={onBackToClub} variant="primary" compact />
     </div>
   )
 }

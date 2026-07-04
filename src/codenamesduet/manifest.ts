@@ -115,6 +115,14 @@ export const codenamesduetGame: GameManifest = {
     if (error) return { error: error.message }
     return {}
   },
+
+  // Ends the game now (irreversible) via codenamesduet.end_game — the RPC
+  // behind the in-game "End game" button.
+  endGame: async (gameId) => {
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) return { error: error.message }
+    return {}
+  },
 }
 
 // Per-play-state display strings codenamesduet owns — the common

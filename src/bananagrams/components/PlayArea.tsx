@@ -313,12 +313,12 @@ export function PlayArea(ctx: GamePageCtx) {
   const infoActions = over ? (
     <>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
-      <BackToClubButton onClick={ctx.goToClub} compact />
+      <BackToClubButton onClick={ctx.goToClub} variant="primary" compact />
     </>
   ) : isConceded ? (
     <>
       <span className={cls(shared.outcome, shared.outcome_neutral)}>You&rsquo;re out</span>
-      <BackToClubButton onClick={ctx.goToClub} compact />
+      <BackToClubButton onClick={ctx.goToClub} variant="primary" compact />
     </>
   ) : (
     <ConcedeGameButton onClick={() => void handleConcede()} className={shared.helperButton} />

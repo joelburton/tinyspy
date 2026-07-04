@@ -114,4 +114,9 @@ export const bananagramsGame: GameManifest = {
     if (error) return { error: error.message }
     return {}
   },
+
+  // NO `endGame`: bananagrams has no whole-table "end the race now" — it retired
+  // that for per-player `concede` (drop out = a real loss; others keep racing).
+  // `endGame` is optional on the manifest, so the pause overlay just hides its
+  // End-game button here (Return-to-club/suspend stays as the escape).
 }

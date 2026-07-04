@@ -51,6 +51,13 @@ async function submitTimeout(gameId: string): Promise<{ error?: string }> {
   return {}
 }
 
+/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
+async function endGame(gameId: string): Promise<{ error?: string }> {
+  const { error } = await db.rpc('end_game', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 /** Pure one-line label for the ClubPage games list. Mid-game shows the tiles
  *  left in the bag (+ the team score in coop); terminal shows the result —
  *  "ended" for a manual stop, the winner's name or "tie" in compete, the final
@@ -102,6 +109,7 @@ export const scrabbleCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop', BRAND),
   labelFor: labelFor('coop'),
   submitTimeout,
+  endGame,
 }
 
 export const scrabbleCompeteGame: GameManifest = {
@@ -120,4 +128,5 @@ export const scrabbleCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: labelFor('compete'),
   submitTimeout,
+  endGame,
 }

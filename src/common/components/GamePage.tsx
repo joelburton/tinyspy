@@ -257,6 +257,11 @@ export function GamePage({
   if (!commonGame) return <div className="card">Game not found.</div>
   if (!manifest) return <div className="card">Unknown game type.</div>
 
+  // The gametype's manual end-game dispatcher, if it has one (bananagrams has no
+  // whole-table end — see the manifest). Used by the pause overlay's End-game
+  // escape; undefined hides that button.
+  const endGameFn = manifest.endGame
+
   const showTimer = commonGame.setup.timer?.kind === 'countup'
     || commonGame.setup.timer?.kind === 'countdown'
   const gameOver = commonGame.ended_at !== null
@@ -326,6 +331,31 @@ export function GamePage({
         missing={missing}
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}
+        // Escape hatches for a wedged presence-pause (both players walked away,
+        // presence timed out). Return-to-club shelves the game (sendSuspend,
+        // which broadcasts + navigates); End game dispatches to the gametype's
+        // own end_game via the manifest (the same RPC the in-game End button
+        // uses). Both go through PostgREST, so they work even when Realtime is
+        // stuck — see docs + the reconnect nudge in App.
+        onReturnToClub={sendSuspend}
+        // Undefined for a game with no whole-table end (bananagrams) → the
+        // overlay hides its End-game button. Captured as a local so the guard
+        // narrows inside the async closure.
+        onEndGame={
+          endGameFn
+            ? async () => {
+                if (!window.confirm("End the game now? You can't undo this.")) return
+                const { error } = await endGameFn(gameId)
+                if (error) {
+                  setGlobalFeedback({
+                    tone: 'error',
+                    text: `Couldn't end the game: ${error}`,
+                    dismiss: { kind: 'sticky' },
+                  })
+                }
+              }
+            : undefined
+        }
       >
         {children({
           session,

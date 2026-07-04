@@ -10,6 +10,7 @@ import { UserMenu } from './common/components/UserMenu'
 import { EditProfileDialog } from './common/components/EditProfileDialog'
 import { GameInvitations } from './common/components/GameInvitations'
 import { ToastHost } from './common/components/ToastHost'
+import { useRealtimeReconnect } from './common/hooks/useRealtimeReconnect'
 import { usePath } from './common/lib/router'
 import { games } from './games'
 
@@ -57,6 +58,10 @@ import { games } from './games'
 export default function App() {
   const { session, needsClaim, loading, refresh } = useSession()
   const path = usePath()
+  // Reopen the Realtime socket the moment the tab regains focus / the network
+  // returns, so a slept-then-resumed session re-establishes presence instead of
+  // sitting wedged in a game's pause overlay until a refresh. See the hook.
+  useRealtimeReconnect()
   // Edit-profile popup, opened from the UserMenu. Held here (not in the
   // menu) so the dialog is a sibling of the page — the popup coexists
   // with chat / invitations rather than replacing the current screen.

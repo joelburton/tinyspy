@@ -494,6 +494,26 @@ export type GameManifest = {
    * needing per-gametype branches.
    */
   submitTimeout: (gameId: string) => Promise<{ error?: string }>
+
+  /**
+   * End this game NOW (irreversible). Dispatches to the gametype's own
+   * `<schema>.end_game(target_game)` RPC — the same one the in-game "End game"
+   * menu/button calls — so the terminal outcome + `status` jsonb are computed
+   * the game's own way.
+   *
+   * On the manifest (mirroring `submitTimeout`) so GamePage can offer it from
+   * the **pause overlay**, where the per-game `PlayArea` is unmounted and can't
+   * supply the call. That's the escape hatch for a wedged presence-pause: it
+   * goes through PostgREST (whose token auto-refreshes independently of the
+   * Realtime socket), so it works even when Realtime is stuck.
+   *
+   * **Optional** — a game with no whole-table "end now" concept omits it, and
+   * the pause overlay hides its End-game button (Return-to-club still shows).
+   * bananagrams is the one such game: it retired its whole-table `end_game` for
+   * per-player `concede` (drop out = a real loss; the others keep racing), so
+   * "end the whole race now" doesn't exist for it.
+   */
+  endGame?: (gameId: string) => Promise<{ error?: string }>
 }
 
 /**

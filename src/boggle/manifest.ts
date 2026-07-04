@@ -74,6 +74,13 @@ async function submitTimeout(gameId: string) {
   return {}
 }
 
+/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
+async function endGame(gameId: string) {
+  const { error } = await db.rpc('end_game', { target_game: gameId })
+  if (error) return { error: error.message }
+  return {}
+}
+
 type StatusBlob = Record<string, unknown>
 
 /** Coop club-page label: words found + points (and the terminal reason). */
@@ -120,6 +127,7 @@ export const boggleCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop', BRAND),
   labelFor: coopLabel,
   submitTimeout,
+  endGame,
 }
 
 export const boggleCompeteGame: GameManifest = {
@@ -142,4 +150,5 @@ export const boggleCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: competeLabel,
   submitTimeout,
+  endGame,
 }
