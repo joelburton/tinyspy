@@ -1,8 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -32,40 +31,15 @@ const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
-/** Shared start-game caller — invokes the edge function, forwarding `mode` as a
- *  top-level field. Returns `{ id }` or `{ error }` (message surfaced verbatim
- *  by the dialog). Mirrors spellingbee's error-context unwrapping. */
+/** Shared start-game caller — invokes the board-builder edge function (the
+ *  shared helper owns the error-context unwrap). */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
-    const { data, error } = await supabase.functions.invoke('boggle-build-board', {
-      body: {
-        target_club: clubHandle,
-        setup: setup as BoggleSetup,
-        player_user_ids: playerUserIds,
-        mode,
-      },
-    })
-    if (error) {
-      // The real server error sits on error.context (a Response); invoke()'s own
-      // message is the generic "non-2xx". Surface the server's message.
-      const ctx = (error as { context?: Response }).context
-      let serverMsg: string | null = null
-      if (ctx) {
-        try {
-          const parsed = (await ctx.json()) as { error?: string }
-          if (parsed && typeof parsed.error === 'string') serverMsg = parsed.error
-        } catch {
-          // body wasn't JSON; fall through
-        }
-      }
-      return { error: serverMsg ?? error.message }
-    }
-    const payload = data as { id?: string; error?: string } | null
-    if (!payload || payload.error || !payload.id) {
-      return { error: payload?.error ?? `failed to start ${brand} (${mode}) game` }
-    }
-    return { id: payload.id }
-  }
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    invokeStartGameEdgeFn(
+      'boggle-build-board',
+      { target_club: clubHandle, setup: setup as BoggleSetup, player_user_ids: playerUserIds, mode },
+      brand,
+    )
 }
 
 // Timeout (mode-aware + idempotent server-side) + manual end — the shared

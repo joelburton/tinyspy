@@ -1,8 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
@@ -65,63 +64,18 @@ const setupFormLoader = lazy(() =>
 )
 
 /**
- * Shared start-game caller. Each manifest's `startGameInClub`
- * forwards `mode` as a top-level field on the edge function's
- * request body. The edge function strips `setup.mode` if present
- * (defense against stale FE), builds the board, and calls
- * `spellingbee.create_game(target_club, setup, players, mode, board)`.
- *
- * Returns `{ id }` on success or `{ error }` whose message the
- * dialog surfaces verbatim.
+ * Shared start-game caller. Forwards `mode` as a top-level body field to the
+ * edge function, which strips `setup.mode` if present (defense against a stale
+ * FE), builds the board, and calls `spellingbee.create_game(target_club, setup,
+ * players, mode, board)`. The shared helper owns the error-context unwrap.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (
-    clubHandle: string,
-    setup: unknown,
-    playerUserIds: string[],
-  ) => {
-    const s = setup as SpellingbeeSetup
-    const { data, error } = await supabase.functions.invoke(
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    invokeStartGameEdgeFn(
       'spellingbee-build-board',
-      {
-        body: {
-          target_club: clubHandle,
-          setup: s,
-          player_user_ids: playerUserIds,
-          mode,
-        },
-      },
+      { target_club: clubHandle, setup: setup as SpellingbeeSetup, player_user_ids: playerUserIds, mode },
+      brand,
     )
-    if (error) {
-      // `supabase.functions.invoke` returns its own generic
-      // "Edge Function returned a non-2xx status code" message
-      // when the response has a 4xx/5xx status. The actual
-      // server error sits on `error.context` (a Response we can
-      // read once). Surface it so the dialog shows what the
-      // server actually objected to.
-      const ctx = (error as { context?: Response }).context
-      let serverMsg: string | null = null
-      if (ctx) {
-        try {
-          const parsed = (await ctx.json()) as { error?: string }
-          if (parsed && typeof parsed.error === 'string') {
-            serverMsg = parsed.error
-          }
-        } catch {
-          // body wasn't JSON; fall through to the generic message
-        }
-      }
-      return { error: serverMsg ?? error.message }
-    }
-    const payload = data as { id?: string; error?: string } | null
-    if (!payload || payload.error || !payload.id) {
-      return {
-        error:
-          payload?.error ?? `failed to start ${brand} (${mode}) game`,
-      }
-    }
-    return { id: payload.id }
-  }
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see

@@ -1,8 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
-import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -34,56 +33,18 @@ const setupFormLoader = lazy(() =>
 
 /**
  * Shared start-game caller. The board is generated on demand by the
- * `waffle-build-board` edge function (running as the caller), which
- * builds a board for the chosen band and calls
- * `waffle.create_game(target_club, setup, players, mode, board)`. `mode`
- * is the per-manifest constant, forwarded top-level. Returns `{ id }`
- * or `{ error }` whose message the dialog surfaces verbatim.
+ * `waffle-build-board` edge function (running as the caller), which builds a
+ * board for the chosen band and calls `waffle.create_game(target_club, setup,
+ * players, mode, board)`. `mode` is forwarded top-level; the shared helper owns
+ * the error-context unwrap.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
-  return async (
-    clubHandle: string,
-    setup: unknown,
-    playerUserIds: string[],
-  ) => {
-    const s = setup as WaffleSetup
-    const { data, error } = await supabase.functions.invoke(
+  return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
+    invokeStartGameEdgeFn(
       'waffle-build-board',
-      {
-        body: {
-          target_club: clubHandle,
-          setup: s,
-          player_user_ids: playerUserIds,
-          mode,
-        },
-      },
+      { target_club: clubHandle, setup: setup as WaffleSetup, player_user_ids: playerUserIds, mode },
+      brand,
     )
-    if (error) {
-      // `functions.invoke` returns a generic "non-2xx" message; the
-      // real server error sits on `error.context` (a Response). Read it
-      // so the dialog shows what the server actually objected to.
-      const ctx = (error as { context?: Response }).context
-      let serverMsg: string | null = null
-      if (ctx) {
-        try {
-          const parsed = (await ctx.json()) as { error?: string }
-          if (parsed && typeof parsed.error === 'string') {
-            serverMsg = parsed.error
-          }
-        } catch {
-          // body wasn't JSON; fall through to the generic message
-        }
-      }
-      return { error: serverMsg ?? error.message }
-    }
-    const payload = data as { id?: string; error?: string } | null
-    if (!payload || payload.error || !payload.id) {
-      return {
-        error: payload?.error ?? `failed to start ${brand} (${mode})`,
-      }
-    }
-    return { id: payload.id }
-  }
 }
 
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
