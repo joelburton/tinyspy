@@ -85,7 +85,7 @@ export type WordSubmitApi = {
   /** Push an own-move message into the same below-board pill, in the shared
    *  outline+sticky style — for the game's *sibling* own-actions that aren't word
    *  submits (e.g. a failed End). Keeps one feedback slot with one look. */
-  showFeedback: (tone: GenericFeedbackTone, text: string) => void
+  showLocalFeedback: (tone: GenericFeedbackTone, text: string) => void
 }
 
 /**
@@ -114,7 +114,7 @@ const line = (word: string, body: string, isBonus = false): string =>
 export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [word, setWordState] = useState('')
   const [lastWord, setLastWord] = useState('')
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
+  const { localFeedback, showLocalFeedback: showPill, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
 
   // Latest config + word held in refs so `submit`/`setWord` stay referentially
   // stable across renders while still reading current values. Synced in a passive
@@ -136,9 +136,9 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   // commit fails (so a retry is allowed); on success the realtime row supersedes it.
   const pendingRef = useRef<Set<string>>(new Set())
 
-  const showFeedback = useCallback(
-    (tone: GenericFeedbackTone, text: string) => showLocalFeedback(stickyPill(tone, text)),
-    [showLocalFeedback],
+  const showLocalFeedback = useCallback(
+    (tone: GenericFeedbackTone, text: string) => showPill(stickyPill(tone, text)),
+    [showPill],
   )
 
   const submit = useCallback(() => {
@@ -154,7 +154,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      showLocalFeedback(stickyPill('warning', line(w, 'too short')))
+      showPill(stickyPill('warning', line(w, 'too short')))
       return
     }
 
@@ -169,12 +169,12 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      showLocalFeedback(stickyPill('warning', line(w, 'already found', entry?.isBonus)))
+      showPill(stickyPill('warning', line(w, 'already found', entry?.isBonus)))
       return
     }
 
     if (!entry) {
-      showLocalFeedback(stickyPill('error', line(w, c.explainReject(w))))
+      showPill(stickyPill('error', line(w, c.explainReject(w))))
       return
     }
 
@@ -184,11 +184,11 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // right after the word.
     pendingRef.current.add(w)
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    showLocalFeedback(stickyPill('success', line(w, body, entry.isBonus)))
+    showPill(stickyPill('success', line(w, body, entry.isBonus)))
 
     const release = (message: string) => {
       pendingRef.current.delete(w) // free it so the player can retry
-      showLocalFeedback(stickyPill('error', message))
+      showPill(stickyPill('error', message))
     }
     c.commit(entry).then(
       ({ error }) => {
@@ -196,7 +196,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
       },
       (err: unknown) => release(err instanceof Error ? err.message : 'Submit failed'),
     )
-  }, [showLocalFeedback])
+  }, [showPill])
 
-  return { word, setWord: setWordState, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback }
+  return { word, setWord: setWordState, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback }
 }

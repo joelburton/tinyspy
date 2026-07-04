@@ -76,7 +76,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
-  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
+  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
@@ -169,24 +169,24 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Manual end — an info-column action-row button now (like the other converged
   // games), off the GamePage menu. Confirmed; it's irreversible. Its error shares
-  // the same below-board pill as a word submit (via the hook's showFeedback).
+  // the same below-board pill as a word submit (via the hook's showLocalFeedback).
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showFeedback('error', `End game failed: ${error.message}`)
-  }, [gameId, isTerminal, showFeedback])
+    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
+  }, [gameId, isTerminal, showLocalFeedback])
 
   // ─── Concede (compete) — drop out of the race ──────────
   // A real loss for the conceder; the others keep racing (boggle.concede →
   // common.concede). Distinct from End, which is coop's neutral mutual stop. Its
-  // error shares the same below-board pill as a word submit (via showFeedback).
+  // error shares the same below-board pill as a word submit (via showLocalFeedback).
   const handleConcede = useCallback(async () => {
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
     const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showFeedback('error', `Concede failed: ${error.message}`)
-  }, [gameId, isTerminal, myConceded, showFeedback])
+    if (error) showLocalFeedback('error', `Concede failed: ${error.message}`)
+  }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in

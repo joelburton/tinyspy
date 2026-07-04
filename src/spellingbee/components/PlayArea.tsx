@@ -169,7 +169,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   const center = game?.center_letter.toLowerCase() ?? ''
-  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showFeedback } =
+  const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
     useWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
@@ -210,9 +210,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showFeedback('error', `End game failed: ${error.message}`)
+      showLocalFeedback('error', `End game failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, showFeedback])
+  }, [gameId, isTerminal, showLocalFeedback])
 
   // ─── Concede (compete) — drop out of the race ──────────
   // A real loss for the conceder; the others keep racing (spellingbee.concede →
@@ -222,9 +222,9 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
-      showFeedback('error', `Concede failed: ${error.message}`)
+      showLocalFeedback('error', `Concede failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, myConceded, showFeedback])
+  }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —

@@ -886,7 +886,13 @@ function; promote one builder to `common/` under one name — pairs with §4.1.
 `localPill` matches the plan's canonical prop name; `ownMove` has plurality.
 
 **5.5 Feedback-channel naming violations (the codebase's own hard rule —
-mechanical fixes).**
+mechanical fixes).** — **◐ PARTLY DONE.** ✅ `WordSubmitApi.showFeedback` →
+`showLocalFeedback` (internal `useLocalFeedback` return aliased to `showPill` to
+avoid the clash; boggle/spellingbee consumers updated). ✅ scrabble BoardCol's
+stale `onFeedback` docstring → `showLocalFeedback` (the real prop). ⬜ The
+resolved-pill BoardCol **prop** drift (`localPill` vs `localFeedback` vs
+wordle's `localFeedbackMsg`) — deferred: it tangles with the `useLocalFeedback`
+return also named `localFeedback`, so a clean unify on `localPill` needs care.
 
 - `WordSubmitApi.showFeedback` (`src/common/hooks/game/useWordSubmit.ts:87`) —
   bare, in a *common* hook, next to correctly-named `localFeedback` /

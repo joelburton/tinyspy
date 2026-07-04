@@ -24,7 +24,7 @@ type Staged = Placement & { rackIdx: number }
 type XY = { x: number; y: number }
 type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number; y: number }
 /** The player's own-move result, shown as a sticky pill in the commit slot. The
- *  turn machine reports these UP via `onFeedback`; PlayArea owns the channel (it
+ *  turn machine reports these UP via `showLocalFeedback`; PlayArea owns the channel (it
  *  also folds the terminal verdict in), because InfoCol's End/Concede write to it too. */
 export type LocalFeedbackMsg = { tone: GenericFeedbackTone; text: string }
 
