@@ -267,6 +267,10 @@ function buildOver({
     return { outcome: 'won', verdict: `Board cleared — ${score} points! 🎉`, message: `${score} pts`, tone: 'won' }
   }
   if (playState === 'ended') return { outcome: 'won', verdict: 'Game ended — no winner.', message: 'Ended', tone: 'neutral' }
+  // Everyone conceded (play_state 'lost', outcome 'conceded'): a collective
+  // loss with no eligible winner. Must precede the winner logic below, which
+  // would otherwise fall through to the phantom co-winners tie on null winner.
+  if (outcome === 'conceded') return { outcome: 'lost', verdict: 'Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
   const winner = status?.winner as string | null | undefined
   if (winner === selfId) return { outcome: 'won', verdict: 'You won the game! 🎉', message: 'You won!', tone: 'won' }
   if (winner) return { outcome: 'lost', verdict: `${nameOf(winner)} won.`, message: `${nameOf(winner)} won`, tone: 'lost' }

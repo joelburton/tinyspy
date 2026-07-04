@@ -581,6 +581,15 @@ begin
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
+  -- A conceded player is out of the race — no more guesses. The FE gates
+  -- on myConceded, so this only fires on a race (a guess in flight when
+  -- concede commits, or a stale second tab). Without it a conceder could
+  -- complete the win condition and be recorded the winner.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   -- Per-mode budget check on the caller's row.
   select guesses_remaining into caller_remaining
     from psychicnum.players

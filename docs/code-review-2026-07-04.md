@@ -84,7 +84,13 @@ the conceded fixture player. **Hand-verified.**
 `useCommonGame` (invited-but-not-yet-joined players must remain counted — that
 part is deliberate); update the test fixture.
 
-**C2. [medium] `boggle._finalize` lets a conceded player win.**
+**C2. [medium] `boggle._finalize` lets a conceded player win.** — **✅ DONE.**
+`_finalize` now computes `max_score` over non-conceded players only and forces
+`won: false` for conceders (mirroring `scrabble._finish`); the leaderboard still
+lists everyone (score shown, marked "Quit"). The FE `buildOver` gained a
+self-conceded early return ("You conceded") and filters conceders out of its
+`max`/winner computation. `tsc -b` + 48 boggle Vitest + `boggle/concede`
+pgTAP green.
 `supabase/migrations/20260628000000_boggle.sql:431–454` computes `max_score`
 and per-player `won` over **all** players with no `conceded` exclusion. A player
 can build the top score, concede, and on timeout/manual-end be recorded
@@ -98,7 +104,12 @@ and force `won: false` for them (and ideally annotate them in
 `status.leaderboard` so the FE max matches).
 
 **C3. [medium] An all-conceded scrabble compete game ends `won_compete` and
-displays "It's a tie — co-winners!"**
+displays "It's a tie — co-winners!"** — **✅ DONE.** `_finish` now ends `'lost'`
+(not `'won_compete'`) when `v_max is null` (zero non-conceded players), matching
+bananagrams' collective-loss pattern (`play_state 'lost'` + `outcome 'conceded'`).
+The FE `buildOver` gained an `outcome === 'conceded'` branch ("Everyone
+conceded — no winner", before the winner logic) and `labelFor` a `'lost'` case
+("all conceded"). `tsc -b` + 39 scrabble Vitest + `scrabble/concede` pgTAP green.
 `supabase/migrations/20260627000000_scrabble.sql:1048–1050` (last-player
 concede → `_finish`) + `:545` (`_finish` unconditionally ends compete as
 `won_compete`). With everyone conceded the winner query yields null and every
@@ -112,7 +123,14 @@ club card. The other common-concede games end this path as `lost` +
 `buildOver`/`labelFor` a conceded branch.
 
 **C4. [medium] Seven move RPCs accept moves from conceded players — and in
-three, a conceder can be recorded as the winner.**
+three, a conceder can be recorded as the winner.** — **✅ DONE.** Added the
+`peel`-style conceded guard (`raise 'you have conceded'`) to all seven inside
+their existing lock, after the play_state check: `psychicnum.submit_guess`,
+`connections.submit_guess`, `spellingbee.submit_word`, `waffle.submit_swap`,
+`stackdown.submit_word`, `boggle.submit_word` (raises rather than a soft
+`gameOver` return so `useWordSubmit` releases the optimistic word), and
+`bananagrams.dump`. Migrations reapply clean; touched games' gameplay/dump/
+concede pgTAP green (psychicnum/gameplay's failure is pre-existing — see below).
 None of these checks `common.game_players.conceded`:
 `psychicnum.submit_guess` (`20260615000002_psychicnum.sql:534`),
 `connections.submit_guess` (`20260615000003_connections.sql:685`),

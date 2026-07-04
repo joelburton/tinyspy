@@ -358,6 +358,15 @@ begin
     return jsonb_build_object('result', 'gameOver', 'points', 0);
   end if;
 
+  -- A conceded player is out of the race — no more words. The FE gates on
+  -- myConceded, so this only fires on a race (a submit in flight when concede
+  -- commits, or a stale second tab). Raise (rather than a soft 'gameOver'
+  -- return) so useWordSubmit releases the optimistically-accepted word.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   w_lower := lower(coalesce(word, ''));
 
   -- Dedup, mode-aware: coop = whole team, compete = this player. Alias the table
@@ -428,22 +437,36 @@ begin
     );
     results := null; -- coop is a team effort; no per-player result
   else
+    -- Leaderboard over ALL players (the final scoreboard still shows a
+    -- conceder's banked score; the FE marks them "Quit").
     select coalesce(jsonb_agg(jsonb_build_object('user_id', user_id, 'count', cnt, 'score', sc)
-                              order by sc desc), '[]'::jsonb),
-           coalesce(max(sc), 0)
-      into lb, max_score
+                              order by sc desc), '[]'::jsonb)
+      into lb
       from (
         select user_id, count(*) as cnt, sum(points) as sc
           from boggle.found_words where game_id = target_game group by user_id
       ) t;
+    -- The winning bar excludes conceded players — a drop-out forfeits any win
+    -- regardless of the score they banked (docs/common.md). Mirrors
+    -- scrabble._finish. NULL (all conceded / nobody scored) coalesces to 0.
+    select coalesce(max(t.sc), 0)
+      into max_score
+      from (
+        select user_id, sum(points) as sc
+          from boggle.found_words where game_id = target_game group by user_id
+      ) t
+      join common.game_players gp
+        on gp.game_id = target_game and gp.user_id = t.user_id
+     where not gp.conceded;
     final_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome, 'leaderboard', lb,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
-    -- Per-player result: win if you tied or beat the top score (a player who
-    -- found nothing scores 0 and loses unless 0 is the max).
+    -- Per-player result: win if you tied or beat the top score AND didn't
+    -- concede (a player who found nothing scores 0 and loses unless 0 is the
+    -- max; a conceder never wins even if their banked score ties the max).
     select coalesce(jsonb_object_agg(p.user_id::text,
-             jsonb_build_object('won', coalesce(t.sc, 0) >= max_score,
+             jsonb_build_object('won', not p.conceded and coalesce(t.sc, 0) >= max_score,
                                 'score', coalesce(t.sc, 0))), '{}'::jsonb)
       into results
       from common.game_players p

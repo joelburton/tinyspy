@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -233,7 +233,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // Merged, alphabetized rows for the shared WordList (found + the reveal).
   const wordRows = buildDisplayRows(foundWords, revealWords)
 
-  const over = isTerminal ? buildOver({ mode: game.mode, status, myCount, myScore, players }) : null
+  const over = isTerminal
+    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded })
+    : null
 
   // Index the compete leaderboard by user so the OpponentStrip metric can read
   // each peer's score (self reads the live local computation so it stays in lock
@@ -315,12 +317,14 @@ function buildOver({
   myCount,
   myScore,
   players,
+  myConceded,
 }: {
   mode: 'coop' | 'compete'
   status: StatusBlob | null
   myCount: number
   myScore: number
-  players: Member[]
+  players: GamePlayer[]
+  myConceded: boolean
 }): {
   outcome: 'won' | 'lost'
   verdict: string
@@ -341,7 +345,22 @@ function buildOver({
   }
 
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).
-  const board = (status?.leaderboard as LeaderRow[] | undefined) ?? []
+  // A conceder forfeited the race: they see a plain loss even if their
+  // banked score was the highest (mirrors the server's won:false).
+  if (myConceded) {
+    return {
+      outcome: 'lost',
+      verdict: `${reason} — you conceded.`,
+      message: 'You conceded',
+      tone: 'lost',
+    }
+  }
+  // The winning bar excludes conceded players — a drop-out can't be the
+  // winner anyone sees, matching boggle._finalize's max_score.
+  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
+  const board = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
+    (r) => !concededIds.has(r.user_id),
+  )
   const max = board.reduce((m, r) => Math.max(m, r.score), 0)
   if (max === 0) {
     return {

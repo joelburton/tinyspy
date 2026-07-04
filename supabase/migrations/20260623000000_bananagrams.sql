@@ -900,6 +900,15 @@ begin
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
 
+  -- A conceded player is out of the race — they can't drain the shared
+  -- pool via a dump. Mirrors the peel guard. The FE gates on myConceded,
+  -- so this only fires on a race (a dump in flight when concede commits,
+  -- or a stale second tab).
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   tile := upper(tile);
   if tile !~ '^[A-Z]$' then
     raise exception 'tile must be a single letter' using errcode = 'P0001';

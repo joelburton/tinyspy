@@ -387,6 +387,15 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
+  -- A conceded player is out of the race — no more words. The FE gates
+  -- on myConceded, so this only fires on a race (a submit in flight when
+  -- concede commits, or a stale second tab). Without it a conceder's 6th
+  -- word could crown them the winner.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   -- Compete: a finished player can't keep submitting.
   if g_row.mode = 'compete'
      and (select solved from stackdown.players

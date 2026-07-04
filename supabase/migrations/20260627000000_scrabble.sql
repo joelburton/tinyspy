@@ -542,7 +542,18 @@ begin
                                jsonb_build_object('user_id', user_id, 'score', score)
                                order by score desc, seat)
                         from scrabble.players where game_id = g_id));
-    perform common.end_game(g_id, 'won_compete', v_status, player_results);
+
+    -- v_max is NULL only when there are zero non-conceded players — i.e.
+    -- everyone conceded (the last-active-player concede path calls _finish
+    -- with outcome='conceded'). That's a collective loss with no eligible
+    -- winner, so end 'lost' rather than 'won_compete': otherwise the FE's
+    -- null-winner branch renders a phantom "It's a tie — co-winners!". The
+    -- other common-concede games end this same path as 'lost'/'conceded'.
+    if v_max is null then
+      perform common.end_game(g_id, 'lost', v_status, player_results);
+    else
+      perform common.end_game(g_id, 'won_compete', v_status, player_results);
+    end if;
   end if;
 end;
 $$;

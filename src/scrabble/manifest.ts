@@ -77,6 +77,8 @@ function labelFor(mode: 'coop' | 'compete') {
         return st?.team_score != null ? `${st.team_score} pts` : 'finished'
       case 'won_compete':
         return st?.winner_name ? `won by ${st.winner_name}` : 'tie'
+      case 'lost': // compete: everyone conceded (collective loss, no winner)
+        return 'all conceded'
       default: {
         const left = st?.bag_count != null ? `${st.bag_count} tiles left` : ''
         if (mode === 'coop' && st?.team_score != null) {

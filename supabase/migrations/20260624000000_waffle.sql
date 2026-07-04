@@ -665,6 +665,14 @@ begin
       using errcode = 'P0001';
   end if;
 
+  -- A conceded player is out of the race — no more swaps. The FE gates
+  -- on myConceded, so this only fires on a race (a swap in flight when
+  -- concede commits, or a stale second tab).
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
