@@ -86,6 +86,24 @@ The shared `WordList` (used by both spellingbee and boggle) now leads each row w
 
 **Reference impl:** spellingbee already does this — a dedicated near-input `Feedback.tsx` (its own tone palette incl. `warning`, which the header palette lacks) for the player's own submission, header slot reserved for peer events. **Cleanup:** promote spellingbee's local `Feedback` into `common/`, give every game a near-input local channel, and reserve the header slot for genuine group/activity feedback (which barely exists today). Full per-game inventory of current usage in [audit-feedback.md](audit-feedback.md).
 
+## Printing to PDF — which games get it
+
+Print-to-PDF is a per-game opt-in (see [`pdf.md`](pdf.md)). **Five games print today:**
+scrabble, psychicnum, boggle, spellingbee, bananagrams.
+
+**Two games are deliberately excluded** (a permanent "won't do", not a deferral): both
+are turn-by-turn *board progressions* where a single static snapshot can't represent the
+game — you'd need a board snapshot per turn for it to mean anything on paper, which a
+one-page printout isn't.
+
+- **waffle** — the game is a sequence of tile *swaps*; a lone end-board doesn't capture
+  the solve.
+- **wordle** — the game *is* the guess-by-guess progression; a single board can't stand
+  in for it.
+
+**Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet
+and connections (turn-log / word-list families) and stackdown.
+
 ## Tooling
 
 - **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Not worth the machinery until we have ≥ 3 games — the dup is one line and the lint failure on a missed update is obvious.
