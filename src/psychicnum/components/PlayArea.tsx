@@ -15,7 +15,8 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { turnSnapshot } from '../lib/history'
-import { ownMove, capitalize } from '../lib/ownMove'
+import { capitalize } from '../lib/capitalize'
+import { stickyPill } from '../../common/lib/game/localPills'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -270,14 +271,14 @@ export function PlayArea({
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
   const getReveal = async () => {
     setRevealing(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
     setRevealing(false)
-    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
@@ -286,7 +287,7 @@ export function PlayArea({
   const endGame = async () => {
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
   // Concede — drop out of a compete race (a real loss; the others keep racing).
@@ -297,7 +298,7 @@ export function PlayArea({
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
     const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(ownMove('error', capitalize(error.message)))
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
   return (

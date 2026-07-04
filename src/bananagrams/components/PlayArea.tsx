@@ -10,6 +10,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
@@ -237,19 +238,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // sticky "you conceded" when locally terminal; else the own-move draw/error
   // pill (or nothing).
   const localFeedbackMsg: GenericFeedbackMsg | null = over
-    ? {
-        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-        text: over.verdict,
-        variant: 'fill',
-        dismiss: { kind: 'sticky' },
-      }
+    ? terminalPill(over.tone, over.verdict)
     : isConceded
-      ? {
-          tone: 'neutral',
-          text: "You conceded — you're out of the race.",
-          variant: 'outline',
-          dismiss: { kind: 'sticky' },
-        }
+      ? stickyPill('neutral', "You conceded — you're out of the race.")
       : localFeedback
 
   // ─── Info-column chrome ─────────────────────────────────────────────────

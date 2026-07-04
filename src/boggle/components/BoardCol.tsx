@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
@@ -120,17 +121,7 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             recall={lastWord}
             pill={
-              over
-                ? {
-                    tone:
-                      over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                    text: over.verdict,
-                    variant: 'fill', // permanent → lightened-tone fill
-                    dismiss: { kind: 'sticky' },
-                  }
-                : word === ''
-                  ? localFeedback
-                  : null
+              over ? terminalPill(over.tone, over.verdict) : word === '' ? localFeedback : null
             }
           />
         </div>

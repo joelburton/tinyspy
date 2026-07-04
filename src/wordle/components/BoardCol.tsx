@@ -3,7 +3,7 @@ import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { useCaptureKeys, asciiLetters } from '../../common/hooks/input/useCaptureKeys'
 import { db } from '../db'
-import { localPill } from '../lib/localPill'
+import { stickyPill } from '../../common/lib/game/localPills'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { SnapshotRow, TurnSnapshot } from '../lib/history'
 import { WordleGrid } from './WordleGrid'
@@ -137,7 +137,7 @@ export function BoardCol({
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        showLocalFeedback(localPill('warning', 'Not enough letters'))
+        showLocalFeedback(stickyPill('warning', 'Not enough letters'))
         return
       }
       setSubmitting(true)
@@ -152,7 +152,7 @@ export function BoardCol({
       if (error) {
         setPending(null)
         // A real failure (not a soft reject) → error-toned, still sticky.
-        showLocalFeedback(localPill('error', error.message))
+        showLocalFeedback(stickyPill('error', error.message))
         return
       }
       const res = data as { result: string }
@@ -160,17 +160,17 @@ export function BoardCol({
       // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
-        showLocalFeedback(localPill('error', 'Not in word list'))
+        showLocalFeedback(stickyPill('error', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {
         setPending(null)
-        showLocalFeedback(localPill('warning', 'Already guessed'))
+        showLocalFeedback(stickyPill('warning', 'Already guessed'))
         return
       }
       if (res.result === 'invalid') {
         setPending(null)
-        showLocalFeedback(localPill('warning', 'Not enough letters'))
+        showLocalFeedback(stickyPill('warning', 'Not enough letters'))
         return
       }
       // accepted (correct/incorrect): clear the typing buffer. `pending` holds the word

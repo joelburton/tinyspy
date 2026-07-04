@@ -14,7 +14,7 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { turnSnapshot } from '../lib/history'
-import { ownGuess } from '../lib/ownGuess'
+import { stickyPill } from '../../common/lib/game/localPills'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -183,7 +183,7 @@ export function PlayArea({
     if (!window.confirm('End the game now? You can\'t undo this.')) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback(ownGuess('error', `End game failed: ${error.message}`))
+      showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -271,7 +271,7 @@ export function PlayArea({
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
     const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(ownGuess('error', `Concede failed: ${error.message}`))
+    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
   }
 
   return (

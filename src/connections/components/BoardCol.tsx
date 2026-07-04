@@ -10,7 +10,7 @@ import { StrikeMarks } from '../../common/components/game/StrikeMarks'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
-import { ownGuess } from '../lib/ownGuess'
+import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
 import type { TurnSnapshot } from '../lib/history'
@@ -157,7 +157,7 @@ export function BoardCol({
     // Dup detection (FE-side per the FE-knows model). My own action, so it flashes
     // locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback(ownGuess('error', 'You already tried that'))
+      showLocalFeedback(stickyPill('error', 'You already tried that'))
       return
     }
 
@@ -171,7 +171,7 @@ export function BoardCol({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback(ownGuess('error', error.message))
+      showLocalFeedback(stickyPill('error', error.message))
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:
@@ -179,11 +179,11 @@ export function BoardCol({
     // (start fresh). The sticky flash shows over the cleared board; clicking a tile
     // dismisses it (handleToggle) and starts the next guess.
     if (verdict.kind === 'correct') {
-      showLocalFeedback(ownGuess('success', 'Correct!'))
+      showLocalFeedback(stickyPill('success', 'Correct!'))
     } else if (verdict.kind === 'oneAway') {
-      showLocalFeedback(ownGuess('near', 'One away!'))
+      showLocalFeedback(stickyPill('near', 'One away!'))
     } else {
-      showLocalFeedback(ownGuess('error', 'Incorrect'))
+      showLocalFeedback(stickyPill('error', 'Incorrect'))
       setShakingTiles(new Set(unionTiles))
     }
     sendClear()
@@ -285,28 +285,7 @@ export function BoardCol({
             // sticky "you're out" while the rest race on.
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
-                msg={
-                  over
-                    ? {
-                        tone:
-                          over.tone === 'won'
-                            ? 'success'
-                            : over.tone === 'lost'
-                              ? 'error'
-                              : 'neutral',
-                        text: over.verdict,
-                        variant: 'fill',
-                        dismiss: { kind: 'sticky' },
-                      }
-                    : {
-                        tone: 'neutral',
-                        text: myConceded
-                          ? 'You conceded — the rest are still racing.'
-                          : "You're out — the rest are still racing.",
-                        variant: 'outline',
-                        dismiss: { kind: 'sticky' },
-                      }
-                }
+                msg={over ? terminalPill(over.tone, over.verdict) : outOfRacePill(myConceded)}
                 onClose={noop}
               />
             </div>

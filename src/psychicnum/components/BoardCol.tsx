@@ -6,7 +6,8 @@ import { GenericFeedbackPill } from '../../common/components/feedback/GenericFee
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { db } from '../db'
-import { ownMove, capitalize } from '../lib/ownMove'
+import { capitalize } from '../lib/capitalize'
+import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { WordBoard } from './WordBoard'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -140,7 +141,7 @@ export function BoardCol({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!words.includes(guess)) {
-      showLocalFeedback(ownMove('error', 'Not on the board'))
+      showLocalFeedback(stickyPill('error', 'Not on the board'))
       return
     }
     setSubmitting(true)
@@ -150,11 +151,11 @@ export function BoardCol({
     const { data, error } = await db.rpc('submit_guess', { target_game: gameId, guess })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback(ownMove('error', capitalize(error.message)))
+      showLocalFeedback(stickyPill('error', capitalize(error.message)))
       return
     }
     showLocalFeedback(
-      ownMove(
+      stickyPill(
         data === 'won' || data === 'correct' ? 'success' : 'error',
         data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
       ),
@@ -217,15 +218,10 @@ export function BoardCol({
           {over ? (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
-                msg={{
-                  tone:
-                    over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                  text: secrets
-                    ? `The words were ${secrets.join(', ').toUpperCase()}`
-                    : 'Game over.',
-                  variant: 'fill', // permanent → lightened-tone fill
-                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
-                }}
+                msg={terminalPill(
+                  over.tone,
+                  secrets ? `The words were ${secrets.join(', ').toUpperCase()}` : 'Game over.',
+                )}
                 onClose={noop}
               />
             </div>
@@ -251,14 +247,7 @@ export function BoardCol({
           ) : (
             <div className={shared.localFeedback}>
               <GenericFeedbackPill
-                msg={{
-                  tone: 'neutral',
-                  text: myConceded
-                    ? 'You conceded — the rest are still racing.'
-                    : 'Out of guesses — waiting on the rest.',
-                  variant: 'outline',
-                  dismiss: { kind: 'sticky' },
-                }}
+                msg={outOfRacePill(myConceded, 'Out of guesses — waiting on the rest.')}
                 onClose={noop}
               />
             </div>

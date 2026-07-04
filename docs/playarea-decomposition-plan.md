@@ -154,13 +154,13 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   (codenamesduet/tinyspy ✅ done — viewer + **decomposed** (BoardCol/InfoCol, no-op
   verified); psychicnum ✅ viewer + **decomposed** (BoardCol/InfoCol, no-op verified —
   the guessed tile shows its green/red outcome color + a yellow ring, keyed by log
-  position; BoardCol owns the guess dispatch + board shuffle, `ownMove` pill builder
-  pulled to `lib/ownMove.ts`); connections ✅ viewer (the first MUTATING board — a
+  position; BoardCol owns the guess dispatch + board shuffle, own-move pill builder
+  since unified into `common/lib/game/localPills.ts` `stickyPill`); connections ✅ viewer (the first MUTATING board — a
   correct guess collapses tiles into a band — so **strictly-before** like stackdown:
   the viewed turn's 4 tiles stay on the grid, tinted by outcome + ringed; needed a
   `#N` column added to its two-`<tr>` log) + **decomposed** (BoardCol owns the guess
   dispatch + shuffle; the tile SELECTION stays in useGame — broadcast-coupled — so it's
-  passed down; `ownGuess` → `lib/ownGuess.ts`); waffle ✅; wordle ✅ viewer + **decomposed**
+  passed down; own-guess builder since unified into `common/lib/game/localPills.ts`); waffle ✅; wordle ✅ viewer + **decomposed**
   (BoardCol/InfoCol, no-op verified): ADD-style (like psychicnum), keyed by log position,
   INCLUSIVE — the snapshot (`src/wordle/lib/history.ts`) is just the first N guess rows,
   the last ringed history-yellow (`WordleGrid` gains `viewing` + `highlightRow`;
@@ -178,8 +178,8 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   guessingAllowed && !submitting && !pendingWord` (PlayArea passes only the GAME-STATE half,
   `guessingAllowed`, so behavior is byte-identical). `InfoCol` (207) is presentational (guess
   count + OpponentStrip + action row + setup + terminal answer-reveal + GameTurnLog). Feedback
-  channel stays in PlayArea (both columns write it); shared `localPill` builder → `lib/localPill.ts`
-  (like psychicnum's `ownMove`); the below-board pill is RESOLVED in PlayArea and passed down as
+  channel stays in PlayArea (both columns write it); own-move pill builder since unified into
+  `common/lib/game/localPills.ts` `stickyPill`; the below-board pill is RESOLVED in PlayArea and passed down as
   `localFeedbackMsg`. CSS split (psychicnum-style): `belowBoard`/`moveArea` → BoardCol.module.css,
   `answerLine`/`answerReveal` → InfoCol.module.css, only `.layout` left in PlayArea.module.css) —
   now a drop-in against the contract.

@@ -6,6 +6,7 @@ import type {
   GamePageCtx,
 } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { db } from '../db'
 import { turnSnapshot } from '../lib/history'
@@ -329,12 +330,10 @@ export function PlayArea({
   // transient own-move message. While viewing a past turn the pill is irrelevant —
   // BoardCol's yellow overlay banner covers the region with the turn's description.
   const localPill: GenericFeedbackMsg | null = over
-    ? {
-        tone: over.outcome === 'won' ? 'success' : 'error',
-        text: over.verdict,
-        variant: 'fill', // permanent → lightened-tone fill
-        dismiss: { kind: 'sticky' },
-      }
+    ? // over.tone (won/lost/neutral) not over.outcome, so a manual end (neutral)
+      // reads neutral here — matching the info-column line and the other games,
+      // rather than the green a `.outcome`-keyed map used to give it.
+      terminalPill(over.tone, over.verdict)
     : localFeedback
 
   return (

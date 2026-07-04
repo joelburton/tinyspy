@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { terminalPill } from '../../common/lib/game/localPills'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
@@ -194,16 +195,7 @@ export function BoardCol({
           )}
           {over ? (
             <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={{
-                  tone:
-                    over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                  text: over.verdict,
-                  variant: 'fill', // permanent → lightened-tone fill
-                  dismiss: { kind: 'sticky' }, // never auto- or user-dismissed
-                }}
-                onClose={noop}
-              />
+              <GenericFeedbackPill msg={terminalPill(over.tone, over.verdict)} onClose={noop} />
             </div>
           ) : localPill ? (
             <div className={shared.localFeedback}>

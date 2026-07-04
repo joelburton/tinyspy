@@ -9,7 +9,7 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
-import { localPill } from '../lib/localPill'
+import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '../../common/lib/game/peers'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -197,7 +197,7 @@ export function PlayArea({
     if (isTerminal) return
     if (!window.confirm("End the game now? You can't undo this.")) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(localPill('error', error.message))
+    if (error) showLocalFeedback(stickyPill('error', error.message))
   }
 
   // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
@@ -207,7 +207,7 @@ export function PlayArea({
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
     const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(localPill('error', error.message))
+    if (error) showLocalFeedback(stickyPill('error', error.message))
   }
 
   // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
@@ -222,21 +222,9 @@ export function PlayArea({
   // column's terminalExtra carries the fuller "The answer was …" sentence.
   const answerSuffix = game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
   const localFeedbackMsg: GenericFeedbackMsg | null = over
-    ? {
-        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-        text: answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict,
-        variant: 'fill',
-        dismiss: { kind: 'sticky' },
-      }
+    ? terminalPill(over.tone, answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict)
     : isLocallyDone
-      ? {
-          tone: 'neutral',
-          text: myConceded
-            ? 'You conceded — the rest are still racing.'
-            : "You're out — the rest are still racing.",
-          variant: 'outline',
-          dismiss: { kind: 'sticky' },
-        }
+      ? outOfRacePill(myConceded)
       : localFeedback
 
   return (

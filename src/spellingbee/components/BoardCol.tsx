@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
+import { terminalPill } from '../../common/lib/game/localPills'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
@@ -146,13 +147,7 @@ export function BoardCol({
             recall={lastWord}
             pill={
               isTerminal && over
-                ? {
-                    tone:
-                      over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-                    text: `Game over — ${over.indicator}`,
-                    variant: 'fill', // permanent → lightened-tone fill
-                    dismiss: { kind: 'sticky' },
-                  }
+                ? terminalPill(over.tone, `Game over — ${over.indicator}`)
                 : word === ''
                   ? localFeedback
                   : null

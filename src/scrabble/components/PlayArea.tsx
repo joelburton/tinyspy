@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
+import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -170,12 +171,7 @@ export function PlayArea({
   // else the sticky own-move result (transient outline), else nothing (the commit
   // buttons show). Passed down to BoardCol, which renders it in the Controls.
   const localPill: GenericFeedbackMsg | null = over
-    ? {
-        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-        text: over.message,
-        variant: 'fill',
-        dismiss: { kind: 'sticky' },
-      }
+    ? terminalPill(over.tone, over.message)
     : localFeedback
 
   return (

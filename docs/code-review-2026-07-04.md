@@ -665,6 +665,23 @@ dead name**: `src/common/theme.css:101`,
 Ordered by payoff (lines saved × drift risk). Each was checked against
 deferred.md / the 2026-07-01 review for prior decisions; overlaps are noted.
 
+> **✅ DONE (folds in §5.4).** New `common/lib/game/localPills.ts` with
+> `stickyPill(tone, text)` (outline+sticky — replaces psychicnum `ownMove`,
+> connections `ownGuess`, wordle `localPill`, AND `useWordSubmit`'s private
+> copy; the three per-game `lib/` files are deleted, psychicnum's `capitalize`
+> moved to `lib/capitalize.ts`), `terminalPill(tone, text)` (fill+sticky, maps
+> won/lost/neutral; caller owns the text — verdict / message / custom reveal /
+> `Game over — {indicator}`), and `outOfRacePill(myConceded, activeText?)`
+> (the shared conceded copy, per-game active side). All ten games' terminal
+> pills + the four locally-done pills now call these. **One deliberate visual
+> change:** stackdown's terminal pill now keys on `over.tone` like every other
+> game (and like its own info-line via `TerminalActionRow`) instead of
+> `over.outcome`, so a manual end reads *neutral* not green — fixing an internal
+> inconsistency. codenamesduet's `ownAction` stays (it's `dismiss:'timed'`, not
+> sticky — a real difference). `tsc -b` + eslint clean; 350 FE tests green.
+> §5.5 (the `showFeedback`→`showLocalFeedback` rename + resolved-pill prop
+> drift) is left for the naming pass.
+
 **4.1 [HIGH] The below-board pill builders — one contract, ~25 hand-rolled
 copies.** Every game builds the same three `GenericFeedbackMsg` shapes by hand:
 
@@ -837,7 +854,8 @@ render a name — psychicnum's club label says "ada won the race"
 decided" (`waffle/manifest.ts:113`). The "username caching is fine" prior
 explicitly blesses caching the username into status jsonb.
 
-**5.4 The own-move pill builder: four copies, three names.** `ownMove`
+**5.4 The own-move pill builder: four copies, three names.** — **✅ DONE via
+§4.1** (unified as `stickyPill` in `common/lib/game/localPills.ts`). `ownMove`
 (psychicnum + private copy in `common/hooks/game/useWordSubmit.ts:93`),
 `ownGuess` (connections), `localPill` (wordle), inline fold (scrabble). Same
 function; promote one builder to `common/` under one name — pairs with §4.1.

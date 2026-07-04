@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
+import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -200,23 +201,12 @@ export function PlayArea({
   // sticky locally-terminal "waiting" pill → the transient own-move error. (While
   // viewing, BoardCol's yellow banner covers this region with the swap description.)
   const localPill: GenericFeedbackMsg | null = over
-    ? {
-        tone: over.tone === 'won' ? 'success' : over.tone === 'lost' ? 'error' : 'neutral',
-        text: over.verdict,
-        variant: 'fill', // permanent → lightened-tone fill
-        dismiss: { kind: 'sticky' },
-      }
+    ? terminalPill(over.tone, over.verdict)
     : selfDone
-      ? {
-          tone: 'neutral',
-          text: myConceded
-            ? 'You conceded — the rest are still racing.'
-            : self?.solved
-              ? 'Solved — waiting on the rest.'
-              : 'Out of swaps — waiting on the rest.',
-          variant: 'outline',
-          dismiss: { kind: 'sticky' },
-        }
+      ? outOfRacePill(
+          myConceded,
+          self?.solved ? 'Solved — waiting on the rest.' : 'Out of swaps — waiting on the rest.',
+        )
       : localFeedback
 
   return (

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../lib/games'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
+import { stickyPill } from '../../lib/game/localPills'
 
 /**
  * The shared **type-a-word-and-submit** engine for the two word-list games
@@ -87,16 +88,6 @@ export type WordSubmitApi = {
   showFeedback: (tone: GenericFeedbackTone, text: string) => void
 }
 
-/** Own-move pill shape shared by both games: outline (so it reads as the player's
- *  own transient result, not a filled peer message) + sticky (it persists in the
- *  below-board slot until the next keystroke clears it via `<EntryRow onAnyKey>`). */
-const ownMove = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
-  tone,
-  text,
-  variant: 'outline',
-  dismiss: { kind: 'sticky' },
-})
-
 /**
  * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
  * dot when it's a bonus find. Single-sources that convention so it can't drift
@@ -146,7 +137,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const pendingRef = useRef<Set<string>>(new Set())
 
   const showFeedback = useCallback(
-    (tone: GenericFeedbackTone, text: string) => showLocalFeedback(ownMove(tone, text)),
+    (tone: GenericFeedbackTone, text: string) => showLocalFeedback(stickyPill(tone, text)),
     [showLocalFeedback],
   )
 
@@ -163,7 +154,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      showLocalFeedback(ownMove('warning', line(w, 'too short')))
+      showLocalFeedback(stickyPill('warning', line(w, 'too short')))
       return
     }
 
@@ -178,12 +169,12 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      showLocalFeedback(ownMove('warning', line(w, 'already found', entry?.isBonus)))
+      showLocalFeedback(stickyPill('warning', line(w, 'already found', entry?.isBonus)))
       return
     }
 
     if (!entry) {
-      showLocalFeedback(ownMove('error', line(w, c.explainReject(w))))
+      showLocalFeedback(stickyPill('error', line(w, c.explainReject(w))))
       return
     }
 
@@ -193,11 +184,11 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // right after the word.
     pendingRef.current.add(w)
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    showLocalFeedback(ownMove('success', line(w, body, entry.isBonus)))
+    showLocalFeedback(stickyPill('success', line(w, body, entry.isBonus)))
 
     const release = (message: string) => {
       pendingRef.current.delete(w) // free it so the player can retry
-      showLocalFeedback(ownMove('error', message))
+      showLocalFeedback(stickyPill('error', message))
     }
     c.commit(entry).then(
       ({ error }) => {
