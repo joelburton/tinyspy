@@ -1042,10 +1042,15 @@ grant execute on function spellingbee.submit_word(uuid, text, int, boolean, bool
 -- to connections / psychicnum's submit_timeout, just with spellingbee's
 -- status payload.
 -- common.end_game flips common.games to ended/terminal; the FE's useCommonGame
--- hook (subscribed to common.games) sees that and enters review mode. No
--- spellingbee-table "realtime touch" is needed anymore: the word lists ship from
--- game start (nothing to reveal at terminal), and the FE's per-game useGame loads
--- the immutable header once + reacts to terminal via common.games.
+-- hook (subscribed to common.games) sees that and enters review mode.
+--
+-- A spellingbee-table "realtime touch" on found_words IS needed for compete:
+-- opponents' found_words rows are RLS-hidden during play and become SELECT-able
+-- only at terminal, and the FE's useGame subscribes to found_words alone. On a
+-- non-submit_word terminal (timeout here) no found_words event fires on its own,
+-- so peers never refetch and every opponent find renders as a grey "missed" row.
+-- A no-op self-update fires the WAL events. (The header word lists ship at game
+-- start, so THAT needs no touch — but the per-player finds do.)
 
 create function spellingbee.submit_timeout(target_game uuid)
 returns void
@@ -1142,6 +1147,11 @@ begin
       player_results
     );
   end if;
+
+  -- Realtime touch on found_words so peers refetch and the now-RLS-visible
+  -- opponents' finds appear (see header). Harmless in coop (teammates already
+  -- see each other's words live); load-bearing in compete.
+  update spellingbee.found_words set user_id = user_id where game_id = target_game;
 end;
 $$;
 
@@ -1174,9 +1184,9 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 --   - status.outcome='manual' (vs 'timeout')
 --   - any game player can fire it (vs the FE's timer-driven
 --     dispatch)
--- No spellingbee-table "realtime touch" needed: the FE's isTerminal (from
--- common.games, already published) drives the terminal transition, and useGame
--- only subscribes to found_words now (the header is immutable, loaded once).
+-- Ends with a found_words realtime touch, same as submit_timeout: the compete
+-- opponents'-finds reveal is RLS-gated on terminal and useGame subscribes to
+-- found_words alone, so a manual end needs the no-op self-update to wake peers.
 
 create function spellingbee.end_game(target_game uuid)
 returns void
@@ -1276,6 +1286,10 @@ begin
       player_results
     );
   end if;
+
+  -- Realtime touch on found_words so compete peers refetch the now-RLS-visible
+  -- opponents' finds (see submit_timeout's header for the full rationale).
+  update spellingbee.found_words set user_id = user_id where game_id = target_game;
 end;
 $$;
 
@@ -1304,6 +1318,14 @@ begin
     raise exception 'concede is only for compete games' using errcode = 'P0001';
   end if;
   perform common.concede(target_game);
+
+  -- If that was the last racer, common.concede ended the game. Wake the
+  -- found_words subscription (same reveal as submit_timeout/end_game) so the
+  -- remaining clients refetch the now-RLS-visible opponents' finds. common.*
+  -- writes only common.games, so without this the reveal never loads.
+  if (select play_state from common.games where id = target_game) <> 'playing' then
+    update spellingbee.found_words set user_id = user_id where game_id = target_game;
+  end if;
 end;
 $$;
 

@@ -192,7 +192,11 @@ established convention — but four paths are missing it. In each case the
 symptom is the same: the game ends on other clients but the terminal *reveal*
 never appears until a reconnect/remount refetch.
 
-**R1. [medium] psychicnum: `submit_timeout` and a game-ending `concede`.**
+**R1. [medium] psychicnum: `submit_timeout` and a game-ending `concede`.** —
+**✅ DONE.** Added the same `update psychicnum.games set club_handle = club_handle`
+no-op touch (that `end_game` already has) to the tail of both paths, so the
+secrets reveal loads on timeout / last-player-concede. gameplay + concede pgTAP
+green.
 `20260615000002_psychicnum.sql:945–1006` and `:751–789` — neither has the touch
 that `psychicnum.end_game` explicitly adds (`:1085–1088`). On countdown expiry
 `games_state.secrets` stays `null` on every client and `BoardCol` renders the
@@ -201,7 +205,13 @@ fallback `'Game over.'` pill instead of "The words were …"
 *Fix:* add the same no-op self-set at the tail of both paths.
 
 **R2. [medium] spellingbee compete: post-terminal reveal of opponents' finds
-never loads on non-`submit_word` terminals.**
+never loads on non-`submit_word` terminals.** — **✅ DONE.** The FE subscribes to
+`found_words` alone, so the touch had to land there (not `games`): added
+`update spellingbee.found_words set user_id = user_id where game_id = target_game`
+to `submit_timeout`, `end_game`, and the terminal branch of `concede`, and
+rewrote the two stale "no touch needed" comment blocks to explain the compete
+RLS reveal. Harmless in coop (finds already live). gameplay + concede pgTAP
+green.
 `20260617000000_spellingbee.sql:1041` (`submit_timeout`), `:1172` (`end_game`),
 `:1287` (`concede`) deliberately dropped the touch ("nothing to reveal — the
 word lists ship from start"), but that reasoning misses the compete
@@ -216,7 +226,11 @@ only because the winner's final INSERT lands post-commit when RLS is open.
 `foundWords` in the FE when `isTerminal` flips true.
 
 **R3. [medium] waffle compete: a game-ending `concede` writes nothing to the
-waffle schema.**
+waffle schema.** — **✅ DONE.** Put the `update waffle.games set club_handle =
+club_handle` touch inside `_maybe_finish_compete` right after its `end_game`
+call (before `return true`), so it covers the concede path AND stays with the
+end_game write. Harmless double-touch on the submit_swap path (which already
+wakes via its `waffle.players`/`swaps` writes). gameplay + concede pgTAP green.
 `20260624000000_waffle.sql:774–790`; when `_maybe_finish_compete` (`:557–613`)
 terminates it calls only `common.end_game` — unlike `submit_timeout` (`:872`)
 and `end_game` (`:951`), which both have the touch. `games_state.solution` and

@@ -608,6 +608,14 @@ begin
     jsonb_build_object('mode', 'compete', 'winner', winner_id),
     player_results
   );
+
+  -- Realtime touch: common.end_game writes only common.games, so wake the
+  -- waffle.* subscription to load the terminal reveal (solution +
+  -- opponents' boards). submit_swap's terminal already writes waffle.players
+  -- /swaps so it wakes on its own, but the concede path (waffle.concede →
+  -- here) writes nothing to the waffle schema — without this, the reveal
+  -- never appears for anyone. Same trick as submit_timeout / end_game.
+  update waffle.games set club_handle = club_handle where id = target_game;
   return true;
 end;
 $$;

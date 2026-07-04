@@ -791,6 +791,14 @@ begin
     jsonb_build_object('outcome', 'lost_compete'),
     player_results
   );
+
+  -- Realtime touch — same as end_game/submit_timeout. common.end_game
+  -- writes only common.games, so without this the psychicnum.games
+  -- subscription never refetches the secrets reveal on the last-player
+  -- concede terminal.
+  update psychicnum.games
+     set club_handle = club_handle
+   where id = target_game;
 end;
 $$;
 
@@ -1008,6 +1016,15 @@ begin
     ),
     player_results
   );
+
+  -- Realtime touch — same as end_game. common.end_game writes only
+  -- common.games, so without this no-op self-set the psychicnum.games
+  -- subscription never refetches and games_state.secrets stays null on
+  -- every client — BoardCol shows the fallback "Game over." instead of
+  -- the "The words were …" reveal.
+  update psychicnum.games
+     set club_handle = club_handle
+   where id = target_game;
 end;
 $$;
 
