@@ -8,46 +8,31 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
+import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { drawTurnLog, twoColGeom, type TurnRow } from '../../common/pdf/turnLog'
 
 /**
- * ⚠️ SPIKE / POC (branch `scrabble-jspdf`). A throwaway proof-of-concept to see what
- * the jsPDF code shape looks like for printing a scrabble board — to compare against
- * a react-pdf spike before we pick a direction and build the real, shared-across-games
- * version. Self-contained + un-abstracted on purpose: no common/ scaffold, no font
- * embedding. Reuses the pure board logic (premiumAt / LETTER_VALUES / …) but draws its
- * own print-tuned board rather than the on-screen `<Board>` (CSS-modules + pointer
- * handlers, print-hostile).
+ * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
+ * the frame (header / save) + `turnLog` (the newspaper 2-column move flow). All that's
+ * scrabble-specific is the board + rack. It reuses the pure board logic (premiumAt /
+ * LETTER_VALUES / …) but draws its own print-tuned board rather than the on-screen
+ * `<Board>` (CSS-modules + pointer handlers, print-hostile).
  *
- * **Layout: two columns.** The board + rack sit at the top of the LEFT column, the
- * turns list (+ a Setup section) flows down under them, and when it reaches the page
- * bottom it continues from the top of the RIGHT column (newspaper flow), then further pages.
- * jsPDF is imperative — you place every primitive in page points — and a table plugin
- * (jspdf-autotable) only paginates onto new PAGES, not into a second column on the same
- * page, so the moves are hand-drawn here with an explicit column cursor.
+ * The board + rack sit at the top of the LEFT column; the moves flow down under them
+ * (via `turnLog`) and continue in the RIGHT column, then onto further pages.
  */
 
 /** The print payload — plain data, built by the caller from the live game state, so
  *  this module knows nothing about the game hooks. */
-export type ScrabblePrintModel = {
-  /** The gametype BRAND ("RackAttack") — never the "scrabble" code-name. */
-  brand: string
-  /** This game's own title (`common.games.title` — scrabble's first three words). */
-  gameTitle: string
-  /** Formatted date, shown small at the top-right. */
-  date: string
-  /** e.g. "Team score: 42 · 12 tiles in the bag". */
-  summary: string
+export type ScrabblePrintModel = PrintHeader & {
   /** The 225-cell board (same array the FE renders). */
   board: Cell[]
   /** One row per play, already formatted (# / who / what). */
-  moves: { seq: number; who: string; text: string }[]
+  moves: TurnRow[]
   /** The tiles to show ('?' = a blank). */
   rack: string[]
   /** "Your rack" (compete) / "Team rack" (coop) / "" (a watcher — omit). */
   rackLabel: string
-  /** Relevant setup options to list at the end (label + value) — e.g. the
-   *  dictionary bands. The timer is deliberately excluded (not relevant on a print). */
-  setup: { label: string; value: string }[]
 }
 
 /** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
@@ -66,43 +51,18 @@ const TILE_FILL: [number, number, number] = [250, 247, 239]
 // .letter = 58cqmin, .value = 36cqmin), so the value reads small next to the letter.
 const LETTER_RATIO = 0.58
 const VALUE_RATIO = 0.36
-// ── Print shade system (see docs/pdf.md). 0 = black … 255 = white. Everything not
-//    EXPLICITLY colored is one of these. (scrabble's premium-square + tile fills are
-//    the agreed board-color exception — they carry board meaning, not decoration.) ──
-const BLACK = 0 // text / data / headings
-const DARK_GREY = 70 // board grid + column-header labels
-const MEDIUM_GREY = 180 // minor lines — turn dividers + table header rule
+// Board line weights. (scrabble's premium-square + tile fills are the agreed
+// board-color exception in docs/pdf.md — they carry board meaning, not decoration.)
 const BORDER_W = 0.6 // empty-cell grid weight (a "normal" line — matches psychicnum's board)
 const TILE_BORDER_W = 1 // placed tiles get a thicker frame so they stand out from empty cells
-const RULE_W = 0.4
-// Turns-table column x-offsets (from the column's left edge). The Move column is the
-// important one so it gets the most room; Player is narrow and truncates.
-const SEQ_X = 3
-const WHO_X = 19
-const MOVE_X = 66
 
 /** Generate the PDF and hand it to the browser as a download. */
 export function printScrabblePdf(m: ScrabblePrintModel): void {
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' })
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
-  const margin = 28 // tight-ish so the columns use more of the paper (safe for print)
-  const gutter = 22
-  const colW = (pageW - 2 * margin - gutter) / 2
-  const leftX = margin
-  const rightX = margin + colW + gutter
-  const colTop = margin + 44
-  const pageBottom = pageH - margin
+  const pd = newPrintDoc()
+  const { doc } = pd
+  const { leftX, colW, colTop } = twoColGeom(pd)
 
-  // ── Header (spans both columns): "Brand: game title" left, date top-right ──
-  // Draw the date first (measure it) so the heading can be truncated to fit left of it.
-  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
-  const dateW = doc.getTextWidth(m.date)
-  doc.text(m.date, pageW - margin, margin + 6, { align: 'right' })
-  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(BLACK)
-  doc.text(fit(doc, `${m.brand}: ${m.gameTitle}`, pageW - 2 * margin - dateW - 16), margin, margin + 8)
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(BLACK)
-  doc.text(m.summary, margin, margin + 24)
+  drawHeader(pd, m)
 
   // ── Left column: board, then rack ───────────────────────
   const cell = colW / BOARD_SIZE
@@ -115,75 +75,10 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
     ly = drawRack(doc, m.rack, leftX, ly + 6) + 26
   }
 
-  // ── Turns: newspaper flow left → right → further pages ──
-  // ("Turns" is this project's word for a play — see the shared TurnLog.)
-  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(BLACK)
-  doc.text('Turns', leftX, ly)
-  ly += 6
+  // ── Moves: the shared newspaper turn flow (labelled "Move") ──
+  drawTurnLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup })
 
-  const rows: [string, string, string][] = m.moves.length
-    ? m.moves.map((mv) => [String(mv.seq), mv.who, mv.text])
-    : [['—', '', 'No turns yet.']]
-  const rowH = 15
-  let col: 0 | 1 = 0 // 0 = left, 1 = right
-  let firstPage = true
-  const colX = () => (col === 0 ? leftX : rightX)
-  const columnTop = () => (firstPage ? colTop : margin)
-  const nextColumn = () => {
-    if (col === 0) col = 1
-    else {
-      doc.addPage()
-      firstPage = false
-      col = 0
-    }
-  }
-  let cy = drawTurnsHeader(doc, leftX, ly, colW)
-  let firstInColumn = true
-
-  rows.forEach((row) => {
-    if (cy + rowH > pageBottom) {
-      nextColumn()
-      cy = drawTurnsHeader(doc, colX(), columnTop(), colW)
-      firstInColumn = true
-    }
-    const x = colX()
-    // A thin rule between turns (no alternate-row shading — see docs/pdf.md).
-    if (!firstInColumn) doc.setDrawColor(MEDIUM_GREY).setLineWidth(RULE_W).line(x, cy, x + colW, cy)
-    firstInColumn = false
-    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
-    doc.text(row[0], x + SEQ_X, cy + 10)
-    // Player is narrow + truncates (a cut-off name is still distinguishable); Move
-    // gets the rest, because a truncated move wouldn't be.
-    doc.text(fit(doc, row[1], MOVE_X - WHO_X - 3), x + WHO_X, cy + 10)
-    doc.text(fit(doc, row[2], colW - MOVE_X - 3), x + MOVE_X, cy + 10)
-    cy += rowH
-  })
-
-  // ── Setup — appended after the turns, same column flow. Kept together: if the
-  //    block won't fit in the rest of the column, move it whole to the next column. ──
-  if (m.setup.length) {
-    const blockH = 22 + 13 + m.setup.length * 13
-    if (cy + blockH > pageBottom) {
-      nextColumn()
-      cy = columnTop()
-    } else {
-      cy += 22 // space before the Setup section
-    }
-    const x = colX()
-    doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK) // smaller sub-heading
-    doc.text('Setup', x, cy)
-    cy += 13
-    m.setup.forEach((it) => {
-      doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
-      doc.text(`${it.label}: `, x, cy)
-      const labelW = doc.getTextWidth(`${it.label}: `)
-      doc.setFont('helvetica', 'normal').setTextColor(BLACK)
-      doc.text(it.value, x + labelW, cy)
-      cy += 13
-    })
-  }
-
-  doc.save(`${slug(`${m.brand}-${m.gameTitle}`)}.pdf`)
+  savePrint(pd, m, 'scrabble')
 }
 
 /** Draw the 15×15 board at (x0, y0) with the given cell size. */
@@ -267,27 +162,4 @@ function drawTileGlyph(
     doc.setFont('helvetica', 'normal').setFontSize(size * VALUE_RATIO)
     doc.text(String(value), px + size - size * 0.12, py + size - size * 0.12, { align: 'right' })
   }
-}
-
-/** Draw the "# Player Move" column header + a rule at (x, y). Returns the first row's top y. */
-function drawTurnsHeader(doc: jsPDF, x: number, y: number, w: number): number {
-  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(DARK_GREY)
-  doc.text('#', x + SEQ_X, y + 9)
-  doc.text('Player', x + WHO_X, y + 9)
-  doc.text('Move', x + MOVE_X, y + 9)
-  doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5).line(x, y + 13, x + w, y + 13)
-  return y + 16
-}
-
-/** Truncate `text` with an ellipsis to fit `maxW` at the current font size. */
-function fit(doc: jsPDF, text: string, maxW: number): string {
-  if (!text || doc.getTextWidth(text) <= maxW) return text
-  let t = text
-  while (t.length > 1 && doc.getTextWidth(t + '…') > maxW) t = t.slice(0, -1)
-  return t + '…'
-}
-
-/** A filesystem-safe filename from the title. */
-function slug(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'scrabble'
 }

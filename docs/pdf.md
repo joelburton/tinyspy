@@ -6,14 +6,24 @@ doc is the **shared design language** for those printouts, so every game's print
 like it belongs to the same system (the on-screen consistency goal — see
 [ui.md](ui.md) — extended to paper).
 
-Status: **per-game spikes today** (scrabble = `src/scrabble/pdf/printScrabblePdf.ts`,
-psychicnum = `src/psychicnum/pdf/printPsychicnumPdf.ts`). The shared parts below (the
-shade system, the header, the two-column flow, the Setup section, `fit`/`slug`) are
-duplicated across the two and are the seam to lift into a `common/` print scaffold once
-the conventions settle — each game would then supply only its own board renderer + a
-plain-data print model. **Joel picked jsPDF** over react-pdf (see
-[project memory] / the `scrabble-react-pdf` branch): precise layout control, a lighter
-dep, and it matches his existing jsPDF crossword-print code that will land in puzpuzpuz.
+Status: **shared `common/pdf/` helpers**, with three games printing today (scrabble,
+psychicnum, boggle). **Joel picked jsPDF** over react-pdf (see [project memory] / the
+`scrabble-react-pdf` branch): precise layout control, a lighter dep, and it matches his
+existing jsPDF crossword-print code that will land in puzpuzpuz.
+
+The extraction is a **toolkit of à-la-carte helpers**, not a template — the games' body
+layouts differ too much (a 2-column newspaper turn flow vs. a board + side-setup + word
+columns) to share one `render()` with callbacks. So the frame owns the truly-common
+atoms and each game composes them with its OWN board renderer + a plain-data model:
+
+| module | used by | what it does |
+|---|---|---|
+| `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
+| `common/pdf/turnLog.ts` | scrabble, psychicnum | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
+| `common/pdf/wordColumns.ts` | boggle (spellingbee next) | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in |
+
+A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, draw its own
+board, call `drawTurnLog` **or** `drawWordColumns`, `savePrint`.
 
 ## The aesthetic: clean + printable
 
@@ -73,29 +83,36 @@ something (and even then, prefer a mark or a shade over a fill). In particular:
   medium-grey rule instead.
 - **No outcome fills** on tiles — the ✓/✗ mark alone says correct vs miss.
 
-(scrabble's board is the current exception under discussion: its premium-square colors
-+ tan tiles are *meaningful* board features, not decoration. Revisit when the scaffold
-is extracted.)
+(scrabble's board is the agreed exception: its premium-square colors + tan tiles are
+*meaningful* board features, not decoration — and they live in scrabble's own board
+renderer, not the shared frame, so the exception can't leak to other games.)
 
 ## Layout conventions (the shared shape)
 
-- **Letter page, two columns.** Newspaper flow: the board (+ a one-line state summary)
-  sits at the top of the **left** column; the turn log flows down under it and
-  **continues at the top of the right column**, then onto further pages. (Every PDF lib
-  paginates by page, not column, so the two-column flow is hand-managed with a column
-  cursor — see either spike.)
-- **Header, spanning both columns:** **`Brand: game title`** top-left (brand from the
-  manifest's `name`, the game title from `common.games.title` via `GamePageCtx.title`),
-  the **date top-right** (small, black), and a **summary** line below (game state, e.g.
-  "1 of 3 secrets found · 3 guesses used").
-- **The turn log is titled "Turns"** (the project's word for a turn — matches the shared
-  `<TurnLog>`), a `#` / `Player` / <what-happened> table with a thin dividing rule
-  between turns.
-- **A "Setup" section at the end** of the log — a smaller sub-heading (with space above
-  it) listing the *relevant* setup options only (e.g. the dictionary/difficulty bands);
-  the **timer is excluded** (not relevant on paper).
-- **Margins** are tight-ish (~28pt) so the columns use more of the paper, while staying
+The **header** is universal; the **body** comes in two families (see the module table
+above) — a game picks one.
+
+- **Header (all games):** **`Brand: game title`** top-left (brand from the manifest's
+  `name`, the game title from `common.games.title` via `GamePageCtx.title`), the **date
+  top-right** (small, black), and a **summary** line below that matches the game's
+  on-screen status (e.g. "9 / 214 words · 14 pts", "1 of 3 secrets found · 3 guesses used").
+- **A "Setup" section** — a smaller sub-heading listing the *relevant* setup options only
+  (e.g. the dictionary/difficulty bands); the **timer is excluded** (not relevant on paper).
+- **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
+
+**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum).** Letter page,
+two columns, newspaper flow: the board (+ the summary) sits at the top of the **left**
+column; the turn log flows down under it and **continues at the top of the right column**,
+then onto further pages (every PDF lib paginates by page, not column, so it's a
+hand-managed column cursor). The log is titled **"Turns"** (the project's word for a
+turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> table with a
+thin rule between turns; the Setup section is appended at the end of the flow.
+
+**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee next).** A
+**fixed-size** board top-left (so a 6×6 prints bigger than a 4×4 — it isn't scaled to a
+column), the Setup to its **right**, and below them the words in **N balanced,
+column-major, alphabetical columns** (each row `word (·bonus dot) … +score  finder`).
 
 ## Plumbing
 
