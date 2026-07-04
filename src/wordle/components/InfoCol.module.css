@@ -1,5 +1,5 @@
 /* wordle's info-column chrome. The two-column SHELL (.infoCol) + the shared scaffold
- * pieces come from common/components/PlayArea.module.css; only the terminal answer-
+ * pieces come from common/components/game/PlayArea.module.css; only the terminal answer-
  * reveal line is wordle-specific. */
 
 /* The info-column terminal answer-reveal line. Drop the browser's default <p>

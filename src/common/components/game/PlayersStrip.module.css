@@ -3,7 +3,7 @@
  * overflows the available width (the parent <StatusSlot> sets
  * `min-width: 0` to allow shrinking past the intrinsic width).
  *
- * Same height contract as the FeedbackPill — see
+ * Same height contract as the GenericFeedbackPill — see
  * docs/ui.md → "Layout stability."
  */
 

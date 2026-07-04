@@ -1,6 +1,6 @@
 /* psychicnum's board: a wrapper framing the word grid. The tile CHROME
  * (fill, border, shadow, hover, selected, label auto-fit) is the shared
- * `.tile` / `.tileWord` from common/components/PlayArea.module.css; only the
+ * `.tile` / `.tileWord` from common/components/game/PlayArea.module.css; only the
  * board wrapper, the grid layout, and the guessed-result fills are
  * psychicnum's. */
 
@@ -42,7 +42,7 @@
  * board floating in a full-width column. With no width cap, the cap term goes
  * huge and the grid simply fills --avail-w (the old "fill" look — hug of the
  * full width). --avail-w (the width left beside the info column) is the shared
- * scaffold token, set on .layout in common/components/PlayArea.module.css — every
+ * scaffold token, set on .layout in common/components/game/PlayArea.module.css — every
  * hug game reads the same one. --cols is set inline. */
 .grid {
   /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this

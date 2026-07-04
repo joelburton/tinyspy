@@ -3,7 +3,7 @@
  * swaps between the guess entry, an own-move / terminal / waiting pill, and (while
  * viewing history) the banner overlay. The board-column scaffold (.boardCol /
  * .moveAreaOrLocalFeedback / .localFeedback / .floatingShuffle) is the shared
- * common/components/PlayArea.module.css. */
+ * common/components/game/PlayArea.module.css. */
 
 /* The below-board region wrapper. `display: contents` so it's a structure/naming
  * wrapper that generates no box — the reserved-height swap box inside it

@@ -5,7 +5,7 @@
  *
  * ─── Why this exists ─────────────────────────────────────────────────────────
  * The viewport-bound game layout sizes the board column from the available
- * width (`--avail-w`, see common/components/PlayArea.module.css). The obvious
+ * width (`--avail-w`, see common/components/game/PlayArea.module.css). The obvious
  * source, `100vw`, is wrong: **`100vw` INCLUDES the vertical scrollbar's width,
  * but the content box doesn't.** On systems with classic, space-taking
  * scrollbars (macOS set to "always show", most Windows), that overstates the

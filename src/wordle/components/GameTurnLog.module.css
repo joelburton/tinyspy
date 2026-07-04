@@ -1,6 +1,6 @@
 /* wordle's turn log rides the shared <TurnLog> table — the panel border, the
  * between-turns dividers, the right-aligned who column, and the scroll box all
- * come from common/components/TurnLog.module.css. The ONLY wordle-specific bit is
+ * come from common/components/game/lists/TurnLog.module.css. The ONLY wordle-specific bit is
  * the guess itself, rendered as five colored mini-tiles (the per-letter g/y/x
  * feedback); that lives here. */
 
@@ -9,7 +9,7 @@
   gap: 0.15rem;
 }
 
-/* The guess is click-to-define (common/hooks/useDefinePopover) — the affordance
+/* The guess is click-to-define (common/hooks/definitions/useDefinePopover) — the affordance
  * rides the whole five-square WORD group, not the individual cells. Colored
  * blocks can't take the usual underline-on-hover, so the cue is a pointer +
  * a tone-colored ring on hover / keyboard focus. The `outline` draws outside the

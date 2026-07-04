@@ -1,5 +1,5 @@
 /* bananagrams v3 play surface — composed with the shared scaffold
- * (common/components/PlayArea.module.css): `.layout` sets the info-column
+ * (common/components/game/PlayArea.module.css): `.layout` sets the info-column
  * width, and the board column + hand region are game-specific.
  *
  * bananagrams is the documented exception to two house rules:

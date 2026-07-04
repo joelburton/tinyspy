@@ -1,7 +1,7 @@
 /* psychicnum-specific bits of the turn log. The panel chrome (heading + scroll
  * box), the column-fill (`flex: 1` on `.turnLog`), the row look (outcome bar,
  * divider lines) and content classes all come from the shared
- * common/components/TurnLog; only the wrapping hint cell is psychicnum's. */
+ * common/components/game/lists/TurnLog; only the wrapping hint cell is psychicnum's. */
 
 /* A hint row's colspan cell carries a clue sentence (not a one-word value), so
  * let it wrap to as many lines as it needs — the log scrolls, so a taller row
@@ -10,7 +10,7 @@
   white-space: normal;
 }
 
-/* A click-to-define word (common/hooks/useDefinePopover) — the subtle
+/* A click-to-define word (common/hooks/definitions/useDefinePopover) — the subtle
  * underline-on-hover affordance the other text-word logs use (scrabble PlayLog,
  * stackdown FoundWords, the shared WordList). Only the guessed/revealed word
  * carries it, never a hint sentence. */

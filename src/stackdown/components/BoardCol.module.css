@@ -23,7 +23,7 @@
   flex-direction: column;
   align-items: center;
   /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/components/historyViewer.module.css), which covers this region while a
+     common/components/game/lists/historyViewer.module.css), which covers this region while a
      past turn is being viewed. The banner's height is this region's height (game-
      specific); its appearance is common. */
   position: relative;

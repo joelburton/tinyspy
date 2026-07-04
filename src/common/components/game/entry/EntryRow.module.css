@@ -1,4 +1,4 @@
-/* The shared capture-entry control row (common/components/EntryRow.tsx): an
+/* The shared capture-entry control row (common/components/game/entry/EntryRow.tsx): an
  * icon-only Delete button | the chrome-less <EntryBox> | an icon-only Submit
  * button, on one centered line. The EntryBox flex-fills the row (see
  * EntryBox.module.css → `.box { flex: 1 }`); the buttons keep their intrinsic

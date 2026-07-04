@@ -175,7 +175,7 @@ export function BoardCol({
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the WordEntry + feedback stay mounted underneath, so
             the built-up word survives). Opaque surface + yellow border = the shared
-            "viewing history" marker (common/components/historyViewer.module.css).
+            "viewing history" marker (common/components/game/lists/historyViewer.module.css).
             Click anywhere to exit; the ✕ far right also exits. */}
         {viewing && (
           <div className={history.banner} onClick={onExitViewing} title="Click to exit">

@@ -52,7 +52,7 @@ export function GameTurnLog({ guesses, players, viewingTurn, onSelectTurn }: Pro
     <TurnLogActor actor={memberById(players, userId)} />
   )
 
-  // Click-to-define (a common feature — see common/hooks/useDefinePopover). The
+  // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover). The
   // guessed / revealed word is a real dictionary word, so it's definable; a HINT
   // row's `word` is a clue sentence, so it is NOT wired up.
   const { define, popover } = useDefinePopover()

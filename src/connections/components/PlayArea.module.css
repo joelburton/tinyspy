@@ -1,5 +1,5 @@
 /* connections board surface. The two-column SHELL, the info-column READOUTS,
- * and the TILE chrome come from the shared common/components/PlayArea.module.css
+ * and the TILE chrome come from the shared common/components/game/PlayArea.module.css
  * (imported as `shared`); only what's specific to connections lives here:
  *   - .board      — the board wrapper that fills the column. NO border/
  *                   background today (the gaps show the column behind, matching
@@ -215,7 +215,7 @@
 }
 
 /* Own-result feedback + the terminal/eliminated message both render as the shared
- * <FeedbackPill> (centered via the shared `.localFeedback`) in the same swap box
+ * <GenericFeedbackPill> (centered via the shared `.localFeedback`) in the same swap box
  * as the controls. It reserves no height of its own: the shared
  * `.moveAreaOrLocalFeedback`'s min-height keeps the slot stable whether it holds
  * the `.moveArea` (Clear/Submit buttons), the result pill, or the terminal pill. */

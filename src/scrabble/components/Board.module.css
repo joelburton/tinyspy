@@ -19,7 +19,7 @@
 }
 
 /* The "you're viewing a past turn" board frame is the shared yellow outline — see
-   common/components/historyViewer.module.css (.frame), applied in Board.tsx. */
+   common/components/game/lists/historyViewer.module.css (.frame), applied in Board.tsx. */
 
 .cell,
 .tile {

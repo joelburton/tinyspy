@@ -1,5 +1,5 @@
 /* boggle-specific setup bits. The form scaffold (.setup / .fieldset / legend /
- * .radioRow / .radio) comes from the shared common/components/setupForm.module.css,
+ * .radioRow / .radio) comes from the shared common/components/fields/setupForm.module.css,
  * and the dice-set / ladder dropdowns are the shared <SelectField>; only what's
  * unique to boggle lives here — the collapsible constraints grid (.disclosure/.grid). */
 

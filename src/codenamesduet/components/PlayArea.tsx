@@ -220,7 +220,7 @@ export function PlayArea({
 
   // Shared terminal-modal scaffold: open on mount if already-
   // terminal, re-pop when isTerminal flips during play, no re-pop
-  // after dismiss. See common/hooks/useTerminalModal.ts.
+  // after dismiss. See common/hooks/game/useTerminalModal.ts.
 
   // ─── Own-action feedback (local) ───────────────────────
   // The below-board local-feedback channel — the LOCAL half of the feedback split

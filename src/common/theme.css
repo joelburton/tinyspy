@@ -61,7 +61,7 @@
   /* History-view marker — the yellow "you're viewing a past turn, not the live
      board" signal shared by every turn-history-capable game (drives the board
      frame, the open log row, and the overlay banner; see
-     common/components/historyViewer.module.css). A neutral amber, NOT an outcome
+     common/components/game/lists/historyViewer.module.css). A neutral amber, NOT an outcome
      color: reviewing a pass or a rejected word is no success, so green would
      mislead. */
   --color-history-viewer:     #ffd21a;
@@ -98,7 +98,7 @@
   --color-outcome-lost-border:#ef5350;   /* red 400 */
   /* "Strong" companions — saturated 800-level green/red for when the outcome
      color carries a border/text on the white surface with NO pastel fill
-     behind it (the outline FeedbackPill). The 400-level `-border` tones above
+     behind it (the outline GenericFeedbackPill). The 400-level `-border` tones above
      read fine as a strip ON a pastel `-bg`, but look pale as a bare 2px
      outline; these are the legible-on-surface tier (same reasoning as the
      ModePill 800-level chip tones below). */
@@ -199,7 +199,7 @@
      dark with light ink — the recognizable "I picked this" state. A game's own
      result fills (psychicnum green/red) and peer-identity frames (connections)
      layer on top by re-setting these tokens / drawing an inset frame — see the
-     per-game tile CSS. The shared `.tile` (common/components/PlayArea.module.css)
+     per-game tile CSS. The shared `.tile` (common/components/game/PlayArea.module.css)
      reads ONLY these tokens for its colors, so a state class overrides by
      re-setting a token, not by out-cascading another stylesheet. */
   /* ── Warm tile family — 5 shades, lightest → darkest ──────────────────────
@@ -247,7 +247,7 @@
   /* The "Wordle colors" — the per-letter feedback palette shared by the
      letter-coloring games (waffle today, wordle as it converges). The server
      computes the feedback (it holds the secret); the FE only paints it, mapping
-     each code to a class via common/lib/tileColor.ts. Kept here, not per-game,
+     each code to a class via common/lib/color/tileColor.ts. Kept here, not per-game,
      because the recognizable green/yellow/gray is one palette across games —
      a player reads the same colors in waffle and wordle. Game-specific chrome
      (wordle's filled-tile border, waffle's pickup ring) stays in that game. */
@@ -308,7 +308,7 @@
 /* Always reserve the vertical scrollbar's gutter, so a scrollbar
    appearing/disappearing (e.g. the word list growing at game-over) doesn't
    resize the board. Correctness comes from `--client-width` (the scrollbar-
-   excluded width the board math uses — see common/lib/layoutWidth.ts +
+   excluded width the board math uses — see common/lib/util/layoutWidth.ts +
    PlayArea.module.css `--avail-w`); this just avoids a cosmetic width jump when
    the scrollbar toggles. No effect on overlay-scrollbar systems (0px gutter);
    where unsupported (older Safari) it degrades to a harmless jump, not overflow. */

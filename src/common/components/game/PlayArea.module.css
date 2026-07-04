@@ -65,7 +65,7 @@
    * (space-taking) scrollbar the board is sized too wide and the whole pair
    * overflows right (info column off-screen) — worst at the WordList reveal,
    * which forces a scrollbar. `--client-width` is measured + kept current with a
-   * ResizeObserver (common/lib/layoutWidth.ts); it falls back to `100vw` for the
+   * ResizeObserver (common/lib/util/layoutWidth.ts); it falls back to `100vw` for the
    * first paint before the JS runs. */
   --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding));
 }
@@ -114,7 +114,7 @@
   );
 }
 
-/* The LOCAL feedback area — centers a lone <FeedbackPill> (or terminal message)
+/* The LOCAL feedback area — centers a lone <GenericFeedbackPill> (or terminal message)
  * in the below-board slot, the universal "local feedback is centered" look
  * (docs/design-decisions.md → Terms / Feedback; the global header pill is
  * left-justified instead). `flex: 1` fills its slot so it centers regardless of

@@ -17,7 +17,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
 | [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, FE, Edge Function, tests |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-target pattern, FE, tests |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-secrets pattern, FE, tests |
 | [docs/games/connections.md](docs/games/connections.md) | connections (Connections-style) rules + schema, the FE-knows decision, pause-on-disconnect pattern, peer-selection via Broadcast |
 | [docs/games/spellingbee.md](docs/games/spellingbee.md) | spellingbee (NYT-Spelling-Bee-style) rules + schema; both word lists (required + bonus) ship to the FE which validates + scores locally via the shared `useWordSubmit` hook (trusting-commit, like boggle); edge-function board builder, rank ladder, manual end-game flow |
 | [docs/games/bananagrams.md](docs/games/bananagrams.md) | bananagrams (Bananagrams-style) rules + schema; the FE-owned `board` / server-owned `tiles` split + derived hand, the fixed 25×25 player-board arena, snapshot-on-unmount persistence, owner-only RLS, the peel/dump bank loop, the keyboard cursor; the **per-player `concede`** (drop out = a real loss, others keep racing; replaced the whole-table `end_game`) + active-player `peel`; the **v3 desktop-only layout exception** (board fills / hand+peel+dump in the info column / no turn log) |

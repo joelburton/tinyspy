@@ -51,7 +51,7 @@ export function FoundWords({
   /** Open a turn in the board viewer (click any row — words, misses, cheats). */
   onSelectTurn: (index: number) => void
 }) {
-  // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
+  // Click-to-define plumbing (a common feature — see common/hooks/definitions/useDefinePopover).
   const { define: openDefine, popover } = useDefinePopover()
 
   // Click / keyboard activation for a clickable word chip (mirrors

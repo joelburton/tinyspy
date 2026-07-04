@@ -1,13 +1,13 @@
 /* waffle-specific bits of the turn log. The panel chrome (heading + scroll box),
  * the row look (outcome bar, divider lines), and the content classes `.meta` (the
  * #N column) + `.who` (the right-aligned actor column) come from the shared
- * common/components/TurnLog (the swapper name + disc is the shared <ActorTag>);
+ * common/components/game/lists/TurnLog (the swapper name + disc is the shared <ActorTag>);
  * only the move cell — "A (A1) ↔ B (C2)" — is waffle's. */
 
 /* A swap is opened on the board viewer by clicking its "#N" handle (the shared
  * <TurnLogNumber>), not the whole row — so the row carries no click affordance, and
  * the "currently viewing" yellow ring lives on that handle
- * (common/components/historyViewer.module.css → .viewedNumber). */
+ * (common/components/game/lists/historyViewer.module.css → .viewedNumber). */
 
 /* The move cell's content: "A (A1) ↔ B (C2)". `inline-flex` (not `flex`) so it
  * lays its pieces on one baseline-aligned row WITHOUT turning the host `<td>`

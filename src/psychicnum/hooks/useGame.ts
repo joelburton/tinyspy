@@ -101,7 +101,7 @@ export type PsychicnumGuess = {
  *
  * The cross-cutting machinery (members, presence, manual-pause,
  * timer) lives on `useCommonGame` inside `GamePage` — see
- * `src/common/hooks/useCommonGame.ts`.
+ * `src/common/hooks/game/useCommonGame.ts`.
  */
 export function useGame(gameId: string): {
   game: PsychicnumGame | null

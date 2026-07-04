@@ -102,7 +102,7 @@ export function WaffleGrid({ board, colors, disabled, viewing = false, highlight
   return (
     <div className={styles.board}>
       {/* The yellow frame marks "you're viewing a past turn" — the shared
-          history-view marker (common/components/historyViewer.module.css). */}
+          history-view marker (common/components/game/lists/historyViewer.module.css). */}
       <div
         className={cls(styles.grid, viewing && history.frame)}
         role="grid"

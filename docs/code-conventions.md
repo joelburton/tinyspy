@@ -68,7 +68,7 @@ When you need to expose a column the calling role can't see directly, gated on r
 3. Define a view `with (security_invoker = true)` that calls the helper for the gated column. The `security_invoker` flag means RLS on the base table still gates row visibility *as the caller* — so unauthorized rows stay hidden.
 4. Point the FE at the view, not the base table.
 
-Canonical example: `psychicnum.games_state` + `psychicnum._target_for(uuid)` — see [`psychicnum.md` → The hidden-target mechanic](games/psychicnum.md#the-hidden-target-mechanic).
+Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` — see [`psychicnum.md` → The hidden-secrets mechanic](games/psychicnum.md#the-hidden-secrets-mechanic).
 
 ### Migration filenames
 

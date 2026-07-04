@@ -1,7 +1,7 @@
 /* connections-specific bits of the turn log. Everything structural — the panel
  * chrome, the row look (outcome bar, divider), the two-row-entry hugging
  * (`.entryHead`/`.entryCont`), and the column-sizing classes (`.main` / `.who`) —
- * is shared in common/components/TurnLog. The ONLY connections-specific styling
+ * is shared in common/components/game/lists/TurnLog. The ONLY connections-specific styling
  * is the tiles cell below. (Each turn is two real <tr>s — row 1 `verdict | actor`
  * columns, row 2 the spanning tiles — NOT a flexbox sub-line in one cell.) */
 

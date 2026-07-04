@@ -112,7 +112,7 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 
 ### Schema deltas (vs. the baseline coop-only setup)
 
-The 20260621 `spellingbee_compete` migration:
+The `spellingbee_compete` rework (folded into the single `20260617000000_spellingbee.sql` baseline, per the alpha "edit baseline migrations" convention — there is no separate compete migration file):
 
 - Cascade-deletes the old `'spellingbee'` row from `common.gametypes` and inserts `'spellingbee_coop'` + `'spellingbee_compete'`; backfills `common.clubs_gametypes` for existing clubs.
 - Adds `spellingbee.games.mode text not null check (mode in ('coop','compete'))` — denormalized from the gametype string. The column grant extends to include `mode` so the `security_invoker` view + the mode-aware RLS policy on `found_words` can read it.
@@ -223,20 +223,19 @@ Called only by the `spellingbee-build-board` edge function in practice (it build
 
 Builds the title (per the formula above), calls `common.create_game` with the `'spellingbee_<mode>'` gametype string, inserts the `spellingbee.games` detail row (with `mode` column), and seeds `common.update_state`. The seeded status shape differs by mode: coop carries `{found_words_score:0, required_words_score, rank_idx:0, found_words_count:0, required_words_count}`; compete carries `{target_rank, required_words_score, required_words_count, leaderboard:[]}` (numeric per-player fields land once the first `submit_word` runs).
 
-### `spellingbee.submit_word(target_game uuid, word text) → jsonb`
+### `spellingbee.submit_word(target_game uuid, word text, points int, is_pangram boolean, is_bonus boolean) → jsonb`
 
-Returns `{ "result": <enum>, "points": int }`. Returning the points (not just the enum) lets the FE show the score earned in the entry feedback — and call out a pangram — **without re-deriving the point/pangram rules on the client** (the server already computed them). `points` is 0 for every rejected result.
+**Trusting-commit** (like boggle — both word-list games share the FE `useWordSubmit` engine). Because the full legal list (`required_words ∪ bonus_words`) ships to the FE at game start, the client validates + scores every guess LOCALLY and only commits accepted words. So the server **trusts** `word` + `points` + `is_pangram` + `is_bonus` and does NOT re-derive letters / center / min-length / dictionary membership — it just enforces the live-game check, dedups, records, and recomputes aggregates / the compete win. Returns `{ "result": <enum>, "points": int }` (the returned points echo what the FE sent, 0 for a server-side reject like a dup).
 
-The main mid-game action. Validates the word in the spellingbee-ws order (chosen so the friendliest message wins when multiple things are wrong):
+The FE-side validation happens in `useWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
 
-1. `tooShort` — length < 4
-2. `badLetters` — uses a letter not on the board
-3. `missingCenter` — doesn't include the center letter
-4. `notAWord` — not in `required_words` and not in `bonus_words` (i.e. not legal)
-5. `alreadyFound` — per mode rule (coop: any row with `(game_id, word)`; compete: row with `(game_id, user_id, word)`)
-6. otherwise: `pangram` (uses all 7 letters — required OR bonus), else `accepted` (required word), else `bonus` (legal but not required). **Bonus scores normally** — length + pangram bonus, same as a required word; the `pangram` value takes precedence over the accepted/bonus split (which the FE renders identically anyway), so the entry feedback can flag it.
+1. `tooShort` — length < `minWordLength` (4)
+2. `badLetters` / `missingCenter` — the reject reason from the legal-list lookup miss (`explainReject`)
+3. `notAWord` — not in the shipped `required ∪ bonus` list
+4. `alreadyFound` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
+5. otherwise accepted: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
 
-On accept: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` (compete target-rank-hit only — coop never auto-terminates from `submit_word`).
+Server-side on the trusted commit: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` (compete target-rank-hit only — coop never auto-terminates from `submit_word`). It re-checks the dedup under the row lock as a race backstop, and rejects a conceded caller.
 
 `SELECT … FOR UPDATE` on `spellingbee.games` serializes concurrent submissions. The PK on `found_words` is `(game_id, user_id, word)` — a same-player double-submit is also caught at the constraint level.
 
@@ -335,9 +334,8 @@ src/spellingbee/
                           coordinator, because its feedback channel is ALSO written by InfoCol's
                           End / Concede; it passes the entry primitives (word / setWord / submit /
                           localFeedback / …) DOWN to BoardCol (a thin-input game, like
-                          boggle/connections). Wires usePeerFeedback to the common header slot for
-                          peer/opponent events (aliased as `headerFeedback` so it doesn't clash
-                          with the local pill state). buildOver branches mode → terminal verdict
+                          boggle/connections). Wires the common useGlobalFeedback to the header slot
+                          for peer/opponent events. buildOver branches mode → terminal verdict
                           copy. Mounts GameOverModal via useTerminalModal on the isTerminal flip.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
                           top-right + the below-board <EntryRow> (the typed-word input + capture
@@ -378,11 +376,11 @@ src/spellingbee/
                           <DeleteButton> + <SubmitButton> flanking the EntryBox in the input
                           row, and a floating <ShuffleButton> over the board's top-right.)
                           (The own-move result pill is no longer a per-game Feedback.tsx:
-                          it's the shared <FeedbackPill>, sticky, rendered in the below-board
+                          it's the shared GenericFeedbackPill, sticky, rendered in the below-board
                           .localFeedback slot. success / warning / error are all in the common
                           FeedbackTone now, so the surface needs no game-specific tone type.
-                          Peer/opponent events still go to the HEADER slot via usePeerFeedback —
-                          two distinct LOCATIONS for the same shared pill component.)
+                          Peer/opponent events still go to the HEADER slot via the common
+                          useGlobalFeedback — two distinct LOCATIONS for the same shared pill component.)
     RankBar.tsx           7 dots from Start to Genius, filled up to the current rank.
                           Per-dot hover tooltip with rank name + points threshold.
     Stats.tsx             2-cell grid: Score / Words. Tabular-nums so the digits
@@ -422,13 +420,15 @@ src/spellingbee/
                           used inside the common WordList — no longer a spellingbee-local
                           hook. Tracks freshly-arrived words, each "recent" for 5s via
                           per-word setTimeouts in a ref, NOT effect cleanup.)
-    usePeerFeedback.ts    Fires HEADER feedback pills for other players' activity — the
-                          complement to the below-board own-move pill. coop: a peer found a
-                          good/pangram word (found_words is club-wide). compete: an opponent
-                          climbed a rank (their words are RLS-hidden, but rank rides
-                          status.leaderboard). Each names the player with a leading
-                          color disc (the `dot`). Both bootstrap on the first loaded render so
-                          a reconnect doesn't replay a backlog; self-activity is excluded.
+                          (Peer HEADER narration is now the SHARED
+                          common/hooks/feedback/useGlobalFeedback, called from PlayArea — no
+                          longer a spellingbee-local usePeerFeedback hook. It fires header pills
+                          for other players' activity — the complement to the below-board
+                          own-move pill. coop: a peer found a good/pangram word (found_words is
+                          club-wide). compete: an opponent climbed a rank (RLS-hidden words, but
+                          rank rides status.leaderboard). Each names the player with a leading
+                          color disc; both bootstrap on the first loaded render so a reconnect
+                          doesn't replay a backlog; self-activity is excluded.)
 
   lib/
     setup.ts              SpellingbeeSetup type (timer / target_rank? / custom_letters? /
@@ -446,7 +446,7 @@ src/spellingbee/
                           required_words.is_pangram flag.
     leaderboard.ts        LeaderboardEntry type + readLeaderboard(status): the compete
                           rank payload off common.games.status. Shared by the
-                          OpponentStrip and usePeerFeedback.
+                          OpponentStrip and the common useGlobalFeedback.
 ```
 
 ### Routes & shell

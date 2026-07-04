@@ -35,7 +35,7 @@ export function PlayLog({
   /** Open a turn in the board viewer (click a row). */
   onSelectTurn: (seq: number) => void
 }) {
-  // Click-to-define plumbing (a common feature — see common/hooks/useDefinePopover).
+  // Click-to-define plumbing (a common feature — see common/hooks/definitions/useDefinePopover).
   // Words display uppercase in the log; the lookup wants them lowercase.
   const { define, popover } = useDefinePopover()
   const openDefine = (word: string, el: HTMLElement) => define(word.toLowerCase(), el)

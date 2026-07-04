@@ -138,7 +138,7 @@ The detail behind everything above lives in `docs/`. Read these by need, not in 
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, naming rules, "Avoid SELECT *", `useEffect` commenting, known gotchas. |
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, the games registry, removability invariant, routing, the FE shell. |
 | [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, RLS, FE components, Edge Function, tests. |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-target column-grant pattern, FE, tests. |
+| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-secrets column-grant pattern, FE, tests. |
 | [docs/testing.md](docs/testing.md) | Test theory (pgTAP vs Vitest), persona conventions, common helpers, FE testing patterns. |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations. |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen lookup for commands, table inventory, RPC summaries, key files. |

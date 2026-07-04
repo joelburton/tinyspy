@@ -1,12 +1,12 @@
 /* spellingbee play surface, now on the shared two-column scaffold
- * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol psychicnum / connections / codenamesduet /
  * waffle use. This module holds only spellingbee's own bits: the per-game layout
  * vars, the board-size derivation, the below-board input region (the typed-word
  * display + Delete/Enter on one line, with the local feedback / terminal pill
  * swapping into the same slot), and the leftover loading styles. The info
  * column's readouts use the shared `.actionSlot` + readout classes; own-move and
- * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`.
+ * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`.
  */
 
 /* Per-game layout vars the shared scaffold reads. The info column runs wider than
@@ -64,7 +64,7 @@
 }
 
 /* (The input row + its EntryBox/Delete/Submit live in the shared
- * common/components/EntryRow now; only the below-board slot wrapper is here.) */
+ * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
 
 .loading,
 .empty {

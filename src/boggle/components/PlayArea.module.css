@@ -1,11 +1,11 @@
 /* MothCubes play surface, on the shared two-column scaffold
- * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
  * This module holds only boggle's own bits: the per-game layout vars, the SQUARE
  * board sizing (the waffle model — boggle's board is a square tile grid like
  * waffle's), the below-board input region, and the loading style. The info
  * column's readouts use the shared `.actionSlot` + readout classes; own-move and
- * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`. */
+ * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`. */
 
 /* Per-game layout vars the shared scaffold reads. The info column runs wide — the
  * word list wants room for its columns — so 33rem (spellingbee's width). --avail-h
@@ -103,7 +103,7 @@
 
 /* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
 /* (The input row + its EntryBox/Delete/Submit live in the shared
- * common/components/EntryRow now; only the below-board slot wrapper is here.) */
+ * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
 
 .loading {
   padding: 2rem;

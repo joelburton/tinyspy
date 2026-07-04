@@ -2,7 +2,7 @@
  * module); this file styles only the below-board move-input REGION under it — the
  * slot that swaps between the CluePanel, an own-action / terminal pill, and (while
  * viewing history) the banner overlay. The scaffold (.boardCol / .moveAreaOrLocal-
- * Feedback / .localFeedback) is the shared common/components/PlayArea.module.css. */
+ * Feedback / .localFeedback) is the shared common/components/game/PlayArea.module.css. */
 
 /* The below-board REGION (universal). `display: contents` — the swap box inside
  * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. It

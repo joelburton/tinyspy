@@ -1,5 +1,5 @@
 /* stackdown play surface, on the shared two-column scaffold
- * (common/components/PlayArea.module.css, imported as `shared`) — the same
+ * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .actionSlot the other converged games use.
  * PlayArea holds only the layout-root vars here; the board column's own styles
  * live in BoardCol.module.css and the terminal reveal in InfoCol.module.css. */

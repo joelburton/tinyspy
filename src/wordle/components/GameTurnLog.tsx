@@ -90,7 +90,7 @@ export function GameTurnLog({
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
   const boardIsShown = teamView || picked === selfId
 
-  // Click-to-define (a common feature — see common/hooks/useDefinePopover). Every
+  // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover). Every
   // wordle guess is a legal dictionary word, so the whole guess is definable — the
   // affordance rides the WORD (the five-square group), not the individual cells, so
   // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.

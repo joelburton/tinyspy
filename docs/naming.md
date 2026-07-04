@@ -270,7 +270,7 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 | [`common.md`](common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant, the FE shell |
 | [`states.md`](states.md) | The view-state / play-state vocabulary and how the suspend / current / pause concepts compose |
 | [`codenamesduet.md`](games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, FE, Edge Function, tests |
-| [`psychicnum.md`](games/psychicnum.md) | psychicnum rules + schema, the hidden-target pattern, FE, tests |
+| [`psychicnum.md`](games/psychicnum.md) | psychicnum rules + schema, the hidden-secrets pattern, FE, tests |
 | [`connections.md`](games/connections.md) | connections (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
 | [`spellingbee.md`](games/spellingbee.md) | spellingbee (Spelling-Bee-style) rules + schema, hidden-wordlist reveal, edge-function board builder, rank ladder |
 | [`testing.md`](testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |

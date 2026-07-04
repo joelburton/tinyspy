@@ -26,7 +26,7 @@
    * tier (RankBar), so the bright-yellow square stands out against the white
    * track without a heavy near-black outline. (Was incidentally reusing the old
    * feedback-warning amber; now its own token, since that feedback palette is
-   * gone — the submission pill is the shared <FeedbackPill> off the common
+   * gone — the submission pill is the shared <GenericFeedbackPill> off the common
    * --color-outcome-* tones.) */
   --spellingbee-accent-edge:   #a86b00;
 }

@@ -345,16 +345,16 @@ the local pill carries only the results a ring can't.
   a tile you were mid-building with is now gone (a teammate claimed it), `load()`
   resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
   shared Broadcast room that needed a stable name is gone.
-- **`hooks/usePeerFeedback.ts`** — coop-only narration of teammates' moves (the
-  spellingbee `usePeerFeedback` pattern). Diffs the `submissions` list against a
-  `seen` set keyed by `(user_id, seq)`, bootstrapping quietly on the first
-  loaded render so a reconnect doesn't replay the backlog. Each *new* teammate
-  submission fires a **global** header feedback pill — carrying the teammate's
-  identity disc (`● moth found SCARE` / `● moth tried FOOFS — not a word` [error] /
-  `● moth revealed a hint` / `● moth revealed a word` [warning]) — and, for a
-  played word, calls back into PlayArea to flash that word (green/red) in the entry
-  row. No-ops off coop (compete hides peers' submissions) and skips the caller's
-  own rows (those are reported in the local below-board slot / ring instead).
+- **Peer narration** (coop-only) is the SHARED `common/hooks/feedback/useGlobalFeedback`,
+  wired inline in PlayArea — no game-local hook. It diffs the `submissions` list
+  (via `keyOf: (user_id, seq)`), bootstrapping quietly on the first loaded render so
+  a reconnect doesn't replay the backlog. Each *new* teammate submission fires a
+  **global** header feedback pill — carrying the teammate's identity disc (`● moth
+  found SCARE` / `● moth tried FOOFS — not a word` [error] / `● moth revealed a hint`
+  / `● moth revealed a word` [warning]) — and, for a played word, `messageFor` also
+  calls back into PlayArea (`onPeerWord`) to flash that word (green/red) in the entry
+  row. No-ops off coop (compete hides peers' submissions) and skips the caller's own
+  rows (those are reported in the local below-board slot / ring instead).
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a

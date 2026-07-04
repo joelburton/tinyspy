@@ -1,7 +1,7 @@
 /**
  * Order a player list with the viewer first, then everyone else
  * alphabetically by username — the stable "You, then peers" order every
- * in-game progress strip wants (see `common/components/OpponentStrip`).
+ * in-game progress strip wants (see `common/components/game/OpponentStrip`).
  *
  * Generic over anything Member-shaped so per-game Player aliases work
  * without a cast. Returns a new array (does not mutate the input).

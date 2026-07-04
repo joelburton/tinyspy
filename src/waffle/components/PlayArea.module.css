@@ -1,6 +1,6 @@
 /* waffle play surface. The two-column SHELL (.layout / .boardCol / .infoCol), the
  * info-column READOUTS, and the shared .tile chrome all come from the shared
- * common/components/PlayArea.module.css (imported as `shared`). PlayArea holds only
+ * common/components/game/PlayArea.module.css (imported as `shared`). PlayArea holds only
  * the layout-root var here; the board column's below-board region lives in
  * BoardCol.module.css, the square grid in WaffleGrid.module.css. */
 

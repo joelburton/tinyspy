@@ -39,7 +39,7 @@
   min-height: 3.4rem;
   margin-top: 0.25rem;
   /* Positioning context for the shared turn-viewer banner (inset:0 overlay — see
-     common/components/historyViewer.module.css), which overlays this slot while a
+     common/components/game/lists/historyViewer.module.css), which overlays this slot while a
      past turn is being viewed. This region's height (game-specific) sets the
      banner's; the banner's appearance is common. */
   position: relative;
