@@ -1,9 +1,11 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { cls } from '../../common/lib/cls'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { TerminalModal } from '../../common/components/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/memberColor'
+import { memberById } from '../../common/lib/peers'
+import { DIFFICULTY_LABELS } from '../../common/lib/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
@@ -11,6 +13,7 @@ import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { buildDisplayRows } from '../lib/displayRows'
+import { printBogglePdf } from '../pdf/printBogglePdf'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -41,7 +44,7 @@ import '../theme.css'
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, setup, goToClub, session, status, globalFeedback } = ctx
+  const { gameId, players, isTerminal, setup, goToClub, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading } = useGame(gameId)
   const myId = session.user.id
 
@@ -112,6 +115,52 @@ export function PlayArea(ctx: GamePageCtx) {
   )
   const myScore = useMemo(() => myFoundRows.reduce((s, r) => s + r.points, 0), [myFoundRows])
   const myCount = useMemo(() => new Set(myFoundRows.map((r) => r.word)).size, [myFoundRows])
+
+  // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from
+  // the live state (RLS already scoped `foundWords` to what I may see — coop = the
+  // team's, compete = my own) and hands it to the jsPDF renderer. A snapshot at
+  // click time — works mid-game or at the end. See docs/pdf.md.
+  useEffect(() => {
+    if (!game) return
+    // The same reveal the on-screen list uses: at terminal, required-but-missed words
+    // are folded in (`buildDisplayRows` dedups found + appends the unfound); mid-game
+    // there's no reveal, so only found words show. Look up each found word's points
+    // (the shared row type carries the finder/bonus but not the score).
+    const foundSet = new Set(foundWords.map((w) => w.word))
+    const revealWords = isTerminal ? game.required_words.filter((r) => !foundSet.has(r.word)) : null
+    const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
+    const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
+      word: r.word.toUpperCase(),
+      bonus: r.kind === 'found' ? (r.isBonus ?? false) : false,
+      // A found word carries score + finder; an unfound (missed) reveal entry is bare.
+      found:
+        r.kind === 'found'
+          ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+          : null,
+    }))
+    const model = {
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
+      // Exactly the on-screen InfoCol status: found / required words · score.
+      summary: `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
+      board: boardToDisplay(game.board, game.n),
+      // Relevant setup only (the timer isn't relevant on a print).
+      setup: [
+        { label: 'Dice', value: DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? boggleSetup.dice_set },
+        { label: 'Required words', value: `${DIFFICULTY_LABELS[boggleSetup.band - 1] ?? '?'} (band ${boggleSetup.band})` },
+        { label: 'Bonus words', value: `${DIFFICULTY_LABELS[boggleSetup.legal_band - 1] ?? '?'} (band ${boggleSetup.legal_band})` },
+        { label: 'Min length', value: `${boggleSetup.min_word_length} letters` },
+        { label: 'Scoring', value: ladder.charAt(0).toUpperCase() + ladder.slice(1) },
+      ],
+      // Alphabetical — the 5-column list renders them column-major.
+      words,
+    }
+    menu.setGameItems([
+      { id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myCount, myScore])
 
   // Every visible found word (used for the missed-words reveal; in compete this
   // is self-only mid-game and everyone's post-terminal — exactly "words nobody
