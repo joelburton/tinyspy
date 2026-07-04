@@ -178,9 +178,11 @@ export function SetupGameDialog({
     onStarted(result.id)
   }
 
-  // Confirm the chosen mode in the title (the Start buttons no longer
-  // carry it in the name). Dropped entirely in a solo club, matching
-  // ModePill's suppression there — mode is noise with one player.
+  // The chosen mode (Co-op / Compete), shown in BOTH the dialog title and the
+  // Start button so it's clear which sibling you're launching. Dropped entirely
+  // in a solo club, matching ModePill's suppression there — mode is noise with
+  // one player (solo clubs register a single variant per game, so there's no
+  // ambiguity to resolve).
   const modeSuffix = clubHandle.startsWith('=')
     ? ''
     : ` · ${MODE_LABEL[manifest.mode]}`
@@ -191,6 +193,10 @@ export function SetupGameDialog({
       onClose={onCancel}
       backdrop
       resizable={false}
+      // Grow to fit the setup options on open (capped to the viewport, past
+      // which the body scrolls) — a game with many options must open tall
+      // enough to show them all. `height` here is just the pre-load seed.
+      fitContent
       defaultSize={{ width: 480, height: 520 }}
       minWidth={320}
       minHeight={300}
@@ -263,7 +269,7 @@ export function SetupGameDialog({
           disabled={busy || !countOk || setupError !== null}
           autoFocus
         >
-          {busy ? 'Starting…' : `Start ${manifest.name}`}
+          {busy ? 'Starting…' : `Start ${manifest.name}${modeSuffix}`}
         </button>
       </div>
     </FloatingPanel>

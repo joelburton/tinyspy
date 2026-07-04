@@ -50,7 +50,7 @@
  * width as the user types. Disabled state when Down isn't
  * selected; invalid state for malformed input. */
 .timerInput {
-  width: 4.5rem;
+  width: 5rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
   font-weight: 600;

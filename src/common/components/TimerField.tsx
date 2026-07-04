@@ -82,11 +82,6 @@ export function TimerField({ value, onChange }: Props) {
   return (
     <fieldset className={styles.fieldset}>
       <legend>Timer</legend>
-      <p className="muted">
-        Pick the kind of clock. Count-up is informational (see how
-        long you took). Count-down loses the game when the timer
-        hits 0.
-      </p>
       <div className={styles.timerRow}>
         <label className={styles.radio}>
           <input

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Rnd } from 'react-rnd'
 import {
   clampToViewport,
@@ -55,6 +55,15 @@ type Props = {
    *  back on every drag/resize. When omitted, the panel uses
    *  `defaultPosition` / `defaultSize` afresh on each mount. */
   persistKey?: string
+  /** When true, the panel GROWS on open to fit its natural content
+   *  height (capped to the viewport, past which the body scrolls),
+   *  instead of staying at `defaultSize.height`. `defaultSize.height`
+   *  becomes just the first-paint seed. For content-sized modals
+   *  whose height varies with what's inside — the Setup dialog, where
+   *  a game with many options must open tall enough to show them all.
+   *  Incompatible with `persistKey` (a saved height would fight the
+   *  fit), so only the ephemeral, non-persisted panels honor it. */
+  fitContent?: boolean
   /** Stacking tier. Defaults to 500 (the modal tier). Chat passes
    *  10000 so it sits above every modal regardless of open order. */
   zIndex?: number
@@ -98,6 +107,7 @@ export function FloatingPanel({
   backdrop = false,
   persistKey,
   zIndex = 500,
+  fitContent = false,
   children,
 }: Props) {
   // ESC handler. Window-level so it works regardless of where
@@ -142,6 +152,7 @@ export function FloatingPanel({
         minHeight={minHeight}
         persistKey={persistKey}
         zIndex={zIndex}
+        fitContent={fitContent}
       >
         {children}
       </FloatingPanelBody>
@@ -163,6 +174,7 @@ function FloatingPanelBody({
   minHeight,
   persistKey,
   zIndex,
+  fitContent,
   children,
 }: {
   title: string
@@ -175,9 +187,12 @@ function FloatingPanelBody({
   minHeight: number
   persistKey: string | undefined
   zIndex: number
+  fitContent: boolean
   children: ReactNode
 }) {
   if (persistKey) {
+    // A persisted panel restores a saved height, which would fight the
+    // content-fit — so `fitContent` doesn't apply here (see the prop docstring).
     return (
       <PersistedPanel
         title={title}
@@ -206,6 +221,7 @@ function FloatingPanelBody({
       minWidth={minWidth}
       minHeight={minHeight}
       zIndex={zIndex}
+      fitContent={fitContent}
     >
       {children}
     </EphemeralPanel>
@@ -276,6 +292,7 @@ function EphemeralPanel({
   minWidth,
   minHeight,
   zIndex,
+  fitContent,
   children,
 }: {
   title: string
@@ -287,6 +304,7 @@ function EphemeralPanel({
   minWidth: number
   minHeight: number
   zIndex: number
+  fitContent: boolean
   children: ReactNode
 }) {
   // Lazy initializer computes the seed rect once on mount —
@@ -317,6 +335,7 @@ function EphemeralPanel({
       minWidth={minWidth}
       minHeight={minHeight}
       zIndex={zIndex}
+      fitContent={fitContent}
     >
       {children}
     </PanelRnd>
@@ -337,6 +356,7 @@ function PanelRnd({
   minWidth,
   minHeight,
   zIndex,
+  fitContent = false,
   children,
 }: {
   title: string
@@ -348,8 +368,64 @@ function PanelRnd({
   minWidth: number
   minHeight: number
   zIndex: number
+  fitContent?: boolean
   children: ReactNode
 }) {
+  // ── Content-fit (opt-in via `fitContent`) ──────────────────────────────
+  // Grow the panel on open so its natural content is fully visible, capped to
+  // the viewport (past which the body scrolls). We measure the CONTENT wrapper
+  // (not the body, whose box is pinned to the panel height) so a lazily-loaded
+  // Suspense body swapping in re-triggers the fit. Latest rect/setRect ride in
+  // refs so the observer is installed once (no reconnect churn per fit).
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const userMovedRef = useRef(false) // once the user drags/resizes, stop re-centering
+  // Latest rect/setRect kept in refs so the observer below installs ONCE (its
+  // deps are just [fitContent]) yet always reads current values. Synced in a
+  // passive effect — never written during render (react-compiler forbids that).
+  const rectRef = useRef(rect)
+  const setRectRef = useRef(setRect)
+  useEffect(() => {
+    rectRef.current = rect
+    setRectRef.current = setRect
+  })
+
+  useLayoutEffect(() => {
+    if (!fitContent) return
+    const body = bodyRef.current
+    const content = contentRef.current
+    if (!body || !content) return
+    // The body's own vertical padding sits OUTSIDE `content.offsetHeight`, so it
+    // must be added explicitly — omitting it left the panel a dozen px short.
+    const cs = getComputedStyle(body)
+    const bodyPadV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
+    const fit = () => {
+      const r = rectRef.current
+      // Everything above the body's content box (shell border + header). Reading
+      // it off the live DOM (panel height − body's inner height) keeps it exact
+      // regardless of header wrapping, and it's constant so the target is stable
+      // no matter the current height → converges in one step (grow OR shrink).
+      const chromeAboveBody = r.height - body.clientHeight
+      const desired = Math.ceil(chromeAboveBody + bodyPadV + content.offsetHeight)
+      const target = Math.min(desired, window.innerHeight - 16)
+      if (Math.abs(target - r.height) <= 1) return // already fits (or capped) — don't loop
+      setRectRef.current({
+        ...r,
+        height: target,
+        // Re-center vertically on open; once the user has moved the panel,
+        // leave its position (setRect soft-clamps it back into view).
+        y: userMovedRef.current
+          ? r.y
+          : Math.max(8, Math.round((window.innerHeight - target) / 2)),
+      })
+    }
+    fit()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(fit)
+    ro.observe(content)
+    return () => ro.disconnect()
+  }, [fitContent])
+
   return (
     <Rnd
       className={styles.rnd}
@@ -371,15 +447,19 @@ function PanelRnd({
       // doesn't initiate a drag, and clicking the X reliably
       // closes the panel.
       dragHandleClassName={draggable ? styles.dragHandle : undefined}
-      onDragStop={(_e, d) => setRect({ ...rect, x: d.x, y: d.y })}
-      onResizeStop={(_e, _dir, ref, _delta, position) =>
+      onDragStop={(_e, d) => {
+        userMovedRef.current = true // stop auto-re-centering after a manual move
+        setRect({ ...rect, x: d.x, y: d.y })
+      }}
+      onResizeStop={(_e, _dir, ref, _delta, position) => {
+        userMovedRef.current = true
         setRect({
           x: position.x,
           y: position.y,
           width: ref.offsetWidth,
           height: ref.offsetHeight,
         })
-      }
+      }}
     >
       {/* Inner shell with explicit width: 100%; height: 100% +
           display: flex; flex-direction: column. The Rnd outer
@@ -402,7 +482,12 @@ function PanelRnd({
             ×
           </button>
         </header>
-        <div className={styles.body}>{children}</div>
+        {/* When fitting, the content is wrapped so its natural height can be
+            measured independent of the body's pinned box (see the fit effect).
+            Other panels render children directly — no structural change. */}
+        <div className={styles.body} ref={bodyRef}>
+          {fitContent ? <div ref={contentRef}>{children}</div> : children}
+        </div>
       </div>
     </Rnd>
   )
