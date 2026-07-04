@@ -6,6 +6,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 |---|---|
 | [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) |
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, known gotchas |
+| [docs/common-layout.md](docs/common-layout.md) | How `src/common/` is organized: the folder taxonomy + PURPOSE of each folder for components/hooks/lib, placement rules ("where does a new file go?"), and the one-time migration plan |
 | [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant |
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary, suspend / current / pause concepts |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
