@@ -353,6 +353,14 @@ in `src/games.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
 `GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
 ([[feedback_pause_on_disconnect]]).
 
+### Printing the board (PDF)
+
+boggle joins the printable games — a **"Print board (PDF)"** GamePage menu item that hands
+you a paper record of the game: the fixed-size letter grid (a 6×6 prints bigger than a 4×4)
+with the Setup to its right, above the found-words list in columns (missed required words
+fold in at terminal) — `src/boggle/pdf/printBogglePdf.ts`. The shared clean-printable design
+language + helpers live in [docs/pdf.md](../pdf.md).
+
 ---
 
 ## 9. Tests

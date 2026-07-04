@@ -344,9 +344,9 @@ src/connections/
                           capped at MAX_TILE (psychicnum's WordBoard layout). Pulls RANK_TOKEN
                           from lib/rankColors. (Replaced the old separate CategoryBands +
                           TileGrid, whose two layout systems gave bands/tiles different gaps.)
-    MistakeDots.tsx       NYT-style mistakes indicator — a row of dots, one per allowed
-                          mistake, filled for remaining and dimmed for used (default budget 4).
-    MistakeDots.module.css
+                          (Mistakes are no longer a per-game MistakeDots component: they
+                          render via the shared common/components/game/StrikeMarks — a red
+                          square-X filling left-to-right, "Mistakes (lose at 4)".)
     GameTurnLog.tsx      The append-only log of this game's guesses, in the info column.
                           Renders its OWN two-<tr> rows in the shared <TurnLog> panel
                           (row anatomy is the game's — see ui.md → Turn log): row 1 =
@@ -439,7 +439,7 @@ connections is the first place in this codebase that uses Realtime Broadcast and
 
 **Selection semantics (coop):** click acts on the **union** of all players' selections, not on each player's private list. Each tile has at most one contributor; clicking a tile already in the union removes it (regardless of who put it there); clicking an unselected tile adds it to MY contribution. A **correct** Submit / "deselect all" / pause-on-disconnect all broadcast a `clear` event that empties every client's local map. A **wrong or one-away** Submit deliberately does *not* clear — the selection stays so the player can swap a tile or two and resubmit (a one-away especially is "so close" that clearing it would be hostile).
 
-**Compete selection is private.** Each player has their own selection state — opponents never see what you're hovering on. The implementation: useGame's `broadcast()` short-circuits when `game.mode === 'compete'` (local apply only, no `channel.send`). Peer compete clients also short-circuit, so no foreign selection events arrive. The selections map only ever contains the caller's tiles; ownerByTile resolves to caller; TileGrid renders every selected tile as "mine" without the per-tile peer-attribution code activating. Same shape, degenerate data — no separate compete-TileGrid branch needed.
+**Compete selection is private.** Each player has their own selection state — opponents never see what you're hovering on. The implementation: useGame's `broadcast()` short-circuits when `game.mode === 'compete'` (local apply only, no `channel.send`). Peer compete clients also short-circuit, so no foreign selection events arrive. The selections map only ever contains the caller's tiles; ownerByTile resolves to caller; `Board` renders every selected tile as "mine" without the per-tile peer-attribution code activating. Same shape, degenerate data — no separate compete-`Board` branch needed.
 
 **Why Broadcast (not Presence-state) for the coop selection:** events are the natural unit here ("I selected X", "deselect X"). The state is reconstructable by listening from the moment you join — and we don't worry about late-joiners or mid-session rejoins because [we pause the game on any disconnect](#pause-presence-driven--manual). State lives in client memory, gets reset on every pause.
 

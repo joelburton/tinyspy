@@ -59,7 +59,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the generated `common.words.letter_mask` column): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
 | **outcome** | The `status.outcome` enum value for terminal spellingbee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`), `'lost_compete'` (compete: timer / manual end with no winner — but actually this port writes `'timeout'`/`'manual'` with `mode='compete'` in the status to distinguish). The corresponding `play_state` is `'ended'` for everything except `'won_compete'` which uses `play_state='won_compete'`. |
 
-## Scope: v1 vs. deferred
+## Scope: shipped vs. deferred
 
 | feature | status | notes |
 |---|---|---|
@@ -546,6 +546,14 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | The rank ladder math | [`src/spellingbee/lib/ranks.ts`](../../src/spellingbee/lib/ranks.ts) |
 | The found-words list | the SHARED [`src/common/components/game/lists/WordList.tsx`](../../src/common/components/game/lists/WordList.tsx) (spellingbee builds its rows via [`src/spellingbee/lib/displayRows.ts`](../../src/spellingbee/lib/displayRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
+
+## Printing the board (PDF)
+
+spellingbee joins the printable games — a **"Print board (PDF)"** GamePage menu item that
+hands you a paper record of the puzzle. It shows the 7-hex honeycomb (the flower) above the
+found-words list (pangrams bold, bonus finds dotted; missed required words fold in at
+terminal) — `src/spellingbee/pdf/printSpellingbeePdf.ts`. The shared clean-printable design
+language + helpers live in [docs/pdf.md](../pdf.md).
 
 ## Open / deferred
 

@@ -598,6 +598,14 @@ Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).
 | `scrabble:${gameId}:${uuid}` | `useGame` | postgres-changes on `scrabble.{games, players, plays}` |
 | `scrabble:${gameId}` (stable) | `useSharedMove` | **coop only** — the "show a move" Broadcast (`show-move` event: a teammate's staged tiles for a read-only preview). Ephemeral, never stored; stable name so teammates merge into one room. |
 
+### Printing the board (PDF)
+
+scrabble joins the printable games — a **"Print board (PDF)"** GamePage menu item that
+hands you a paper record of the game. It shows the 15×15 board (premium squares in faint
+pastels), the rack, and the move log flowing newspaper-style down two columns
+(`src/scrabble/pdf/printScrabblePdf.ts`). The shared clean-printable design language +
+helpers live in [docs/pdf.md](../pdf.md).
+
 ---
 
 ## 8. Title formula

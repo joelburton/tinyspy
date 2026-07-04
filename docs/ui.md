@@ -103,6 +103,12 @@ feedback: {
 - The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
 - **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
 
+### Toasts
+
+A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Feedback is about *your* action, near your eyes (the input, or the header for peer moves); a toast is a *club/game event you should notice wherever you are on the page* — a friend added you to a game, a friend is setting up the next one. Toasts **stack vertically** (newest nearest the corner), sit **above everything including the chat panel** (z-index 12000), and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.
+
+One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`lib/toast/toastStore.ts`), and the single `<ToastHost>` (`components/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). Consumers today: game invitations (`useGameInvitations`, now headless) and the "…is setting up a new … game" club heads-up (`useClubSetupPresence`). See [common-layout.md](common-layout.md) for the file homes.
+
 ### Modals for terminal results
 
 Game-end "you won / you lost" UI lives in a shared modal (`common/components/game/terminal/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.

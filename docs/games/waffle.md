@@ -365,17 +365,6 @@ defer.
   generator's `minSwaps` par lives in the edge function, covered by
   `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 
-## Phased build order
-
-1. **Geometry + colors** (`lib/` + pgTAP `colors_test`) — pure logic first;
-   everything depends on it.
-2. **Generator** → a starter puzzle library (eyeball word quality before building
-   the game around it).
-3. **Schema + hidden-solution view + `create_game` + `submit_swap` (coop)** —
-   playable coop end-to-end.
-4. **Compete** — per-player rows, fewest-swaps terminal, opponent strip + RLS.
-5. **FE polish** — drag-to-swap, swap counter, star rating, post-game reveal.
-
 ## Decisions (settled 2026-06-21)
 
 - **Name:** brand **waffle**, codename **`waffle`** (see the header).

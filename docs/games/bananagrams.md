@@ -250,20 +250,6 @@ The board lives in the `usePlayerBoard` engine, but the menu lives in `PlayArea`
 `ctx.menu` is), so PlayArea hands the engine a `reportBoardRef` it keeps pointed at the
 live board; the print's onClick snapshots it at click time (works mid-game or at the end).
 
-### Build order
-
-1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_bananagrams.sql`, `src/bananagrams/`, pgTAP `tests/bananagrams/create_game_test.sql`).
-2. **`PlayerBoard`** (fixed 25×25 arena) + `save_player_board` + snapshot lifecycle. **✓ DONE** (`components/PlayerBoard.tsx` + `lib/board.ts`; migration `20260623000000_bananagrams.sql`; pgTAP `save_player_board_test.sql`; e2e `e2e/bananagrams.e2e.ts`).
-3. **`progress` realtime + PeersStrip** — watch a peer's count drop. **✓ DONE** (`hooks/useGame.ts` → `useProgress` subscribes to `bananagrams.progress`; `components/PeersStrip.tsx` renders opponents' tiles-left; e2e covers the live update).
-4. **Terminal + result modal** — the hand-empty win, surfaced by the `peel` step below (the win is detected inside `peel`). **✓ DONE**
-
-**v2 build order:**
-1. **Standard ⟲ ShuffleButton** (common; adopted in spellingbee + connections). **✓ DONE** (`common/components/buttons/ShuffleButton`).
-2. **Re-platform the hand as derived** (`board` + `tiles` + `pool`; live `tiles` subscription). **✓ DONE** (baseline + `save_player_board` migrations; `lib/board.ts` helpers; `useGame`/`PlayerBoard`).
-3. **`peel`** — draw a round / go out (Bananas!); Peel button + bunch count + announcement. **✓ DONE** (migration `20260623000000_bananagrams.sql`; pgTAP `peel_test.sql`; e2e win + draw paths).
-4. **`dump`** — swap one tile for three (drag-to-dump-slot). **✓ DONE** (migration `20260623000000_bananagrams.sql`; pgTAP `dump_test.sql`; e2e drag-to-dump).
-5. **Polish / future** — hand sort/group, optional elapsed timer. (Board validation shipped: connectivity always enforced on a winning peel, plus an opt-in "Require real words to win" dictionary check — see `_win_blockers` + peel.)
-
 ### From v1 to v2 — what held, what changed
 
 v1 was built to make the bank loop a small addition. Two foundations held as

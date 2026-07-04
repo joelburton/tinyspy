@@ -26,6 +26,8 @@ The two sources stay as today:
 - **Presence-pause**: someone in `common.game_players` isn't currently connected to the channel.
 - **Manual-pause**: someone clicked Pause; broadcast to peers.
 
+**Getting out of a pause.** Presence-pause clears itself the moment the missing player reconnects — and to make that reliable after a laptop sleep, `useRealtimeReconnect` (mounted in `App.tsx`) forces `supabase.realtime.connect()` on tab focus / `visibilitychange`→visible / network `online` when the socket is down. Without it, Supabase's own ~25s heartbeat is slow to notice a socket that died during OS sleep, so a game can sit **wedged** in the pause overlay until a manual refresh (two players who both walk away — "unofficially paused for dinner" — are the classic case). As a manual backstop when a pause won't clear, `<PauseOverlay>` offers two escapes: **Suspend and return to club** (`sendSuspend` — shelves the game + navigates back) and **End game** (the gametype's `manifest.endGame`; bananagrams has none — per-player concede replaced its whole-table end). Both go through PostgREST, whose token auto-refreshes independently of the Realtime socket, so they work **even when Realtime is wedged** (which is why a refresh — re-initializing Realtime — was the only way out before).
+
 ## Play states
 
 Play states describe the game's rules-side situation — totally independent of view state.

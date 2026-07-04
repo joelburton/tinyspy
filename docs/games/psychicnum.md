@@ -472,6 +472,15 @@ select psychicnum.submit_guess((select id from g), 'alpha');  -- correct!
 
 The `reset role` step is the noteworthy bit — clients can't write to `psychicnum.games` (no INSERT/UPDATE/DELETE grant on `authenticated`), so the test needs to drop back to `postgres` to do the override. This is only legal in tests; in production the RPC has the only path to write.
 
+## Printing the board (PDF)
+
+psychicnum joins the printable games — a **"Print board (PDF)"** GamePage menu item that
+hands you a paper record of the game: the word board above the guess/hint log (flowing
+newspaper-style down two columns). Each guessed tile also gets a drawn ✓/✗ shape mark, so
+success/miss survives black-and-white printing rather than reading only in color
+(`src/psychicnum/pdf/printPsychicnumPdf.ts`). The shared clean-printable design language +
+helpers live in [docs/pdf.md](../pdf.md).
+
 ## Open items
 
 - **No anti-spam.** Friends-only audience; not a concern. The 7-guess cap caps damage anyway.

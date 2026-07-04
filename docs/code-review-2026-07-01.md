@@ -22,8 +22,8 @@ triggering input. The highest-impact and any *contradicted* findings were
 re-verified by hand (see the [Verification notes](#verification-notes)). Nothing
 was edited — this is a findings report, not a change.
 
-> Like [`audit-feedback.md`](audit-feedback.md), this is a **point-in-time
-> snapshot**. Line numbers drift; re-confirm a finding before acting on it.
+> This is a **point-in-time snapshot** (a findings report, not a change).
+> Line numbers drift; re-confirm a finding before acting on it.
 > When an item gets picked up, move it to [`deferred.md`](deferred.md) or delete
 > it.
 
