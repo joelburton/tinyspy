@@ -10,12 +10,26 @@ import { defineConfig, globalIgnores } from 'eslint/config'
  * the cross-feature import-direction rules below. When a new game
  * arrives (e.g. boggle), append its name here AND in `src/games.ts`.
  *
- * (A tiny script could derive this list from `src/games.ts` so the two
- * stay in sync automatically. Not worth the machinery until we have
- * 3+ games; the dup is one line each and the lint failure on a missed
- * update is obvious.)
+ * This list SHOULD be derived from `src/games.ts` so the two can't drift —
+ * and they did: for a while this list was missing five games, silently
+ * unguarding their cross-game imports (nothing fails when a game is simply
+ * absent from the forbidden list). Generating it from the registry is
+ * tracked in deferred.md. Until then, adding a game means editing both.
  */
-const GAMETYPES = ['codenamesduet', 'psychicnum', 'connections', 'spellingbee', 'boggle']
+// Keep in registry order, mirroring `src/games.ts`. All ten folders must be
+// listed — a missing one silently unguards cross-game imports of it.
+const GAMETYPES = [
+  'codenamesduet',
+  'psychicnum',
+  'connections',
+  'spellingbee',
+  'bananagrams',
+  'waffle',
+  'wordle',
+  'stackdown',
+  'scrabble',
+  'boggle',
+]
 
 /**
  * Build the `patterns` array for `no-restricted-imports` that blocks
@@ -90,9 +104,9 @@ export default defineConfig([
     },
   },
 
-  // Each game folder may not import from any OTHER game folder. Today
-  // there's only codenamesduet so this expands to zero rules for codenamesduet;
-  // becomes load-bearing the moment boggle (or another game) is added.
+  // Each game folder may not import from any OTHER game folder. With ten
+  // games registered, each block forbids the other nine — so a stray
+  // `import … from '../scrabble/…'` inside `src/wordle/` fails at lint time.
   ...GAMETYPES.flatMap((self) => {
     const others = GAMETYPES.filter((g) => g !== self)
     if (others.length === 0) return []

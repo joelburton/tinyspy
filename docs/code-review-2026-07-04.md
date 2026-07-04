@@ -393,7 +393,14 @@ check.
 ### §1.5 Tooling guard drift
 
 **G1. [medium] `eslint.config.js` `GAMETYPES` is missing five games — the
-game-independence lint has silently not guarded half the roster.**
+game-independence lint has silently not guarded half the roster.** — **✅ DONE**
+(code half). Appended `bananagrams, waffle, wordle, stackdown, scrabble` (list
+now all ten in registry order); rewrote the stale top comment (which falsely
+claimed the drift would be "obvious") and the `:93–95` "only codenamesduet"
+comment. `npx eslint .` clean — the five folders had no pre-existing cross-game
+imports, so the guard is now enforced going forward with no new violations. The
+README/deferred.md enforcement-claim fixes + the generate-from-registry follow-
+up remain (docs batch / deferred).
 `eslint.config.js:18` lists
 `['codenamesduet', 'psychicnum', 'connections', 'spellingbee', 'boggle']` —
 bananagrams, waffle, wordle, stackdown, scrabble were never appended. So
