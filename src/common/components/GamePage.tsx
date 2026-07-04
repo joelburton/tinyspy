@@ -19,6 +19,7 @@ import type {
 } from '../lib/games'
 import { useAppShortcuts } from '../hooks/useAppShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
+import { useClubSetupPresence } from '../hooks/useClubSetupPresence'
 import { useCommonGame } from '../hooks/useCommonGame'
 import { formatTimerSeconds } from '../hooks/useGameTimer'
 import { navigate } from '../lib/router'
@@ -138,6 +139,16 @@ export function GamePage({
   // GamePage only announces. `club_handle` is null until the game row
   // loads, so the hook is a no-op until then.
   useClubPresence(commonGame?.club_handle ?? null, gameId, session.user.id)
+
+  // Receive-only: while you're IN a game of this club (active OR paused), still
+  // surface a peer's "setting up a new game" toast — e.g. someone abandons a
+  // stuck paused game to start the next one. `announce: null` because you can't
+  // open a setup dialog from a game page (ClubPage owns the announcing side).
+  useClubSetupPresence({
+    clubHandle: commonGame?.club_handle ?? null,
+    selfUserId: session.user.id,
+    announce: null,
+  })
 
   // Open/closed state for the suspend-confirm modal (fired from
   // the menu's "Back to club" item for non-terminal games).

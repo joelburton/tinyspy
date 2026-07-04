@@ -7,6 +7,7 @@ import { navigate } from '../lib/router'
 import { channelDedupSuffix } from '../lib/channelDedup'
 import { useAppShortcuts } from '../hooks/useAppShortcuts'
 import { useClubPresence } from '../hooks/useClubPresence'
+import { useClubSetupPresence } from '../hooks/useClubSetupPresence'
 import { ChatBubble } from './ChatBubble'
 import { FloatingChat } from './FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
@@ -195,6 +196,22 @@ export function ClubPage({ handle, session }: Props) {
   // dialog component is mounted iff this is non-null); the dialog
   // calls back into us via onStarted / onCancel to close.
   const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
+
+  // Announce "I'm setting up a game" to the club while MY setup dialog is open,
+  // and toast when a PEER is — so two members don't both start the next game
+  // unaware of each other. Driven straight off `pendingSetup` (non-null = my
+  // dialog is open); cancel/start clears it → my announcement drops → peers'
+  // toasts clear. Presence-based (auto-clears on disconnect, syncs to
+  // late-joiners); see useClubSetupPresence.
+  const selfUsername = members.find((m) => m.user_id === selfUserId)?.username ?? 'You'
+  useClubSetupPresence({
+    clubHandle: club?.handle ?? null,
+    selfUserId,
+    announce: pendingSetup
+      ? { brand: pendingSetup.name, mode: pendingSetup.mode, username: selfUsername }
+      : null,
+  })
+
   // Whether the "Edit club" options dialog is open. Like the setup
   // dialog, the component is mounted iff this is true.
   const [editing, setEditing] = useState(false)
