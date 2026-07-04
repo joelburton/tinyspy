@@ -1,0 +1,28 @@
+/* The fixed bottom-right toast stack — above EVERYTHING (chat is 10000; toasts
+ * sit at 12000). Newest toast is last in the DOM and, with a normal column,
+ * renders at the bottom nearest the corner; older ones sit above it.
+ *
+ * `bottom`-anchored + capped to the viewport + `overflow-y: auto` means a flood
+ * of toasts scrolls WITHIN the stack instead of extending the document — the
+ * "page never scrolls" invariant holds (see docs/ui.md). `pointer-events: none`
+ * on the host lets clicks through the empty gaps around the cards; each card
+ * re-enables them. */
+.host {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.host > * {
+  pointer-events: auto;
+  /* Cards must not shrink when the stack overflows and scrolls. */
+  flex-shrink: 0;
+}

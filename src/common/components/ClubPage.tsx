@@ -17,6 +17,7 @@ import { PuzpuzpuzLogo } from './PuzpuzpuzLogo'
 import { SetupGameDialog } from './SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
 import { StatusSlot } from './StatusSlot'
+import { showToast } from '../lib/toastStore'
 import { games } from '../../games'
 import type {
   CommonGameListRow,
@@ -110,6 +111,9 @@ export function ClubPage({ handle, session }: Props) {
   // dialog; we render it below). Same hook the GamePage uses. Declared
   // above the loading early returns so the hook order stays stable.
   const menuRef = useRef<MenuHandle>(null)
+  // TEMPORARY (toast demo): a counter so each "Pop a test toast" click makes a
+  // distinct, stacking announcement. Remove with the demo menu item below.
+  const toastDemoRef = useRef(0)
   const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
 
   const presentUserIds = useMemo(
@@ -515,6 +519,29 @@ export function ClubPage({ handle, session }: Props) {
           id: 'help',
           label: 'Help',
           onClick: () => setHelpOpen(true),
+        },
+        // TEMPORARY (toast demo): pop a placeholder announcement so we can
+        // feel the toasts — repeat clicks stack them, and the variants cycle
+        // through tones + with/without an action button. Remove once the look
+        // is settled.
+        {
+          id: 'demo-toast',
+          label: 'Pop a test toast',
+          onClick: () => {
+            const n = (toastDemoRef.current += 1)
+            const tone = (['info', 'success', 'error'] as const)[n % 3]
+            showToast({
+              tone,
+              message: (
+                <>
+                  Test announcement <strong>#{n}</strong> — a placeholder toast
+                  to feel the {tone} look and how several stack.
+                </>
+              ),
+              // Every other one carries an action button.
+              action: n % 2 === 0 ? { label: 'Do the thing', onClick: () => {} } : undefined,
+            })
+          },
         },
         {
           id: 'home',

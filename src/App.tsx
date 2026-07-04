@@ -9,6 +9,7 @@ import { HomePage } from './common/components/HomePage'
 import { UserMenu } from './common/components/UserMenu'
 import { EditProfileDialog } from './common/components/EditProfileDialog'
 import { GameInvitations } from './common/components/GameInvitations'
+import { ToastHost } from './common/components/ToastHost'
 import { usePath } from './common/lib/router'
 import { games } from './games'
 
@@ -145,8 +146,12 @@ export default function App() {
         />
       )}
       {/* Mounted after the auth + claim-handle gates, so invitations
-          pop on every real page but never the login / claim screens. */}
+          pop on every real page but never the login / claim screens.
+          GameInvitations is headless — it pushes invite toasts into the
+          shared store; ToastHost renders that store's stack (bottom-right,
+          above everything, portaled to <body>). */}
       <GameInvitations session={session} />
+      <ToastHost />
     </>
   )
 }
