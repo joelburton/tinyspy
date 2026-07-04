@@ -64,10 +64,10 @@ test.describe('psychicnum turn-history viewer', () => {
     await page.locator('[data-board]').click()
     await expect(banner).toBeHidden({ timeout: 10000 })
 
-    // ── Exit path C — a click anywhere else (the "Guesses" log heading).
+    // ── Exit path C — a click anywhere else (the "Turns" log heading).
     await handle.click()
     await expect(banner).toBeVisible({ timeout: 10000 })
-    await page.getByRole('heading', { name: 'Guesses' }).click()
+    await page.getByRole('heading', { name: 'Turns' }).click()
     await expect(banner).toBeHidden({ timeout: 10000 })
 
     await ctx.close()
