@@ -2,18 +2,23 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { GenericFeedbackApi, MenuApi } from '../../lib/games'
 
 /**
- * Registers the "End game" item in a PlayArea's per-game menu section
- * and wires its confirm → RPC → error-pill flow.
+ * Registers an "End game" item in a PlayArea's per-game HEADER menu and
+ * wires its confirm → RPC → error-pill flow.
  *
- * Every game offers the friends an explicit "we're done" affordance —
- * `common.end_game` writes a neutral terminal (`play_state='ended'`,
- * everyone `{won:false}`) so a group can abandon an in-progress game
- * without it counting as a win or loss. See docs/common.md → "Manual
- * end". The PlayArea-side scaffolding around that RPC was duplicated
- * verbatim across six games (a confirm dialog, the error→feedback pill,
- * and the menu-sync effect that registers the item and clears it on
- * unmount); this hook pins that contract in one place so future games
- * drop into the same shape.
+ * ⚠️ **Currently unused — kept as reference scaffolding.** The v3 layout
+ * moved the "we're done" affordance out of the header menu and into each
+ * game's InfoCol as a plain `<EndGameButton>` (`common/components/buttons/
+ * EndGameButton.tsx`), which all ten games now render directly. So this
+ * hook has **zero consumers** today. It's retained (not deleted) as the
+ * documented pattern for the menu-based approach, should a future game
+ * want its End-game in the header menu rather than the info column — the
+ * confirm-dialog + error-pill + menu-sync contract is non-obvious enough
+ * to be worth keeping written down. Delete it if that never materializes.
+ *
+ * What it does when wired: `common.end_game` writes a neutral terminal
+ * (`play_state='ended'`, everyone `{won:false}`) so a group can abandon
+ * an in-progress game without it counting as a win or loss (see
+ * docs/common.md → "Manual end").
  *
  * The caller supplies `endGame` as a thunk rather than passing its `db`
  * handle, because each game's `db` is typed to its own schema — keeping
@@ -29,14 +34,6 @@ import type { GenericFeedbackApi, MenuApi } from '../../lib/games'
  *
  * Must be called unconditionally (it runs hooks), so place it above any
  * of the PlayArea's early returns.
- *
- * Two games deliberately do NOT use this hook and own their menu wiring
- * directly:
- *   - `connections` — its menu carries a second, game-specific "Hint" item
- *     and gates on elimination state.
- *   - `spellingbee` — it routes the end-game error to its own in-body
- *     feedback surface (the word-result `<Feedback>`), not the common
- *     header pill this hook uses.
  */
 export function useEndGameMenu({
   isTerminal,
