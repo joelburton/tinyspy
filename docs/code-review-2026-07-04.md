@@ -209,7 +209,13 @@ when it terminates).
 ### §1.3 Races and locks
 
 **L1. [high] `scrabble.submit_timeout` takes no row lock — concurrent timeout
-calls double-run final scoring.**
+calls double-run final scoring.** — **✅ DONE.** Added
+`perform 1 from scrabble.games where id = target_game for update;` at the top
+(folding in the game-not-found check), mirroring `bananagrams.submit_timeout`
+and the 5 other scrabble mutations. Migration reapplies clean; `end_game_test`
+(the file covering `submit_timeout`) still green. (The double-run itself is a
+concurrency race not expressible in single-session pgTAP; the lock is
+defensive.)
 `20260627000000_scrabble.sql:1077–1106`. On countdown expiry **every connected
 client** races to call `submitTimeout` (`src/common/components/game/GamePage.tsx:175–196`
 — by design). Every other scrabble mutation takes `select … for update` first

@@ -1083,7 +1083,16 @@ as $$
 declare
   play_state text;
 begin
-  if not exists (select 1 from scrabble.games where id = target_game) then
+  -- Lock the gametype row first so concurrent timeout calls serialize.
+  -- On countdown expiry EVERY connected client races to call this (by
+  -- design, see GamePage). Without the lock both see 'playing' (MVCC)
+  -- and both run _finish, which is NOT idempotent — it does
+  -- `score = score - Σ tile_value(rack)`, so the leftover-rack penalty
+  -- gets subtracted twice and can even flip the winner. The lock makes
+  -- the loser of the race wait, then re-read the now-terminal state and
+  -- raise below. Mirrors every other scrabble mutation + bananagrams.
+  perform 1 from scrabble.games where id = target_game for update;
+  if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
   perform common.require_game_player(target_game);
