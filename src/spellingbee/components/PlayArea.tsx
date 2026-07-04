@@ -342,7 +342,7 @@ export function PlayArea(ctx: GamePageCtx) {
       foundWordsScore,
       requiredWordsScore: game.required_words_score,
       selfRankIdx,
-      selfUserId: session.user.id,
+      selfId: session.user.id,
       players,
     })
     : null
@@ -456,7 +456,7 @@ function buildOver({
   foundWordsScore,
   requiredWordsScore,
   selfRankIdx,
-  selfUserId,
+  selfId,
   players,
 }: {
   mode: 'coop' | 'compete'
@@ -467,7 +467,7 @@ function buildOver({
   foundWordsScore: number
   requiredWordsScore: number
   selfRankIdx: number
-  selfUserId: string
+  selfId: string
   players: Member[]
 }): {
   outcome: 'won' | 'lost'
@@ -485,7 +485,7 @@ function buildOver({
 
     if (playState === 'won_compete') {
       const winnerId = (status?.winner_user_id as string | undefined) ?? null
-      const selfWon = winnerId === selfUserId
+      const selfWon = winnerId === selfId
       if (selfWon) {
         return {
           outcome: 'won',

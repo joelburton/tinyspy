@@ -87,7 +87,7 @@ type Props = {
  * games-list shape.
  */
 export function ClubPage({ handle, session }: Props) {
-  const selfUserId = session.user.id
+  const selfId = session.user.id
   // Solo club = handle prefixed with '=' (one player). Suppresses the
   // "Co-op" mode pill on this page's cards/buttons — see ModePill.
   const soloClub = handle.startsWith('=')
@@ -105,7 +105,7 @@ export function ClubPage({ handle, session }: Props) {
   // any game page of the club) and which game they're viewing. We
   // pass `null` for our own location — we're in the club room, not a
   // game. Drives the member-strip dots + the abandoned-game heal.
-  const presence = useClubPresence(handle, null, selfUserId)
+  const presence = useClubPresence(handle, null, selfId)
 
   // App-chrome keyboard shortcuts: "/" opens chat, "?" opens the club
   // menu, "~" opens the word-lookup dialog (the hook owns + returns that
@@ -203,10 +203,10 @@ export function ClubPage({ handle, session }: Props) {
   // dialog is open); cancel/start clears it → my announcement drops → peers'
   // toasts clear. Presence-based (auto-clears on disconnect, syncs to
   // late-joiners); see useClubSetupPresence.
-  const selfUsername = members.find((m) => m.user_id === selfUserId)?.username ?? 'You'
+  const selfUsername = members.find((m) => m.user_id === selfId)?.username ?? 'You'
   useClubSetupPresence({
     clubHandle: club?.handle ?? null,
-    selfUserId,
+    selfId,
     announce: pendingSetup
       ? { brand: pendingSetup.name, mode: pendingSetup.mode, username: selfUsername }
       : null,
@@ -704,7 +704,7 @@ export function ClubPage({ handle, session }: Props) {
       <FloatingChat
         clubHandle={club.handle}
         members={members}
-        selfUserId={selfUserId}
+        selfId={selfId}
         hideClosedButton
       />
 
@@ -720,7 +720,7 @@ export function ClubPage({ handle, session }: Props) {
         <SetupGameDialog
           manifest={pendingSetup}
           members={members}
-          selfUserId={selfUserId}
+          selfId={selfId}
           clubHandle={club.handle}
           savedDefault={savedDefaults.get(pendingSetup.gametype)}
           onStarted={(id) => {

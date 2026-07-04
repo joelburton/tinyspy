@@ -19,7 +19,7 @@ type Props = {
   members: Member[]
   /** The creating user. Always a player — their checkbox in the
    *  picker is locked on (you can't start a game you don't play in). */
-  selfUserId: string
+  selfId: string
   /** Club the game would start in. */
   clubHandle: string
   /**
@@ -82,7 +82,7 @@ type Props = {
  * accidental-creation possibility.
  */
 export function SetupGameDialog({
-  manifest, members, selfUserId, clubHandle, savedDefault, onStarted, onCancel,
+  manifest, members, selfId, clubHandle, savedDefault, onStarted, onCancel,
 }: Props) {
   // Seed setup from the manifest's defaults merged UNDER the
   // club's saved default (if any). Saved fields override the
@@ -115,7 +115,7 @@ export function SetupGameDialog({
     // The creator is always a player — you can't start a game you're
     // not in. Their checkbox is also disabled below; this guards the
     // state too.
-    if (userId === selfUserId) return
+    if (userId === selfId) return
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(userId)) next.delete(userId)
@@ -205,7 +205,7 @@ export function SetupGameDialog({
         <fieldset className={styles.players}>
           <legend className={styles.playersLegend}>Players</legend>
           {members.map((m) => {
-            const isSelf = m.user_id === selfUserId
+            const isSelf = m.user_id === selfId
             return (
               <label
                 key={m.user_id}

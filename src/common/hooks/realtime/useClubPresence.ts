@@ -34,7 +34,7 @@ export type ClubPresenceEntry = { userId: string; gameId: string | null }
 export function useClubPresence(
   clubHandle: string | null,
   viewingGameId: string | null,
-  selfUserId: string,
+  selfId: string,
 ): ClubPresenceEntry[] {
   const [roster, setRoster] = useState<ClubPresenceEntry[]>([])
 
@@ -50,7 +50,7 @@ export function useClubPresence(
   useEffect(() => {
     if (!clubHandle) return // no subscription; the hook returns [] below
     const ch = supabase.channel(`club:${clubHandle}`, {
-      config: { presence: { key: selfUserId } },
+      config: { presence: { key: selfId } },
     })
 
     ch.on('presence', { event: 'sync' }, () => {
@@ -71,7 +71,7 @@ export function useClubPresence(
 
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        void ch.track({ user_id: selfUserId, game_id: viewingGameId })
+        void ch.track({ user_id: selfId, game_id: viewingGameId })
       }
     })
 
@@ -83,7 +83,7 @@ export function useClubPresence(
       }
       supabase.removeChannel(ch)
     }
-  }, [clubHandle, selfUserId, viewingGameId])
+  }, [clubHandle, selfId, viewingGameId])
 
   // Derived, not setState'd in the effect: with no club we simply
   // report an empty roster (the effect never subscribes).

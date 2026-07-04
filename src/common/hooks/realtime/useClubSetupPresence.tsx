@@ -33,11 +33,11 @@ import { showToast, dismissToast } from '../../lib/toast/toastStore'
  */
 export function useClubSetupPresence({
   clubHandle,
-  selfUserId,
+  selfId,
   announce,
 }: {
   clubHandle: string | null
-  selfUserId: string
+  selfId: string
   /**
    * What I'm setting up right now (with my display name for the announcement),
    * or `null` when I'm not — which is **receive-only**: subscribe + toast peers,
@@ -63,7 +63,7 @@ export function useClubSetupPresence({
   useEffect(() => {
     if (!clubHandle) return
     const ch = supabase.channel(`club-setup:${clubHandle}`, {
-      config: { presence: { key: selfUserId } },
+      config: { presence: { key: selfId } },
     })
     ch.on('presence', { event: 'sync' }, () => {
       const state = ch.presenceState() as Record<
@@ -73,7 +73,7 @@ export function useClubSetupPresence({
       const present = new Set<string>()
       for (const list of Object.values(state)) {
         for (const e of list) {
-          if (!e.user_id || e.user_id === selfUserId) continue // never toast my own setup
+          if (!e.user_id || e.user_id === selfId) continue // never toast my own setup
           const id = `setup:${e.user_id}`
           present.add(id)
           const modeLabel = e.mode ? ` ${MODE_LABEL[e.mode]}` : ''
@@ -100,7 +100,7 @@ export function useClubSetupPresence({
         // Apply whatever setup state already exists (dialog may have opened
         // before the channel finished subscribing).
         const a = announceRef.current
-        if (a) void ch.track({ user_id: selfUserId, username: a.username, brand: a.brand, mode: a.mode })
+        if (a) void ch.track({ user_id: selfId, username: a.username, brand: a.brand, mode: a.mode })
       }
     })
     channelRef.current = ch
@@ -111,7 +111,7 @@ export function useClubSetupPresence({
       supabase.removeChannel(ch)
       channelRef.current = null
     }
-  }, [clubHandle, selfUserId])
+  }, [clubHandle, selfId])
 
   // Announce (or stop announcing) MY setup as the dialog opens/closes. Primitive
   // deps (not the recreated-each-render object) so this only fires on real change.
@@ -124,9 +124,9 @@ export function useClubSetupPresence({
     const ch = channelRef.current
     if (!ch || !subscribedRef.current) return // the SUBSCRIBED callback handles the initial track
     if (brand && mode) {
-      void ch.track({ user_id: selfUserId, username: username ?? 'Someone', brand, mode })
+      void ch.track({ user_id: selfId, username: username ?? 'Someone', brand, mode })
     } else {
       void ch.untrack()
     }
-  }, [brand, mode, username, selfUserId])
+  }, [brand, mode, username, selfId])
 }

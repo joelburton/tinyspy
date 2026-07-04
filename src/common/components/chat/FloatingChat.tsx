@@ -17,7 +17,7 @@ type Props = {
   clubHandle: string
   members: Member[]
   /** The viewing member — their own messages never count as unread. */
-  selfUserId: string
+  selfId: string
   /** When true, render nothing in the closed state — the bubble
    *  is being supplied elsewhere (e.g. the GamePage header's
    *  `<ChatBubble>`). The open-state panel still renders here.
@@ -79,7 +79,7 @@ type Props = {
 export function FloatingChat({
   clubHandle,
   members,
-  selfUserId,
+  selfId,
   hideClosedButton = false,
 }: Props) {
   // Open/closed state lives in the shared chatOpenStore so the
@@ -138,9 +138,9 @@ export function FloatingChat({
       return
     }
     setChatUnread(
-      computeUnread(messages, getChatLastSeen(clubHandle), selfUserId, members),
+      computeUnread(messages, getChatLastSeen(clubHandle), selfId, members),
     )
-  }, [messages, open, loading, selfUserId, members, clubHandle])
+  }, [messages, open, loading, selfId, members, clubHandle])
 
   // Closed shape — either render nothing (when the bubble is in
   // the GamePage header) or the legacy bottom-right toggle (for

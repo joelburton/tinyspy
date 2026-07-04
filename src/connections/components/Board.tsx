@@ -30,7 +30,7 @@ type Props = {
   /** tile → user_id (the inverted selections map). Drives the per-tile
    *  mine/peer treatment. */
   ownerByTile: ReadonlyMap<string, string>
-  selfUserId: string
+  selfId: string
   onToggle: (tile: string) => void
   /** Submit the current selection. Bound to Enter on a focused tile (so Return
    *  submits the guess rather than toggling the tile you happen to have focus
@@ -71,7 +71,7 @@ export function Board({
   unmatched,
   tiles,
   ownerByTile,
-  selfUserId,
+  selfId,
   onToggle,
   onSubmit,
   shakingTiles,
@@ -115,7 +115,7 @@ export function Board({
         {unmatched.map((c) => band(c, true))}
         {tiles.map((tile) => {
           const ownerId = ownerByTile.get(tile)
-          const isMine = ownerId === selfUserId
+          const isMine = ownerId === selfId
           const isPeer = ownerId !== undefined && !isMine
           const isShaking = shakingTiles?.has(tile) ?? false
           // Turn-history: this tile is one of the four the viewed turn guessed —

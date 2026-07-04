@@ -91,11 +91,11 @@ export function setChatLastSeen(clubHandle: string, sentAt: string): void {
 export function computeUnread(
   messages: ClubMessage[],
   lastSeen: string | null,
-  selfUserId: string,
+  selfId: string,
   members: Member[],
 ): ChatUnread {
   const unread = messages.filter(
-    (m) => m.user_id !== selfUserId && (!lastSeen || m.sent_at > lastSeen),
+    (m) => m.user_id !== selfId && (!lastSeen || m.sent_at > lastSeen),
   )
   if (unread.length === 0) return NONE
   const latest = unread[unread.length - 1]

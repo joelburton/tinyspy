@@ -291,7 +291,7 @@ export function PlayArea({
         toggleTile={toggleTile}
         sendClear={sendClear}
         unionTiles={unionTiles}
-        selfUserId={session.user.id}
+        selfId={session.user.id}
         colorByUserId={colorByUserId}
         // ── Own-guess feedback (channel owned by PlayArea) ──
         localFeedback={localFeedback}

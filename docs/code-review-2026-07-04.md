@@ -900,7 +900,11 @@ mechanical fixes).**
 - Stale docstring: `onFeedback` in `src/scrabble/components/BoardCol.tsx:27`
   (no such prop).
 
-**5.6 `selfId` vs `selfUserId`.** Glossary + shared `OpponentStrip` canonize
+**5.6 `selfId` vs `selfUserId`.** — **✅ DONE.** Global rename `selfUserId` →
+`selfId` across all of `src/` (game-context AND the lower-priority club-context
+surfaces — verified every mixed file used both names for the same
+`session.user.id`, so merging them is conflict-free). `tsc -b` + eslint + 608
+Vitest green. Glossary + shared `OpponentStrip` canonize
 `selfId` (64 uses). `selfUserId` (16) survives in
 `connections/components/BoardCol.tsx:63,104` (its own InfoCol uses `selfId` —
 intra-game drift), `connections/Board.tsx`,

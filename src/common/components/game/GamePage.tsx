@@ -146,7 +146,7 @@ export function GamePage({
   // open a setup dialog from a game page (ClubPage owns the announcing side).
   useClubSetupPresence({
     clubHandle: commonGame?.club_handle ?? null,
-    selfUserId: session.user.id,
+    selfId: session.user.id,
     announce: null,
   })
 
@@ -387,7 +387,7 @@ export function GamePage({
       <FloatingChat
         clubHandle={commonGame.club_handle}
         members={players}
-        selfUserId={session.user.id}
+        selfId={session.user.id}
         hideClosedButton
       />
 

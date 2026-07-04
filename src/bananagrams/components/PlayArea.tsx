@@ -270,7 +270,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {/* Opponents — bananagrams keeps its own vertical, closest-to-done strip
           (a race affordance the horizontal OpponentStrip can't express), which
           now also marks conceded peers as "out". Renders nothing in solo. */}
-      <PeersStrip players={ctx.players} progress={progress} selfUserId={selfId} />
+      <PeersStrip players={ctx.players} progress={progress} selfId={selfId} />
 
       {/* Help — only while the player can still act. */}
       {!over && !isConceded && (

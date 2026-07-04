@@ -60,7 +60,7 @@ export function BoardCol({
   toggleTile,
   sendClear,
   unionTiles,
-  selfUserId,
+  selfId,
   colorByUserId,
   // ── Own-guess feedback (channel owned by PlayArea) ──
   localFeedback,
@@ -101,7 +101,7 @@ export function BoardCol({
   sendClear: () => void
   /** The flat union of every player's selection (coop) / the caller's (compete). */
   unionTiles: string[]
-  selfUserId: string
+  selfId: string
   colorByUserId: ReadonlyMap<string, string>
 
   // ── Own-guess feedback ──
@@ -209,7 +209,7 @@ export function BoardCol({
         unmatched={snap ? [] : unmatched}
         tiles={snap ? snap.tiles : showInput ? displayedTiles : []}
         ownerByTile={viewing ? NO_OWNERS : ownerByTile}
-        selfUserId={selfUserId}
+        selfId={selfId}
         onToggle={handleToggle}
         onSubmit={() => void handleSubmit()}
         shakingTiles={shakingTiles}
