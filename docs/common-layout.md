@@ -81,6 +81,7 @@ components/
       RichMessage
   branding/      # the app + per-game logos
       PuzpuzpuzLogo, GameLogo
+  icons.ts       # the shared inline-SVG icon set (a root file, not a subfolder)
 ```
 
 ## `common/hooks/`

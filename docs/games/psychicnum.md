@@ -373,7 +373,16 @@ src/psychicnum/
                           (icon Delete + EntryBox + icon Submit + the capture keyboard) —
                           psychicnum's old per-game GuessForm was deleted when it landed.
                           Clicking a board tile and typing drive the same pending word;
-                          submit_guess dispatch lives in PlayArea.
+                          submit_guess dispatch lives in BoardCol.
+    BoardCol.tsx          The board column (post-decomposition): the <WordBoard> + the
+    BoardCol.module.css   below-board slot (turn-viewer banner / guess entry / own-move
+                          or terminal <GenericFeedbackPill>). Owns the guess dispatch
+                          (submit_guess) + the local board shuffle. PlayArea hands it the
+                          board to render (live results OR a history snapshot) + `viewing`.
+    InfoCol.tsx           The info column: setup details / state / Hint / Reveal / End
+                          action row / GameTurnLog / terminal outcome line.
+    WordBoard.tsx         The board of clickable word tiles (with the floating Shuffle),
+    WordBoard.module.css  keyed by tile; rings the viewed turn's word in history mode.
     GameTurnLog.tsx      Renders its OWN single-<tr> rows in the shared <TurnLog>
                           panel (row anatomy is the game's — see ui.md → Turn log):
                           each row = the shared <TurnLogBar> cell (green=correct /
@@ -387,8 +396,7 @@ src/psychicnum/
                           — a real dictionary word; the hint's clue sentence is NOT.
     GameTurnLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
-                          mounted in the common SetupGameDialog.
-    SetupForm.module.css
+                          mounted in the common SetupGameDialog. (No per-game .module.css.)
     Help.tsx              Per-game rules modal — opened from the common "Help"
                           item in the GamePage menu. Implements the manifest's
                           required `help: ComponentType<{ onClose }>` contract.
