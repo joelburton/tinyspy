@@ -291,7 +291,7 @@ fourth is cleared — `EAGLE`, `EAGLE-TABLE`, `EAGLE-TABLE-PLANS`,
 `EAGLE-TABLE-PLANS…`. The club list reads a coop game's progress at a glance,
 and the final value persists into history (`end_game` doesn't touch the title).
 This reveals nothing new — coop's cleared words are shared and already on the
-FoundWords panel. The formula is `stackdown._found_title(solution, n)`.
+GameTurnLog panel. The formula is `stackdown._found_title(solution, n)`.
 
 **Compete** keeps the create-time "New game". Its found words are hidden from
 the opponent (same board, same hidden solution, raced independently — only
@@ -327,7 +327,7 @@ the local pill carries only the results a ring can't.
   EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
   scrabble's `boardUpToSeq`; keyed by **log position** (the `#N` the log shows), not
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
-  across a shared coop log. Clicking a `FoundWords` row's `#N` opens that turn on the
+  across a shared coop log. Clicking a `GameTurnLog` row's `#N` opens that turn on the
   board via the shared viewer (`historyViewer.module.css` frame + banner; a keystroke /
   click / ✕ returns to live) — the same viewer scrabble/waffle use.
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
@@ -367,7 +367,7 @@ the local pill carries only the results a ring can't.
   the player's own just-accepted word OR a teammate's valid find, red for a
   teammate's rejected word. The flash carries plain letters, not tile ids, so
   it can show a teammate's word whose tiles this client never picked up),
-  `FoundWords` (the info-column submission log — heading "Turn Log" — rendered on
+  `GameTurnLog` (the info-column submission log — heading "Turns" — rendered on
   the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar:
   valid words green + clickable to define, invalid attempts red + struck through +
   tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
@@ -377,7 +377,7 @@ the local pill carries only the results a ring can't.
   feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
   `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  via the semantic buttons, help, setup, terminal words-reveal, and the FoundWords
+  via the semantic buttons, help, setup, terminal words-reveal, and the GameTurnLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
   + the history `viewingIndex`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the

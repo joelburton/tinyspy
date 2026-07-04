@@ -840,7 +840,14 @@ Authority: `docs/naming.md`, with `docs/playarea-decomposition-plan.md`'s prop
 glossary and `docs/code-conventions.md` where they apply. Ordered by leverage.
 
 **5.1 The turn-log component: `GameTurnLog` vs `FoundWords` vs `PlayLog` —
-unify on `GameTurnLog`.** Same slot in all 7 history games (info-column log on
+unify on `GameTurnLog`.** — **✅ DONE.** `git mv` stackdown `FoundWords` +
+scrabble `PlayLog` → `GameTurnLog` (`.tsx` + `.module.css`), updated all
+component refs/imports + the stale cross-reference comments (TurnLogActor,
+psychicnum css, waffle) + the docs. Generic-heading rider: unified the three
+drifting generic headings (`"Turn Log"` stackdown, `"Moves"` scrabble,
+`"Turns"` psychicnum) on **"Turns"**; the domain-appropriate `"Guesses"`
+(connections/wordle — a guess IS the turn), `"Swaps"`, `"Clues"` left as
+deliberate. `tsc -b` + 65 Vitest green. Same slot in all 7 history games (info-column log on
 shared `<TurnLog>`, `#N` handles, `onSelectTurn`): five games say
 `GameTurnLog`; stackdown says `FoundWords` (`src/stackdown/components/FoundWords.tsx`
 — self-refuting: its own docstring says "so it's a **turn log**", and its

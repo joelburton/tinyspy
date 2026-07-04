@@ -108,7 +108,7 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 
 ### UX (matches scrabble's history-view for consistency)
 
-- **Enter:** click **any** `TurnLog`/`FoundWords` row (not just valid words). The
+- **Enter:** click **any** `TurnLog`/`GameTurnLog` row (not just valid words). The
   overlay describes the turn per kind.
 - **Exit:** click anywhere / type anywhere (any interaction returns to live), same as
   scrabble.
@@ -124,8 +124,8 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
    greenTiles: Set, description }`; pure + Vitest.
 2. `PlayArea`: add `viewingSeq` coordination state; when set, feed `Board` the
    historical `offBoard` + green highlight + `active={false}`.
-3. `FoundWords`: rows clickable → `onSelectTurn(seq)`, viewed row highlighted (reuse
-   scrabble PlayLog's `viewedRow` pattern); kind-aware description.
+3. `GameTurnLog`: rows clickable → `onSelectTurn(seq)`, viewed row highlighted (reuse
+   scrabble GameTurnLog's `viewedRow` pattern); kind-aware description.
 4. Verify: unit test for the snapshot fn; headless check the click→view→exit loop.
 
 ### Phase B — decompose stackdown into the four layers — ✅ DONE
@@ -134,7 +134,7 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
 - `BoardCol`: the word-building input (tile clicks, `currentWord`, flash); **takes**
   the board-to-render (live or snapshot) + `readOnly`; emits `onSubmitWord`.
 - `InfoCol`: `OpponentStrip` + cleared-count readout + `TerminalActionRow` +
-  `SetupDisclosure` + `FoundWords`; emits `onSelectTurn` / `onHint` / `onReveal` /
+  `SetupDisclosure` + `GameTurnLog`; emits `onSelectTurn` / `onHint` / `onReveal` /
   `onEndGame` / `onConcede`.
 - `Board`: already exists.
 - Verify: no-op (render tests + geometry harness unchanged); the Phase-A history

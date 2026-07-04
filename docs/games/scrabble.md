@@ -539,7 +539,7 @@ never shared, never persisted, doesn't pause.
   local feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
   when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
   floats over the rack corner, not in this row), `BlankPicker` (declare a
-  dragged blank's letter on drop), `PlayLog` (the move log on the shared
+  dragged blank's letter on drop), `GameTurnLog` (the move log on the shared
   `<TurnLog>` — one `<tr>` per play: an outcome bar [green word / neutral
   exchange-pass / red forfeit], the move in `.main` [`+score WORD…`], the actor's
   `<ActorTag>`; words click-to-define via the common `DefinitionPopover`),
@@ -551,7 +551,7 @@ never shared, never persisted, doesn't pause.
   `gameId`. Also takes the board to show — live, a `boardUpToSeq` history snapshot,
   OR a coop teammate's shared move — the `ViewTarget` union it switches on; and owns
   the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
-  button + the PlayLog), `PlayArea` (the thin coordinator: `useGame`, the shared
+  button + the GameTurnLog), `PlayArea` (the thin coordinator: `useGame`, the shared
   below-board feedback channel [both columns write it], the coop `useSharedMove`
   transport, the terminal `GameOverModal`, and the board-viewer state), `SetupForm`
   (two `<DifficultyField>`s + timer), `Help`.

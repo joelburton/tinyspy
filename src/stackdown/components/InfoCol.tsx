@@ -11,7 +11,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
 import type { PlayerRow, SubmissionRow } from '../hooks/useGame'
-import { FoundWords } from './FoundWords'
+import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
@@ -19,7 +19,7 @@ import styles from './InfoCol.module.css'
  * stackdown's info column — near-zero state, just an arrangement of the shared
  * scaffold pieces in the fixed order (docs/design-decisions.md → Info column):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
- * words reveal → FoundWords log. Every mutation is a named callback up
+ * words reveal → GameTurnLog log. Every mutation is a named callback up
  * (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
  * RPCs and the coordination state. See docs/playarea-decomposition-plan.md.
  */
@@ -90,7 +90,7 @@ export function InfoCol({
   /** The six solution words, revealed at game-over (terminal only). */
   solution: string[] | null
 
-  // ── Turn-history log (FoundWords) ──
+  // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
   submissions: SubmissionRow[]
   showWho: boolean
@@ -205,7 +205,7 @@ export function InfoCol({
         </div>
       )}
 
-      <FoundWords
+      <GameTurnLog
         submissions={submissions}
         players={members}
         showWho={showWho}

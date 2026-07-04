@@ -300,7 +300,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (the five turn-log games — stackdown still names its `FoundWords`, scrabble its `PlayLog`; unifying on `GameTurnLog` is tracked in naming §5.1), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all seven turn-log games — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`

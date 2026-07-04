@@ -11,7 +11,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { PlayerRow, PlayRow } from '../hooks/useGame'
-import { PlayLog } from './PlayLog'
+import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
@@ -175,7 +175,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <PlayLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={onSelectTurn} />
+      <GameTurnLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={onSelectTurn} />
     </div>
   )
 }

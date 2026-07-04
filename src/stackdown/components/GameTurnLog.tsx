@@ -7,7 +7,7 @@ import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../comm
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import type { SubmissionRow } from '../hooks/useGame'
-import styles from './FoundWords.module.css'
+import styles from './GameTurnLog.module.css'
 
 /**
  * The submission log — the info-column history of every play, rendered on the
@@ -34,7 +34,7 @@ import styles from './FoundWords.module.css'
  * common read-through cache → Wiktionary lookup every word game gets). Invalid
  * attempts aren't real words, so they stay inert.
  */
-export function FoundWords({
+export function GameTurnLog({
   submissions,
   players,
   showWho,
@@ -77,7 +77,7 @@ export function FoundWords({
   return (
     <>
       <TurnLog
-        heading="Turn Log"
+        heading="Turns"
         empty={submissions.length === 0}
         emptyText="No words yet."
         scrollKey={submissions.length}

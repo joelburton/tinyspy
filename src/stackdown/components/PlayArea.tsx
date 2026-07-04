@@ -39,7 +39,7 @@ const NO_TILES: ReadonlySet<number> = new Set()
  *     render (live OR a historical snapshot) + `readOnly`; emits the completed word
  *     up (`onSubmitWord`) and "back to live" (`onExitViewing`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
- *     disclosure, terminal words reveal, and the FoundWords log. Emits named
+ *     disclosure, terminal words reveal, and the GameTurnLog log. Emits named
  *     callbacks up (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`).
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
@@ -321,7 +321,7 @@ export function PlayArea({
     : submissions
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
-  // `viewingIndex` indexes `logWords` — the same chronological list the FoundWords log
+  // `viewingIndex` indexes `logWords` — the same chronological list the GameTurnLog log
   // shows — so coop replays the shared board and compete the caller's own, for free.
   // Works at terminal too (reviewing the finished stack). (`viewing` is from the hook.)
   const snap = viewingIndex !== null ? turnSnapshot(logWords, viewingIndex) : null

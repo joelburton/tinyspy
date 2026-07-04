@@ -11,8 +11,8 @@
 }
 
 /* A click-to-define word (common/hooks/definitions/useDefinePopover) — the subtle
- * underline-on-hover affordance the other text-word logs use (scrabble PlayLog,
- * stackdown FoundWords, the shared WordList). Only the guessed/revealed word
+ * underline-on-hover affordance the other text-word logs use (scrabble's +
+ * stackdown's GameTurnLog, the shared WordList). Only the guessed/revealed word
  * carries it, never a hint sentence. */
 .definable {
   cursor: pointer;

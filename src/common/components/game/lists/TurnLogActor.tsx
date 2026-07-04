@@ -4,8 +4,8 @@ import styles from './TurnLog.module.css'
 
 /**
  * The turn-log "who" cell: the right-aligned `<td>` (the shared `.who` column)
- * wrapping the shared `<ActorTag>`. Every GameTurnLog / scrabble PlayLog /
- * stackdown FoundWords row repeats this exact `<td class="who"><ActorTag/></td>`
+ * wrapping the shared `<ActorTag>`. Every game's GameTurnLog row repeats this
+ * exact `<td class="who"><ActorTag/></td>`
  * pairing (psychicnum had already wrapped it locally as `whoCell`), so this
  * single-sources the column + tag together. Props forward straight to
  * `<ActorTag>` (`actor` / `fallback` / `className`).

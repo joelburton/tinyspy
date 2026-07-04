@@ -875,7 +875,7 @@ own `<tr>` (a single-row swap entry: bar + `#N` + the move in `.main` + the
 swapper in `.who`) left no callers, so the wrapper is gone. A new game renders its
 own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
 `HistoryPanel` predecessor this whole system replaced was already **deleted** —
-scrabble's framed `PlayLog` is separate and unaffected.)
+scrabble's framed `GameTurnLog` is separate and unaffected.)
 
 ## Turn-history viewer
 

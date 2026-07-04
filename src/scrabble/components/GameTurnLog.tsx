@@ -6,7 +6,7 @@ import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../comm
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import type { PlayRow } from '../hooks/useGame'
-import styles from './PlayLog.module.css'
+import styles from './GameTurnLog.module.css'
 
 /**
  * scrabble's move log — the shared `<TurnLog>` table (same chrome the other v3
@@ -22,7 +22,7 @@ import styles from './PlayLog.module.css'
  * lookup every word game gets). Public in both modes (every committed word is on
  * the shared board, which is public).
  */
-export function PlayLog({
+export function GameTurnLog({
   plays,
   players,
   viewingSeq,
@@ -63,7 +63,7 @@ export function PlayLog({
 
   return (
     <>
-    <TurnLog heading="Moves" empty={plays.length === 0} emptyText="No moves yet." scrollKey={plays.length}>
+    <TurnLog heading="Turns" empty={plays.length === 0} emptyText="No moves yet." scrollKey={plays.length}>
       {plays.map((p) => (
         <tr key={p.seq} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={outcomeFor(p.kind)} />
