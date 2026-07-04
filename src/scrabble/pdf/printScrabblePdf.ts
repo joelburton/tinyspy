@@ -50,22 +50,31 @@ export type ScrabblePrintModel = {
   setup: { label: string; value: string }[]
 }
 
-/** Premium square → its label + print fill (RGB). Muted, ink-friendly tones. */
+/** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
+ *  board-color exception in docs/pdf.md, kept faint so the ink reads clean. */
 const PREMIUM_STYLE: Record<PremiumType, { label: string; fill: [number, number, number] }> = {
-  TW: { label: 'TW', fill: [225, 120, 105] }, // triple word — red
-  DW: { label: 'DW', fill: [242, 183, 176] }, // double word — pink
-  TL: { label: 'TL', fill: [120, 170, 214] }, // triple letter — dark blue
-  DL: { label: 'DL', fill: [186, 216, 233] }, // double letter — light blue
-  none: { label: '', fill: [243, 239, 230] }, // plain — cream
+  TW: { label: 'TW', fill: [240, 188, 180] }, // triple word — light red
+  DW: { label: 'DW', fill: [249, 219, 216] }, // double word — light pink
+  TL: { label: 'TL', fill: [188, 213, 235] }, // triple letter — light blue
+  DL: { label: 'DL', fill: [221, 236, 244] }, // double letter — lighter blue
+  none: { label: '', fill: [243, 239, 230] }, // plain (unused — 'none' cells stay white)
 }
 
-const TILE_FILL: [number, number, number] = [227, 203, 152] // placed-tile tan
+// The placed-tile fill = common theme's `--tile-1` (#faf7ef), the lightest resting tile.
+const TILE_FILL: [number, number, number] = [250, 247, 239]
 // Tile glyph proportions matched to the on-screen board (Board.module.css:
 // .letter = 58cqmin, .value = 36cqmin), so the value reads small next to the letter.
 const LETTER_RATIO = 0.58
 const VALUE_RATIO = 0.36
-// Grid line color — darker than a screen board so it reads on a B&W printout.
-const GRID = 90
+// ── Print shade system (see docs/pdf.md). 0 = black … 255 = white. Everything not
+//    EXPLICITLY colored is one of these. (scrabble's premium-square + tile fills are
+//    the agreed board-color exception — they carry board meaning, not decoration.) ──
+const BLACK = 0 // text / data / headings
+const DARK_GREY = 70 // board grid + column-header labels
+const MEDIUM_GREY = 180 // minor lines — turn dividers + table header rule
+const BORDER_W = 0.6 // empty-cell grid weight (a "normal" line — matches psychicnum's board)
+const TILE_BORDER_W = 1 // placed tiles get a thicker frame so they stand out from empty cells
+const RULE_W = 0.4
 // Turns-table column x-offsets (from the column's left edge). The Move column is the
 // important one so it gets the most room; Player is narrow and truncates.
 const SEQ_X = 3
@@ -77,7 +86,7 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
-  const margin = 40
+  const margin = 28 // tight-ish so the columns use more of the paper (safe for print)
   const gutter = 22
   const colW = (pageW - 2 * margin - gutter) / 2
   const leftX = margin
@@ -87,12 +96,12 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
 
   // ── Header (spans both columns): "Brand: game title" left, date top-right ──
   // Draw the date first (measure it) so the heading can be truncated to fit left of it.
-  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(120)
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
   const dateW = doc.getTextWidth(m.date)
   doc.text(m.date, pageW - margin, margin + 6, { align: 'right' })
-  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(20)
+  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(BLACK)
   doc.text(fit(doc, `${m.brand}: ${m.gameTitle}`, pageW - 2 * margin - dateW - 16), margin, margin + 8)
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90)
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(BLACK)
   doc.text(m.summary, margin, margin + 24)
 
   // ── Left column: board, then rack ───────────────────────
@@ -101,14 +110,14 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
   let ly = colTop + cell * BOARD_SIZE + 24
 
   if (m.rackLabel && m.rack.length) {
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(20)
+    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(BLACK)
     doc.text(m.rackLabel, leftX, ly)
     ly = drawRack(doc, m.rack, leftX, ly + 6) + 26
   }
 
   // ── Turns: newspaper flow left → right → further pages ──
   // ("Turns" is this project's word for a play — see the shared TurnLog.)
-  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(20)
+  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(BLACK)
   doc.text('Turns', leftX, ly)
   ly += 6
 
@@ -129,15 +138,19 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
     }
   }
   let cy = drawTurnsHeader(doc, leftX, ly, colW)
+  let firstInColumn = true
 
-  rows.forEach((row, i) => {
+  rows.forEach((row) => {
     if (cy + rowH > pageBottom) {
       nextColumn()
       cy = drawTurnsHeader(doc, colX(), columnTop(), colW)
+      firstInColumn = true
     }
     const x = colX()
-    if (i % 2 === 1) doc.setFillColor(244, 244, 244).rect(x, cy, colW, rowH, 'F')
-    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(30)
+    // A thin rule between turns (no alternate-row shading — see docs/pdf.md).
+    if (!firstInColumn) doc.setDrawColor(MEDIUM_GREY).setLineWidth(RULE_W).line(x, cy, x + colW, cy)
+    firstInColumn = false
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
     doc.text(row[0], x + SEQ_X, cy + 10)
     // Player is narrow + truncates (a cut-off name is still distinguishable); Move
     // gets the rest, because a truncated move wouldn't be.
@@ -149,22 +162,22 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
   // ── Setup — appended after the turns, same column flow. Kept together: if the
   //    block won't fit in the rest of the column, move it whole to the next column. ──
   if (m.setup.length) {
-    const blockH = 12 + 14 + m.setup.length * 13
+    const blockH = 22 + 13 + m.setup.length * 13
     if (cy + blockH > pageBottom) {
       nextColumn()
       cy = columnTop()
     } else {
-      cy += 12
+      cy += 22 // space before the Setup section
     }
     const x = colX()
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(20)
+    doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK) // smaller sub-heading
     doc.text('Setup', x, cy)
-    cy += 14
+    cy += 13
     m.setup.forEach((it) => {
-      doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(40)
+      doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
       doc.text(`${it.label}: `, x, cy)
       const labelW = doc.getTextWidth(`${it.label}: `)
-      doc.setFont('helvetica', 'normal').setTextColor(70)
+      doc.setFont('helvetica', 'normal').setTextColor(BLACK)
       doc.text(it.value, x + labelW, cy)
       cy += 13
     })
@@ -181,20 +194,23 @@ function drawBoard(doc: jsPDF, board: Cell[], x0: number, y0: number, cell: numb
       const py = y0 + y * cell
       const idx = cellIndex(x, y)
       const placed = board[idx]
-      doc.setDrawColor(GRID)
+      // Border weight is set per cell (a mark can bump the line width). A placed tile
+      // gets a thicker frame (TILE_BORDER_W) so it stands out from the empty cells.
+      doc.setDrawColor(DARK_GREY)
       if (placed) {
-        doc.setFillColor(...TILE_FILL).rect(px, py, cell, cell, 'FD')
+        doc.setLineWidth(TILE_BORDER_W).setFillColor(...TILE_FILL).rect(px, py, cell, cell, 'FD')
         drawTileGlyph(doc, placed.l, LETTER_VALUES[placed.l] ?? 0, px, py, cell, placed.b)
       } else {
+        doc.setLineWidth(BORDER_W)
         const prem = premiumAt(x, y)
         // Non-premium squares are WHITE (like the on-screen board) — just the grid
         // line; only premium squares get a fill.
         if (prem === 'none') doc.rect(px, py, cell, cell, 'S')
         else doc.setFillColor(...PREMIUM_STYLE[prem].fill).rect(px, py, cell, cell, 'FD')
         if (idx === CENTER) {
-          doc.setFillColor(120, 120, 120).circle(px + cell / 2, py + cell / 2, cell * 0.16, 'F')
+          doc.setFillColor(DARK_GREY, DARK_GREY, DARK_GREY).circle(px + cell / 2, py + cell / 2, cell * 0.16, 'F')
         } else if (prem !== 'none') {
-          doc.setFont('helvetica', 'bold').setFontSize(cell * 0.34).setTextColor(70)
+          doc.setFont('helvetica', 'bold').setFontSize(cell * 0.34).setTextColor(BLACK)
           doc.text(PREMIUM_STYLE[prem].label, px + cell / 2, py + cell / 2 + cell * 0.12, { align: 'center' })
         }
       }
@@ -208,12 +224,12 @@ function drawRack(doc: jsPDF, rack: string[], x0: number, y0: number): number {
   const gap = 6
   rack.forEach((letter, i) => {
     const px = x0 + i * (rt + gap)
-    doc.setFillColor(...TILE_FILL).setDrawColor(GRID)
+    doc.setFillColor(...TILE_FILL).setLineWidth(TILE_BORDER_W).setDrawColor(DARK_GREY)
     doc.rect(px, y0, rt, rt, 'FD')
     if (letter === '?') {
       // An undecided blank — a faint "?" where its letter will go (matches the
       // on-screen rack), and no value.
-      doc.setFont('helvetica', 'bold').setFontSize(rt * LETTER_RATIO).setTextColor(150)
+      doc.setFont('helvetica', 'bold').setFontSize(rt * LETTER_RATIO).setTextColor(DARK_GREY)
       doc.text('?', px + rt / 2, y0 + rt / 2 + rt * LETTER_RATIO * 0.35, { align: 'center' })
     } else {
       drawTileGlyph(doc, letter, LETTER_VALUES[letter] ?? 0, px, y0, rt)
@@ -236,14 +252,16 @@ function drawTileGlyph(
   blank = false,
 ): void {
   const letterSize = size * LETTER_RATIO
-  const cx = px + size / 2
-  const cy = py + size / 2
-  doc.setFont('helvetica', 'bold').setFontSize(letterSize).setTextColor(20)
+  // Shift the letter a touch left + up (so it clears the bottom-right score; the
+  // blank-ring is centered on (cx, cy) too, so it follows the letter).
+  const cx = px + size * 0.47
+  const cy = py + size * 0.44
+  doc.setFont('helvetica', 'bold').setFontSize(letterSize).setTextColor(BLACK)
   doc.text(letter, cx, cy + letterSize * 0.35, { align: 'center' })
   if (blank) {
     // Ring the letter (≈1.25em, like the on-screen `.tile.blank`); no score.
     const lw = doc.getLineWidth()
-    doc.setLineWidth(letterSize * 0.06).setDrawColor(30).circle(cx, cy, letterSize * 0.62, 'S')
+    doc.setLineWidth(letterSize * 0.06).setDrawColor(BLACK).circle(cx, cy, letterSize * 0.62, 'S')
     doc.setLineWidth(lw)
   } else {
     doc.setFont('helvetica', 'normal').setFontSize(size * VALUE_RATIO)
@@ -253,11 +271,11 @@ function drawTileGlyph(
 
 /** Draw the "# Player Move" column header + a rule at (x, y). Returns the first row's top y. */
 function drawTurnsHeader(doc: jsPDF, x: number, y: number, w: number): number {
-  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(110)
+  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(DARK_GREY)
   doc.text('#', x + SEQ_X, y + 9)
   doc.text('Player', x + WHO_X, y + 9)
   doc.text('Move', x + MOVE_X, y + 9)
-  doc.setDrawColor(180).line(x, y + 13, x + w, y + 13)
+  doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5).line(x, y + 13, x + w, y + 13)
   return y + 16
 }
 
