@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
@@ -67,19 +68,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   }
 }
 
-/** Shared timeout dispatcher — the RPC is mode-aware + idempotent server-side. */
-async function submitTimeout(gameId: string) {
-  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
-
-/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
-async function endGame(gameId: string) {
-  const { error } = await db.rpc('end_game', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
+// Timeout (mode-aware + idempotent server-side) + manual end — the shared
+// one-arg RPC dispatchers (see common/lib/game/manifestRpcs).
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
 
 type StatusBlob = Record<string, unknown>
 

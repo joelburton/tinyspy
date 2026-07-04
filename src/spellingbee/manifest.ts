@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { supabase } from '../common/lib/supabase/supabase'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
@@ -123,24 +124,11 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   }
 }
 
-/**
- * Shared submitTimeout dispatcher. The RPC is mode-aware
- * server-side (per-mode terminal vocab is already encoded in
- * `spellingbee.submit_timeout`) so the FE just fires the call.
- * Idempotent on the terminal-state check.
- */
-async function submitTimeout(gameId: string) {
-  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
-
-/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
-async function endGame(gameId: string) {
-  const { error } = await db.rpc('end_game', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
+// Timeout + manual end — the shared one-arg RPC dispatchers (see
+// common/lib/game/manifestRpcs). submit_timeout is mode-aware server-side
+// (per-mode terminal vocab lives in spellingbee.submit_timeout) + idempotent.
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
 
 type StatusBlob = Record<string, unknown>
 

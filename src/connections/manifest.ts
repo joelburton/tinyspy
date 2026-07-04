@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest, Member, RichMessage } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 // `game_players` and `profiles` live in the `common` schema, not `connections`,
 // so they must be read through the common-scoped client — the connections `db`
 // (`supabase.schema('connections')`) would resolve `connections.game_players`,
@@ -165,22 +166,11 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   }
 }
 
-// Shared submit_timeout dispatcher. The RPC is mode-aware
-// server-side (writes 'lost' for coop, 'lost_compete' for compete)
-// so the FE just fires the call; idempotent on the terminal-state
-// check.
-async function submitTimeout(gameId: string) {
-  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
-
-/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
-async function endGame(gameId: string) {
-  const { error } = await db.rpc('end_game', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
+// Timeout + manual end — the shared one-arg RPC dispatchers (see
+// common/lib/game/manifestRpcs). submit_timeout is mode-aware server-side
+// (writes 'lost' for coop, 'lost_compete' for compete) + idempotent.
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
 
 // Shared listing-label helper for coop's familiar
 // "{matched}/4 categories · {mistakes}/4 mistakes" mid-game shape.

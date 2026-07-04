@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_SCRABBLE_SETUP, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -45,18 +46,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   }
 }
 
-async function submitTimeout(gameId: string): Promise<{ error?: string }> {
-  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
-
-/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
-async function endGame(gameId: string): Promise<{ error?: string }> {
-  const { error } = await db.rpc('end_game', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
+// Timeout + manual end — the shared one-arg RPC dispatchers (see
+// common/lib/game/manifestRpcs).
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
 
 /** Pure one-line label for the ClubPage games list. Mid-game shows the tiles
  *  left in the bag (+ the team score in coop); terminal shows the result —

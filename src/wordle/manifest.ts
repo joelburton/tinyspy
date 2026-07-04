@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -54,21 +55,10 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   }
 }
 
-/** Fire the countdown-timeout RPC (shared by both modes). The RPC
- *  raises "not in progress" if a peer already ended the game; we return
- *  that — GamePage swallows timeout errors. */
-async function submitTimeout(gameId: string): Promise<{ error?: string }> {
-  const { error } = await db.rpc('submit_timeout', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
-
-/** Shared end-game dispatcher — ends the game now (irreversible; the same RPC as the in-game "End game" button). */
-async function endGame(gameId: string): Promise<{ error?: string }> {
-  const { error } = await db.rpc('end_game', { target_game: gameId })
-  if (error) return { error: error.message }
-  return {}
-}
+// Timeout (fired by every client on countdown expiry) + manual end — the shared
+// one-arg RPC dispatchers (see common/lib/game/manifestRpcs).
+const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
+const endGame = makeRpcDispatcher(db, 'end_game')
 
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModePill>, so it's no
