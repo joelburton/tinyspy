@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   boardLetters,
+  boardToGrid,
   multisetSubtract,
   deriveHand,
   reconcileHandOrder,
   shuffleString,
   emptyBoard,
   idx,
+  setChar,
 } from './board'
 
 /**
@@ -58,6 +60,27 @@ describe('reconcileHandOrder', () => {
   })
   it('no-op when order already matches the canonical multiset', () => {
     expect(reconcileHandOrder('QWERTY', 'QWERTY')).toBe('QWERTY')
+  })
+})
+
+describe('boardToGrid', () => {
+  it('is empty for an empty board', () => {
+    expect(boardToGrid(emptyBoard())).toEqual([])
+  })
+  it('crops to the tiles bounding box, gaps as empty strings, uppercased', () => {
+    // A little crossword: "CAT" across at (3,4) and "CAR" down at (3,4).
+    let b = emptyBoard()
+    b = setChar(b, idx(3, 4), 'C')
+    b = setChar(b, idx(4, 4), 'A')
+    b = setChar(b, idx(5, 4), 'T')
+    b = setChar(b, idx(3, 5), 'A')
+    b = setChar(b, idx(3, 6), 'R')
+    // Bounding box is x 3..5, y 4..6 → 3×3, with gaps as ''.
+    expect(boardToGrid(b)).toEqual([
+      ['C', 'A', 'T'],
+      ['A', '', ''],
+      ['R', '', ''],
+    ])
   })
 })
 

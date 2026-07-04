@@ -133,3 +133,26 @@ export function tilesExtent(board: string): Extent | null {
   if (maxY < 0) return null
   return { minX, maxX, minY, maxY }
 }
+
+/**
+ * The used portion of the board as a row-major 2D grid, CROPPED to the bounding
+ * box of the placed tiles — each cell an UPPERCASE letter, or `''` for an empty
+ * cell inside the box (a gap in the crossword). An empty board returns `[]`.
+ *
+ * This is what the print renders: it sizes the tiles to the crop's width, so the
+ * board fills the paper regardless of where in the 25×25 arena the player built.
+ */
+export function boardToGrid(board: string): string[][] {
+  const ext = tilesExtent(board)
+  if (!ext) return []
+  const grid: string[][] = []
+  for (let y = ext.minY; y <= ext.maxY; y++) {
+    const row: string[] = []
+    for (let x = ext.minX; x <= ext.maxX; x++) {
+      const ch = board[idx(x, y)]
+      row.push(ch === '.' ? '' : ch.toUpperCase())
+    }
+    grid.push(row)
+  }
+  return grid
+}

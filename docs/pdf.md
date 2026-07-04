@@ -6,8 +6,8 @@ doc is the **shared design language** for those printouts, so every game's print
 like it belongs to the same system (the on-screen consistency goal — see
 [ui.md](ui.md) — extended to paper).
 
-Status: **shared `common/pdf/` helpers**, with three games printing today (scrabble,
-psychicnum, boggle). **Joel picked jsPDF** over react-pdf (see [project memory] / the
+Status: **shared `common/pdf/` helpers**, with five games printing today (scrabble,
+psychicnum, boggle, spellingbee, bananagrams). **Joel picked jsPDF** over react-pdf (see [project memory] / the
 `scrabble-react-pdf` branch): precise layout control, a lighter dep, and it matches his
 existing jsPDF crossword-print code that will land in puzpuzpuz.
 
@@ -20,7 +20,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 |---|---|---|
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
-| `common/pdf/wordColumns.ts` | boggle, spellingbee | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in |
+| `common/pdf/wordColumns.ts` | boggle, spellingbee, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
 
 A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, draw its own
 board, call `drawTurnLog` **or** `drawWordColumns`, `savePrint`.
@@ -109,14 +109,25 @@ hand-managed column cursor). The log is titled **"Turns"** (the project's word f
 turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> table with a
 thin rule between turns; the Setup section is appended at the end of the flow.
 
-**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee).** A
-**fixed-size** board top-left (so a 6×6 prints bigger than a 4×4 — it isn't scaled to a
-column), the Setup to its **right**, and below them the words in **N balanced,
+**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee, bananagrams).** A
+board top-left, the Setup to its **right**, and below them the words in **N balanced,
 column-major, alphabetical columns** (each row `word (·bonus dot) … +score  finder`).
 The board is per-game: boggle draws a tile grid; spellingbee draws its 7-hex honeycomb
 (from `spellingbee/lib/honeycomb.ts`, the same geometry the on-screen SVG board uses —
 white hexes, the center distinguished only by a thicker border). Spellingbee also uses
 the `pangram` row flag (pangrams print **bold**).
+
+Board sizing has two sub-shapes. boggle + spellingbee use a **fixed** tile size (so a
+6×6 prints bigger than a 4×4 — it isn't scaled to a column). **bananagrams is the
+exception**: its crossword is an arbitrary shape built somewhere in a big 25×25 arena,
+so the board is handed in **already cropped to the used tiles** (`boardToGrid`) and the
+tile size is **derived** so that crop fills ~75% of the content width (clamped so it
+can't overflow the page height, and a `MAX_TILE` cap so a near-empty board doesn't
+balloon) — the board is the headline of the page, the Setup tucks into the ~25% beside
+it. bananagrams's words carry **no score or finder** (a Bananagrams grid is one
+player's, not "found" by anyone), so every row is a bare `found: null` word — enumerated
+by `bananagrams/lib/words.ts`'s `boardWords` (the FE twin of the server's win-time spell
+check: every 2+ run across + down), then de-duped + alphabetised.
 
 ## Plumbing
 

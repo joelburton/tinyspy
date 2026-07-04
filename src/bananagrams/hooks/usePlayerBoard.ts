@@ -125,6 +125,10 @@ export type UsePlayerBoardInput = {
   /** Tiles in the out-of-play box (status.box_remaining) — counts toward what a dump
    *  can draw (the bunch tops up from the box when short). */
   boxCount?: number
+  /** Optional out-param: kept pointed at the LIVE board string so the outer
+   *  coordinator can snapshot it on demand (the print menu reads it at click time)
+   *  without subscribing to every placement. */
+  reportBoardRef?: RefObject<string>
 }
 
 /** Everything the two views + the layout need to render. */
@@ -164,6 +168,7 @@ export function usePlayerBoard({
   onDump,
   bunchCount,
   boxCount,
+  reportBoardRef,
 }: UsePlayerBoardInput): PlayerBoardEngine {
   const [board, setBoard] = useState(initialBoard)
   // A local shuffle order for the hand (the ⟲ button). null = use the canonical
@@ -208,7 +213,8 @@ export function usePlayerBoard({
     cursorRef.current = cursor
     declaringRef.current = declaring
     frozenRef.current = !!isConceded
-  }, [board, tiles, cursor, declaring, isConceded])
+    if (reportBoardRef) reportBoardRef.current = board // expose the live board upward
+  }, [board, tiles, cursor, declaring, isConceded, reportBoardRef])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 

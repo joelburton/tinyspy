@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { PeelButton } from '../../common/components/buttons/PeelButton'
 import { cls } from '../../common/lib/cls'
 import { usePlayerBoard, LETTER_SCALE } from '../hooks/usePlayerBoard'
@@ -66,6 +66,9 @@ type Props = {
   /** Tiles in the out-of-play box (status.box_remaining) — only nonzero in dump-to-box
    *  games; counts toward what a dump can draw. */
   boxCount?: number
+  /** Out-param kept pointed at the live board, so PlayArea's print menu can snapshot
+   *  it at click time (the board lives in the engine, but the menu lives in PlayArea). */
+  reportBoardRef?: RefObject<string>
 }
 
 export function PlayerBoard({
@@ -81,6 +84,7 @@ export function PlayerBoard({
   onDump,
   bunchCount,
   boxCount,
+  reportBoardRef,
 }: Props) {
   const arena = usePlayerBoard({
     gameId,
@@ -92,6 +96,7 @@ export function PlayerBoard({
     onDump,
     bunchCount,
     boxCount,
+    reportBoardRef,
   })
 
   return (

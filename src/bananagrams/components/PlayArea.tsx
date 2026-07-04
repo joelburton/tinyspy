@@ -14,6 +14,9 @@ import { cls } from '../../common/lib/cls'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
 import type { BananagramsSetup } from '../lib/setup'
+import { boardLetters, boardToGrid } from '../lib/board'
+import { boardWords } from '../lib/words'
+import { printBananagramsPdf } from '../pdf/printBananagramsPdf'
 import { PlayerBoard } from './PlayerBoard'
 import { PeersStrip } from './PeersStrip'
 import { SetupDisclosure } from '../../common/components/SetupDisclosure'
@@ -54,7 +57,13 @@ export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
 
-  const { gameId, isTerminal } = ctx
+  const { gameId, isTerminal, menu, brand, title } = ctx
+
+  // The live board lives in the `usePlayerBoard` engine (inside `<PlayerBoard>`), not
+  // here — but the "Print board (PDF)" menu item lives here (this is where `ctx.menu`
+  // is). So we hand PlayerBoard a ref it keeps pointed at the current board, and the
+  // print's onClick snapshots it at click time.
+  const boardRef = useRef<string>('')
 
   // ─── Local feedback (own-move) ─────────────────────────────────────────
   // The below-board pill: a peel/dump draw announcement (timed — the hook
@@ -152,6 +161,45 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
     }
   }, [gameId, isTerminal, showLocalFeedback])
+
+  // ─── "Print board (PDF)" GamePage menu item ─────────────────────────────
+  // A snapshot of the caller's own board — works mid-game or at the end (see
+  // docs/pdf.md). The board is read from `boardRef` at CLICK time (not baked into
+  // the model here) so it's always current; the words are extracted with the same
+  // rule the server's win check uses (`boardWords`), then de-duped + sorted for a
+  // tidy reference list — unscored + unattributed, it's just the board's vocabulary.
+  useEffect(() => {
+    // Wait for the deal — before the board loads there's nothing to print.
+    if (loading || initialBoard === null) return
+    const setup = ctx.setup as unknown as BananagramsSetup
+    const doPrint = () => {
+      const board = boardRef.current
+      const words = Array.from(new Set(boardWords(board))).sort()
+      const placed = boardLetters(board).length
+      printBananagramsPdf({
+        brand,
+        gameTitle: title,
+        date: new Date().toLocaleDateString(),
+        // Board-centric summary (this print is a record of the board, not the race).
+        summary: `${placed} tile${placed === 1 ? '' : 's'} placed · ${words.length} word${words.length === 1 ? '' : 's'}`,
+        board: boardToGrid(board),
+        // Relevant setup only — the timer + dump destination don't describe the board.
+        setup: [
+          { label: 'Starter hand', value: `${setup.hand_size} tiles` },
+          { label: 'Bag', value: `${setup.bag_size} tiles` },
+          {
+            label: 'Words',
+            value: setup.check_words
+              ? `Must be real (2-letter: ${DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer: ${DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})`
+              : 'Not checked',
+          },
+        ],
+        words,
+      })
+    }
+    menu.setGameItems([{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }])
+    return () => menu.setGameItems([])
+  }, [menu, brand, title, ctx.setup, loading, initialBoard])
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
@@ -288,6 +336,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onDump={dump}
         bunchCount={bunchCount}
         boxCount={boxCount}
+        reportBoardRef={boardRef}
         infoTop={infoTop}
         infoActions={infoActions}
         localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}

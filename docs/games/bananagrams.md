@@ -229,6 +229,27 @@ stays constant.
 - **`PeersStrip`**: opponents' tiles-left counts sorted by closest-to-done (a **conceded** peer shows "out" and sinks to the bottom), rendered in the info column above the hand. Renders nothing in a solo game. Deliberately kept over the shared horizontal `OpponentStrip` — the vertical, race-ordered shape is a better fit for this game (and the narrow column).
 - **SetupForm**: `hand_size` (15 / 21, default 21) + `bag_size` (number, 1–144, default 144 — fewer tiles = a shorter game) + **dump_to_box** ("Return dumped tiles to the box" checkbox, default off — on sends dumped tiles to the out-of-play box reserve so the bunch depletes; a short-bunch dump can still draw from the box) + **check_words** ("Require real words to win" checkbox) **plus two always-shown shared `DifficultyField` pickers** — **2-letter words** [2–6] and **longer words 3+** [1–6], since 2-letter words are a thin separate vocabulary, both default 4. The bands define what counts as a real word both for the win check (when required) and for a planned opt-in "check board" helper, so they show regardless of the checkbox; connectivity is always required so it's not a knob) + the shared `TimerField` (none / count-up / countdown MM:SS, default none). A countdown that runs out ends the race as a collective loss (`submit_timeout`). The bag must hold a starter hand per player: the form shows the live "deals N" figure, and `bagSizeError` (shared with the gate) feeds the manifest's `setupForm.validate` so the dialog **disables Start with a reason** until `bag_size ≥ playerCount × hand_size`. Manifest compete-only; solo is N = 1.
 
+### Printing the board (PDF)
+
+bananagrams joins the printable games (see [docs/pdf.md](../pdf.md)) — a "Print board
+(PDF)" GamePage menu item that hands you a paper record of your crossword. It's the
+word-list body family (board top-left, Setup to its right, words below), with two
+bananagrams-specific pieces:
+
+- **Board sizing.** Unlike boggle's fixed-size grid, the crossword is an arbitrary shape
+  in the 25×25 arena, so the print crops to the used tiles (`lib/board.ts`'s
+  `boardToGrid`) and derives a tile size that fills ~75% of the page width — the board is
+  the star of the page. Gaps between words render white, so the interlocking shape reads.
+- **The word list.** `lib/words.ts`'s `boardWords` enumerates every 2+ run (across +
+  down) — the FE twin of the server's win-time spell check in `_win_blockers`, lifted to
+  `lib/` so the print (and a future opt-in "check my board" helper) can list the same
+  words without a round-trip. They're de-duped + alphabetised and printed **unscored,
+  unattributed** — a Bananagrams grid is one player's, not "found" by anyone.
+
+The board lives in the `usePlayerBoard` engine, but the menu lives in `PlayArea` (where
+`ctx.menu` is), so PlayArea hands the engine a `reportBoardRef` it keeps pointed at the
+live board; the print's onClick snapshots it at click time (works mid-game or at the end).
+
 ### Build order
 
 1. **Schema + `create_game` + manifest + PlayArea load gate** — game starts, tiles deal, the board loads from `player_boards`. **✓ DONE** (migration `20260623000000_bananagrams.sql`, `src/bananagrams/`, pgTAP `tests/bananagrams/create_game_test.sql`).
