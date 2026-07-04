@@ -129,8 +129,9 @@ their existing lock, after the play_state check: `psychicnum.submit_guess`,
 `connections.submit_guess`, `spellingbee.submit_word`, `waffle.submit_swap`,
 `stackdown.submit_word`, `boggle.submit_word` (raises rather than a soft
 `gameOver` return so `useWordSubmit` releases the optimistic word), and
-`bananagrams.dump`. Migrations reapply clean; touched games' gameplay/dump/
-concede pgTAP green (psychicnum/gameplay's failure is pre-existing — see below).
+`bananagrams.dump`. Migrations reapply clean; all seven touched games'
+gameplay/dump/concede pgTAP green (after `npm run import` repopulates
+`common.words` post-reset).
 None of these checks `common.game_players.conceded`:
 `psychicnum.submit_guess` (`20260615000002_psychicnum.sql:534`),
 `connections.submit_guess` (`20260615000003_connections.sql:685`),
