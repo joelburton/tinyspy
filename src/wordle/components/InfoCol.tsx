@@ -8,7 +8,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { Member } from '../../common/lib/games'
-import type { WordlePlayerState, WordleGuess } from '../hooks/useGame'
+import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -98,7 +98,7 @@ export function InfoCol({
 
   // ── Turn log ──
   /** The RAW guesses (not the viewer's own) — the log's dropdown switches whose show. */
-  guesses: WordleGuess[]
+  guesses: GuessRow[]
   mode: 'coop' | 'compete'
   /** Turn-history: the open turn (by log position), or null when live. */
   viewingTurn: number | null

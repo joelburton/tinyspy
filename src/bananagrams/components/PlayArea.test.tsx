@@ -19,7 +19,7 @@ import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { BananagramsProgress } from '../hooks/useGame'
+import type { ProgressRow } from '../hooks/useGame'
 import { PlayArea } from './PlayArea'
 
 type GameHook = { initialBoard: string | null; tiles: string; loading: boolean }
@@ -27,7 +27,7 @@ type GameHook = { initialBoard: string | null; tiles: string; loading: boolean }
 // Mutable holders the mocked hooks return each render — set per test.
 const h = vi.hoisted(() => ({
   game: null as unknown as GameHook,
-  progress: [] as BananagramsProgress[],
+  progress: [] as ProgressRow[],
 }))
 vi.mock('../hooks/useGame', () => ({
   useGame: () => h.game,
@@ -50,7 +50,7 @@ function loaded(tiles = 'ABCDEFG'): GameHook {
   return { initialBoard: EMPTY_BOARD, tiles, loading: false }
 }
 
-function progressRow(over: Partial<BananagramsProgress> & { user_id: string }): BananagramsProgress {
+function progressRow(over: Partial<ProgressRow> & { user_id: string }): ProgressRow {
   return { unplaced: 0, placed: 0, done: false, ...over }
 }
 

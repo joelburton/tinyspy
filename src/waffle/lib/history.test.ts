@@ -6,18 +6,18 @@
  */
 import { describe, it, expect } from 'vitest'
 import { boardAfter, turnSnapshot } from './history'
-import type { WaffleSwap } from '../hooks/useGame'
+import type { SwapRow } from '../hooks/useGame'
 
 const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 // Solution with cells 0↔1 and 2↔3 swapped → two swaps from solved.
 const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu'
 
-function swap(over: Partial<WaffleSwap> & Pick<WaffleSwap, 'swap_index' | 'pos_a' | 'pos_b'>): WaffleSwap {
+function swap(over: Partial<SwapRow> & Pick<SwapRow, 'swap_index' | 'pos_a' | 'pos_b'>): SwapRow {
   return { user_id: 'u1', letter_a: '?', letter_b: '?', ...over }
 }
 
 // The solving sequence, in log order: fix cells 2↔3 first, then 0↔1.
-const SWAPS: WaffleSwap[] = [
+const SWAPS: SwapRow[] = [
   swap({ swap_index: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
   swap({ swap_index: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
 ]

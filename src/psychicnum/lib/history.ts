@@ -22,7 +22,7 @@
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  */
-import type { PsychicnumGuess } from '../hooks/useGame'
+import type { GuessRow } from '../hooks/useGame'
 
 export interface TurnSnapshot {
   /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
@@ -41,7 +41,7 @@ export interface TurnSnapshot {
  * (INCLUSIVE), and picks that turn's own guessed word as the highlight.
  */
 export function turnSnapshot(
-  guesses: ReadonlyArray<PsychicnumGuess>,
+  guesses: ReadonlyArray<GuessRow>,
   index: number,
 ): TurnSnapshot {
   const results = new Map<string, boolean>()
@@ -56,7 +56,7 @@ export function turnSnapshot(
 
 /** The kind-aware turn label. A guess reads as its outcome; a reveal names the answer
  *  word; a hint carries its clue text in `word` (never the secret — no leak). */
-function describe(turn: PsychicnumGuess | undefined): string {
+function describe(turn: GuessRow | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`

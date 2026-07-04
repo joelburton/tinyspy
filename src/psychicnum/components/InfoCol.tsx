@@ -9,7 +9,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { PsychicnumSetup } from '../lib/setup'
-import type { Player, PsychicnumPlayer, PsychicnumGuess } from '../hooks/useGame'
+import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
 
@@ -73,7 +73,7 @@ export function InfoCol({
   players: Player[]
   selfId: string
   /** Per-player budget rows — read for the strip's public `secrets_found` count. */
-  playerBudgets: PsychicnumPlayer[]
+  playerBudgets: PlayerRow[]
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
@@ -92,7 +92,7 @@ export function InfoCol({
   wordCount: number
 
   // ── Turn-history log (GameTurnLog) ──
-  guesses: PsychicnumGuess[]
+  guesses: GuessRow[]
   /** The turn currently open in the board viewer (by log position), or null. */
   viewingTurn: number | null
   onSelectTurn: (index: number) => void

@@ -33,7 +33,7 @@ export type WordlePlayerState = {
  * FE only sees its own rows until the game ends (then opponents open
  * up). `colors` is the 5-char g/y/x feedback.
  */
-export type WordleGuess = {
+export type GuessRow = {
   user_id: string
   guess_index: number
   guess: string
@@ -52,12 +52,12 @@ export type WordleGuess = {
 export function useGame(gameId: string): {
   game: WordleGame | null
   players: WordlePlayerState[]
-  guesses: WordleGuess[]
+  guesses: GuessRow[]
   loading: boolean
 } {
   const [game, setGame] = useState<WordleGame | null>(null)
   const [players, setPlayers] = useState<WordlePlayerState[]>([])
-  const [guesses, setGuesses] = useState<WordleGuess[]>([])
+  const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
@@ -102,7 +102,7 @@ export function useGame(gameId: string): {
         target: (gameRes.data.target as string | null) ?? null,
       })
       setPlayers((playersRes.data ?? []) as WordlePlayerState[])
-      setGuesses((guessesRes.data ?? []) as WordleGuess[])
+      setGuesses((guessesRes.data ?? []) as GuessRow[])
       setLoading(false)
     },
   })

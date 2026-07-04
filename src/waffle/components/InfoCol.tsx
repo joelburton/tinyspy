@@ -9,7 +9,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
-import type { WafflePlayerState, WaffleSwap } from '../hooks/useGame'
+import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -91,7 +91,7 @@ export function InfoCol({
   solution: string | null
 
   // ── Turn-history log (GameTurnLog — coop only) ──
-  swaps: WaffleSwap[]
+  swaps: SwapRow[]
   /** The swap currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void

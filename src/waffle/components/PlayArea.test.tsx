@@ -19,14 +19,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { WaffleGame, WafflePlayerState, WaffleSwap } from '../hooks/useGame'
+import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
   game: WaffleGame | null
   players: WafflePlayerState[]
-  swaps: WaffleSwap[]
+  swaps: SwapRow[]
   loading: boolean
 }
 
@@ -57,7 +57,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 function loaded(
   game: WaffleGame,
   players: WafflePlayerState[] = [me],
-  swaps: WaffleSwap[] = [],
+  swaps: SwapRow[] = [],
 ): GameHook {
   return { game, players, swaps, loading: false }
 }
@@ -168,8 +168,8 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
   const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
   const swapRow = (
-    over: Partial<WaffleSwap> & Pick<WaffleSwap, 'swap_index' | 'pos_a' | 'pos_b'>,
-  ): WaffleSwap => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
+    over: Partial<SwapRow> & Pick<SwapRow, 'swap_index' | 'pos_a' | 'pos_b'>,
+  ): SwapRow => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
   // Solving sequence in log order: fix 2↔3 first, then 0↔1.
   const swaps = [
     swapRow({ swap_index: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),

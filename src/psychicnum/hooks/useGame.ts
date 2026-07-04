@@ -57,7 +57,7 @@ export type PsychicnumGame = {
  * is enforced by giving this table club-wide RLS while
  * `psychicnum.guesses` gets user-scoped RLS in compete mode.
  */
-export type PsychicnumPlayer = {
+export type PlayerRow = {
   user_id: string
   guesses_remaining: number
   /** How many distinct secrets this player has found (0..3). Public to the
@@ -72,7 +72,7 @@ export type PsychicnumPlayer = {
  * rows. PlayArea renders them the same way either way; the
  * filtering is invisible to the FE.
  */
-export type PsychicnumGuess = {
+export type GuessRow = {
   id: string
   user_id: string
   /** The text this row carries. For 'guess'/'reveal' it's a board word
@@ -105,13 +105,13 @@ export type PsychicnumGuess = {
  */
 export function useGame(gameId: string): {
   game: PsychicnumGame | null
-  players: PsychicnumPlayer[]
-  guesses: PsychicnumGuess[]
+  players: PlayerRow[]
+  guesses: GuessRow[]
   loading: boolean
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)
-  const [players, setPlayers] = useState<PsychicnumPlayer[]>([])
-  const [guesses, setGuesses] = useState<PsychicnumGuess[]>([])
+  const [players, setPlayers] = useState<PlayerRow[]>([])
+  const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
@@ -159,8 +159,8 @@ export function useGame(gameId: string): {
         secrets: gameData.secrets as string[] | null,
         created_at: gameData.created_at as string,
       })
-      setPlayers((playerRows ?? []) as PsychicnumPlayer[])
-      setGuesses((guessRows ?? []) as PsychicnumGuess[])
+      setPlayers((playerRows ?? []) as PlayerRow[])
+      setGuesses((guessRows ?? []) as GuessRow[])
       setLoading(false)
     },
   })

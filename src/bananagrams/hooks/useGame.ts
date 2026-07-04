@@ -56,7 +56,7 @@ export function useGame(gameId: string) {
  *  read: unplaced/placed counts + the done flag. The per-player `conceded`
  *  drop-out flag is NOT here — it moved to the shared `common.game_players`
  *  roster (read off ctx.players; see common.concede). */
-export type BananagramsProgress = {
+export type ProgressRow = {
   user_id: string
   unplaced: number
   placed: number
@@ -70,8 +70,8 @@ export type BananagramsProgress = {
  * the opponents'. Pattern A (refetch on any change) — the table is tiny
  * (one row per player) and updates at most on each player's debounced save.
  */
-export function useProgress(gameId: string): BananagramsProgress[] {
-  const [rows, setRows] = useState<BananagramsProgress[]>([])
+export function useProgress(gameId: string): ProgressRow[] {
+  const [rows, setRows] = useState<ProgressRow[]>([])
   useRealtimeRefetch({
     tables: { schema: 'bananagrams', table: 'progress', filter: `game_id=eq.${gameId}` },
     channelPrefix: 'bananagrams-progress',

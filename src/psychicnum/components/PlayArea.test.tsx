@@ -19,14 +19,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { PsychicnumGame, PsychicnumPlayer, PsychicnumGuess } from '../hooks/useGame'
+import type { PsychicnumGame, PlayerRow, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
   game: PsychicnumGame | null
-  players: PsychicnumPlayer[]
-  guesses: PsychicnumGuess[]
+  players: PlayerRow[]
+  guesses: GuessRow[]
   loading: boolean
 }
 
@@ -41,11 +41,11 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 // Budget rows (psychicnum.players): guesses_remaining > 0 so the viewer can act
 // (the "playing" action row with its End/Concede button shows).
-const me: PsychicnumPlayer = { user_id: 'u1', guesses_remaining: 7, secrets_found: 0 }
-const moth: PsychicnumPlayer = { user_id: 'u2', guesses_remaining: 7, secrets_found: 0 }
+const me: PlayerRow = { user_id: 'u1', guesses_remaining: 7, secrets_found: 0 }
+const moth: PlayerRow = { user_id: 'u2', guesses_remaining: 7, secrets_found: 0 }
 
 /** A loaded game-hook result; override the game header + budget rows per test. */
-function loaded(game: PsychicnumGame, players: PsychicnumPlayer[] = [me]): GameHook {
+function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
   return { game, players, guesses: [], loading: false }
 }
 

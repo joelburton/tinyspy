@@ -8,9 +8,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { turnSnapshot } from './history'
-import type { PsychicnumGuess } from '../hooks/useGame'
+import type { GuessRow } from '../hooks/useGame'
 
-function g(o: Partial<PsychicnumGuess>): PsychicnumGuess {
+function g(o: Partial<GuessRow>): GuessRow {
   return {
     id: 'id', user_id: 'u', word: 'apple', was_correct: false,
     kind: 'guess', guessed_at: '2026-06-12T18:00:00Z', ...o,
@@ -18,7 +18,7 @@ function g(o: Partial<PsychicnumGuess>): PsychicnumGuess {
 }
 
 // Turn 0: APPLE is a secret (correct). Turn 1: a hint. Turn 2: BERRY misses.
-const GUESSES: PsychicnumGuess[] = [
+const GUESSES: GuessRow[] = [
   g({ word: 'apple', was_correct: true, kind: 'guess' }),
   g({ word: 'a fruit', kind: 'hint' }),
   g({ word: 'berry', was_correct: false, kind: 'guess' }),

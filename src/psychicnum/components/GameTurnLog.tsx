@@ -5,11 +5,11 @@ import { memberById } from '../../common/lib/game/peers'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import type { Player, PsychicnumGuess } from '../hooks/useGame'
+import type { Player, GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
-  guesses: PsychicnumGuess[]
+  guesses: GuessRow[]
   players: Player[]
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */

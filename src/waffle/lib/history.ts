@@ -26,7 +26,7 @@
  */
 import { coord } from './waffle'
 import { computeColors } from './colors'
-import type { WaffleSwap } from '../hooks/useGame'
+import type { SwapRow } from '../hooks/useGame'
 
 export interface TurnSnapshot {
   /** The 25-char board AFTER the viewed swap. Feed straight to `<WaffleGrid board>`. */
@@ -47,7 +47,7 @@ export interface TurnSnapshot {
  */
 export function boardAfter(
   scramble: string,
-  swaps: ReadonlyArray<WaffleSwap>,
+  swaps: ReadonlyArray<SwapRow>,
   index: number,
 ): string {
   const b = scramble.split('')
@@ -68,7 +68,7 @@ export function boardAfter(
 export function turnSnapshot(
   scramble: string,
   solution: string | null,
-  swaps: ReadonlyArray<WaffleSwap>,
+  swaps: ReadonlyArray<SwapRow>,
   index: number,
 ): TurnSnapshot {
   const board = boardAfter(scramble, swaps, index)
@@ -82,7 +82,7 @@ export function turnSnapshot(
 }
 
 /** The swap label — "#N: A (A1) ↔ B (C2)", matching the log row's letters-and-coords. */
-function describe(swap: WaffleSwap | undefined): string {
+function describe(swap: SwapRow | undefined): string {
   if (!swap) return 'This swap'
   const a = `${swap.letter_a.toUpperCase()} (${coord(swap.pos_a)})`
   const b = `${swap.letter_b.toUpperCase()} (${coord(swap.pos_b)})`

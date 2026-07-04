@@ -20,7 +20,7 @@
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  */
-import type { WordleGuess } from '../hooks/useGame'
+import type { GuessRow } from '../hooks/useGame'
 
 /** The board row shape `<WordleGrid rows>` renders — a guess + its g/y/x colors. */
 export interface SnapshotRow {
@@ -44,7 +44,7 @@ export interface TurnSnapshot {
  * first `index + 1` guesses (INCLUSIVE) as the board's rows and rings the last one.
  */
 export function turnSnapshot(
-  guesses: ReadonlyArray<WordleGuess>,
+  guesses: ReadonlyArray<GuessRow>,
   index: number,
 ): TurnSnapshot {
   const rows = guesses

@@ -8,14 +8,14 @@ import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
 import { tileColor } from '../lib/colors'
-import type { WordleGuess } from '../hooks/useGame'
+import type { GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
   /** Every guess the viewer can currently see, in order. Coop: the whole shared
    *  board. Compete: the viewer's own during play, and (once terminal, when RLS
    *  opens) everyone's — which is what makes the opponent picker below useful. */
-  guesses: WordleGuess[]
+  guesses: GuessRow[]
   players: Member[]
   selfId: string
   mode: 'coop' | 'compete'

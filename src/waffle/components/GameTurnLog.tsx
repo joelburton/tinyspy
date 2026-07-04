@@ -3,11 +3,11 @@ import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import type { Member } from '../../common/lib/games'
 import { coord } from '../lib/waffle'
-import type { WaffleSwap } from '../hooks/useGame'
+import type { SwapRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
-  swaps: WaffleSwap[]
+  swaps: SwapRow[]
   players: Member[]
   /** The swap currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null

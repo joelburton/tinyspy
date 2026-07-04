@@ -18,14 +18,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
-import type { WordleGame, WordlePlayerState, WordleGuess } from '../hooks/useGame'
+import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
   game: WordleGame | null
   players: WordlePlayerState[]
-  guesses: WordleGuess[]
+  guesses: GuessRow[]
   loading: boolean
 }
 
@@ -47,7 +47,7 @@ const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 /** A loaded game-hook result; override the game header + players per test. */
 function loaded(
   game: WordleGame,
-  guesses: WordleGuess[] = [],
+  guesses: GuessRow[] = [],
   players: WordlePlayerState[] = [me],
 ): GameHook {
   return { game, players, guesses, loading: false }

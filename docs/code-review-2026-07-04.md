@@ -928,8 +928,13 @@ the same array `members` in InfoCol and `players` in their own turn-log child.
 First reconcile the docs (naming.md is the authority ⇒ `players`), then align
 the three-game camp.
 
-**5.8 Per-game DB-row type names.** Rule: DB-shaped types end in `Row`, no
-codename prefixes. Conformers: `GuessRow`, `PlayerRow`, `PlayRow`,
+**5.8 Per-game DB-row type names.** — **✅ DONE** (the 5 renames; two judgment
+riders left). `PsychicnumGuess`→`GuessRow`, `PsychicnumPlayer`→`PlayerRow`,
+`WordleGuess`→`GuessRow`, `WaffleSwap`→`SwapRow`, `BananagramsProgress`→
+`ProgressRow` (each scoped to its game folder, no collisions). Left: scrabble/
+stackdown declaring a `type Player` alias, and the `<Codename>Game` shape
+blessing — both are the "doc/one-line" riders below, deferred to a naming.md
+pass. Rule: DB-shaped types end in `Row`, no codename prefixes. Conformers: `GuessRow`, `PlayerRow`, `PlayRow`,
 `SubmissionRow`, `FoundWordRow`, `WordRow`, `ClueRow`. Deviants (each "one row
 from `<schema>.<table>`" per its own docstring): `PsychicnumGuess` →
 `GuessRow`, `PsychicnumPlayer` → `PlayerRow`

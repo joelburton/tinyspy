@@ -41,7 +41,7 @@ export type WaffleGame = {
  * write these, so the array is empty in compete. `letter_a`/`letter_b`
  * are the letters that sat on `pos_a`/`pos_b` before the swap.
  */
-export type WaffleSwap = {
+export type SwapRow = {
   user_id: string
   swap_index: number
   pos_a: number
@@ -62,12 +62,12 @@ export type WaffleSwap = {
 export function useGame(gameId: string): {
   game: WaffleGame | null
   players: WafflePlayerState[]
-  swaps: WaffleSwap[]
+  swaps: SwapRow[]
   loading: boolean
 } {
   const [game, setGame] = useState<WaffleGame | null>(null)
   const [players, setPlayers] = useState<WafflePlayerState[]>([])
-  const [swaps, setSwaps] = useState<WaffleSwap[]>([])
+  const [swaps, setSwaps] = useState<SwapRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useRealtimeRefetch({
@@ -116,7 +116,7 @@ export function useGame(gameId: string): {
         solution: (gameRes.data.solution as string | null) ?? null,
       })
       setPlayers((playersRes.data ?? []) as WafflePlayerState[])
-      setSwaps((swapsRes.data ?? []) as WaffleSwap[])
+      setSwaps((swapsRes.data ?? []) as SwapRow[])
       setLoading(false)
     },
   })
