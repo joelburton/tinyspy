@@ -170,7 +170,7 @@ Two shapes recur across the per-game data hooks, and the choice between them is 
 
 #### Pattern A — refetch-only via `useRealtimeRefetch`
 
-For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/useRealtimeRefetch.ts). Canonical calls:
+For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts). Canonical calls:
 
 ```ts
 useRealtimeRefetch({
@@ -190,17 +190,17 @@ The `tables` field accepts one subscription or an array — psychicnum's useGame
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
-Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
+Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
 
 #### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
 
 For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, future scratchpad-takeover-lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
 
 Canonical examples:
-- [`common/useCommonGame`](../src/common/hooks/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
+- [`common/useCommonGame`](../src/common/hooks/game/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
 - [`connections/useGame`](../src/connections/hooks/useGame.ts) — stable `connections:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `connections.{games, guesses}`.
 - [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts) — stable `stackdown:${gameId}` channel carrying the shared in-progress-word Broadcast (`append` / `retract` / `clear` / `commit` — the last kept distinct so peers hold an accepted word's tiles removed without a flash) AND postgres-changes on `stackdown.{games, players, submissions}`. Coop only — compete suppresses the sends (each player's word is private), like connections.
-- [`common/useClubPresence`](../src/common/hooks/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
+- [`common/useClubPresence`](../src/common/hooks/realtime/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
 
@@ -241,11 +241,11 @@ Mixing — Pattern B for broadcast + a separate Pattern A call for postgres-chan
 
 #### Append-on-event exception — and the merge rule it requires
 
-[`useClubChat`](../src/common/hooks/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
+[`useClubChat`](../src/common/hooks/chat/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
 
-**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/hooks/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
+**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/hooks/chat/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
 
-The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/hooks/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
+The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/hooks/game/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
 
 ## Frontend
 
@@ -263,7 +263,7 @@ Roles, not implementations:
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameDialog` | `SetupForm` | per-game |
 | End-of-game modal | `GameOverModal` | shared (`common/components/`); per-game callers pass an `outcome` + per-status `verdict` |
-| Reused chat surface | `ClubChatPanel` | shared, mounted once by `GamePage` |
+| Reused chat surface | `FloatingChat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
 A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet) or just a text input (psychicnum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
@@ -299,7 +299,7 @@ When porting a new game, the per-game `useGame` hook's shape depends on whether 
 The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
 
 Concrete examples in the tree today:
-- Shared: `<GamePage>`, `<PauseBoundary>`, `<ClubChatPanel>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
+- Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GuessHistory` (connections + psychicnum), `lib/history` (every game with a turn-history viewer).
 - Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
@@ -340,13 +340,13 @@ This section covers the *file mechanics* only. For the design philosophy — des
 **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`:
 
 ```
-src/common/components/ClubChatPanel.tsx
-src/common/components/ClubChatPanel.module.css
+src/common/components/chat/FloatingChat.tsx
+src/common/components/chat/FloatingChat.module.css
 ```
 
 **Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) — colors, spacing scale, font stack, radii. Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) overrides tokens for that gametype's palette.
 
-`cls()` (in [`src/common/lib/cls.ts`](../src/common/lib/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
+`cls()` (in [`src/common/lib/util/cls.ts`](../src/common/lib/util/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
 
 **What we don't use:**
 
@@ -534,7 +534,7 @@ The games that let you place tiles onto a coordinate-addressed grid with a keybo
 
 > **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching scrabble's `cellIndex`).**
 
-Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/gridCursor.ts`](../src/common/lib/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/useDragGesture.ts`](../src/common/hooks/useDragGesture.ts).
+Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/game/gridCursor.ts`](../src/common/lib/game/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/ui/useDragGesture.ts`](../src/common/hooks/ui/useDragGesture.ts).
 
 **Scope — this only binds the coordinate-pair-with-cursor games.** Most grids deliberately *don't* address cells by an `(x, y)` pair, and that's correct — they have no cursor to drift:
 

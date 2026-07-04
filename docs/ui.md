@@ -41,7 +41,7 @@ Why this matters here:
 >
 > **Mechanical check, every time you write `{cond && <X>}` or a state ternary in a PlayArea:** does `<X>` take layout space, and is a sibling grow-to-fill (the board)? If yes, **don't remove it** — keep it mounted and (a) toggle `visibility: hidden` (exact height kept even under wrapping — connections' `.commitFrozen`), or (b) rotate the *content* in a fixed-height slot (psychicnum swaps the entry for the terminal reveal in the same slot), or (c) give the slot a mount-time `min-height`. The board's bottom boundary (the input/commit row) is where this bites most.
 - **Mono-width digits for ticking values.** Timer in a `font-variant-numeric: tabular-nums` slot so `0:09 → 0:10` doesn't shift the header.
-- **PauseOverlay is the canonical example.** Absolutely positioned over a frozen play surface; the layout underneath doesn't reflow when pause flips on or off. New chrome should follow the same pattern.
+- **PauseOverlay is the canonical example.** PauseBoundary renders the play area OR the overlay in the same slot (never both), so the surrounding chrome doesn't reflow when pause flips on or off. New chrome should follow the same pattern.
 
 ### The deliberate exception
 
@@ -105,7 +105,7 @@ feedback: {
 
 ### Modals for terminal results
 
-Game-end "you won / you lost" UI lives in a shared modal (`common/components/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
+Game-end "you won / you lost" UI lives in a shared modal (`common/components/game/terminal/GameOverModal.tsx`), not an in-page banner. The modal serves the principle and the future-bling expectation (animations, victory GIFs, larger postgame summaries) better than a static in-page section.
 
 The page underneath stays in *review mode*: the final board, revealed unmatched categories (connections), both key cards (codenamesduet), the winning number (psychicnum). The modal carries the moment-of-result; the page stays available for "let me look at the board for a sec."
 
@@ -140,9 +140,9 @@ The per-game PlayArea picks the right verdict per status (play_state + timer.exp
 
 ### Dialog buttons
 
-macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its single Resume button centers.
+macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
 
-**Back to club** — the one button that recurs across surfaces (every game's post-terminal indicator + the GameOverModal CTA) is the shared [`<BackToClubButton>`](../src/common/components/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so screen readers just say "Back to club"), its spacing, and the label stay identical everywhere. `variant` only swaps the fill — `secondary` (outline) for the in-page indicators, `primary` for the modal CTA. The GamePage *menu* item is plain text, not this button.
+**Back to club** — the one button that recurs across surfaces (every game's post-terminal indicator + the GameOverModal CTA) is the shared [`<BackToClubButton>`](../src/common/components/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so screen readers just say "Back to club"), its spacing, and the label stay identical everywhere. `variant` only swaps the fill — both the in-page terminal indicators and the modal CTA now use `primary` (filled accent); `secondary` (outline) is the component default, used elsewhere (e.g. the pause overlay's "Suspend and return to club"). The GamePage *menu* item is plain text, not this button.
 
 ### Existing offenders to retrofit
 
@@ -261,7 +261,7 @@ Players should be able to **switch between games without relearning the frame**.
 
 These aren't optional capabilities a gametype opts into — they're part of the shared frame, and every game must support them:
 
-- **Chat.** Every `<GamePage>` mounts `<ClubChatPanel>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
+- **Chat.** Every `<GamePage>` mounts `<FloatingChat>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
 - **Timed / untimed setup choice.** Every game's setup form has a `<TimerField>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
 - **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
@@ -311,7 +311,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 **Common section (top, always present):**
 
 - **Help** — opens the per-game `manifest.help` modal.
-- **Back to club** — single-click for terminal games; modal-then-suspend for non-terminal (the [`<SuspendConfirmDialog>`](../src/common/components/SuspendConfirmDialog.tsx) flow).
+- **Back to club** — single-click for terminal games; modal-then-suspend for non-terminal (the [`<SuspendConfirmDialog>`](../src/common/components/game/SuspendConfirmDialog.tsx) flow).
 
 **Per-game section (below divider, dynamic):**
 
@@ -374,7 +374,7 @@ Same principle, applied to components.
 
 **The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
 
-- `ClubChatPanel`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmDialog`, `TimerField`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
+- `FloatingChat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmDialog`, `TimerField`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
 - `<UserMenu>` is mounted once at the App level (after the auth check), so it appears above every authenticated screen with zero per-page wiring. Fixed at the top-right of the viewport (in the body's empty 2rem padding zone above any page header); shows the current user's username + a small chevron, opens a dropdown for **user-focused** items only — **Edit profile** and **Log out**. **Never** carries club- or game-specific items; those belong on the ClubPage or GamePage menu off the logo. Hidden behind `<LoginScreen>` when there's no session.
 - `<EditProfileDialog>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Held in App-level state next to `<UserMenu>`; the menu item flips it open. Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
@@ -384,13 +384,13 @@ Same principle, applied to components.
 
 **The game-mechanic UI is per-game.** The board, rules display, input affordance (clue form vs number input vs guess box) — each game owns these. That's what the per-game `components/` directory is for.
 
-**Game-end UI** — `common/components/GameOverModal.tsx` is the shared component all three games render at terminal. Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
+**Game-end UI** — `common/components/game/terminal/GameOverModal.tsx` is the shared component every game renders at terminal. Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
 
 ## Player identity = a colored disc
 
 A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PlayersStrip>` presence dots, the `<ChatBubble>` unread fill, the `<ColorChoiceList>` swatches, and now the per-finder markers in the spellingbee / boggle `<WordList>`. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
-**The name + disc cluster is `<ActorTag>`** (`common/components/ActorTag`): a person's name followed by their identity disc, the "who did this" marker the turn logs drop beside each row. Pass it the resolved member (`<ActorTag actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. (Reach for it before re-rolling a name-span + ● by hand. Note that several older logs still encode the actor by *coloring the name text* instead — a deliberate-or-not divergence from the disc rule below, tracked as a consistency follow-up.)
+**The name + disc cluster is `<ActorTag>`** (`common/components/game/lists/ActorTag`): a person's name followed by their identity disc, the "who did this" marker the turn logs drop beside each row. Pass it the resolved member (`<ActorTag actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. (Reach for it before re-rolling a name-span + ● by hand. Note that several older logs still encode the actor by *coloring the name text* instead — a deliberate-or-not divergence from the disc rule below, tracked as a consistency follow-up.)
 
 Two rules keep the signal clean:
 
@@ -403,7 +403,7 @@ Board tiles a player can act on (psychicnum's word tiles, connections's category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/theme.css`](../src/common/theme.css)
 and the shared `.tile` / `.tileWord` classes in
-[`common/components/PlayArea.module.css`](../src/common/components/PlayArea.module.css).
+[`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
 - **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg`, which
@@ -536,7 +536,7 @@ tile's size.
 
 The shape every game's play surface takes — **all ten games** are on it. The
 scaffold + readout classes live in
-[`common/components/PlayArea.module.css`](../src/common/components/PlayArea.module.css)
+[`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
 per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
 then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
@@ -586,7 +586,7 @@ divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
 [local vs group](deferred.md#feedback-channels-local-vs-group).
 
 **Shared vs per-game:** the shell + readout classes now live in the shared
-`common/components/PlayArea.module.css` (a CSS-only scaffold, like
+`common/components/game/PlayArea.module.css` (a CSS-only scaffold, like
 `setupForm.module.css` — no behavior, so a stylesheet rather than a component).
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
@@ -643,7 +643,7 @@ these names when a new game's info column needs the same.
   user; reuse it when a game needs an end-of-game readout that doesn't fit below
   the board.
 
-Shared in `common/components/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
+Shared in `common/components/game/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
 `.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
 `.terminalExtra`. connections
 fills them with: setup = puzzle words / categories / mistakes / timer; state =
@@ -669,7 +669,7 @@ pending value in a read-only display box (the shared **`<EntryBox>`**), so there
 no focus to lose — typing and tile-clicks both feed one pending value, and clicking
 anywhere never interrupts entry.
 
-Every such game renders the shared **`<EntryRow>`** (`common/components/EntryRow.tsx`):
+Every such game renders the shared **`<EntryRow>`** (`common/components/game/entry/EntryRow.tsx`):
 one component bundling the whole entry control so it looks + behaves identically
 everywhere — an icon-only `<DeleteButton>` + the `<EntryBox>` (which flex-fills the
 row) + an icon-only `<SubmitButton>`, the `useCaptureKeys` keyboard, and the
@@ -704,7 +704,7 @@ The contract for the capture model:
   `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
   the browser's.
 - **What can be entered is per-game; the rest is shared, in two layers.** The
-  GENERIC key-capture **core** is `useCaptureKeys` (`common/hooks/useCaptureKeys.ts`):
+  GENERIC key-capture **core** is `useCaptureKeys` (`common/hooks/input/useCaptureKeys.ts`):
   the modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
   Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
   for every key-capture game. The **last-move history** — `ArrowUp` recalls the
@@ -774,7 +774,7 @@ box fits where it sits.)
 
 ## Turn log
 
-The shared **`<TurnLog>`** (`common/components/TurnLog.tsx`) is a game's per-turn
+The shared **`<TurnLog>`** (`common/components/game/lists/TurnLog.tsx`) is a game's per-turn
 history — one **item** per turn (= per guess for most games; a TinySpy turn can
 span a clue + several guesses, so an item is a "turn", never a "guess" in the
 shared vocabulary). It's the chronological counterpart to the alphabetical
@@ -877,7 +877,7 @@ Every game whose board can replay past turns (scrabble, stackdown, connections,
 psychicnum, codenamesduet, wordle, waffle) lets you **click a past turn to see the
 board as it was then**. The affordance is shared and looks identical everywhere:
 
-- **The `#N` handle** (`<TurnLogNumber>` in `common/components/TurnLog.tsx`) — each
+- **The `#N` handle** (`<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`) — each
   turn's number cell is the click target; clicking it opens that turn on the board.
   **Not** the whole row: several games render a turn as multiple `<tr>`s
   (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
@@ -896,7 +896,7 @@ board as it was then**. The affordance is shared and looks identical everywhere:
   key handler).
 
 The coordination — which turn is open + the enter/exit affordances — is the shared
-**`useHistoryViewer`** hook (`common/hooks/useHistoryViewer.ts`); the `PlayArea`
+**`useHistoryViewer`** hook (`common/hooks/game/useHistoryViewer.ts`); the `PlayArea`
 holds it as its one cross-column "am I viewing" state. What stays **per-game** is how
 a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
 board shape and even the boundary differ: an ADD-style board shows the turn's own
@@ -922,7 +922,7 @@ exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
 
 ### The shared scaffold
 
-In `common/components/PlayArea.module.css`:
+In `common/components/game/PlayArea.module.css`:
 - **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
 - **`.layout`** defines **`--avail-w`** = `calc(var(--client-width, 100vw) -
   var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding))` — the
@@ -953,7 +953,7 @@ tall/wide):**
    ~15px and the board overflows right — invisible with overlay scrollbars (0px),
    so headless can't see it. `--client-width` (`document.documentElement.clientWidth`)
    excludes the scrollbar in every engine; it's measured and kept current with a
-   **ResizeObserver** (`common/lib/layoutWidth.ts`) so a *content-driven* scrollbar
+   **ResizeObserver** (`common/lib/util/layoutWidth.ts`) so a *content-driven* scrollbar
    (the reveal) updates it — a `resize` listener misses that. `html {
    scrollbar-gutter: stable }` (theme.css) additionally avoids a cosmetic
    board-resize when the scrollbar toggles, where supported.
@@ -1020,7 +1020,7 @@ A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
 
 ## Mode pills
 
-A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
+A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored pill via the shared [`<ModePill>`](../src/common/components/game/ModePill.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the pill.
 
 Rules:
 

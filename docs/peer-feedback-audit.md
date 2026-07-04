@@ -1,5 +1,13 @@
 # Peer-feedback audit — 2026-07-01
 
+> **Status: historical, partially acted on.** The consolidation this audit was
+> taken to plan (the bucket-A seen-set unification / §1.1) is **complete** — see
+> "Resolved — the consolidation (Stage 3)" at the bottom. Of the peer-feedback
+> **gaps** it catalogs, only boggle's (the GAP 1 header-less coop game) has since
+> been closed; the rest of the "Gap summary" (scrabble both modes, bananagrams,
+> the silent compete strips in connections/stackdown, waffle-coop, wordle-coop)
+> remains **open** design surface. Kept as the peer-feedback map + a record.
+
 A whole-repo audit of **peer feedback**: every UI signal that tells the viewing
 player what *another* player just did or how they're doing. Taken while planning
 a consolidation of the peer-narration code (the "seen-set bootstrap" that three
@@ -67,7 +75,7 @@ and fire". The seed-timing bug in §1.1 lived in that shared bootstrap.
 > **Update — Stage 3 (2026-07-01):** bucket A is now unified. All five games
 > (wordle coop+compete, psychicnum-coop, connections-coop, spellingbee-coop,
 > stackdown-coop) route their event-stream narration through one shared
-> `common/hooks/useGlobalFeedback.ts`, which owns the **one correct bootstrap**
+> `common/hooks/feedback/useGlobalFeedback.ts`, which owns the **one correct bootstrap**
 > (gate before seed) — so **§1.1 is fixed** (no backlog replay; the first peer
 > event of a fresh game fires; batched events all fire). The two per-game
 > `usePeerFeedback` hooks (spellingbee, stackdown) are deleted; the three inline
@@ -167,7 +175,7 @@ terminal verdict. Only exception where a peer event reaches it: scrabble's
 
 ## Resolved — the consolidation (Stage 3)
 
-Done. `common/hooks/useGlobalFeedback.ts` backs every bucket-A game's peer pill:
+Done. `common/hooks/feedback/useGlobalFeedback.ts` backs every bucket-A game's peer pill:
 `{ enabled, items, keyOf, messageFor, globalFeedback }` — the caller supplies the
 gate + the message; the hook owns the seen-set + the one correct silent bootstrap
 (gate before seed), killing §1.1. We scoped it to the coop **event-stream** flavor

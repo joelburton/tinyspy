@@ -348,7 +348,7 @@ src/psychicnum/
 
   components/
     PlayArea.tsx          Two-column composition on the SHARED PlayArea scaffold
-                          (common/components/PlayArea.module.css, imported as `shared`;
+                          (common/components/game/PlayArea.module.css, imported as `shared`;
                           shell + info-column readout classes + the shared .tile chrome —
                           PlayArea.module.css now holds only .inputMessage):
                             WordBoard (grid of word tiles on the shared beige --tile-*
@@ -369,7 +369,7 @@ src/psychicnum/
                           pause, timer, suspend-confirm) lives on <GamePage>.
     PlayArea.module.css   (+ `.bigEntry` — psychicnum's one entry tweak: a 2rem font
                           on the shared <EntryRow>, since a single guess word reads large)
-                          The word entry is now the SHARED common/components/EntryRow
+                          The word entry is now the SHARED common/components/game/entry/EntryRow
                           (icon Delete + EntryBox + icon Submit + the capture keyboard) —
                           psychicnum's old per-game GuessForm was deleted when it landed.
                           Clicking a board tile and typing drive the same pending word;
@@ -424,7 +424,7 @@ A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `st
 
 Reads from `psychicnum.games_state` (the view that exposes `secrets` conditionally on terminal status — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)). `game.words: string[]` is the public board; `game.secrets: string[] | null` comes back `null` while active, the actual three words once terminal. No separate reveal effect. Also reads `players` (with the public `secrets_found` count) and `guesses` (each carrying `word` + `kind: 'guess' | 'hint'`).
 
-Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
+Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/realtime/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
 The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution comes from `useCommonGame` (via GamePage's render-prop).
 
@@ -481,6 +481,6 @@ The `reset role` step is the noteworthy bit — clients can't write to `psychicn
 | asking… | look at… |
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000002_psychicnum.sql`](../../supabase/migrations/20260615000002_psychicnum.sql) |
-| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/components/EntryRow.tsx`](../../src/common/components/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the terminal modal is the shared `common/components/GameOverModal.tsx` |
+| What does the UI look like | [`src/psychicnum/components/PlayArea.tsx`](../../src/psychicnum/components/PlayArea.tsx) (word entry is the shared [`common/components/game/entry/EntryRow.tsx`](../../src/common/components/game/entry/EntryRow.tsx)) + `GameTurnLog.tsx` alongside; the terminal modal is the shared `common/components/game/terminal/GameOverModal.tsx` |
 | How does state flow on the FE | [`src/psychicnum/hooks/useGame.ts`](../../src/psychicnum/hooks/useGame.ts) (reads from `games_state`) |
 | Are the secrets really hidden? | column-level grant + `psychicnum.games_state` view with `_secrets_for` helper in the migration; SELECT-blocked test in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql) and view-behavior test in [`tests/psychicnum/rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) |

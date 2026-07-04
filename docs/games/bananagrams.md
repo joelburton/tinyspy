@@ -3,7 +3,7 @@
 > **Status: v3 (the shared-layout redesign).** The bank loop (v1 schema +
 > dealing + interactive player board + snapshot persistence; v2 derived hand
 > [`board` + `tiles` split], ⟲ shuffle, **peel**, **dump**) sits on the shared
-> two-column scaffold now (`common/components/PlayArea.module.css`) with the v3
+> two-column scaffold now (`common/components/game/PlayArea.module.css`) with the v3
 > info-column chrome. bananagrams is the roster's **documented exception** to
 > "everything needed to make a move lives in the board column": the board is a
 > zoom/scroll arena that FILLS the left column, and the hand + peel + dump live
@@ -258,7 +258,7 @@ live board; the print's onClick snapshots it at click time (works mid-game or at
 4. **Terminal + result modal** — the hand-empty win, surfaced by the `peel` step below (the win is detected inside `peel`). **✓ DONE**
 
 **v2 build order:**
-1. **Standard ⟲ ShuffleButton** (common; adopted in spellingbee + connections). **✓ DONE** (`common/components/ShuffleButton`).
+1. **Standard ⟲ ShuffleButton** (common; adopted in spellingbee + connections). **✓ DONE** (`common/components/buttons/ShuffleButton`).
 2. **Re-platform the hand as derived** (`board` + `tiles` + `pool`; live `tiles` subscription). **✓ DONE** (baseline + `save_player_board` migrations; `lib/board.ts` helpers; `useGame`/`PlayerBoard`).
 3. **`peel`** — draw a round / go out (Bananas!); Peel button + bunch count + announcement. **✓ DONE** (migration `20260623000000_bananagrams.sql`; pgTAP `peel_test.sql`; e2e win + draw paths).
 4. **`dump`** — swap one tile for three (drag-to-dump-slot). **✓ DONE** (migration `20260623000000_bananagrams.sql`; pgTAP `dump_test.sql`; e2e drag-to-dump).

@@ -211,7 +211,7 @@ Some games put other things in `belowBoard`; many don't.
 
 For games where the player types a word (psychicnum, spellingbee, boggle, …) we do
 **not** use a real `<input type=text>`. They all render the shared
-**`<EntryRow>`** (`common/components/EntryRow.tsx`) — one component bundling the
+**`<EntryRow>`** (`common/components/game/entry/EntryRow.tsx`) — one component bundling the
 entire entry control so it looks + behaves identically everywhere: an icon-only
 `<DeleteButton>` + the chrome-less **`<EntryBox>`** (display + caret, flex-filling
 the row) + an icon-only `<SubmitButton>`, the **`useCaptureKeys`** keyboard (key
@@ -250,7 +250,7 @@ Rules:
 
 The **universal** rules above — alpha-only capture, Backspace, Enter-when-non-empty,
 the `Tab` swallow, the modifier bail, the length cap, and clearing the next-move
-feedback — are **owned by `useCaptureKeys`** (`common/hooks/useCaptureKeys.ts`), so
+feedback — are **owned by `useCaptureKeys`** (`common/hooks/input/useCaptureKeys.ts`), so
 they're identical across games and can't drift. A game supplies only *what may be
 entered* (`charFor` — letters vs digits + the stored case, via the exported
 `asciiLetters` helper) and any extra keys (`onExtraKey`). See
@@ -321,7 +321,7 @@ Contents, in order:
 - **Turn log / word list** — exactly one of:
   - **turn log (`<TurnLog>`)** — a table of turns with what happened each turn.
     Most games have this.
-  - **word list (`<WordList>`)** — the shared `common/components/WordList`: a
+  - **word list (`<WordList>`)** — the shared `common/components/game/lists/WordList`: a
     side-scrolling list of found words (heading over a bordered scroll-box card,
     column-major grid, finder-color discs, click-to-define). spellingbee and boggle
     use it; each builds its rows via its own `lib/displayRows` → `WordListRow[]`.

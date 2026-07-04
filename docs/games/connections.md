@@ -81,7 +81,7 @@ Deliberately deferred:
 
 Unlike codenamesduet and psychicnum — where the server holds a secret and validates moves against it — connections's board (categories + tile order) is **publicly readable** by every club member, in both coop and compete modes. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (per-player `mistake_count` on `connections.players`, mode-aware one-correct-per-rank idempotency via partial unique indexes on `guesses`).
 
-**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-target mechanic" section](psychicnum.md#the-hidden-target-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise. Compete mode introduces a cheating *incentive* coop didn't have (a player could read `board.categories` in devtools and pick the right 4 tiles instantly), but the trust model says we're not the gatekeeper of that — we're friends.
+**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-secrets mechanic" section](psychicnum.md#the-hidden-secrets-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise. Compete mode introduces a cheating *incentive* coop didn't have (a player could read `board.categories` in devtools and pick the right 4 tiles instantly), but the trust model says we're not the gatekeeper of that — we're friends.
 
 **What stays server-authoritative regardless:** atomic mutations of shared state. The mistake-count increment and the `play_state` terminal flip need to be the same transaction. Concurrent submissions ("two players hitting Submit at the same instant") still need a serializer — `SELECT FOR UPDATE` on the game row, same as psychicnum. One-correct-per-rank idempotency comes from two mode-aware **partial unique indexes** on `connections.guesses` (the schema section below has the exact predicates) — if two clients race a 'correct' submission, the second INSERT raises `unique_violation` and `submit_guess` catches and silently no-ops.
 
@@ -314,7 +314,7 @@ src/connections/
 
   components/
     PlayArea.tsx          Shared between the two manifests. Uses the SHARED PlayArea scaffold
-                          (common/components/PlayArea.module.css, imported as `shared`): a
+                          (common/components/game/PlayArea.module.css, imported as `shared`): a
                           board column (bands + tile grid + floating Shuffle + the Clear/Submit
                           commit row) and a fixed info column (setup disclosure, "N/4 categories
                           found" state, mistakes [coop dots / compete OpponentStrip], help,
@@ -391,7 +391,7 @@ src/connections/
     setup.ts              ConnectionsSetup type (puzzleId + timer) + defaults.
     rankColors.ts         RANK_TOKEN: rank 0..3 → `--connections-rank-N` CSS-variable lookup.
                           Standalone file so components can import it without tripping Vite
-                          Fast Refresh's "components-only file" rule. Consumed by CategoryBands
+                          Fast Refresh's "components-only file" rule. Consumed by Board
                           and HintModal.
     localOrder.ts         Per-player local-shuffle ordering helpers (Fisher–Yates shuffle +
                           reset). Purely view-local — no broadcast, no server write; losing
@@ -454,7 +454,7 @@ The game has a single `paused` flag with two trigger sources, both treated ident
 - **Presence-pause**: derived from `computePause(presentUserIds, members)`. True when some expected club member isn't on the channel.
 - **Manual-pause**: any player clicks the Pause button in the header → broadcasts a `manualPause` event with their `user_id` → all clients (including self) set `manuallyPausedById`. Any player can click Resume in the overlay → broadcasts `manualUnpause`. No privileged "original pauser" check; we're friends, not cutthroat competitors.
 
-When `paused` is true (from either source), the `PauseBoundary` (`common/components/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — **conditionally renders**: the PlayArea unmounts entirely and `PauseOverlay` (`common/components/PauseOverlay.tsx`) renders in its place. The overlay's copy adapts to the source:
+When `paused` is true (from either source), the `PauseBoundary` (`common/components/game/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — **conditionally renders**: the PlayArea unmounts entirely and `PauseOverlay` (`common/components/game/PauseOverlay.tsx`) renders in its place. The overlay's copy adapts to the source:
 
 | source | overlay copy | Resume button? |
 |---|---|---|
@@ -487,7 +487,7 @@ The timer is a **per-game setup choice**, not a manifest-level constant. The set
 
 **Accuracy + smoothness.** A pause costs ±~1s (the resume tick is `+1`, not the gap). The display updates once per `tick_timer` round-trip, so the second-flip carries the network latency as jitter — invisible for friendly word games. If perfectly-smooth display ever matters, local interpolation between ticks is an easy add; we deliberately kept it simple.
 
-**The `useGameTimer` hook** (`src/common/hooks/useGameTimer.ts`) implements this: a one-time read of `ticks` to seed the display, then a 1Hz driver that calls `tick_timer` while the game is live, not paused, and timed (stopping the driver *is* the pause/idle mechanism). `ticks` only moves forward locally (`Math.max`), so an out-of-order response can't rewind the display.
+**The `useGameTimer` hook** (`src/common/hooks/game/useGameTimer.ts`) implements this: a one-time read of `ticks` to seed the display, then a 1Hz driver that calls `tick_timer` while the game is live, not paused, and timed (stopping the driver *is* the pause/idle mechanism). `ticks` only moves forward locally (`Math.max`), so an out-of-order response can't rewind the display.
 
 **Timeout-loss firing.** When `useGameTimer` (inside `useCommonGame`) reports `expired: true`, GamePage dispatches the connections manifest's `submitTimeout`, which calls `connections.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
 
@@ -540,10 +540,9 @@ Tracked in [`deferred.md`](../deferred.md). The connections-specific ones today:
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-connections-puzzles.ts`](../../supabase/scripts/import-connections-puzzles.ts) — run via `npm run connections:import` |
 | What does the play surface look like | [`src/connections/components/PlayArea.tsx`](../../src/connections/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| What does the tile grid look like | [`src/connections/components/TileGrid.tsx`](../../src/connections/components/TileGrid.tsx) (per-tile self/peer attribution; peer-frame degenerate-unused in compete) |
-| What does the category-band render look like | [`src/connections/components/CategoryBands.tsx`](../../src/connections/components/CategoryBands.tsx) (matched + unmatched-revealed bands; owns `RANK_TOKEN`) |
+| What does the tile grid + category-band render look like | [`src/connections/components/Board.tsx`](../../src/connections/components/Board.tsx) (ONE grid: full-width colored bands + remaining tiles with per-tile self/peer attribution — peer-frame degenerate-unused in compete; pulls `RANK_TOKEN` from `lib/rankColors`. Replaced the old separate `TileGrid` + `CategoryBands`.) |
 | How shared selection works | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast; `broadcast()` short-circuits to local-only in compete) |
 | How `matchedCategories` is projected | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the projection at the bottom of the hook) |
-| The pause-on-disconnect pattern | [`src/common/lib/pause.ts`](../../src/common/lib/pause.ts) + [`src/common/components/PauseOverlay.tsx`](../../src/common/components/PauseOverlay.tsx) + [`src/common/components/PauseBoundary.tsx`](../../src/common/components/PauseBoundary.tsx) |
-| The browser-side timer | [`src/common/hooks/useGameTimer.ts`](../../src/common/hooks/useGameTimer.ts) + the connections setup dialog's timer field |
+| The pause-on-disconnect pattern | [`src/common/lib/game/pause.ts`](../../src/common/lib/game/pause.ts) + [`src/common/components/game/PauseOverlay.tsx`](../../src/common/components/game/PauseOverlay.tsx) + [`src/common/components/game/PauseBoundary.tsx`](../../src/common/components/game/PauseBoundary.tsx) |
+| The browser-side timer | [`src/common/hooks/game/useGameTimer.ts`](../../src/common/hooks/game/useGameTimer.ts) + the connections setup dialog's timer field |
 | The evaluator | [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) |

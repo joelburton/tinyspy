@@ -285,7 +285,7 @@ dedups. Exactly the scrabble/spellingbee trusting-commit model.
 
 ## 8. Frontend (`src/boggle/`)
 
-**v3 layout** — the shared two-column scaffold (`common/components/PlayArea.module.css`,
+**v3 layout** — the shared two-column scaffold (`common/components/game/PlayArea.module.css`,
 imported as `shared`): a board column + a fixed info column, no full-page scroll
 (per [docs/ui.md](../ui.md) and [docs/design-decisions.md](../design-decisions.md)).
 boggle is spellingbee's structural twin (hunt words → typed entry → found-words
@@ -320,9 +320,9 @@ board), swapped in for spellingbee's hex flower.
   the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
   the bold outcome line + a compact back-to-club button at terminal), a **help line**,
   the **setup disclosure**, and the **`WordList`** filling the rest.
-  - **`WordList`:** the **shared `common/components/WordList`** (identical to
+  - **`WordList`:** the **shared `common/components/game/lists/WordList`** (identical to
     spellingbee's, since it IS the same component) — finder color (coop), a bonus
-    dot, a 5 s new-word flash (`common/hooks/useRecentlyFound`), click-to-define via
+    dot, a 5 s new-word flash (`common/hooks/game/useRecentlyFound`), click-to-define via
     the shared `DefinitionPopover`, and the post-terminal missed-words reveal. boggle
     builds its rows via `lib/displayRows` → `WordListRow[]` (the live count moved to
     the info-column state line, so the list header is just a label now).

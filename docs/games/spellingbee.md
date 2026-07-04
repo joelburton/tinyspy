@@ -72,13 +72,13 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<TimerField>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
-| **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `ClubChatPanel` / `FloatingChat` |
+| **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `FloatingChat` |
 | **Reveal the required wordlist on game end** | shipped | Client-side `required − found` at `isTerminal` (the list ships from game start; bonus words aren't revealed) |
 | **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or 'Stopped at rank "<name>"' (rank < 6 — covers both timeout and manual) |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
-| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/DefinitionPopover` anchored to that row; the `~` key opens `common/components/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/define` edge function. |
+| **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/definitions/DefinitionPopover` anchored to that row; the `~` key opens `common/components/definitions/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/input/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/define` edge function. |
 | **Sounds** | out of scope | spellingbee-ws doesn't have them either. |
 | **Mid-session "new board" affordance** | out of scope | PuzPuzPuz path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
 
@@ -259,7 +259,6 @@ The compete-mode counterpart to `end_game`: a per-player "I quit, the others kee
 ### Helper functions
 
 - **`spellingbee._rank_idx(score int, total int) → int`** — integer-math implementation of the rank ladder. Mirrors `currentRankIndex` in [`ranks.ts`](../../src/spellingbee/lib/ranks.ts); a Vitest assertion pins the two implementations together.
-- **`spellingbee._required_words_for(g uuid) → jsonb`** — the conditional-reveal helper that the `games_state` view calls for the `required_words` answer key. `SECURITY DEFINER` so it bypasses the column grant; the CASE on `common.games.is_terminal` enforces the reveal gate.
 - **`spellingbee.candidate_words(puzzle_mask bigint, center_bit bigint, required_band int, legal_band int) → table(word text, letter_mask bigint, is_required boolean)`** — the bitmask-intersection lookup the edge function uses (see [Why a SQL helper](#why-a-sql-helper-for-candidate_words) above). The band args are the per-game `setup.required` / `setup.legal`.
 
 ## Edge function: `spellingbee-build-board`
@@ -354,7 +353,7 @@ src/spellingbee/
                           Every mutation is a named callback up; PlayArea owns the RPCs.
     PlayArea.module.css   Per-game bits only (layout vars, hex board sizing, the below-board
                           slot). The two-column shell + readout classes are the shared
-                          common/components/PlayArea.module.css. Desktop-first, no @media
+                          common/components/game/PlayArea.module.css. Desktop-first, no @media
                           reflow — per ui.md.
     Letters.tsx           The 7-hex honeycomb, rendered as .board > .grid (the board-column
                           convention — no tray; the hexes carry their own shape). Render
@@ -390,7 +389,7 @@ src/spellingbee/
                           don't shift width as the score climbs. (Timer lives in
                           the GamePage header, not here.)
     (WordList)            The found-words list is now the SHARED
-                          common/components/WordList (used by spellingbee + boggle, so the
+                          common/components/game/lists/WordList (used by spellingbee + boggle, so the
                           list looks identical across games). PlayArea builds its rows via
                           lib/displayRows.buildDisplayRows(foundWords, game.requiredWords)
                           and passes `reveal`. Per-finder color, pangram bold, bonus dot,
@@ -417,9 +416,9 @@ src/spellingbee/
                           two-table subscription on spellingbee.{games, found_words}. Reads
                           from games_state so the post-terminal wordlist reveal Just Works
                           on the next refetch.
-                          (Keyboard capture is the SHARED common/hooks/useCaptureKeys, called
+                          (Keyboard capture is the SHARED common/hooks/input/useCaptureKeys, called
                           from PlayArea — no longer a spellingbee-local hook.)
-                          (useRecentlyFound is now SHARED: common/hooks/useRecentlyFound,
+                          (useRecentlyFound is now SHARED: common/hooks/game/useRecentlyFound,
                           used inside the common WordList — no longer a spellingbee-local
                           hook. Tracks freshly-arrived words, each "recent" for 5s via
                           per-word setTimeouts in a ref, NOT effect cleanup.)
@@ -474,7 +473,7 @@ When `isTerminal` flips true:
 1. `useTerminalModal` opens the `<GameOverModal>` (won/lost color + verdict line + Back-to-club).
 2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying `"Game over — <indicator copy>"`. Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column action row's bold outcome line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
-4. `games_state.required_words` materializes via the helper; `useGame.load()` refetches; `game.requiredWords` populates.
+4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `required − found`, no refetch needed.
 5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.
 
 The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`:
@@ -530,22 +529,22 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
 | `src/spellingbee/lib/displayRows.test.ts` | Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
-| `src/common/hooks/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
+| `src/common/hooks/game/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
 
 | asking… | look at… |
 |---|---|
-| Everything server-side — schema, column grants, RLS, the `games_state` view, hidden-wordlist helper (`_required_words_for`) + `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
+| Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| Target-rank picker + word-difficulty (required/legal band) fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/DifficultyField.tsx`](../../src/common/components/DifficultyField.tsx); the `legal ≥ required` Start gate is `spellingbeeLegalError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
+| Target-rank picker + word-difficulty (required/legal band) fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the `legal ≥ required` Start gate is `spellingbeeLegalError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
 | The rank ladder math | [`src/spellingbee/lib/ranks.ts`](../../src/spellingbee/lib/ranks.ts) |
-| The found-words list | the SHARED [`src/common/components/WordList.tsx`](../../src/common/components/WordList.tsx) (spellingbee builds its rows via [`src/spellingbee/lib/displayRows.ts`](../../src/spellingbee/lib/displayRows.ts)) |
+| The found-words list | the SHARED [`src/common/components/game/lists/WordList.tsx`](../../src/common/components/game/lists/WordList.tsx) (spellingbee builds its rows via [`src/spellingbee/lib/displayRows.ts`](../../src/spellingbee/lib/displayRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
 
 ## Open / deferred

@@ -302,7 +302,7 @@ Mirrors the other game folders:
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
-  rendering is the shared `common/lib/tileColor.ts` (server code → class key);
+  rendering is the shared `common/lib/color/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
 - `lib/colors.ts` — a TS port of `waffle.compute_colors` / `_wordle_colors`, pinned
   against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
@@ -313,12 +313,12 @@ Mirrors the other game folders:
   that swap (each swap is a reversible transposition), colors it via `lib/colors`,
   and rings the two moved cells. **Coop only** — compete writes no swap log.
   Clicking a `GameTurnLog` row opens that swap on the board (the yellow "viewing"
-  frame + banner from the shared `common/components/historyViewer.module.css`, input
+  frame + banner from the shared `common/components/game/lists/historyViewer.module.css`, input
   frozen; a keystroke / board click / the ✕ returns to live), mirroring
   scrabble/stackdown's history viewer.
 
 The PlayArea sits on the **shared two-column scaffold**
-(`common/components/PlayArea.module.css` — the same one psychicnum / connections /
+(`common/components/game/PlayArea.module.css` — the same one psychicnum / connections /
 codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout)):
 
 - **Board column** — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
@@ -341,7 +341,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorTag>`; coop only. Compete shows
-  the shared `common/components/OpponentStrip` instead, with `metricLabel="Swaps"`
+  the shared `common/components/game/OpponentStrip` instead, with `metricLabel="Swaps"`
   and a `metricFor` returning swaps-used + a ✓/✗ mark.
 - **Feedback split** — own errors (rejected swap / failed End) flash **locally**
   below the board; the header pill carries **peer** news (compete: an opponent
@@ -361,7 +361,7 @@ defer.
   `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
   idempotency, non-player rejected).
 - **Vitest:** `waffle.ts` geometry, `manifest` (color rendering is the shared
-  `common/lib/tileColor.ts`, covered by its own test). The
+  `common/lib/color/tileColor.ts`, covered by its own test). The
   generator's `minSwaps` par lives in the edge function, covered by
   `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 

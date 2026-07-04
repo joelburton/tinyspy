@@ -479,7 +479,7 @@ src/
 
 ### URL routing
 
-Path-based; no hash. The hand-rolled router in [`router.ts`](../src/common/lib/router.ts) is ~40 lines: a `usePath()` hook that subscribes to `popstate`, a `navigate(to, replace?)` function that calls `pushState`/`replaceState` and dispatches a synthetic `popstate`, and a `<Link>` component that intercepts left-click and falls through for cmd/ctrl-click.
+Path-based; no hash. The hand-rolled router in [`router.ts`](../src/common/lib/routing/router.ts) is ~40 lines: a `usePath()` hook that subscribes to `popstate`, a `navigate(to, replace?)` function that calls `pushState`/`replaceState` and dispatches a synthetic `popstate`, and a `<Link>` component that intercepts left-click and falls through for cmd/ctrl-click.
 
 Routes the shell knows about:
 
@@ -524,7 +524,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 | `numberOfPlayers` | `[min, max \| null]` — the supported player-count range. ClubPage uses this to decide between hidden / disabled / enabled for each game's Start button. `null` upper bound means "no maximum." |
 | `PlayArea` | Lazy-loaded React component, `ComponentType<GamePageCtx>`. App.tsx mounts `<GamePage>` for `/g/<gametype>/<id>` URLs and renders this as the render-prop child. Per-game `theme.css` is imported from the game's `PlayArea.tsx` so it ships in that game's chunk. |
 | `setupForm` | `{ Component, defaults } \| null` — the per-game setup-form *definition*: the lazy-loaded body component + the initial setup value. `null` for games whose start needs no choices; the dialog is then bypassed entirely. (The *output* of the form lands on `<gametype>.games.setup`; same root word, different role — see [docs/naming.md](naming.md).) |
-| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). No game uses this field today; the gametypes that have a timer put it on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/`). The field is preserved for the per-gametype-constant case. |
+| `timerMode` | Optional `TimerMode` declaration: `{ kind: 'none' \| 'countup' } \| { kind: 'countdown', seconds: number }`. Consumed by `useGameTimer` (via `useCommonGame`) — for **fixed per-gametype** timers (e.g., a hypothetical Boggle with a 3-minute round). No game uses this field today; the gametypes that have a timer put it on per-game setup instead (stored on `common.games.setup.timer`, picked in the setup dialog via the shared `<TimerField>` component in `src/common/components/fields/`). The field is preserved for the per-gametype-constant case. |
 | `submitTimeout(gameId)` | Async. Called by `<GamePage>` on countdown expiry. Each gametype dispatches to its own per-game `submit_timeout` RPC. Gametypes without a setup-side timer (codenamesduet today) can no-op this. Returns `{ error? }`. |
 | `startGameInClub(clubId, setup)` | Async. Called by the SetupGameDialog (or directly by ClubPage when `setupForm: null`). Receives the dialog's collected setup payload. Returns `{id}` on success or `{error}` on failure. |
 | `labelFor(commonGamesRow)` | **Pure and synchronous.** Given a `common.games` row (`{ id, gametype, play_state, is_terminal, status }`), returns the display string for the club page's games list. No I/O — every piece comes off the row. State-transition RPCs keep `common.games.status` populated with whatever shape the manifest's `labelFor` needs (the per-gametype shape is documented in each per-game doc). ClubPage queries `common.games` once for the club and dispatches each row to the matching manifest's `labelFor`. |
@@ -535,7 +535,7 @@ ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.c
 
 ### Joining a game — the invitation popup
 
-Games seat every player at creation (a `common.game_players` row each), but nobody is dragged into the game. Being added to a game instead pops a **join invitation** — "*Moth* added you to a new *spellingbee* game" + a Join button — wherever the player is in the app. The logic is one global hook, [`useGameInvitations`](../src/common/hooks/useGameInvitations.ts), mounted once in `App.tsx` *after* the claim-handle gate (so it's on every real page, never the login/claim screens); [`<GameInvitations>`](../src/common/components/GameInvitations.tsx) renders the popups.
+Games seat every player at creation (a `common.game_players` row each), but nobody is dragged into the game. Being added to a game instead pops a **join invitation** — "*Moth* added you to a new *spellingbee* game" + a Join button — wherever the player is in the app. The logic is one global hook, [`useGameInvitations`](../src/common/hooks/game/useGameInvitations.ts), mounted once in `App.tsx` *after* the claim-handle gate (so it's on every real page, never the login/claim screens); [`<GameInvitations>`](../src/common/components/game/GameInvitations.tsx) renders the popups.
 
 It watches `common.game_players` for INSERTs of the caller's own rows (instant popup while online) and **re-scans on (re)connect** for non-terminal games the caller is a player in — recovering invites sent while they were offline (rare, but the realtime INSERT alone would miss them). A localStorage **"seen" set** keeps one invite from re-popping; a dismissed invite is recovered via the club page, which still lists the game as the current game. The game the player is currently viewing is filtered out (you're never invited to the game you're in).
 
@@ -545,7 +545,7 @@ This **replaces the previous ClubPage auto-nav** (a club-games subscription that
 
 ### App-level keyboard shortcuts
 
-One hook — [`useAppShortcuts`](../src/common/hooks/useAppShortcuts.tsx) — owns the shortcuts available on every "real" page (any ClubPage / GamePage, as opposed to the login / claim-handle screens). Both pages call it; the keys behave identically everywhere:
+One hook — [`useAppShortcuts`](../src/common/hooks/input/useAppShortcuts.tsx) — owns the shortcuts available on every "real" page (any ClubPage / GamePage, as opposed to the login / claim-handle screens). Both pages call it; the keys behave identically everywhere:
 
 | key | does | how |
 |---|---|---|
@@ -566,7 +566,7 @@ Conventions live in [`code-conventions.md`](code-conventions.md); the short vers
 - **Per-game themes are optional.** Each game may have its own `theme.css` that overrides tokens for that gametype's palette. codenamesduet has one (greens, reds, neutrals). Psychic-num doesn't (deliberately styling-free).
 - **Utility classes** in `common/theme.css` for the things every screen needs: `.card`, `.muted`, `.error`, `.actions`, `.link-button`. No CSS framework.
 
-`cls()` (in [`src/common/lib/cls.ts`](../src/common/lib/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
+`cls()` (in [`src/common/lib/util/cls.ts`](../src/common/lib/util/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
 
 ## Auth & magic links
 
@@ -581,7 +581,7 @@ The code path is what makes cross-device sign-in work: open the email on your ph
 
 On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username themselves. The `common.claim_username` RPC materializes their profile + solo club (see [Username claim flow](#username-claim-flow) above). Username collision raises 23505, surfaced as an inline "that username is taken" error — the user retries with a different name.
 
-[`useSession`](../src/common/hooks/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
+[`useSession`](../src/common/hooks/session/useSession.ts) subscribes to `supabase.auth.onAuthStateChange` and returns `{session, needsClaim, loading, refresh}`. It probes `common.profiles` to distinguish the three resolved states (signed out, signed in but unclaimed, signed in and claimed). The probe also catches the stale-JWT edge case — when the JWT is signature-valid but its `auth.uid()` no longer exists in `auth.users`, the claim RPC eventually raises 23503 at submit-time and `<ClaimHandleScreen>` signs the user out.
 
 ## The word list (`common.words`)
 
@@ -619,14 +619,14 @@ Below the definition, `DefinitionView` also shows a small muted line of the word
 **Seed + growth.** The seeded glosses ship in the word list itself (`~/src/gamelist/words.tsv`, loaded by `npm run words:import` — see [The word list](#the-word-list-commonwords)). It then grows lazily: the **`define` Edge Function** is a read-through cache — reads `common.words` as the caller, and for an in-list word with no definition yet (source NULL) fetches **Wiktionary** (`freedictionaryapi.com`, CC BY-SA) and writes it back via `cache_definition`. Wiktionary won the bake-off over `api.dictionaryapi.dev` (~93% vs ~30% coverage on obscure bonus words, and no aggressive rate-limiting); a transient API failure surfaces an error *without* writing a tombstone, so only definitive empty answers are negatively cached.
 
 **Frontend.** All in `common/`, so a game wires it in a few lines (spellingbee was the first consumer; stackdown + scrabble followed — each just renders `DefinitionPopover` from clickable word rows):
-- `hooks/useDefinition(word)` — declarative lookup over `supabase.functions.invoke('define')`; cancels in-flight results so fast cross-ref chasing never flashes stale text.
-- `lib/parseDefinition` — turns a raw def into renderable parts. The stored def text is authoritative and shown **in full**; the parser only *adds* markup — the custom format's `<word=pos>` / `{word=pos}` cross-refs become clickable `ref` parts (for seeded `s`/`e`/`m` defs). Live Wiktionary text (`source === 'w'`) is plain prose, returned verbatim. Everything else (`[…]` inflection tags like `[n SUPPRESSIONS]`, `/` sense separators, `(YEAR)`) passes through verbatim, so an inflection-only stub still displays its text rather than rendering blank.
-- `components/DefinitionView` — the shared body (heading + parsed def + clickable refs + CC BY-SA attribution when `source === 'w'`); shows "Unknown word." for a word not in the list, "No definition found." for an in-list word Wiktionary had nothing for. A ref click calls `onNavigate` to re-point the lookup in place.
-- `components/DefinitionPopover` (anchored card, click-to-define) and `components/WordLookupDialog` (FloatingPanel + text box, the shortcut) both embed `DefinitionView` — they differ only in *how the first word is chosen*.
+- `hooks/definitions/useDefinition(word)` — declarative lookup over `supabase.functions.invoke('define')`; cancels in-flight results so fast cross-ref chasing never flashes stale text.
+- `lib/definitions/parseDefinition` — turns a raw def into renderable parts. The stored def text is authoritative and shown **in full**; the parser only *adds* markup — the custom format's `<word=pos>` / `{word=pos}` cross-refs become clickable `ref` parts (for seeded `s`/`e`/`m` defs). Live Wiktionary text (`source === 'w'`) is plain prose, returned verbatim. Everything else (`[…]` inflection tags like `[n SUPPRESSIONS]`, `/` sense separators, `(YEAR)`) passes through verbatim, so an inflection-only stub still displays its text rather than rendering blank.
+- `components/definitions/DefinitionView` — the shared body (heading + parsed def + clickable refs + CC BY-SA attribution when `source === 'w'`); shows "Unknown word." for a word not in the list, "No definition found." for an in-list word Wiktionary had nothing for. A ref click calls `onNavigate` to re-point the lookup in place.
+- `components/definitions/DefinitionPopover` (anchored card, click-to-define) and `components/definitions/WordLookupDialog` (FloatingPanel + text box, the shortcut) both embed `DefinitionView` — they differ only in *how the first word is chosen*.
 
 **Click-to-define wiring (per-game).** `WordList` rows (spellingbee), `FoundWords` rows (stackdown), and the move log (scrabble) are click/keyboard-activatable → `DefinitionPopover`. This stays per-game because *which* words are clickable is game-specific.
 
-**The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
+**The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/input/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
 
 ## Common testing
 
@@ -635,7 +635,7 @@ See [`testing.md`](testing.md) for the full theory. Common-layer specifics:
 - **`supabase/tests/common/clubs_test.sql`** — exercises slugify, `create_club`'s reject paths, solo-club auto-creation, and the RLS hide-from-non-member check. Touches everything in this layer.
 - **`supabase/tests/common/chat_test.sql`** — exercises `send_message` and the messages RLS, standalone (no game). Validates that the chat plumbing works regardless of which game is being played.
 
-There are no FE tests covering routing as a whole (no E2E in this project), but the router's own contract is unit-tested in [`src/common/lib/router.test.ts`](../src/common/lib/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
+There are no FE tests covering routing as a whole (no E2E in this project), but the router's own contract is unit-tested in [`src/common/lib/routing/router.test.ts`](../src/common/lib/routing/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
 
 ## Deferred / open
 

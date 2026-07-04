@@ -316,7 +316,7 @@ building it on stackdown.
 
 - **The turn-viewer affordance is the "#N handle", shared across all history games.**
   A turn is opened on the board viewer by clicking its **`#N` number** (the shared
-  `<TurnLogNumber>` in `common/components/TurnLog.tsx`), which rings *itself* yellow
+  `<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`), which rings *itself* yellow
   while that turn is open — NOT by clicking the whole row (the earlier Phase-A/B
   pattern, since replaced). Why: several games render a turn as multiple `<tr>`s
   (codenamesduet's clue + guess rows), where a whole-row "viewing" outline draws a
@@ -347,7 +347,7 @@ building it on stackdown.
 
 - **`useHistoryViewer`** (rule of three): once turn-history reached three games the
   coordination itself (the `viewingId` + "am I viewing" flags + the enter/exit
-  affordances) lifted into `common/hooks/useHistoryViewer.ts`, pulling that growth
+  affordances) lifted into `common/hooks/game/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
   `lib/history.ts`) and turn *identity* (a game-wide ordinal vs a log position). See
   the hook's own docstring.

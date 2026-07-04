@@ -302,7 +302,7 @@ prettier title here.
 ### 5.3 Frontend (`src/stackdown/`)
 
 stackdown is a **v3** game (`docs/design-decisions.md`): it renders on the shared
-two-column PlayArea scaffold (`common/components/PlayArea.module.css` — `.layout` /
+two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.actionSlot`). The board column holds the stacked-tile
 board, the five-slot `WordEntry`, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in

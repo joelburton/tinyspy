@@ -26,7 +26,7 @@ Use this when you're about to write a test:
 | Server-side randomness produces the right distribution | pgTAP | codenamesduet's 25-tile key-card distribution check |
 | A pure TypeScript function returns the right value | Vitest | `phase()` returns `'clue'` for a fresh game |
 | A React hook moves through the right states | Vitest | `useSession` flips `loading → session → null` correctly |
-| A component renders the right text given props | Vitest | `GameLog` shows "G" for revealed greens |
+| A component renders the right text given props | Vitest | `GameTurnLog` renders a turn row from props |
 | Cross-component integration in the browser | manual smoke test | "Start a game, send a clue, see it appear in partner's window" |
 
 The grey zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/codenamesduet/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
@@ -182,11 +182,11 @@ Stack: [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) +
 
 | file | what it tests | shape |
 |---|---|---|
-| [`src/common/hooks/useSession.test.ts`](../src/common/hooks/useSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
-| [`src/common/lib/router.test.ts`](../src/common/lib/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
+| [`src/common/hooks/session/useSession.test.ts`](../src/common/hooks/session/useSession.test.ts) | The session hook's state transitions (loading → session → null) | Mocks `supabase.auth.onAuthStateChange`, drives it manually via `act`, asserts on the hook's returned state via `renderHook`. The canonical "test a Supabase-hook in isolation" pattern. |
+| [`src/common/lib/routing/router.test.ts`](../src/common/lib/routing/router.test.ts) | The hand-rolled router (`navigate`, `usePath`) | Uses jsdom's `window.location` and `window.history` directly. No mocking required — just drive the History API and assert. |
 | [`src/codenamesduet/lib/phase.test.ts`](../src/codenamesduet/lib/phase.test.ts) | Pure phase derivation | No DOM, no mocking, no hooks — just `expect(phase(...)).toBe(...)`. The kind of test that's free to write and free to keep. |
 | [`src/codenamesduet/hooks/useBoard.test.ts`](../src/codenamesduet/hooks/useBoard.test.ts) | The board hook's data flow | Mocks the Supabase client at module level, drives the hook through fetch/realtime updates. |
-| [`src/codenamesduet/components/GameLog.test.tsx`](../src/codenamesduet/components/GameLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
+| [`src/codenamesduet/components/GameTurnLog.test.tsx`](../src/codenamesduet/components/GameTurnLog.test.tsx) | A component rendering its props | Renders the component, asserts on text and structure. No store, no mock — just the input → output. |
 
 The pattern is: **mock at the lowest layer that lets you write the test simply**. For `useSession`, that's the Supabase auth API. For `useBoard`, it's the Supabase client. For a pure function, it's nothing.
 

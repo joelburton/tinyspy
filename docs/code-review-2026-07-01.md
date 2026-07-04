@@ -1,5 +1,14 @@
 # Code review — 2026-07-01 (post-v3 sweep)
 
+> **Status: working doc, partially worked (NOT fully resolved).** The
+> highest-value clusters are closed — see the inline ✅ annotations and the
+> 2026-07-02 update block below (§1.1/§1.4, §3.3 red-token + drag/score, §4.1–§4.5
+> extractions, all §5 feature gaps). **Still open:** §1.3 (spellingbee `rankPoints`
+> integer math), the §2 dead-CSS sweep, §3.1 `--avail-h` derivation (parked) /
+> §3.2 square-board formula / §3.3 radii + low-priority tokens, §4.2
+> `<EndOrConcedeButton>`, and the §4.6 file decompositions. See "Suggested
+> sequencing" for what's left.
+
 A whole-repo review taken right after the v3 convergence sweep finished (all ten
 games on the shared two-column scaffold). The v3 goals were: (1) much more
 consistent cross-game UI, (2) less per-game CSS/React by promoting shared things
@@ -23,7 +32,7 @@ was edited — this is a findings report, not a change.
 > highest-value cluster:
 > - **§1.1 (peer-narration seed-timing) — ✅ RESOLVED**, and with it its
 >   extraction target **§4.1 `usePeerEventFeedback` — ✅ RESOLVED** (shipped as
->   `common/hooks/useGlobalFeedback.ts`; `9b311aa`).
+>   `common/hooks/feedback/useGlobalFeedback.ts`; `9b311aa`).
 > - **§3.1 (below-board slot) — ◐ PARTLY DONE**: the slot structure + reserved
 >   height are now shared/tokenized (`67f566c`); the per-game `--avail-h`
 >   drift remains.
@@ -48,7 +57,7 @@ are thin composers. Correctness is strong: the game-logic layer (433 tests) is
 essentially clean; the one class of bug that recurred was **not** in the logic but
 in one shared *pattern* — the "seen-set bootstrap" that narrates peer moves,
 which three games seeded at the wrong moment. **(That pattern has since been
-extracted to one correct `common/hooks/useGlobalFeedback.ts` and the bugs are
+extracted to one correct `common/hooks/feedback/useGlobalFeedback.ts` and the bugs are
 fixed — see the status update above and §1.1/§4.1.)**
 
 The remaining work clusters into four seams the sweep didn't quite finish:
@@ -77,7 +86,7 @@ Ranked by severity. Ratings: **confirmed** (traced + reproducible), **likely**
 
 > **✅ RESOLVED — feedback refactor stage 3 (`9b311aa`).** All five bucket-A
 > consumers (wordle coop+compete, psychicnum / connections / spellingbee /
-> stackdown coop) now use the extracted `common/hooks/useGlobalFeedback.ts`,
+> stackdown coop) now use the extracted `common/hooks/feedback/useGlobalFeedback.ts`,
 > which **gates before seeding** (`if (!enabled) return` before the ref
 > bootstrap) — so the backlog seeds from the real, populated first-load batch.
 > The wordle backlog-replay and the psychicnum/connections dropped-first-guess
@@ -229,7 +238,7 @@ is off by one. *Fix:* integer math — `Math.ceil((i * 7 * total) / 60)`.
 scrabble scoring/premiums/blanks/bingo/opening-play; boggle solver + trace +
 Qu/multiface/blank handling + score ladder; waffle `minSwaps` cycle-decomposition
 + solution assembly; stackdown no-trap invariant; connections `oneAway`; the
-`common/lib/gridCursor` crossword math; bananagrams multiset/hand derivation +
+`common/lib/game/gridCursor` crossword math; bananagrams multiset/hand derivation +
 bag validation; the spellingbee/boggle found-word dedup (earliest `found_at`,
 found shadows reveal); codenamesduet outcome precedence + phase gating;
 `memberColor` hash bounding; the shared hook machinery (`useCommonGame`
@@ -282,7 +291,7 @@ Ranked by leverage.
 
 > **◐ MOSTLY DONE — feedback refactor stage 4 (`67f566c`).** The slot structure
 > is now shared: `.belowBoard` (region) > `.moveArea` + `.localFeedback` +
-> `.moveAreaOrLocalFeedback` (swap box) live in `common/components/PlayArea.module.css`,
+> `.moveAreaOrLocalFeedback` (swap box) live in `common/components/game/PlayArea.module.css`,
 > with the reserved height as tokens — `--local-feedback-min-height` /
 > `--swap-box-min-height` (both default `2.75rem`), games overriding only where
 > genuinely taller (codenamesduet `3rem`, scrabble `3.4rem`, bananagrams `2.5rem`).
@@ -302,7 +311,7 @@ when the pill swaps in) has drifted to **three values**:
 boggle's and spellingbee's own comments cross-reference psychicnum, confirming
 they're copies. *Recommend:* promote a shared `.belowBoard` (column flex +
 centered + a `--belowboard-min-height` token defaulting to `2.75rem`) into
-`common/components/PlayArea.module.css`; games keep only the genuinely-per-game
+`common/components/game/PlayArea.module.css`; games keep only the genuinely-per-game
 `width`/`margin-top`; scrabble/codenamesduet override the token only if their
 taller controls truly need it. This is the same "promote when it recurs" move
 already done for `.localFeedback`.
@@ -322,7 +331,7 @@ kept in sync with the slot height *by hand* (the comments say so). Deriving
 ### 3.2 The hug-board sizing formula — extract the arithmetic, keep the behavior
 
 > **Status — 2026-07-02.** **✅ Rect done (`d7484a6`)** — extracted to shared
-> `.hugRectWidth` (in `common/components/PlayArea.module.css`), composed onto each
+> `.hugRectWidth` (in `common/components/game/PlayArea.module.css`), composed onto each
 > of the four games' `.grid`; proven a pixel-for-pixel no-op by the new
 > `e2e/board-geometry.e2e.ts` guard (all 8 boards within 0.5px of the pre-refactor
 > baseline). **⚠ Square NOT done — the premise is false.** On inspection the four
@@ -429,7 +438,7 @@ high-value ones are here.)
 
 ### 4.1 `usePeerEventFeedback` — kills the §1.1 bug
 
-> **✅ RESOLVED (`9b311aa`).** Shipped as **`common/hooks/useGlobalFeedback.ts`**
+> **✅ RESOLVED (`9b311aa`).** Shipped as **`common/hooks/feedback/useGlobalFeedback.ts`**
 > `{ enabled, items, keyOf, messageFor, globalFeedback }` — the two refs +
 > gate-before-seed bootstrap live there once. Both per-game
 > `usePeerFeedback.ts` hooks (spellingbee, stackdown) were **deleted**, and the
@@ -457,7 +466,7 @@ first — it's where correctness and decomposition converge.**
 
 Each verified as near-identical in most/all PlayAreas; a normalization pass:
 
-- ~~**`timerLabel()`** — verbatim copy in 9 PlayAreas → `common/lib/timerLabel.ts`~~
+- ~~**`timerLabel()`** — verbatim copy in 9 PlayAreas → `common/lib/game/timerLabel.ts`~~
   **✅ DONE (`44ed5b2`)** — confirmed byte-identical (hash), extracted + Vitest;
   −97 lines. (The other §4.2 pieces below remain.)
 - ~~**`<TerminalModal over isTerminal onBackToClub>`**~~ **✅ DONE (`911896c`)** —
@@ -515,7 +524,7 @@ selection Broadcast on a stable-name channel).
 
 > **✅ DONE (`d18e781`).** Confirmed the three looks (DifficultyField/boggle custom
 > chevron; wordle smaller + native arrow + surface colors; **psychicnum fully
-> unstyled**). Extracted `common/components/SelectField` with DifficultyField's
+> unstyled**). Extracted `common/components/fields/SelectField` with DifficultyField's
 > canonical styling; DifficultyField reframed onto it (its CSS moved → module
 > deleted; provable no-op for its 6 consumers). boggle dice/ladder + wordle guesses
 > + psychicnum word-count migrated; drifted CSS deleted. wordle + psychicnum
@@ -532,7 +541,7 @@ lines and it fixes a real consistency bug.
 ### 4.5 Smaller extractions
 
 - ~~**`<RadioRow>`** — the `options.map(<label><input radio>)` group~~ **✅ DONE
-  (`b4a6a8f`)** — extracted `common/components/RadioRow` (reuses the shared
+  (`b4a6a8f`)** — extracted `common/components/fields/RadioRow` (reuses the shared
   `.radioRow`/`.radio` CSS). It was **7 groups / 6 forms** (not "7 byte-identical"):
   wrinkles absorbed via `{value,label}` options + a `prefix` prop — waffle's `(+N)`
   suffix (label node), boggle's leading span (prefix), codenamesduet first-clue-giver
@@ -540,11 +549,11 @@ lines and it fixes a real consistency bug.
   (`value?: T`). bananagrams/boggle LOCAL `.radioRow` now dead drift (→ §2 sweep).
 - ~~**`<TurnLogActor>`** — the `<td className={who}><ActorTag …/></td>` who-column~~
   **✅ DONE (`6cea6af`)** — accurately described (7 identical wrappers); extracted
-  `common/components/TurnLogActor` forwarding `actor`/`fallback`/`className` to
+  `common/components/game/lists/TurnLogActor` forwarding `actor`/`fallback`/`className` to
   `<ActorTag>` in the shared `.who` `<td>`; psychicnum's local `whoCell` now returns
   it. Byte-identical DOM. tsc + 150 tests + eslint green.
 - ~~**`useFlash()`** — the identical green/yellow/red `setTimeout` flash effect~~
-  **✅ DONE (`ebb62eb`)** — extracted `common/hooks/useFlash` (`[flashedSet,
+  **✅ DONE (`ebb62eb`)** — extracted `common/hooks/ui/useFlash` (`[flashedSet,
   flash(items)]`, self-clearing; fake-timer test). scrabble's 3 (state+effect ×3)
   + stackdown's `flashIds` (1) migrated. NB the "2× stackdown" was overcounted —
   stackdown's other flash is `WordFlash` (a nullable tagged value, a different
@@ -628,7 +637,7 @@ neither). Genuine gaps, ranked:
   guard *omitting* `<select>`. Two more keyboard truths were made fundamental in
   the same pass: terminal local feedback is permanent (`clearLocalFeedback`
   no-ops at terminal), and "any key dismisses the own-move pill" is now universal
-  (`useDismissLocalFeedbackOnKey`). See [`docs/ui.md` → Text entry](../ui.md#text-entry--capture-not-input).
+  (`useDismissLocalFeedbackOnKey`). See [`docs/ui.md` → Text entry](ui.md#text-entry--capture-not-input).
 
 **Deliberate omissions — confirmed from docs, do not re-flag:** bananagrams (no
 turn log / no word list / compete-only / desktop-only carve-out); codenamesduet

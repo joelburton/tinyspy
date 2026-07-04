@@ -1,5 +1,13 @@
 # Feedback audit
 
+> **Status: historical.** The local-vs-group feedback cleanup this inventory was
+> taken to support is **complete** (the Global/Local/Generic refactor, done
+> 2026-07-02). Kept as a record of the pre-refactor state. Terminology has since
+> moved on — the header `<FeedbackPill>` became `<GenericFeedbackPill>`
+> (`common/components/feedback/`), spellingbee's dedicated `Feedback.tsx` local
+> pill was folded into the shared local-feedback state, and "group/local" is now
+> "global/local". Treat every row below as a 2026-06-27 snapshot, not current.
+
 A point-in-time inventory (**2026-06-27**) of every place each game shows the
 player user-facing feedback, and how. It exists to support the deferred
 **local-vs-group feedback** cleanup — see
