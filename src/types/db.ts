@@ -884,6 +884,7 @@ export type Database = {
       }
       is_club_member: { Args: { target_club: string }; Returns: boolean }
       require_club_member: { Args: { target_club: string }; Returns: string }
+      require_compete: { Args: { p_mode: string }; Returns: undefined }
       require_game_player: { Args: { target_game: string }; Returns: string }
       require_player_count_max: {
         Args: { max_count: number; player_user_ids: string[] }
@@ -906,8 +907,13 @@ export type Database = {
         Args: { play_state: string; status: Json; target_game: string }
         Returns: undefined
       }
+      validate_mode: { Args: { p_mode: string }; Returns: undefined }
       validate_timer: { Args: { timer_obj: Json }; Returns: undefined }
       word_letter_mask: { Args: { w: string }; Returns: number }
+      wordle_colors: {
+        Args: { answer: string; guess: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -2257,10 +2263,6 @@ export type Database = {
         Returns: string
       }
       _solution_for: { Args: { g_id: string }; Returns: string }
-      _wordle_colors: {
-        Args: { answer: string; guess: string }
-        Returns: string
-      }
       compute_colors: {
         Args: { board: string; solution: string }
         Returns: string
@@ -2441,10 +2443,6 @@ export type Database = {
     Functions: {
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _target_for: { Args: { g_id: string }; Returns: string }
-      compute_colors: {
-        Args: { answer: string; guess: string }
-        Returns: string
-      }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
