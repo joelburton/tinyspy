@@ -51,7 +51,7 @@ $$;
 -- waffle.compute_colors — color a whole board against the solution
 -- ============================================================
 -- Pure function of (board, solution): both 25-char strings. Colors
--- each of the 6 words independently with _wordle_colors, then merges
+-- each of the 6 words independently with common.wordle_colors, then merges
 -- per cell — an intersection cell (in two words) shows the STRONGER
 -- of its two colors (green > yellow > gray). Holes stay '.'.
 --

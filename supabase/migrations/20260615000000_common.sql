@@ -1029,9 +1029,8 @@ revoke execute on function common.require_compete(text) from public;
 -- in the answer after greens are removed. Two passes — greens first (they claim
 -- their answer letter), yellows second from the leftover pool.
 --
--- The single source of truth for this algorithm: wordle.compute_colors and
--- waffle.compute_colors (via its per-word helper) both call this instead of
--- keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
+-- The single source of truth for this algorithm: wordle.submit_guess and
+-- waffle.compute_colors (per word) both call this instead of keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
 -- TS port `src/waffle/lib/colors.ts` — this is exactly the kind of subtle
 -- duplicated algorithm that must live in one place.
 create function common.wordle_colors(guess text, answer text)
@@ -2189,7 +2188,7 @@ grant select on common.words to authenticated;
 -- The click-to-define popover + "look up any word" shortcut read
 -- `definition` straight off common.words (authenticated SELECT). When
 -- a word is in the table but has no definition yet (definition_source
--- IS NULL = never looked up), the `define` Edge Function fetches
+-- IS NULL = never looked up), the `common-define` Edge Function fetches
 -- Wiktionary and writes the result back here via this RPC.
 --
 -- We ONLY ever fill words that are already in common.words — a lookup
@@ -2226,7 +2225,7 @@ end;
 $$;
 
 -- service_role needs schema USAGE + EXECUTE to call this from the
--- `define` Edge Function. Not authenticated: letting any client cache
+-- `common-define` Edge Function. Not authenticated: letting any client cache
 -- arbitrary (word, def) pairs is a junk-injection vector with no
 -- upside. (The bulk word import connects as the superuser and seeds
 -- definitions straight from the TSV, bypassing this path entirely.)

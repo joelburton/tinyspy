@@ -5,7 +5,7 @@ import styles from './SolutionReveal.module.css'
 /**
  * End-of-game answer panel: the six solution words grouped across /
  * down, each click-to-define via the shared `DefinitionPopover` — the
- * same lookup spellingbee's WordList uses (the define Edge Function reads
+ * same lookup spellingbee's WordList uses (the common-define Edge Function reads
  * common.words, where these words live). The words alone fully reveal
  * the solution, so there's no separate solved-board grid (it just ate
  * space); the player's final board stays on the left.

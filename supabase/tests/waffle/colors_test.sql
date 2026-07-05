@@ -25,7 +25,7 @@ set search_path = waffle, common, public, extensions;
 select plan(10);
 
 -- ============================================================
--- _wordle_colors — one 5-letter word, Wordle-style
+-- common.wordle_colors — one 5-letter word, Wordle-style
 -- ============================================================
 
 select is(common.wordle_colors('abcde', 'abcde'), 'ggggg',

@@ -1,7 +1,8 @@
 /**
  * Waffle's green/yellow/gray feedback, ported to TypeScript from the SQL
- * `waffle.compute_colors` / `waffle._wordle_colors` (migration
- * `20260624000000_waffle.sql`). The server stays the source of truth for LIVE
+ * `waffle.compute_colors` (the board merger, migration `20260624000000_waffle.sql`)
+ * and the shared `common.wordle_colors` algorithm it wraps. The server stays the
+ * source of truth for LIVE
  * colors (it computes them in `submit_swap` + the read view); this port exists so
  * the turn-history viewer can color a *historical* board on the frontend — replaying
  * past board states needs their colors, and those are a pure function of
@@ -23,7 +24,7 @@ function rank(c: string): number {
 /**
  * Color ONE 5-letter word, Wordle-style → a same-length `g`/`y`/`x` string.
  * Two passes with the standard duplicate-letter accounting (mirrors the SQL
- * `_wordle_colors`): greens first, so each correct-place letter claims its answer
+ * `common.wordle_colors`): greens first, so each correct-place letter claims its answer
  * copy; then yellows from the leftover pool, left-to-right, so a guess letter only
  * earns a yellow while an unconsumed copy remains in the answer.
  */

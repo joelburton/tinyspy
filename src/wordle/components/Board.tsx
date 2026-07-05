@@ -45,7 +45,7 @@ type Props = {
  * The Wordle board: `maxGuesses` rows of 5 tiles. A submitted row shows
  * each letter on its server-computed color (green/yellow/gray); the
  * active row shows the player's in-progress typing (uncolored); the
- * rest are empty. Colors come from `wordle.compute_colors` server-side
+ * rest are empty. Colors come from `common.wordle_colors` server-side
  * — the FE only renders them (it never holds the target).
  *
  * **Reveal animation.** When a guess lands, its row's tiles flip over

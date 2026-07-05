@@ -1,6 +1,6 @@
 /**
  * wordle's color module = the shared code→class-key mapper (the server,
- * `wordle.compute_colors`, is authoritative — the FE never recomputes,
+ * `common.wordle_colors`, is authoritative — the FE never recomputes,
  * it doesn't hold the target) plus the two wordle-only helpers below
  * that drive the reveal animation and the on-screen keyboard.
  */
