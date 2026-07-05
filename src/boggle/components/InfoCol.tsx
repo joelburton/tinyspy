@@ -1,9 +1,9 @@
-import { cls } from '../../common/lib/util/cls'
 import { playerOutcome, type GamePlayer } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -127,10 +127,9 @@ export function InfoCol({
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
           // now-disabled Concede) so the state change reads loudly.
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>
+          <LocalTerminalRow label="You conceded">
             <ConcedeGameButton className={shared.helperButton} disabled />
-          </div>
+          </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (

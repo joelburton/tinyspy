@@ -1,6 +1,7 @@
 import { cls } from '../../common/lib/util/cls'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -152,12 +153,9 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} />
         ) : isLocallyDone ? (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>
-              {myConceded ? 'You conceded' : 'Waiting for others'}
-            </span>
+          <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
             {endButton}
-          </div>
+          </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>{endButton}</div>
         )}

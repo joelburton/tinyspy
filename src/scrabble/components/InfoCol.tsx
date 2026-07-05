@@ -1,4 +1,3 @@
-import { cls } from '../../common/lib/util/cls'
 import { playerOutcome, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -6,6 +5,7 @@ import { timerLabel } from '../../common/lib/game/timerLabel'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
@@ -145,10 +145,9 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} />
         ) : isCompete && myConceded ? (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>
+          <LocalTerminalRow label="You conceded">
             <ConcedeGameButton className={shared.helperButton} disabled />
-          </div>
+          </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (

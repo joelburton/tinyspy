@@ -1,7 +1,7 @@
-import { cls } from '../../common/lib/util/cls'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -159,12 +159,9 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} />
         ) : !showInput ? (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>
-              {myConceded ? 'You conceded' : 'You’re out'}
-            </span>
+          <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
             {endButton}
-          </div>
+          </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {/* Hints opens the per-player HintModal (warning-toned, amber). */}

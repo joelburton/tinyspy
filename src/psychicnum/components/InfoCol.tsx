@@ -1,7 +1,7 @@
-import { cls } from '../../common/lib/util/cls'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
@@ -159,12 +159,9 @@ export function InfoCol({
             {endButton}
           </div>
         ) : (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>
-              {myConceded ? 'You conceded' : 'Waiting for others'}
-            </span>
+          <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
             {endButton}
-          </div>
+          </LocalTerminalRow>
         )}
 
         {/* Help — shown ONLY while you can actually act on it (canGuess). It never

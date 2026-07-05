@@ -4,6 +4,7 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -148,10 +149,9 @@ export function InfoCol({
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
           // now-disabled Concede) so the drop-out reads loudly.
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>You conceded</span>
+          <LocalTerminalRow label="You conceded">
             <ConcedeGameButton className={shared.helperButton} disabled />
-          </div>
+          </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
             {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".

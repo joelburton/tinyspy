@@ -1,10 +1,10 @@
-import { cls } from '../../common/lib/util/cls'
 import type { Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
@@ -164,20 +164,15 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} />
         ) : selfDone ? (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>
-              {myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps'}
-            </span>
+          <LocalTerminalRow
+            label={myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps'}
+          >
             {endButton}
-          </div>
+          </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>{endButton}</div>
         ) : (
-          <div className={cls(shared.infoActions, shared.terminalActions)}>
-            <span className={cls(shared.outcome, shared.outcome_neutral)}>
-              Watching — not in this game
-            </span>
-          </div>
+          <LocalTerminalRow label="Watching — not in this game" />
         )}
 
         {/* Help — shown ONLY while you can actually act on it (the locally-terminal /

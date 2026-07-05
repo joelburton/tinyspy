@@ -845,6 +845,28 @@ onEndGame onConcede onBackToClub>` in `common/components/game/` folds the whole
 slot and absorbs the deferred item. `doneLabel` stays per-game (those copy
 differences are meaningful).
 
+> **✅ DONE — but a narrower extraction than proposed, for a documented reason.**
+> Diffing all 8 InfoCols' action slots showed the *whole-slot* fold does NOT fit:
+> the **active** (playing) branch genuinely differs per game — stackdown /
+> psychicnum / connections have cheat buttons (Hint/Reveal) in it, waffle has an
+> extra "watching — not in this game" branch + a `selfSolved` sub-state, and the
+> `endButton` disabled-logic (`myConceded`, `selfSolved`) is per-game. Folding all
+> that into one component would relocate the branching into a pile of flags/children,
+> not remove it — and it contradicts `<TerminalActionRow>`'s own documented decision
+> that "only the terminal branch is shared; the non-terminal branches genuinely
+> differ per game." What IS cleanly duplicated is the **locally-terminal row** — the
+> neutral-toned twin of `<TerminalActionRow>` (same `infoActions terminalActions`
+> wrapper + `outcome outcome_neutral` span, copy-pasted at ~9 sites). Extracted that
+> as **`common/components/game/terminal/LocalTerminalRow.tsx`** —
+> `<LocalTerminalRow label>{trailingAction?}</LocalTerminalRow>`. `label` + the
+> trailing button stay per-game (game-specific copy; a disabled Concede in some, the
+> live `endButton` in others; waffle's watching state passes no child). All 8
+> InfoCols now use it (waffle at both its locally-terminal + watching sites); the
+> now-unused `cls` import dropped from 6. bananagrams (inverted layout — the
+> `.infoActions` wrapper is external, trailing is Back-to-club) is genuinely its own
+> shape, left as-is. New render test (`LocalTerminalRow.test.tsx`, 3 cases) pins the
+> contract; tsc + eslint + 617 FE tests green.
+
 > **✅ DONE.** New `common/components/game/HelpPanel.tsx` (+ `.module.css`) owns
 > the FloatingPanel + "How to play {brand}" title + right-aligned "Got it" row
 > (the inline `style` is now a `.gotItRow` class). All ten games' `Help.tsx` are
