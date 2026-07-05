@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 
 type Props = {
   onClose: () => void
@@ -8,17 +8,12 @@ type Props = {
 /**
  * wordle's help / rules modal — opened from the "Help" item in the
  * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
- * contract on GameManifest.
+ * contract on GameManifest. The frame (panel + title + Got-it) is the
+ * shared `<HelpPanel>`; this is just the rules copy.
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
-      onClose={onClose}
-      defaultSize={{ width: 460, height: 380 }}
-      minWidth={300}
-      minHeight={240}
-    >
+    <HelpPanel brand={brand} onClose={onClose} size={{ width: 460, height: 380 }}>
       <p>
         <strong>Guess the hidden 5-letter word.</strong> Type a word and
         press Enter; each letter is colored as feedback:
@@ -43,11 +38,6 @@ export function Help({ onClose, brand }: Props) {
         go to whoever got there first).
       </p>
 
-      <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-        <button type="button" autoFocus onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }

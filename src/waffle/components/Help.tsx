@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 
 type Props = {
   onClose: () => void
@@ -12,13 +12,7 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
-      onClose={onClose}
-      defaultSize={{ width: 460, height: 360 }}
-      minWidth={300}
-      minHeight={240}
-    >
+    <HelpPanel brand={brand} onClose={onClose} size={{ width: 460, height: 360 }}>
       <p>
         <strong>Unscramble the waffle.</strong> The grid spells six
         five-letter words — three across, three down — but the letters
@@ -40,11 +34,6 @@ export function Help({ onClose, brand }: Props) {
         swaps wins.
       </p>
 
-      <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-        <button type="button" autoFocus onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }

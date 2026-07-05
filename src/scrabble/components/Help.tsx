@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 
 type Props = {
   onClose: () => void
@@ -11,12 +11,11 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
+    <HelpPanel
+      brand={brand}
       onClose={onClose}
-      defaultSize={{ width: 500, height: 460 }}
-      minWidth={320}
-      minHeight={280}
+      size={{ width: 500, height: 460 }}
+      minSize={{ width: 320, height: 280 }}
     >
       <p>
         <strong>Build words on the board from your rack of 7 tiles.</strong>{' '}
@@ -58,6 +57,6 @@ export function Help({ onClose, brand }: Props) {
         Click any word in the move log to see its definition, or press{' '}
         <strong>~</strong> to look up any word.
       </p>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }

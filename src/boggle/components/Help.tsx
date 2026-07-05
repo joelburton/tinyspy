@@ -1,8 +1,21 @@
-/** boggle rules modal. */
+import { HelpPanel } from '../../common/components/game/HelpPanel'
+
+/**
+ * boggle's help / rules modal — opened from the "Help" item in the GamePage
+ * menu. Implements the `help: ComponentType<{ onClose }>` contract on
+ * GameManifest. The frame (panel + title + Got-it) is the shared `<HelpPanel>`;
+ * this is just the rules copy. (Previously boggle rendered a bare `<div>` with
+ * no FloatingPanel, so its Help looked unlike every other game's — the shared
+ * frame fixes that.)
+ */
 export function Help({ onClose, brand }: { onClose: () => void; brand: string }) {
   return (
-    <div>
-      <h2>How to play {brand}</h2>
+    <HelpPanel
+      brand={brand}
+      onClose={onClose}
+      size={{ width: 480, height: 480 }}
+      minSize={{ width: 320, height: 280 }}
+    >
       <p>
         Find words by linking adjacent letter tiles — horizontally, vertically, or
         diagonally. Each tile can be used once per word. A “Qu” tile counts as both
@@ -30,9 +43,6 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         stay upright) so it faces whoever’s reading — it’s just your view, nobody
         else’s.
       </p>
-      <button type="button" onClick={onClose}>
-        Got it
-      </button>
-    </div>
+    </HelpPanel>
   )
 }

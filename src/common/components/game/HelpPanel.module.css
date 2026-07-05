@@ -1,0 +1,7 @@
+/* The "Got it" close row at the bottom of every game's help modal —
+ * right-aligned with a top gap. Replaces the inline style each game's
+ * Help.tsx used to carry (code-review §4.5). */
+.gotItRow {
+  margin-top: 1rem;
+  text-align: right;
+}

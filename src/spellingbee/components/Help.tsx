@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 
 type Props = {
   onClose: () => void
@@ -12,17 +12,16 @@ type Props = {
  *
  * Phase 3 copy: the rules-of-the-game in 4 short bullets, plus
  * a footnote on the rank ladder (which the UI doesn't render
- * yet — that's Phase 4). Same FloatingPanel scaffold the other
- * games use.
+ * yet — that's Phase 4). Renders into the shared `<HelpPanel>`
+ * scaffold every game uses.
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
+    <HelpPanel
+      brand={brand}
       onClose={onClose}
-      defaultSize={{ width: 460, height: 420 }}
-      minWidth={300}
-      minHeight={260}
+      size={{ width: 460, height: 420 }}
+      minSize={{ width: 300, height: 260 }}
     >
       <p>
         Use the 7 letters on the honeycomb to make as many words
@@ -50,6 +49,6 @@ export function Help({ onClose, brand }: Props) {
         Enter to submit, and Space (or the ⟲ button) to shuffle
         the outer letters.
       </p>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }

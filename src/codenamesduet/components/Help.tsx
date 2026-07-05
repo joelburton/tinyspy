@@ -1,5 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
-import actionRow from '../../common/components/panels/modalActions.module.css'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 import styles from './Help.module.css'
 
 type Props = {
@@ -12,10 +11,10 @@ type Props = {
  * the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * Floating panel via the shared `<FloatingPanel>` shell:
- * draggable + resizable so a user can shrink it into a corner
- * while reading the chat or watching the board, no backdrop so
- * other UI stays interactable.
+ * Renders into the shared `<HelpPanel>` (the FloatingPanel frame + title +
+ * Got-it): draggable + resizable so a user can shrink it into a corner while
+ * reading the chat or watching the board, no backdrop so other UI stays
+ * interactable.
  *
  * The parent (`GamePage`) mounts this component only when the
  * help modal is open, so there's no `open` prop — `onClose`
@@ -23,12 +22,11 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
+    <HelpPanel
+      brand={brand}
       onClose={onClose}
-      defaultSize={{ width: 480, height: 540 }}
-      minWidth={320}
-      minHeight={300}
+      size={{ width: 480, height: 540 }}
+      minSize={{ width: 320, height: 300 }}
     >
       <p>
         You and your partner are spies trying to identify <strong>15 agents</strong> hidden
@@ -62,11 +60,6 @@ export function Help({ onClose, brand }: Props) {
         any wrong reveal loses the game.
       </p>
 
-      <div className={actionRow.modalActions}>
-        <button type="button" autoFocus onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }

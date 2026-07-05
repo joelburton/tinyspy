@@ -835,6 +835,15 @@ onEndGame onConcede onBackToClub>` in `common/components/game/` folds the whole
 slot and absorbs the deferred item. `doneLabel` stays per-game (those copy
 differences are meaningful).
 
+> **✅ DONE.** New `common/components/game/HelpPanel.tsx` (+ `.module.css`) owns
+> the FloatingPanel + "How to play {brand}" title + right-aligned "Got it" row
+> (the inline `style` is now a `.gotItRow` class). All ten games' `Help.tsx` are
+> now just their rules copy wrapped in `<HelpPanel brand onClose size? minSize?>`
+> — including **boggle, whose bare-`<div>` Help (no FloatingPanel) is fixed**, and
+> spellingbee/scrabble, which gained the missing "Got it" button. Per-game sizes
+> preserved (passed through), so no visual regression on the nine. `tsc -b` +
+> eslint + 610 FE tests green.
+
 **4.5 [MEDIUM, includes a real drift bug] Help modal chrome.** Nine games
 wrap per-game rules copy in the same FloatingPanel + "How to play {brand}" +
 right-aligned "Got it" (wordle's Got-it row via inline style) — and

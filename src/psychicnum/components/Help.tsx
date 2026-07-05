@@ -1,4 +1,4 @@
-import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
+import { HelpPanel } from '../../common/components/game/HelpPanel'
 
 type Props = {
   onClose: () => void
@@ -21,12 +21,11 @@ type Props = {
  */
 export function Help({ onClose, brand }: Props) {
   return (
-    <FloatingPanel
-      title={`How to play ${brand}`}
+    <HelpPanel
+      brand={brand}
       onClose={onClose}
-      defaultSize={{ width: 420, height: 280 }}
-      minWidth={280}
-      minHeight={200}
+      size={{ width: 420, height: 280 }}
+      minSize={{ width: 280, height: 200 }}
     >
       <p>
         <strong>Find the three secret words.</strong> The board shows
@@ -43,11 +42,6 @@ export function Help({ onClose, brand }: Props) {
         timer — and the numbers are revealed and the game ends.
       </p>
 
-      <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-        <button type="button" autoFocus onClick={onClose}>
-          Got it
-        </button>
-      </div>
-    </FloatingPanel>
+    </HelpPanel>
   )
 }
