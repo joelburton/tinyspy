@@ -55,7 +55,7 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
 export function PlayArea({
   session,
   gameId,
-  players: members,
+  players,
   playState,
   isTerminal,
   timer,
@@ -98,7 +98,7 @@ export function PlayArea({
         const prev = seenOpponentRef.current.get(ps.user_id)
         seenOpponentRef.current.set(ps.user_id, { solved: ps.solved, out })
         if (prev === undefined) continue // first sighting — seed, don't announce
-        const member = members.find((m) => m.user_id === ps.user_id)
+        const member = players.find((m) => m.user_id === ps.user_id)
         const name = member?.username ?? 'Someone'
         const dot = colorVarFor(member?.color)
         if (ps.solved && !prev.solved) {
@@ -124,7 +124,7 @@ export function PlayArea({
         }
       }
     },
-    [playerStates, game, members, session.user.id, globalFeedback],
+    [playerStates, game, players, session.user.id, globalFeedback],
   )
 
   const handleSwap = useCallback(
@@ -164,11 +164,11 @@ export function PlayArea({
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
 
-  // Concede lives on the COMMON roster (ctx `members` = GamePlayer[]), not on
+  // Concede lives on the COMMON roster (ctx `players` = GamePlayer[]), not on
   // waffle.players. `myConceded` drives the "You conceded" copy; `concededIds` marks
   // a conceded opponent 'out' in the strip mid-game.
-  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
-  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // Turn viewer (coop only): the historical board for the swap being viewed, or null
   // when live. Replayed from the scramble + swap log, colored on the FE (coop exposes
@@ -233,7 +233,7 @@ export function PlayArea({
         maxSwaps={game.max_swaps}
         remaining={remaining}
         parSwaps={game.par_swaps}
-        members={members}
+        players={players}
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}

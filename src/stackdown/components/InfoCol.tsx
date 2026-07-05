@@ -35,7 +35,7 @@ export function InfoCol({
   foundCount,
   hintCount,
   revealCount,
-  members,
+  players,
   selfId,
   playerStates,
   concededIds,
@@ -71,7 +71,7 @@ export function InfoCol({
 
   // ── Players (the OpponentStrip + the log's identity discs) ──
   /** The roster (identity + per-player concede flags). */
-  members: Member[]
+  players: Member[]
   selfId: string
   /** Public per-player tallies (found_count / solved); `self` is derived from these. */
   playerStates: PlayerRow[]
@@ -120,7 +120,7 @@ export function InfoCol({
             on a leading disc; a ✓ marks a player who's cleared the board. */}
         {isCompete && (
           <OpponentStrip
-            players={members}
+            players={players}
             selfId={selfId}
             metricLabel="Found"
             metricFor={(player, isSelf) => {
@@ -207,7 +207,7 @@ export function InfoCol({
 
       <GameTurnLog
         submissions={submissions}
-        players={members}
+        players={players}
         showWho={showWho}
         viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}

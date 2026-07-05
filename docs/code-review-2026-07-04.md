@@ -927,7 +927,11 @@ intra-game drift), `connections/Board.tsx`,
 `useClubSetupPresence`).
 
 **5.7 InfoCol roster prop: `members` vs `players` — a doc-vs-doc conflict the
-code split on.** scrabble/stackdown/waffle pass `members` (per the
+code split on.** — **✅ DONE.** Reconciled on naming.md's authority (`players`):
+scrabble/stackdown/waffle dropped the `ctx.players → members` alias and now use
+`players` throughout their PlayArea + InfoCol (prop + internals), matching the
+other six games. Updated the decomposition-plan prop glossary (`members` →
+`players`) so the two docs agree. `tsc -b` + eslint + 96 Vitest green. scrabble/stackdown/waffle pass `members` (per the
 decomposition plan's glossary); the other six pass `players` (per
 naming.md/code-conventions.md's Member-vs-Player table: game-context variable
 name is `players`, type stays `Member`). Worse, scrabble/stackdown/waffle call

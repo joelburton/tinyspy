@@ -215,7 +215,7 @@ already knew. Drift here causes real head-scratching.
   that way and were realigned in the game-4 pre-flight review).
 - **One vocabulary across all games.** For the same idea, use the same prop name
   everywhere: `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
-  `viewingDescription`, `onExitViewing`, `onSelectTurn`, `members`, `selfId`,
+  `viewingDescription`, `onExitViewing`, `onSelectTurn`, `players`, `selfId`,
   `playerStates`, `concededIds`, `myConceded`, `setup`, `solution`, `onEndGame`,
   `onConcede`, `onBackToClub`, … When a new game needs a prop that an earlier column
   already has under some name, REUSE that name; only diverge when the meaning truly

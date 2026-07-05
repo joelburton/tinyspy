@@ -40,7 +40,7 @@ import '../theme.css'
 export function PlayArea({
   session,
   gameId,
-  players: members,
+  players,
   playState,
   isTerminal,
   status,
@@ -91,21 +91,21 @@ export function PlayArea({
   // ─── Derived (null-safe until the loading guard) ──────────────
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isCompete = game?.mode === 'compete'
-  // Concede lives on the common roster (ctx.players → `members`).
-  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
-  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+  // Concede lives on the common roster (ctx.players → `players`).
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
   const myTurn = !isCompete || game?.currentUserId === session.user.id
   const nameOf = useCallback(
-    (userId: string | null) => members.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
-    [members],
+    (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
+    [players],
   )
   // Identity-disc color for the share banner's ● (the shared member-color scheme).
   const memberColorOf = useCallback(
-    (userId: string) => colorVarFor(members.find((m: Member) => m.user_id === userId)?.color),
-    [members],
+    (userId: string) => colorVarFor(players.find((m: Member) => m.user_id === userId)?.color),
+    [players],
   )
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
-  const canShare = game?.mode === 'coop' && members.length >= 2
+  const canShare = game?.mode === 'coop' && players.length >= 2
 
   // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
   // Builds the print model from the live state (RLS already scoped it to what I may
@@ -165,7 +165,7 @@ export function PlayArea({
   const scrabbleSetup = setup as unknown as ScrabbleSetup
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
-  const currentMember = members.find((m: Member) => m.user_id === game.currentUserId)
+  const currentMember = players.find((m: Member) => m.user_id === game.currentUserId)
 
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
@@ -207,7 +207,7 @@ export function PlayArea({
         currentMember={currentMember}
         teamScore={game.teamScore}
         bagCount={game.bagCount}
-        members={members}
+        players={players}
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}

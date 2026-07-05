@@ -35,7 +35,7 @@ export function InfoCol({
   currentMember,
   teamScore,
   bagCount,
-  members,
+  players,
   selfId,
   playerStates,
   concededIds,
@@ -67,7 +67,7 @@ export function InfoCol({
 
   // ── Players (the OpponentStrip) ──
   /** The roster (GamePlayer — carries the concede/result bits playerOutcome reads). */
-  members: GamePlayer[]
+  players: GamePlayer[]
   selfId: string
   playerStates: PlayerRow[]
   concededIds: Set<string>
@@ -121,7 +121,7 @@ export function InfoCol({
             Scores aren't hidden (the board reveals them). */}
         {isCompete && (
           <OpponentStrip
-            players={members}
+            players={players}
             selfId={selfId}
             metricLabel="Score"
             metricFor={(player) => {
@@ -129,9 +129,9 @@ export function InfoCol({
               const score = ps?.score ?? 0
               // Mid-game a conceder reads as "out"; at terminal the score line is
               // prefixed with the outcome verb (Quit / Lost / Won). The strip types
-              // `player` as Member, so read the concede/result bits back off `members`.
+              // `player` as Member, so read the concede/result bits back off `players`.
               if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : score
-              const gpm = members.find((m) => m.user_id === player.user_id)
+              const gpm = players.find((m) => m.user_id === player.user_id)
               const outcome = gpm ? playerOutcome(gpm) : 'lost'
               const verb = outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
               return `${verb} · ${score}`
@@ -175,7 +175,7 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog plays={plays} players={members} viewingSeq={viewingSeq} onSelectTurn={onSelectTurn} />
+      <GameTurnLog plays={plays} players={players} viewingSeq={viewingSeq} onSelectTurn={onSelectTurn} />
     </div>
   )
 }

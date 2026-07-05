@@ -38,7 +38,7 @@ export function InfoCol({
   maxSwaps,
   remaining,
   parSwaps,
-  members,
+  players,
   selfId,
   playerStates,
   concededIds,
@@ -75,7 +75,7 @@ export function InfoCol({
   parSwaps: number
 
   // ── Players (the OpponentStrip) ──
-  members: Member[]
+  players: Member[]
   selfId: string
   playerStates: WafflePlayerState[]
   concededIds: Set<string>
@@ -127,7 +127,7 @@ export function InfoCol({
         {/* Opponent strip (compete) — each player's swaps used + a ✓/✗ done mark. */}
         {isCompete && (
           <OpponentStrip
-            players={members}
+            players={players}
             selfId={selfId}
             metricLabel="Swaps"
             metricFor={(player) => {
@@ -203,7 +203,7 @@ export function InfoCol({
       {!isCompete && (
         <GameTurnLog
           swaps={swaps}
-          players={members}
+          players={players}
           viewingIndex={viewingIndex}
           onSelectTurn={onSelectTurn}
         />

@@ -55,7 +55,7 @@ const NO_TILES: ReadonlySet<number> = new Set()
 export function PlayArea({
   session,
   gameId,
-  players: members,
+  players,
   playState,
   isTerminal,
   timer,
@@ -142,13 +142,13 @@ export function PlayArea({
   const isCompete = game?.mode === 'compete'
   const mySolved = self?.solved ?? false
 
-  // Concede state (from the common roster, `members` — the GamePlayer list that
+  // Concede state (from the common roster, `players` — the GamePlayer list that
   // carries per-player concede flags). A conceder drops out of the compete race:
   // they can't play, they see the locally-terminal "You conceded" look, and they
   // read as "out" in every peer's OpponentStrip while the others race on. Coop
   // never concedes (it uses the neutral whole-table End), so these stay false.
-  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
-  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   const canPlay =
     !!self && !isTerminal && !submitting && !(isCompete && mySolved) && !myConceded
@@ -260,7 +260,7 @@ export function PlayArea({
     keyOf: (s) => `${s.user_id}:${s.seq}`,
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → own local pill / flash
-      const member = members.find((p) => p.user_id === s.user_id)
+      const member = players.find((p) => p.user_id === s.user_id)
       const name = member?.username ?? 'A teammate'
       const dot = colorVarFor(member?.color)
       if (s.kind === 'hint')
@@ -367,7 +367,7 @@ export function PlayArea({
         foundCount={foundCount}
         hintCount={hintCount}
         revealCount={revealCount}
-        members={members}
+        players={players}
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
