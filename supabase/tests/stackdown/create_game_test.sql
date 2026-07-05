@@ -10,7 +10,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(14);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -46,10 +46,12 @@ select isnt(
   null,
   'board_id records which library board was claimed');
 
+-- No band in setup → defaults to band 1 (the everyday set), copied from
+-- the fixture board (which is band 1).
 select is(
-  (select wordlist from stackdown.games where id = (select id from g)),
-  0,
-  'the wordlist level is recorded (0 = the stackdown standard set)');
+  (select band from stackdown.games where id = (select id from g)),
+  1,
+  'the word-difficulty band is recorded (defaults to 1)');
 
 select is(
   (select count(*)::int from stackdown.players where game_id = (select id from g)),
@@ -88,8 +90,53 @@ select throws_ok(
   '42501', null,
   'stackdown.games.solution is column-excluded from authenticated');
 
+-- ── Word-difficulty band routing ───────────────────────────────
+-- setup.psql seeded ONE band-1 board (claimed by g above → g.band = 1,
+-- asserted). Add a band-2 board and prove create_game claims BY band.
+reset role;
+insert into stackdown.boards (tiles, words, band)
+select tiles, words, 2 from stackdown.boards where band = 1 limit 1;
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g2 on commit drop as
+select * from stackdown.create_game(
+  (select handle from club),
+  '{"timer": {"kind": "none"}, "band": 2}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop'
+);
+reset role;
+
+select is(
+  (select band from stackdown.games where id = (select id from g2)),
+  2,
+  'create_game with band:2 records band 2 on the game');
+select is(
+  (select board_id from stackdown.games where id = (select id from g2)),
+  (select id from stackdown.boards where band = 2),
+  'create_game with band:2 claims the band-2 board, not the band-1 one');
+
+-- A band outside 1..6 is rejected outright.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select throws_ok(
+  format($$ select stackdown.create_game(%L,
+    '{"timer":{"kind":"none"},"band":7}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
+    (select handle from club)),
+  'P0001', null,
+  'a band outside 1..6 is rejected');
+-- A band the library has no boards for is rejected (band 3 has none here).
+select throws_ok(
+  format($$ select stackdown.create_game(%L,
+    '{"timer":{"kind":"none"},"band":3}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$,
+    (select handle from club)),
+  'P0001', null,
+  'a band with no boards in the library is rejected');
+reset role;
+
 -- Retiring a board (deleting it) must NOT delete games built from it: the
--- game is self-contained (tiles/solution/wordlist copied), board_id is just
+-- game is self-contained (tiles/solution/band copied), board_id is just
 -- provenance and goes NULL via ON DELETE SET NULL.
 reset role;
 delete from stackdown.boards

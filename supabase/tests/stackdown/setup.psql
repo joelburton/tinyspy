@@ -32,9 +32,11 @@ reset role;
 -- on games.board_id keeps it from tripping the FK.
 delete from stackdown.boards;
 
-insert into stackdown.boards (tiles, words) values (
+-- band 1 (the everyday set) — these six are all difficulty-1 words.
+insert into stackdown.boards (tiles, words, band) values (
   '[{"id":0,"z":0,"y":0,"x":2,"letter":"E"},{"id":1,"z":0,"y":0,"x":6,"letter":"A"},{"id":2,"z":1,"y":1,"x":3,"letter":"L"},{"id":3,"z":1,"y":1,"x":5,"letter":"N"},{"id":4,"z":0,"y":2,"x":0,"letter":"C"},{"id":5,"z":2,"y":2,"x":2,"letter":"B"},{"id":6,"z":2,"y":2,"x":4,"letter":"T"},{"id":7,"z":2,"y":2,"x":6,"letter":"P"},{"id":8,"z":0,"y":2,"x":8,"letter":"S"},{"id":9,"z":1,"y":3,"x":1,"letter":"E"},{"id":10,"z":3,"y":3,"x":3,"letter":"E"},{"id":11,"z":3,"y":3,"x":5,"letter":"A"},{"id":12,"z":1,"y":3,"x":7,"letter":"L"},{"id":13,"z":0,"y":4,"x":0,"letter":"N"},{"id":14,"z":2,"y":4,"x":2,"letter":"L"},{"id":15,"z":2,"y":4,"x":6,"letter":"G"},{"id":16,"z":0,"y":4,"x":8,"letter":"A"},{"id":17,"z":1,"y":5,"x":1,"letter":"L"},{"id":18,"z":3,"y":5,"x":3,"letter":"P"},{"id":19,"z":3,"y":5,"x":5,"letter":"E"},{"id":20,"z":1,"y":5,"x":7,"letter":"A"},{"id":21,"z":0,"y":6,"x":0,"letter":"E"},{"id":22,"z":2,"y":6,"x":2,"letter":"U"},{"id":23,"z":2,"y":6,"x":4,"letter":"J"},{"id":24,"z":2,"y":6,"x":6,"letter":"L"},{"id":25,"z":0,"y":6,"x":8,"letter":"P"},{"id":26,"z":1,"y":7,"x":3,"letter":"I"},{"id":27,"z":1,"y":7,"x":5,"letter":"M"},{"id":28,"z":0,"y":8,"x":2,"letter":"E"},{"id":29,"z":0,"y":8,"x":6,"letter":"O"}]'::jsonb,
-  array['eagle','table','plans','apple','juice','lemon']
+  array['eagle','table','plans','apple','juice','lemon'],
+  1
 );
 
 create function pg_temp.sd_seq(n int) returns int[] language sql as $$

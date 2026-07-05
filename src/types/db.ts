@@ -1818,30 +1818,31 @@ export type Database = {
     Tables: {
       boards: {
         Row: {
+          band: number
           created_at: string
           id: string
           tiles: Json
-          wordlist: number
           words: string[]
         }
         Insert: {
+          band: number
           created_at?: string
           id?: string
           tiles: Json
-          wordlist?: number
           words: string[]
         }
         Update: {
+          band?: number
           created_at?: string
           id?: string
           tiles?: Json
-          wordlist?: number
           words?: string[]
         }
         Relationships: []
       }
       games: {
         Row: {
+          band: number
           board_id: string | null
           club_handle: string
           created_at: string
@@ -1849,9 +1850,9 @@ export type Database = {
           mode: string
           solution: string[]
           tiles: Json
-          wordlist: number
         }
         Insert: {
+          band: number
           board_id?: string | null
           club_handle: string
           created_at?: string
@@ -1859,9 +1860,9 @@ export type Database = {
           mode: string
           solution: string[]
           tiles: Json
-          wordlist: number
         }
         Update: {
+          band?: number
           board_id?: string | null
           club_handle?: string
           created_at?: string
@@ -1869,7 +1870,6 @@ export type Database = {
           mode?: string
           solution?: string[]
           tiles?: Json
-          wordlist?: number
         }
         Relationships: [
           {

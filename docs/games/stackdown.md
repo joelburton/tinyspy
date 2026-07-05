@@ -123,12 +123,21 @@ no-traps**; validate against *all* completions, not one.
 
 ### 2.5 The lexicon is a *generation-time* concern only
 
-A single word list — the **stackdown standard set** (`difficulty = 1 AND
-american AND slur = 0 AND crude = 0 AND len = 5` in `common.words`; this may
-become configurable via `wordlist` later, no UI for that now) — is what the
-generator validates boards against: the no-trap check enumerates completions
-against exactly this set, so a board is solvable and fork-free *with respect to
-it*.
+The word list is chosen per generation run by a **band** — a
+`common.words.difficulty` ceiling (`difficulty <= band AND american AND slur =
+0 AND crude = 0 AND len = 5`). `band 1` is the everyday set; higher bands widen
+the pool, and for `band >= 2` the generator forces every board to include at
+least one word at exactly that difficulty (so a band-2 board genuinely earns its
+label — the other five may be band 1 or 2). Whichever set a board is generated
+against is what the no-trap check enumerates completions against, so a board is
+solvable and fork-free *with respect to it*. The band is recorded on the board
+(and copied onto the game); the setup form offers bands 1–2 today (that's what
+the board library holds), and `create_game` claims a random board **of the
+chosen band**.
+
+> **Hints + higher bands.** `reveal_next_hint` reads `common.words.hint`, which
+> is populated for the band-1 (len-5) set but not yet for every band-2 word — so
+> a band-2 clue can come back blank until those hints are backfilled.
 
 **Runtime does not consult a lexicon at all.** Because the strict invariant
 (§2.4) guarantees the only completable word at each round is the solution word
@@ -213,8 +222,8 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 
 | table | what it holds | visibility |
 |---|---|---|
-| `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `wordlist int` (0 = Wordle list) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
-| `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `wordlist`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
+| `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `band int` (word-difficulty 1..6; the pool `create_game` filters on) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
+| `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `band`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
 | `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the revealed word, for the log to show). | coop: all; compete: own (until terminal) |
 
@@ -225,15 +234,16 @@ until `common.games.is_terminal`. The FE reads `games_state`, never the base
 table, so it can read one shape and only ever sees the words once the game ends.
 
 `board_id` is `on delete set null` — **retiring a board does not delete games
-built from it**. A game copies the board's `tiles` / `words` / `wordlist` at
+built from it**. A game copies the board's `tiles` / `words` / `band` at
 creation, so it's self-contained; `board_id` is provenance only.
 
 ### 5.2 RPCs (all `security definer`)
 
 - **`create_game(target_club, setup, player_user_ids, mode)`** — club-member +
-  player-count (≤6) + timer checks, then claims a random board (`order by
-  random() limit 1`, raising if the library is empty), copies its tiles/words/
-  wordlist onto a new `stackdown.games`, seeds one `players` row each, flips to
+  player-count (≤6) + timer + band (1..6) checks, then claims a random board
+  **of the chosen band** (`where band = <setup.band, default 1> order by random()
+  limit 1`, raising if no board of that band exists), copies its tiles/words/
+  band onto a new `stackdown.games`, seeds one `players` row each, flips to
   `playing`.
 - **`submit_word(target_game, tile_ids int[]) → jsonb`** — the core move. Locks
   the games row (`for update`); computes the already-removed set (coop = every
@@ -380,8 +390,9 @@ the local pill carries only the results a ring can't.
   via the semantic buttons, help, setup, terminal words-reveal, and the GameTurnLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
   + the history `viewingIndex`; in compete it filters the log to the caller's own so
-  it doesn't swap to an everyone's-words view at terminal), `SetupForm` (just the
-  timer — the board is dealt at random), `Help`.
+  it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
+  word-difficulty band + timer — the board is dealt at random from the chosen
+  band's pool), `Help`.
 - **Keyboard input** (in `PlayArea`, via the shared `useGlobalKeyHandler`):
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
@@ -397,13 +408,16 @@ Generation is a few seconds per board (the strict validation), too slow to
 re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
 `words:import`'s vendored-file pattern:
 
-- **`npm run stackdown:gen -- [count] [baseSeed]`** (`generate-stackdown-boards.ts`)
-  — the SLOW half, run rarely. Loads the 5-letter Wordle lexicon from
-  `common.words` (read-only), generates N strictly-valid boards on the fixed
-  geometry, and **appends** them to `supabase/data/stackdown-boards.jsonl` (one
-  JSON board per line — a committed, human-readable library that grows across
-  runs; duplicate six-word sets are skipped). Reproducible: board *i* uses
-  `baseSeed + i`. Does NOT touch the `stackdown` tables. Each board is bounded by
+- **`npm run stackdown:gen -- [count] [baseSeed] [band]`** (`generate-stackdown-boards.ts`)
+  — the SLOW half, run rarely. Loads the 5-letter lexicon at the chosen `band`
+  (`difficulty <= band`, default 1) from `common.words` (read-only), generates N
+  strictly-valid boards on the fixed geometry, and **appends** them to
+  `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a committed,
+  human-readable library that grows across runs; duplicate six-word sets are
+  skipped, so band-1 and band-2 boards coexist in the one file, each line tagged
+  with its `band`). For `band >= 2` every board is forced to include at least one
+  word at exactly that difficulty. Reproducible: board *i* uses `baseSeed + i`.
+  Does NOT touch the `stackdown` tables. Each board is bounded by
   a wall-clock budget (default 30s, `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological
   word-set whose strict-validation search blows up is skipped rather than hanging
   the run. (Validation is also kept fast by pruning the `reachableWords` DFS to

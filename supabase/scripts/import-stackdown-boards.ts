@@ -34,7 +34,7 @@ const DB_URL =
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BOARDS_FILE = resolve(__dirname, '../data/stackdown-boards.jsonl')
 
-type BoardLine = { tiles: unknown; words: string[]; wordlist?: number }
+type BoardLine = { tiles: unknown; words: string[]; band?: number }
 
 if (!existsSync(BOARDS_FILE)) {
   console.error(
@@ -64,14 +64,15 @@ const values = boards
   .map((b) => {
     const tilesJson = JSON.stringify(b.tiles).replace(/'/g, "''")
     const wordsArr = `array[${b.words.map((w) => `'${w.toLowerCase()}'`).join(',')}]`
-    return `('${tilesJson}'::jsonb, ${wordsArr}, ${b.wordlist ?? 0})`
+    // Default an untagged legacy line to band 1 (the everyday set).
+    return `('${tilesJson}'::jsonb, ${wordsArr}, ${b.band ?? 1})`
   })
   .join(',\n')
 
 const sql = `\\set ON_ERROR_STOP on
 begin;
 delete from stackdown.boards;
-insert into stackdown.boards (tiles, words, wordlist) values
+insert into stackdown.boards (tiles, words, band) values
 ${values};
 commit;
 select count(*) || ' boards loaded into the library' as result from stackdown.boards;

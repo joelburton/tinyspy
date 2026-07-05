@@ -15,11 +15,13 @@
  * cleared.
  *
  * What it does:
- *   1. Loads the lexicon — the stackdown standard set (`difficulty = 1 AND
- *      american AND slur = 0 AND crude = 0 AND len = 5`; wordlist 0) — from `common.words`
- *      over a direct psql connection (read-only). This IS the set the
- *      no-trap validation runs against — boards come out solvable and
- *      fork-free with respect to exactly these words.
+ *   1. Loads the lexicon at the chosen BAND — clean 5-letter american words
+ *      with `difficulty <= band` (`american AND slur = 0 AND crude = 0 AND
+ *      len = 5`) — from `common.words` over a direct psql connection
+ *      (read-only). This IS the set the no-trap validation runs against —
+ *      boards come out solvable and fork-free with respect to exactly these
+ *      words. For band >= 2, each board is forced to include >=1 word at
+ *      exactly that difficulty (see generateAnyBoard).
  *   2. Generates N boards on the FIXED tile geometry (positions + the
  *      covering DAG are constant across puzzles; only the letters
  *      change). Each board is six real words arranged so the stack is
@@ -40,9 +42,16 @@
  * local stack). Requires `psql` on PATH and a populated `common.words`
  * (run `npm run words:import` first).
  *
- * Usage:  npm run stackdown:gen -- [count] [baseSeed]
+ * Usage:  npm run stackdown:gen -- [count] [baseSeed] [band]
  *           count    — how many boards to generate (default 8)
  *           baseSeed — first seed; board i uses baseSeed + i (default 1000)
+ *           band     — word-difficulty band 1..6 (default 1). band N draws
+ *                      words from `difficulty <= N`; for N >= 2 every board
+ *                      is forced to include at least one difficulty-N word
+ *                      (so a band-2 board genuinely earns its label — the
+ *                      other five may be band 1 or 2). The band is written
+ *                      onto each generated line so the importer + create_game
+ *                      can key off it.
  */
 
 import { execFileSync } from 'node:child_process'
@@ -56,6 +65,14 @@ const DB_URL =
 
 const COUNT = Number(process.argv[2] ?? 8)
 const BASE_SEED = Number(process.argv[3] ?? 1000)
+// Word-difficulty band (a common.words.difficulty ceiling). Default 1 keeps
+// the original everyday set; 2+ widens the pool AND forces >=1 top-band word
+// per board (see generateAnyBoard). Written onto every generated line.
+const BAND = Number(process.argv[4] ?? 1)
+if (!Number.isInteger(BAND) || BAND < 1 || BAND > 6) {
+  console.error(`band must be an integer 1..6 (got ${process.argv[4]})`)
+  process.exit(1)
+}
 // Per-board wall-clock budget. A board that can't be generated + validated
 // within this is skipped (the search for SOME word-sets is exponential).
 // Override with STACKDOWN_BOARD_TIMEOUT_MS; default 30s — typical boards
@@ -412,12 +429,26 @@ function generateBoard(
 function generateAnyBoard(
   positions: Pos[],
   lexicon: Set<string>,
-  opts: { seed?: number; maxWordSets?: number; perSetAttempts?: number; deadlineMs?: number } = {},
+  opts: {
+    seed?: number
+    maxWordSets?: number
+    perSetAttempts?: number
+    deadlineMs?: number
+    // Words that MUST supply at least one of a board's six (the top band, for
+    // band >= 2). Empty/omitted = no constraint (band 1). Every entry is also
+    // in `lexicon`; forcing one guarantees the board earns its band label.
+    topBand?: string[]
+  } = {},
 ): (GenResult & { wordSetsTried: number }) | null {
   const rng = mulberry32(opts.seed ?? 1)
   const words = [...lexicon]
+  const top = opts.topBand ?? []
   const pick6 = () => {
     const s = new Set<string>()
+    // Seed the set with one guaranteed top-band word, then fill the rest from
+    // the whole (<= band) pool. A random refill may re-pick it — the Set
+    // dedups, and the constraint (>=1 top-band word) still holds.
+    if (top.length > 0) s.add(top[Math.floor(rng() * top.length)])
     while (s.size < 6) s.add(words[Math.floor(rng() * words.length)])
     return [...s]
   }
@@ -441,7 +472,7 @@ function generateAnyBoard(
 
 // ── Run ────────────────────────────────────────────────────────────
 // One serialized board, the shape `stackdown:import` reads back.
-type BoardLine = { tiles: Tile[]; words: string[]; wordlist: number }
+type BoardLine = { tiles: Tile[]; words: string[]; band: number }
 
 /** Order- and case-independent signature of a board's six words, for
  *  dedup (works whether the file holds lower- or upper-case words). */
@@ -460,39 +491,58 @@ const seen = new Set(existing.map((b) => wordSig(b.words)))
 
 const safeTarget = DB_URL.replace(/:[^:@/]*@/, ':****@')
 console.log(
-  `Generating ${COUNT} board(s) (base seed ${BASE_SEED}); ` +
+  `Generating ${COUNT} band-${BAND} board(s) (base seed ${BASE_SEED}); ` +
     `lexicon from ${safeTarget}; ${existing.length} already in the file.`,
 )
 
-// Load the lexicon: the stackdown standard set (wordlist 0) — common,
-// clean, 5-letter american words (plurals included). This is the set the
-// no-trap validation runs against, so generated boards are solvable and
-// fork-free with respect to exactly these words. (Runtime no longer
-// consults a lexicon — submit_word accepts only the next solution word.)
+// Load the lexicon: clean, 5-letter american words (plurals included) up to
+// the chosen band — `difficulty <= BAND`. This is the set the no-trap
+// validation runs against, so generated boards are solvable and fork-free
+// with respect to exactly these words. We also read each word's difficulty
+// so we can isolate the TOP band (difficulty === BAND): for band >= 2 every
+// board must include at least one of those. (Runtime no longer consults a
+// lexicon — submit_word accepts only the next solution word.)
 const raw = execFileSync(
   'psql',
   [
     '-X', // skip ~/.psqlrc — its echoed settings would leak in as junk "words"
     DB_URL,
     '-tAc',
-    'select word from common.words where slur = 0 and crude = 0 and american and difficulty = 1 and len = 5',
+    `select word, difficulty from common.words where slur = 0 and crude = 0 and american and difficulty <= ${BAND} and len = 5`,
   ],
   { encoding: 'utf8' },
 )
-const lexicon = new Set(
-  raw.trim().split('\n').map((w) => w.trim().toUpperCase()).filter(Boolean),
-)
+const lexicon = new Set<string>()
+const topBandWords: string[] = [] // words at exactly `difficulty === BAND`
+for (const line of raw.trim().split('\n')) {
+  const [w, d] = line.trim().split('|')
+  const word = (w ?? '').trim().toUpperCase()
+  if (!word) continue
+  lexicon.add(word)
+  if (Number(d) === BAND) topBandWords.push(word)
+}
 if (lexicon.size === 0) {
   console.error('No words found — run `npm run words:import` first.')
   process.exit(1)
 }
-console.log(`Lexicon: ${lexicon.size} words`)
+// A band >= 2 board must be able to draw a top-band word; if the DB somehow
+// has none at this difficulty there's nothing to force, so bail loudly
+// rather than silently emit boards that don't earn their band.
+if (BAND >= 2 && topBandWords.length === 0) {
+  console.error(`No difficulty-${BAND} words found — cannot build band-${BAND} boards.`)
+  process.exit(1)
+}
+console.log(
+  `Lexicon: ${lexicon.size} words (${topBandWords.length} at band ${BAND}).`,
+)
 
 const fresh: BoardLine[] = []
 for (let i = 0; i < COUNT; i++) {
   const g = generateAnyBoard(FIXED_POSITIONS, lexicon, {
     seed: BASE_SEED + i,
     deadlineMs: PER_BOARD_TIMEOUT_MS,
+    // band 1 has no top-band constraint; band >= 2 forces >=1 difficulty-BAND word.
+    topBand: BAND >= 2 ? topBandWords : [],
   })
   if (!g) {
     console.warn(
@@ -510,7 +560,7 @@ for (let i = 0; i < COUNT; i++) {
   fresh.push({
     tiles: g.tiles,
     words: g.words.map((w) => w.toLowerCase()),
-    wordlist: 0,
+    band: BAND,
   })
   console.log(
     `  board ${i + 1}/${COUNT}: ${g.words.join(' ')} ` +

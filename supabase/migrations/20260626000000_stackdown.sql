@@ -44,13 +44,15 @@ create table stackdown.boards (
   id         uuid primary key default gen_random_uuid(),
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
-  -- The wordlist level the board was generated against (0 = the stackdown
-  -- standard set: common, clean, 5-letter american words —
-  -- `difficulty = 1 AND american AND slur = 0 AND crude = 0 AND len = 5`;
-  -- 1..6 = wider common.words.difficulty bands, a forward hook). Today every
-  -- board is 0. Provenance only: runtime no longer consults a lexicon — a
-  -- submission is accepted iff it's the next solution word (see submit_word).
-  wordlist   int not null default 0 check (wordlist between 0 and 6),
+  -- The word-difficulty BAND the board was generated against — a
+  -- `common.words.difficulty` ceiling. band = N means the six words are
+  -- drawn from `difficulty <= N` (american, clean, 5-letter), and for N >= 2
+  -- at least one word is exactly difficulty N (so a band-2 board genuinely
+  -- earns its label). band 1 = the common everyday set. This is BOTH
+  -- provenance AND the pool create_game filters on — a game claims a random
+  -- board OF THE CHOSEN BAND. Runtime never consults a lexicon: a submission
+  -- is accepted iff it's the next solution word (see submit_word).
+  band       int not null check (band between 1 and 6),
   created_at timestamptz not null default now()
 );
 -- (intentionally no grants to authenticated — definer-only access)
@@ -67,8 +69,8 @@ create table stackdown.games (
   mode        text not null check (mode in ('coop', 'compete')),
   tiles       jsonb not null,          -- the board (public)
   solution    text[] not null,         -- the 6 words (HIDDEN until terminal)
-  wordlist    int not null,            -- copied from the board (see boards.wordlist)
-  -- Provenance only. tiles/solution/wordlist are COPIED above, so a board
+  band        int not null,            -- copied from the board (see boards.band)
+  -- Provenance + difficulty. tiles/solution/band are COPIED above, so a board
   -- can be deleted to retire it without affecting games built from it —
   -- hence ON DELETE SET NULL (the game survives, just loses the back-link).
   board_id    uuid references stackdown.boards(id) on delete set null,
@@ -78,7 +80,7 @@ create index stackdown_games_club_handle_idx on stackdown.games (club_handle);
 
 -- Column grant: everything EXCEPT `solution` (its presence flips the table
 -- to "only granted columns"). games_state reveals the solution post-terminal.
-grant select (id, club_handle, mode, tiles, wordlist, board_id, created_at)
+grant select (id, club_handle, mode, tiles, band, board_id, created_at)
   on stackdown.games to authenticated;
 
 alter table stackdown.games enable row level security;
@@ -280,10 +282,12 @@ on conflict do nothing;
 -- ============================================================
 -- stackdown.create_game — mode is a positional arg
 -- ============================================================
--- Setup shape: { "timer": (none | countup | countdown{seconds}) }.
+-- Setup shape: { "timer": (none | countup | countdown{seconds}),
+--                "band":  int 1..6 (word-difficulty; default 1) }.
 -- `mode` ('coop' | 'compete') routes the gametype string + working-state
 -- semantics. Unlike waffle, the board isn't passed in — it's claimed from
--- the pre-generated library and copied in (tiles public, words hidden).
+-- the pre-generated library (a random board OF THE CHOSEN BAND) and copied
+-- in (tiles public, words hidden).
 create function stackdown.create_game(
   target_club     text,
   setup           jsonb,
@@ -298,6 +302,7 @@ as $$
 declare
   new_id uuid;
   b      stackdown.boards%rowtype;
+  v_band int;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/stackdown/manifest.ts ([1,6]/[2,6]).
@@ -306,10 +311,19 @@ begin
   perform common.validate_mode(mode);
   perform common.validate_timer(setup->'timer');
 
-  -- Claim a random pre-generated board from the library.
-  select * into b from stackdown.boards order by random() limit 1;
+  -- Word-difficulty band (a common.words.difficulty ceiling). Defaults to 1
+  -- (the everyday set); the setup form offers 1..2 today, but any 1..6 the
+  -- library actually holds boards for is accepted.
+  v_band := coalesce((setup->>'band')::int, 1);
+  if v_band < 1 or v_band > 6 then
+    raise exception 'band must be between 1 and 6 (got %)', v_band
+      using errcode = 'P0001';
+  end if;
+
+  -- Claim a random pre-generated board OF THE CHOSEN BAND.
+  select * into b from stackdown.boards where band = v_band order by random() limit 1;
   if not found then
-    raise exception 'no stackdown boards available — run the board import'
+    raise exception 'no stackdown boards available for band % — run the board import', v_band
       using errcode = 'P0001';
   end if;
 
@@ -320,8 +334,8 @@ begin
     target_club, 'stackdown_' || mode, player_user_ids, 'New game', setup, setup
   );
 
-  insert into stackdown.games (id, club_handle, mode, tiles, solution, wordlist, board_id)
-  values (new_id, target_club, mode, b.tiles, b.words, b.wordlist, b.id);
+  insert into stackdown.games (id, club_handle, mode, tiles, solution, band, board_id)
+  values (new_id, target_club, mode, b.tiles, b.words, b.band, b.id);
 
   insert into stackdown.players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) uid;
@@ -588,10 +602,12 @@ grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
 -- without naming it (see common.words.hint). Unlike reveal_next_word it
 -- doesn't leak the word itself: only the hint text crosses the wire.
 --
--- Every stackdown word is a 5-letter difficulty-1 word (the level-0 set),
--- which sits inside common.words' hint set (len=5 AND (wordle OR
--- difficulty=1)), so the hint is always present — no fallback needed.
--- Same gating + next-word math as reveal_next_word.
+-- The hint may be NULL: band-1 words all carry one (len=5 AND (wordle OR
+-- difficulty=1) is common.words' hint set), but higher-band words
+-- (difficulty >= 2) can lack a hint until common.words is backfilled. We
+-- still log the 'hint' request row (its `word` just holds NULL) and return
+-- NULL — the FE shows a blank clue rather than nothing. Same gating +
+-- next-word math as reveal_next_word.
 create function stackdown.reveal_next_hint(target_game uuid)
 returns text
 language plpgsql

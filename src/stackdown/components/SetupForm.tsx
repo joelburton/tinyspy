@@ -6,10 +6,9 @@ import styles from '../../common/components/fields/setupForm.module.css'
 
 /**
  * stackdown's setup form, rendered inside the common SetupGameDialog.
- * The board is claimed at random from the pre-generated library, so the
- * only real knob is the shared `TimerField`. We also show a (disabled)
- * word-difficulty field so players can see stackdown is fixed to the most
- * common 5-letter words — its boards are pre-generated at band 1.
+ * A random board is dealt from the pre-generated library, filtered to the
+ * chosen word-difficulty `band`. Two knobs: the `DifficultyField` (bands
+ * 1..2 — that's what the board library holds) and the shared `TimerField`.
  * Controlled component (state lives in the wrapper); shared by both
  * manifests (mode doesn't change the form).
  */
@@ -26,13 +25,13 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         label="Word difficulty"
         length={5}
         minDifficulty={1}
-        maxDifficulty={1}
-        value={1}
-        onChange={() => {}}
-        disabled
+        maxDifficulty={2}
+        value={s.band}
+        onChange={(band) => onChange({ ...s, band })}
       />
       <p className="muted">
-        The word list is fixed to the most common 5-letter words.
+        Band 1 is the common everyday words; band 2 mixes in some
+        less-common ones.
       </p>
       <TimerField
         value={s.timer}
