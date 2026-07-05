@@ -3,7 +3,7 @@ import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import {
-  bagSizeError,
+  bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
   type BananagramsSetup,
 } from './lib/setup'
@@ -57,10 +57,10 @@ export const bananagramsGame: GameManifest = {
       import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
     ),
     defaults: DEFAULT_BANANAGRAMS_SETUP,
-    // Gate Start until the bag can deal everyone a starter hand
-    // (bag_size ≥ playerCount × hand_size). create_game re-checks.
+    // Gate Start until the bunch can deal everyone a starter hand
+    // (bunch_size ≥ playerCount × hand_size). create_game re-checks.
     validate: (setup, playerCount) =>
-      bagSizeError(setup as BananagramsSetup, playerCount),
+      bunchSizeError(setup as BananagramsSetup, playerCount),
   },
 
   // Single gametype → no `mode` in the payload (the RPC writes

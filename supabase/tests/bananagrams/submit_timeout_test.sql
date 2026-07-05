@@ -31,7 +31,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 create temp table g1 on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "countdown", "seconds": 300}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );

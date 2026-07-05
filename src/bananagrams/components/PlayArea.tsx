@@ -195,7 +195,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // Relevant setup only — the timer + dump destination don't describe the board.
         setup: [
           { label: 'Starter hand', value: `${setup.hand_size} tiles` },
-          { label: 'Bag', value: `${setup.bag_size} tiles` },
+          { label: 'Bunch', value: `${setup.bunch_size} tiles` },
           {
             label: 'Words',
             value: setup.word_check === 'off'
@@ -237,8 +237,8 @@ export function PlayArea(ctx: GamePageCtx) {
           ? { outcome: 'won', verdict: '🍌 Bananas! You went out first.', message: 'You won!', tone: 'won' }
           : { outcome: 'lost', verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
 
-  const bunchCount = ctx.status?.pool_remaining as number | undefined
-  const boxCount = ctx.status?.box_remaining as number | undefined
+  const bunchCount = ctx.status?.bunch_remaining as number | undefined
+  const bagCount = ctx.status?.bag_remaining as number | undefined
   const setup = ctx.setup as unknown as BananagramsSetup
 
   // ─── The below-board pill (terminal / locally-terminal / own-move) ──────
@@ -262,17 +262,17 @@ export function PlayArea(ctx: GamePageCtx) {
   const infoTop = (
     <>
       {/* State — the shared bunch (the race resource everyone watches) + how
-          many tiles the player holds; the box count shows when the game isn't
-          on a full bag (a reduced bag or dump-to-box sets tiles aside). */}
+          many tiles the player holds; the bag count shows when the game isn't
+          on a full bunch (a reduced bunch or dump-to-bag sets tiles aside). */}
       <p className={shared.infoState}>
         <b>Tiles: </b>
         You: <strong>{tiles.length}</strong>
         {' · '}
         Bunch: <strong>{bunchCount ?? '—'}</strong>
-        {boxCount !== undefined && boxCount > 0 && (
+        {bagCount !== undefined && bagCount > 0 && (
           <>
             {' · '}
-             Bag: <strong>{boxCount}</strong>
+             Bag: <strong>{bagCount}</strong>
           </>
         )}
       </p>
@@ -291,7 +291,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
       {/* Setup — behind a disclosure (closed by default). */}
       <SetupDisclosure>
-          <li>{setup.bag_size}-tile bunch</li>
+          <li>{setup.bunch_size}-tile bunch</li>
           <li>{setup.hand_size}-tile starter hand</li>
           {setup.word_check === 'off' ? (
             <li>Words not checked (trust the friends)</li>
@@ -302,7 +302,7 @@ export function PlayArea(ctx: GamePageCtx) {
               {DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})
             </li>
           )}
-          <li>Dumped tiles {setup.dump_to_box ? 'set aside (bag)' : 'return to the bunch'}</li>
+          <li>Dumped tiles {setup.dump_to_bag ? 'set aside (bag)' : 'return to the bunch'}</li>
           <li>{timerLabel(setup.timer)}</li>
         </SetupDisclosure>
     </>
@@ -337,7 +337,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onPeel={peel}
         onDump={dump}
         bunchCount={bunchCount}
-        boxCount={boxCount}
+        bagCount={bagCount}
         reportBoardRef={boardRef}
         infoTop={infoTop}
         infoActions={infoActions}

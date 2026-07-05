@@ -32,7 +32,7 @@ export function HandCard({
   isTerminal,
   isConceded,
   bunchCount,
-  boxCount,
+  bagCount,
 }: {
   /** The hand to render (held tiles minus what's on the board, in shuffle order). */
   displayedHand: string
@@ -50,14 +50,14 @@ export function HandCard({
   hasDump: boolean
   isTerminal: boolean
   isConceded: boolean
-  /** Bunch + box counts — the dump can draw from both; too low ⇒ the slot disables. */
+  /** Bunch + bag counts — the dump can draw from both; too low ⇒ the slot disables. */
   bunchCount?: number
-  boxCount?: number
+  bagCount?: number
 }) {
   const showDump = hasDump && !isTerminal && !isConceded
   const showControls = !isTerminal && !isConceded // rotate is hidden once out of the race
-  // A dump draws from the bunch + box together (see usePlayerBoard's finishDrag).
-  const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
+  // A dump draws from the bunch + bag together (see usePlayerBoard's finishDrag).
+  const drawable = bunchCount === undefined ? undefined : bunchCount + (bagCount ?? 0)
   const dumpTooLow = drawable !== undefined && drawable < DUMP_COUNT
 
   return (

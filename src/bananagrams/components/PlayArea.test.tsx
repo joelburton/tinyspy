@@ -56,11 +56,11 @@ function progressRow(over: Partial<ProgressRow> & { user_id: string }): Progress
 
 const SETUP = {
   hand_size: 21,
-  bag_size: 144,
+  bunch_size: 144,
   word_check: 'off',
   dict_2: 4,
   dict_3plus: 4,
-  dump_to_box: false,
+  dump_to_bag: false,
   timer: { kind: 'none' },
 }
 
@@ -75,7 +75,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     setup: SETUP,
-    status: { pool_remaining: 100, box_remaining: 0 },
+    status: { bunch_remaining: 100, bag_remaining: 0 },
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
     menu: { setGameItems: vi.fn() },

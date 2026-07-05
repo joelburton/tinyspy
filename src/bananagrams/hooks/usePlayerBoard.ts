@@ -120,11 +120,11 @@ export type UsePlayerBoardInput = {
   onPeel?: () => Promise<{ illegalCells: number[] } | null>
   /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
   onDump?: (letter: string) => void | Promise<void>
-  /** Tiles left in the shared bunch (status.pool_remaining), or undefined pre-load. */
+  /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load. */
   bunchCount?: number
-  /** Tiles in the out-of-play box (status.box_remaining) — counts toward what a dump
-   *  can draw (the bunch tops up from the box when short). */
-  boxCount?: number
+  /** Tiles in the out-of-play bag (status.bag_remaining) — counts toward what a dump
+   *  can draw (the bunch tops up from the bag when short). */
+  bagCount?: number
   /** Optional out-param: kept pointed at the LIVE board string so the outer
    *  coordinator can snapshot it on demand (the print menu reads it at click time)
    *  without subscribing to every placement. */
@@ -167,7 +167,7 @@ export function usePlayerBoard({
   onPeel,
   onDump,
   bunchCount,
-  boxCount,
+  bagCount,
   reportBoardRef,
 }: UsePlayerBoardInput): PlayerBoardEngine {
   const [board, setBoard] = useState(initialBoard)
@@ -374,8 +374,8 @@ export function usePlayerBoard({
       // board/holdings desync we want to avoid. (The derived hand briefly regains the
       // letter between the clear and the server's `tiles` update, ending
       // one-instance-lighter just like dumping a hand tile.) A dump draws from the
-      // bunch, topping up from the box when short — so what it can draw is bunch + box.
-      const drawable = bunchCount === undefined ? undefined : bunchCount + (boxCount ?? 0)
+      // bunch, topping up from the bag when short — so what it can draw is bunch + bag.
+      const drawable = bunchCount === undefined ? undefined : bunchCount + (bagCount ?? 0)
       const canDump = drawable === undefined || drawable >= DUMP_COUNT
       if (overDumpAtPoint(x, y) && g.letter && canDump) {
         if (g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
@@ -384,7 +384,7 @@ export function usePlayerBoard({
       }
       if (overHandAtPoint(x, y) && g.source.kind === 'board') boardToHand(g.source.x, g.source.y)
     },
-    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, boxCount],
+    [handToBoard, boardToBoard, boardToHand, onDump, bunchCount, bagCount],
   )
 
   // A plain tap on a board cell moves the keyboard cursor there.

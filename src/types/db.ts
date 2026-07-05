@@ -12,30 +12,30 @@ export type Database = {
       games: {
         Row: {
           bag: string
-          box: string
+          bunch: string
+          bunch_seed: string
           club_handle: string
           created_at: string
           hand_size: number
           id: string
-          pool: string
         }
         Insert: {
-          bag: string
-          box?: string
+          bag?: string
+          bunch: string
+          bunch_seed: string
           club_handle: string
           created_at?: string
           hand_size: number
           id: string
-          pool: string
         }
         Update: {
           bag?: string
-          box?: string
+          bunch?: string
+          bunch_seed?: string
           club_handle?: string
           created_at?: string
           hand_size?: number
           id?: string
-          pool?: string
         }
         Relationships: []
       }

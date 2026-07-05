@@ -5,13 +5,13 @@
 -- Compete-only, single gametype (no mode param). What we cover:
 --   1. Auth gating (unauthenticated rejected)
 --   2. Membership gating (non-member caller rejected)
---   3. Setup-shape validation: hand_size + bag_size + timer
---      (incl. bag must hold playerCount × hand_size to deal)
+--   3. Setup-shape validation: hand_size + bunch_size + timer
+--      (incl. bunch must hold playerCount × hand_size to deal)
 --   4. Happy path: writes the 'bananagrams' gametype, the
---      bananagrams.games row, persists the immutable `bag`, deals a
+--      bananagrams.games row, persists the immutable `bunch_seed`, deals a
 --      hand_size `tiles` to each player (board empty), materializes
---      the bunch (`pool` = undealt remainder), seeds progress
---   5. A smaller bag deals + leaves a smaller bunch
+--      the bunch (`bunch` = undealt remainder), seeds progress
+--   5. A smaller bunch deals + leaves a smaller bunch
 --   6. Solo (1-player) is allowed
 -- ============================================================
 
@@ -33,7 +33,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   $$ select bananagrams.create_game(
        '=ada',
-       '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
   '42501',
@@ -58,7 +58,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-         '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+         '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
          array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -96,7 +96,7 @@ select throws_ok(
   'hand_size outside {15, 21} is rejected'
 );
 
--- bag_size missing (hand_size valid, so we reach the bag_size check)
+-- bunch_size missing (hand_size valid, so we reach the bunch_size check)
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L, '{"hand_size": 21, "timer": {"kind": "none"}}'::jsonb,
@@ -104,40 +104,40 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.bag_size is required',
-  'missing bag_size is rejected'
+  'setup.bunch_size is required',
+  'missing bunch_size is rejected'
 );
 
--- bag_size out of range (> 144)
+-- bunch_size out of range (> 144)
 select throws_ok(
   format(
-    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bag_size": 200, "timer": {"kind": "none"}}'::jsonb,
+    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 200, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.bag_size must be between 1 and 144 (got 200)',
-  'bag_size above 144 is rejected'
+  'setup.bunch_size must be between 1 and 144 (got 200)',
+  'bunch_size above 144 is rejected'
 );
 
--- bag_size too small to deal: 2 players × 21 = 42 needed, bag holds 40
+-- bunch_size too small to deal: 2 players × 21 = 42 needed, bunch holds 40
 select throws_ok(
   format(
-    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bag_size": 40, "timer": {"kind": "none"}}'::jsonb,
+    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 40, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid,
              'bea22222-2222-2222-2222-222222222222'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'not enough tiles: 2 players × 21 = 42 needed, bag holds 40',
-  'a bag too small to deal every hand is rejected'
+  'not enough tiles: 2 players × 21 = 42 needed, bunch holds 40',
+  'a bunch too small to deal every hand is rejected'
 );
 
 -- an unknown word_check value is rejected
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "word_check": "bogus", "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "word_check": "bogus", "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -150,7 +150,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -163,7 +163,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "word_check": "strict", "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "word_check": "strict", "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -176,7 +176,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -189,7 +189,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bunch_size": 144, "word_check": "win", "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -198,10 +198,10 @@ select throws_ok(
   'dict_3plus above 6 is rejected'
 );
 
--- timer missing entirely (hand_size + bag_size valid, so we reach the timer check)
+-- timer missing entirely (hand_size + bunch_size valid, so we reach the timer check)
 select throws_ok(
   format(
-    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bag_size": 144}'::jsonb,
+    $$ select bananagrams.create_game(%L, '{"hand_size": 21, "bunch_size": 144}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -217,7 +217,7 @@ select throws_ok(
 create temp table mg_game on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -225,16 +225,16 @@ select * from bananagrams.create_game(
 -- (solo is allowed: ada starts a game in her solo club)
 select lives_ok(
   $$ select bananagrams.create_game('=ada',
-       '{"hand_size": 15, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
   'solo (1-player) create_game is allowed'
 );
 
--- A smaller bag: 2 players × 21 = 42 dealt, bag holds 60 → bunch of 18.
+-- A smaller bunch: 2 players × 21 = 42 dealt, bunch holds 60 → bunch of 18.
 create temp table mg_small on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 60, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 60, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -287,68 +287,68 @@ select is(
   'progress.unplaced seeds to the hand size'
 );
 
--- Both players are dealt distinct slices of the shuffled bag: 2 × 21 = 42
+-- Both players are dealt distinct slices of the shuffled bunch: 2 × 21 = 42
 -- tiles total, all uppercase.
 select is(
   (select string_agg(pb.tiles, '') from bananagrams.player_boards pb
     where pb.game_id = (select id from mg_game)) ~ '^[A-Z]{42}$',
   true,
-  'both hands together are 42 uppercase tiles dealt from the bag'
+  'both hands together are 42 uppercase tiles dealt from the bunch'
 );
 
--- The bunch holds everything not dealt: 144-tile bag − 42 dealt = 102.
+-- The bunch holds everything not dealt: the 144-tile bunch − 42 dealt = 102.
 select is(
-  (select length(pool) from bananagrams.games where id = (select id from mg_game)),
+  (select length(bunch) from bananagrams.games where id = (select id from mg_game)),
   102,
-  'pool (the bunch) holds the 102 undealt tiles'
+  'bunch (the bunch) holds the 102 undealt tiles'
 );
 
--- The immutable `bag` of record is the full chosen size (144 here): hands +
--- bunch together. 42 dealt + 102 pool = 144.
+-- The immutable `bunch_seed` of record is the full chosen size (144 here): hands +
+-- bunch together. 42 dealt + 102 bunch = 144.
+select is(
+  (select length(bunch_seed) from bananagrams.games where id = (select id from mg_game)),
+  144,
+  'bunch_seed (immutable record) holds the full chosen bunch size'
+);
+select is(
+  (select bunch_seed ~ '^[A-Z]{144}$' from bananagrams.games where id = (select id from mg_game)),
+  true,
+  'bunch_seed is 144 uppercase tiles'
+);
+-- A full (144) bunch leaves nothing over → the bag is empty.
 select is(
   (select length(bag) from bananagrams.games where id = (select id from mg_game)),
-  144,
-  'bag (immutable record) holds the full chosen bag size'
-);
-select is(
-  (select bag ~ '^[A-Z]{144}$' from bananagrams.games where id = (select id from mg_game)),
-  true,
-  'bag is 144 uppercase tiles'
-);
--- A full (144) bag leaves nothing over → the box is empty.
-select is(
-  (select length(box) from bananagrams.games where id = (select id from mg_game)),
   0,
-  'a full 144 bag leaves an empty box'
+  'a full 144 bunch leaves an empty bag'
 );
 
--- Smaller bag: bag length = 60, bunch = 60 − 42 dealt = 18.
+-- Smaller bunch: bunch_seed length = 60, bunch = 60 − 42 dealt = 18.
+select is(
+  (select length(bunch_seed) from bananagrams.games where id = (select id from mg_small)),
+  60,
+  'a bunch_size of 60 persists a 60-tile bag'
+);
+select is(
+  (select length(bunch) from bananagrams.games where id = (select id from mg_small)),
+  18,
+  'the smaller bunch leaves an 18-tile draw pile (60 − 2×21)'
+);
+-- The tiles left OUT of the bunch aren't discarded — they seed the bag.
+-- 144 − 60 = 84, and bunch_seed + bag together account for all 144.
 select is(
   (select length(bag) from bananagrams.games where id = (select id from mg_small)),
-  60,
-  'a bag_size of 60 persists a 60-tile bag'
-);
-select is(
-  (select length(pool) from bananagrams.games where id = (select id from mg_small)),
-  18,
-  'the smaller bag leaves an 18-tile bunch (60 − 2×21)'
-);
--- The tiles left OUT of the bag aren't discarded — they seed the box.
--- 144 − 60 = 84, and bag + box together account for all 144.
-select is(
-  (select length(box) from bananagrams.games where id = (select id from mg_small)),
   84,
-  'the 84 tiles not in the bag seed the box (144 − 60)'
+  'the 84 tiles not in the bunch seed the bag (144 − 60)'
 );
 select is(
-  (select length(bag) + length(box) from bananagrams.games where id = (select id from mg_small)),
+  (select length(bunch_seed) + length(bag) from bananagrams.games where id = (select id from mg_small)),
   144,
-  'bag + box account for all 144 tiles — none discarded'
+  'bunch_seed + bag account for all 144 tiles — none discarded'
 );
 select is(
-  (select (status->>'box_remaining')::int from common.games where id = (select id from mg_small)),
+  (select (status->>'bag_remaining')::int from common.games where id = (select id from mg_small)),
   84,
-  'status.box_remaining surfaces the starting box count'
+  'status.bag_remaining surfaces the starting bag count'
 );
 
 select * from finish();

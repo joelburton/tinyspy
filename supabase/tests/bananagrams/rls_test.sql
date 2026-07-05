@@ -15,7 +15,7 @@
 --   3. progress IS visible to a co-player (the public projection)
 --   4. progress is NOT visible to a non-member (club-gated)
 --   5. a non-member cannot read any board either
---   6. the hidden bunch (`games.pool`) is column-excluded from
+--   6. the hidden bunch (`games.bunch`) is column-excluded from
 --      authenticated, even for a club member who can see the row
 -- ============================================================
 
@@ -37,7 +37,7 @@ select common.create_club('test club', array['ada', 'bea']) as handle;
 create temp table mg_game on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -70,16 +70,16 @@ select is(
 );
 
 -- ─── (6) The bunch is column-hidden even from a member ────────
--- bea can see the games row (club member), but `pool` is excluded by
+-- bea can see the games row (club member), but `bunch` is excluded by
 -- the column-level grant, so selecting it is a privilege error.
 select throws_ok(
   format(
-    $$ select pool from bananagrams.games where id = %L $$,
+    $$ select bunch from bananagrams.games where id = %L $$,
     (select id from mg_game)
   ),
   '42501',
   null,
-  'games.pool (the hidden bunch) is not selectable by authenticated'
+  'games.bunch (the hidden bunch) is not selectable by authenticated'
 );
 
 -- ─── (4)+(5) As dee, outside the club entirely ────────────────

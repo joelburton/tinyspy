@@ -4,7 +4,7 @@
 -- The v2 draw/endgame. Covers:
 --   1. Empty hand required — peeling with tiles in hand is rejected
 --   2. Continue path: enough bunch → EVERY player draws peel_count, the
---      pool advances, progress + status.pool_remaining update
+--      bunch advances, progress + status.bunch_remaining update
 --   3. Non-players rejected
 --   4. Win path: bunch can't refill the table → the peeler goes out and wins
 --   5. Race: a peel after the game is over is rejected
@@ -24,11 +24,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select common.create_club('test club', array['ada', 'bea']) as handle;
 
--- ─── Game 1: 2 players, hand_size 21. pool = 144 − 42 = 102, needed = 2 ───
+-- ─── Game 1: 2 players, hand_size 21. bunch = 144 − 42 = 102, needed = 2 ───
 create temp table g1 on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -70,7 +70,7 @@ select is(
   'every other player also drew 1 (bea 21 → 22)'
 );
 select is(
-  (select length(pool) from bananagrams.games where id = (select id from g1)),
+  (select length(bunch) from bananagrams.games where id = (select id from g1)),
   100,
   'the bunch advanced by players × peel_count (102 → 100)'
 );
@@ -89,9 +89,9 @@ select is(
   'bea unplaced grew by the draw (21 → 22)'
 );
 select is(
-  (select (status->>'pool_remaining')::int from common.games where id = (select id from g1)),
+  (select (status->>'bunch_remaining')::int from common.games where id = (select id from g1)),
   100,
-  'status.pool_remaining tracks the bunch for the FE'
+  'status.bunch_remaining tracks the bunch for the FE'
 );
 
 -- (3) Non-player cannot peel.
@@ -108,7 +108,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from bananagrams.create_game(
   '=ada',
-  '{"hand_size": 15, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
 );
 
@@ -124,7 +124,7 @@ select bananagrams.save_player_board(
 -- Empty the bunch so the next peel can't refill → going out wins.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set pool = '' where id = (select id from g2);
+update bananagrams.games set bunch = '' where id = (select id from g2);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select bananagrams.peel((select id from g2));
@@ -162,7 +162,7 @@ select throws_ok(
 -- ─── Game 3: 3 players; cade concedes → only ada + bea are active ───
 -- Proves a conceded player is skipped by a continuing peel: they don't
 -- draw, and the refill threshold is against the ACTIVE count (2), not the
--- roster (3). hand_size 21 × 3 = 63 dealt; pool = 144 − 63 = 81.
+-- roster (3). hand_size 21 × 3 = 63 dealt; bunch = 144 − 63 = 81.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table trio on commit drop as
 select common.create_club('trio', array['ada', 'bea', 'cade']) as handle;
@@ -170,7 +170,7 @@ select common.create_club('trio', array['ada', 'bea', 'cade']) as handle;
 create temp table g3 on commit drop as
 select * from bananagrams.create_game(
   (select handle from trio),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid,
         'cade3333-3333-3333-3333-333333333333'::uuid]
@@ -183,7 +183,7 @@ select lives_ok(
   'cade can concede while ada + bea keep racing'
 );
 
--- ada empties her hand and peels — a CONTINUING peel (pool 81 ≥ active 2).
+-- ada empties her hand and peels — a CONTINUING peel (bunch 81 ≥ active 2).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select bananagrams.save_player_board(
   (select id from g3),
@@ -212,7 +212,7 @@ select is(
   'conceded cade did NOT draw (still 21)'
 );
 select is(
-  (select length(pool) from bananagrams.games where id = (select id from g3)),
+  (select length(bunch) from bananagrams.games where id = (select id from g3)),
   79,
   'the bunch advanced by ACTIVE count × peel_count (81 → 79, not 78)'
 );

@@ -60,12 +60,12 @@ type Props = {
   onPeel?: () => Promise<{ illegalCells: number[] } | null>
   /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
   onDump?: (letter: string) => void | Promise<void>
-  /** Tiles left in the shared bunch (status.pool_remaining), or undefined pre-load.
+  /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load.
    *  Shown next to Peel so players sense the endgame. */
   bunchCount?: number
-  /** Tiles in the out-of-play box (status.box_remaining) — only nonzero in dump-to-box
+  /** Tiles in the out-of-play bag (status.bag_remaining) — only nonzero in dump-to-bag
    *  games; counts toward what a dump can draw. */
-  boxCount?: number
+  bagCount?: number
   /** Out-param kept pointed at the live board, so PlayArea's print menu can snapshot
    *  it at click time (the board lives in the engine, but the menu lives in PlayArea). */
   reportBoardRef?: RefObject<string>
@@ -83,7 +83,7 @@ export function PlayerBoard({
   onPeel,
   onDump,
   bunchCount,
-  boxCount,
+  bagCount,
   reportBoardRef,
 }: Props) {
   const arena = usePlayerBoard({
@@ -95,7 +95,7 @@ export function PlayerBoard({
     onPeel,
     onDump,
     bunchCount,
-    boxCount,
+    bagCount,
     reportBoardRef,
   })
 
@@ -148,7 +148,7 @@ export function PlayerBoard({
           isTerminal={!!isTerminal}
           isConceded={!!isConceded}
           bunchCount={bunchCount}
-          boxCount={boxCount}
+          bagCount={bagCount}
         />
 
         {/* The bottom action row — natural-width action buttons side by side. While

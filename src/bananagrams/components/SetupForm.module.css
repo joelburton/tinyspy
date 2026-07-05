@@ -3,7 +3,7 @@
  * common/components/fields/setupForm.module.css; only the bag-size input and the
  * checkbox / dictionary-picker rows below are unique to bananagrams. */
 
-/* The bag-size number input — a short box; it only ever holds 1–3
+/* The bunch-size number input — a short box; it only ever holds 1–3
  * digits (max 144). */
 .bagInput {
   width: 5rem;

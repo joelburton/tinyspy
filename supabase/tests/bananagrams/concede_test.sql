@@ -28,11 +28,11 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select common.create_club('test club', array['ada', 'bea']) as handle;
 
--- 2-player game. pool = 144 − 42 = 102.
+-- 2-player game. bunch = 144 − 42 = 102.
 create temp table g1 on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -75,7 +75,7 @@ select throws_ok(
 -- force the win path.
 reset role;
 select set_config('request.jwt.claims', '', true);
-update bananagrams.games set pool = '' where id = (select id from g1);
+update bananagrams.games set bunch = '' where id = (select id from g1);
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select bananagrams.save_player_board(
@@ -108,7 +108,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select * from bananagrams.create_game(
   (select handle from club),
-  '{"hand_size": 21, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 21, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid]
 );
@@ -144,7 +144,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select * from bananagrams.create_game(
   '=ada',
-  '{"hand_size": 15, "bag_size": 144, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bunch_size": 144, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]
 );
 select bananagrams.concede((select id from g3));

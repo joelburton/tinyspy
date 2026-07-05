@@ -8,7 +8,7 @@
 -- from a shared bank as they go:
 --
 --   - Each player is dealt a STARTER HAND at game start; the
---     leftover bag is the shared "bunch" (games.pool, hidden).
+--     leftover after the deal is the shared "bunch" (games.bunch, hidden).
 --   - Players build privately; peers see only an unplaced-tile
 --     COUNT, never each other's boards.
 --   - When your hand empties you PEEL: everyone draws a round, or
@@ -32,7 +32,7 @@
 -- The state split is the design's spine — three visibility
 -- classes, three handlings:
 --
---   bananagrams.games          club-readable header (pool hidden)
+--   bananagrams.games          club-readable header (bunch hidden)
 --   bananagrams.player_boards  the private grid — OWNER-ONLY read
 --   bananagrams.progress       the public projection — club read
 --
@@ -62,18 +62,18 @@ grant usage on schema bananagrams to authenticated;
 -- ============================================================
 -- bananagrams.games — one row per playing
 -- ============================================================
--- `pool` is the live "bunch": every tile not currently held by a
+-- `bunch` is the live "bunch": every tile not currently held by a
 -- player. It starts as the undealt remainder of the shuffled
 -- 144-tile bag and MUTATES during play — PEEL draws from it (one
 -- tile per player), DUMP swaps with it (return one, draw three).
 -- It is SENSITIVE: the contents/order are the upcoming draws, so
--- the column-level grant below EXCLUDES `pool` from authenticated
+-- the column-level grant below EXCLUDES `bunch` from authenticated
 -- SELECT (same hidden-column pattern as psychicnum.games.target).
 -- RPCs run SECURITY DEFINER and read it freely; the FE only ever
--- learns the pool's COUNT (surfaced via the live status the
+-- learns the bunch's COUNT (surfaced via the live status the
 -- peel/dump RPCs write).
 --
--- The deal shuffles the bag with a throwaway seed; once `pool` is
+-- The deal shuffles the bag with a throwaway seed; once `bunch` is
 -- materialized it's the sole authority (dump returns tiles into it,
 -- so a fixed seed could no longer describe it), so the seed isn't
 -- stored.
@@ -85,24 +85,24 @@ grant usage on schema bananagrams to authenticated;
 create table bananagrams.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
-  -- `bag` is the IMMUTABLE record of the shuffled bag this game was dealt
-  -- from: the full tile sequence (length = the chosen bag size, ≤ 144),
-  -- hands-then-bunch in deal order. Set once at create_game and never
-  -- written again. `pool` (below) is the live remainder that mutates; this
-  -- is what a future "restart game" re-deals from. Hidden from the FE for
-  -- the same reason as `pool` — it carries the bunch order, which would let
-  -- a player predict peels (the column grant below omits it).
-  bag text not null,
-  -- `pool` is the live "bunch": every tile not currently held by a player.
-  -- Starts as the undealt suffix of `bag` and MUTATES during play.
-  pool text not null,
-  -- `box` is the OUT-OF-PLAY reserve. It starts with the 144 − bag_size tiles
-  -- left out of the bag (so a reduced bag_size sets the rest aside rather than
-  -- discarding them), and in dump_to_box mode a dumped tile goes here too
+  -- `bunch_seed` is the IMMUTABLE record of the shuffled bunch this game was
+  -- dealt from: the full in-play tile sequence (length = the chosen bunch
+  -- size, ≤ 144), hands-then-draw-pile in deal order. Set once at create_game
+  -- and never written again. `bunch` (below) is the live remainder that
+  -- mutates; this is what a future "restart game" re-deals from. Hidden from
+  -- the FE for the same reason as `bunch` — it carries the draw order, which
+  -- would let a player predict peels (the column grant below omits it).
+  bunch_seed text not null,
+  -- `bunch` is the live draw pile: every tile not currently held by a player.
+  -- Starts as the undealt suffix of `bunch_seed` and MUTATES during play.
+  bunch text not null,
+  -- `bag` is the OUT-OF-PLAY reserve. It starts with the 144 − bunch_size tiles
+  -- left out of the bunch (a reduced bunch sets the rest aside rather than
+  -- discarding them), and in dump_to_bag mode a dumped tile goes here too
   -- (instead of back to the bunch, so the bunch depletes and the game ends
-  -- sooner). The box isn't dead, though — a dump whose draw the bunch can't
-  -- cover dips into it. Hidden like pool (its order would leak future draws).
-  box text not null default '',
+  -- sooner). The bag isn't dead, though — a dump whose draw the bunch can't
+  -- cover dips into it. Hidden like bunch (its order would leak future draws).
+  bag text not null default '',
   hand_size int not null check (hand_size between 1 and 30),
   created_at timestamptz not null default now()
 );
@@ -196,7 +196,7 @@ alter table bananagrams.games         enable row level security;
 alter table bananagrams.player_boards enable row level security;
 alter table bananagrams.progress      enable row level security;
 
--- Games: any club member sees the row (`pool` is additionally
+-- Games: any club member sees the row (`bunch` is additionally
 -- column-hidden, regardless of policy).
 create policy games_select on bananagrams.games
   for select to authenticated
@@ -222,11 +222,11 @@ create policy progress_select on bananagrams.progress
   );
 
 -- ============================================================
--- Grants — `pool`, `bag`, and `box` are column-excluded
+-- Grants — `bunch`, `bunch_seed`, and `bag` are column-excluded
 -- ============================================================
--- The whitelist omits `pool` (live bunch), `bag` (the initial shuffled
--- sequence), and `box` (the out-of-play reserve) — any would let a player
--- predict upcoming draws. The FE learns their COUNTS via status instead.
+-- The whitelist omits `bunch` (live draw pile), `bunch_seed` (the initial
+-- shuffled sequence), and `bag` (the out-of-play reserve) — any would let a
+-- player predict upcoming draws. The FE learns their COUNTS via status instead.
 
 grant select
   (id, club_handle, hand_size, created_at)
@@ -242,7 +242,7 @@ grant select on bananagrams.progress to authenticated;
 -- unplaced counts + the winner flag. player_boards broadcasts only
 -- to its owner (owner-only RLS scopes the stream): the FE listens to
 -- its own row so a peel/dump's `tiles` change reaches it. games is
--- immutable to the FE (its `pool` mutates, but that's hidden and the
+-- immutable to the FE (its `bunch` mutates, but that's hidden and the
 -- count rides on common.games.status instead).
 
 alter publication supabase_realtime add table bananagrams.progress;
@@ -257,10 +257,10 @@ alter publication supabase_realtime add table bananagrams.player_boards;
 --
 -- Setup shape (each field validated below):
 --   { "hand_size": 15 | 21,
---     "bag_size": 1..144 (≥ player_count × hand_size),
+--     "bunch_size": 1..144 (≥ player_count × hand_size),
 --     "word_check": 'off' | 'win' | 'strict', "dict_2": 2..6, "dict_3plus": 1..6
 --       (the two bands required unless word_check is 'off'),
---     "dump_to_box": bool (read at dump time, not here),
+--     "dump_to_bag": bool (read at dump time, not here),
 --     "timer": (none | countdown{seconds}) }
 --
 -- A countdown that reaches 0 ends the race as a collective loss
@@ -271,7 +271,7 @@ alter publication supabase_realtime add table bananagrams.player_boards;
 -- The deal: build the 144-tile Bananagrams bag, shuffle it with a
 -- throwaway seed, and hand each player a contiguous slice of
 -- hand_size letters as their starting `tiles` string. Everything
--- past the dealt slices becomes the `pool` (the bunch) that peel and
+-- past the dealt slices becomes the `bunch` (the bunch) that peel and
 -- dump later draw from. Each player's `board` starts empty.
 
 create function bananagrams.create_game(
@@ -287,7 +287,7 @@ as $$
 declare
   new_id uuid;
   s_hand_size int;
-  s_bag_size int;
+  s_bunch_size int;
   s_word_check text;
   s_dict_2 int;
   s_dict_3plus int;
@@ -295,9 +295,9 @@ declare
   letters text[];
   shuffled text[];
   player_count int;
+  s_bunch_seed text;
   s_bag text;
-  s_box text;
-  s_pool text;
+  s_bunch text;
 begin
   -- ─── Player count: 1..6 (solo allowed — see header) ──
   -- MUST AGREE with numberOfPlayers: [1, 6] in
@@ -316,22 +316,22 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- bag_size: how many tiles to draw from the 144-tile set for this game.
+  -- bunch_size: how many tiles to draw from the 144-tile set for this game.
   -- ≤ 144 (the full Bananagrams bag); smaller = a shorter game on a random
   -- subset. MUST be ≥ player_count × hand_size or the deal can't be made —
-  -- the FE disables Start on the same check (see bananagrams bagSizeError),
+  -- the FE disables Start on the same check (see bananagrams bunchSizeError),
   -- but the server is the authority.
-  if (setup->>'bag_size') is null then
-    raise exception 'setup.bag_size is required' using errcode = 'P0001';
+  if (setup->>'bunch_size') is null then
+    raise exception 'setup.bunch_size is required' using errcode = 'P0001';
   end if;
-  s_bag_size := (setup->>'bag_size')::int;
-  if s_bag_size < 1 or s_bag_size > 144 then
-    raise exception 'setup.bag_size must be between 1 and 144 (got %)', s_bag_size
+  s_bunch_size := (setup->>'bunch_size')::int;
+  if s_bunch_size < 1 or s_bunch_size > 144 then
+    raise exception 'setup.bunch_size must be between 1 and 144 (got %)', s_bunch_size
       using errcode = 'P0001';
   end if;
-  if player_count * s_hand_size > s_bag_size then
-    raise exception 'not enough tiles: % players × % = % needed, bag holds %',
-      player_count, s_hand_size, player_count * s_hand_size, s_bag_size
+  if player_count * s_hand_size > s_bunch_size then
+    raise exception 'not enough tiles: % players × % = % needed, bunch holds %',
+      player_count, s_hand_size, player_count * s_hand_size, s_bunch_size
       using errcode = 'P0001';
   end if;
 
@@ -372,7 +372,7 @@ begin
 
   perform common.validate_timer(setup->'timer');
 
-  -- ─── Build the bag: shuffle the 144-tile set, take bag_size ──
+  -- ─── Build the bunch: shuffle the 144-tile bag, take bunch_size ──
   -- Standard Bananagrams letter distribution. string_to_array(_, NULL)
   -- splits the concatenated string into one element per char.
   bag_text :=
@@ -391,12 +391,12 @@ begin
   select array_agg(ch order by random()) into shuffled
     from unnest(letters) as ch;
 
-  -- Split the shuffled 144 at bag_size: the first bag_size tiles are this
-  -- game's BAG (a uniformly random subset — hands + bunch); the rest aren't
-  -- in play but aren't thrown away either — they seed the out-of-play BOX,
-  -- which a dump can dip into when the bunch is short.
-  s_bag := array_to_string(shuffled[1:s_bag_size], '');
-  s_box := coalesce(array_to_string(shuffled[s_bag_size + 1:144], ''), '');
+  -- Split the shuffled 144 at bunch_size: the first bunch_size tiles are this
+  -- game's BUNCH (the in-play set — hands + draw pile, recorded as bunch_seed);
+  -- the rest aren't in play but aren't thrown away either — they seed the
+  -- out-of-play BAG, which a dump can dip into when the bunch is short.
+  s_bunch_seed := array_to_string(shuffled[1:s_bunch_size], '');
+  s_bag := coalesce(array_to_string(shuffled[s_bunch_size + 1:144], ''), '');
 
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
@@ -410,15 +410,15 @@ begin
   );
 
   -- The bunch = every tile past the dealt slices
-  -- (shuffled[player_count*hand_size + 1 .. bag_size]). coalesce to '' for
+  -- (shuffled[player_count*hand_size + 1 .. bunch_size]). coalesce to '' for
   -- the degenerate "exact deal, nothing left over" case so NOT NULL holds.
-  s_pool := coalesce(
+  s_bunch := coalesce(
     (select string_agg(shuffled[gidx], '' order by gidx)
-       from generate_series(player_count * s_hand_size + 1, s_bag_size) as gidx),
+       from generate_series(player_count * s_hand_size + 1, s_bunch_size) as gidx),
     ''
   );
-  insert into bananagrams.games (id, club_handle, bag, pool, box, hand_size)
-  values (new_id, target_club, s_bag, s_pool, s_box, s_hand_size);
+  insert into bananagrams.games (id, club_handle, bunch_seed, bunch, bag, hand_size)
+  values (new_id, target_club, s_bunch_seed, s_bunch, s_bag, s_hand_size);
 
   -- Deal: player at ordinality `pi` (1-based) gets the slice
   -- shuffled[(pi-1)*hs + 1 .. pi*hs] as their starting `tiles`
@@ -439,13 +439,13 @@ begin
   select new_id, uid, s_hand_size, 0, false
     from unnest(player_user_ids) as uid;
 
-  -- Surface the bunch + box COUNTS to the FE: `pool`/`box` themselves are
+  -- Surface the bunch + bag COUNTS to the FE: `bunch`/`bag` themselves are
   -- hidden, so the counts ride on common.games.status (which the FE already
-  -- reads live). peel/dump keep them current. The box starts with the
-  -- 144 − bag_size tiles left out of the bag.
+  -- reads live). peel/dump keep them current. The bag starts with the
+  -- 144 − bunch_size tiles left out of the bunch (they stay in the bag).
   perform common.update_state(new_id, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool),
-                       'box_remaining', length(s_box)));
+    jsonb_build_object('bunch_remaining', length(s_bunch),
+                       'bag_remaining', length(s_bag)));
 
   return query select new_id;
 end;
@@ -653,7 +653,7 @@ $$;
 -- clicks "Peel". Two outcomes, decided by whether the bunch can refill the
 -- whole table:
 --
---   - Enough tiles (pool >= players × peel_count): EVERY player draws
+--   - Enough tiles (bunch >= players × peel_count): EVERY player draws
 --     peel_count from the bunch and the game continues. (Yes — everyone draws,
 --     not just the peeler; that's the threshold's shape.)
 --   - Not enough: the peeler goes out and WINS — the Bananagrams endgame.
@@ -679,9 +679,9 @@ $$;
 --   { result: 'won' | 'dealt' | 'illegal', invalid_cells: int[] }
 --
 -- Race-safety: lock the gametype row up front so two simultaneous peels
--- serialize. The first either ends the game or advances the pool; the second
--- then sees the new state (a non-'playing' game, or a smaller pool) and acts on
--- it. Without the lock two peelers could both draw from the same pool slice.
+-- serialize. The first either ends the game or advances the bunch; the second
+-- then sees the new state (a non-'playing' game, or a smaller bunch) and acts on
+-- it. Without the lock two peelers could both draw from the same bunch slice.
 
 create function bananagrams.peel(target_game uuid)
 returns jsonb
@@ -697,8 +697,8 @@ declare
   n_tiles int;
   n_placed int;
   s_peel_count int;
-  s_pool text;
-  s_box text;
+  s_bunch text;
+  s_bag text;
   player_count int;
   needed int;
   winner_name text;
@@ -742,10 +742,10 @@ begin
   end if;
 
   s_peel_count := greatest(coalesce((s_setup->>'peel_count')::int, 1), 1);
-  -- Read box too: peel doesn't change it, but update_state replaces the whole
-  -- status blob, so the dealt-status below must re-emit box_remaining or the
-  -- FE's box count would vanish after a peel.
-  select pool, box into s_pool, s_box from bananagrams.games where id = target_game;
+  -- Read bag too: peel doesn't change it, but update_state replaces the whole
+  -- status blob, so the dealt-status below must re-emit bag_remaining or the
+  -- FE's bag count would vanish after a peel.
+  select bunch, bag into s_bunch, s_bag from bananagrams.games where id = target_game;
   -- Only ACTIVE (non-conceded) players draw on a peel — a player who has
   -- dropped out neither needs tiles nor holds up the bunch math. So the table
   -- to refill is the active count, and the winning-peel threshold below is
@@ -764,7 +764,7 @@ begin
   v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
 
   -- ─── Not enough to refill the table → the peeler goes out (win) ───
-  if length(s_pool) < needed then
+  if length(s_bunch) < needed then
     -- A winning board is ALWAYS checked for geography (one connected mass —
     -- a scattered grid can't win), and additionally for real words when
     -- word_check is 'win' or 'strict'. If anything blocks, don't end the game —
@@ -795,7 +795,7 @@ begin
       target_game,
       'won',
       jsonb_build_object('outcome', 'won', 'winner_username', winner_name,
-                         'pool_remaining', length(s_pool)),
+                         'bunch_remaining', length(s_bunch)),
       player_results
     );
     return jsonb_build_object('result', 'won', 'invalid_cells', '[]'::jsonb);
@@ -817,7 +817,7 @@ begin
 
   -- ─── Enough → every ACTIVE player draws peel_count from the bunch ───
   -- Active player at rank `pi` (1-based, stable order) takes the slice
-  -- s_pool[(pi-1)*peel_count + 1 .. peel_count]; the total drawn is `needed`.
+  -- s_bunch[(pi-1)*peel_count + 1 .. peel_count]; the total drawn is `needed`.
   -- Conceded players are excluded (they don't draw), so the ranks are dense
   -- over the active set and line up with `needed` = active_count × peel_count.
   with ranked as (
@@ -826,7 +826,7 @@ begin
      where game_id = target_game and not conceded
   )
   update bananagrams.player_boards pb
-     set tiles = pb.tiles || substr(s_pool, ((r.pi - 1) * s_peel_count + 1)::int, s_peel_count),
+     set tiles = pb.tiles || substr(s_bunch, ((r.pi - 1) * s_peel_count + 1)::int, s_peel_count),
          updated_at = now()
     from ranked r
    where pb.game_id = target_game and pb.user_id = r.user_id;
@@ -844,13 +844,13 @@ begin
 
   -- Advance the bunch past the drawn tiles.
   update bananagrams.games
-     set pool = substr(s_pool, needed + 1)
+     set bunch = substr(s_bunch, needed + 1)
    where id = target_game;
 
-  -- Keep the FE's bunch count current (box is unchanged by a peel).
+  -- Keep the FE's bunch count current (bag is unchanged by a peel).
   perform common.update_state(target_game, 'playing',
-    jsonb_build_object('pool_remaining', length(s_pool) - needed,
-                       'box_remaining', length(s_box)));
+    jsonb_build_object('bunch_remaining', length(s_bunch) - needed,
+                       'bag_remaining', length(s_bag)));
 
   return jsonb_build_object('result', 'dealt', 'invalid_cells', '[]'::jsonb);
 end;
@@ -866,23 +866,23 @@ grant execute on function bananagrams.peel(uuid) to authenticated;
 -- draw dump_count (default 3) in return — a net +2 to the hand, the cost of
 -- getting unstuck.
 --
--- What happens to the DUMPED tile depends on setup.dump_to_box:
---   - default (false) — return-to-bag: it goes back into the bunch (the BACK
---     of the pool) and may be drawn again later. Tile count is conserved.
---   - true — to-the-box: it goes to the `box` reserve instead, so the BUNCH
---     depletes (the game ends sooner). The box isn't dead, though — see below.
+-- What happens to the DUMPED tile depends on setup.dump_to_bag:
+--   - default (false) — return-to-bunch: it goes back into the bunch (the BACK
+--     of the bunch) and may be drawn again later. Tile count is conserved.
+--   - true — to-the-bag: it goes to the `bag` reserve instead, so the BUNCH
+--     depletes (the game ends sooner). The bag isn't dead, though — see below.
 -- Either way the player still draws dump_count.
 --
 -- The draw: dump_count tiles from the FRONT of the bunch; if the bunch is
--- short (only possible in to-box mode, once the box holds tiles), the rest
--- comes from the FRONT of the box. So you can dump as long as the bunch AND
--- box together cover the draw.
+-- short (only possible in to-bag mode, once the bag holds tiles), the rest
+-- comes from the FRONT of the bag. So you can dump as long as the bunch AND
+-- bag together cover the draw.
 --
 -- Two guarantees from the rules:
---   - You can't dump unless bunch + box can cover the draw. The dumped tile is
+--   - You can't dump unless bunch + bag can cover the draw. The dumped tile is
 --     placed only AFTER the draw, so it can never refill its own swap.
 --   - You won't draw back the SAME tile: the dumped tile lands at the BACK
---     (of the bunch for return-to-bag, of the box for to-box), behind anything
+--     (of the bunch for return-to-bunch, of the bag for to-bag), behind anything
 --     drawn. (You might draw the same LETTER if another copy was near a front —
 --     that's allowed.)
 --
@@ -891,7 +891,7 @@ grant execute on function bananagrams.peel(uuid) to authenticated;
 -- only check is that the caller actually holds the tile they're dumping.
 --
 -- Locks the gametype row so a dump and a concurrent peel serialize on the
--- shared pool (both draw from the front).
+-- shared bunch (both draw from the front).
 
 create function bananagrams.dump(target_game uuid, tile text)
 returns void
@@ -904,18 +904,18 @@ declare
   current_play_state text;
   s_setup jsonb;
   s_dump_count int;
-  s_dump_to_box boolean;
-  s_pool text;
-  s_box text;
-  from_pool int;
-  from_box int;
-  new_pool text;
-  new_box text;
+  s_dump_to_bag boolean;
+  s_bunch text;
+  s_bag text;
+  from_bunch int;
+  from_bag int;
+  new_bunch text;
+  new_bag text;
   caller_tiles text;
   drawn text;
   pos int;
 begin
-  -- Serialize against concurrent peels/dumps on the shared pool.
+  -- Serialize against concurrent peels/dumps on the shared bunch.
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
@@ -930,7 +930,7 @@ begin
   end if;
 
   -- A conceded player is out of the race — they can't drain the shared
-  -- pool via a dump. Mirrors the peel guard. The FE gates on myConceded,
+  -- bunch via a dump. Mirrors the peel guard. The FE gates on myConceded,
   -- so this only fires on a race (a dump in flight when concede commits,
   -- or a stale second tab).
   if (select conceded from common.game_players
@@ -944,13 +944,13 @@ begin
   end if;
 
   s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
-  s_dump_to_box := coalesce((s_setup->>'dump_to_box')::boolean, false);
+  s_dump_to_bag := coalesce((s_setup->>'dump_to_bag')::boolean, false);
 
-  select pool, box into s_pool, s_box from bananagrams.games where id = target_game;
+  select bunch, bag into s_bunch, s_bag from bananagrams.games where id = target_game;
   -- You need dump_count tiles to draw. Normally that's just the bunch, but in
-  -- to-box mode the box can top up a draw the bunch can't cover (return-to-bag
-  -- keeps the box empty, so this reduces to "bunch < dump_count" there).
-  if length(s_pool) + length(s_box) < s_dump_count then
+  -- to-bag mode the bag can top up a draw the bunch can't cover (return-to-bunch
+  -- keeps the bag empty, so this reduces to "bunch < dump_count" there).
+  if length(s_bunch) + length(s_bag) < s_dump_count then
     raise exception 'not enough tiles to dump' using errcode = 'P0001';
   end if;
 
@@ -964,21 +964,21 @@ begin
   end if;
 
   -- Draw dump_count from the FRONT of the bunch first, then top up from the
-  -- FRONT of the box if the bunch is short. (The box can hold tiles in EITHER
-  -- mode now — a reduced bag_size leaves its remainder there — so always pull
+  -- FRONT of the bag if the bunch is short. (The bag can hold tiles in EITHER
+  -- mode now — a reduced bunch_size leaves its remainder there — so always pull
   -- the drawn tiles off both fronts.)
-  from_pool := least(length(s_pool), s_dump_count);
-  from_box  := s_dump_count - from_pool;
-  drawn := substr(s_pool, 1, from_pool) || substr(s_box, 1, from_box);
-  new_pool := substr(s_pool, from_pool + 1);
-  new_box  := substr(s_box, from_box + 1);
+  from_bunch := least(length(s_bunch), s_dump_count);
+  from_bag  := s_dump_count - from_bunch;
+  drawn := substr(s_bunch, 1, from_bunch) || substr(s_bag, 1, from_bag);
+  new_bunch := substr(s_bunch, from_bunch + 1);
+  new_bag  := substr(s_bag, from_bag + 1);
 
-  -- The dumped tile then lands at the BACK of the bunch (return-to-bag) or the
-  -- BACK of the box (to-box) — after the draw, so it can't refill its own swap.
-  if s_dump_to_box then
-    new_box := new_box || tile;
+  -- The dumped tile then lands at the BACK of the bunch (return-to-bunch) or the
+  -- BACK of the bag (to-bag) — after the draw, so it can't refill its own swap.
+  if s_dump_to_bag then
+    new_bag := new_bag || tile;
   else
-    new_pool := new_pool || tile;
+    new_bunch := new_bunch || tile;
   end if;
 
   update bananagrams.player_boards
@@ -987,7 +987,7 @@ begin
    where game_id = target_game and user_id = caller_id;
 
   update bananagrams.games
-     set pool = new_pool, box = new_box
+     set bunch = new_bunch, bag = new_bag
    where id = target_game;
 
   -- The caller's hand math is identical either way (−1 dumped, +dump_count
@@ -997,8 +997,8 @@ begin
    where game_id = target_game and user_id = caller_id;
 
   perform common.update_state(target_game, 'playing',
-    jsonb_build_object('pool_remaining', length(new_pool),
-                       'box_remaining', length(new_box)));
+    jsonb_build_object('bunch_remaining', length(new_bunch),
+                       'bag_remaining', length(new_bag)));
 end;
 $$;
 

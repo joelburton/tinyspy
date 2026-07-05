@@ -5,7 +5,7 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
   WORD_CHECK_OPTIONS,
-  BANANAGRAMS_BAG_MAX,
+  BANANAGRAMS_BUNCH_MAX,
   tilesNeeded,
   type BananagramsSetup,
 } from '../lib/setup'
@@ -19,13 +19,13 @@ import styles from './SetupForm.module.css'
  *   - **Starter tiles** — how many tiles each player is dealt, one
  *     of {15, 21}. 21 is the Bananagrams default; 15 is a quicker
  *     game.
- *   - **Tiles in bag** — 1..144 (the full Bananagrams set is 144); a
- *     smaller bag makes a shorter game. Must hold at least one starter
+ *   - **Tiles in bunch** — 1..144 (the full Bananagrams set is 144); a
+ *     smaller bunch makes a shorter game. Must hold at least one starter
  *     hand per player — the neutral hint below shows the live "deals N"
  *     figure, and the dialog's guard (manifest `validate` →
- *     `bagSizeError`) disables Start with a red reason when it can't.
- *   - **Dumping a tile** — "Return dumped tiles to the box": off (default) puts
- *     a dumped tile back in the bag; on takes it out of play (the game shrinks
+ *     `bunchSizeError`) disables Start with a red reason when it can't.
+ *   - **Dumping a tile** — "Return dumped tiles to the bag": off (default) puts
+ *     a dumped tile back in the bunch; on takes it out of play (the game shrinks
  *     by one each dump).
  *   - **Words** — a 3-way `word_check` dictionary check (Off / At win / Every
  *     peel), plus two always-shown DifficultyField pickers (one for 2-letter
@@ -62,19 +62,19 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       <fieldset className={form.fieldset}>
         <legend>Tiles in bunch</legend>
         <p className="muted">
-          The full bag is {BANANAGRAMS_BAG_MAX}.
+          The full bag is {BANANAGRAMS_BUNCH_MAX}.
           This game deals {needed} ({playerCount} player
           {playerCount === 1 ? '' : 's'} × {s.hand_size}).
         </p>
         <input
           className={styles.bagInput}
           type="number"
-          name="bag_size"
+          name="bunch_size"
           min={1}
-          max={BANANAGRAMS_BAG_MAX}
+          max={BANANAGRAMS_BUNCH_MAX}
           step={1}
-          value={Number.isFinite(s.bag_size) ? s.bag_size : ''}
-          onChange={(e) => onChange({ ...s, bag_size: e.target.valueAsNumber })}
+          value={Number.isFinite(s.bunch_size) ? s.bunch_size : ''}
+          onChange={(e) => onChange({ ...s, bunch_size: e.target.valueAsNumber })}
         />
       </fieldset>
 
@@ -83,9 +83,9 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         <label className={styles.checkRow}>
           <input
             type="checkbox"
-            name="dump_to_box"
-            checked={s.dump_to_box}
-            onChange={(e) => onChange({ ...s, dump_to_box: e.target.checked })}
+            name="dump_to_bag"
+            checked={s.dump_to_bag}
+            onChange={(e) => onChange({ ...s, dump_to_bag: e.target.checked })}
           />
           Return dumped tiles to the bag (out of play)
         </label>
