@@ -333,7 +333,9 @@ discard if `gen !== genRef.current` at resolution), added once in
 
 **L4. [low] Stable-name Realtime channels can be handed a mid-teardown
 instance on fast remount; the comment claiming otherwise is wrong for the
-shipped library.**
+shipped library.** — **➡️ DEFERRED** to [`deferred.md`](deferred.md) (Common /
+architecture): library-deep, empirically not user-visible today; fix is a
+teardown-await registry. The wrong self-echo comment is bundled there too.
 `src/common/hooks/game/useCommonGame.ts:270–276` (`game:${gameId}`),
 `src/common/hooks/realtime/useClubPresence.ts:52`,
 `src/common/hooks/realtime/useClubSetupPresence.tsx:65`. Verified against
@@ -439,7 +441,8 @@ the clicker gets zero feedback. A silent dead control.
 hide/disable Pause for non-players.
 
 **F6. [low] psychicnum: the budget-exhausting guess shows "Incorrect" even
-when it was correct.**
+when it was correct.** — **➡️ DEFERRED** to [`deferred.md`](deferred.md)
+(psychicnum): cosmetic/transient (the terminal pill replaces it in a beat).
 `20260615000002_psychicnum.sql:692–719` returns `'lost'` for the final guess
 hit-or-miss; `src/psychicnum/components/BoardCol.tsx:156–161` maps anything
 but `'won'|'correct'` to the red "Incorrect" pill. A last guess that finds a
