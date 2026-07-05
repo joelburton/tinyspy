@@ -21,7 +21,7 @@
  * Calling shape (FE):
  *   POST /functions/v1/boggle-build-board
  *   { target_club, mode, player_user_ids,
- *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder, constraints } }
+ *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder, win_percent, constraints } }
  *   → { id }   ·   → { error } (400/401/422/500)
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The caller's
@@ -33,7 +33,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { generateBoard, listBonusWords, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
-import { requiredTrie } from './dict.ts'
+import { requiredTrie, legalTrie } from './dict.ts'
 import { json, preflight } from '../_shared/http.ts'
 import { callerClient, invokeCreateGame } from '../_shared/startGame.ts'
 
@@ -103,15 +103,14 @@ serve(async (req: Request): Promise<Response> => {
 
     // ─── Enumerate the bonus set (post-acceptance, does NOT affect the board) ──
     // The full legal list = required ∪ bonus; the FE validates + scores guesses
-    // against it locally. bonus = legal-band traceable words minus required.
-    // Empty when legal_band == band (all legal words are already required).
-    const bonusWords =
-      legalBand > band
-        ? listBonusWords(await requiredTrie(legalBand), board.board, board.requiredWords, {
-            minWordLength: constraints.minWordLength,
-            ladder: constraints.ladder,
-          })
-        : []
+    // against it locally. bonus = LEGAL-trie traceable words (difficulty-only, so
+    // crude/slur/slang/non-american count) minus the required set. Note this is
+    // usually non-empty EVEN WHEN legal_band == band: the required set is
+    // clean-only, so the band's non-clean words are all bonus.
+    const bonusWords = listBonusWords(await legalTrie(legalBand), board.board, board.requiredWords, {
+      minWordLength: constraints.minWordLength,
+      ladder: constraints.ladder,
+    })
 
     // ─── Create the game as the caller ────────────────────────────────────
     return await invokeCreateGame(callerClient(authHeader), 'boggle', {
