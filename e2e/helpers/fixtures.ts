@@ -313,6 +313,40 @@ export async function createCrosswordsGame(
 }
 
 /**
+ * Start a crosswords game on the LARGEST already-imported library puzzle
+ * (for exercising a real full-size grid + long clue lists). Requires the
+ * library to be seeded (`npm run crosswords:import`); throws if empty.
+ */
+export async function createCrosswordsGameFromLibrary(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+): Promise<{ id: string; gametype: string; width: number }> {
+  const { data, error } = await admin
+    .schema('crosswords')
+    .from('puzzles')
+    .select('id, meta')
+    .eq('source', 'library')
+  if (error || !data || data.length === 0) {
+    throw new Error(`no library puzzles — run \`npm run crosswords:import\` (${error?.message ?? ''})`)
+  }
+  const rows = data as Array<{ id: string; meta: { width: number } }>
+  const biggest = rows.reduce((a, b) => (b.meta.width > a.meta.width ? b : a))
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('crosswords')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, puzzle_id: biggest.id },
+      player_user_ids: club.members.map((m) => m.userId),
+      mode,
+    })
+  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}`, width: biggest.meta.width }
+}
+
+/**
  * Start a spellingbee game (coop by default) on a fixed synthetic board:
  * outer `cabdfg` + center `e`, 30 required words (the create_game ≥30 gate) plus
  * one bonus word (`bcdfge`) so the play loop can exercise required + bonus + a

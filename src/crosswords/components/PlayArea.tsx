@@ -26,7 +26,6 @@ import { Grid } from './Grid'
 import { ClueLists } from './ClueLists'
 import { Controls } from './Controls'
 import { db } from '../db'
-import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -287,22 +286,29 @@ export function PlayArea(ctx: GamePageCtx) {
             omitted for now — to be reintroduced elsewhere on the page. */}
         <div className={styles.strip}>
           {!isTerminal && (
-            <Controls
-              mode={mode}
-              pencil={pencil}
-              onPencilChange={setPencil}
-              onCheck={(scope) => void handleCheck(scope)}
-              onReveal={(scope) => void handleReveal(scope)}
-              disabled={!isPlayable}
-            />
-          )}
-
-          {!isTerminal && isPlayable && (
-            <div className={styles.actions}>
-              {mode === 'compete' ? (
-                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleConcede()} />
-              ) : (
-                <EndGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
+            <div className={styles.toolRow}>
+              <Controls
+                mode={mode}
+                pencil={pencil}
+                onPencilChange={setPencil}
+                onCheck={(scope) => void handleCheck(scope)}
+                onReveal={(scope) => void handleReveal(scope)}
+                disabled={!isPlayable}
+              />
+              {isPlayable && (
+                <div className={styles.actionRight}>
+                  {mode === 'compete' ? (
+                    <ConcedeGameButton
+                      className={styles.compactAction}
+                      onClick={() => void handleConcede()}
+                    />
+                  ) : (
+                    <EndGameButton
+                      className={styles.compactAction}
+                      onClick={() => void handleEndGame()}
+                    />
+                  )}
+                </div>
               )}
             </div>
           )}

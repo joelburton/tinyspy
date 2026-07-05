@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   createClubWithMembers,
   createCrosswordsGame,
+  createCrosswordsGameFromLibrary,
   createSoloClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
@@ -108,5 +109,35 @@ test.describe('crosswords play loop', () => {
 
     // First to a correct grid wins outright.
     await expect(page.getByText('You solved it first!').first()).toBeVisible({ timeout: 10000 })
+  })
+
+  // Regression guard for the layout exception: a full-size grid must fit the
+  // viewport — the board fills, the clue lists scroll INTERNALLY, and the
+  // page itself never scrolls. (Needs a seeded library; skips if empty.)
+  test('a full-size puzzle fits the viewport without scrolling the page', async ({ browser }) => {
+    const club = await createSoloClub('xwfit')
+    const [alice] = club.members
+    let game: { id: string; gametype: string; width: number }
+    try {
+      game = await createCrosswordsGameFromLibrary(club)
+    } catch {
+      test.skip(true, 'no library puzzles imported')
+      return
+    }
+    test.skip(game.width < 10, 'need a real full-size puzzle to test scrolling')
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-xw-cell]').first()).toBeVisible({ timeout: 15000 })
+    await page.waitForTimeout(400)
+
+    const s = await page.evaluate(() => {
+      const el = document.scrollingElement ?? document.documentElement
+      return { scrollH: el.scrollHeight, clientH: el.clientHeight }
+    })
+    expect(s.scrollH).toBeLessThanOrEqual(s.clientH + 2)
   })
 })

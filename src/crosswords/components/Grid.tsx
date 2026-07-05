@@ -13,8 +13,10 @@ import { cls } from '../../common/lib/util/cls'
 import styles from './Grid.module.css'
 
 // Board sizing — a single computed cell size, everything else in `em`.
-// Desktop-only (the layout exception); no narrow branch.
-const VERTICAL_OVERHEAD_PX = 64
+// Desktop-only (the layout exception); no narrow branch. The vertical
+// reserve covers the game chrome (--game-chrome-height, ~6.5rem) so the
+// board never exceeds the layout height and push the page into scrolling.
+const VERTICAL_OVERHEAD_PX = 112
 const MAX_CELL_PX = 60
 const REBUS_MIN_EM = 0.22
 

@@ -8,8 +8,12 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  /* Fixed to the viewport (like the shared .layout) so the min-height:0 chain
+   * below can bound — the board fills, the clue lists scroll internally, and
+   * the page itself never scrolls. */
+  height: calc(100vh - var(--game-chrome-height));
   min-height: 0;
+  overflow: hidden;
 }
 
 .layout {
@@ -78,6 +82,22 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+/* The tool row: controls on the left, the action button pushed to the right
+ * (this is where action buttons live). */
+.toolRow {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.actionRight {
+  margin-left: auto;
+}
+/* Size the End / Concede button to match the pen/pencil + check/reveal
+ * buttons in the row (the shared ActionButton is bigger by default). */
+.compactAction {
+  padding: 0.25rem 0.55rem !important;
+  font-size: 0.85rem !important;
 }
 .actions {
   display: flex;
