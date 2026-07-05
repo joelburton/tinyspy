@@ -1219,7 +1219,12 @@ different things):**
   reserves `'ended'` for the manual end; its own sibling spellingbee writes
   `won`/`won_compete`. Diverges from the states.md compete convention.
 
-**5.12 Smaller confirmed items.** — **◐ PARTLY DONE** (the two clean ones).
+**5.12 Smaller confirmed items.** — **✅ RESOLVED** (every sub-item is now either
+DONE or a documented deliberate leave): the InfoCol `target`→`solution` rename, the
+`metricByUser` Map unification, the `legalError` validator rename, the `common-define`
+edge-fn prefix, spellingbee's `onChange`/`onSubmit` + `over`-as-TerminalCopy-superset
+— all DONE; the board-gate `showInput`/`canGuess` pair and stackdown's `onSubmitWord`
+— left as genuine differences (Joel confirmed the board-gate leave).
 
 - ✅ **DONE.** wordle's InfoCol passes `target` (`wordle/InfoCol.tsx:54,97`) where
   waffle/stackdown use the glossary's `solution` for the same terminal-reveal
