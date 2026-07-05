@@ -158,6 +158,28 @@ describe('stackdown PlayArea — concede', () => {
   })
 })
 
+describe('stackdown PlayArea — hint', () => {
+  it('surfaces the clue when the next word has a hint', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    rpc.mockResolvedValueOnce({ error: null, data: 'a fruit' })
+    await user.click(screen.getByRole('button', { name: /^hint$/i }))
+    expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' })
+    expect(await screen.findByText('Hint: a fruit')).toBeInTheDocument()
+  })
+
+  it('a null hint reads as "no hint", NOT "all cleared"', async () => {
+    // Regression: band-2 words may lack a hint, so reveal_next_hint returns
+    // null even mid-game — which must not be mistaken for clearing the board.
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    rpc.mockResolvedValueOnce({ error: null, data: null })
+    await user.click(screen.getByRole('button', { name: /^hint$/i }))
+    expect(await screen.findByText(/no hint for this word/i)).toBeInTheDocument()
+    expect(screen.queryByText(/all .*cleared/i)).not.toBeInTheDocument()
+  })
+})
+
 /**
  * Turn-history viewer (docs/playarea-decomposition-plan.md, Phase A). Clicking a
  * log row replays that turn's board; a keystroke / click returns to live. These

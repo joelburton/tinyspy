@@ -217,8 +217,11 @@ export function PlayArea({
   // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
   // A softer reveal than "Reveal word": shows the curated hint for the next solution
   // word (common.words.hint, a clue that hides the word). The word never reaches the
-  // client — reveal_next_hint returns only the hint text. Every stackdown word is in
-  // the hint set, so no fallback.
+  // client — reveal_next_hint returns only the hint text. Band-1 words all carry a
+  // hint, but higher-band words (difficulty >= 2) may not be backfilled yet, so a
+  // NULL return means "this word has no hint" — NOT "all cleared". (You can't request
+  // a hint after clearing the last word: the sixth clear ends the game, and the RPC
+  // rejects a non-playing game.) So a null is a gentle "no hint" note, not a reveal.
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
@@ -226,7 +229,11 @@ export function PlayArea({
       return
     }
     const hint = data as string | null
-    showLocalFeedback(hint ? `Hint: ${hint}` : 'All words cleared', 'warning', { kind: 'closeable' })
+    showLocalFeedback(
+      hint ? `Hint: ${hint}` : 'No hint for this word yet.',
+      'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
+      { kind: 'closeable' },
+    )
   }, [gameId, showLocalFeedback])
 
   // ─── End (coop) — an info-column action-row button ────────────

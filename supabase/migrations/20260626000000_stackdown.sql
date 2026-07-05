@@ -597,16 +597,18 @@ grant execute on function stackdown.reveal_next_word(uuid) to authenticated;
 -- stackdown.reveal_next_hint — the "give it a nudge" helper
 -- ============================================================
 -- Returns the HINT for the next solution word the caller still has to
--- clear (NULL once all six are gone) — a clue that points at the word
--- without naming it (see common.words.hint). Unlike reveal_next_word it
--- doesn't leak the word itself: only the hint text crosses the wire.
+-- clear — a clue that points at the word without naming it (see
+-- common.words.hint). Unlike reveal_next_word it doesn't leak the word
+-- itself: only the hint text crosses the wire.
 --
--- The hint may be NULL: band-1 words all carry one (len=5 AND (wordle OR
--- difficulty=1) is common.words' hint set), but higher-band words
--- (difficulty >= 2) can lack a hint until common.words is backfilled. We
--- still log the 'hint' request row (its `word` just holds NULL) and return
--- NULL — the FE shows a blank clue rather than nothing. Same gating +
--- next-word math as reveal_next_word.
+-- The return is NULL when the next word has no hint: band-1 words all carry
+-- one (len=5 AND (wordle OR difficulty=1) is common.words' hint set), but
+-- higher-band words (difficulty >= 2) can lack a hint until common.words is
+-- backfilled. We still log the 'hint' request row (its `word` just holds
+-- NULL) and return NULL; the FE reads that as "no hint for this word" and
+-- says so (NOT "all cleared" — that can't happen here: clearing the sixth
+-- word ends the game, and the play_state guard below rejects a non-playing
+-- game). Same gating + next-word math as reveal_next_word.
 create function stackdown.reveal_next_hint(target_game uuid)
 returns text
 language plpgsql
