@@ -5,7 +5,6 @@ import { GenericFeedbackPill } from '../../common/components/feedback/GenericFee
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
-import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -138,13 +137,6 @@ export function PlayArea(ctx: GamePageCtx) {
     return list.find((c) => c.number === activeNumber)?.text ?? ''
   }, [game, activeNumber, dir])
 
-  // Fill progress (over the fillable, non-given cells the cells map holds).
-  const filled = useMemo(() => {
-    let n = 0
-    for (const c of cells.values()) if (c.fill != null) n += 1
-    return n
-  }, [cells])
-
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
   // Surface the terminal verdict in the active-clue slot (the reserved
@@ -214,12 +206,10 @@ export function PlayArea(ctx: GamePageCtx) {
           )}
         </div>
 
-        {/* Chrome strip: state · actions · setup. */}
+        {/* Chrome strip: the action row (End / Concede; back-to-club at
+            terminal). The state readout + setup recap are deliberately
+            omitted for now — to be reintroduced elsewhere on the page. */}
         <div className={styles.strip}>
-          <p className={shared.infoState}>
-            {filled} / {cells.size} cells filled
-          </p>
-
           {!isTerminal && isPlayable && (
             <div className={styles.actions}>
               {mode === 'compete' ? (
@@ -234,15 +224,6 @@ export function PlayArea(ctx: GamePageCtx) {
               <BackToClubButton onClick={goToClub} />
             </div>
           )}
-
-          <SetupDisclosure>
-            <li>Puzzle: {game.meta.title || 'Untitled'}</li>
-            {game.meta.author && <li>By: {game.meta.author}</li>}
-            <li>
-              Size: {game.meta.width}×{game.meta.height}
-            </li>
-            <li>Mode: {mode === 'coop' ? 'Co-op' : 'Compete'}</li>
-          </SetupDisclosure>
         </div>
       </div>
 

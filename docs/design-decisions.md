@@ -287,8 +287,9 @@ narrow/mobile screen that drops the info column can still play the game.
 > duty as the local-feedback slot (the `<GenericFeedbackPill>` takes it over when
 > feedback fires, then it reverts to the active clue; the reserved height means no
 > reflow) — and a **slim chrome strip** at the bottom of the right column holding
-> the mandatory info-column pieces (state line · action row: End (coop) / Concede
-> (compete) · Setup disclosure; Help stays in the GamePage menu). The board is
+> the action row (End (coop) / Concede (compete); Help stays in the GamePage
+> menu). The state readout and setup recap are omitted for now, to be
+> reintroduced elsewhere on the page. The board is
 > sized in `em` off a computed cell font-size and uses `100dvh`, so it scales
 > under zoom. No turn log / word list — fills are continuous shared state, not
 > discrete moves. See [`docs/games/crosswords.md`](games/crosswords.md).
