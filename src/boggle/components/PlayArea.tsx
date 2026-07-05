@@ -356,7 +356,7 @@ function buildOver({
     }
   }
   // The winning bar excludes conceded players — a drop-out can't be the
-  // winner anyone sees, matching boggle._finalize's max_score.
+  // winner anyone sees, matching boggle._finish's max_score.
   const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
   const board = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
     (r) => !concededIds.has(r.user_id),

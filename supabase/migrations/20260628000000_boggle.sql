@@ -398,12 +398,12 @@ revoke execute on function boggle.submit_word(uuid, text, int, boolean) from pub
 grant execute on function boggle.submit_word(uuid, text, int, boolean) to authenticated;
 
 -- ============================================================
--- _finalize / end_game / submit_timeout — terminal transitions.
+-- _finish / end_game / submit_timeout — terminal transitions.
 -- ============================================================
 -- Boggle has no win-on-target during play; the game ends when a player ends it
 -- or the timer expires. Coop has no individual winner (the team's total is the
 -- score); compete ranks players by score (ties share the win).
-create function boggle._finalize(target_game uuid, outcome text)
+create function boggle._finish(target_game uuid, outcome text)
 returns void
 language plpgsql
 security definer
@@ -481,7 +481,7 @@ begin
 end;
 $$;
 
-revoke execute on function boggle._finalize(uuid, text) from public;
+revoke execute on function boggle._finish(uuid, text) from public;
 
 create function boggle.end_game(target_game uuid)
 returns void
@@ -497,7 +497,7 @@ begin
   if g_playstate is distinct from 'playing' then
     return; -- already over; idempotent
   end if;
-  perform boggle._finalize(target_game, 'manual');
+  perform boggle._finish(target_game, 'manual');
 end;
 $$;
 
@@ -545,7 +545,7 @@ begin
   if g_playstate is distinct from 'playing' then
     return;
   end if;
-  perform boggle._finalize(target_game, 'timeout');
+  perform boggle._finish(target_game, 'timeout');
 end;
 $$;
 

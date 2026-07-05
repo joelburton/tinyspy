@@ -229,7 +229,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      _finalize: {
+      _finish: {
         Args: { outcome: string; target_game: string }
         Returns: undefined
       }

@@ -1087,7 +1087,29 @@ so every game is now `.viewed*`. `tsc -b` + eslint + 175 Vitest green across the
   (The prop-level `greenTiles` vs `highlight` split is documented-deliberate —
   untouched.)
 
-**5.11 SQL: same purpose, different names.**
+**5.11 SQL: same purpose, different names.** — **◐ DONE where the concept is
+genuinely shared; the rest are NOT drift (renaming would falsely conflate
+different things):**
+- ✅ **Move-log ordinal → `seq`** (wordle `guess_index`, waffle `swap_index` →
+  `seq`, matching stackdown/scrabble). Same pure per-move counter.
+- ✅ **Finisher**: boggle `_finalize` → `_finish` (same *unconditional*
+  finalizer as scrabble's `_finish`). But `_maybe_finish_compete` (connections/
+  waffle/wordle) is **left distinct on purpose** — it's a different function: it
+  returns `boolean` and early-returns if the game *isn't* over ("maybe finish"),
+  whereas `_finish`/`_finalize` return `void` and unconditionally finalize.
+- ⛔ **Cheat verbs** `request_hint`/`request_reveal` (psychicnum) vs
+  `reveal_next_hint`/`reveal_next_word` (stackdown) — **left**: stackdown's
+  `_next_` is load-bearing (6 ordered solution words — you reveal the *next*
+  one), psychicnum's secrets are unordered (pick an unfound one at random). The
+  names encode a real mechanical difference.
+- ⛔ **`result` numeric key** `score` (scrabble) vs `found` (stackdown) — **left**:
+  these are *different metrics* (points vs a 0–6 words-cleared count), not one
+  concept with two names; the names correctly describe each.
+- ⛔ **boggle `play_state='ended'` for a normal completion** — **left**: boggle
+  has no intrinsic win-threshold state (no "first to X" — the winner is *derived*
+  from most-points when the timer/manual-End fires), so `'ended'` is its only
+  terminal. Forcing `'won_compete'` would invent a state its game model doesn't
+  have. (Original finding below, for the record.)
 
 - Cheat RPCs: `request_hint`/`request_reveal` (`psychicnum.sql:827,881`) vs
   `reveal_next_hint`/`reveal_next_word` (`stackdown.sql:515,588`). Pick one
