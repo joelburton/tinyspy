@@ -274,22 +274,37 @@ export function ClubPage({ handle, session }: Props) {
       // channel as soon as the send completes — we're not
       // listening for anything on it.
       const ch = supabase.channel(`game:${gameId}`)
-      await new Promise<void>((resolve) => {
+      // The broadcast is friendliness, not correctness (peers handle a
+      // vanished game gracefully), so it must NEVER block the delete. Wait
+      // only until the channel reaches a TERMINAL status — SUBSCRIBED (we can
+      // send) or CHANNEL_ERROR / TIMED_OUT / CLOSED (give up) — and race a
+      // short timeout in case no status ever fires. Without this, a wedged
+      // Realtime connection would hang the delete on "Deleting…" forever —
+      // exactly when someone wants to remove a stuck game and the RPC below
+      // would have worked.
+      const subscribed = await new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => resolve(false), 1000)
         ch.subscribe((status) => {
-          if (status === 'SUBSCRIBED') resolve()
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timer)
+            resolve(true)
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            clearTimeout(timer)
+            resolve(false)
+          }
         })
       })
-      await ch.send({
-        type: 'broadcast',
-        event: 'suspend',
-        payload: { type: 'suspend' },
-      })
+      if (subscribed) {
+        await ch.send({
+          type: 'broadcast',
+          event: 'suspend',
+          payload: { type: 'suspend' },
+        })
+      }
       supabase.removeChannel(ch)
-      // Brief beat so peers have time to receive + navigate
-      // before the row disappears. They handle a missing game
-      // gracefully (load returns null → "Game not found"), so
-      // this is friendliness, not correctness.
-      await new Promise((r) => setTimeout(r, 150))
+      // Brief beat so peers have time to receive + navigate before the row
+      // disappears — only meaningful if the broadcast actually went out.
+      if (subscribed) await new Promise((r) => setTimeout(r, 150))
     }
 
     const { error } = await commonDb.rpc('delete_game', { target_game: gameId })

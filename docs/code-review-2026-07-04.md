@@ -326,7 +326,12 @@ same-name channel (small module-level teardown registry).
 ### §1.4 FE state bugs
 
 **F1. [medium] `ClubPage.handleDelete` hangs forever if the courtesy broadcast
-channel never reaches SUBSCRIBED.**
+channel never reaches SUBSCRIBED.** — **✅ DONE.** The subscribe-wait now
+resolves on any terminal status (SUBSCRIBED → send; CHANNEL_ERROR / TIMED_OUT /
+CLOSED → give up) and races a 1s timeout, then ALWAYS proceeds to
+`delete_game` (the send + the 150ms peer-beat run only when actually
+subscribed). A wedged Realtime connection no longer blocks the delete.
+`tsc -b` + eslint clean (Realtime-timing path, not unit-testable).
 `src/common/components/club/ClubPage.tsx:276–292` — the delete awaits a promise
 that resolves only on `SUBSCRIBED`; `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED` never
 resolve it, so `delete_game` is never called and the card sits at "Deleting…"
