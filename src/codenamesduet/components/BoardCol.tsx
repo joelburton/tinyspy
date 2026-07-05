@@ -10,7 +10,7 @@ import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
-import { BoardGrid } from './BoardGrid'
+import { Board } from './Board'
 import { CluePanel, type SuggestState } from './CluePanel'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -21,7 +21,7 @@ import styles from './BoardCol.module.css'
 const noop = () => {}
 
 /**
- * codenamesduet's board column — the 5×5 `BoardGrid` plus the fixed-height
+ * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
  * below-board slot under it (the turn-viewer banner, the CluePanel during play, or a
  * local `<GenericFeedbackPill>` for an own-action error / the terminal verdict).
  *
@@ -77,7 +77,7 @@ export function BoardCol({
   mySeat: Seat | undefined
   gameOver: boolean
   /** May I click a cell to guess right now (derivePhase)? Board input is also frozen
-   *  while `viewing` — this column ANDs the two before handing it to `<BoardGrid>`. */
+   *  while `viewing` — this column ANDs the two before handing it to `<Board>`. */
   cellsClickable: boolean
   /** Turn-history: the positions the viewed turn decided — ring them (undefined live). */
   highlight: ReadonlySet<number> | undefined
@@ -148,7 +148,7 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      <BoardGrid
+      <Board
         words={words}
         myKey={myKey}
         peerKey={peerKey}

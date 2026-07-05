@@ -321,7 +321,7 @@ The PlayArea sits on the **shared two-column scaffold**
 (`common/components/game/PlayArea.module.css` — the same one psychicnum / connections /
 codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout)):
 
-- **Board column** — `WaffleGrid` (the 5×5 lattice, tap-A-then-tap-B or
+- **Board column** — `Board` (the 5×5 lattice, tap-A-then-tap-B or
   drag-to-swap) in a no-chrome `.board` wrapper. Unlike the other games' boards,
   which fill the column rectangularly, waffle stays a **top-aligned square** (it's
   a waffle, with holes), sized via container-query units. Tiles use the shared

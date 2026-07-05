@@ -1,5 +1,5 @@
-/* waffle's board column — the square WaffleGrid (its own sizing lives in
- * WaffleGrid.module.css) plus the below-board region. This is the visual half of
+/* waffle's board column — the square Board (its own sizing lives in
+ * Board.module.css) plus the below-board region. This is the visual half of
  * <BoardCol>; the board column shell (.boardCol) is the shared scaffold. */
 
 /* The below-board REGION (universal). waffle is NON-SWAP and feedback-only —

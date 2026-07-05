@@ -288,7 +288,7 @@ src/codenamesduet/
     PlayArea.tsx          The thin two-column coordinator on the common
                           `PlayArea.module.css` scaffold (`shared.layout` /
                           `.boardCol` / `.infoCol`). **Decomposed** into a `BoardCol`
-                          (the BoardGrid + the clue move-zone; owns the **guess**
+                          (the Board + the clue move-zone; owns the **guess**
                           `submit_guess` RPC — the guess is a board click, so it stays
                           with the board's input engine, while CluePanel keeps the clue
                           RPCs) and an `InfoCol` (the shared readouts + GameTurnLog).
@@ -301,7 +301,7 @@ src/codenamesduet/
                           finished-player banners, `.infoActions` = End, `.infoHelp` =
                           phase copy, and the `.infoSetup` disclosure = turn cap + first
                           clue-giver) above the GameTurnLog. **Turn-history viewer:**
-                          clicking a log `#N` hands BoardGrid the `lib/history.ts` board
+                          clicking a log `#N` hands Board the `lib/history.ts` board
                           for that turn (its own cells ringed) with input frozen until
                           you leave (a keystroke / click / ✕).
                           Pops the shared `<GameOverModal>` on terminal and renders
@@ -311,7 +311,7 @@ src/codenamesduet/
                           cross-cutting chrome (logo, chat-bubble, players strip,
                           pause, timer, suspend-confirm, the global UserMenu) lives
                           on <GamePage> / App.
-    BoardCol.tsx          The board column: BoardGrid + the below-board CluePanel move-zone.
+    BoardCol.tsx          The board column: Board + the below-board CluePanel move-zone.
                           Owns the guess dispatch (a tile click → `submit_guess`) and takes
                           the board to render — the live denormalized board OR a `lib/history`
                           snapshot — plus `readOnly` while viewing a past turn.
@@ -321,7 +321,7 @@ src/codenamesduet/
                           arranges shared pieces + emits `onSelectTurn` / `onEndGame` up.
     InfoCol.module.css
     PlayArea.module.css
-    BoardGrid.tsx         The 5×5 board, PRESENTATIONAL: receives the board to render
+    Board.tsx         The 5×5 board, PRESENTATIONAL: receives the board to render
                           (live or a history snapshot) + `pendingPos` + an
                           `onGuess(position)` callback (BoardCol owns the submit) + an
                           optional ring for a viewed turn's own cells. Each tile composes the shared `.tile`/`.tileWord`
@@ -335,7 +335,7 @@ src/codenamesduet/
                           (cqi). Fills the column height via the shared grid
                           (repeat(5, 1fr)); word auto-fits via container queries.
                           See Board tile colors below.
-    BoardGrid.module.css
+    Board.module.css
     CluePanel.tsx         The below-board move-zone — rendered into PlayArea's
                           `.inputRow` slot (NOT the info column). ONE horizontal
                           line per state: the clue FORM (count + word `<input>` +
@@ -420,7 +420,7 @@ src/codenamesduet/
 
 The board sits on the shared `.tile` / `--tile-*` system ([ui.md → Interactive tile states](../ui.md#interactive-tile-states)): each cell re-sets the `--tile-*` tokens for its state rather than fighting the shared `.tile` rule. The **revealed** states use codenamesduet's own result palette (`--codenamesduet-{agent,neutral,assassin}`, see `theme.css`): agent = green, assassin = red, and **neutral/bystander = a warm tan (`#b4986e`)**.
 
-The **never-selected** (unrevealed) cell is a **deliberate exception** to the project default. Every other game leaves an untouched tile at the shared resting beige (`--tile-bg`, `#f0e6d2`) — codenamesduet does **not**, because that beige is close enough to the neutral tan that an unrevealed beige tile would read as "already guessed neutral." So an unrevealed cell instead uses a **lighter, greyer warm off-white** (`#f4f1ec` fill / `#e6e1d7` border): still in the tile-color family (a hint of warmth, not flat grey), but clearly "not touched yet" against the tan. It's set on `.bgWhite` in `BoardGrid.module.css`. This is the one place we override the standard tile color; the default elsewhere stays the shared beige.
+The **never-selected** (unrevealed) cell is a **deliberate exception** to the project default. Every other game leaves an untouched tile at the shared resting beige (`--tile-bg`, `#f0e6d2`) — codenamesduet does **not**, because that beige is close enough to the neutral tan that an unrevealed beige tile would read as "already guessed neutral." So an unrevealed cell instead uses a **lighter, greyer warm off-white** (`#f4f1ec` fill / `#e6e1d7` border): still in the tile-color family (a hint of warmth, not flat grey), but clearly "not touched yet" against the tan. It's set on `.bgWhite` in `Board.module.css`. This is the one place we override the standard tile color; the default elsewhere stays the shared beige.
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
@@ -446,7 +446,7 @@ During active play, each player's own `key_card` is what tints the board ([`useB
 
 Once the game flips to a terminal status, `useBoard` lazily fetches the partner's `key_card` into `peerKey`. `PlayArea` then renders each unrevealed cell with **two stripes** — A's label on top, B's on bottom — so a reader can compare what each cell actually was on both views. The "would we have lost on this assassin?" review is the load-bearing UX for this.
 
-The same split-stripe rendering is reused **during play** for a neutral'd cell (`neutral_a` / `neutral_b`): the viewer's own keycard color on top, the "guessed as a bystander" neutral color on the bottom. Both players see the split, but only the one who *didn't* hit it as a neutral can still click it (it may be their agent) — `BoardGrid` gates `clickable` on `!iNeutraled`. See the per-direction rule above.
+The same split-stripe rendering is reused **during play** for a neutral'd cell (`neutral_a` / `neutral_b`): the viewer's own keycard color on top, the "guessed as a bystander" neutral color on the bottom. Both players see the split, but only the one who *didn't* hit it as a neutral can still click it (it may be their agent) — `Board` gates `clickable` on `!iNeutraled`. See the per-direction rule above.
 
 The implementation detail worth knowing: `peerKey` is a **derived value**, not a piece of state we set/clear. It's `null` whenever `revealPeer` is false OR the cached fetch doesn't match the current `(gameId, userId)` pair. Today `<GamePage>` is keyed by `gameId` at the route level, so a navigation between games remounts the hook from scratch — the derived-value contract isn't exercised in practice, but the test in `useBoard.test.ts` pins it as a guard against future refactors that keep the hook alive across game changes.
 
@@ -509,7 +509,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 Deferred or sketched but not built:
 
 - **Mission / campaign mode.** Variable starting turn counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
-- **Tile `aria-label` for screen readers.** Board tiles in `BoardGrid.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the turn-log rewrite (colored words don't need text labels); a narrower helper would come back for this.
+- **Tile `aria-label` for screen readers.** Board tiles in `Board.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the turn-log rewrite (colored words don't need text labels); a narrower helper would come back for this.
 
 ## File locations
 
@@ -517,7 +517,7 @@ Deferred or sketched but not built:
 |---|---|
 | What does an RPC do | [`supabase/migrations/20260615000001_codenamesduet.sql`](../../supabase/migrations/20260615000001_codenamesduet.sql) |
 | What does an RPC say it does | this file + [`supabase/tests/codenamesduet/*_test.sql`](../../supabase/tests/codenamesduet/) |
-| What does the board look like | [`src/codenamesduet/components/BoardGrid.tsx`](../../src/codenamesduet/components/BoardGrid.tsx) (presentational per-tile render + corner overlays; calls `onGuess`) |
+| What does the board look like | [`src/codenamesduet/components/Board.tsx`](../../src/codenamesduet/components/Board.tsx) (presentational per-tile render + corner overlays; calls `onGuess`) |
 | What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx; owns the `submit_guess` dispatch, the header pill, and the terminal modal) |
 | How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
 | What's the phase logic | [`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) |

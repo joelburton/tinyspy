@@ -36,7 +36,7 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
  * coordination state (the turn-history viewer, the below-board feedback), and wires
  * two presentational columns:
  *
- *   - **`<BoardCol>`** — the square WaffleGrid + the below-board feedback slot. Takes
+ *   - **`<BoardCol>`** — the square Board + the below-board feedback slot. Takes
  *     the board to render (live OR a historical snapshot) + `readOnly`; emits a swap
  *     up (`onSwap`) and "back to live" (`onExitViewing`).
  *   - **`<InfoCol>`** — the swap-state readout, OpponentStrip, action row, setup

@@ -2,7 +2,7 @@
  * codenamesduet — the turn-history replay. Given the fixed 25 board words, the
  * append-only guess log, and a turn's clue, reconstruct what the board looked like
  * at the END of any past turn plus which cells that turn decided — so PlayArea can
- * hand `<BoardGrid>` a historical board the same way it hands it the live one.
+ * hand `<Board>` a historical board the same way it hands it the live one.
  *
  * ADD-style replay (like scrabble's `boardUpToSeq` / waffle's `boardAfter`, unlike
  * stackdown's removal): a guess only ever ADDS a reveal, so a past board is the
@@ -30,7 +30,7 @@ import type { GuessRow, WordRow } from '../hooks/useBoard'
 
 export interface TurnSnapshot {
   /** The 25 board words with reveal state as of the END of the viewed turn — feed
-   *  straight to `<BoardGrid words>`. */
+   *  straight to `<Board words>`. */
   words: WordRow[]
   /** The board positions this turn's guesses decided — ring these history-yellow
    *  ("added this turn"). Empty for a passed (guess-less) turn. */

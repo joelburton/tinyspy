@@ -3,7 +3,7 @@ import { cls } from '../../common/lib/util/cls'
 import { revealVar, tileColor } from '../lib/colors'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
-import styles from './WordleGrid.module.css'
+import styles from './Board.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
 const REVEAL_STEP_S = 0.22
@@ -58,7 +58,7 @@ type Props = {
  * flipping tiles — the keyframes (with `forwards`) hold the final color —
  * so each tile reads blank until its flip reaches halfway.
  */
-export function WordleGrid({
+export function Board({
   rows,
   current,
   pending,

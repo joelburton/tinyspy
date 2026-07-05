@@ -723,7 +723,7 @@ The contract for the capture model:
   ArrowUp layer), and the `disabled` (loading / terminal) / `busy` (mid-submit)
   gates. **spellingbee, boggle, psychicnum** are the EntryBox games (core + arrows,
   via `<EntryRow>`). **wordle uses the core ALONE** — its letters land on the
-  WordleGrid, not an EntryBox, so it gets the shared guards / letter / dismiss but
+  Board, not an EntryBox, so it gets the shared guards / letter / dismiss but
   **no arrow behavior**. The board-cursor games (bananagrams, scrabble) are a
   different capture shape again — a 2-D cursor where arrows *move* it — with their
   own shared hook, **`useBoardCursorKeys`** (also on `useGlobalKeyHandler`): it
@@ -989,9 +989,9 @@ set on `.board` in `Board.tsx`).
 block with **`--max-tile-width`**, **`--max-tile-height`**, and **`--grid-gap`**
 (rem). **Comment a cap line out → that axis is uncapped** (the `999rem` fallback
 wins, so the board fills the available space on that axis). The knob lives
-wherever the game keeps its board CSS — psychicnum `WordBoard.module.css`,
-connections `PlayArea.module.css`, codenamesduet `BoardGrid.module.css`, waffle
-`WaffleGrid.module.css` (a known inconsistency — consolidating them onto `.layout`
+wherever the game keeps its board CSS — psychicnum `Board.module.css`,
+connections `PlayArea.module.css`, codenamesduet `Board.module.css`, waffle
+`Board.module.css` (a known inconsistency — consolidating them onto `.layout`
 is a possible follow-up).
 
 **`--info-col-width` is game-specific** — set per game on its `.layout` (the
@@ -1129,7 +1129,7 @@ chat bubble, the `×` close, and the `✓`/`✗` marks.
 - **A literal palette layer** (`--color-gray-100`, etc.). Overkill at ~15 tokens; revisit at ~50+.
 - **Font-size tokens** (`--text-sm`, `--text-base`, …). Components pick raw rem values ad-hoc; standardize when the variety becomes noise.
 - **Promoting the board `.board` wrapper + `.grid` base into the shared
-  `PlayArea.module.css`.** Today psychicnum's `WordBoard.module.css` and
+  `PlayArea.module.css`.** Today psychicnum's `Board.module.css` and
   connections' `PlayArea.module.css` carry a byte-identical `.board` wrapper
   (`flex: 1 1 0; min-height: 0; display: flex; flex-direction: column`) and a
   near-identical `.grid` base (the per-game bits being the track definition + the

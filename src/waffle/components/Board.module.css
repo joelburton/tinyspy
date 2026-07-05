@@ -6,7 +6,7 @@
  * SQUARE (it's a waffle, with holes): the grid sizes to the largest square that
  * fits, and sits TOP-aligned in the column. The tile CHROME (box, radius,
  * shadow, hover ring, centering, the un-faded disabled look) is the SHARED
- * `.tile` from common (imported as `shared` in WaffleGrid.tsx); only the
+ * `.tile` from common (imported as `shared` in Board.tsx); only the
  * per-color fills, the letter, the pickup selection, and the holes are waffle's.
  */
 
@@ -122,7 +122,7 @@
 
 /* Recently-swapped tiles briefly pop, so the eye tracks the two that moved (the
  * only other change-signal is the recolor). Set for ~480ms after the board
- * updates, by diffing prev vs. next board (see WaffleGrid.tsx). A swapped tile is
+ * updates, by diffing prev vs. next board (see Board.tsx). A swapped tile is
  * never `selected` (the pick clears on swap), so the pop's transform doesn't
  * fight the selection lift. */
 .justSwapped {

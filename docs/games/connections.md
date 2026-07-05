@@ -341,7 +341,7 @@ src/connections/
                           plus the remaining tiles, which carry per-tile isMine/isPeer
                           attribution (degenerate to "all mine" in compete, where useGame
                           suppresses the broadcast send). Grows to fill the column, each row
-                          capped at MAX_TILE (psychicnum's WordBoard layout). Pulls RANK_TOKEN
+                          capped at MAX_TILE (psychicnum's Board layout). Pulls RANK_TOKEN
                           from lib/rankColors. (Replaced the old separate CategoryBands +
                           TileGrid, whose two layout systems gave bands/tiles different gaps.)
                           (Mistakes are no longer a per-game MistakeDots component: they

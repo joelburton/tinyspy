@@ -1,6 +1,6 @@
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { WaffleGrid } from './WaffleGrid'
+import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -10,7 +10,7 @@ import styles from './BoardCol.module.css'
 const noop = () => {}
 
 /**
- * waffle's board column — the square `WaffleGrid` plus the below-board region (the
+ * waffle's board column — the square `Board` plus the below-board region (the
  * feedback pill + the turn-viewer banner). The move IS the board (tap two tiles to
  * swap), so there are no below-board input controls — `onSwap` is the one committed
  * action up. Like the other games' BoardCol, it does NOT own game state: PlayArea
@@ -60,7 +60,7 @@ export function BoardCol({
     // listener + the click-through `.frame`), so the board column needs no click
     // handler — a click anywhere returns to live.
     <div className={shared.boardCol}>
-      <WaffleGrid
+      <Board
         board={board}
         colors={colors}
         disabled={readOnly}

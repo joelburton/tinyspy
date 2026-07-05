@@ -1,7 +1,7 @@
 import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
-import styles from './WordBoard.module.css'
+import styles from './Board.module.css'
 
 type Props = {
   /** The board words (5..20), shown as clickable tiles. Lowercase; displayed
@@ -28,7 +28,7 @@ type Props = {
 
 /**
  * psychicnum's "board": a grid of clickable word tiles. The board FILLS the
- * available space (see WordBoard.module.css + PlayArea.module.css + docs/ui.md
+ * available space (see Board.module.css + PlayArea.module.css + docs/ui.md
  * → the board grows to available space); the words lay out in a roughly-square
  * grid (`cols ≈ √N`), and both the column and row tracks are `1fr`, so the tiles
  * grow with the board.
@@ -39,7 +39,7 @@ type Props = {
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
  */
-export function WordBoard({
+export function Board({
   words,
   results,
   selected,
@@ -57,7 +57,7 @@ export function WordBoard({
       // matching the other games' boards.
       data-board
       // The column/row counts drive the board's hug WIDTH + max-HEIGHT, both
-      // computed in CSS from the --max-tile-* caps. See WordBoard.module.css.
+      // computed in CSS from the --max-tile-* caps. See Board.module.css.
       style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
       {/* While viewing a past turn the shared yellow `.frame` rings the board AND

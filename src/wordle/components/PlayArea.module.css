@@ -2,7 +2,7 @@
  * from the shared common/components/game/PlayArea.module.css (imported as `shared` in
  * PlayArea.tsx) and is composed via cls(); only the info-column WIDTH is wordle-
  * specific. The board grid + keyboard + the two columns' own chrome live in their
- * own modules (WordleGrid / BoardCol / InfoCol). See docs/ui.md → "PlayArea layout". */
+ * own modules (Board / BoardCol / InfoCol). See docs/ui.md → "PlayArea layout". */
 
 /* The info column's width — game-specific (the shared scaffold has no default).
  * wordle's right column (guess counter + guess list) fits a narrow column. A rem,

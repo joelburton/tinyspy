@@ -1,4 +1,4 @@
-/* psychicnum's board-column bits. The board itself is <WordBoard> (its own module);
+/* psychicnum's board-column bits. The board itself is <Board> (its own module);
  * this file styles only the below-board move-input REGION under it — the slot that
  * swaps between the guess entry, an own-move / terminal / waiting pill, and (while
  * viewing history) the banner overlay. The board-column scaffold (.boardCol /

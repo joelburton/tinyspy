@@ -4,7 +4,7 @@ import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
-import styles from './BoardGrid.module.css'
+import styles from './Board.module.css'
 
 /** Empty highlight set — a stable reference so a live render never rings a cell. */
 const NO_CELLS: ReadonlySet<number> = new Set()
@@ -13,7 +13,7 @@ const NO_CELLS: ReadonlySet<number> = new Set()
  * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
  * use the *unrevealed* (soft) palette — they show what a key card SAYS about a
  * cell, independent of what's been guessed. Style rules live in
- * BoardGrid.module.css; this map is the one place translating the data alphabet
+ * Board.module.css; this map is the one place translating the data alphabet
  * to presentation classes.
  */
 const KEY_SQUARE: Record<KeyLabel, 'keyAgent' | 'keyNeutral' | 'keyAssassin'> = {
@@ -69,7 +69,7 @@ type Props = {
  * logic is busy enough that inlining it would clutter PlayArea, which stays
  * readable as "board → clue slot → info column."
  */
-export function BoardGrid({
+export function Board({
   words,
   myKey,
   peerKey,

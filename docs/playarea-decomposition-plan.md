@@ -30,7 +30,7 @@ layout exception — see below):
 
 | layer | owns | interface |
 |---|---|---|
-| **`Board`** | pure presentation of a board state | state **down**, clicks **up**. Already extracted in 9/10 games (scrabble `Board`, waffle `WaffleGrid`, …); only **boggle** still renders inline. |
+| **`Board`** | pure presentation of a board state | state **down**, clicks **up**. Already extracted in 9/10 games (scrabble `Board`, waffle `Board`, …); only **boggle** still renders inline. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
 | **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** + a few named callbacks **up** (`onSelectTurn`, `onHint`, `onEndGame`, `onConcede`, …). Near-zero internal state. **Greenfield** — no game has this today; the prototype defines its shape. |
 | **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `viewingSeq`) | wires `BoardCol` ↔ `InfoCol`. |
@@ -164,7 +164,7 @@ A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabb
   passed down; own-guess builder since unified into `common/lib/game/localPills.ts`); waffle ✅; wordle ✅ viewer + **decomposed**
   (BoardCol/InfoCol, no-op verified): ADD-style (like psychicnum), keyed by log position,
   INCLUSIVE — the snapshot (`src/wordle/lib/history.ts`) is just the first N guess rows,
-  the last ringed history-yellow (`WordleGrid` gains `viewing` + `highlightRow`;
+  the last ringed history-yellow (`Board` gains `viewing` + `highlightRow`;
   `.viewedRow` ring). wordle's twist: the log has a **"whose board" picker**, so the `#N`
   handle is a live control ONLY when the log shows the board that replays (coop team / my
   own — `boardIsShown = teamView || picked === selfId`); an opponent's revealed log (compete

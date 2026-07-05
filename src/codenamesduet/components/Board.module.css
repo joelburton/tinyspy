@@ -2,7 +2,7 @@
  *
  * Styles were previously co-located in PlayArea.module.css; moved
  * here when PlayArea was restructured into the two-column layout
- * so the board's chrome stays with the BoardGrid component itself.
+ * so the board's chrome stays with the Board component itself.
  *
  * On reveal each tile commits to a solid label color (agent /
  * neutral / assassin). Pre-reveal, the clue-giver's tiles show a
@@ -21,7 +21,7 @@
  * fits-the-viewport rule (docs/ui.md → "Page-height fits the viewport"). The
  * tile CHROME (fill / border / shadow / hover ring / centering / the word
  * auto-fit) is the SHARED `.tile`/`.tileWord` from common (imported as `shared`
- * in BoardGrid.tsx); only the bits unique to codenamesduet live below. */
+ * in Board.tsx); only the bits unique to codenamesduet live below. */
 
 /* ─── Tile size caps — TINKER HERE ───────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative
@@ -58,7 +58,7 @@
   min-height: 0;
   display: grid;
   /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
-   * element in BoardGrid.tsx). */
+   * element in Board.tsx). */
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-template-rows: repeat(var(--rows), 1fr);
   gap: var(--grid-gap);

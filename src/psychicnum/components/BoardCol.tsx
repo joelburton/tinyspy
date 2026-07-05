@@ -8,7 +8,7 @@ import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { db } from '../db'
 import { capitalize } from '../lib/capitalize'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
-import { WordBoard } from './WordBoard'
+import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -28,7 +28,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 /**
- * psychicnum's board column — the `WordBoard` (with the floating Shuffle) plus the
+ * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
  * fixed-height below-board slot under it (the turn-viewer banner, the guess entry,
  * or a local `<GenericFeedbackPill>` for an own-move result / the waiting / terminal
  * verdict).
@@ -169,7 +169,7 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      <WordBoard
+      <Board
         words={shuffledWords}
         results={results}
         selected={viewing ? null : selected}

@@ -1,4 +1,4 @@
-/* codenamesduet's board-column bits. The board itself is <BoardGrid> (its own
+/* codenamesduet's board-column bits. The board itself is <Board> (its own
  * module); this file styles only the below-board move-input REGION under it — the
  * slot that swaps between the CluePanel, an own-action / terminal pill, and (while
  * viewing history) the banner overlay. The scaffold (.boardCol / .moveAreaOrLocal-

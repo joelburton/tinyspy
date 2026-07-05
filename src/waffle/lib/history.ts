@@ -1,7 +1,7 @@
 /**
  * waffle — the turn-history replay. Given the starting `scramble`, the hidden
  * `solution`, and the coop swap log, reconstruct what the board looked like at any
- * past swap, plus its colors and a description — so the PlayArea can hand `WaffleGrid`
+ * past swap, plus its colors and a description — so the PlayArea can hand `Board`
  * a historical board the same way it hands it the live one.
  *
  * This is the ADD-style replay (like scrabble's `boardUpToSeq`, unlike stackdown's
@@ -29,7 +29,7 @@ import { computeColors } from './colors'
 import type { SwapRow } from '../hooks/useGame'
 
 export interface TurnSnapshot {
-  /** The 25-char board AFTER the viewed swap. Feed straight to `<WaffleGrid board>`. */
+  /** The 25-char board AFTER the viewed swap. Feed straight to `<Board board>`. */
   board: string
   /** Its 25-char g/y/x colors, or null if the solution isn't available (shouldn't
    *  happen in coop — the grid then renders letters without color). */

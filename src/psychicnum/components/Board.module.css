@@ -46,7 +46,7 @@
  * hug game reads the same one. --cols is set inline. */
 .grid {
   /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
-   * element in WordBoard.tsx). This game keeps its own fill behaviour below. */
+   * element in Board.tsx). This game keeps its own fill behaviour below. */
   flex: 1;
   min-height: 0;
   display: grid;

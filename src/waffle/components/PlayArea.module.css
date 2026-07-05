@@ -2,7 +2,7 @@
  * info-column READOUTS, and the shared .tile chrome all come from the shared
  * common/components/game/PlayArea.module.css (imported as `shared`). PlayArea holds only
  * the layout-root var here; the board column's below-board region lives in
- * BoardCol.module.css, the square grid in WaffleGrid.module.css. */
+ * BoardCol.module.css, the square grid in Board.module.css. */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). waffle's right column (setup + swap state + the

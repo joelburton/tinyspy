@@ -49,7 +49,7 @@ function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
   return { game, players, guesses: [], loading: false }
 }
 
-/** A board word list — WordBoard renders a tile per word; needs at least one. */
+/** A board word list — Board renders a tile per word; needs at least one. */
 const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo']
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {

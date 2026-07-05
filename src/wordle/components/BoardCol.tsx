@@ -6,7 +6,7 @@ import { db } from '../db'
 import { stickyPill } from '../../common/lib/game/localPills'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { SnapshotRow, TurnSnapshot } from '../lib/history'
-import { WordleGrid } from './WordleGrid'
+import { Board } from './Board'
 import { Keyboard } from './Keyboard'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -17,7 +17,7 @@ import styles from './BoardCol.module.css'
 const noop = () => {}
 
 /**
- * wordle's board column — the `<WordleGrid>` plus the below-board region under it
+ * wordle's board column — the `<Board>` plus the below-board region under it
  * (the turn-viewer banner, the fixed-height local-feedback pill slot, and the
  * on-screen `<Keyboard>`).
  *
@@ -184,7 +184,7 @@ export function BoardCol({
   // Drives the same pending-guess state (`current`) as the on-screen <Keyboard> below,
   // off the shared capture CORE — so wordle can't drift from the modifier bail /
   // focused-input guard / any-key-dismiss that the EntryBox games get. wordle is NOT an
-  // EntryBox (letters land on the WordleGrid, not a box), so it uses useCaptureKeys
+  // EntryBox (letters land on the Board, not a box), so it uses useCaptureKeys
   // ALONE — no ArrowUp-recall / ArrowDown-clear (those are useArrowHistory, layered on
   // by <EntryRow> for the EntryBox games only).
   useCaptureKeys({
@@ -204,7 +204,7 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      <WordleGrid
+      <Board
         rows={snap ? snap.rows : rows}
         current={current}
         pending={snap ? '' : pendingWord}

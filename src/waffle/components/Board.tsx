@@ -4,7 +4,7 @@ import { tileColor } from '../../common/lib/color/tileColor'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
-import styles from './WaffleGrid.module.css'
+import styles from './Board.module.css'
 
 type Props = {
   /** 25-char board string, holes = '.'. Live board OR a historical snapshot. */
@@ -33,9 +33,9 @@ type Props = {
  * common; each color class re-sets the `--tile-*` tokens to a Wordle color, and
  * a picked-up tile gets waffle's own ring (the shared dark `.selected` fill is
  * skipped — it would bury the color). The square board lives in a `.board`
- * wrapper, top-aligned in the shared `.boardCol` (see WaffleGrid.module.css).
+ * wrapper, top-aligned in the shared `.boardCol` (see Board.module.css).
  */
-export function WaffleGrid({ board, colors, disabled, viewing = false, highlight, onSwap }: Props) {
+export function Board({ board, colors, disabled, viewing = false, highlight, onSwap }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   // Drag source (HTML5 drag-and-drop, the desktop alternative to tap).
   const dragFrom = useRef<number | null>(null)

@@ -1,5 +1,5 @@
 /* wordle's board-column chrome. The two-column SHELL (.boardCol) + the board grid
- * (WordleGrid.module.css) + keyboard live elsewhere; this owns only the below-board
+ * (Board.module.css) + keyboard live elsewhere; this owns only the below-board
  * REGION under the board. See docs/ui.md → "PlayArea layout". */
 
 /* The below-board REGION (universal). wordle is a NON-SWAP game: the feedback and

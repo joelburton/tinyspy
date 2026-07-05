@@ -857,7 +857,14 @@ all point the same way. Rider: the generic headings also drift — "Turns"
 (psychicnum) vs "Turn Log" (stackdown) vs "Moves" (scrabble); domain headings
 ("Swaps", "Clues") are fine.
 
-**5.2 The board-layer component: six names for one role — unify on `Board`.**
+**5.2 The board-layer component: six names for one role — unify on `Board`.** —
+**✅ DONE** (the four renamable ones). `git mv` `BoardGrid` (codenamesduet),
+`WordBoard` (psychicnum), `WaffleGrid` + `WordleGrid` (the codename-in-identifier
+smell) → `Board` (`.tsx` + `.module.css`), all refs + docs updated. Now 8/10
+games name it `Board` (bananagrams `BoardArena` is the documented exception).
+Left as genuinely-different: spellingbee's `Letters`/`Letter` (the hex-tile
+two-vocabulary question — separate from this rename) and boggle (grid still
+inline, no component to rename). `tsc -b` + eslint + 608 Vitest green.
 naming.md's own worked example says "The `Board` is still `Board` — just in a
 different folder." connections/scrabble/stackdown conform. Deviations:
 `BoardGrid` (codenamesduet), `WordBoard` (psychicnum), `WaffleGrid` /

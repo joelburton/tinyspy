@@ -27,7 +27,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
 /**
  * codenamesduet's play surface — two-column viewport-bound composition:
  *
- *   - **Board column** (left, flex) — the 5×5 BoardGrid, with the fixed-height
+ *   - **Board column** (left, flex) — the 5×5 Board, with the fixed-height
  *     `belowBoard` slot under it (the CluePanel during play, a local
  *     `<GenericFeedbackPill>` for an own-action error or the terminal verdict).
  *   - **Info column** (fixed-width):

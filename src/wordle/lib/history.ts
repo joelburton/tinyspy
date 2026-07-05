@@ -2,7 +2,7 @@
  * wordle — the turn-history replay. Given the guess log and the position of a turn
  * within it, reconstruct what the board looked like at that turn (the guess rows up
  * to and including it) plus which row that turn added — so PlayArea can hand
- * `<WordleGrid>` a historical `rows` list the same way it hands it the live one.
+ * `<Board>` a historical `rows` list the same way it hands it the live one.
  *
  * ADD-style replay (like psychicnum/scrabble, unlike stackdown's removal): a guess
  * only ever ADDS a colored row to the board, so a past board is simply the first N
@@ -22,7 +22,7 @@
  */
 import type { GuessRow } from '../hooks/useGame'
 
-/** The board row shape `<WordleGrid rows>` renders — a guess + its g/y/x colors. */
+/** The board row shape `<Board rows>` renders — a guess + its g/y/x colors. */
 export interface SnapshotRow {
   guess: string
   colors: string
@@ -30,7 +30,7 @@ export interface SnapshotRow {
 
 export interface TurnSnapshot {
   /** The guess rows as of the END of the viewed turn — feed straight to
-   *  `<WordleGrid rows>` (each is `{ guess, colors }`). */
+   *  `<Board rows>` (each is `{ guess, colors }`). */
   rows: SnapshotRow[]
   /** The board row this turn added — ring it history-yellow (it already wears its
    *  g/y/x tile colors). Equal to `index` (the last row in `rows`). */

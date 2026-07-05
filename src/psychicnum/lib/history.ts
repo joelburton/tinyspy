@@ -2,7 +2,7 @@
  * psychicnum — the turn-history replay. Given the guess log and the position of a
  * turn within it, reconstruct what the board looked like at that turn (which tiles
  * had been decided, and as what) plus which tile that turn decided — so PlayArea can
- * hand `<WordBoard>` a historical `results` map the same way it hands it the live one.
+ * hand `<Board>` a historical `results` map the same way it hands it the live one.
  *
  * ADD-style replay (like scrabble/waffle/codenamesduet, unlike stackdown's removal):
  * a guess only ever ADDS a permanent green/red mark, so a past board is the guesses
@@ -26,7 +26,7 @@ import type { GuessRow } from '../hooks/useGame'
 
 export interface TurnSnapshot {
   /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
-   *  straight to `<WordBoard results>`. */
+   *  straight to `<Board results>`. */
   results: Map<string, boolean>
   /** The board word this turn's guess decided — ring it history-yellow (it already
    *  wears its green/red outcome color). Null for a hint / reveal turn (no tile). */
