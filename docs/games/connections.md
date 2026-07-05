@@ -368,10 +368,6 @@ src/connections/
                           (mode-scoped) club_game_status for the calendar overlay. Defaults
                           to today's puzzle if available, else the most recent.
     SetupForm.module.css
-    Calendar.tsx          The month-grid date picker used by SetupForm. Colors each day square
-                          by the club's outcome for that date (won / lost / in-progress) and
-                          gates clickability to dates with an imported puzzle.
-    Calendar.module.css
     Help.tsx              connections's help / rules modal (placeholder content), opened from the
                           GamePage menu — implements the manifest's `help` contract.
 
@@ -412,11 +408,14 @@ src/connections/
                           the board via the shared viewer. Compete's `guesses` are RLS-scoped to
                           the caller, so a compete viewer replays only their own board.
     history.test.ts       Unit tests for the snapshot boundary + outcome tinting.
-    monthGrid.ts          Pure month-grid layout helper extracted from Calendar (so the
-                          component file holds only React). Returns the 7-wide cell array
-                          with leading-blank / trailing-pad nulls for a given year+month.
-    monthGrid.test.ts     Unit tests for the grid-layout edge cases.
 ```
+
+The date picker itself is **not** connections-specific: the month-grid calendar lives
+in `common/components/fields/Calendar.tsx` (with its `buildMonthGrid` helper in
+`common/lib/util/monthGrid.ts`) so other date-indexed puzzle games can reuse it.
+connections's `SetupForm` maps its `play_state` vocabulary into the calendar's
+gametype-agnostic `OutcomeBucket` (won / lost / active) and passes the puzzle-date set
++ per-date club outcomes down.
 
 ### Realtime: two channels
 

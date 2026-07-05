@@ -1,5 +1,6 @@
 /* ============================================================
- * Calendar widget for the connections setup form.
+ * Shared month-grid calendar widget (common/fields); connections is
+ * the first user.
  *
  * Visual rules:
  *   - The grid is 7 columns wide; 6 rows tall (max possible
@@ -23,8 +24,10 @@
   flex-direction: column;
   gap: 0.5rem;
   /* Cap the calendar's width so a typical-month grid renders
-     readable squares without stretching across a wide modal. */
-  max-width: 320px;
+     readable squares without stretching across a wide modal. The
+     day-cells are `1fr` squares (aspect-ratio: 1), so this cap is
+     also what sizes them — a tighter cap = smaller cells. */
+  max-width: 248px;
   margin-top: 0.5rem;
 }
 

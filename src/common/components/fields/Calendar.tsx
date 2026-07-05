@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
-import { buildMonthGrid } from '../lib/monthGrid'
+import { buildMonthGrid } from '../../lib/util/monthGrid'
 import styles from './Calendar.module.css'
 
 /**
  * Per-date game-outcome bucket the calendar uses to color a
- * square. The mapping from per-gametype `play_state` to this
- * bucket lives in `SetupForm` (where we know connections's
- * vocabulary). The calendar itself is gametype-agnostic — give
- * it a `Map<YYYY-MM-DD, OutcomeBucket>` and a `Set<YYYY-MM-DD>`
- * of "dates that have an available puzzle," and it renders.
+ * square. The mapping from a per-gametype `play_state` to this
+ * bucket lives in the caller (e.g. connections's `SetupForm`,
+ * where we know that game's vocabulary). The calendar itself is
+ * gametype-agnostic — give it a `Map<YYYY-MM-DD, OutcomeBucket>`
+ * and a `Set<YYYY-MM-DD>` of "dates that have an available
+ * puzzle," and it renders.
  *
  * The bucket names match the `--color-outcome-*` theme tokens in
  * `src/common/theme.css`, where the colors live so other surfaces
@@ -32,7 +33,8 @@ type Props = {
 }
 
 /**
- * Month-grid calendar widget for the connections setup form.
+ * Month-grid calendar widget — a shared `common/fields` picker for
+ * date-indexed puzzle games (connections is the first user).
  *
  * Each square represents a single calendar date. The visual
  * states (in priority order):
@@ -53,7 +55,7 @@ type Props = {
  * doesn't auto-jump — the user has to navigate the calendar
  * to find the date they want.
  *
- * Date string format throughout is `YYYY-MM-DD` (matches
+ * Date string format throughout is `YYYY-MM-DD` (e.g. matches
  * `connections.puzzles.nyt_date::text`). All Date construction
  * goes through `Date.UTC(...)` so we never trip on local-tz
  * offsets — these dates are calendar coordinates, not

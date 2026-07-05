@@ -3,7 +3,7 @@ import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
-import { Calendar, type OutcomeBucket } from './Calendar'
+import { Calendar, type OutcomeBucket } from '../../common/components/fields/Calendar'
 import styles from '../../common/components/fields/setupForm.module.css'
 
 /** A puzzle entry as the form needs it — id + date. Date is
