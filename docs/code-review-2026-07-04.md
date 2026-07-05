@@ -1120,7 +1120,11 @@ manifest `BRAND`:
 **5.13 Graduation candidates for naming.md's canonical table** (per its own
 "third game adopts a term" rule): `submit_word` (3 schemas), `concede`,
 `submit_timeout`, and `lib/history.ts`'s `TurnSnapshot`/`turnSnapshot`
-(6 games, perfectly uniform today — worth pinning before game 11).
+(6 games, perfectly uniform today — worth pinning before game 11). — **✅ DONE.**
+All four verified uniform (submit_word × 3 schemas, concede × common + 9
+wrappers, submit_timeout × 10, turnSnapshot × 6) and added to naming.md's
+"Cross-game canonical names" table, each noting the deliberate exceptions
+(submit_swap/play_word are distinct verbs; scrabble's replay is `boardUpToSeq`).
 
 **Rejected as genuinely different** (checked, not findings): the
 `submit_guess`/`submit_word`/`submit_swap`/`play_word` verb split (tracks real
