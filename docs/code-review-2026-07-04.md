@@ -1141,7 +1141,19 @@ different things):**
 - The board-gate prop, six names: `readOnly` (stackdown, waffle — glossary) vs
   `entryDisabled` (boggle) vs `showInput` (connections) vs `canGuess`
   (psychicnum) vs `guessingAllowed` (wordle) vs `cellsClickable`
-  (codenamesduet).
+  (codenamesduet). — **◐ The four *board-only* gates unified on `readOnly`,
+  each test-protected:** boggle `entryDisabled` (same polarity, clean), and
+  wordle `guessingAllowed` / codenamesduet `cellsClickable` (polarity flips
+  guarded by new input-gating characterization tests written *first*; codenames-
+  duet reintroduces `cellsClickable = !readOnly` internally to keep its
+  derivePhase + viewing interplay byte-identical). **Left: connections `showInput`
+  + psychicnum `canGuess`** — these are *not* the same concept. They're
+  positively-framed **cross-column input-PHASE** flags used in BOTH BoardCol and
+  InfoCol to SHOW/HIDE the input UI + help (`tiles={showInput ? … : []}`,
+  `{canGuess && <help>}`), not a board-only "visible-but-inert" `readOnly`. The
+  name accurately describes the show/hide behavior; `readOnly` would be a less-
+  accurate name forced for surface consistency (and would need an internal re-
+  negation anyway). Flagged for Joel's call.
 - Per-player metric InfoCol prop: `playerStates` (scrabble, stackdown, waffle,
   wordle — glossary) vs `scoreByUser` (boggle) / `rankByUser` (spellingbee) /
   `opponentFound` (connections) / `playerBudgets` (psychicnum) — the
