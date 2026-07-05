@@ -57,7 +57,7 @@
  * The red (dropNo) case is always an OCCUPIED cell, whose `.tile` is
  * `position: absolute; inset: 0`, opaque, and — via `container-type: size` — its
  * own stacking context, so it paints over a cell-level ring. Ring the TILE
- * instead (z-index above its neighbours), exactly like the `.viewingTile`
+ * instead (z-index above its neighbours), exactly like the `.viewedTile`
  * turn-highlight below does with the green token. (bananagrams needs neither
  * trick — its occupied cell is plain text, not an opaque overlay tile.) */
 .dropOk {
@@ -124,7 +124,7 @@
 /* Turn-viewer: the tiles THIS turn placed — the attention overlay (so they read
    as "this turn's play", matching a just-placed tile) PLUS a persistent
    success-green outline (the good words of this turn). */
-.tile.viewingTile {
+.tile.viewedTile {
   background: var(--scrabble-tile-attention);
   outline: 3px solid var(--color-outcome-won-strong);
   outline-offset: -3px;

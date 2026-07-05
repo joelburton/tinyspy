@@ -123,7 +123,7 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
                 styles[color],
                 selected === pos && styles.selected,
                 flashing.has(pos) && styles.justSwapped,
-                highlight?.has(pos) && styles.highlighted,
+                highlight?.has(pos) && styles.viewedTile,
               )}
               aria-label={`${letter.toUpperCase()} (${color})`}
               aria-pressed={selected === pos}

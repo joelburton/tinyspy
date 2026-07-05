@@ -113,7 +113,7 @@
  * "here's what this swap did" marker paired with the yellow viewing frame. Drawn
  * with `outline` (order-independent, like `.selected`); `position: relative` + a
  * z-index lift it so the ring paints over neighbouring tiles rather than under. */
-.highlighted {
+.viewedTile {
   outline: 3px solid var(--color-text);
   outline-offset: 2px;
   position: relative;

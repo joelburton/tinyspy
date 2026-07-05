@@ -110,7 +110,7 @@ export function Board({
                     lifting && styles.lifted,
                     greenCells.has(idx) && styles.flashAccept,
                     redCells.has(idx) && styles.flashReject,
-                    viewingCells?.has(idx) && styles.viewingTile,
+                    viewingCells?.has(idx) && styles.viewedTile,
                   )}
                 >
                   <span className={styles.letter}>{glyph}</span>
