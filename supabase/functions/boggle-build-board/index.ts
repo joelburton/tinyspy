@@ -30,12 +30,12 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { generateBoard, listBonusWords, type BoardConstraints } from '../../../src/boggle/lib/generate.ts'
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie } from './dict.ts'
 import { json, preflight } from '../_shared/http.ts'
+import { callerClient, invokeCreateGame } from '../_shared/startGame.ts'
 
 interface BoggleSetup {
   dice_set?: string
@@ -114,12 +114,7 @@ serve(async (req: Request): Promise<Response> => {
         : []
 
     // ─── Create the game as the caller ────────────────────────────────────
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    )
-    const { data, error } = await supabase.schema('boggle').rpc('create_game', {
+    return await invokeCreateGame(callerClient(authHeader), 'boggle', {
       target_club: targetClub,
       setup,
       player_user_ids: playerUserIds,
@@ -133,11 +128,6 @@ serve(async (req: Request): Promise<Response> => {
         bonus_words: bonusWords,
       },
     })
-    if (error) return json({ error: error.message }, 400)
-    const rows = (data as Array<{ id: string }> | null) ?? []
-    if (rows.length === 0) return json({ error: 'create_game returned no row' }, 500)
-
-    return json({ id: rows[0].id })
   } catch (e) {
     console.error('boggle-build-board threw:', e)
     return json({ error: String(e instanceof Error ? e.message : e) }, 500)

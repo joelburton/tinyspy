@@ -830,6 +830,24 @@ validation + createClient-as-caller + `rpc('create_game')` + error mapping:
 a header added to `Access-Control-Allow-Headers` currently must be stamped 5×
 (boggle's list already formats differently).
 
+> **✅ DONE (Part A fully, Part B log-safely).** **Part A —** `_shared/http.ts`
+> holds `cors` / `json` / `preflight`; all **5** functions import it and dropped
+> their local copies (a `Access-Control-Allow-Headers` change is now one edit).
+> **Part B —** `_shared/startGame.ts` holds the two log-free, byte-identical pieces
+> of the create-a-game handoff: `callerClient(authHeader)` (the createClient-as-
+> caller plumbing — `SUPABASE_URL`/`ANON_KEY`/`Authorization` now live once, used by
+> all 3 board-builders) and `invokeCreateGame(supabase, schema, args)` (the
+> `create_game` RPC call + error mapping → 400 / 500 / `{id}`). boggle adopts both;
+> waffle + spellingbee adopt `callerClient` but keep their create_game **tails
+> inline** — those tails carry bespoke diagnostic `console.log`s the keep-logs prior
+> protects, so folding them is a flagged follow-up (docs/deferred.md → Tooling), NOT
+> silently dropped. The INPUT parsing stays per-function (error wording + the
+> per-reject log trail genuinely differ per game; the board payload is game-
+> specific). Verified against the live local edge runtime: `OPTIONS` → 200 on all;
+> `POST {}` → each game's own 400; a full boggle POST generated a board, built the
+> caller client, and `invokeCreateGame` called `boggle.create_game` and mapped its
+> "permission denied" → 400 (proving the whole shared path executes).
+
 **4.4 [MEDIUM] InfoCol action-slot triple branch + "You conceded" row —
 supersedes the deferred `<EndOrConcedeButton>`.** The concede feature
 (2026-07-02, post-review) created new duplication: the full

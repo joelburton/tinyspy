@@ -60,8 +60,9 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json, preflight } from '../_shared/http.ts'
+import { callerClient } from '../_shared/startGame.ts'
 
 // ───────────────────────────────────────────────────────────
 // Types
@@ -450,11 +451,7 @@ serve(async (req) => {
 
     console.log(`accepted: target_club=${targetClub}, players=${playerUserIds.length}`)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    )
+    const supabase = callerClient(authHeader)
 
     // ─── 1. Read the previous board (for overlap cap) ─────
     const previousMask = await fetchPreviousMask(supabase, targetClub)
