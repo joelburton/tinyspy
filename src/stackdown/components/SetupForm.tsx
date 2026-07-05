@@ -30,8 +30,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         onChange={(band) => onChange({ ...s, band })}
       />
       <p className="muted">
-        Band 1 is the common everyday words; band 2 mixes in some
-        less-common ones.
+        Band 1 is the common everyday words; band 2 uses the next tier
+        of less-common ones.
       </p>
       <TimerField
         value={s.timer}

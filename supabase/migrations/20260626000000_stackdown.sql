@@ -44,14 +44,13 @@ create table stackdown.boards (
   id         uuid primary key default gen_random_uuid(),
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
-  -- The word-difficulty BAND the board was generated against — a
-  -- `common.words.difficulty` ceiling. band = N means the six words are
-  -- drawn from `difficulty <= N` (american, clean, 5-letter), and for N >= 2
-  -- at least one word is exactly difficulty N (so a band-2 board genuinely
-  -- earns its label). band 1 = the common everyday set. This is BOTH
-  -- provenance AND the pool create_game filters on — a game claims a random
-  -- board OF THE CHOSEN BAND. Runtime never consults a lexicon: a submission
-  -- is accepted iff it's the next solution word (see submit_word).
+  -- The word-difficulty BAND the board was generated against — all six words
+  -- are EXACTLY `common.words.difficulty = band` (american, clean, 5-letter).
+  -- band 1 = the common everyday set; band 2 = the next tier (no band-1 words
+  -- mixed in); 3..6 widen further. This is BOTH provenance AND the pool
+  -- create_game filters on — a game claims a random board OF THE CHOSEN BAND.
+  -- Runtime never consults a lexicon: a submission is accepted iff it's the
+  -- next solution word (see submit_word).
   band       int not null check (band between 1 and 6),
   created_at timestamptz not null default now()
 );

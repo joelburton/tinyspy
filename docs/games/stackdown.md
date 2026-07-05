@@ -124,16 +124,14 @@ no-traps**; validate against *all* completions, not one.
 ### 2.5 The lexicon is a *generation-time* concern only
 
 The word list is chosen per generation run by a **band** — a
-`common.words.difficulty` ceiling (`difficulty <= band AND american AND slur =
-0 AND crude = 0 AND len = 5`). `band 1` is the everyday set; higher bands widen
-the pool, and for `band >= 2` the generator forces every board to include at
-least one word at exactly that difficulty (so a band-2 board genuinely earns its
-label — the other five may be band 1 or 2). Whichever set a board is generated
-against is what the no-trap check enumerates completions against, so a board is
-solvable and fork-free *with respect to it*. The band is recorded on the board
-(and copied onto the game); the setup form offers bands 1–2 today (that's what
-the board library holds), and `create_game` claims a random board **of the
-chosen band**.
+`common.words.difficulty` level (`difficulty = band AND american AND slur = 0
+AND crude = 0 AND len = 5`). `band 1` is the everyday set; `band 2` is the next
+tier, and a band-N board is made **entirely** of band-N words (no lower-band
+words mixed in). Whichever set a board is generated against is what the no-trap
+check enumerates completions against, so a board is solvable and fork-free
+*with respect to it*. The band is recorded on the board (and copied onto the
+game); the setup form offers bands 1–2 today (that's what the board library
+holds), and `create_game` claims a random board **of the chosen band**.
 
 > **Hints + higher bands.** `reveal_next_hint` reads `common.words.hint`, which
 > is populated for the band-1 (len-5) set but not yet for every band-2 word — so
@@ -410,14 +408,14 @@ re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
 
 - **`npm run stackdown:gen -- [count] [baseSeed] [band]`** (`generate-stackdown-boards.ts`)
   — the SLOW half, run rarely. Loads the 5-letter lexicon at the chosen `band`
-  (`difficulty <= band`, default 1) from `common.words` (read-only), generates N
-  strictly-valid boards on the fixed geometry, and **appends** them to
-  `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a committed,
-  human-readable library that grows across runs; duplicate six-word sets are
-  skipped, so band-1 and band-2 boards coexist in the one file, each line tagged
-  with its `band`). For `band >= 2` every board is forced to include at least one
-  word at exactly that difficulty. Reproducible: board *i* uses `baseSeed + i`.
-  Does NOT touch the `stackdown` tables. Each board is bounded by
+  (`difficulty = band` exactly, default 1) from `common.words` (read-only),
+  generates N strictly-valid boards on the fixed geometry, and **appends** them
+  to `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a
+  committed, human-readable library that grows across runs; duplicate six-word
+  sets are skipped, so band-1 and band-2 boards coexist in the one file, each
+  line tagged with its `band`). A band-N board is made entirely of band-N words.
+  Reproducible: board *i* uses `baseSeed + i`. Does NOT touch the `stackdown`
+  tables. Each board is bounded by
   a wall-clock budget (default 30s, `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological
   word-set whose strict-validation search blows up is skipped rather than hanging
   the run. (Validation is also kept fast by pruning the `reachableWords` DFS to

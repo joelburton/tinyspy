@@ -21,9 +21,9 @@ export type StackdownSetup = {
    */
   timer: TimerMode
   /**
-   * Word-difficulty band — a `common.words.difficulty` ceiling. `1` = the
-   * common everyday set; `2` mixes in less-common words (a band-2 board is
-   * guaranteed at least one difficulty-2 word). The form offers 1..2 today
+   * Word-difficulty band — a `common.words.difficulty` level. `1` = the
+   * common everyday set; `2` = the next tier (a band-2 board is made entirely
+   * of difficulty-2 words, no band-1 mixed in). The form offers 1..2 today
    * (that's what the board library holds); create_game accepts any 1..6 it
    * has boards for.
    */
