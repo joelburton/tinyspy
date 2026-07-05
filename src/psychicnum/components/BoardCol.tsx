@@ -57,7 +57,7 @@ export function BoardCol({
   canGuess,
   showLocalFeedback,
   clearLocalFeedback,
-  localFeedback,
+  localPill,
   // ── Below-board slot content ──
   over,
   secrets,
@@ -89,7 +89,7 @@ export function BoardCol({
   /** Clear the sticky own-move pill (a new guess / keystroke dismisses it). */
   clearLocalFeedback: () => void
   /** The own-move pill to render in the entry's slot, or null. */
-  localFeedback: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
 
   // ── Below-board slot content ──
   /** Terminal copy — its verdict + the secret reveal show as a permanent pill. */
@@ -216,7 +216,7 @@ export function BoardCol({
             </div>
           )}
           {over ? (
-            <div className={shared.localFeedback}>
+            <div className={shared.localPill}>
               <GenericFeedbackPill
                 msg={terminalPill(
                   over.tone,
@@ -242,10 +242,10 @@ export function BoardCol({
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}
-              pill={pending === '' ? localFeedback : null}
+              pill={pending === '' ? localPill : null}
             />
           ) : (
-            <div className={shared.localFeedback}>
+            <div className={shared.localPill}>
               <GenericFeedbackPill
                 msg={outOfRacePill(myConceded, 'Out of guesses — waiting on the rest.')}
                 onClose={noop}

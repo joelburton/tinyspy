@@ -221,7 +221,7 @@ export function PlayArea({
   // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the info
   // column's terminalExtra carries the fuller "The answer was …" sentence.
   const answerSuffix = game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
-  const localFeedbackMsg: GenericFeedbackMsg | null = over
+  const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict)
     : isLocallyDone
       ? outOfRacePill(myConceded)
@@ -243,7 +243,7 @@ export function PlayArea({
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         // ── Below-board pill ──
-        localFeedbackMsg={localFeedbackMsg}
+        localPill={localPill}
       />
       <InfoCol
         // ── Mode + phase ──

@@ -971,13 +971,15 @@ function; promote one builder to `common/` under one name — pairs with §4.1.
 `localPill` matches the plan's canonical prop name; `ownMove` has plurality.
 
 **5.5 Feedback-channel naming violations (the codebase's own hard rule —
-mechanical fixes).** — **◐ PARTLY DONE.** ✅ `WordSubmitApi.showFeedback` →
+mechanical fixes).** — **✅ DONE.** ✅ `WordSubmitApi.showFeedback` →
 `showLocalFeedback` (internal `useLocalFeedback` return aliased to `showPill` to
 avoid the clash; boggle/spellingbee consumers updated). ✅ scrabble BoardCol's
-stale `onFeedback` docstring → `showLocalFeedback` (the real prop). ⬜ The
-resolved-pill BoardCol **prop** drift (`localPill` vs `localFeedback` vs
-wordle's `localFeedbackMsg`) — deferred: it tangles with the `useLocalFeedback`
-return also named `localFeedback`, so a clean unify on `localPill` needs care.
+stale `onFeedback` docstring → `showLocalFeedback` (the real prop). ✅ The
+resolved-pill BoardCol **prop** now unifies on `localPill` across all ten games:
+wordle's `localFeedbackMsg` and boggle/connections/psychicnum/spellingbee's
+`localFeedback` prop → `localPill` (the PlayArea `useLocalFeedback` *value* stays
+`localFeedback`; only the BoardCol prop name changed — `\blocalFeedback\b`
+doesn't touch `show`/`clearLocalFeedback`).
 
 - `WordSubmitApi.showFeedback` (`src/common/hooks/game/useWordSubmit.ts:87`) —
   bare, in a *common* hook, next to correctly-named `localFeedback` /

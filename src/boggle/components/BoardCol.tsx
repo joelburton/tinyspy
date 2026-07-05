@@ -27,9 +27,9 @@ function rotateCW(g: string[][]): string[][] {
  * word-entry ENGINE (`useWordSubmit`: the typed word, the submit RPC, the feedback)
  * stays in PlayArea, because its feedback channel is also written by InfoCol's End /
  * Concede — so PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit`
- * / `localFeedback` / …) DOWN and this column renders them. Like the other games'
+ * / `localPill` / …) DOWN and this column renders them. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it the display `grid`, and
- * the below-board `over` pill / `localFeedback`. See docs/playarea-decomposition-plan.md.
+ * the below-board `over` pill / `localPill`. See docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
   // ── Board to render ──
@@ -44,7 +44,7 @@ export function BoardCol({
   entryDisabled,
   // ── Below-board pill (channel owned by PlayArea) ──
   over,
-  localFeedback,
+  localPill,
 }: {
   // ── Board to render ──
   /** The display grid (letters in board order) — PlayArea builds it from the board;
@@ -69,7 +69,7 @@ export function BoardCol({
   /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
   over: TerminalCopy | null
   /** The own-move pill to show while the entry is empty (a word result), or null. */
-  localFeedback: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
 }) {
   // Number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
@@ -121,7 +121,7 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             recall={lastWord}
             pill={
-              over ? terminalPill(over.tone, over.verdict) : word === '' ? localFeedback : null
+              over ? terminalPill(over.tone, over.verdict) : word === '' ? localPill : null
             }
           />
         </div>

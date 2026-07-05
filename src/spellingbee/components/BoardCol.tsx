@@ -31,7 +31,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * the Space-shuffles capture extra key. The word-entry ENGINE (`useWordSubmit`: the
  * typed word, the submit RPC, the feedback) stays in PlayArea, because its feedback
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry
- * primitives (`word` / `setWord` / `submit` / `localFeedback` / …) DOWN and this column
+ * primitives (`word` / `setWord` / `submit` / `localPill` / …) DOWN and this column
  * renders them (a thin-input game, like boggle/connections). See
  * docs/playarea-decomposition-plan.md.
  */
@@ -44,7 +44,7 @@ export function BoardCol({
   word,
   setWord,
   submit,
-  localFeedback,
+  localPill,
   clearLocalFeedback,
   lastWord,
   isTerminal,
@@ -65,7 +65,7 @@ export function BoardCol({
   setWord: Dispatch<SetStateAction<string>>
   submit: () => void
   /** The own-move pill to show while the entry is empty (a word result), or null. */
-  localFeedback: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
   /** Dismiss the sticky own-move pill (a keystroke / letter click clears it). */
   clearLocalFeedback: () => void
   /** The last submitted word, for ArrowUp recall. */
@@ -149,7 +149,7 @@ export function BoardCol({
               isTerminal && over
                 ? terminalPill(over.tone, `Game over — ${over.indicator}`)
                 : word === ''
-                  ? localFeedback
+                  ? localPill
                   : null
             }
           >

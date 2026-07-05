@@ -294,7 +294,7 @@ export function PlayArea({
         selfId={session.user.id}
         colorByUserId={colorByUserId}
         // ── Own-guess feedback (channel owned by PlayArea) ──
-        localFeedback={localFeedback}
+        localPill={localFeedback}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         // ── Guess dispatch ──

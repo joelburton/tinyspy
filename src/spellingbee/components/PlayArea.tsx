@@ -361,7 +361,7 @@ export function PlayArea(ctx: GamePageCtx) {
         word={word}
         setWord={setWord}
         submit={submit}
-        localFeedback={localFeedback}
+        localPill={localFeedback}
         clearLocalFeedback={clearLocalFeedback}
         lastWord={lastWord}
         isTerminal={isTerminal}

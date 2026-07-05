@@ -63,7 +63,7 @@ export function BoardCol({
   selfId,
   colorByUserId,
   // ── Own-guess feedback (channel owned by PlayArea) ──
-  localFeedback,
+  localPill,
   showLocalFeedback,
   clearLocalFeedback,
   // ── Guess dispatch (this column owns submit_guess) ──
@@ -106,7 +106,7 @@ export function BoardCol({
 
   // ── Own-guess feedback ──
   /** The own-guess pill to render in the commit slot, or null. */
-  localFeedback: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
   showLocalFeedback: (msg: GenericFeedbackMsg) => void
   clearLocalFeedback: () => void
 
@@ -253,11 +253,11 @@ export function BoardCol({
             </div>
           )}
           {showInput ? (
-            localFeedback ? (
+            localPill ? (
               // My own guess result — a centered local pill (sticky; a tile click
               // dismisses it). Same register as the header pill.
-              <div className={shared.localFeedback}>
-                <GenericFeedbackPill msg={localFeedback} onClose={noop} />
+              <div className={shared.localPill}>
+                <GenericFeedbackPill msg={localPill} onClose={noop} />
               </div>
             ) : (
               <div className={styles.moveArea}>
@@ -283,7 +283,7 @@ export function BoardCol({
           ) : (
             // Terminal / eliminated — a PERMANENT outcome pill at game over, or a
             // sticky "you're out" while the rest race on.
-            <div className={shared.localFeedback}>
+            <div className={shared.localPill}>
               <GenericFeedbackPill
                 msg={over ? terminalPill(over.tone, over.verdict) : outOfRacePill(myConceded)}
                 onClose={noop}

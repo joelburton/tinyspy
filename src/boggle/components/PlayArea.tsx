@@ -261,7 +261,7 @@ export function PlayArea(ctx: GamePageCtx) {
         entryDisabled={isTerminal || myConceded}
         // ── Below-board pill ──
         over={over}
-        localFeedback={localFeedback}
+        localPill={localFeedback}
       />
 
       <InfoCol

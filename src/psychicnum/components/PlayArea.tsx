@@ -317,7 +317,7 @@ export function PlayArea({
         canGuess={canGuess}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
-        localFeedback={localFeedback}
+        localPill={localFeedback}
         // ── Below-board slot content ──
         over={over}
         secrets={game.secrets}

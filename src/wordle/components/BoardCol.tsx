@@ -31,7 +31,7 @@ const noop = () => {}
  * guess?", which this column ANDs with its own not-mid-submit state). Own-move
  * feedback lifts to PlayArea (its `showLocalFeedback` / `clearLocalFeedback` write the
  * shared below-board channel, which InfoCol's End / Concede also write), and the
- * fully-resolved below-board pill comes down as `localFeedbackMsg`. See
+ * fully-resolved below-board pill comes down as `localPill`. See
  * docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
@@ -49,7 +49,7 @@ export function BoardCol({
   showLocalFeedback,
   clearLocalFeedback,
   // ── Below-board pill (resolved by PlayArea) ──
-  localFeedbackMsg,
+  localPill,
 }: {
   // ── Board to render ──
   /** The LIVE board rows (the viewer's own / the coop team board) — drives the
@@ -83,7 +83,7 @@ export function BoardCol({
   // ── Below-board pill ──
   /** The one pill to render in the fixed-height slot (terminal verdict / "you're out"
    *  / own-move soft-reject — resolved by PlayArea), or null. */
-  localFeedbackMsg: GenericFeedbackMsg | null
+  localPill: GenericFeedbackMsg | null
 }) {
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -220,7 +220,7 @@ export function BoardCol({
           own height so neither the board above nor the keyboard below reflows when its
           pill appears/clears; it holds exactly one centered pill (own-move soft-reject,
           sticky "you're out", or the permanent terminal verdict — see
-          `localFeedbackMsg`) — or nothing. */}
+          `localPill`) — or nothing. */}
       <div className={styles.belowBoard}>
         {/* Turn-viewer banner — while inspecting a past turn it overlays the whole
             below-board region (the feedback slot + the keyboard stay mounted underneath,
@@ -244,7 +244,7 @@ export function BoardCol({
           </div>
         )}
         <div className={shared.localFeedback}>
-          {localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
+          {localPill && <GenericFeedbackPill msg={localPill} onClose={noop} />}
         </div>
         <div className={styles.moveArea}>
           <Keyboard
