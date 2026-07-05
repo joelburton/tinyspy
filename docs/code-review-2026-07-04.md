@@ -359,7 +359,11 @@ from the stored one, and "Print board (PDF)" snapshots the live `boardRef`
 `useBoardCursorKeys`' `enabled`).
 
 **F3. [low] `useProfile`: one failed first fetch is permanent for the
-session.**
+session.** — **✅ DONE** (primary fix). `ensureLoaded`'s error path now resets
+`loadedFor = null`, so a later mount / navigation retries instead of no-opping
+on the `loadedFor === userId` guard forever. (The compounding `setProfileColor`-
+drops-color-while-null edge left as-is — the RPC already persisted it, so a
+reload shows it.) `tsc -b` clean.
 `src/common/hooks/session/useProfile.ts:46–63` — `ensureLoaded` sets
 `loadedFor = userId` *before* fetching and the error path never resets it, so
 every later call no-ops: UserMenu shows "…" forever until a full reload.

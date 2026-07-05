@@ -56,6 +56,11 @@ async function ensureLoaded(userId: string) {
   if (loadedFor !== userId) return // a newer load superseded this one
   if (error) {
     console.error('failed to load profile', error)
+    // Clear the load marker so a later mount / navigation retries. Without
+    // this the failed first fetch is permanent for the session — every
+    // `ensureLoaded` no-ops on the `loadedFor === userId` guard above and
+    // the UserMenu shows "…" until a full reload.
+    loadedFor = null
     return
   }
   current = { username: data.username, color: data.color }
