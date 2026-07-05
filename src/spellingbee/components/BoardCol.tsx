@@ -31,7 +31,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * the Space-shuffles capture extra key. The word-entry ENGINE (`useWordSubmit`: the
  * typed word, the submit RPC, the feedback) stays in PlayArea, because its feedback
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry
- * primitives (`word` / `setWord` / `submit` / `localPill` / …) DOWN and this column
+ * primitives (`word` / `onChange` / `onSubmit` / `localPill` / …) DOWN and this column
  * renders them (a thin-input game, like boggle/connections). See
  * docs/playarea-decomposition-plan.md.
  */
@@ -42,8 +42,8 @@ export function BoardCol({
   allowedLetters,
   // ── Word entry (engine in PlayArea; rendered here) ──
   word,
-  setWord,
-  submit,
+  onChange,
+  onSubmit,
   localPill,
   clearLocalFeedback,
   lastWord,
@@ -62,8 +62,8 @@ export function BoardCol({
   /** The pending typed word. */
   word: string
   /** Set the pending word (a value or an updater — a letter click appends). */
-  setWord: Dispatch<SetStateAction<string>>
-  submit: () => void
+  onChange: Dispatch<SetStateAction<string>>
+  onSubmit: () => void
   /** The own-move pill to show while the entry is empty (a word result), or null. */
   localPill: GenericFeedbackMsg | null
   /** Dismiss the sticky own-move pill (a keystroke / letter click clears it). */
@@ -93,9 +93,9 @@ export function BoardCol({
   const handleLetterClick = useCallback(
     (letter: string) => {
       clearLocalFeedback()
-      setWord((prev) => prev + letter.toUpperCase())
+      onChange((prev) => prev + letter.toUpperCase())
     },
-    [clearLocalFeedback, setWord],
+    [clearLocalFeedback, onChange],
   )
 
   // Space shuffles the outer letters — spellingbee's one capture-entry extra key (the
@@ -137,8 +137,8 @@ export function BoardCol({
         <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}
-            onChange={setWord}
-            onSubmit={submit}
+            onChange={onChange}
+            onSubmit={onSubmit}
             placeholder="Type or click letters"
             disabled={isTerminal}
             onAnyKey={clearLocalFeedback}

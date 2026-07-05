@@ -359,8 +359,8 @@ export function PlayArea(ctx: GamePageCtx) {
         allowedLetters={allowedLetters}
         // ── Word entry (engine here; rendered in BoardCol) ──
         word={word}
-        setWord={setWord}
-        submit={submit}
+        onChange={setWord}
+        onSubmit={submit}
         localPill={localFeedback}
         clearLocalFeedback={clearLocalFeedback}
         lastWord={lastWord}
