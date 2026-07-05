@@ -186,17 +186,17 @@ create policy players_select on wordle.players
 -- 5-char g/y/x feedback computed at submit time. Coop: a shared
 -- sequence — every member sees every guess. Compete: per-player; the
 -- RLS policy hides opponents' rows until the game is terminal (the
--- end-of-game reveal). `guess_index` is the guesser's 1-based count;
+-- end-of-game reveal). `seq` is the guesser's 1-based count;
 -- in coop it's the shared team count.
 create table wordle.guesses (
   game_id     uuid not null references wordle.games(id) on delete cascade,
   user_id     uuid not null references common.profiles(user_id) on delete cascade,
-  guess_index int not null,          -- 1-based; coop = shared team count
+  seq int not null,          -- 1-based; coop = shared team count
   guess       char(5) not null,
   colors      char(5) not null,      -- g/y/x per letter
   is_correct  boolean not null,
   guessed_at  timestamptz not null default now(),
-  primary key (game_id, user_id, guess_index)
+  primary key (game_id, user_id, seq)
 );
 
 create index wordle_guesses_game_id_idx on wordle.guesses (game_id);
@@ -586,7 +586,7 @@ begin
   new_used  := p_used + 1;
 
   insert into wordle.guesses
-    (game_id, user_id, guess_index, guess, colors, is_correct)
+    (game_id, user_id, seq, guess, colors, is_correct)
   values
     (target_game, caller_id, new_used, norm, v_colors, did_solve);
 

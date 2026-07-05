@@ -101,15 +101,15 @@ select is(
   'every coop swap is logged');
 -- First swap: ada exchanged cells 2,3, which held c,d in the scramble.
 select row_eq(
-  format($$ select user_id, swap_index, pos_a, pos_b, letter_a::text, letter_b::text
+  format($$ select user_id, seq, pos_a, pos_b, letter_a::text, letter_b::text
               from waffle.swaps
-             where game_id = %L and swap_index = 1 $$, (select id from g1)),
+             where game_id = %L and seq = 1 $$, (select id from g1)),
   row('ada11111-1111-1111-1111-111111111111'::uuid, 1, 2, 3, 'c'::text, 'd'::text),
   'the log records swapper, ordinal, positions, and pre-swap letters');
 -- The solving swap (the third) was bea's.
 select is(
   (select user_id from waffle.swaps
-    where game_id = (select id from g1) and swap_index = 3),
+    where game_id = (select id from g1) and seq = 3),
   'bea22222-2222-2222-2222-222222222222'::uuid,
   'the solving swap is attributed to the player who made it');
 

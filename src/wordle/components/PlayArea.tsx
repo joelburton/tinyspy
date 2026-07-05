@@ -85,11 +85,11 @@ export function PlayArea({
   // are excluded (they land on the shared board). Compete never narrates a guess: RLS
   // scopes `guesses` to the caller, and we gate on coop besides. The shared hook's
   // seen-set (not "the last row") handles coop interleaving two players' rows by
-  // guess_index, so the newest isn't last.
+  // seq, so the newest isn't last.
   useGlobalFeedback({
     enabled: game?.mode === 'coop',
     items: guesses,
-    keyOf: (g) => `${g.user_id}-${g.guess_index}`,
+    keyOf: (g) => `${g.user_id}-${g.seq}`,
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
       const member = memberById(members, g.user_id)

@@ -253,7 +253,7 @@ create policy players_select on waffle.players
 -- deductions their hidden board is meant to protect — and the FE hides
 -- the log in compete anyway.
 --
--- `swap_index` is the coop shared swap count after the move (1-based),
+-- `seq` is the coop shared swap count after the move (1-based),
 -- which the games-row `for update` lock in submit_swap keeps sequential
 -- and collision-free. `letter_a` / `letter_b` are the letters that sat
 -- on `pos_a` / `pos_b` *before* the swap — stored (not derived) so the
@@ -261,13 +261,13 @@ create policy players_select on waffle.players
 create table waffle.swaps (
   game_id    uuid not null references waffle.games(id) on delete cascade,
   user_id    uuid not null references common.profiles(user_id) on delete cascade,
-  swap_index int  not null,          -- 1-based ordinal within the game
+  seq int  not null,          -- 1-based ordinal within the game
   pos_a      int  not null,          -- 0..24
   pos_b      int  not null,          -- 0..24
   letter_a   char(1) not null,       -- letter on pos_a before the swap
   letter_b   char(1) not null,       -- letter on pos_b before the swap
   created_at timestamptz not null default now(),
-  primary key (game_id, swap_index)
+  primary key (game_id, seq)
 );
 
 create index waffle_swaps_game_id_idx on waffle.swaps (game_id);
@@ -726,7 +726,7 @@ begin
     -- Append to the shared move log. Coop only; the letters are read
     -- from the PRE-swap board (p_board) so the entry is self-contained.
     insert into waffle.swaps
-      (game_id, user_id, swap_index, pos_a, pos_b, letter_a, letter_b)
+      (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
     values
       (target_game, caller_id, new_swaps, pos_a, pos_b,
        substr(p_board, a1, 1), substr(p_board, b1, 1));

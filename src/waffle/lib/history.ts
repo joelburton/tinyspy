@@ -12,7 +12,7 @@
  *
  * **Coop only.** Only coop writes `waffle.swaps` (compete records none — a swap
  * sequence would leak an opponent's hidden board), so there's history to replay only
- * in coop. In coop the board is shared and `swap_index` is a single game-wide ordinal,
+ * in coop. In coop the board is shared and `seq` is a single game-wide ordinal,
  * so — unlike stackdown, whose per-user seq forced a log-position id — a swap's
  * position in the ordered log IS its chronological order; we index the log directly.
  *
@@ -86,5 +86,5 @@ function describe(swap: SwapRow | undefined): string {
   if (!swap) return 'This swap'
   const a = `${swap.letter_a.toUpperCase()} (${coord(swap.pos_a)})`
   const b = `${swap.letter_b.toUpperCase()} (${coord(swap.pos_b)})`
-  return `#${swap.swap_index}: ${a} ↔ ${b}`
+  return `#${swap.seq}: ${a} ↔ ${b}`
 }

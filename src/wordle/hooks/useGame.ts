@@ -35,7 +35,7 @@ export type WordlePlayerState = {
  */
 export type GuessRow = {
   user_id: string
-  guess_index: number
+  seq: number
   guess: string
   colors: string
   is_correct: boolean
@@ -81,9 +81,9 @@ export function useGame(gameId: string): {
           .eq('game_id', gameId),
         db
           .from('guesses')
-          .select('user_id, guess_index, guess, colors, is_correct')
+          .select('user_id, seq, guess, colors, is_correct')
           .eq('game_id', gameId)
-          .order('guess_index', { ascending: true }),
+          .order('seq', { ascending: true }),
       ])
       if (!mounted()) return
 

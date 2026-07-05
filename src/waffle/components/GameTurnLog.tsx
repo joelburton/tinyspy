@@ -46,12 +46,12 @@ export function GameTurnLog({ swaps, players, viewingIndex, onSelectTurn }: Prop
       {swaps.map((s, i) => {
         const swapper = playerFor(s.user_id)
         // The "#N" handle replays that swap on the board viewer. Identified by
-        // POSITION in the log (mirrors stackdown's GameTurnLog), shown as swap_index.
+        // POSITION in the log (mirrors stackdown's GameTurnLog), shown as seq.
         return (
-          <tr key={s.swap_index} className={turnLog.turnLogDivider}>
+          <tr key={s.seq} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome="neutral" />
             <TurnLogNumber
-              n={s.swap_index}
+              n={s.seq}
               viewing={viewingIndex === i}
               onSelect={() => onSelectTurn(i)}
             />

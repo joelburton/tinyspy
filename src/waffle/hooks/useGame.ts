@@ -43,7 +43,7 @@ export type WaffleGame = {
  */
 export type SwapRow = {
   user_id: string
-  swap_index: number
+  seq: number
   pos_a: number
   pos_b: number
   letter_a: string
@@ -93,9 +93,9 @@ export function useGame(gameId: string): {
         // the base table — it has no gated columns.
         db
           .from('swaps')
-          .select('user_id, swap_index, pos_a, pos_b, letter_a, letter_b')
+          .select('user_id, seq, pos_a, pos_b, letter_a, letter_b')
           .eq('game_id', gameId)
-          .order('swap_index', { ascending: true }),
+          .order('seq', { ascending: true }),
       ])
       if (!mounted()) return
 

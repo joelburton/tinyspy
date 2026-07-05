@@ -85,7 +85,7 @@ describe('wordle PlayArea — render smoke', () => {
     // A landed guess exercises the GameTurnLog row (squares + who cell), not
     // just the empty state.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayArea {...makeCtx()} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
@@ -114,14 +114,14 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const ctx = makeCtx({ globalFeedback: feedback, players: twoMembers })
     // First render seeds the seen-set with my own guess (no announcement).
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     const { rerender } = render(<PlayArea {...ctx} />)
     feedback.show.mockClear()
     // A teammate's guess lands → narrated in the header.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
-      { user_id: 'u2', guess_index: 0, guess: 'crane', colors: 'ggggg', is_correct: true },
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u2', seq: 0, guess: 'crane', colors: 'ggggg', is_correct: true },
     ])
     rerender(<PlayArea {...ctx} />)
     expect(feedback.show).toHaveBeenCalledTimes(1)
@@ -135,7 +135,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     feedback.show.mockClear()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     rerender(<PlayArea {...ctx} />)
     expect(feedback.show).not.toHaveBeenCalled()
@@ -286,7 +286,7 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
 describe('wordle PlayArea — click-to-define (turn log)', () => {
   it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', guess_index: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     render(<PlayArea {...makeCtx()} />)
     // The turn-log guess carries the click-to-define affordance, and it rides the

@@ -46,7 +46,7 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus spellingbee's pe
 |---|---|
 | `wordle.games` → `common.games(id)` | `mode` (`coop`/`compete`), **`target char(5)` HIDDEN** (column-grant revoked; revealed post-terminal via `games_state` + the `_target_for` SECURITY DEFINER helper), `max_guesses`, `legal_guess` (the band a guess is checked against — stored here so `submit_guess` reads it off the locked row). |
 | `wordle.players` PK `(game_id, user_id)` | `guesses_used`, `solved`, `solved_at`. Coop: lock-step (shared budget). Compete: independent. |
-| `wordle.guesses` PK `(game_id, user_id, guess_index)` | `guess`, `colors`, `is_correct`. **RLS** (mirrors `spellingbee.found_words`): coop → club sees all; compete → see your own, opponents revealed only at `is_terminal`. |
+| `wordle.guesses` PK `(game_id, user_id, seq)` | `guess`, `colors`, `is_correct`. **RLS** (mirrors `spellingbee.found_words`): coop → club sees all; compete → see your own, opponents revealed only at `is_terminal`. |
 
 - **`wordle.compute_colors(guess, answer) → text`** — the two-pass green-then-yellow algorithm with duplicate-letter accounting (a duplicate of `waffle._wordle_colors`; the removability invariant forbids cross-game refs).
 - **`wordle.games_state`** (`security_invoker`) — the game header with `target` only post-terminal.

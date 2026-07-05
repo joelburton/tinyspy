@@ -75,7 +75,7 @@ select is(
   1, 'coop: the guess is shared — bea''s budget moved too (lock-step)');
 select is(
   (select length(colors) from wordle.guesses
-    where game_id = (select id from g) and guess_index = 1),
+    where game_id = (select id from g) and seq = 1),
   5, 'the guess row stores 5-char colors');
 
 -- ── Duplicate (same word again): soft reject, no burn ──────

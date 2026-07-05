@@ -2116,7 +2116,7 @@ export type Database = {
           letter_b: string
           pos_a: number
           pos_b: number
-          swap_index: number
+          seq: number
           user_id: string
         }
         Insert: {
@@ -2126,7 +2126,7 @@ export type Database = {
           letter_b: string
           pos_a: number
           pos_b: number
-          swap_index: number
+          seq: number
           user_id: string
         }
         Update: {
@@ -2136,7 +2136,7 @@ export type Database = {
           letter_b?: string
           pos_a?: number
           pos_b?: number
-          swap_index?: number
+          seq?: number
           user_id?: string
         }
         Relationships: [
@@ -2329,27 +2329,27 @@ export type Database = {
           colors: string
           game_id: string
           guess: string
-          guess_index: number
           guessed_at: string
           is_correct: boolean
+          seq: number
           user_id: string
         }
         Insert: {
           colors: string
           game_id: string
           guess: string
-          guess_index: number
           guessed_at?: string
           is_correct: boolean
+          seq: number
           user_id: string
         }
         Update: {
           colors?: string
           game_id?: string
           guess?: string
-          guess_index?: number
           guessed_at?: string
           is_correct?: boolean
+          seq?: number
           user_id?: string
         }
         Relationships: [
