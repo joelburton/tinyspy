@@ -1303,6 +1303,7 @@ export type Database = {
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
+          board?: Json
           mode: string
           player_user_ids: string[]
           setup: Json

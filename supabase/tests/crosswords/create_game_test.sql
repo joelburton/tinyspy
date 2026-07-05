@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(15);
+select plan(18);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -80,6 +80,25 @@ reset role;
 select is(
   (select count(*)::int from crosswords.cells where game_id = :'gg_id'),
   3, 'given cell (0,0) is excluded — 3 fillable cells, not 4');
+
+-- ── Inline board path (the NYT edge-function path — puzzle data passed
+--    straight in, NOT via a crosswords.puzzles row) ────────────────────
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select id as gb_id from crosswords.create_game(
+  :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+  jsonb_build_object('meta', pg_temp.xw_meta_2x2(), 'solution', pg_temp.xw_sol_2x2())) \gset
+reset role;
+
+select ok(
+  exists(select 1 from crosswords.games where id = :'gb_id'),
+  'inline board create_game creates a self-contained game');
+select is(
+  (select puzzle_id from crosswords.games where id = :'gb_id'),
+  null, 'inline board game has a null puzzle_id (not from the library)');
+select is(
+  (select count(*)::int from crosswords.cells where game_id = :'gb_id'),
+  4, 'inline board pre-inserts the fillable cells');
 
 -- ── Guards ───────────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

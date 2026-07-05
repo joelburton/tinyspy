@@ -347,16 +347,21 @@ revoke execute on function crosswords._maybe_finish(uuid, uuid, text, uuid) from
 -- ============================================================
 -- create_game
 -- ============================================================
--- The library path: `setup.puzzle_id` names a crosswords.puzzles row;
--- we copy its meta/solution into the game and pre-insert one cells row
--- per fillable NON-given cell (one grid for coop; one per player for
--- compete). The NYT edge function (stage 5) upserts a puzzle first, then
--- calls this with that puzzle_id.
+-- Two ways to source the puzzle data (meta + solution):
+--   * LIBRARY (`board` null): `setup.puzzle_id` names a crosswords.puzzles
+--     row — the curated, CLI-imported library — whose meta/solution we copy.
+--   * INLINE (`board` = {meta, solution}): the puzzle data is passed straight
+--     in, NOT stored in crosswords.puzzles. This is the NYT edge-function path
+--     (like boggle's `board` arg) — an NYT import creates a self-contained
+--     game with puzzle_id null; it does NOT add to the shared library.
+-- Either way we pre-insert one cells row per fillable NON-given cell (one
+-- shared grid for coop; one per player for compete).
 create function crosswords.create_game(
   target_club text,
   setup jsonb,
   player_user_ids uuid[],
-  mode text
+  mode text,
+  board jsonb default null
 )
 returns table(id uuid)
 language plpgsql
@@ -380,16 +385,26 @@ begin
     raise exception 'mode is a top-level arg, not a setup field' using errcode = 'P0001';
   end if;
 
-  v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
-  if v_puzzle_id is null then
-    raise exception 'setup.puzzle_id is required' using errcode = 'P0001';
-  end if;
-  -- Alias the table: the `returns table(id uuid)` OUT column shadows an
-  -- unqualified `id`, so qualify the puzzle key.
-  select p.meta, p.solution into v_meta, v_solution
-    from crosswords.puzzles p where p.id = v_puzzle_id;
-  if not found then
-    raise exception 'puzzle % not found', v_puzzle_id using errcode = 'P0001';
+  if board is not null then
+    -- Inline (NYT): trust the caller's puzzle data; no library row.
+    v_meta := board -> 'meta';
+    v_solution := board -> 'solution';
+    if v_meta is null or v_solution is null then
+      raise exception 'board must carry meta + solution' using errcode = 'P0001';
+    end if;
+    v_puzzle_id := null;
+  else
+    -- Library: copy from crosswords.puzzles. (Alias the table: the
+    -- `returns table(id uuid)` OUT column shadows an unqualified `id`.)
+    v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
+    if v_puzzle_id is null then
+      raise exception 'setup.puzzle_id is required' using errcode = 'P0001';
+    end if;
+    select p.meta, p.solution into v_meta, v_solution
+      from crosswords.puzzles p where p.id = v_puzzle_id;
+    if not found then
+      raise exception 'puzzle % not found', v_puzzle_id using errcode = 'P0001';
+    end if;
   end if;
 
   new_id := common.create_game(
@@ -420,8 +435,8 @@ begin
   return query select new_id;
 end;
 $$;
-revoke execute on function crosswords.create_game(text, jsonb, uuid[], text) from public;
-grant execute on function crosswords.create_game(text, jsonb, uuid[], text) to authenticated;
+revoke execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) from public;
+grant execute on function crosswords.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
 
 -- ============================================================
 -- set_cell — the hot path (one call per keystroke)
