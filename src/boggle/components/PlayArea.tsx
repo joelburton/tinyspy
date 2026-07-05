@@ -115,13 +115,17 @@ export function PlayArea(ctx: GamePageCtx) {
   )
   const myScore = useMemo(() => myFoundRows.reduce((s, r) => s + r.points, 0), [myFoundRows])
   const myCount = useMemo(() => new Set(myFoundRows.map((r) => r.word)).size, [myFoundRows])
-  // Required words found (C) — the non-bonus subset of the finds. Legal words on
-  // the board (F) = the whole findable set, required ∪ bonus.
+  // Required (C) / bonus (E) words found — the non-bonus vs bonus subsets of the
+  // finds. Bonus on the board (F) = the board's bonus list length.
   const requiredFound = useMemo(
     () => new Set(myFoundRows.filter((r) => !r.is_bonus).map((r) => r.word)).size,
     [myFoundRows],
   )
-  const legalTotal = (game?.required_words_count ?? 0) + (game?.bonus_words?.length ?? 0)
+  const bonusFound = useMemo(
+    () => new Set(myFoundRows.filter((r) => r.is_bonus).map((r) => r.word)).size,
+    [myFoundRows],
+  )
+  const bonusTotal = game?.bonus_words?.length ?? 0
 
   // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from
   // the live state (RLS already scoped `foundWords` to what I may see — coop = the
@@ -282,7 +286,8 @@ export function PlayArea(ctx: GamePageCtx) {
         score={myScore}
         requiredFound={requiredFound}
         requiredTotal={game.required_words_count}
-        legalTotal={legalTotal}
+        bonusFound={bonusFound}
+        bonusTotal={bonusTotal}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={myId}

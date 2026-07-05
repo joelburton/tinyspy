@@ -34,7 +34,8 @@ export function InfoCol({
   score,
   requiredFound,
   requiredTotal,
-  legalTotal,
+  bonusFound,
+  bonusTotal,
   players,
   selfId,
   metricByUser,
@@ -64,8 +65,9 @@ export function InfoCol({
   /** Required words found (C) / required on the board (D). */
   requiredFound: number
   requiredTotal: number
-  /** Legal words on the board (F) — required + bonus. Legal-found (E) = `words`. */
-  legalTotal: number
+  /** Bonus words found (E) / bonus on the board (F). */
+  bonusFound: number
+  bonusTotal: number
 
   // ── Players (the OpponentStrip — compete) ──
   /** The roster (identity + per-player concede/result bits playerOutcome reads). */
@@ -100,14 +102,14 @@ export function InfoCol({
         {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
             state → opponent strip → action row → help → setup disclosure → list. */}
 
-        {/* State — the 4-cell grid: Words · Score · Required Words · Legal Words. */}
+        {/* State — the 4-cell grid: Words · Score · Required Words · Bonus Words. */}
         <Stats
           words={words}
           score={score}
           requiredFound={requiredFound}
           requiredTotal={requiredTotal}
-          legalFound={words}
-          legalTotal={legalTotal}
+          bonusFound={bonusFound}
+          bonusTotal={bonusTotal}
         />
 
         {/* Opponent strip (compete) — each peer's score, identity on a leading disc;

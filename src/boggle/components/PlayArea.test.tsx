@@ -100,7 +100,7 @@ describe('boggle PlayArea — render smoke', () => {
     // also matches the WordList heading, so assert the qualified ones).
     expect(screen.getByText('Score')).toBeInTheDocument()
     expect(screen.getByText('Required Words')).toBeInTheDocument()
-    expect(screen.getByText('Legal Words')).toBeInTheDocument()
+    expect(screen.getByText('Bonus Words')).toBeInTheDocument()
   })
 
   it('renders the OpponentStrip (Score) in compete play', () => {

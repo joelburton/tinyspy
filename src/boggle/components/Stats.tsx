@@ -8,17 +8,15 @@ type Props = {
   /** Required words found / required words on the board. */
   requiredFound: number
   requiredTotal: number
-  /** Legal words found / legal words on the board. "Legal" is the full findable
-   *  set (required ∪ bonus), so `legalFound` equals `words` — every found word is
-   *  legal; the "/ total" is what the column adds (how much of the board's whole
-   *  vocabulary you've turned up). */
-  legalFound: number
-  legalTotal: number
+  /** Bonus words found / bonus words on the board. Bonus = legal but NOT
+   *  required (the `is_bonus` finds); `requiredFound + bonusFound === words`. */
+  bonusFound: number
+  bonusTotal: number
 }
 
 /**
  * boggle's 4-cell stat grid — the two-line "label over value" idiom, like
- * spellingbee's `<Stats>`: Words · Score · Required Words (found/total) · Legal
+ * spellingbee's `<Stats>`: Words · Score · Required Words (found/total) · Bonus
  * Words (found/total). Pure presentation; the parent (PlayArea) derives the
  * figures from the found words + the board's required/bonus lists.
  */
@@ -27,15 +25,15 @@ export function Stats({
   score,
   requiredFound,
   requiredTotal,
-  legalFound,
-  legalTotal,
+  bonusFound,
+  bonusTotal,
 }: Props) {
   return (
     <div className={styles.stats}>
       <Cell label="Words" value={`${words}`} />
       <Cell label="Score" value={`${score}`} />
       <Cell label="Required Words" value={`${requiredFound}`} sub={`/ ${requiredTotal}`} />
-      <Cell label="Legal Words" value={`${legalFound}`} sub={`/ ${legalTotal}`} />
+      <Cell label="Bonus Words" value={`${bonusFound}`} sub={`/ ${bonusTotal}`} />
     </div>
   )
 }
