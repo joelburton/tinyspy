@@ -770,6 +770,15 @@ begin
     raise exception 'concede is only for compete games' using errcode = 'P0001';
   end if;
 
+  -- Lock this game's psychicnum.games row FIRST so concede serializes against a
+  -- concurrent submit_guess (which also locks this row before common.games).
+  -- Otherwise concede locks only common.games (via _set_conceded) while the move
+  -- locks psychicnum.games, they don't serialize, and each reads the other's
+  -- uncommitted "still racing" state (READ COMMITTED) — both decline to end the
+  -- game and it wedges in 'playing'. Same order (psychicnum.games → common.games)
+  -- as the move path, so no deadlock. Mirrors scrabble.concede.
+  perform 1 from psychicnum.games where id = target_game for update;
+
   perform common._set_conceded(target_game);
 
   -- Anyone still racing? (not conceded, budget left)

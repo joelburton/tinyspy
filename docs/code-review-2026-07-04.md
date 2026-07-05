@@ -152,7 +152,14 @@ winner; a conceded bananagrams player can keep draining the shared pool via
 lock.
 
 **C5. [low] Concede vs. a concurrent final move can wedge a compete game in
-`playing` (psychicnum, connections).**
+`playing` (psychicnum, connections).** — **✅ DONE.** Both `concede` RPCs now
+`perform 1 from <game>.games where id = target_game for update;` before
+`_set_conceded`, so concede serializes against a concurrent `submit_guess`
+(which already locks that row) instead of only locking `common.games`. Same
+lock order as the move path (`<game>.games` → `common.games`), so no deadlock;
+mirrors `scrabble.concede`. Migrations reapply clean; psychicnum + connections
+concede/gameplay pgTAP green. (The wedge is a race, not single-session
+testable; the lock is defensive.)
 `common._set_conceded` locks `common.games`
 (`20260615000000_common.sql:1275`) while the move RPCs lock the per-game
 `<game>.games` row — they don't serialize. Each transaction's "anyone still

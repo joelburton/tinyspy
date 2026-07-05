@@ -997,6 +997,14 @@ begin
   if (select mode from connections.games where id = target_game) <> 'compete' then
     raise exception 'concede is only for compete games' using errcode = 'P0001';
   end if;
+  -- Lock this game's connections.games row FIRST so concede serializes against a
+  -- concurrent submit_guess (which also locks this row before common.games).
+  -- Without it concede locks only common.games (via _set_conceded) and a final
+  -- move locks connections.games — they don't serialize, each reads the other's
+  -- uncommitted "still racing" state (READ COMMITTED), both decline to end the
+  -- game, and it wedges in 'playing'. Same lock order as the move path (no
+  -- deadlock). Mirrors scrabble.concede.
+  perform 1 from connections.games where id = target_game for update;
   perform common._set_conceded(target_game);
   perform connections._maybe_finish_compete(target_game);
 end;
