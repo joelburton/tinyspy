@@ -51,7 +51,7 @@ export function InfoCol({
   // ── Setup disclosure ──
   setup,
   // ── Terminal answer reveal ──
-  target,
+  solution,
   // ── Turn log ──
   guesses,
   mode,
@@ -93,8 +93,10 @@ export function InfoCol({
   setup: WordleSetup
 
   // ── Terminal answer reveal ──
-  /** The hidden answer, revealed once terminal (else null). */
-  target: string | null
+  /** The hidden answer, revealed once terminal (else null). Prop is `solution`
+   *  (the glossary term for the terminal-reveal slot, matching waffle/stackdown);
+   *  the value comes from the DB-blessed `game.target` column. */
+  solution: string | null
 
   // ── Turn log ──
   /** The RAW guesses (not the viewer's own) — the log's dropdown switches whose show. */
@@ -180,11 +182,11 @@ export function InfoCol({
       {/* Terminal-only answer reveal — the one info-column region allowed to grow at
           game over (docs/ui.md → Layout stability). Shown in BOTH here and the
           below-board pill, deliberately. */}
-      {over && target && (
+      {over && solution && (
         <div className={shared.terminalExtra}>
           <p className={cls(shared.infoState, styles.answerLine)}>
             The answer was{' '}
-            <strong className={styles.answerReveal}>{target.toUpperCase()}</strong>
+            <strong className={styles.answerReveal}>{solution.toUpperCase()}</strong>
           </p>
         </div>
       )}

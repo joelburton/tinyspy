@@ -268,7 +268,7 @@ export function PlayArea({
         // ── Setup disclosure ──
         setup={wordleSetup}
         // ── Terminal answer reveal ──
-        target={game.target}
+        solution={game.target}
         // ── Turn log ──
         guesses={guesses}
         mode={game.mode}

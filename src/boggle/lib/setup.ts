@@ -40,7 +40,7 @@ export const DEFAULT_BOGGLE_SETUP_COMPETE: BoggleSetup = { ...DEFAULT_BOGGLE_SET
 
 /** Cross-field guard for the Start button. Pure + synchronous; `create_game`
  *  re-validates server-side (this is UX, not the authority). */
-export function boggleLegalError(s: BoggleSetup): string | null {
+export function legalError(s: BoggleSetup): string | null {
   if (!DICE_BY_NAME[s.dice_set]) return `Unknown dice set: ${s.dice_set}`
   if (s.band < 1 || s.band > 6) return 'Difficulty band must be 1–6'
   if (s.legal_band < s.band || s.legal_band > 6) return 'Legal-word band must be between the required band and 6'

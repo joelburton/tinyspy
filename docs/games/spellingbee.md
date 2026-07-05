@@ -215,7 +215,7 @@ Called only by the `spellingbee-build-board` edge function in practice (it build
 - `mode` ∈ `{'coop', 'compete'}`. Compete enforces ≥2 players (`array_length(player_user_ids, 1) >= 2`).
 - `setup.mode` is **rejected** if present (P0001) — catches a stale FE that didn't strip it after the sibling-manifest split.
 - `setup.target_rank` is required iff `mode='compete'`; absent iff `mode='coop'`. Range 0..6.
-- `setup.required` (the goal-words band) defaults to 3, range **2..6**; `setup.legal` (the accepted-words band) defaults to 5, range **required..6** (legal must contain required, else P0001). These are the bands the edge function already baked into the board via `candidate_words`; create_game re-checks them as a server-authoritative belt to the FE's `spellingbeeLegalError` Start gate. (The board is already built, so this is a guard, not a re-selection.)
+- `setup.required` (the goal-words band) defaults to 3, range **2..6**; `setup.legal` (the accepted-words band) defaults to 5, range **required..6** (legal must contain required, else P0001). These are the bands the edge function already baked into the board via `candidate_words`; create_game re-checks them as a server-authoritative belt to the FE's `legalError` Start gate. (The board is already built, so this is a guard, not a re-selection.)
 - `setup.timer` delegated to `common.validate_timer`.
 - `board.outer_letters` is exactly 6 distinct lowercase ASCII letters excluding `s`; `board.center_letter` is one lowercase ASCII letter excluding `s` and not present in outer.
 - `board.required_words_count ≥ 30` (mirrors the edge function's gate).
@@ -403,7 +403,7 @@ src/spellingbee/
                           the timer. Both modes: a "Word difficulty" fieldset with
                           two shared <DifficultyField>s (Required words: band 2..6;
                           Legal/bonus words: band required..6) — the manifest's
-                          `validate: spellingbeeLegalError` gates Start until legal ≥
+                          `validate: legalError` gates Start until legal ≥
                           required. Custom-letters fields still deferred.
     Help.tsx              Rules modal mounted from the common menu's Help item. Built on
                           the shared <FloatingPanel>. Implements the manifest's
@@ -537,7 +537,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| Target-rank picker + word-difficulty (required/legal band) fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the `legal ≥ required` Start gate is `spellingbeeLegalError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
+| Target-rank picker + word-difficulty (required/legal band) fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the `legal ≥ required` Start gate is `legalError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |

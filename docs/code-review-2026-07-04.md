@@ -1091,12 +1091,13 @@ manifest `BRAND`:
   reserves `'ended'` for the manual end; its own sibling spellingbee writes
   `won`/`won_compete`. Diverges from the states.md compete convention.
 
-**5.12 Smaller confirmed items.**
+**5.12 Smaller confirmed items.** — **◐ PARTLY DONE** (the two clean ones).
 
-- wordle's InfoCol passes `target` (`wordle/InfoCol.tsx:54,97`) where
+- ✅ **DONE.** wordle's InfoCol passes `target` (`wordle/InfoCol.tsx:54,97`) where
   waffle/stackdown use the glossary's `solution` for the same terminal-reveal
   slot (the DB column `target` is doc-blessed; the *prop* glossary says
-  `solution`).
+  `solution`). → Renamed the InfoCol prop `target` → `solution` (value still
+  comes from `game.target`).
 - The board-gate prop, six names: `readOnly` (stackdown, waffle — glossary) vs
   `entryDisabled` (boggle) vs `showInput` (connections) vs `canGuess`
   (psychicnum) vs `guessingAllowed` (wordle) vs `cellsClickable`
@@ -1106,9 +1107,12 @@ manifest `BRAND`:
   `opponentFound` (connections) / `playerBudgets` (psychicnum) — the
   Map-vs-rows shape split is real, but three identically-shaped Maps carry
   three names.
-- Setup validators: `boggleLegalError` / `spellingbeeLegalError` carry
+- ✅ **DONE.** Setup validators: `boggleLegalError` / `spellingbeeLegalError` carry
   codename prefixes the folder already provides (vs wordle's
-  `legalGuessError`).
+  `legalGuessError`). → Both renamed to `legalError` (dropping the codename;
+  src + tests + docs). The remaining §5.12 items (board-gate prop's six names +
+  polarity flips, per-player metric prop, edge-fn `define` prefix, spellingbee's
+  `on*` callback drift) are **deferred** — fiddlier / lower-value.
 - Edge function `define` lacks the documented `common-<feature>` prefix
   (code-conventions.md → Edge Functions); all game-scoped functions conform.
 - spellingbee BoardCol breaks the `on*` callback convention (`submit`/`setWord`

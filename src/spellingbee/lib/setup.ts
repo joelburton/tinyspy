@@ -26,7 +26,7 @@ import type { TimerMode } from '../../common/lib/games'
  *     (required..6) is the wider set of accepted/bonus words. The
  *     board pool is selected at the band-2 floor, so any choice is
  *     solvable; `legal` must contain `required` (see
- *     `spellingbeeLegalError`).
+ *     `legalError`).
  *
  * Deferred fields (designed-in, FE not yet wiring them):
  *   - `custom_letters` + `custom_center` — a player-specified
@@ -51,7 +51,7 @@ export type SpellingbeeSetup = {
  * must contain the required set, so `legal >= required`. The dialog gates Start
  * on this (via the manifest's `validate`); `create_game` re-checks server-side.
  */
-export function spellingbeeLegalError(setup: SpellingbeeSetup): string | null {
+export function legalError(setup: SpellingbeeSetup): string | null {
   if (setup.legal < setup.required) {
     return `Legal words must reach at least the required band (${setup.required}).`
   }
