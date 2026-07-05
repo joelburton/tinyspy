@@ -189,7 +189,11 @@ not in spellingbee's declared set — with no `target_rank` in status. Compete
 `target_rank` + `outcome:'conceded'`), or teach `labelFor` the case.
 
 **C7. [low — verify intent] waffle compete: a player who already solved is
-offered an enabled Concede, and conceding forfeits the win they've banked.**
+offered an enabled Concede, and conceding forfeits the win they've banked.** —
+**✅ DONE** (Joel's call: gate it). The compete `ConcedeGameButton` is now
+`disabled={myConceded || selfSolved}`, so a solved-and-waiting player can't
+click Concede and silently forfeit a banked win — they wait it out via
+Back-to-club. `tsc -b` + eslint + 31 waffle Vitest green.
 `src/waffle/components/InfoCol.tsx:105–163` (button disabled only on
 `myConceded`); `_maybe_finish_compete`'s winner query excludes conceded players
 (`20260624000000_waffle.sql:584–590`), so a solved-and-waiting player who

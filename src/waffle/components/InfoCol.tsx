@@ -103,8 +103,17 @@ export function InfoCol({
   // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
   // components for two semantically distinct actions (docs/design-decisions.md →
   // End vs Concede).
+  //
+  // Concede is disabled once you've SOLVED: _maybe_finish_compete excludes
+  // conceded players from the winner query, so a solved-and-waiting player who
+  // clicked Concede ("I'm done waiting") would silently forfeit a win they may
+  // have already banked. A solved player waits it out via Back-to-club instead.
   const endButton = isCompete ? (
-    <ConcedeGameButton onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton
+      onClick={onConcede}
+      className={shared.helperButton}
+      disabled={myConceded || selfSolved}
+    />
   ) : (
     <EndGameButton onClick={onEndGame} className={shared.helperButton} />
   )
