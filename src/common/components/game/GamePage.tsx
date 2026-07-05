@@ -25,6 +25,8 @@ import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { navigate } from '../../lib/routing/router'
 import { ChatBubble } from '../chat/ChatBubble'
 import { FloatingChat } from '../chat/FloatingChat'
+import { ScratchpadBubble } from '../panels/ScratchpadBubble'
+import { GameScratchpad } from '../panels/GameScratchpad'
 import { GameLogo } from '../branding/GameLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
 import { PauseBoundary } from './PauseBoundary'
@@ -310,6 +312,7 @@ export function GamePage({
             triggerLabel="Game menu"
           />
           <ChatBubble />
+          {manifest.scratchpad?.enabled && <ScratchpadBubble />}
           <StatusSlot
             players={players}
             globalFeedback={globalFeedback}
@@ -390,6 +393,23 @@ export function GamePage({
         selfId={session.user.id}
         hideClosedButton
       />
+
+      {/* Per-game scratchpad — opt-in via the manifest. Outside PauseBoundary
+          (survives pause + shows at terminal). Compete gets a private pad per
+          player when perPlayerInCompete; coop shares one. */}
+      {manifest.scratchpad?.enabled && (
+        <GameScratchpad
+          gameId={gameId}
+          ownerId={
+            manifest.scratchpad.perPlayerInCompete && manifest.mode === 'compete'
+              ? session.user.id
+              : null
+          }
+          myId={session.user.id}
+          username={players.find((p) => p.user_id === session.user.id)?.username ?? 'You'}
+          isTerminal={commonGame.is_terminal}
+        />
+      )}
 
       {/* Help modal — lazy-loaded from the manifest. Suspense
           fallback is null because a brief blank moment during chunk

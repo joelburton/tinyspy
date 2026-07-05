@@ -1,0 +1,21 @@
+/* Header-inline scratchpad toggle — the same square icon-button chrome as
+ * the chat bubble, so the two read as a matched pair in the header. */
+.bubble {
+  background: transparent;
+  border: none;
+  padding: 0.3rem;
+  margin: 0;
+  cursor: pointer;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: background 100ms ease, color 100ms ease;
+}
+.bubble:hover {
+  background: var(--color-surface-border);
+}
+.bubble[aria-pressed='true'] {
+  background: var(--color-surface-border);
+}

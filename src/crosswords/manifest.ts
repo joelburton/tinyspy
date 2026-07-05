@@ -106,6 +106,9 @@ export const crosswordsCoopGame: GameManifest = {
   // Solo (1, in a solo club) or coop (up to 8). Agrees with create_game.
   numberOfPlayers: [1, 8],
   PlayArea: playAreaLoader,
+  // Shared notepad (coop) / private per-player pad (compete — a shared pad
+  // would leak solving progress).
+  scratchpad: { enabled: true, perPlayerInCompete: true },
   setupForm: {
     Component: setupFormLoader,
     defaults: CROSSWORDS_DEFAULTS,
@@ -130,6 +133,9 @@ export const crosswordsCompeteGame: GameManifest = {
   // Compete needs an opponent; the RPC enforces ≥2 too.
   numberOfPlayers: [2, 8],
   PlayArea: playAreaLoader,
+  // Shared notepad (coop) / private per-player pad (compete — a shared pad
+  // would leak solving progress).
+  scratchpad: { enabled: true, perPlayerInCompete: true },
   setupForm: {
     Component: setupFormLoader,
     defaults: CROSSWORDS_DEFAULTS,

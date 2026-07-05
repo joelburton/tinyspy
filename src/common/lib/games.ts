@@ -422,6 +422,15 @@ export type GameManifest = {
   timerMode?: TimerMode
 
   /**
+   * Opt into the per-game scratchpad — a floating notepad (a `common/`
+   * feature) players can jot in during play. Absent = no scratchpad (most
+   * games). `perPlayerInCompete` gives each compete player a PRIVATE pad
+   * (a shared pad would leak solving progress); coop always shares one pad.
+   * GamePage renders the `<ScratchpadBubble>` + `<GameScratchpad>` when set.
+   */
+  scratchpad?: { enabled: boolean; perPlayerInCompete?: boolean }
+
+  /**
    * Supported player-count range `[min, max]`. Both ends required;
    * unbounded `null` upper ends aren't allowed because every game
    * benefits from a hard cap (the FE rendering, the realtime

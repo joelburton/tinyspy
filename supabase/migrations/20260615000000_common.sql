@@ -673,6 +673,100 @@ grant select on common.clubs_gametypes         to authenticated;
 grant select on common.messages                to authenticated;
 
 -- ============================================================
+-- common.game_scratchpads — the per-game notepad (opt-in feature)
+-- ============================================================
+-- A DB-backed scratchpad a game's players can jot in during play (clue
+-- notes, brainstorming). Games opt in via the manifest `scratchpad` field.
+--
+--   owner_id null  = the SHARED pad (coop): one pad every player edits,
+--                    coordinated in the FE by a Realtime-Broadcast takeover
+--                    lock (one editor at a time; others read-only + "Take
+--                    over").
+--   owner_id = user = that player's PRIVATE pad (compete — a shared pad
+--                    would leak solving progress between opponents).
+--
+-- DB-backed so the notes survive pause-unmount and show in the terminal view.
+create table common.game_scratchpads (
+  id       uuid primary key default gen_random_uuid(),
+  game_id  uuid not null references common.games(id) on delete cascade,
+  owner_id uuid references common.profiles(user_id) on delete cascade,
+  body     text not null default '' check (char_length(body) <= 10000),
+  -- Bumped by trigger on UPDATE; the FE reconciles CDC events "newer wins".
+  version  bigint not null default 0,
+  -- Surrogate PK gives the realtime-published table a replica identity; the
+  -- logical key is one pad per (game, owner), null owner = the single shared
+  -- pad (NULLS NOT DISTINCT — the same idiom as crosswords.cells).
+  constraint game_scratchpads_owner_key unique nulls not distinct (game_id, owner_id)
+);
+
+alter table common.game_scratchpads enable row level security;
+grant select on common.game_scratchpads to authenticated;
+
+create function common._bump_scratchpad_version()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.version := old.version + 1;
+  return new;
+end;
+$$;
+
+create trigger game_scratchpads_bump_version
+  before update on common.game_scratchpads
+  for each row execute function common._bump_scratchpad_version();
+
+-- A game player reads the shared pad (owner null) + their OWN private pad;
+-- never another player's private pad. Writes go through set_scratchpad
+-- (definer), which bypasses RLS, so there's no write policy.
+create policy game_scratchpads_select on common.game_scratchpads
+  for select to authenticated
+  using (
+    (owner_id is null or owner_id = auth.uid())
+    and exists (
+      select 1 from common.game_players gp
+       where gp.game_id = game_scratchpads.game_id and gp.user_id = auth.uid()
+    )
+  );
+
+-- Replace the pad body for (game, owner). The shared pad (p_owner null) is
+-- writable by any player; a private pad only by its owner. Guarded on
+-- membership + play state; the FE debounces this full-text flush (the pad is
+-- small + one-writer-at-a-time, so no OT/CRDT). Returns the new version so
+-- the FE adopts it and its own CDC echo is a no-op.
+create function common.set_scratchpad(target_game uuid, p_owner uuid, p_body text)
+returns bigint
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  v_version bigint;
+begin
+  caller_id := common.require_game_player(target_game);
+  if p_owner is not null and p_owner <> caller_id then
+    raise exception 'cannot write another player''s scratchpad' using errcode = '42501';
+  end if;
+  if (select play_state from common.games where id = target_game) is distinct from 'playing' then
+    raise exception 'game is not in play' using errcode = 'P0001';
+  end if;
+  if char_length(coalesce(p_body, '')) > 10000 then
+    raise exception 'scratchpad over 10000 characters' using errcode = 'P0001';
+  end if;
+
+  insert into common.game_scratchpads (game_id, owner_id, body)
+  values (target_game, p_owner, coalesce(p_body, ''))
+  on conflict on constraint game_scratchpads_owner_key
+    do update set body = excluded.body
+  returning version into v_version;
+  return v_version;
+end;
+$$;
+revoke execute on function common.set_scratchpad(uuid, uuid, text) from public;
+grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticated;
+
+-- ============================================================
 -- Realtime publication
 -- ============================================================
 -- Five tables broadcast so the FE can subscribe to:
@@ -701,6 +795,7 @@ alter publication supabase_realtime add table common.clubs_members;
 alter publication supabase_realtime add table common.messages;
 alter publication supabase_realtime add table common.games;
 alter publication supabase_realtime add table common.game_players;
+alter publication supabase_realtime add table common.game_scratchpads;
 
 -- Replica identity FULL on common.games so DELETE events carry
 -- the full pre-deletion row. ClubPage's postgres_changes

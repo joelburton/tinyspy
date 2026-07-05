@@ -1,0 +1,54 @@
+/* Fills the FloatingPanel body (a flex column); the textarea grows to fill.
+ * The min-height:0 chain lets the textarea scroll internally. */
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.4rem;
+  padding: 0.5rem;
+}
+
+/* The lock / status bar above the textarea. */
+.lockBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.takeOver {
+  padding: 0.15rem 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 6px;
+  background: var(--color-control-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.takeOver:hover {
+  background: var(--color-surface-hover);
+}
+
+.textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  resize: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+.textarea:read-only {
+  background: var(--color-surface);
+  color: var(--color-muted);
+}

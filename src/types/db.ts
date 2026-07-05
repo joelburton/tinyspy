@@ -607,6 +607,45 @@ export type Database = {
           },
         ]
       }
+      game_scratchpads: {
+        Row: {
+          body: string
+          game_id: string
+          id: string
+          owner_id: string | null
+          version: number
+        }
+        Insert: {
+          body?: string
+          game_id: string
+          id?: string
+          owner_id?: string | null
+          version?: number
+        }
+        Update: {
+          body?: string
+          game_id?: string
+          id?: string
+          owner_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_scratchpads_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_scratchpads_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       games: {
         Row: {
           club_handle: string
@@ -902,6 +941,10 @@ export type Database = {
         Returns: undefined
       }
       set_current_view: { Args: { target_game: string }; Returns: undefined }
+      set_scratchpad: {
+        Args: { p_body: string; p_owner: string; target_game: string }
+        Returns: number
+      }
       slugify_club_name: { Args: { name: string }; Returns: string }
       tick_timer: { Args: { target_game: string }; Returns: number }
       unset_current_view: { Args: { target_game: string }; Returns: undefined }
