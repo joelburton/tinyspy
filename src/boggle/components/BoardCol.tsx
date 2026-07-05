@@ -41,7 +41,7 @@ export function BoardCol({
   onSubmit,
   onAnyKey,
   lastWord,
-  entryDisabled,
+  readOnly,
   // ── Below-board pill (channel owned by PlayArea) ──
   over,
   localPill,
@@ -63,7 +63,7 @@ export function BoardCol({
   /** The last submitted word, for ArrowUp recall. */
   lastWord: string
   /** Freeze entry (terminal / conceded). */
-  entryDisabled: boolean
+  readOnly: boolean
 
   // ── Below-board pill ──
   /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
@@ -116,7 +116,7 @@ export function BoardCol({
             onChange={onChange}
             onSubmit={onSubmit}
             placeholder="Type a word"
-            disabled={entryDisabled}
+            disabled={readOnly}
             onAnyKey={onAnyKey}
             charFor={asciiLetters('upper')}
             recall={lastWord}

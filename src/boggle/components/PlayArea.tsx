@@ -258,7 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onSubmit={submit}
         onAnyKey={clearLocalFeedback}
         lastWord={lastWord}
-        entryDisabled={isTerminal || myConceded}
+        readOnly={isTerminal || myConceded}
         // ── Below-board pill ──
         over={over}
         localPill={localFeedback}
