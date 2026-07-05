@@ -1186,6 +1186,12 @@ different things):**
   `on*` callback drift) are **deferred** — fiddlier / lower-value.
 - Edge function `define` lacks the documented `common-<feature>` prefix
   (code-conventions.md → Edge Functions); all game-scoped functions conform.
+  — **✅ DONE.** `git mv` `functions/define` → `functions/common-define`; the
+  one FE invoke site (`useDefinition`) + docs updated; no `config.toml` entry
+  (auto-discovery). Verified locally: `OPTIONS common-define` → 200 (shared
+  `preflight`) and `POST` returns a JSON error via the shared `json()` helper —
+  so it serves under the new name (and incidentally confirms §4.3's helpers).
+  Old `define` deploy is orphaned until Joel redeploys (fine, alpha).
 - spellingbee BoardCol breaks the `on*` callback convention (`submit`/`setWord`
   raw, where boggle wraps the same `useWordSubmit` engine as
   `onSubmit`/`onChange`); `onSubmit` (boggle) vs `onSubmitWord` (stackdown)

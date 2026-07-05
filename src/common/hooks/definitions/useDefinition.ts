@@ -70,7 +70,7 @@ export function useDefinition(word: string | null): State {
     let cancelled = false
 
     supabase.functions
-      .invoke('define', { body: { word } })
+      .invoke('common-define', { body: { word } })
       .then(({ data, error }) => {
         if (cancelled) return
         // Dual-check: a transport error OR an in-body `error` field
