@@ -53,6 +53,13 @@ create policy puzzles_select on crosswords.puzzles
   for select to authenticated
   using (true);
 
+-- The import CLI + the NYT edge function write puzzles as the service_role
+-- (bypasses RLS; the only writers — there's no INSERT grant to
+-- authenticated). Needs schema USAGE + full column access (all columns,
+-- incl. solution) to seed the library.
+grant usage on schema crosswords to service_role;
+grant insert, select on crosswords.puzzles to service_role;
+
 -- ── crosswords.games — one playthrough ────────────────────────────────
 -- `meta`/`solution` are COPIED from the puzzle at create time so a game
 -- survives puzzle retirement (`on delete set null`, per stackdown). The

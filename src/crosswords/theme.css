@@ -1,0 +1,27 @@
+/* crosswords (CrossPlay) theme tokens.
+ *
+ * Loaded with this game's chunk (side-effect import from PlayArea.tsx) so
+ * they only ship when crosswords is being played. Semantic names tied to
+ * the crossword vocabulary — the cursor cell, the crossing clue, the
+ * active word — not literal colors. */
+:root {
+  /* The cursor cell (the one you're typing into). */
+  --crosswords-cursor: #ffd54a;
+  /* The crossing clue's "secondary" highlight in the clue list. */
+  --crosswords-cursor-soft: #fff1bf;
+  /* Every cell of the word the cursor is in. */
+  --crosswords-in-word: #d7ebff;
+
+  /* Clue-list panel header (uppercase Across / Down). */
+  --crosswords-header-bg: #f3f4f6;
+  --crosswords-header-fg: #374151;
+  --crosswords-header-border: #d1d5db;
+
+  /* Grid ink. */
+  --crosswords-block: #000;
+  --crosswords-line: #000;
+  --crosswords-fill: #111;
+  --crosswords-pencil: #555;
+  --crosswords-wrong: #d33;
+  --crosswords-revealed: #00a3d9;
+}

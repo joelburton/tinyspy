@@ -1,0 +1,283 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { GamePageCtx } from '../../common/lib/games'
+import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { cls } from '../../common/lib/util/cls'
+import {
+  activeClueNumber,
+  findCellByNumber,
+  initialCursor,
+  wordCells,
+  type Cursor,
+} from '../lib/cursor'
+import type { Direction } from '../lib/types'
+import { useGame } from '../hooks/useGame'
+import { cellKey, useCells } from '../hooks/useCells'
+import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
+import { Grid } from './Grid'
+import { ClueLists } from './ClueLists'
+import { db } from '../db'
+import shared from '../../common/components/game/PlayArea.module.css'
+import styles from './PlayArea.module.css'
+import '../theme.css'
+
+/**
+ * The crosswords coordinator: owns the cursor, wires the keyboard, merges
+ * the immutable template (`useGame`) with the live fills (`useCells`), and
+ * renders the play surface (the documented layout exception). The solve /
+ * end-game flow arrives through ctx (`useCommonGame` refetches common.games
+ * when set_cell ends the game), so this component just reacts to `isTerminal`.
+ */
+export function PlayArea(ctx: GamePageCtx) {
+  const { gameId, players, isTerminal, playState, goToClub, session, status } = ctx
+  const myId = session.user.id
+
+  const { game } = useGame(gameId)
+  const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
+  const ownerId = mode === 'compete' ? myId : null
+  const { cells, setCell } = useCells(gameId, ownerId)
+
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
+    locked: isTerminal,
+  })
+
+  const grid = game?.meta.cells ?? null
+  const [cursor, setCursor] = useState<Cursor | null>(null)
+  // Seed the cursor the first render the grid is available (React's
+  // "derive state during render" pattern — guarded so it runs once; a
+  // no-op setState to the same null value bails out).
+  if (grid && cursor === null) {
+    const seed = initialCursor(grid)
+    if (seed) setCursor(seed)
+  }
+
+  const myConceded = players.find((p) => p.user_id === myId)?.conceded ?? false
+  const isPlayable = playState === 'playing' && !isTerminal && !myConceded
+
+  // Write a cell (optimistic) + surface any RPC error. Solved → terminal
+  // flow lands via ctx.isTerminal; the terminal pill effect below shows it.
+  const handleSetCell = useCallback(
+    async (row: number, col: number, fill: string | null, pencil: boolean) => {
+      clearLocalFeedback()
+      const res = await setCell(row, col, fill, pencil)
+      if ('error' in res) showLocalFeedback(stickyPill('error', res.error))
+    },
+    [setCell, showLocalFeedback, clearLocalFeedback],
+  )
+
+  // Latest play state for the window keyboard handler (dodges stale
+  // closures). Written in an effect (runs after every render), not during
+  // render — the handler reads `.current` at event time.
+  const kbRef = useRef<GridKeyboard | null>(null)
+  useEffect(() => {
+    kbRef.current =
+      grid && cursor
+        ? {
+            enabled: isPlayable,
+            grid,
+            cursor,
+            pencil: false, // pen-only in stage 3; pencil toggle lands with check/reveal
+            setCursor,
+            fillAt: (r, c) => cells.get(cellKey(r, c))?.fill ?? null,
+            isGiven: (r, c) => {
+              const t = grid[r]?.[c]
+              return t?.kind === 'cell' && t.given === true
+            },
+            setCell: (r, c, fill, pencil) => void handleSetCell(r, c, fill, pencil),
+          }
+        : null
+  }, [grid, cursor, isPlayable, cells, handleSetCell])
+  useGridKeyboard(kbRef)
+
+  const onCellClick = useCallback(
+    (row: number, col: number) => {
+      clearLocalFeedback()
+      setCursor((prev) => {
+        if (!prev) return { row, col, dir: 'across' }
+        // Clicking the cell you're already on toggles direction.
+        if (prev.row === row && prev.col === col) {
+          return { ...prev, dir: prev.dir === 'across' ? 'down' : 'across' }
+        }
+        return { row, col, dir: prev.dir }
+      })
+    },
+    [clearLocalFeedback],
+  )
+
+  const onClueClick = useCallback(
+    (number: number, direction: Direction) => {
+      if (!grid) return
+      const pos = findCellByNumber(grid, number)
+      if (pos) setCursor({ row: pos.row, col: pos.col, dir: direction })
+    },
+    [grid],
+  )
+
+  // Active word highlight + the two axis clue numbers under the cursor.
+  const highlighted = useMemo(
+    () =>
+      grid && cursor
+        ? new Set(wordCells(grid, cursor.row, cursor.col, cursor.dir).map((p) => cellKey(p.row, p.col)))
+        : new Set<string>(),
+    [grid, cursor],
+  )
+  const acrossNumber = grid && cursor ? activeClueNumber(grid, cursor.row, cursor.col, 'across') : null
+  const downNumber = grid && cursor ? activeClueNumber(grid, cursor.row, cursor.col, 'down') : null
+  const dir = cursor?.dir ?? 'across'
+  const activeNumber = dir === 'across' ? acrossNumber : downNumber
+  const activeClueText = useMemo(() => {
+    if (!game || activeNumber == null) return ''
+    const list = game.meta.clues[dir]
+    return list.find((c) => c.number === activeNumber)?.text ?? ''
+  }, [game, activeNumber, dir])
+
+  // Fill progress (over the fillable, non-given cells the cells map holds).
+  const filled = useMemo(() => {
+    let n = 0
+    for (const c of cells.values()) if (c.fill != null) n += 1
+    return n
+  }, [cells])
+
+  const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
+
+  // Surface the terminal verdict in the active-clue slot (the reserved
+  // 3-line home), permanently (`locked`).
+  useEffect(() => {
+    if (isTerminal && over) showLocalFeedback(terminalPill(over.tone, over.verdict))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTerminal, over?.verdict])
+
+  const handleEndGame = useCallback(async () => {
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
+  }, [gameId, showLocalFeedback])
+
+  const handleConcede = useCallback(async () => {
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
+  }, [gameId, showLocalFeedback])
+
+  if (!game || !cursor) {
+    return (
+      <div className={cls(styles.wrap, styles.loading)}>
+        <p className="muted">Loading puzzle…</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.wrap}>
+      <div className={styles.layout}>
+        <div className={styles.boardSlot}>
+          <Grid
+            meta={game.meta}
+            cells={cells}
+            cursorRow={cursor.row}
+            cursorCol={cursor.col}
+            highlighted={highlighted}
+            onCellClick={onCellClick}
+          />
+        </div>
+
+        <div className={styles.clues}>
+          <ClueLists
+            across={game.meta.clues.across}
+            down={game.meta.clues.down}
+            acrossNumber={acrossNumber}
+            downNumber={downNumber}
+            dir={dir}
+            onClueClick={onClueClick}
+          />
+        </div>
+
+        {/* Active-clue bar — doubles as the local-feedback slot. */}
+        <div className={styles.activeClue}>
+          {localFeedback ? (
+            <GenericFeedbackPill msg={localFeedback} onClose={clearLocalFeedback} />
+          ) : (
+            activeNumber != null && (
+              <>
+                <span className={styles.activeClueLabel}>
+                  {activeNumber}
+                  {dir === 'across' ? 'A' : 'D'}
+                </span>
+                <span className={styles.activeClueText}>{activeClueText}</span>
+              </>
+            )
+          )}
+        </div>
+
+        {/* Chrome strip: state · actions · setup. */}
+        <div className={styles.strip}>
+          <p className={shared.infoState}>
+            {filled} / {cells.size} cells filled
+          </p>
+
+          {!isTerminal && isPlayable && (
+            <div className={styles.actions}>
+              {mode === 'compete' ? (
+                <ConcedeGameButton className={shared.helperButton} onClick={() => void handleConcede()} />
+              ) : (
+                <EndGameButton className={shared.helperButton} onClick={() => void handleEndGame()} />
+              )}
+            </div>
+          )}
+          {isTerminal && (
+            <div className={styles.actions}>
+              <BackToClubButton onClick={goToClub} />
+            </div>
+          )}
+
+          <SetupDisclosure>
+            <li>Puzzle: {game.meta.title || 'Untitled'}</li>
+            {game.meta.author && <li>By: {game.meta.author}</li>}
+            <li>
+              Size: {game.meta.width}×{game.meta.height}
+            </li>
+            <li>Mode: {mode === 'coop' ? 'Co-op' : 'Compete'}</li>
+          </SetupDisclosure>
+        </div>
+      </div>
+
+      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+    </div>
+  )
+}
+
+/** Map the terminal play_state to the shared TerminalCopy shape. */
+function buildOver(
+  playState: string,
+  status: Record<string, unknown> | null,
+  mode: 'coop' | 'compete',
+  myId: string,
+): TerminalCopy {
+  const winner = status?.winner as string | undefined
+  const winnerName = status?.winner_username as string | undefined
+  switch (playState) {
+    case 'won':
+      return { outcome: 'won', verdict: 'Solved!', message: 'Solved!', tone: 'won' }
+    case 'won_compete':
+      return winner === myId
+        ? { outcome: 'won', verdict: 'You solved it first!', message: 'You won!', tone: 'won' }
+        : {
+            outcome: 'lost',
+            verdict: winnerName ? `Beaten to it by ${winnerName}.` : 'Beaten to it.',
+            message: 'You lost',
+            tone: 'lost',
+          }
+    case 'lost_compete':
+      return { outcome: 'lost', verdict: 'Out of the race.', message: 'You lost', tone: 'lost' }
+    case 'lost':
+      return { outcome: 'lost', verdict: "Time's up.", message: 'Game over', tone: 'lost' }
+    case 'ended':
+    default:
+      return endedCopy(mode)
+  }
+}

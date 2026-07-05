@@ -1,0 +1,105 @@
+/* The board. Everything inside a cell is sized in `em` off the grid's
+ * single computed `font-size` (the cell size), so the whole grid scales
+ * uniformly under zoom. gap:0 — all grid lines are per-cell borders. */
+.board {
+  position: relative;
+  display: grid;
+  gap: 0;
+  width: max-content;
+  align-self: start;
+  /* font-size (the cell size) + grid-template-columns are set inline. */
+}
+
+.cell {
+  position: relative;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  /* Transparent 1px on every side so the box size never shifts when the
+   * border mask flips a side to black. */
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+/* Border mask (from cursor.ts computeBorderMask). */
+.borderTop { border-top-color: var(--crosswords-line); }
+.borderRight { border-right-color: var(--crosswords-line); }
+.borderBottom { border-bottom-color: var(--crosswords-line); }
+.borderLeft { border-left-color: var(--crosswords-line); }
+
+.block { background: var(--crosswords-block); cursor: default; }
+/* Irregular-grid void: transparent, no black square (named to avoid `void`). */
+.voidCell { background: transparent; border-color: transparent; cursor: default; }
+
+/* Cursor cell + active-word highlight (cursor wins). */
+.inWord { background: var(--crosswords-in-word); }
+.cursor { background: var(--crosswords-cursor); }
+
+/* Theme decorations — semi-transparent so cursor/in-word tints show through. */
+.circle {
+  position: absolute;
+  inset: 0.13em 0.05em 0.05em 0.13em;
+  border: 0.025em solid #333;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.shade {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
+/* Clue number — small superscript, white-padded so it stays legible over
+ * a circle / shade / highlight. */
+.number {
+  position: absolute;
+  top: 0.06em;
+  left: 0.1em;
+  font-size: 0.3em;
+  font-weight: 700;
+  line-height: 1;
+  color: #111;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* The fill letter (pen). */
+.fill {
+  font-size: 0.62em;
+  font-weight: 600;
+  color: var(--crosswords-fill);
+  transform: translate(0.09em, 0.09em);
+  pointer-events: none;
+}
+.pencil {
+  color: var(--crosswords-pencil);
+  font-weight: 500;
+  font-style: italic;
+}
+.given {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.06em;
+}
+/* Rebus (multi-char) — the shrink + centering is applied inline. */
+
+/* Wrong / revealed corner triangle (wrong wins). */
+.mark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0.34em 0.34em 0;
+  border-color: transparent;
+  pointer-events: none;
+}
+.markRevealed { border-right-color: var(--crosswords-revealed); }
+.markWrong { border-right-color: var(--crosswords-wrong); }

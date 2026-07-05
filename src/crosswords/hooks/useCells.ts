@@ -1,0 +1,178 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { supabase } from '../../common/lib/supabase/supabase'
+import { db } from '../db'
+
+export type CellState = {
+  fill: string | null
+  pencil: boolean
+  revealed: boolean
+  wrong: boolean
+  version: number
+}
+
+/** Live cell state keyed `${row}:${col}`. */
+export type CellsMap = Map<string, CellState>
+
+export type SetCellResult = { solved: boolean } | { error: string }
+
+export const cellKey = (row: number, col: number) => `${row}:${col}`
+
+/**
+ * The live per-cell fills for the caller's grid, with optimistic typing.
+ *
+ * This is a documented deviation from `useRealtimeRefetch` (the repo's
+ * default "refetch-the-whole-picture on any event" pattern): with several
+ * people typing at once, refetch-per-keystroke is the wrong shape, so this
+ * applies each CDC row payload DIRECTLY, guarded by a per-cell `version`
+ * ("newer wins" — an event no newer than the local state is dropped,
+ * which also absorbs the echo of our own optimistic write). A full refetch
+ * runs only on SUBSCRIBED (initial load + reconnect catch-up).
+ *
+ * Because this repo's privacy comes from the RLS-filtered READ — NOT from
+ * Realtime withholding rows — the CDC payload for an opponent's cell still
+ * arrives in compete. We drop any row that isn't ours (`isMine`) before
+ * touching state.
+ *
+ * @param ownerId  null for coop's shared grid; the caller's id for their
+ *                 private compete grid.
+ */
+export function useCells(
+  gameId: string,
+  ownerId: string | null,
+): {
+  cells: CellsMap
+  setCell: (row: number, col: number, fill: string | null, pencil: boolean) => Promise<SetCellResult>
+  loading: boolean
+} {
+  const [cells, setCells] = useState<CellsMap>(() => new Map())
+  const [loading, setLoading] = useState(true)
+  // Mirror for stale-closure reads inside async callbacks (updated in an
+  // effect, not during render).
+  const cellsRef = useRef(cells)
+  useEffect(() => {
+    cellsRef.current = cells
+  })
+
+  const isMine = useCallback(
+    (rowOwner: string | null) => (ownerId === null ? rowOwner === null : rowOwner === ownerId),
+    [ownerId],
+  )
+
+  // Merge one authoritative cell in, newer-wins.
+  const applyRow = useCallback((row: number, col: number, next: CellState) => {
+    setCells((prev) => {
+      const key = cellKey(row, col)
+      const cur = prev.get(key)
+      if (cur && next.version <= cur.version) return prev
+      const out = new Map(prev)
+      out.set(key, next)
+      return out
+    })
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function load() {
+      const base = db
+        .from('cells')
+        .select('owner_id, row, col, fill, pencil, revealed, wrong, version')
+        .eq('game_id', gameId)
+      const { data } = await (ownerId === null
+        ? base.is('owner_id', null)
+        : base.eq('owner_id', ownerId))
+      if (!active || !data) return
+      setCells((prev) => {
+        const out = new Map(prev)
+        for (const r of data) {
+          const key = cellKey(r.row, r.col)
+          const cur = out.get(key)
+          const next: CellState = {
+            fill: r.fill,
+            pencil: r.pencil,
+            revealed: r.revealed,
+            wrong: r.wrong,
+            version: r.version,
+          }
+          if (!cur || next.version > cur.version) out.set(key, next)
+        }
+        return out
+      })
+      setLoading(false)
+    }
+
+    const ch = supabase.channel(`crosswords:cells:${gameId}`)
+    ch.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'crosswords', table: 'cells', filter: `game_id=eq.${gameId}` },
+      (payload) => {
+        const r = payload.new as {
+          owner_id: string | null
+          row: number
+          col: number
+          fill: string | null
+          pencil: boolean
+          revealed: boolean
+          wrong: boolean
+          version: number
+        }
+        if (!isMine(r.owner_id ?? null)) return
+        applyRow(r.row, r.col, {
+          fill: r.fill,
+          pencil: r.pencil,
+          revealed: r.revealed,
+          wrong: r.wrong,
+          version: r.version,
+        })
+      },
+    )
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') void load()
+    })
+
+    return () => {
+      active = false
+      void supabase.removeChannel(ch)
+    }
+  }, [gameId, ownerId, isMine, applyRow])
+
+  const setCell = useCallback(
+    async (row: number, col: number, fill: string | null, pencil: boolean): Promise<SetCellResult> => {
+      const key = cellKey(row, col)
+      const pen = pencil && fill !== null
+      // Optimistic echo — show it immediately, keeping the current version
+      // (the RPC hands back the authoritative one) and the revealed flag.
+      setCells((prev) => {
+        const cur = prev.get(key)
+        if (!cur) return prev
+        const out = new Map(prev)
+        out.set(key, { ...cur, fill, pencil: pen, wrong: false })
+        return out
+      })
+      const { data, error } = await db
+        .rpc('set_cell', {
+          target_game: gameId,
+          p_row: row,
+          p_col: col,
+          // p_fill is a nullable `text` param (null clears the cell), but the
+          // generated RPC arg type is non-null. PostgREST passes null through fine.
+          p_fill: fill as string,
+          p_pencil: pencil,
+        })
+        .single()
+      if (error || !data) return { error: error?.message ?? 'set_cell failed' }
+      // Adopt the authoritative version so our own CDC echo is dropped.
+      applyRow(row, col, {
+        fill,
+        pencil: pen,
+        revealed: cellsRef.current.get(key)?.revealed ?? false,
+        wrong: false,
+        version: data.version,
+      })
+      return { solved: data.solved }
+    },
+    [gameId, applyRow],
+  )
+
+  return { cells, setCell, loading }
+}

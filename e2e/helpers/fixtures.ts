@@ -246,6 +246,73 @@ export async function createBoggleGame(
 }
 
 /**
+ * Start a crosswords game on a tiny 2×2 puzzle whose answers are C A / T S
+ * (across 1=CA 3=TS, down 1=CT 2=AS). Inserts the puzzle via the service
+ * role (the library is service-role-seeded), then calls
+ * `crosswords.create_game`. Small enough that an e2e can fill all four
+ * cells and watch it solve. Returns id + gametype.
+ */
+export async function createCrosswordsGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const meta = {
+    id: 'e2e',
+    title: 'E2E Puzzle',
+    author: 'Tester',
+    copyright: '',
+    note: '',
+    width: 2,
+    height: 2,
+    clues: {
+      across: [
+        { number: 1, text: 'Feline (2)' },
+        { number: 3, text: 'Plural pronoun-ish (2)' },
+      ],
+      down: [
+        { number: 1, text: 'Snuggle (2)' },
+        { number: 2, text: 'Like (2)' },
+      ],
+    },
+    cells: [
+      [
+        { kind: 'cell', number: 1, fill: null },
+        { kind: 'cell', number: 2, fill: null },
+      ],
+      [
+        { kind: 'cell', number: 3, fill: null },
+        { kind: 'cell', number: null, fill: null },
+      ],
+    ],
+  }
+  const solution = [
+    [['C'], ['A']],
+    [['T'], ['S']],
+  ]
+  const ins = await admin
+    .schema('crosswords')
+    .from('puzzles')
+    .insert({ content_hash: `e2e-${randomUUID()}`, source: 'library', meta, solution })
+    .select('id')
+    .single()
+  if (ins.error || !ins.data) throw new Error(`crosswords puzzle insert: ${ins.error?.message}`)
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('crosswords')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}` }
+}
+
+/**
  * Start a spellingbee game (coop by default) on a fixed synthetic board:
  * outer `cabdfg` + center `e`, 30 required words (the create_game ≥30 gate) plus
  * one bonus word (`bcdfge`) so the play loop can exercise required + bonus + a

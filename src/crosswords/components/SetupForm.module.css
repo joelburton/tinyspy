@@ -1,0 +1,51 @@
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 22rem;
+}
+
+.search {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.list {
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  border-bottom: 1px solid #eef2f6;
+  font: inherit;
+}
+.item:last-child { border-bottom: none; }
+.item:hover { background: #f1f5f9; }
+.selected,
+.selected:hover {
+  background: var(--crosswords-in-word, #d7ebff);
+}
+
+.itemTitle { font-weight: 600; }
+.itemMeta { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
+
+.empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-muted);
+}

@@ -53,3 +53,6 @@ import-to-hosted.secrets.sh
 /playwright/.cache/
 # Local before/after board-geometry baseline (machine-specific pixel golden)
 /e2e/.artifacts/
+
+# Crosswords puzzle library — Joel keeps his own .puz/.ipuz files here, never committed.
+supabase/data/crosswords/

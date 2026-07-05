@@ -1,0 +1,93 @@
+/* The crosswords play surface — the crossplay layout, a documented v3
+ * layout exception (desktop-only, keyboard-required). See
+ * docs/design-decisions.md. Board on the left spanning full height; the
+ * Across|Down clue columns top-right; the active-clue bar (which doubles
+ * as the local-feedback slot) beneath them; a slim chrome strip
+ * (state · actions · setup) at the bottom of the right column. The page
+ * itself never scrolls — the clue lists scroll internally. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.layout {
+  display: grid;
+  /* board = intrinsic width (min-content, NOT auto — a long unbreakable
+   * clue in the right column must not grow the board column out from
+   * under the em-based cell math); clues take the rest. */
+  grid-template-columns: min-content 1fr;
+  grid-template-rows: 1fr auto auto;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.boardSlot {
+  grid-column: 1;
+  grid-row: 1 / 4; /* span all rows so the board gets full height */
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.clues {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Active-clue bar — a fixed 3-line reserved height so the layout never
+ * reflows as the cursor crosses short/long clues (which also gives the
+ * local-feedback pill a fixed-height home, per the plan). */
+.activeClue {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.1rem 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: var(--color-text);
+  min-height: calc(3 * 1.35em + 0.3rem);
+  min-width: 0;
+}
+.activeClueLabel {
+  font-weight: 700;
+  color: #444;
+  flex-shrink: 0;
+}
+.activeClueText {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.strip {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

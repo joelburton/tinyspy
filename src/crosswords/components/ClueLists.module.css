@@ -1,0 +1,60 @@
+/* Across | Down, side by side, each scrolling internally. The two panels
+ * read as one: touching inner corners un-rounded, the second's left border
+ * dropped. */
+.section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--crosswords-header-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.section.left {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.section.right {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none;
+}
+
+.title {
+  flex-shrink: 0;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--crosswords-header-fg);
+  background: var(--crosswords-header-bg);
+  border-bottom: 1px solid var(--crosswords-header-border);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem 0.15rem 0.3rem;
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+.item:hover { background: #f1f5f9; }
+.num { text-align: right; font-weight: 700; color: #475569; }
+.text { min-width: 0; }
+
+.active { background: var(--crosswords-cursor); }
+.active:hover { background: var(--crosswords-cursor); }
+.secondary { background: var(--crosswords-cursor-soft); }
+.secondary:hover { background: var(--crosswords-cursor-soft); }

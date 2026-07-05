@@ -29,6 +29,7 @@ const GAMETYPES = [
   'stackdown',
   'scrabble',
   'boggle',
+  'crosswords',
 ]
 
 /**

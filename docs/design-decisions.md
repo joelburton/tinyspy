@@ -278,6 +278,21 @@ narrow/mobile screen that drops the info column can still play the game.
 > no turn log / word list. This is a one-game carve-out; every other game follows
 > the order below. See [`docs/games/bananagrams.md`](games/bananagrams.md).
 
+> **crosswords is the second documented layout exception.** Also desktop-only /
+> keyboard-required (the ported crossplay play surface explicitly scopes out
+> touch), it drops the BoardCol/InfoCol split entirely for crossplay's own
+> layout: a CSS grid with the **board on the left spanning full height**, the
+> **Across | Down clue columns top-right** (scrolling internally so the page
+> never scrolls), a **3-line active-clue bar** beneath them — which does double
+> duty as the local-feedback slot (the `<GenericFeedbackPill>` takes it over when
+> feedback fires, then it reverts to the active clue; the reserved height means no
+> reflow) — and a **slim chrome strip** at the bottom of the right column holding
+> the mandatory info-column pieces (state line · action row: End (coop) / Concede
+> (compete) · Setup disclosure; Help stays in the GamePage menu). The board is
+> sized in `em` off a computed cell font-size and uses `100dvh`, so it scales
+> under zoom. No turn log / word list — fills are continuous shared state, not
+> discrete moves. See [`docs/games/crosswords.md`](games/crosswords.md).
+
 Contents, in order:
 
 - **Game status info (`.infoState`)** — core live state: words found, score, etc.
