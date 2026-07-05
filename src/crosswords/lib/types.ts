@@ -26,6 +26,10 @@ export const MAX_REBUS_LEN = 8
 
 export type Direction = 'across' | 'down'
 
+/** The scope a check / reveal acts on: the single cursor cell, the whole
+ *  word under the cursor, or every fillable cell in the grid. */
+export type Scope = 'letter' | 'word' | 'puzzle'
+
 export type Cell =
   | {
       kind: 'block'

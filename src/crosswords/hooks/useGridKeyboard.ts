@@ -23,6 +23,8 @@ export type GridKeyboard = {
   fillAt: (row: number, col: number) => string | null
   isGiven: (row: number, col: number) => boolean
   setCell: (row: number, col: number, fill: string | null, pencil: boolean) => void
+  /** Open the rebus (multi-char) overlay over a cell. */
+  onRebus: (row: number, col: number) => void
 }
 
 const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
@@ -45,8 +47,15 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       if (isNonGameField(e.target) && e.key !== 'Tab') return
       if (e.metaKey || e.ctrlKey || e.altKey) return
 
-      const { grid, cursor, pencil, setCursor, fillAt, isGiven, setCell } = k
+      const { grid, cursor, pencil, setCursor, fillAt, isGiven, setCell, onRebus } = k
       const { row, col } = cursor
+
+      // Shift+Enter opens the rebus overlay over an editable cell.
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (e.shiftKey && !isGiven(row, col)) onRebus(row, col)
+        return
+      }
 
       // Letters: fill + advance. A given cell is immutable — slide off it.
       if (/^[a-zA-Z]$/.test(e.key)) {

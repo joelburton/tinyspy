@@ -11,17 +11,20 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { cls } from '../../common/lib/util/cls'
 import {
   activeClueNumber,
+  advanceAfterFill,
   findCellByNumber,
   initialCursor,
   wordCells,
   type Cursor,
 } from '../lib/cursor'
-import type { Direction } from '../lib/types'
+import type { CellPos } from '../lib/cursor'
+import type { Direction, Scope } from '../lib/types'
 import { useGame } from '../hooks/useGame'
 import { cellKey, useCells } from '../hooks/useCells'
 import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid } from './Grid'
 import { ClueLists } from './ClueLists'
+import { Controls } from './Controls'
 import { db } from '../db'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -46,6 +49,23 @@ export function PlayArea(ctx: GamePageCtx) {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
     locked: isTerminal,
   })
+
+  const [pencil, setPencil] = useState(false)
+  const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
+  // The answer grid — shielded mid-game, fetched from games_state at terminal
+  // to fill in the blanks (esp. after a coop give-up).
+  const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
+  useEffect(() => {
+    if (!isTerminal) return
+    let active = true
+    void (async () => {
+      const { data } = await db.from('games_state').select('solution').eq('id', gameId).single()
+      if (active && data?.solution) setSolution(data.solution as unknown as (string[] | null)[][])
+    })()
+    return () => {
+      active = false
+    }
+  }, [isTerminal, gameId])
 
   const grid = game?.meta.cells ?? null
   const [cursor, setCursor] = useState<Cursor | null>(null)
@@ -82,7 +102,7 @@ export function PlayArea(ctx: GamePageCtx) {
             enabled: isPlayable,
             grid,
             cursor,
-            pencil: false, // pen-only in stage 3; pencil toggle lands with check/reveal
+            pencil,
             setCursor,
             fillAt: (r, c) => cells.get(cellKey(r, c))?.fill ?? null,
             isGiven: (r, c) => {
@@ -90,10 +110,21 @@ export function PlayArea(ctx: GamePageCtx) {
               return t?.kind === 'cell' && t.given === true
             },
             setCell: (r, c, fill, pencil) => void handleSetCell(r, c, fill, pencil),
+            onRebus: (r, c) => setRebus({ row: r, col: c }),
           }
         : null
-  }, [grid, cursor, isPlayable, cells, handleSetCell])
+  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell])
   useGridKeyboard(kbRef)
+
+  const handleRebusCommit = useCallback(
+    (value: string) => {
+      if (!rebus || !grid) return
+      void handleSetCell(rebus.row, rebus.col, value || null, pencil)
+      setCursor((cur) => (cur ? advanceAfterFill(grid, cur) : cur))
+      setRebus(null)
+    },
+    [rebus, grid, handleSetCell, pencil],
+  )
 
   const onCellClick = useCallback(
     (row: number, col: number) => {
@@ -156,6 +187,45 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
   }, [gameId, showLocalFeedback])
 
+  // Resolve a check/reveal scope to the target coordinates the RPCs want.
+  const scopeCells = useCallback(
+    (scope: Scope): CellPos[] => {
+      if (!grid || !cursor) return []
+      if (scope === 'letter') return [{ row: cursor.row, col: cursor.col }]
+      if (scope === 'word') return wordCells(grid, cursor.row, cursor.col, cursor.dir)
+      const out: CellPos[] = []
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r]!.length; c++) {
+          if (grid[r]![c]!.kind === 'cell') out.push({ row: r, col: c })
+        }
+      }
+      return out
+    },
+    [grid, cursor],
+  )
+
+  const handleCheck = useCallback(
+    async (scope: Scope) => {
+      const target = scopeCells(scope)
+      if (target.length === 0) return
+      clearLocalFeedback()
+      const { error } = await db.rpc('check_cells', { target_game: gameId, p_cells: target })
+      if (error) showLocalFeedback(stickyPill('error', `Check failed: ${error.message}`))
+    },
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback],
+  )
+
+  const handleReveal = useCallback(
+    async (scope: Scope) => {
+      const target = scopeCells(scope)
+      if (target.length === 0) return
+      clearLocalFeedback()
+      const { error } = await db.rpc('reveal_cells', { target_game: gameId, p_cells: target })
+      if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+    },
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback],
+  )
+
   if (!game || !cursor) {
     return (
       <div className={cls(styles.wrap, styles.loading)}>
@@ -175,6 +245,12 @@ export function PlayArea(ctx: GamePageCtx) {
             cursorCol={cursor.col}
             highlighted={highlighted}
             onCellClick={onCellClick}
+            rebus={
+              rebus ? { ...rebus, initial: cells.get(cellKey(rebus.row, rebus.col))?.fill ?? '' } : null
+            }
+            onRebusCommit={handleRebusCommit}
+            onRebusCancel={() => setRebus(null)}
+            solution={solution}
           />
         </div>
 
@@ -210,6 +286,17 @@ export function PlayArea(ctx: GamePageCtx) {
             terminal). The state readout + setup recap are deliberately
             omitted for now — to be reintroduced elsewhere on the page. */}
         <div className={styles.strip}>
+          {!isTerminal && (
+            <Controls
+              mode={mode}
+              pencil={pencil}
+              onPencilChange={setPencil}
+              onCheck={(scope) => void handleCheck(scope)}
+              onReveal={(scope) => void handleReveal(scope)}
+              disabled={!isPlayable}
+            />
+          )}
+
           {!isTerminal && isPlayable && (
             <div className={styles.actions}>
               {mode === 'compete' ? (

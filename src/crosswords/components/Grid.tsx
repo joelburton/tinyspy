@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { MAX_REBUS_LEN } from '../lib/types'
 import {
   BORDER_BOTTOM,
   BORDER_LEFT,
@@ -30,9 +31,18 @@ type Props = {
   /** `${row}:${col}` for every cell in the active word. */
   highlighted: Set<string>
   onCellClick: (row: number, col: number) => void
+  /** The rebus overlay target (Shift+Enter), or null. */
+  rebus: { row: number; col: number; initial: string } | null
+  onRebusCommit: (value: string) => void
+  onRebusCancel: () => void
+  /** At terminal, the answer grid — used to fill blank cells with the
+   *  revealed answer (greyed). Null mid-game (the solution is shielded). */
+  solution: (string[] | null)[][] | null
 }
 
-export function Grid({ meta, cells, cursorRow, cursorCol, highlighted, onCellClick }: Props) {
+export function Grid({
+  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, solution,
+}: Props) {
   const { width, height, cells: template } = meta
 
   // Border masks depend only on the (immutable) template shape.
@@ -56,6 +66,9 @@ export function Grid({ meta, cells, cursorRow, cursorCol, highlighted, onCellCli
           }
           const given = t.given === true
           const live = given ? undefined : cells.get(cellKey(r, c))
+          const liveFill = given ? (t.fill ?? null) : (live?.fill ?? null)
+          // Terminal reveal: fill a blank cell with the revealed answer (greyed).
+          const answer = solution && liveFill == null && !given ? (solution[r]?.[c]?.[0] ?? null) : null
           return (
             <Cell
               key={key}
@@ -63,8 +76,9 @@ export function Grid({ meta, cells, cursorRow, cursorCol, highlighted, onCellCli
               col={c}
               mask={masks[r]![c]!}
               number={t.number}
-              fill={given ? (t.fill ?? null) : (live?.fill ?? null)}
+              fill={liveFill ?? answer}
               given={given}
+              answerReveal={liveFill == null && answer != null}
               pencil={live?.pencil ?? false}
               revealed={live?.revealed ?? false}
               wrong={live?.wrong ?? false}
@@ -77,7 +91,57 @@ export function Grid({ meta, cells, cursorRow, cursorCol, highlighted, onCellCli
           )
         }),
       )}
+      {rebus && (
+        <div
+          className={styles.rebusWrap}
+          style={{ top: `${rebus.row}em`, left: `${rebus.col}em` }}
+        >
+          <RebusInput initial={rebus.initial} onCommit={onRebusCommit} onCancel={onRebusCancel} />
+        </div>
+      )}
     </div>
+  )
+}
+
+/** The rebus (multi-char) entry input, positioned over the cursor cell.
+ *  Self-contained: autofocus + select, sanitize to ≤8 uppercase letters,
+ *  Enter commits, Esc / blur cancels. Key events are stopped so the window
+ *  grid handler doesn't also see them (it bails on inputs anyway). */
+function RebusInput({
+  initial, onCommit, onCancel,
+}: {
+  initial: string
+  onCommit: (value: string) => void
+  onCancel: () => void
+}) {
+  const [value, setValue] = useState(initial)
+  const ref = useRef<HTMLInputElement>(null)
+  const committed = useRef(false)
+  useEffect(() => {
+    ref.current?.focus()
+    ref.current?.select()
+  }, [])
+  return (
+    <input
+      ref={ref}
+      className={styles.rebusInput}
+      value={value}
+      onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, MAX_REBUS_LEN))}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          committed.current = true
+          onCommit(value)
+        } else if (e.key === 'Escape') {
+          e.preventDefault()
+          onCancel()
+        }
+      }}
+      onBlur={() => {
+        if (!committed.current) onCancel()
+      }}
+    />
   )
 }
 
@@ -90,6 +154,8 @@ type CellProps =
       number: number | null
       fill: string | null
       given: boolean
+      /** This fill is a terminal-revealed answer (greyed), not a user entry. */
+      answerReveal: boolean
       pencil: boolean
       revealed: boolean
       wrong: boolean
@@ -115,7 +181,7 @@ const Cell = memo(function Cell(props: CellProps) {
   }
 
   const {
-    row, col, number, fill, given, pencil, revealed, wrong,
+    row, col, number, fill, given, answerReveal, pencil, revealed, wrong,
     circled, shaded, isCursor, isInWord, onCellClick,
   } = props
 
@@ -133,6 +199,9 @@ const Cell = memo(function Cell(props: CellProps) {
       data-xw-cell=""
       data-row={row}
       data-col={col}
+      data-fill={fill ?? ''}
+      data-wrong={wrong ? '' : undefined}
+      data-revealed={revealed ? '' : undefined}
       onMouseDown={(e) => {
         e.preventDefault()
         onCellClick(row, col)
@@ -143,7 +212,12 @@ const Cell = memo(function Cell(props: CellProps) {
       {number != null && <span className={styles.number}>{number}</span>}
       {fill && (
         <span
-          className={cls(styles.fill, pencil ? styles.pencil : '', given ? styles.given : '')}
+          className={cls(
+            styles.fill,
+            pencil ? styles.pencil : '',
+            given ? styles.given : '',
+            answerReveal ? styles.answerReveal : '',
+          )}
           style={fillStyle}
         >
           {fill}

@@ -87,6 +87,10 @@
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.06em;
 }
+/* A terminal-revealed answer (a cell the player left blank), not their entry. */
+.answerReveal {
+  color: var(--crosswords-pencil);
+}
 /* Rebus (multi-char) — the shrink + centering is applied inline. */
 
 /* Wrong / revealed corner triangle (wrong wins). */
@@ -103,3 +107,27 @@
 }
 .markRevealed { border-right-color: var(--crosswords-revealed); }
 .markWrong { border-right-color: var(--crosswords-wrong); }
+
+/* Rebus (multi-char) entry overlay — positioned in em over the cursor cell
+ * (top/left set inline), so it tracks the cell under zoom. */
+.rebusWrap {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rebusInput {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.5em;
+  font-weight: 600;
+  border: 0.05em solid #333;
+  background: #fffbe6;
+  padding: 0;
+}
