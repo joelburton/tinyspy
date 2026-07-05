@@ -191,8 +191,15 @@ export const spellingbeeCompeteGame: GameManifest = {
     if (row.play_state === 'won_compete') {
       return `winner at ${targetRankName}`
     }
-    // 'ended' (timeout or manual end) without a winner.
+    // Terminal without a winner. The all-conceded terminal comes through
+    // common.concede as play_state='lost' + status {outcome:'conceded'} with NO
+    // target_rank, so it must be caught by outcome BEFORE the target-rank line
+    // below — otherwise `targetRank` falls to 0 and the label reads the wrong
+    // "no winner at Start".
     const outcome = s.outcome as string | undefined
+    if (outcome === 'conceded') {
+      return 'all conceded'
+    }
     if (outcome === 'timeout') {
       return `time up · no winner at ${targetRankName}`
     }

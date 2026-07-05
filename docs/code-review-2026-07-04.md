@@ -166,7 +166,13 @@ windows.
 `<game>.games` row first, so concede serializes against moves.
 
 **C6. [low] An all-conceded spellingbee compete game lands in undeclared
-`play_state='lost'` and the club label reads "no winner at Start".**
+`play_state='lost'` and the club label reads "no winner at Start".** — **✅ DONE**
+(label fix). Taught compete `labelFor` an `outcome === 'conceded'` branch →
+"all conceded", caught BEFORE the target-rank line so the missing
+`status.target_rank` can't fall to `RANKS[0]`. The terminal MODAL was already
+fine — `buildOver` reads `targetRankIdx` from setup, not status. Left
+`common.concede`'s `play_state='lost'` as-is (delegating the terminal keeps the
+wrapper thin; the label now handles it). `tsc -b` + 61 Vitest green.
 `spellingbee.concede` delegates the last-player terminal to `common.concede`
 (`20260615000000_common.sql:1353–1357`), which writes `play_state='lost'` —
 not in spellingbee's declared set — with no `target_rank` in status. Compete
