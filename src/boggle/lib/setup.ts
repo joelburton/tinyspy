@@ -33,6 +33,16 @@ export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
   legal_band: 5,
   min_word_length: 3,
   scoring_ladder: 'basic',
+  constraints: {
+    minWordLength: 3,
+    ladder: "basic",
+    minWords: 10,
+    maxWords: undefined,
+    minScore: 20,
+    maxScore: undefined,
+    minLongest: 5,
+    maxLongest: undefined,
+  }
 }
 
 /** Compete shares the coop defaults (mode is a positional RPC arg). */
