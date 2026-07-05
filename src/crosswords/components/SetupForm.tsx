@@ -9,11 +9,16 @@ import styles from './SetupForm.module.css'
 /** A library puzzle as the picker sees it — id + the non-spoiler meta. */
 type LibraryPuzzle = { id: string; title: string; author: string; size: string }
 
+/** Today as YYYY-MM-DD (the NYT date input's default + max). */
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 /**
- * The crosswords setup form: pick a puzzle from the curated library. The
- * chosen `puzzle_id` is written into `setup`; `create_game` copies that
- * puzzle's grid + (shielded) solution into the game. (The NYT-by-date path
- * lands in stage 5.)
+ * The crosswords setup form: pick a puzzle from the curated library, OR an
+ * NYT daily by date. The choice is written into `setup` (`source` +
+ * `puzzle_id` / `date`); library → `create_game` RPC, NYT → the
+ * `crosswords-import-nyt` edge function.
  */
 export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as CrosswordsSetup
@@ -46,6 +51,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
     }
   }, [])
 
+  const source = s.source ?? 'library'
+
   const filtered = useMemo(() => {
     if (!puzzles) return null
     const q = query.trim().toLowerCase()
@@ -57,40 +64,74 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
 
   return (
     <div className={styles.setup}>
-      <p className="muted">Pick a puzzle from the library.</p>
-      <input
-        className={styles.search}
-        type="text"
-        placeholder="Filter by title or author…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-      <div className={styles.list}>
-        {filtered === null ? (
-          <div className={styles.empty}>Loading puzzles…</div>
-        ) : filtered.length === 0 ? (
-          <div className={styles.empty}>
-            {puzzles && puzzles.length === 0
-              ? 'No puzzles in the library yet — run `npm run crosswords:import`.'
-              : 'No puzzles match that filter.'}
-          </div>
-        ) : (
-          filtered.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={cls(styles.item, s.puzzle_id === p.id && styles.selected)}
-              onClick={() => onChange({ ...s, puzzle_id: p.id })}
-            >
-              <span className={styles.itemTitle}>
-                {p.title}
-                {p.author ? ` · ${p.author}` : ''}
-              </span>
-              <span className={styles.itemMeta}>{p.size}</span>
-            </button>
-          ))
-        )}
+      <div className={styles.seg} role="group" aria-label="Puzzle source">
+        <button
+          type="button"
+          className={cls(styles.segBtn, source === 'library' && styles.segOn)}
+          aria-pressed={source === 'library'}
+          onClick={() => onChange({ ...s, source: 'library' })}
+        >
+          Library
+        </button>
+        <button
+          type="button"
+          className={cls(styles.segBtn, source === 'nyt' && styles.segOn)}
+          aria-pressed={source === 'nyt'}
+          onClick={() => onChange({ ...s, source: 'nyt', date: s.date || todayStr() })}
+        >
+          NYT by date
+        </button>
       </div>
+
+      {source === 'nyt' ? (
+        <>
+          <p className="muted">Import a New York Times daily crossword by date.</p>
+          <input
+            className={styles.search}
+            type="date"
+            max={todayStr()}
+            value={s.date ?? ''}
+            onChange={(e) => onChange({ ...s, date: e.target.value })}
+          />
+        </>
+      ) : (
+        <>
+          <p className="muted">Pick a puzzle from the library.</p>
+          <input
+            className={styles.search}
+            type="text"
+            placeholder="Filter by title or author…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <div className={styles.list}>
+            {filtered === null ? (
+              <div className={styles.empty}>Loading puzzles…</div>
+            ) : filtered.length === 0 ? (
+              <div className={styles.empty}>
+                {puzzles && puzzles.length === 0
+                  ? 'No puzzles in the library yet — run `npm run crosswords:import`.'
+                  : 'No puzzles match that filter.'}
+              </div>
+            ) : (
+              filtered.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={cls(styles.item, s.puzzle_id === p.id && styles.selected)}
+                  onClick={() => onChange({ ...s, puzzle_id: p.id })}
+                >
+                  <span className={styles.itemTitle}>
+                    {p.title}
+                    {p.author ? ` · ${p.author}` : ''}
+                  </span>
+                  <span className={styles.itemMeta}>{p.size}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

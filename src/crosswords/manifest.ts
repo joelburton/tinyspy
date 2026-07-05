@@ -1,6 +1,6 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
-import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { invokeStartGameEdgeFn, makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { db } from './db'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -26,10 +26,22 @@ const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
-/** Direct `create_game` RPC (contrast boggle's board-builder edge fn). */
+/**
+ * Start branches on the puzzle source: a **library** puzzle goes straight to
+ * the `create_game` RPC (like stackdown); an **NYT** date goes through the
+ * `crosswords-import-nyt` edge function (fetch → import → create), which owns
+ * the error-context unwrap via `invokeStartGameEdgeFn`.
+ */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
     const s = setup as CrosswordsSetup
+    if (s.source === 'nyt') {
+      return invokeStartGameEdgeFn(
+        'crosswords-import-nyt',
+        { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
+        brand,
+      )
+    }
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
@@ -46,9 +58,17 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-/** Start is blocked until a library puzzle is chosen. */
-const validate = (setup: unknown): string | null =>
-  (setup as CrosswordsSetup).puzzle_id ? null : 'Pick a puzzle to start.'
+/** Start is blocked until a puzzle is chosen (library) or a date is set (NYT). */
+const validate = (setup: unknown): string | null => {
+  const s = setup as CrosswordsSetup
+  return s.source === 'nyt'
+    ? s.date
+      ? null
+      : 'Pick a date.'
+    : s.puzzle_id
+      ? null
+      : 'Pick a puzzle to start.'
+}
 
 type StatusBlob = Record<string, unknown>
 
