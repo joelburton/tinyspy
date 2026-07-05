@@ -407,24 +407,28 @@ begin
 
   -- Win-on-target: if this game has a score bar and the caller (compete) or the
   -- team (coop) has now reached it, END the game with a win. The threshold is
-  -- win_percent% of the required-words score; bonus points count toward it. In
-  -- compete this is a RACE — the player who just crossed wins immediately (scores
-  -- are private, so "first to cross" is the fair rule); the non-'playing' guard
-  -- above makes a near-simultaneous second crosser a no-op 'gameOver'.
+  -- win_percent% of the required-words score, measured against the score of the
+  -- REQUIRED words found ONLY — bonus points do NOT count (so 100% means every
+  -- required word, and 50% means required finds worth half the required total).
+  -- In compete this is a RACE — the player who just crossed wins immediately
+  -- (scores are private, so "first to cross" is the fair rule); the non-'playing'
+  -- guard above makes a near-simultaneous second crosser a no-op 'gameOver'.
   select win_percent, required_words_score into g_win_percent, g_req_score
     from boggle.games where id = target_game;
   if g_win_percent is not null then
     threshold := ceil(g_win_percent::numeric / 100 * g_req_score)::int;
     if g_mode = 'coop' then
       -- Alias `fw` so `points` resolves to the column, not the RPC parameter.
+      -- `not fw.is_bonus` = required words only.
       select coalesce(sum(fw.points), 0) into total_score
-        from boggle.found_words fw where fw.game_id = target_game;
+        from boggle.found_words fw where fw.game_id = target_game and not fw.is_bonus;
       if total_score >= threshold then
         perform boggle._finish(target_game, 'target');
       end if;
     else
       select coalesce(sum(fw.points), 0) into total_score
-        from boggle.found_words fw where fw.game_id = target_game and fw.user_id = caller_id;
+        from boggle.found_words fw
+       where fw.game_id = target_game and fw.user_id = caller_id and not fw.is_bonus;
       if total_score >= threshold then
         perform boggle._finish(target_game, 'target', caller_id);
       end if;

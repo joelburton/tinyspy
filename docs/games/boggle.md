@@ -47,7 +47,9 @@ minimum length.
 - **Win target (`win_percent`).** An optional score bar: a dropdown of
   **None / 50 / 55 / … / 100 %**, default None. When set, the game is WON the
   moment the team (coop) or a player (compete) reaches `win_percent` % of the
-  required-words **score** (bonus points count toward it). Compete is a race —
+  required-words **score**, measured against the score of the **required words
+  found only** — bonus finds don't count, so 100 % means every required word and
+  50 % means required finds worth half the required total. Compete is a race —
   the first player to cross wins outright, regardless of the others' private
   scores (`submit_word` decides it; see [§10](#10-the-server-rpcs)).
 - **Ending.** With no win target, you hunt until the timer expires, a player
@@ -268,11 +270,12 @@ game is terminal, then all.
   2. dedups against the caller's scope (coop = team, compete = self);
   3. inserts the row + refreshes the club-page status;
   4. **checks the win target** (if `win_percent` is set): the threshold is
-     `ceil(win_percent% × required_words_score)`; when the team (coop) or the
-     caller (compete) reaches it, it calls `_finish(…, 'target'[, winner_id])` to
-     end the game as a win. Compete is a race — the caller who just crossed is the
-     `winner_id`, and the non-`playing` guard makes a near-simultaneous second
-     crosser a no-op.
+     `ceil(win_percent% × required_words_score)`; when the score of the **required
+     words found** (`not is_bonus`) by the team (coop) or the caller (compete)
+     reaches it — bonus finds don't count — it calls `_finish(…, 'target'[,
+     winner_id])` to end the game as a win. Compete is a race — the caller who
+     just crossed is the `winner_id`, and the non-`playing` guard makes a
+     near-simultaneous second crosser a no-op.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
   read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,

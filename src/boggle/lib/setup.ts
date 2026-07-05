@@ -24,8 +24,10 @@ export interface BoggleSetup {
   scoring_ladder: LadderName
   /** Win-on-target: the percent of the required-words SCORE a player (compete)
    *  or the team (coop) must reach to win — one of 50, 55, … 100 — or `null`
-   *  for "no target" (play until manual End or the timer expires). Bonus-word
-   *  points count toward it (it's a score bar, not a required-words-found bar). */
+   *  for "no target" (play until manual End or the timer expires). Measured
+   *  against the score of the REQUIRED words found ONLY — bonus finds don't
+   *  count — so 100% means every required word, 50% means required finds worth
+   *  half the required total. */
   win_percent: number | null
   constraints?: BoardConstraints
 }

@@ -9,7 +9,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(13);
+select plan(14);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -103,6 +103,22 @@ select is((select (result->>'won')::boolean from common.game_players
 select is((select (result->>'won')::boolean from common.game_players
              where game_id = (select id from gp) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   false, 'compete: the other player lost (first-to-cross, not high score)');
+
+-- ── (3b) COMPETE: bonus finds do NOT count toward the target ──
+-- A big bonus find (9 pts, is_bonus) leaves the required-found score at 0, so
+-- the 5-pt bar isn't crossed — the game keeps playing.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gb on commit drop as
+select * from boggle.create_game(
+  (select handle from club),
+  pg_temp.boggle_setup() || jsonb_build_object('win_percent', 50),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete', pg_temp.boggle_board());
+select boggle.submit_word((select id from gb), 'zydeco', 9, true);   -- bonus, 9 pts
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gb)), 'playing',
+  'a bonus find (even a big one) does not cross the target — required score only');
 
 -- ── (4) No target (win_percent null) never auto-ends ──────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
