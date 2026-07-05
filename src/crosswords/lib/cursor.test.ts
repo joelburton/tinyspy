@@ -1,0 +1,335 @@
+import { describe, expect, it } from 'vitest'
+import type { Cell } from './types'
+import {
+  activeClueNumber,
+  advanceAfterFill,
+  clueStarts,
+  findWordEnd,
+  findWordStart,
+  firstOpenCell,
+  initialCursor,
+  jumpClue,
+  jumpWordEdge,
+  moveCursor,
+  retreatForBackspace,
+  wordCells,
+} from './cursor'
+
+/** Build a `Cell[][]` from an ASCII sketch: `#` is a block, `.` an empty
+ *  open cell, an `A–Z` letter a filled open cell. Cell numbers are
+ *  assigned exactly the way the parsers do (a cell starts a word if its
+ *  left/up neighbour is a block/edge and its right/down neighbour is
+ *  open), so the fixtures read like real grids. */
+function grid(rows: string[]): Cell[][] {
+  let n = 0
+  const raw = rows.map((row) => Array.from(row))
+  const isBlock = (r: number, c: number) =>
+    r < 0 || c < 0 || r >= raw.length || c >= raw[0]!.length || raw[r]![c] === '#'
+  return raw.map((row, r) =>
+    row.map((ch, c): Cell => {
+      if (ch === '#') return { kind: 'block' }
+      const startsAcross = isBlock(r, c - 1) && !isBlock(r, c + 1)
+      const startsDown = isBlock(r - 1, c) && !isBlock(r + 1, c)
+      const number = startsAcross || startsDown ? ++n : null
+      const fill = /[A-Z]/.test(ch) ? ch : null
+      return { kind: 'cell', number, fill }
+    }),
+  )
+}
+
+describe('firstOpenCell', () => {
+  it('skips leading blocks', () => {
+    const g = grid(['##.', '.##'])
+    expect(firstOpenCell(g)).toEqual({ row: 0, col: 2 })
+  })
+  it('returns null on all-block', () => {
+    expect(firstOpenCell(grid(['##', '##']))).toBeNull()
+  })
+})
+
+describe('initialCursor', () => {
+  it('defaults to across on a normal rectangular grid', () => {
+    // (0, 0) starts both directions; convention picks across.
+    expect(initialCursor(grid(['...', '...', '...']))).toEqual({
+      row: 0,
+      col: 0,
+      dir: 'across',
+    })
+  })
+
+  it('picks down when the first open cell only starts a down word', () => {
+    // 3-col, 3-row, with the only non-block in row 0 being a 1-cell
+    // isolated cell at column 1 that starts a down word. The first
+    // across would be at row 1 with number 2.
+    const g = grid(['#.#', '...', '#.#'])
+    expect(initialCursor(g)).toEqual({ row: 0, col: 1, dir: 'down' })
+  })
+
+  it('falls back to across for an isolated cell that starts neither', () => {
+    // A single open cell with blocks on every side. (Not a realistic
+    // puzzle shape, but the helper shouldn't crash.)
+    const g = grid(['###', '#.#', '###'])
+    expect(initialCursor(g)).toEqual({ row: 1, col: 1, dir: 'across' })
+  })
+
+  it('returns null on an all-block grid', () => {
+    expect(initialCursor(grid(['##', '##']))).toBeNull()
+  })
+})
+
+describe('findWordStart', () => {
+  const g = grid(['...', '...', '...'])
+  it('walks to left edge for across', () => {
+    expect(findWordStart(g, 1, 2, 'across')).toEqual({ row: 1, col: 0 })
+  })
+  it('walks to top edge for down', () => {
+    expect(findWordStart(g, 2, 1, 'down')).toEqual({ row: 0, col: 1 })
+  })
+  it('stops at block', () => {
+    const g2 = grid(['.#.', '...', '...'])
+    expect(findWordStart(g2, 0, 2, 'across')).toEqual({ row: 0, col: 2 })
+    const g3 = grid(['...', '#..', '...'])
+    expect(findWordStart(g3, 2, 0, 'down')).toEqual({ row: 2, col: 0 })
+  })
+})
+
+describe('findWordEnd', () => {
+  const g = grid(['...', '...', '...'])
+  it('walks to right edge for across', () => {
+    expect(findWordEnd(g, 1, 0, 'across')).toEqual({ row: 1, col: 2 })
+  })
+  it('walks to bottom edge for down', () => {
+    expect(findWordEnd(g, 0, 1, 'down')).toEqual({ row: 2, col: 1 })
+  })
+  it('stops just before a block', () => {
+    const g2 = grid(['..#', '...', '...'])
+    expect(findWordEnd(g2, 0, 0, 'across')).toEqual({ row: 0, col: 1 })
+    const g3 = grid(['...', '..#', '...'])
+    expect(findWordEnd(g3, 0, 2, 'down')).toEqual({ row: 0, col: 2 })
+  })
+})
+
+describe('jumpWordEdge', () => {
+  it('jumps to word start within the cursor direction (Shift+Left)', () => {
+    const g = grid(['...', '...', '...'])
+    expect(jumpWordEdge(g, { row: 1, col: 2, dir: 'across' }, 'ArrowLeft')).toEqual({
+      row: 1,
+      col: 0,
+      dir: 'across',
+    })
+  })
+  it('jumps to word end within the cursor direction (Shift+Right)', () => {
+    const g = grid(['...', '...', '...'])
+    expect(jumpWordEdge(g, { row: 1, col: 0, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 1,
+      col: 2,
+      dir: 'across',
+    })
+  })
+  it('stops at the block, not the grid edge', () => {
+    const g = grid(['.#.', '...', '...'])
+    expect(jumpWordEdge(g, { row: 0, col: 2, dir: 'across' }, 'ArrowLeft')).toEqual({
+      row: 0,
+      col: 2,
+      dir: 'across',
+    })
+    expect(jumpWordEdge(g, { row: 1, col: 0, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 1,
+      col: 2,
+      dir: 'across',
+    })
+  })
+  it('Shift+Up/Down flip dir to down and jump along the down word', () => {
+    const g = grid(['...', '...', '...'])
+    // Cursor is across at (1,1); Shift+Up flips to down and jumps to top of column.
+    expect(jumpWordEdge(g, { row: 1, col: 1, dir: 'across' }, 'ArrowUp')).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'down',
+    })
+    expect(jumpWordEdge(g, { row: 1, col: 1, dir: 'across' }, 'ArrowDown')).toEqual({
+      row: 2,
+      col: 1,
+      dir: 'down',
+    })
+  })
+})
+
+describe('wordCells', () => {
+  it('returns full across word', () => {
+    const g = grid(['...', '###', '###'])
+    expect(wordCells(g, 0, 1, 'across')).toEqual([
+      { row: 0, col: 0 },
+      { row: 0, col: 1 },
+      { row: 0, col: 2 },
+    ])
+  })
+  it('returns full down word', () => {
+    const g = grid(['.##', '.##', '.##'])
+    expect(wordCells(g, 1, 0, 'down')).toEqual([
+      { row: 0, col: 0 },
+      { row: 1, col: 0 },
+      { row: 2, col: 0 },
+    ])
+  })
+  it('returns empty for block start', () => {
+    const g = grid(['#.', '..'])
+    expect(wordCells(g, 0, 0, 'across')).toEqual([])
+  })
+})
+
+describe('activeClueNumber', () => {
+  it('returns the number at the word start', () => {
+    const g = grid(['...', '#..', '...'])
+    expect(activeClueNumber(g, 2, 1, 'down')).toBe(2)
+    expect(activeClueNumber(g, 1, 2, 'across')).toBe(4)
+  })
+})
+
+describe('moveCursor', () => {
+  it('perpendicular arrow only changes direction, no move', () => {
+    const g = grid(['...', '...'])
+    expect(moveCursor(g, { row: 0, col: 0, dir: 'down' }, 'ArrowRight')).toEqual({
+      row: 0,
+      col: 0,
+      dir: 'across',
+    })
+    expect(moveCursor(g, { row: 0, col: 0, dir: 'across' }, 'ArrowDown')).toEqual({
+      row: 0,
+      col: 0,
+      dir: 'down',
+    })
+  })
+  it('moves when arrow matches current facing', () => {
+    const g = grid(['...', '...'])
+    expect(moveCursor(g, { row: 0, col: 0, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'across',
+    })
+    expect(moveCursor(g, { row: 0, col: 0, dir: 'down' }, 'ArrowDown')).toEqual({
+      row: 1,
+      col: 0,
+      dir: 'down',
+    })
+  })
+  it('skips over blocks', () => {
+    const g = grid(['.#.', '...'])
+    expect(moveCursor(g, { row: 0, col: 0, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 0,
+      col: 2,
+      dir: 'across',
+    })
+  })
+  it('stays put at edge', () => {
+    const g = grid(['...'])
+    expect(moveCursor(g, { row: 0, col: 2, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 0,
+      col: 2,
+      dir: 'across',
+    })
+  })
+  it('does not move into a wall of blocks', () => {
+    const g = grid(['..#', '###'])
+    expect(moveCursor(g, { row: 0, col: 1, dir: 'across' }, 'ArrowRight')).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'across',
+    })
+  })
+})
+
+describe('advanceAfterFill', () => {
+  it('moves to the next cell across, regardless of fill', () => {
+    const g = grid(['AB.'])
+    expect(advanceAfterFill(g, { row: 0, col: 0, dir: 'across' })).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'across',
+    })
+  })
+  it('stays put at the end of a word (does not cross a block into the next word)', () => {
+    const g = grid(['.#.'])
+    expect(advanceAfterFill(g, { row: 0, col: 0, dir: 'across' })).toEqual({
+      row: 0,
+      col: 0,
+      dir: 'across',
+    })
+  })
+  it('stays put at the grid edge', () => {
+    const g = grid(['AB'])
+    expect(advanceAfterFill(g, { row: 0, col: 1, dir: 'across' })).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'across',
+    })
+  })
+  it('works downward', () => {
+    const g = grid(['.', '.', '.'])
+    expect(advanceAfterFill(g, { row: 0, col: 0, dir: 'down' })).toEqual({
+      row: 1,
+      col: 0,
+      dir: 'down',
+    })
+  })
+})
+
+describe('clueStarts', () => {
+  it('emits across then down, in numeric reading order within each', () => {
+    // grid "...", "#..", "..."
+    // (0,0) starts across only — block below means no down word
+    // (0,1) starts down only; (0,2) starts down only
+    // (1,1) starts across only; (2,0) starts across only
+    const g = grid(['...', '#..', '...'])
+    const summary = clueStarts(g).map((s) => `${s.dir[0]}${s.number}`)
+    expect(summary.filter((s) => s.startsWith('a'))).toEqual(['a1', 'a4', 'a5'])
+    expect(summary.filter((s) => s.startsWith('d'))).toEqual(['d2', 'd3'])
+    expect(summary.indexOf('a5')).toBeLessThan(summary.indexOf('d2'))
+  })
+})
+
+describe('jumpClue', () => {
+  const g = grid(['...', '#..', '...'])
+  it('Tab moves to next clue in order', () => {
+    // a1 (0,0) → a4 (1,1)
+    const next = jumpClue(g, { row: 0, col: 0, dir: 'across' }, 1)
+    expect(next).toEqual({ row: 1, col: 1, dir: 'across' })
+  })
+  it('wraps from last across to first down', () => {
+    // a5 (2,0) → d2 (0,1)
+    const next = jumpClue(g, { row: 2, col: 0, dir: 'across' }, 1)
+    expect(next).toEqual({ row: 0, col: 1, dir: 'down' })
+  })
+  it('wraps from first to last with delta=-1', () => {
+    // a1 (0,0) backward → last entry, which is d3 (0,2)
+    const prev = jumpClue(g, { row: 0, col: 0, dir: 'across' }, -1)
+    expect(prev).toEqual({ row: 0, col: 2, dir: 'down' })
+  })
+})
+
+describe('retreatForBackspace', () => {
+  it('moves back one cell across', () => {
+    const g = grid(['AB.'])
+    expect(retreatForBackspace(g, { row: 0, col: 2, dir: 'across' })).toEqual({
+      row: 0,
+      col: 1,
+      dir: 'across',
+    })
+  })
+  it('stays put at the start of a word (does not cross a block into the previous word)', () => {
+    const g = grid(['.#.'])
+    expect(retreatForBackspace(g, { row: 0, col: 2, dir: 'across' })).toEqual({
+      row: 0,
+      col: 2,
+      dir: 'across',
+    })
+  })
+  it('stays put at left edge', () => {
+    const g = grid(['...'])
+    expect(retreatForBackspace(g, { row: 0, col: 0, dir: 'across' })).toEqual({
+      row: 0,
+      col: 0,
+      dir: 'across',
+    })
+  })
+})
