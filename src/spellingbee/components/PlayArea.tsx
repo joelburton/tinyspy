@@ -394,7 +394,7 @@ export function PlayArea(ctx: GamePageCtx) {
         selfId={session.user.id}
         targetRankIdx={targetRankIdx}
         selfRankIdx={selfRankIdx}
-        rankByUser={rankByUser}
+        metricByUser={rankByUser}
         concededIds={concededIds}
         // ── Action row ──
         onEndGame={() => void handleEndGame()}

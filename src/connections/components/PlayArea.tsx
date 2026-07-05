@@ -324,7 +324,7 @@ export function PlayArea({
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={session.user.id}
-        opponentFound={opponentFound}
+        metricByUser={opponentFound}
         concededIds={concededIds}
         // ── Action row ──
         onHints={() => setHintsOpen(true)}

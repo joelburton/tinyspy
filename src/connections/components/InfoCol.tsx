@@ -49,7 +49,7 @@ export function InfoCol({
   mistakeBudget,
   players,
   selfId,
-  opponentFound,
+  metricByUser,
   concededIds,
   onHints,
   onEndGame,
@@ -83,7 +83,7 @@ export function InfoCol({
   players: Player[]
   selfId: string
   /** Opponents' public categories-found counts (`connections.players.matched_count`). */
-  opponentFound: ReadonlyMap<string, number>
+  metricByUser: ReadonlyMap<string, number>
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
@@ -147,7 +147,7 @@ export function InfoCol({
                 ? 'out'
                 : isSelf
                   ? found
-                  : (opponentFound.get(p.user_id) ?? 0)
+                  : (metricByUser.get(p.user_id) ?? 0)
             }
           />
         )}

@@ -34,7 +34,7 @@ export function InfoCol({
   myScore,
   players,
   selfId,
-  scoreByUser,
+  metricByUser,
   concededIds,
   onEndGame,
   onConcede,
@@ -64,7 +64,7 @@ export function InfoCol({
   players: GamePlayer[]
   selfId: string
   /** Each peer's score, from the compete leaderboard (self reads `myScore`). */
-  scoreByUser: ReadonlyMap<string, number>
+  metricByUser: ReadonlyMap<string, number>
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
@@ -106,7 +106,7 @@ export function InfoCol({
             selfId={selfId}
             metricLabel="Score"
             metricFor={(p, isSelf) => {
-              const score = isSelf ? myScore : (scoreByUser.get(p.user_id) ?? 0)
+              const score = isSelf ? myScore : (metricByUser.get(p.user_id) ?? 0)
               // Mid-game: a conceder reads as "out". At terminal, prefix the outcome
               // verb so the "no longer active" states read differently — "Quit at 12"
               // vs "Lost at 12" vs "Won at 40"; an ordinary player shows the number.

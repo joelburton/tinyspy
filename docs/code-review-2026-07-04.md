@@ -1173,11 +1173,16 @@ different things):**
   name accurately describes the show/hide behavior; `readOnly` would be a less-
   accurate name forced for surface consistency (and would need an internal re-
   negation anyway). Flagged for Joel's call.
-- Per-player metric InfoCol prop: `playerStates` (scrabble, stackdown, waffle,
+- ✅ **DONE** (the 3 same-shape Maps). Per-player metric InfoCol prop: `playerStates` (scrabble, stackdown, waffle,
   wordle — glossary) vs `scoreByUser` (boggle) / `rankByUser` (spellingbee) /
   `opponentFound` (connections) / `playerBudgets` (psychicnum) — the
   Map-vs-rows shape split is real, but three identically-shaped Maps carry
-  three names.
+  three names. → The three `ReadonlyMap<string, number>` props (`scoreByUser`,
+  `rankByUser`, `opponentFound`) unified on `metricByUser` — the OpponentStrip's
+  separate `metricLabel` (Score / Rank / Found) carries the specific meaning, so
+  the Map is generically "the per-user metric." psychicnum's `playerBudgets`
+  (`PlayerRow[]`, a rows shape) and the glossary `playerStates` (rows) left —
+  genuinely different shapes.
 - ✅ **DONE.** Setup validators: `boggleLegalError` / `spellingbeeLegalError` carry
   codename prefixes the folder already provides (vs wordle's
   `legalGuessError`). → Both renamed to `legalError` (dropping the codename;

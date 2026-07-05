@@ -277,7 +277,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={myId}
-        scoreByUser={scoreByUser}
+        metricByUser={scoreByUser}
         concededIds={concededIds}
         // ── Action row ──
         onEndGame={() => void handleEndGame()}

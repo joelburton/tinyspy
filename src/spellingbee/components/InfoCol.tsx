@@ -42,7 +42,7 @@ export function InfoCol({
   selfId,
   targetRankIdx,
   selfRankIdx,
-  rankByUser,
+  metricByUser,
   concededIds,
   onEndGame,
   onConcede,
@@ -74,7 +74,7 @@ export function InfoCol({
   /** The caller's own rank index (self reads this so "You" tracks the RankBar). */
   selfRankIdx: number
   /** Each peer's rank index, from the compete leaderboard. */
-  rankByUser: ReadonlyMap<string, number>
+  metricByUser: ReadonlyMap<string, number>
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
@@ -118,7 +118,7 @@ export function InfoCol({
             // Self reads its rank from the local FE computation (selfRankIdx) so "You"
             // updates in lock step with the RankBar above; peers read the leaderboard.
             metricFor={(p, isSelf) => {
-              const rankIdx = isSelf ? selfRankIdx : (rankByUser.get(p.user_id) ?? 0)
+              const rankIdx = isSelf ? selfRankIdx : (metricByUser.get(p.user_id) ?? 0)
               const rank = RANKS[rankIdx]
               // Mid-game: a conceder reads as "out". At terminal, prefix the outcome
               // verb so the two "no longer active" states read differently — "Quit at
