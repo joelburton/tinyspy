@@ -1113,6 +1113,232 @@ export type Database = {
       [_ in never]: never
     }
   }
+  crosswords: {
+    Tables: {
+      cells: {
+        Row: {
+          col: number
+          fill: string | null
+          game_id: string
+          id: string
+          owner_id: string | null
+          pencil: boolean
+          revealed: boolean
+          row: number
+          version: number
+          wrong: boolean
+        }
+        Insert: {
+          col: number
+          fill?: string | null
+          game_id: string
+          id?: string
+          owner_id?: string | null
+          pencil?: boolean
+          revealed?: boolean
+          row: number
+          version?: number
+          wrong?: boolean
+        }
+        Update: {
+          col?: number
+          fill?: string | null
+          game_id?: string
+          id?: string
+          owner_id?: string | null
+          pencil?: boolean
+          revealed?: boolean
+          row?: number
+          version?: number
+          wrong?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cells_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cells_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          id: string
+          meta: Json
+          mode: string
+          puzzle_id: string | null
+          solution: Json
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          id: string
+          meta: Json
+          mode: string
+          puzzle_id?: string | null
+          solution: Json
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          mode?: string
+          puzzle_id?: string | null
+          solution?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      puzzles: {
+        Row: {
+          content_hash: string
+          created_at: string
+          id: string
+          meta: Json
+          solution: Json
+          source: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          id?: string
+          meta: Json
+          solution: Json
+          source: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          solution?: Json
+          source?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          meta: Json | null
+          mode: string | null
+          puzzle_id: string | null
+          solution: Json | null
+        }
+        Insert: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          meta?: Json | null
+          mode?: string | null
+          puzzle_id?: string | null
+          solution?: never
+        }
+        Update: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          meta?: Json | null
+          mode?: string | null
+          puzzle_id?: string | null
+          solution?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      _finish_compete_won: {
+        Args: { p_winner: string; target_game: string }
+        Returns: undefined
+      }
+      _finish_coop_won: { Args: { target_game: string }; Returns: undefined }
+      _is_solved: {
+        Args: { p_owner: string; target_game: string }
+        Returns: boolean
+      }
+      _matches: { Args: { p_fill: string; p_sols: Json }; Returns: boolean }
+      _maybe_finish: {
+        Args: {
+          p_caller: string
+          p_mode: string
+          p_owner: string
+          target_game: string
+        }
+        Returns: boolean
+      }
+      _solution_for: { Args: { g_id: string }; Returns: Json }
+      check_cells: {
+        Args: { p_cells: Json; target_game: string }
+        Returns: undefined
+      }
+      concede: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      reveal_cells: {
+        Args: { p_cells: Json; target_game: string }
+        Returns: undefined
+      }
+      set_cell: {
+        Args: {
+          p_col: number
+          p_fill: string
+          p_pencil: boolean
+          p_row: number
+          target_game: string
+        }
+        Returns: {
+          solved: boolean
+          version: number
+        }[]
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -1320,16 +1546,160 @@ export type Database = {
       [_ in never]: never
     }
     Views: {
-      [_ in never]: never
+      pg_all_foreign_keys: {
+        Row: {
+          fk_columns: unknown[] | null
+          fk_constraint_name: unknown
+          fk_schema_name: unknown
+          fk_table_name: unknown
+          fk_table_oid: unknown
+          is_deferrable: boolean | null
+          is_deferred: boolean | null
+          match_type: string | null
+          on_delete: string | null
+          on_update: string | null
+          pk_columns: unknown[] | null
+          pk_constraint_name: unknown
+          pk_index_name: unknown
+          pk_schema_name: unknown
+          pk_table_name: unknown
+          pk_table_oid: unknown
+        }
+        Relationships: []
+      }
+      tap_funky: {
+        Row: {
+          args: string | null
+          is_definer: boolean | null
+          is_strict: boolean | null
+          is_visible: boolean | null
+          kind: unknown
+          langoid: unknown
+          name: unknown
+          oid: unknown
+          owner: unknown
+          returns: string | null
+          returns_set: boolean | null
+          schema: unknown
+          volatility: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      _cleanup: { Args: never; Returns: boolean }
+      _contract_on: { Args: { "": string }; Returns: unknown }
+      _currtest: { Args: never; Returns: number }
+      _db_privs: { Args: never; Returns: unknown[] }
+      _extensions: { Args: never; Returns: unknown[] }
+      _get: { Args: { "": string }; Returns: number }
+      _get_latest: { Args: { "": string }; Returns: number[] }
+      _get_note: { Args: { "": string }; Returns: string }
+      _is_verbose: { Args: never; Returns: boolean }
+      _prokind: { Args: { p_oid: unknown }; Returns: unknown }
+      _query: { Args: { "": string }; Returns: string }
+      _refine_vol: { Args: { "": string }; Returns: string }
+      _retval: { Args: { "": string }; Returns: string }
+      _table_privs: { Args: never; Returns: unknown[] }
+      _temptypes: { Args: { "": string }; Returns: string }
+      _todo: { Args: never; Returns: string }
+      col_is_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
+      col_not_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
+      diag:
+        | {
+            Args: { msg: unknown }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { msg: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+      diag_test_name: { Args: { "": string }; Returns: string }
+      do_tap:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
+      fail:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
+      findfuncs: { Args: { "": string }; Returns: string[] }
+      finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
+      format_type_string: { Args: { "": string }; Returns: string }
+      has_unique: { Args: { "": string }; Returns: string }
+      in_todo: { Args: never; Returns: boolean }
+      is_empty: { Args: { "": string }; Returns: string }
+      isnt_empty: { Args: { "": string }; Returns: string }
+      lives_ok: { Args: { "": string }; Returns: string }
+      no_plan: { Args: never; Returns: boolean[] }
+      num_failed: { Args: never; Returns: number }
+      os_name: { Args: never; Returns: string }
+      pass:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
+      pg_version: { Args: never; Returns: string }
+      pg_version_num: { Args: never; Returns: number }
+      pgtap_version: { Args: never; Returns: number }
+      runtests:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
+      skip:
+        | { Args: { "": string }; Returns: string }
+        | { Args: { how_many: number; why: string }; Returns: string }
+      throws_ok: { Args: { "": string }; Returns: string }
+      todo:
+        | { Args: { how_many: number }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+        | { Args: { why: string }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+      todo_end: { Args: never; Returns: boolean[] }
+      todo_start:
+        | { Args: never; Returns: boolean[] }
+        | { Args: { "": string }; Returns: boolean[] }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      _time_trial_type: {
+        a_time: number | null
+      }
     }
   }
   scrabble: {
@@ -2605,6 +2975,9 @@ export const Constants = {
     Enums: {},
   },
   connections: {
+    Enums: {},
+  },
+  crosswords: {
     Enums: {},
   },
   graphql_public: {

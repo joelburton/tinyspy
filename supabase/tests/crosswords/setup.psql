@@ -1,0 +1,92 @@
+-- ============================================================
+-- Per-test-file crosswords fixtures
+-- ============================================================
+-- Loaded by every crosswords/*_test.sql via:  \ir setup.psql
+--
+-- Provides puzzle builders + an insert helper. Two tiny puzzles:
+--
+--   xw_meta_2x2 / xw_sol_2x2 — a 2×2 all-open grid, answers C A / T S
+--     (across 1=CA 3=TS, down 1=CT 2=AS). No blocks, no givens →
+--     create_game pre-inserts 4 cells (per grid).
+--
+--   xw_meta_given / xw_sol_given — a 2×2 with a GIVEN at (0,0)=C and a
+--     Schrödinger cell at (0,1) accepting A or E. The given is excluded
+--     from the cells table (author-correct), so create_game inserts 3.
+--
+-- xw_insert_puzzle(hash, meta, solution[, source]) inserts a puzzles row
+-- (distinct content_hash per call) and returns its id. xw_setup(id) is
+-- the `setup` jsonb create_game wants.
+
+create function pg_temp.xw_meta_2x2()
+returns jsonb language sql as $$
+  select jsonb_build_object(
+    'id', 'toy', 'title', 'Toy', 'author', 'T', 'copyright', '', 'note', '',
+    'width', 2, 'height', 2,
+    'clues', jsonb_build_object(
+      'across', jsonb_build_array(
+        jsonb_build_object('number', 1, 'text', '1a'),
+        jsonb_build_object('number', 3, 'text', '3a')),
+      'down', jsonb_build_array(
+        jsonb_build_object('number', 1, 'text', '1d'),
+        jsonb_build_object('number', 2, 'text', '2d'))),
+    'cells', jsonb_build_array(
+      jsonb_build_array(
+        jsonb_build_object('kind', 'cell', 'number', 1, 'fill', null),
+        jsonb_build_object('kind', 'cell', 'number', 2, 'fill', null)),
+      jsonb_build_array(
+        jsonb_build_object('kind', 'cell', 'number', 3, 'fill', null),
+        jsonb_build_object('kind', 'cell', 'number', null, 'fill', null)))
+  );
+$$;
+
+create function pg_temp.xw_sol_2x2()
+returns jsonb language sql as $$
+  select jsonb_build_array(
+    jsonb_build_array(jsonb_build_array('C'), jsonb_build_array('A')),
+    jsonb_build_array(jsonb_build_array('T'), jsonb_build_array('S')));
+$$;
+
+create function pg_temp.xw_meta_given()
+returns jsonb language sql as $$
+  select jsonb_build_object(
+    'id', 'giv', 'title', 'Given', 'author', 'T', 'copyright', '', 'note', '',
+    'width', 2, 'height', 2,
+    'clues', jsonb_build_object('across', '[]'::jsonb, 'down', '[]'::jsonb),
+    'cells', jsonb_build_array(
+      jsonb_build_array(
+        jsonb_build_object('kind', 'cell', 'number', 1, 'fill', 'C', 'given', true),
+        jsonb_build_object('kind', 'cell', 'number', 2, 'fill', null)),
+      jsonb_build_array(
+        jsonb_build_object('kind', 'cell', 'number', 3, 'fill', null),
+        jsonb_build_object('kind', 'cell', 'number', null, 'fill', null)))
+  );
+$$;
+
+create function pg_temp.xw_sol_given()
+returns jsonb language sql as $$
+  -- (0,1) is Schrödinger: accepts A or E.
+  select jsonb_build_array(
+    jsonb_build_array(jsonb_build_array('C'), jsonb_build_array('A', 'E')),
+    jsonb_build_array(jsonb_build_array('T'), jsonb_build_array('S')));
+$$;
+
+create function pg_temp.xw_insert_puzzle(
+  p_hash text, p_meta jsonb, p_solution jsonb, p_source text default 'library'
+)
+returns uuid language plpgsql as $$
+declare
+  new_id uuid;
+begin
+  insert into crosswords.puzzles (content_hash, source, meta, solution)
+  values (p_hash, p_source, p_meta, p_solution)
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+create function pg_temp.xw_setup(p_puzzle_id uuid)
+returns jsonb language sql as $$
+  select jsonb_build_object(
+    'timer', jsonb_build_object('kind', 'none'),
+    'puzzle_id', p_puzzle_id);
+$$;

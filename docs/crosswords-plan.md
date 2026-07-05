@@ -76,7 +76,7 @@ rule; this plan was written from an exploration summary, not a line-by-line read
 | Cryptic edge marks (`markRight`/`markBottom`), collapse-rebus toggle, AI "Explain" for cryptics | **Drop for v1.** Cryptic-crossword apparatus; NYT dailies don't need it. Explain could return later as an edge function (`codenamesduet-suggest-clue` is the precedent). Note in `deferred.md`. |
 | `cursor.ts` pure navigation module + its tests | **Port verbatim** to `src/crosswords/lib/cursor.ts`. Pure TS, framework-free, well-tested — the single highest-value reuse. |
 | Keyboard map (letters, Backspace, Space, arrows, Tab, rebus entry, `#` jump) | **Port**, minus the ⌥-shortcuts for chat/menu/settings (PupGames chrome owns those surfaces). Grid key capture follows the bananagrams keyboard-cursor precedent: window keydown, bail inside inputs, gate via `useAppShortcuts`' editable-field logic. |
-| Pen/pencil mode | **Keep.** Cheap (one boolean per cell, one toggle), and check/solve semantics depend on it (pencil cells are skipped by check, excluded from solve). |
+| Pen/pencil mode | **Keep.** Cheap (one boolean per cell, one toggle), and check semantics depend on it. **Match `ws.ts`, not intuition:** *check* skips pencil cells (`checkAt`), but *solve* does NOT exclude them — `isPuzzleSolved` counts a pencil cell whose letter happens to be right ("pencil is a confidence marker, not a correctness one"). See the match-semantics note below. |
 | Check / reveal (letter/word/puzzle scope) | **Keep**, as security-definer **RPCs** (not edge functions — see below). |
 | Solved detection + celebration | **Keep**, server-side in the fill RPC; terminal flow goes through `common.end_game` instead of a bespoke modal message. |
 | Shared scratchpad + takeover lock | **Keep — but build it as the deferred `common/` feature**, not crosswords-local. See [Scratchpad](#scratchpad--the-common-feature). |
@@ -306,7 +306,7 @@ boundary).
 | RPC | behavior |
 |---|---|
 | `create_game(target_club, setup, player_user_ids, mode)` | `common.create_game` header → copy `meta`/`solution` from the puzzle → pre-insert `cells` rows (per player in compete). Guard player count against the manifest range. |
-| `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell not `given`, not `revealed`, `char_length(fill) <= 8`. Writes fill, clears `wrong`; the version trigger bumps `version`; the RPC **returns the new version** (the FE adopts it so its own CDC echo is a no-op). In compete, targets the caller's grid. Then runs solved-check (compare grid vs `solution`, honoring Schrödinger alternates + the first-letter rule below, skipping pencil cells); on solved → terminal flow per mode. Returns the new version + solved state. In compete, first-correct-wins is a **race**: the solved→`end_game` transition must be atomic and guarded on `play_state = 'playing'` so only the first solver sets `winner_username` (pin in pgTAP). |
+| `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell not `given` (revealed cells ARE editable — mirror `applyFill`), `char_length(fill) <= 8`. Writes fill, clears `wrong`; the version trigger bumps `version`; the RPC **returns the new version** (the FE adopts it so its own CDC echo is a no-op). In compete, targets the caller's grid. Then runs solved-check (compare grid vs `solution`, honoring Schrödinger alternates + the first-letter rule below; an empty cell blocks solve, but a pencil cell counts if its letter is right — solve does NOT skip pencil, per `ws.ts`); on solved → terminal flow per mode. Returns the new version + solved state. In compete, first-correct-wins is a **race**: the solved→`end_game` transition must be atomic and guarded on `play_state = 'playing'` so only the first solver sets `winner_username` (pin in pgTAP). |
 | `check_cells(target_game, cells jsonb)` | FE computes the letter/word/puzzle scope client-side (via `cursor.ts`) and sends the target coordinates; server compares against solution and sets/clears `wrong` (skipping empty/pencil/given, per crossplay semantics). |
 | `reveal_cells(target_game, cells jsonb)` | Same scoping; writes canonical answer + `revealed = true`, clears `wrong`/`pencil`. Coop only. |
 | `end_game(target_game)` | Coop mutual stop → `common.end_game` with the neutral "finished" outcome (not a loss) and the solution revealed in terminal state. |
@@ -329,10 +329,19 @@ prose is an exploration summary and was already subtly off, as the two correctio
   code and pin both cases (normal rebus needs full string; Schrödinger accepts first letter).
 - **The plpgsql solved-check needs only `cells` + `solution`, not `meta`.** `given` cells are
   correct by construction and are excluded from the `cells` table entirely, so don't join
-  `meta` to re-check them; iterate the `cells` rows, and treat pencil/empty as unsolved.
+  `meta` to re-check them; iterate the `cells` rows. An empty cell (`fill is null`)
+  blocks solve; a **pencil cell does NOT** — `isPuzzleSolved` counts it if the letter matches
+  (pencil is a confidence marker, not a correctness one; only *check* skips pencil).
 
 pgTAP pins each case: normal-rebus full-string required, Schrödinger first letter accepted,
-alternate answer accepted, pencil cell skipped by check, given untouched by reveal, etc.
+alternate answer accepted, pencil cell skipped by check but a correct pencil cell still
+counting toward solve, given untouched by reveal, etc.
+
+**`set_cell` on a revealed cell (correction from `ws.ts:279` `applyFill`):** crossplay does NOT
+block editing a revealed cell — it overwrites the fill, clears `wrong`, and *preserves*
+`revealed`. So the plan's earlier "not revealed" guard on `set_cell` is a deviation; drop it
+and mirror `applyFill` (allow the write, keep `revealed = true`). The only immutable cells are
+`given` ones, and those have no `cells` row to target anyway.
 
 ## Frontend
 

@@ -41,14 +41,14 @@ select plan(17);
 
 select is(
   (select count(*) from common.gametypes),
-  18::bigint,
-  'common.gametypes contains eighteen rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle)'
+  20::bigint,
+  'common.gametypes contains twenty rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
-  'common.gametypes contains the eighteen registered gametypes by name'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  'common.gametypes contains the twenty registered gametypes by name'
 );
 
 -- ============================================================
@@ -67,8 +67,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  9::bigint,
-  'claim_username populated 9 (solo-playable) clubs_gametypes rows for ada''s solo club'
+  10::bigint,
+  'claim_username populated 10 (solo-playable) clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -78,8 +78,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['bananagrams','boggle_coop','connections_coop','psychicnum_coop','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
-  'ada''s solo club has m2m rows for the nine solo-playable gametypes'
+  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','psychicnum_coop','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
+  'ada''s solo club has m2m rows for the ten solo-playable gametypes'
 );
 
 -- ============================================================
@@ -97,8 +97,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  18::bigint,
-  'create_club populated 18 m2m rows for the new club'
+  20::bigint,
+  'create_club populated 20 m2m rows for the new club'
 );
 
 select is(
@@ -107,8 +107,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
-  'new club has m2m rows for all eighteen registered gametypes'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','waffle_compete','waffle_coop','wordle_compete','wordle_coop'],
+  'new club has m2m rows for all twenty registered gametypes'
 );
 
 -- ============================================================
@@ -123,7 +123,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  18::bigint,
+  20::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -152,7 +152,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  18::bigint,
+  20::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 
