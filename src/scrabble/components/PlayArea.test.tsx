@@ -211,6 +211,37 @@ describe('scrabble PlayArea — concede', () => {
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
+
+  // Pins scrabble's terminal-strip verbs — the ` · `-separated format (distinct from
+  // boggle/spellingbee's ` at `) that the shared `outcomeVerb` helper feeds. Guards the
+  // §4.7 extraction: the three outcomes must still read Won / Quit / Lost.
+  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+    h.result = loaded(
+      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
+      [
+        selfPlayer({ score: 5, rack: RACK }), // self → Lost
+        { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7 }, // → Quit
+        { user_id: 'u3', seat: 2, score: 40, rack: null, rack_count: 7 }, // → Won
+      ],
+    )
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          playState: 'ended',
+          status: { outcome: 'compete' },
+          players: [
+            gp('u1', 'me', 'red', { result: { won: false } }),
+            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }),
+            gp('u3', 'cade', 'green', { result: { won: true } }),
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText(/Quit · /)).toBeInTheDocument()
+    expect(screen.getByText(/Won · /)).toBeInTheDocument()
+    expect(screen.getByText(/Lost · /)).toBeInTheDocument()
+  })
 })
 
 describe('scrabble PlayArea — show a move (coop)', () => {

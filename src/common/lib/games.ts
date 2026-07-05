@@ -236,6 +236,20 @@ export function playerOutcome(p: {
 }
 
 /**
+ * The capitalized past-tense verb for a player's terminal outcome — 'Won' / 'Quit'
+ * (they conceded) / 'Lost' — for the OpponentStrip's terminal readout, which several
+ * games format as `${outcomeVerb(p)} at ${value}` ("Won at 40", "Won at Genius") or
+ * `${outcomeVerb(p)} · ${value}` (scrabble). A missing member reads as 'Lost' (a peer
+ * we can't resolve didn't win). Lives right next to `playerOutcome` so the strip verbs
+ * stay in lockstep with its vocabulary; each game keeps its own separator + value
+ * (score / rank), which genuinely differ.
+ */
+export function outcomeVerb(member: GamePlayer | undefined): 'Won' | 'Quit' | 'Lost' {
+  const outcome = member ? playerOutcome(member) : 'lost'
+  return outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
+}
+
+/**
  * A "rich" message — a sequence of text + inline player segments — so an error
  * (or any message) can name players with their identity disc inline:
  * "…needs these players: ● bert, ● ernie, ● claude." A plain `string` is still a

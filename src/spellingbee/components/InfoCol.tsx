@@ -1,4 +1,4 @@
-import { playerOutcome, type GamePlayer } from '../../common/lib/games'
+import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
@@ -125,13 +125,7 @@ export function InfoCol({
               // Amazing" vs "Lost at Amazing" vs "Won at Genius".
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
               const member = players.find((m) => m.user_id === p.user_id)
-              const verb =
-                member && playerOutcome(member) === 'won'
-                  ? 'Won'
-                  : member && playerOutcome(member) === 'quit'
-                    ? 'Quit'
-                    : 'Lost'
-              return `${verb} at ${rank}`
+              return `${outcomeVerb(member)} at ${rank}`
             }}
           />
         )}

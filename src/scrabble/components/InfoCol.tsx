@@ -1,4 +1,4 @@
-import { playerOutcome, type Member, type GamePlayer } from '../../common/lib/games'
+import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { timerLabel } from '../../common/lib/game/timerLabel'
@@ -132,9 +132,7 @@ export function InfoCol({
               // `player` as Member, so read the concede/result bits back off `players`.
               if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : score
               const gpm = players.find((m) => m.user_id === player.user_id)
-              const outcome = gpm ? playerOutcome(gpm) : 'lost'
-              const verb = outcome === 'won' ? 'Won' : outcome === 'quit' ? 'Quit' : 'Lost'
-              return `${verb} · ${score}`
+              return `${outcomeVerb(gpm)} · ${score}`
             }}
           />
         )}

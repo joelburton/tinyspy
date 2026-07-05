@@ -914,6 +914,19 @@ genuinely different metric vocab — leave those. **Shared version:** an
 `outcomeVerb(member, value)` helper in `common/lib/game/`. The win is the
 verbs staying in lockstep with `playerOutcome`'s vocabulary.
 
+> **✅ DONE.** Added `outcomeVerb(member)` → `'Won' | 'Quit' | 'Lost'` right next
+> to `playerOutcome` in `common/lib/games.ts` (co-located so the vocab stays in
+> lockstep — the stated win). Returns just the verb, NOT the full string: the three
+> games' formats genuinely differ (`Won at ${score}` / `Won at ${rank}` /
+> `Won · ${score}` — scrabble's separator is ` · `, not ` at `), so each keeps its
+> own separator + value while sharing the outcome→verb + null-member→Lost mapping.
+> boggle / scrabble / spellingbee repointed (each dropped its inline
+> `playerOutcome(m) === 'won' ? …` ladder). boggle + spellingbee already pinned
+> `/Won at/`,`/Quit at/`,`/Lost at/` in their PlayArea tests (still green, proving
+> preservation); scrabble's ` · ` variant was uncovered, so added a matching
+> characterization test (`/Won · /`,`/Quit · /`,`/Lost · /`). tsc + eslint + 618 FE
+> tests green.
+
 **4.8 [LOW] PDF word-list-family body skeleton.** — **✅ DONE.** Extracted
 `common/pdf/wordListBody.ts` — `drawWordListBody(pd, m, drawBoard, opts?)`
 owning the whole skeleton (boardTop=margin+44 / board / Setup right / words
