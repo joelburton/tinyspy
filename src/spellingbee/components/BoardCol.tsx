@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
@@ -74,9 +75,11 @@ export function BoardCol({
   isTerminal: boolean
 
   // ── Below-board pill ──
-  /** Terminal copy — its `indicator` shows as a permanent below-board pill at
-   *  game-over. */
-  over: { tone: 'won' | 'lost' | 'neutral'; indicator: string } | null
+  /** The shared `TerminalCopy`, extended with a spellingbee-specific `indicator`
+   *  (the detailed below-board status line, e.g. "Genius! 12/93 points"). Same
+   *  `over` object InfoCol receives as a plain `TerminalCopy`; this column reads
+   *  `tone` + `indicator` to show a permanent below-board pill at game-over. */
+  over: (TerminalCopy & { indicator: string }) | null
 }) {
   // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
   // (avoids storing the order in state + a sync effect). Keyed on the outer-letters

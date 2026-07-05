@@ -1271,6 +1271,22 @@ different things):**
   `onSubmit`/`onChange`); `onSubmit` (boggle) vs `onSubmitWord` (stackdown)
   for the same act; spellingbee's `over` prop is `{tone; indicator}` where all
   others pass `TerminalCopy | null` under the same name.
+  - ✅ **DONE (`submit`/`setWord`).** Already renamed to `onSubmit`/`onChange`
+    (§5.5's sweep) — spellingbee BoardCol now matches boggle.
+  - ✅ **DONE (spellingbee `over`).** The object `buildOver` returns is in fact a
+    `TerminalCopy` **superset** (all four TerminalCopy fields + a spellingbee-only
+    `indicator`) — InfoCol already consumes it as a plain `TerminalCopy`. Retyped
+    both sides to name that relationship: `buildOver(): TerminalCopy & { indicator:
+    string }` and the BoardCol prop `over: (TerminalCopy & { indicator: string }) |
+    null`, instead of the ad-hoc `{tone; indicator}` that read like a different
+    concept. tsc + eslint + 61 spellingbee Vitest green.
+  - ⛔ **`onSubmitWord` (stackdown) — left, genuinely different signature.** boggle/
+    spellingbee's `onSubmit()` is argument-less (submit the ambient typed word held
+    in PlayArea state); stackdown's `onSubmitWord(tileIds: number[])` carries a
+    payload (the specific tile set being spelled off the exposed stack). Different
+    signature → the self-describing `onSubmitWord` name is a deliberate difference,
+    not surface drift; forcing `onSubmit(tileIds)` for name-consistency would hide
+    the payload distinction.
 
 **5.13 Graduation candidates for naming.md's canonical table** (per its own
 "third game adopts a term" rule): `submit_word` (3 schemas), `concede`,

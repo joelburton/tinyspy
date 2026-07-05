@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import type { GamePageCtx, Member } from '../../common/lib/games'
+import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -469,13 +470,11 @@ function buildOver({
   selfRankIdx: number
   selfId: string
   players: Member[]
-}): {
-  outcome: 'won' | 'lost'
-  verdict: string
-  indicator: string
-  message: string
-  tone: 'won' | 'lost' | 'neutral'
-} {
+  // The shared TerminalCopy (drives the modal + info-column line) extended with a
+  // spellingbee-specific `indicator` — the detailed below-board status line. Naming
+  // TerminalCopy here (rather than re-listing its fields) makes the "same copy, plus
+  // one extra field" relationship explicit; InfoCol consumes it as a plain TerminalCopy.
+}): TerminalCopy & { indicator: string } {
   const rankName = RANKS[selfRankIdx]
 
   if (mode === 'compete') {
