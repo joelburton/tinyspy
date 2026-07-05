@@ -27,8 +27,8 @@ const noop = () => {}
  * kept beside the input it commits (like psychicnum's BoardCol). The physical
  * `useCaptureKeys` + the on-screen keyboard drive the same `current`. It does NOT own
  * the game state: PlayArea hands it **the board to render** (the live `rows` + the
- * `snap` history override) + `guessingAllowed` (the game-state half of "can I
- * guess?", which this column ANDs with its own not-mid-submit state). Own-move
+ * `snap` history override) + `readOnly` (the game-state half of "is the board
+ * inert", which this column ORs with its own mid-submit state). Own-move
  * feedback lifts to PlayArea (its `showLocalFeedback` / `clearLocalFeedback` write the
  * shared below-board channel, which InfoCol's End / Concede also write), and the
  * fully-resolved below-board pill comes down as `localPill`. See
@@ -45,7 +45,7 @@ export function BoardCol({
   onExitViewing,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
-  guessingAllowed,
+  readOnly,
   showLocalFeedback,
   clearLocalFeedback,
   // ── Below-board pill (resolved by PlayArea) ──
@@ -70,10 +70,10 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  /** The GAME-STATE half of "can I guess?" — the game permits it (I'm a player, not
-   *  terminal, not solved/conceded, guesses left). This column ANDs it with its own
-   *  not-mid-submit / no-word-in-flight state to get the live `canGuess`. */
-  guessingAllowed: boolean
+  /** The GAME-STATE half of the board gate — the board is inert (not a player,
+   *  terminal, solved/conceded, out of guesses). This column ORs it with its own
+   *  mid-submit / word-in-flight state to get the live `canGuess`. */
+  readOnly: boolean
   /** Show an own-move pill (soft reject / RPC error). PlayArea owns the shared
    *  below-board channel (InfoCol's End / Concede write it too). */
   showLocalFeedback: (msg: GenericFeedbackMsg) => void
@@ -105,7 +105,7 @@ export function BoardCol({
   const pendingWord = pending && !pendingLanded ? pending : ''
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
   // word in flight (this column's input state).
-  const canGuess = guessingAllowed && !submitting && !pendingWord
+  const canGuess = !readOnly && !submitting && !pendingWord
 
   // Per-key feedback state — the strongest color each letter has earned across the LIVE
   // board (drives the on-screen keyboard tinting).

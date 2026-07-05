@@ -108,6 +108,30 @@ describe('wordle PlayArea — render smoke', () => {
   })
 })
 
+/**
+ * Input-gating characterization. The board-gate prop (`readOnly`) controls
+ * whether the on-screen keyboard accepts input. Pinning the OBSERVABLE effect —
+ * keyboard enabled during play, disabled
+ * at terminal — so a polarity flip that inverts the gate fails here instead of
+ * silently shipping (the unit suite otherwise barely exercises gating).
+ */
+describe('wordle PlayArea — input gating', () => {
+  // The on-screen keyboard's 'A' key (letter buttons carry aria-label={ch};
+  // board tiles aren't buttons, so this is unambiguous).
+  const keyboardKey = () => screen.getByRole('button', { name: /^a$/i })
+
+  it('the on-screen keyboard accepts input during play', () => {
+    render(<PlayArea {...makeCtx()} />) // playing, self is a player → gate open
+    expect(keyboardKey()).toBeEnabled()
+  })
+
+  it('the on-screen keyboard is blocked at terminal', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />) // gate closed
+    expect(keyboardKey()).toBeDisabled()
+  })
+})
+
 describe('wordle PlayArea — peer narration (global header)', () => {
   it("announces a teammate's accepted guess in coop", () => {
     const feedback = { show: vi.fn(), clear: vi.fn() }

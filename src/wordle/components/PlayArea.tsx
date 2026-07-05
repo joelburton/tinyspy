@@ -185,9 +185,12 @@ export function PlayArea({
   const isLocallyDone =
     !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
 
-  // The GAME-STATE half of "can I guess?" — BoardCol ANDs its own not-mid-submit state.
-  const guessingAllowed =
-    !!self && !isTerminal && !mySolved && !myConceded && guessesUsed < maxGuesses
+  // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
+  // state. `readOnly` (glossary): the board is inert when there's no self row, the
+  // game's terminal, I've solved / conceded, or I'm out of guesses. (De Morgan of
+  // the old positive `guessingAllowed`.)
+  const readOnly =
+    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses
 
   const wordleSetup = setup as WordleSetup
 
@@ -239,7 +242,7 @@ export function PlayArea({
         onExitViewing={exitViewing}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
-        guessingAllowed={guessingAllowed}
+        readOnly={readOnly}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         // ── Below-board pill ──
