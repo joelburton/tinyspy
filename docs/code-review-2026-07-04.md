@@ -807,6 +807,16 @@ manifests:
 ~180–220 lines across 10 manifests; the unwrap block is subtle enough that a
 fourth copy would drift.
 
+> **◐ DONE (the HTTP scaffolding — the drift the review headlined).** New
+> `supabase/functions/_shared/http.ts` owns `cors`, `json()`, and `preflight()`
+> (the OPTIONS handler); all five functions import it and drop their copies, so
+> a header added to `Access-Control-Allow-Headers` is now stamped ONCE, not 5×.
+> Verified: boggle/spellingbee/board-geometry e2e (which invoke the three
+> build-board functions) green; `deno check` passes on `_shared/http.ts` (the
+> other functions' deno errors are pre-existing npm-dep-resolution, unrelated).
+> The deeper `_shared/startGame.ts` (the board-builders' shared create_game
+> flow) is left for a follow-up.
+
 **4.3 [MEDIUM-HIGH] Edge-function HTTP scaffolding — no `_shared/` exists
 yet.** All five Deno functions copy `corsHeaders`, a `json()` helper,
 OPTIONS-preflight + POST-only guards, `req.json().catch(() => ({}))`, and (the

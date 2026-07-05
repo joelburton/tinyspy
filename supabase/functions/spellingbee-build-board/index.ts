@@ -61,6 +61,7 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+import { json, preflight } from '../_shared/http.ts'
 
 // ───────────────────────────────────────────────────────────
 // Types
@@ -123,13 +124,6 @@ type CandidateRow = {
 // ───────────────────────────────────────────────────────────
 // Constants
 // ───────────────────────────────────────────────────────────
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, content-type, x-client-info, apikey',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
 
 /** Overlap cap with the previous board, in letters out of 7. */
 const MAX_PREVIOUS_OVERLAP = 4
@@ -409,16 +403,9 @@ async function fetchCandidateWords(
 // HTTP entry point
 // ───────────────────────────────────────────────────────────
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const pre = preflight(req)
+  if (pre) return pre
 
   // Always log a one-line trace at entry so the function-serve
   // output shows that the request arrived even when the body

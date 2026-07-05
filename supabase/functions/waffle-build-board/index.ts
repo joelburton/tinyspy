@@ -43,15 +43,9 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { buildWaffleBoard, type WordRow } from './gen.ts'
+import { json, preflight } from '../_shared/http.ts'
 
 type Mode = 'coop' | 'compete'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, content-type, x-client-info, apikey',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
 
 /** PostgREST's max_rows cap — page the word fetch under it. */
 const PAGE_SIZE = 1000
@@ -92,16 +86,10 @@ async function fetchCandidateWords(
   return out
 }
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const pre = preflight(req)
+  if (pre) return pre
 
   console.log('waffle-build-board: request received')
 

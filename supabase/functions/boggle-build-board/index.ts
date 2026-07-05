@@ -35,15 +35,7 @@ import { generateBoard, listBonusWords, type BoardConstraints } from '../../../s
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie } from './dict.ts'
-
-const cors: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
-
-const json = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...cors } })
+import { json, preflight } from '../_shared/http.ts'
 
 interface BoggleSetup {
   dice_set?: string
@@ -59,7 +51,8 @@ interface BoggleSetup {
 }
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  const pre = preflight(req)
+  if (pre) return pre
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
 
   try {
