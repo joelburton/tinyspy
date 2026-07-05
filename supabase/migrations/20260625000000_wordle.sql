@@ -260,10 +260,7 @@ begin
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
   perform common.require_player_count_max(player_user_ids, 6);
 
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode
-      using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
 
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
@@ -610,9 +607,7 @@ security definer
 set search_path = wordle, common, public, extensions
 as $$
 begin
-  if (select mode from wordle.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from wordle.games where id = target_game));
   perform common._set_conceded(target_game);
   perform wordle._maybe_finish_compete(target_game);
 end;

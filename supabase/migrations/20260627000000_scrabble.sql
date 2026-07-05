@@ -604,10 +604,7 @@ begin
     raise exception 'a game needs at least one player' using errcode = 'P0001';
   end if;
 
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode
-      using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
   if mode = 'compete' and array_length(player_user_ids, 1) < 2 then
     raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
   end if;
@@ -1040,9 +1037,7 @@ declare
   v_active   int;
   is_current boolean;
 begin
-  if (select mode from scrabble.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from scrabble.games where id = target_game));
 
   -- Lock the game row so a concede can't race a move / another concede.
   perform 1 from scrabble.games where id = target_game for update;

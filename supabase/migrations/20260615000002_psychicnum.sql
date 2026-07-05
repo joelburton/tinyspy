@@ -364,10 +364,7 @@ declare
   effective_gametype text;
 begin
   -- ─── Validate mode + player-count ───────────────────
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode
-      using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a
@@ -766,9 +763,7 @@ as $$
 declare
   player_results jsonb;
 begin
-  if (select mode from psychicnum.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from psychicnum.games where id = target_game));
 
   -- Lock this game's psychicnum.games row FIRST so concede serializes against a
   -- concurrent submit_guess (which also locks this row before common.games).

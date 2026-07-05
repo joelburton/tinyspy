@@ -168,9 +168,7 @@ begin
   perform common.require_club_member(target_club);
 
   -- ─── Mode + player-count ─────────────────────────────────
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
     raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
   end if;
@@ -521,9 +519,7 @@ security definer
 set search_path = boggle, common, public, extensions
 as $$
 begin
-  if (select mode from boggle.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from boggle.games where id = target_game));
   perform common.concede(target_game);
 end;
 $$;

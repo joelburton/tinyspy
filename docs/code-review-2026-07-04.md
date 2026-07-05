@@ -948,6 +948,19 @@ pdf.md updated (helper table + body-family-2 section).
 Could be `common.validate_mode(text)` + `common.require_compete(uuid)`. Low
 urgency — the wrappers otherwise delegate cleanly.
 
+> **✅ DONE.** Added `common.validate_mode(text)` (raises the pinned `'mode must be
+> coop or compete (got X)'`) + `common.require_compete(text)` (raises the pinned
+> `'concede is only for compete games'`) next to `validate_timer` in the common
+> baseline. Repointed all **8** create_game mode checks → `perform
+> common.validate_mode(mode)` and all **8** concede-gates → `perform
+> common.require_compete((select mode from <game>.games where id = target_game))`.
+> `require_compete` takes the mode **text** (not a game id): mode lives in each
+> gametype's own `<game>.games`, not `common.games`, and using `<>` (not `is
+> distinct from`) preserves the original inline null-mode semantics exactly. The
+> per-gametype **sizing** rules (compete ≥2, codenamesduet exactly-2, bananagrams
+> compete-only) stay put — those genuinely differ. db:reset + import clean; all
+> **1101** pgTAP pass, including every pinned mode/concede message assertion.
+
 **Investigated and rejected** (valuable non-findings): per-game `useGame`
 hooks (thin, typed, documented Pattern B for connections); per-game
 `lib/history.ts` (identical signature, genuinely different bodies —

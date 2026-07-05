@@ -303,9 +303,7 @@ begin
   -- Must agree with numberOfPlayers in src/stackdown/manifest.ts ([1,6]/[2,6]).
   perform common.require_player_count_max(player_user_ids, 6);
 
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
   perform common.validate_timer(setup->'timer');
 
   -- Claim a random pre-generated board from the library.
@@ -775,9 +773,7 @@ security definer
 set search_path = stackdown, common, public, extensions
 as $$
 begin
-  if (select mode from stackdown.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from stackdown.games where id = target_game));
   perform common.concede(target_game);
 end;
 $$;

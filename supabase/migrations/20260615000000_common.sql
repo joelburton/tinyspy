@@ -925,6 +925,63 @@ $$;
 -- require_club_member's note).
 revoke execute on function common.validate_timer(jsonb) from public;
 
+-- ─── common.validate_mode ──────────────────────────────
+-- Guard: a game's mode must be one of the two we support. Every
+-- open (coop/compete) gametype's create_game repeated this exact
+-- check; centralizing keeps the allowed-mode set — and the error
+-- wording the pgTAP suites pin ('mode must be coop or compete
+-- (got X)') — in one place. Mode is a top-level create_game
+-- argument (NOT part of setup: create_game rejects setup.mode), so
+-- this takes the text directly rather than a game id.
+--
+-- Only the sizing rules (compete needs ≥2, codenamesduet is
+-- exactly-2, bananagrams is compete-only) stay per-gametype — those
+-- genuinely differ; the coop-or-compete membership check does not.
+
+create function common.validate_mode(p_mode text)
+returns void
+language plpgsql
+immutable
+as $$
+begin
+  if p_mode not in ('coop', 'compete') then
+    raise exception 'mode must be coop or compete (got %)', p_mode using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke execute on function common.validate_mode(text) from public;
+
+-- ─── common.require_compete ────────────────────────────
+-- Guard: concede is a compete-only action. In coop the players are
+-- a team, so a game ends via end_game (a mutual "we're done"), not
+-- a per-player drop-out — conceding makes no sense. Every gametype's
+-- `concede` wrapper repeated this gate with the same message
+-- ('concede is only for compete games', pinned by the per-game
+-- concede_test suites).
+--
+-- Takes the already-selected mode text rather than a game id: mode
+-- lives in each gametype's own `<game>.games`, not common.games, so
+-- the caller passes `(select mode from <game>.games where
+-- id = target_game)`. Uses `<>` (not `is distinct from`) to preserve
+-- the original inline semantics exactly — a null mode (missing game)
+-- falls through unraised, as before, and the surrounding
+-- existence/lock check handles that case.
+
+create function common.require_compete(p_mode text)
+returns void
+language plpgsql
+immutable
+as $$
+begin
+  if p_mode <> 'compete' then
+    raise exception 'concede is only for compete games' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke execute on function common.require_compete(text) from public;
+
 -- ─── common.create_game ────────────────────────────────
 -- The common (header) half of starting a new game. Called by
 -- every gametype's `<gametype>.create_game` first to get the

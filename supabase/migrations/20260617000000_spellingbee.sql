@@ -531,10 +531,7 @@ begin
   perform common.require_club_member(target_club);
 
   -- ─── Validate mode + player-count ────────────────────────
-  if mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', mode
-      using errcode = 'P0001';
-  end if;
+  perform common.validate_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -1314,9 +1311,7 @@ security definer
 set search_path = spellingbee, common, public, extensions
 as $$
 begin
-  if (select mode from spellingbee.games where id = target_game) <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
-  end if;
+  perform common.require_compete((select mode from spellingbee.games where id = target_game));
   perform common.concede(target_game);
 
   -- If that was the last racer, common.concede ended the game. Wake the
