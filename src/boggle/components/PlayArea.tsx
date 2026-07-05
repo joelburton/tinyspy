@@ -115,17 +115,30 @@ export function PlayArea(ctx: GamePageCtx) {
   )
   const myScore = useMemo(() => myFoundRows.reduce((s, r) => s + r.points, 0), [myFoundRows])
   const myCount = useMemo(() => new Set(myFoundRows.map((r) => r.word)).size, [myFoundRows])
-  // Required (C) / bonus (E) words found — the non-bonus vs bonus subsets of the
-  // finds. Bonus on the board (F) = the board's bonus list length.
+  // The Stats grid figures, split required vs bonus (count + score each). The
+  // *found* sides come off `myFoundRows` (non-bonus vs bonus); the *total* sides
+  // are the board's required/bonus lists.
   const requiredFound = useMemo(
     () => new Set(myFoundRows.filter((r) => !r.is_bonus).map((r) => r.word)).size,
+    [myFoundRows],
+  )
+  const requiredFoundScore = useMemo(
+    () => myFoundRows.filter((r) => !r.is_bonus).reduce((s, r) => s + r.points, 0),
     [myFoundRows],
   )
   const bonusFound = useMemo(
     () => new Set(myFoundRows.filter((r) => r.is_bonus).map((r) => r.word)).size,
     [myFoundRows],
   )
-  const bonusTotal = game?.bonus_words?.length ?? 0
+  const bonusFoundScore = useMemo(
+    () => myFoundRows.filter((r) => r.is_bonus).reduce((s, r) => s + r.points, 0),
+    [myFoundRows],
+  )
+  // The board's total bonus score (H) — sum of every bonus word's points.
+  const bonusScore = useMemo(
+    () => (game?.bonus_words ?? []).reduce((s, b) => s + b.points, 0),
+    [game?.bonus_words],
+  )
 
   // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from
   // the live state (RLS already scoped `foundWords` to what I may see — coop = the
@@ -237,6 +250,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // others. boggle has no elimination, so conceding is the only path to it.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
+  // When the legal band equals the required band, bonus words are only words the
+  // clean filter removed from the required set — not an intentional wider dictionary.
+  // Suppress the Bonus Words / Bonus Score cells in that case.
+  const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
+
   // Post-terminal reveal: the required words nobody found.
   const revealWords = isTerminal
     ? game.required_words.filter((r) => !foundSet.has(r.word))
@@ -281,13 +299,18 @@ export function PlayArea(ctx: GamePageCtx) {
         isTerminal={isTerminal}
         over={over}
         isLocallyDone={isLocallyDone}
-        // ── State readout (the 4-cell Stats grid) ──
-        words={myCount}
+        // ── State readout ──
         score={myScore}
-        requiredFound={requiredFound}
-        requiredTotal={game.required_words_count}
-        bonusFound={bonusFound}
-        bonusTotal={bonusTotal}
+        stats={{
+          requiredFound,
+          requiredCount: game.required_words_count,
+          requiredFoundScore,
+          requiredScore: game.required_words_score,
+          bonusFound: hasBonusDifficulty ? bonusFound : 0,
+          bonusCount: hasBonusDifficulty ? game.bonus_words.length : 0,
+          bonusFoundScore: hasBonusDifficulty ? bonusFoundScore : 0,
+          bonusScore: hasBonusDifficulty ? bonusScore : 0,
+        }}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={myId}

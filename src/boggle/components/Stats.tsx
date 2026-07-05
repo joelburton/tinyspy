@@ -1,39 +1,48 @@
 import styles from './Stats.module.css'
 
-type Props = {
-  /** All words the player/team found. */
-  words: number
-  /** Score of all those words. */
-  score: number
-  /** Required words found / required words on the board. */
+/** The figures behind boggle's 4-cell stat grid (all `found / total`). */
+export type BoggleStats = {
+  /** Required words found (A) / required words on the board (B). */
   requiredFound: number
-  requiredTotal: number
-  /** Bonus words found / bonus words on the board. Bonus = legal but NOT
-   *  required (the `is_bonus` finds); `requiredFound + bonusFound === words`. */
+  requiredCount: number
+  /** Score of required words found (C) / of all required words on the board (D). */
+  requiredFoundScore: number
+  requiredScore: number
+  /** Bonus words found (E) / bonus words on the board (F). */
   bonusFound: number
-  bonusTotal: number
+  bonusCount: number
+  /** Score of bonus words found (G) / of all bonus words on the board (H). */
+  bonusFoundScore: number
+  bonusScore: number
 }
 
 /**
- * boggle's 4-cell stat grid — the two-line "label over value" idiom, like
- * spellingbee's `<Stats>`: Words · Score · Required Words (found/total) · Bonus
- * Words (found/total). Pure presentation; the parent (PlayArea) derives the
- * figures from the found words + the board's required/bonus lists.
+ * boggle's stat grid — the two-line "label over value" idiom (like spellingbee's
+ * `<Stats>`). Every cell is `found / total`:
+ *   Words        required found / required on board
+ *   Score        required-found score / required total score
+ *   Bonus Words  bonus found / bonus on board
+ *   Bonus Score  bonus-found score / bonus total score
+ * The two BONUS cells are dropped (and the grid narrows to two columns) when the
+ * board has no bonus words — i.e. the legal list is just the required list, so
+ * there's nothing to show. Pure presentation; PlayArea derives the figures.
  */
-export function Stats({
-  words,
-  score,
-  requiredFound,
-  requiredTotal,
-  bonusFound,
-  bonusTotal,
-}: Props) {
+export function Stats(s: BoggleStats) {
+  const cells = [
+    { label: 'Words', value: `${s.requiredFound}`, sub: `/ ${s.requiredCount}` },
+    { label: 'Score', value: `${s.requiredFoundScore}`, sub: `/ ${s.requiredScore}` },
+    ...(s.bonusCount > 0
+      ? [
+          { label: 'Bonus Words', value: `${s.bonusFound}`, sub: `/ ${s.bonusCount}` },
+          { label: 'Bonus Score', value: `${s.bonusFoundScore}`, sub: `/ ${s.bonusScore}` },
+        ]
+      : []),
+  ]
   return (
-    <div className={styles.stats}>
-      <Cell label="Words" value={`${words}`} />
-      <Cell label="Score" value={`${score}`} />
-      <Cell label="Required Words" value={`${requiredFound}`} sub={`/ ${requiredTotal}`} />
-      <Cell label="Bonus Words" value={`${bonusFound}`} sub={`/ ${bonusTotal}`} />
+    <div className={styles.stats} style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}>
+      {cells.map((c) => (
+        <Cell key={c.label} label={c.label} value={c.value} sub={c.sub} />
+      ))}
     </div>
   )
 }

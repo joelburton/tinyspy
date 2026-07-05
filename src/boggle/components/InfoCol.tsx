@@ -9,7 +9,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { WordList, type WordListRow } from '../../common/components/game/lists/WordList'
-import { Stats } from './Stats'
+import { Stats, type BoggleStats } from './Stats'
 import type { BoggleSetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 
@@ -30,12 +30,8 @@ export function InfoCol({
   isTerminal,
   over,
   isLocallyDone,
-  words,
   score,
-  requiredFound,
-  requiredTotal,
-  bonusFound,
-  bonusTotal,
+  stats,
   players,
   selfId,
   metricByUser,
@@ -58,16 +54,11 @@ export function InfoCol({
   /** I conceded a compete race — the terminal LOOK while the others race on. */
   isLocallyDone: boolean
 
-  // ── State readout (the 4-cell Stats grid) ──
-  /** All words found (A), and their score (B). */
-  words: number
+  // ── State readout ──
+  /** The caller/team's TOTAL score (required + bonus) — the OpponentStrip metric. */
   score: number
-  /** Required words found (C) / required on the board (D). */
-  requiredFound: number
-  requiredTotal: number
-  /** Bonus words found (E) / bonus on the board (F). */
-  bonusFound: number
-  bonusTotal: number
+  /** The 4-cell Stats grid figures (required + bonus, count + score). */
+  stats: BoggleStats
 
   // ── Players (the OpponentStrip — compete) ──
   /** The roster (identity + per-player concede/result bits playerOutcome reads). */
@@ -102,15 +93,8 @@ export function InfoCol({
         {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
             state → opponent strip → action row → help → setup disclosure → list. */}
 
-        {/* State — the 4-cell grid: Words · Score · Required Words · Bonus Words. */}
-        <Stats
-          words={words}
-          score={score}
-          requiredFound={requiredFound}
-          requiredTotal={requiredTotal}
-          bonusFound={bonusFound}
-          bonusTotal={bonusTotal}
-        />
+        {/* State — the 4-cell grid: Words · Score · Bonus Words · Bonus Score. */}
+        <Stats {...stats} />
 
         {/* Opponent strip (compete) — each peer's score, identity on a leading disc;
             word counts stay private (the compete privacy line). */}

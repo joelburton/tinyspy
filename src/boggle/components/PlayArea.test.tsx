@@ -94,13 +94,37 @@ beforeEach(() => {
 
 describe('boggle PlayArea — render smoke', () => {
   it('renders the 4×4 board + the Stats grid in coop play', () => {
+    // Give the game a bonus word so bonusCount > 0 and the 4-cell grid renders.
+    h.result = loaded(loadedGame({ bonus_words: [{ word: 'dog', points: 2 }] }))
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
     // The info-column 4-cell Stats grid (labels unique to Stats; "Words" alone
     // also matches the WordList heading, so assert the qualified ones).
     expect(screen.getByText('Score')).toBeInTheDocument()
-    expect(screen.getByText('Required Words')).toBeInTheDocument()
     expect(screen.getByText('Bonus Words')).toBeInTheDocument()
+    expect(screen.getByText('Bonus Score')).toBeInTheDocument()
+  })
+
+  it('hides Bonus Words / Bonus Score when legal_band equals band', () => {
+    // When both bands are the same, bonus words are only clean-filter rejects —
+    // not an intentional wider dictionary. The stat cells should be suppressed.
+    render(
+      <PlayArea
+        {...makeCtx({
+          setup: {
+            timer: { kind: 'none' },
+            dice_set: '4',
+            band: 3,
+            legal_band: 3, // same as required band → no bonus display
+            min_word_length: 3,
+            scoring_ladder: 'basic',
+            win_percent: null,
+          },
+        })}
+      />,
+    )
+    expect(screen.queryByText('Bonus Words')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bonus Score')).not.toBeInTheDocument()
   })
 
   it('renders the OpponentStrip (Score) in compete play', () => {

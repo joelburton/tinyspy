@@ -345,9 +345,10 @@ board), swapped in for spellingbee's hex flower.
     next keystroke — not the GamePage header feedback channel.
 - **Info column** (the canonical v3 order — see design-decisions.md → Info column):
   the live **`<Stats>` grid** — a 4-cell two-line readout (label over value, the
-  spellingbee `<Stats>` idiom) of **Words** (found) · **Score** · **Required Words**
-  (required found / required on board) · **Bonus Words** (bonus found / bonus on
-  board) — the compete **`OpponentStrip`**
+  spellingbee `<Stats>` idiom), every cell `found / total`: **Words** (required
+  found / required on board) · **Score** (required-found score / required total) ·
+  **Bonus Words** (bonus found / bonus on board) · **Bonus Score** (bonus-found
+  score / bonus total) — the compete **`OpponentStrip`**
   (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
   the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
   the bold outcome line + a compact back-to-club button at terminal), a **help line**,
