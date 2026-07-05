@@ -350,7 +350,13 @@ comment, yet its failure blocks the load-bearing step.
 always proceed to the RPC.
 
 **F2. [low] bananagrams: the board is not frozen at terminal — post-game
-keystrokes/drags silently corrupt the displayed (and printed) final board.**
+keystrokes/drags silently corrupt the displayed (and printed) final board.** —
+**✅ DONE.** `usePlayerBoard` now computes `frozen = isConceded || isTerminal`
+and feeds it into both `frozenRef` (the stable pointer/key handlers' bail check)
+and `useBoardCursorKeys`' `enabled`. Previously PlayArea passed `isConceded =
+conceded && !isTerminal`, so terminal *lifted* the freeze; now the board is
+inert once the game's over, so the on-screen + printed final board can't
+diverge from the stored one. `tsc -b` + eslint + 29 FE tests green.
 `src/bananagrams/hooks/usePlayerBoard.ts:457` (`enabled: !isConceded`),
 `:400–414` (pointer handlers gate only on conceded), compounded by
 `src/bananagrams/components/PlayArea.tsx:210`

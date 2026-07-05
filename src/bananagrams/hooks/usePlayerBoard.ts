@@ -204,17 +204,23 @@ export function usePlayerBoard({
   const tilesRef = useRef(tiles)
   const cursorRef = useRef(cursor)
   const declaringRef = useRef(declaring) // lets the peel shortcut see an in-flight peel
-  // A conceded player is out — the always-on pointer/key handlers read this ref to bail
-  // (they're stable, so they can't close over the prop directly).
-  const frozenRef = useRef(!!isConceded)
+  // The board is frozen when the player is out of the game — either they
+  // conceded OR the game is over. Freezing at TERMINAL too matters: otherwise
+  // post-game keystrokes/drags keep mutating the local board (which
+  // save_player_board no-ops server-side and "Print board (PDF)" snapshots
+  // live), so the on-screen and printed "final" board would silently diverge
+  // from the stored one. The always-on pointer/key handlers read this ref to
+  // bail (they're stable, so they can't close over the props directly).
+  const frozen = !!isConceded || !!isTerminal
+  const frozenRef = useRef(frozen)
   useEffect(() => {
     boardRef.current = board
     tilesRef.current = tiles
     cursorRef.current = cursor
     declaringRef.current = declaring
-    frozenRef.current = !!isConceded
+    frozenRef.current = frozen
     if (reportBoardRef) reportBoardRef.current = board // expose the live board upward
-  }, [board, tiles, cursor, declaring, isConceded, reportBoardRef])
+  }, [board, tiles, cursor, declaring, frozen, reportBoardRef])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -455,7 +461,7 @@ export function usePlayerBoard({
   // a peel isn't legal). Disabled while conceded (the board freezes; others keep
   // racing).
   useBoardCursorKeys({
-    enabled: !isConceded,
+    enabled: !frozen,
     enterOnSpace: true,
     onEnter: () => void doPeel(),
     onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
