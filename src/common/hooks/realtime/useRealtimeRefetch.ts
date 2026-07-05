@@ -25,13 +25,15 @@ export type TableSubscription = {
  * status. Must be idempotent — refetch-and-replace, not
  * accumulate-and-append.
  *
- * The `mounted()` getter is closed over the factory's
- * mount/cleanup boolean. Standard usage: `await db.from(...)…`,
- * then `if (!mounted()) return` before any `setState`. Skipping
- * the check is a bug — a refetch triggered just before the
- * effect cleans up will land its `setState` after unmount and
- * either warn (React 17–18) or trigger a stale write into a
- * later mount of the same component (React 19's effect ordering).
+ * The `mounted()` getter guards TWO things: the component is still
+ * mounted, AND this load is still the newest one (no later refetch
+ * has started since — see the generation counter in the factory).
+ * Standard usage: `await db.from(...)…`, then `if (!mounted()) return`
+ * before any `setState`. Skipping the check is a bug on both counts —
+ * a refetch triggered just before cleanup would land its `setState`
+ * after unmount (warn on React 17–18 / stale write into a later mount
+ * on React 19), and a slow superseded load would clobber a newer one's
+ * row picture ("last to land wins" instead of "latest refetch wins").
  */
 export type RealtimeLoad = (opts: { mounted: () => boolean }) => Promise<void>
 
@@ -138,14 +140,24 @@ export function useRealtimeRefetch({
 
   useEffect(function realtimeRefetchEffect() {
     let mounted = true
-    const mountedFn = () => mounted
+    // Monotonic generation for out-of-order protection. This effect fires
+    // OVERLAPPING loads (immediate + on-SUBSCRIBED + one per realtime event),
+    // and they can resolve out of order — a slow initial load landing after a
+    // fast event-triggered load would regress the row picture until the next
+    // write. So each refetch stamps a generation; the `mounted()` a load
+    // receives returns false once a NEWER refetch has started, so a superseded
+    // load skips its `setState` (callers already gate on `mounted()` before
+    // committing — see RealtimeLoad). "Latest refetch wins," not "last to land."
+    let generation = 0
 
     function refetch() {
-      // Fire-and-forget. The caller's load handles its own
-      // mounted-guard + setState; any rejection surfaces as an
-      // unhandled promise warning the caller's load should have
-      // caught itself.
-      void loadRef.current({ mounted: mountedFn })
+      const myGen = ++generation
+      // `mounted()` now means "still mounted AND still the newest load."
+      const isCurrent = () => mounted && myGen === generation
+      // Fire-and-forget. The caller's load handles its own guard + setState;
+      // any rejection surfaces as an unhandled promise warning the caller's
+      // load should have caught itself.
+      void loadRef.current({ mounted: isCurrent })
     }
 
     // Initial load before subscription comes up — gets state

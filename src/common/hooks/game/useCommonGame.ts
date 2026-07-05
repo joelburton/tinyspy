@@ -200,8 +200,16 @@ export function useCommonGame(
   // "shared room" framing this name echoes.
   useEffect(function joinGameRoom() {
     let mounted = true
+    // Monotonic generation for out-of-order protection: this effect fires
+    // overlapping loads (initial + on-SUBSCRIBED + one per postgres-changes
+    // event), which can resolve out of order. Each `load()` stamps a
+    // generation and commits only if it's still the newest — so a slow initial
+    // load landing after a fast event-load can't regress play_state / is_terminal
+    // / the roster. Same fix as useRealtimeRefetch's factory.
+    let generation = 0
 
     async function load() {
+      const myGen = ++generation
       // Common-side row + player roster + profile usernames.
       // Two queries instead of an embed: game_players → profiles
       // is on user_id, easy enough to read directly with explicit
@@ -224,7 +232,7 @@ export function useCommonGame(
           .select('user_id, conceded, conceded_at, result')
           .eq('game_id', gameId),
       ])
-      if (!mounted) return
+      if (!mounted || myGen !== generation) return
 
       if (!gameData) {
         setCommonGame(null)
@@ -240,7 +248,7 @@ export function useCommonGame(
           .from('profiles')
           .select('user_id, username, color')
           .in('user_id', userIds)
-        if (!mounted) return
+        if (!mounted || myGen !== generation) return
         // Merge the profile (username/color) with the per-player
         // game_players bits (conceded/result) into one GamePlayer.
         const byId = new Map(

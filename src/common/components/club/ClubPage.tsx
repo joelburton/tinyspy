@@ -430,8 +430,15 @@ export function ClubPage({ handle, session }: Props) {
     if (!club) return
     const clubHandle = club.handle
     let mounted = true
+    // Monotonic generation for out-of-order protection: loadGames fires on
+    // initial + on-SUBSCRIBED + every common.games event, and these overlapping
+    // loads can resolve out of order. Commit only the newest, so a slow initial
+    // load can't clobber a fresher event-load's listing. Same fix as
+    // useRealtimeRefetch / useCommonGame.
+    let generation = 0
 
     async function loadGames() {
+      const myGen = ++generation
       // One read into common.games — the labelFor refactor moved
       // all the listing data here, so per-gametype fan-out is
       // gone. Each row's label comes from the matching manifest's
@@ -445,7 +452,7 @@ export function ClubPage({ handle, session }: Props) {
         )
         .eq('club_handle', clubHandle)
         .order('last_active_at', { ascending: false })
-      if (!mounted) return
+      if (!mounted || myGen !== generation) return
 
       const rows = data ?? []
       let currentId: string | null = null

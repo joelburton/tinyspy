@@ -289,7 +289,16 @@ mistakes (possibly the losing one), plus a duplicate turn-log row.
 the same order-insensitive tile set (mirroring the correct branch).
 
 **L3. [medium] Refetch loads have no out-of-order guard — a slow stale
-response can overwrite newer state.**
+response can overwrite newer state.** — **✅ DONE.** Added a per-effect
+monotonic generation token in the three row-replacement sites:
+`useRealtimeRefetch` (its `mounted()` now returns false for a superseded load —
+so ALL factory consumers, incl. every per-game `useGame`, are covered with zero
+per-consumer change), `useCommonGame.load`, and `ClubPage.loadGames`. Each load
+stamps a generation and skips its `setState` if a newer refetch has started —
+"latest refetch wins," not "last to land." `useGameInvitations` needs no fix:
+it's append-merge (`setPending(prev => [...prev, ...add])` with dedup), so a
+stale load can't regress it (same reason `useClubChat` is safe). `tsc -b` +
+eslint + 608 FE tests green.
 `src/common/hooks/game/useCommonGame.ts:204–268` (`load`),
 `src/common/hooks/realtime/useRealtimeRefetch.ts:139–176` (and consumers),
 `src/common/components/club/ClubPage.tsx:419–460`,
