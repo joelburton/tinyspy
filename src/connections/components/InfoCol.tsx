@@ -60,7 +60,7 @@ export function InfoCol({
   tileCount,
   guesses,
   matchedCategories,
-  viewingTurn,
+  viewingIndex,
   onSelectTurn,
 }: {
   // ── Mode + phase ──
@@ -104,7 +104,7 @@ export function InfoCol({
   guesses: GuessRow[]
   matchedCategories: MatchedCategory[]
   /** The turn currently open in the board viewer (by log position), or null. */
-  viewingTurn: number | null
+  viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
   // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of
@@ -196,7 +196,7 @@ export function InfoCol({
         guesses={guesses}
         matchedCategories={matchedCategories}
         players={players}
-        viewingTurn={viewingTurn}
+        viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />
     </div>

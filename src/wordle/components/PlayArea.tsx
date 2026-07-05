@@ -272,7 +272,7 @@ export function PlayArea({
         // ── Turn log ──
         guesses={guesses}
         mode={game.mode}
-        viewingTurn={viewingId}
+        viewingIndex={viewingId}
         onSelectTurn={selectTurn}
       />
 

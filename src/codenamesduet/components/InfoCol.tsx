@@ -42,7 +42,7 @@ export function InfoCol({
   guesses,
   players,
   gameOver,
-  viewingTurn,
+  viewingSeq,
   onSelectTurn,
 }: {
   // ── Mode + phase ──
@@ -81,7 +81,7 @@ export function InfoCol({
   players: Player[]
   gameOver: boolean
   /** The turn currently open in the board viewer (by turn_number), or null. */
-  viewingTurn: number | null
+  viewingSeq: number | null
   onSelectTurn: (turnNumber: number) => void
 }) {
   return (
@@ -179,7 +179,7 @@ export function InfoCol({
         players={players}
         currentTurn={turnNumber}
         gameOver={gameOver}
-        viewingTurn={viewingTurn}
+        viewingSeq={viewingSeq}
         onSelectTurn={onSelectTurn}
       />
     </div>

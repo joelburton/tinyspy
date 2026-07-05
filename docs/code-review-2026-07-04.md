@@ -1051,7 +1051,14 @@ manifest `BRAND`:
 - Soft: the 10 `PlayArea.test.tsx` fixtures hardcode `brand: 'TinySpy'` etc. —
   a second copy of each brand string; consider reading the manifest.
 
-**5.10 History-viewer keying + the viewed-cell class.**
+**5.10 History-viewer keying + the viewed-cell class.** — **✅ DONE.** Retired
+`viewingTurn` into the documented scheme: codenamesduet → `viewingSeq` (its
+value is a `turn_number` seq, like scrabble); connections/psychicnum/wordle →
+`viewingIndex` (they key on the log position, like stackdown/waffle). Viewed-
+cell CSS: the two out-of-family outliers — scrabble's present-tense
+`.viewingTile` and waffle's concept-less `.highlighted` — both → `.viewedTile`,
+so every game is now `.viewed*`. `tsc -b` + eslint + 175 Vitest green across the
+6 games.
 
 - The viewed-turn id prop is a 3-way split where docs bless two:
   `viewingIndex` (stackdown, waffle) vs `viewingSeq` (scrabble) —

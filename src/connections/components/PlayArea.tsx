@@ -338,7 +338,7 @@ export function PlayArea({
         // ── Turn-history log ──
         guesses={guesses}
         matchedCategories={matchedCategories}
-        viewingTurn={viewingId}
+        viewingIndex={viewingId}
         onSelectTurn={selectTurn}
       />
 

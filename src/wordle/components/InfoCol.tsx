@@ -55,7 +55,7 @@ export function InfoCol({
   // ── Turn log ──
   guesses,
   mode,
-  viewingTurn,
+  viewingIndex,
   onSelectTurn,
 }: {
   // ── Mode + phase ──
@@ -103,7 +103,7 @@ export function InfoCol({
   guesses: GuessRow[]
   mode: 'coop' | 'compete'
   /** Turn-history: the open turn (by log position), or null when live. */
-  viewingTurn: number | null
+  viewingIndex: number | null
   /** Open a turn on the board viewer (click its `#N`). */
   onSelectTurn: (index: number) => void
 }) {
@@ -201,7 +201,7 @@ export function InfoCol({
         selfId={selfId}
         mode={mode}
         isTerminal={isTerminal}
-        viewingTurn={viewingTurn}
+        viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />
     </div>

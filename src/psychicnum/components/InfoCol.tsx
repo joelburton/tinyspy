@@ -49,7 +49,7 @@ export function InfoCol({
   setup,
   wordCount,
   guesses,
-  viewingTurn,
+  viewingIndex,
   onSelectTurn,
 }: {
   // ── Mode + phase ──
@@ -94,7 +94,7 @@ export function InfoCol({
   // ── Turn-history log (GameTurnLog) ──
   guesses: GuessRow[]
   /** The turn currently open in the board viewer (by log position), or null. */
-  viewingTurn: number | null
+  viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
   const difficultyLabel = DIFFICULTY_LABELS[setup.difficulty - 1] ?? '—'
@@ -186,7 +186,7 @@ export function InfoCol({
       <GameTurnLog
         guesses={guesses}
         players={players}
-        viewingTurn={viewingTurn}
+        viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />
     </div>

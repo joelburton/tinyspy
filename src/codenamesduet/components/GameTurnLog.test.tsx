@@ -88,7 +88,7 @@ function renderLog(props: {
       players={PLAYERS}
       currentTurn={props.currentTurn ?? 99}
       gameOver={props.gameOver ?? false}
-      viewingTurn={null}
+      viewingSeq={null}
       onSelectTurn={() => {}}
     />,
   )

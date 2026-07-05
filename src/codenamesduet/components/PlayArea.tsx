@@ -409,7 +409,7 @@ export function PlayArea({
         guesses={guesses}
         players={players}
         gameOver={gameOver}
-        viewingTurn={viewingId}
+        viewingSeq={viewingId}
         onSelectTurn={selectTurn}
       />
 

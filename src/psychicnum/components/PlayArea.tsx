@@ -352,7 +352,7 @@ export function PlayArea({
         wordCount={game.words.length}
         // ── Turn-history log ──
         guesses={guesses}
-        viewingTurn={viewingId}
+        viewingIndex={viewingId}
         onSelectTurn={selectTurn}
       />
 

@@ -24,7 +24,7 @@ type Props = {
   isTerminal: boolean
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */
-  viewingTurn: number | null
+  viewingIndex: number | null
   /** Open a turn in the board viewer (click its `#N`). */
   onSelectTurn: (index: number) => void
 }
@@ -63,7 +63,7 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
-  viewingTurn,
+  viewingIndex,
   onSelectTurn,
 }: Props) {
   // Coop with 2+ players is one shared board → a single "Team" option. Every
@@ -151,7 +151,7 @@ export function GameTurnLog({
         <tr key={`${g.user_id}-${g.guess_index}`} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={g.is_correct ? 'good' : 'neutral'} />
           {boardIsShown ? (
-            <TurnLogNumber n={i + 1} viewing={viewingTurn === i} onSelect={() => onSelectTurn(i)} />
+            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
           ) : (
             <td className={turnLog.meta}>#{i + 1}</td>
           )}

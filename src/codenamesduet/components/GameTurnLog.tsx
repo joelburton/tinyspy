@@ -27,7 +27,7 @@ type Props = {
   gameOver: boolean
   /** Turn-history: the turn currently open in the board viewer (by `turn_number`),
    *  or null when live. That turn's two rows wear the shared yellow `viewedRow`. */
-  viewingTurn: number | null
+  viewingSeq: number | null
   /** Open a turn in the board viewer — click (or Enter/Space) any of its rows. */
   onSelectTurn: (turnNumber: number) => void
 }
@@ -63,7 +63,7 @@ export function GameTurnLog({
   players,
   currentTurn,
   gameOver,
-  viewingTurn,
+  viewingSeq,
   onSelectTurn,
 }: Props) {
   // seat letter → Player, so each clue row resolves to its clue-giver's
@@ -115,7 +115,7 @@ export function GameTurnLog({
               <TurnLogBar outcome={turnOutcome(turnGuesses)} rowSpan={2} />
               <TurnLogNumber
                 n={t}
-                viewing={viewingTurn === t}
+                viewing={viewingSeq === t}
                 onSelect={() => onSelectTurn(t)}
               />
               <td className={turnLog.main}>
