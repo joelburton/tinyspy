@@ -111,6 +111,48 @@ test.describe('crosswords play loop', () => {
     await expect(page.getByText('You solved it first!').first()).toBeVisible({ timeout: 10000 })
   })
 
+  test('print board produces a PDF download', async ({ browser }) => {
+    const club = await createSoloClub('xwpdf')
+    const [alice] = club.members
+    const game = await createCrosswordsGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    const download = page.waitForEvent('download')
+    await page.getByText('Print board (PDF)').click()
+    expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
+  })
+
+  test('coop peer cursors: a teammate sees where you are', async ({ browser }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+    const game = await createCrosswordsGame(club, 'coop')
+
+    const aCtx = await browser.newContext()
+    await signIn(aCtx, alice.session)
+    const a = await aCtx.newPage()
+    await a.goto(`/g/${game.gametype}/${game.id}`)
+
+    const bCtx = await browser.newContext()
+    await signIn(bCtx, bob.session)
+    const b = await bCtx.newPage()
+    await b.goto(`/g/${game.gametype}/${game.id}`)
+
+    await expect(a.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await expect(b.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+
+    // Bob clicks cell (1,1) → Alice sees his cursor frame there.
+    await b.locator('[data-xw-cell][data-row="1"][data-col="1"]').click()
+    await expect(a.locator('[data-xw-cell][data-row="1"][data-col="1"][data-peer]')).toBeVisible({
+      timeout: 10000,
+    })
+  })
+
   // Regression guard for the layout exception: a full-size grid must fit the
   // viewport — the board fills, the clue lists scroll INTERNALLY, and the
   // page itself never scrolls. (Needs a seeded library; skips if empty.)

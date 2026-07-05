@@ -134,6 +134,25 @@ player's, not "found" by anyone), so every row is a bare `found: null` word — 
 by `bananagrams/lib/words.ts`'s `boardWords` (the FE twin of the server's win-time spell
 check: every 2+ run across + down), then de-duped + alphabetised.
 
+**Body family 3 — grid-plus-clue-columns (`src/crosswords/pdf/`; crosswords) — a
+deliberate whole-cloth exception.** Crosswords does NOT use the shared `common/pdf`
+scaffold at all; its printer is a **verbatim port of crossplay's own jsPDF module**
+(`~/src/crossplay/packages/client/src/print/`), kept exactly as crossplay produces it
+today (plan decision 7). The layout is crossplay's 12-unit grid: the puzzle grid with a
+title block above it (title left, author/copyright stacked right — **not** `frame.ts`'s
+`Brand: title` + date header), then the Across/Down **clues flowed into balanced columns**
+with continuation pages when they overflow. The cell renderer preserves blocks, circles
+(8% inset), shading, given underlines, pencil-as-italic-grey, and current fills;
+`revealed`/`wrong` are ignored ("print shows the puzzle, not grading"). The answer-key
+generator (`generateSolutionPdf`) is **dropped** — the FE never holds the shielded
+solution. It already went through crossplay's own design process
+(`crossplay/docs/print-design.md`) and is already greyscale, so it lands within the
+*spirit* of this doc without adopting its letterforms or `frame`/`Setup` conventions.
+
+This is a documented **deliberate difference**, not drift: a future consistency pass must
+NOT "fix" it onto the shared frame (per [docs/ui.md](ui.md) → surface deliberate
+differences before reversing them). The only touchpoints with `common/pdf` are incidental.
+
 ## Plumbing
 
 - **Frontend only.** Everything the print needs is already client-side (the game's

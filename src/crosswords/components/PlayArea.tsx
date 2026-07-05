@@ -18,9 +18,13 @@ import {
   type Cursor,
 } from '../lib/cursor'
 import type { CellPos } from '../lib/cursor'
-import type { Direction, Scope } from '../lib/types'
+import type { Cell, Direction, PuzzleState, PuzzleTemplate, Scope } from '../lib/types'
+import { printCrosswordsPdf } from '../pdf/printCrosswordsPdf'
+import type { CellsMap } from '../hooks/useCells'
+import { colorVarFor } from '../../common/lib/color/memberColor'
 import { useGame } from '../hooks/useGame'
 import { cellKey, useCells } from '../hooks/useCells'
+import { usePeerCursors } from '../hooks/usePeerCursors'
 import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid } from './Grid'
 import { ClueLists } from './ClueLists'
@@ -37,7 +41,7 @@ import '../theme.css'
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, goToClub, session, status } = ctx
+  const { gameId, players, isTerminal, playState, goToClub, session, status, menu } = ctx
   const myId = session.user.id
 
   const { game } = useGame(gameId)
@@ -149,6 +153,40 @@ export function PlayArea(ctx: GamePageCtx) {
     [grid],
   )
 
+  // Peer cursors — teammates' positions on the SHARED coop grid.
+  const myColor = players.find((p) => p.user_id === myId)?.color ?? ''
+  const peers = usePeerCursors(gameId, mode === 'coop', cursor, myId, myColor)
+  const peerCells = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const pc of peers.values()) m.set(cellKey(pc.row, pc.col), colorVarFor(pc.color))
+    return m
+  }, [peers])
+
+  // "Print board (PDF)" menu item. The grid is snapshotted at click-time via a
+  // ref, so the menu item is set once (not rebuilt on every keystroke). The
+  // PDF is a verbatim port of crossplay's — puzzle only, no answer key.
+  const printStateRef = useRef<PuzzleState | null>(null)
+  useEffect(() => {
+    printStateRef.current = game
+      ? { meta: game.meta, snapshot: { version: 0, cells: buildPrintCells(game.meta, cells) } }
+      : null
+  })
+  useEffect(() => {
+    if (!game) return
+    const title = game.meta.title || 'crossword'
+    menu.setGameItems([
+      {
+        id: 'print',
+        label: 'Print board (PDF)',
+        onClick: () => {
+          const s = printStateRef.current
+          if (s) void printCrosswordsPdf(s, title)
+        },
+      },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, game])
+
   // Active word highlight + the two axis clue numbers under the cursor.
   const highlighted = useMemo(
     () =>
@@ -250,6 +288,7 @@ export function PlayArea(ctx: GamePageCtx) {
             onRebusCommit={handleRebusCommit}
             onRebusCancel={() => setRebus(null)}
             solution={solution}
+            peerCells={peerCells}
           />
         </div>
 
@@ -322,6 +361,27 @@ export function PlayArea(ctx: GamePageCtx) {
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
+  )
+}
+
+/** Merge the immutable template + live fills into the `Cell[][]` the PDF
+ *  printer draws (given letters + current player fills; pencil flag kept). */
+function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
+  return meta.cells.map((row, r) =>
+    row.map((t, c): Cell => {
+      if (t.kind === 'block') return t
+      const given = t.given === true
+      const live = given ? undefined : cells.get(cellKey(r, c))
+      return {
+        kind: 'cell',
+        number: t.number,
+        fill: given ? (t.fill ?? null) : (live?.fill ?? null),
+        ...(t.circled ? { circled: true } : {}),
+        ...(t.shaded ? { shaded: true } : {}),
+        ...(given ? { given: true } : {}),
+        ...(live?.pencil ? { pencil: true } : {}),
+      }
+    }),
   )
 }
 

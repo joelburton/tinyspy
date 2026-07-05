@@ -108,6 +108,17 @@
 .markRevealed { border-right-color: var(--crosswords-revealed); }
 .markWrong { border-right-color: var(--crosswords-wrong); }
 
+/* A teammate's cursor frame (coop peer cursors) — a thin inset border in the
+ * peer's color (set inline). Per-side border, not box-shadow, to avoid
+ * subpixel asymmetry at small cell sizes. */
+.peerFrame {
+  position: absolute;
+  inset: 0;
+  border: 0.09em solid;
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* Rebus (multi-char) entry overlay — positioned in em over the cursor cell
  * (top/left set inline), so it tracks the cell under zoom. */
 .rebusWrap {

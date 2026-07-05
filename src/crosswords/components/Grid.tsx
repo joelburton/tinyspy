@@ -40,10 +40,12 @@ type Props = {
   /** At terminal, the answer grid — used to fill blank cells with the
    *  revealed answer (greyed). Null mid-game (the solution is shielded). */
   solution: (string[] | null)[][] | null
+  /** `${row}:${col}` → CSS color, for teammates' cursor frames (coop). */
+  peerCells: Map<string, string>
 }
 
 export function Grid({
-  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, solution,
+  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, solution, peerCells,
 }: Props) {
   const { width, height, cells: template } = meta
 
@@ -88,6 +90,7 @@ export function Grid({
               shaded={t.shaded === true}
               isCursor={r === cursorRow && c === cursorCol}
               isInWord={highlighted.has(key)}
+              peerColor={peerCells.get(key)}
               onCellClick={onCellClick}
             />
           )
@@ -165,6 +168,8 @@ type CellProps =
       shaded: boolean
       isCursor: boolean
       isInWord: boolean
+      /** A teammate's cursor is here (coop) — draw a frame in their color. */
+      peerColor: string | undefined
       onCellClick: (row: number, col: number) => void
     }
 
@@ -184,7 +189,7 @@ const Cell = memo(function Cell(props: CellProps) {
 
   const {
     row, col, number, fill, given, answerReveal, pencil, revealed, wrong,
-    circled, shaded, isCursor, isInWord, onCellClick,
+    circled, shaded, isCursor, isInWord, peerColor, onCellClick,
   } = props
 
   const bg = isCursor ? styles.cursor : isInWord ? styles.inWord : ''
@@ -204,6 +209,7 @@ const Cell = memo(function Cell(props: CellProps) {
       data-fill={fill ?? ''}
       data-wrong={wrong ? '' : undefined}
       data-revealed={revealed ? '' : undefined}
+      data-peer={peerColor ? '' : undefined}
       onMouseDown={(e) => {
         e.preventDefault()
         onCellClick(row, col)
@@ -228,6 +234,7 @@ const Cell = memo(function Cell(props: CellProps) {
       {(wrong || revealed) && (
         <span className={cls(styles.mark, wrong ? styles.markWrong : styles.markRevealed)} />
       )}
+      {peerColor && <span className={styles.peerFrame} style={{ borderColor: peerColor }} />}
     </div>
   )
 })
