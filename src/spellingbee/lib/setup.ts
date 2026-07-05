@@ -22,9 +22,9 @@ import type { TimerMode } from '../../common/lib/games'
  *     0..6 maps to the Start..Genius rank ladder. Compete wins
  *     when the first player reaches this rank.
  *   - `required` / `legal` — the vocabulary bands. `required`
- *     (2..6) is where the displayed goal words come from; `legal`
+ *     (1..6) is where the displayed goal words come from; `legal`
  *     (required..6) is the wider set of accepted/bonus words. The
- *     board pool is selected at the band-2 floor, so any choice is
+ *     board pool is selected at the band-1 floor, so any choice is
  *     solvable; `legal` must contain `required` (see
  *     `legalError`).
  *
@@ -38,7 +38,7 @@ export type SpellingbeeSetup = {
    *  because both manifests share it; the per-mode default
    *  factories below seed the field iff compete. */
   target_rank?: number
-  /** Required-words band (2..6); see the type-level notes. */
+  /** Required-words band (1..6); see the type-level notes. */
   required: number
   /** Legal/bonus-words band (required..6). */
   legal: number

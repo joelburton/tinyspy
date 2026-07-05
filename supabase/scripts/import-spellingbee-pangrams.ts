@@ -10,13 +10,13 @@
  *     band-1 7-distinct-letter word, so EVERY board carries a common,
  *     findable pangram — the whole point (no obscure-only pangrams
  *     like CALDRON).
- *   - **Count = required FLOOR (band <= 2).** For each seed we precompute
- *     `required_words_count` = how many REQUIRED words fit it (band
- *     <= 2, american, no slang, clean: slur 0 + crude 0), and keep only seeds with
- *     >= 30 so no board is thin. The in-play required band is now a per-game
- *     setup choice (2..6); counting at the band-2 FLOOR keeps selection
+ *   - **Count = required FLOOR (band 1).** For each seed we precompute
+ *     `required_words_count` = how many REQUIRED words fit it (band 1,
+ *     american, no slang, clean: slur 0 + crude 0), and keep only seeds with
+ *     >= 30 so no board is thin. The in-play required band is a per-game
+ *     setup choice (1..6); counting at the band-1 FLOOR keeps selection
  *     independent of it — a higher choice only adds words, so every board
- *     stays solvable.
+ *     stays solvable at any choice, down to required = 1.
  *
  * Plus the `has_rare_letters` weighting flag the edge function's
  * diverse builder uses.
@@ -55,10 +55,10 @@ const DB_URL =
 const PANGRAM_BAND = 1
 
 /** Required-set FLOOR band for the per-seed word count. The in-play required
- *  band is now a per-game setup choice (2..6); counting at the floor (band 2)
+ *  band is a per-game setup choice (1..6); counting at the floor (band 1)
  *  keeps board SELECTION independent of it — a higher choice only ADDS words,
- *  so a seed picked here is always solvable. (Was a fixed 3.) */
-const REQUIRED_BAND = 2
+ *  so a seed picked here is always solvable, down to required = 1. */
+const REQUIRED_BAND = 1
 
 /** Puzzle-quality gate: a seed must admit at least this many REQUIRED
  *  words. Agrees with the same gate in the edge function

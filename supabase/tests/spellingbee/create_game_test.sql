@@ -27,7 +27,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(33);
+select plan(34);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -300,7 +300,7 @@ select throws_ok(
 -- (16b) Word-difficulty band validation
 -- ============================================================
 -- The setup carries two vocabulary bands: `required` (the goal
--- words, 2..6) and `legal` (the wider accepted set, required..6).
+-- words, 1..6) and `legal` (the wider accepted set, required..6).
 -- create_game re-checks them server-side (the FE's spellingbeeLegalError
 -- gate is UX only). The defaults (required 3 / legal 5) are absent
 -- from pg_temp.spellingbee_setup(), so the happy paths above exercise
@@ -309,7 +309,7 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select spellingbee.create_game(%L,
-                                   pg_temp.spellingbee_setup() || '{"required": 1}'::jsonb,
+                                   pg_temp.spellingbee_setup() || '{"required": 0}'::jsonb,
                                    array['ada11111-1111-1111-1111-111111111111'::uuid],
                                    'coop',
                                    pg_temp.spellingbee_board()) $$,
@@ -317,7 +317,24 @@ select throws_ok(
   ),
   'P0001',
   null,
-  'rejects setup.required below 2 (band floor)'
+  'rejects setup.required below 1 (band floor)'
+);
+
+-- required = 1 is now the floor (was 2) — accepted. Same fixture board (its
+-- required_words_count clears the ≥30 gate regardless of the required band).
+select isnt(
+  (
+    select id from spellingbee.create_game(
+      (select common.create_club('Required one', array['ada','bea']) as handle),
+      pg_temp.spellingbee_setup() || '{"required": 1}'::jsonb,
+      array['ada11111-1111-1111-1111-111111111111'::uuid,
+            'bea22222-2222-2222-2222-222222222222'::uuid],
+      'coop',
+      pg_temp.spellingbee_board()
+    )
+  ),
+  null,
+  'accepts setup.required = 1 (the new band floor)'
 );
 
 select throws_ok(

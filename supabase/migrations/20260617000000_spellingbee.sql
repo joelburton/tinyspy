@@ -385,7 +385,7 @@ grant execute on function spellingbee._rank_idx(int, int) to authenticated;
 --
 -- This is also where spellingbee's slice of the shared common.words
 -- list is defined, on the 1..6 recognizability bands. Both bands are now a
--- per-game setup choice (`required` 2..6, `legal` required..6), threaded in by
+-- per-game setup choice (`required` 1..6, `legal` required..6), threaded in by
 -- the edge function:
 --   - legal      difficulty <= legal_band  (returned at all = enterable). No
 --                dialect / slang / crude / slur restriction — anything up
@@ -582,15 +582,15 @@ begin
   end if;
 
   -- ─── Validate the word bands ─────────────────────────────
-  -- required: the band the displayed/required goal words are drawn from (2..6;
-  -- band 2 is the floor the board pool was selected at). legal: how obscure an
+  -- required: the band the displayed/required goal words are drawn from (1..6;
+  -- band 1 is the floor the board pool was selected at). legal: how obscure an
   -- accepted word may be (required..6, so the legal set always contains the
   -- required set). Both optional — default to the classic 3 / 5. The edge
   -- function builds the board's word lists from these; create_game is the
   -- authority on the shape.
   s_required := coalesce((setup->>'required')::int, 3);
-  if s_required < 2 or s_required > 6 then
-    raise exception 'setup.required must be 2..6 (got %)', s_required
+  if s_required < 1 or s_required > 6 then
+    raise exception 'setup.required must be 1..6 (got %)', s_required
       using errcode = 'P0001';
   end if;
   s_legal := coalesce((setup->>'legal')::int, 5);

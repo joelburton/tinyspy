@@ -74,7 +74,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         <DifficultyField
           label="Required words"
           length={null}
-          minDifficulty={2}
+          minDifficulty={1}
           maxDifficulty={6}
           value={s.required}
           onChange={(required) => onChange({ ...s, required })}

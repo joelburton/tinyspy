@@ -72,7 +72,7 @@ type Setup = {
   /** Required when `mode === 'compete'` (validated server-side). */
   target_rank?: number
   /** Vocabulary bands for this board's word lists (validated server-side by
-   *  spellingbee.create_game). `required` (2..6, default 3) = the displayed goal
+   *  spellingbee.create_game). `required` (1..6, default 3) = the displayed goal
    *  set; `legal` (required..6, default 5) = the wider accepted set. */
   required?: number
   legal?: number
