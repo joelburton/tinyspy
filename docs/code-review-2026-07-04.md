@@ -405,7 +405,13 @@ OS gesture) strands the armed gesture: ghost tile stays rendered, body
 *Fix:* add a `pointercancel` listener that clears the gesture/drag/hover state
 and calls `onDragEnd` with no drop.
 
-**F5. [low] Manual pause is a silent no-op for a non-player club member.**
+**F5. [low] Manual pause is a silent no-op for a non-player club member.** —
+**✅ DONE.** Chose the "make it work" option: `manuallyPausedBy` now falls back
+to a labeled pseudo-member (`{username: 'Someone'}`) when the pauser isn't in
+`players`, so a spectating member's Pause actually pauses (overlay reads
+"Someone paused") instead of being a dead control. Unknown color falls through
+to body-text in `colorVarFor`. New test covers the non-player pause. 12
+useCommonGame tests green.
 `src/common/hooks/game/useCommonGame.ts:494–499` +
 `src/common/components/game/GamePage.tsx:320`. Viewing is club-gated
 (spectating members are a documented free affordance) and the header

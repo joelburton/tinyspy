@@ -442,6 +442,28 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
     expect(result.current.manuallyPausedBy?.user_id).toBe('bea')
   })
 
+  it('a manualPause from a non-player (spectator) still pauses, labeled "Someone"', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    presenceStateRecord = {
+      ada: [{ user_id: 'ada' }],
+      bea: [{ user_id: 'bea' }],
+    }
+    act(() => firePresenceSync())
+
+    // A club member watching without having joined (not in `players`) clicks
+    // Pause. The pause must still take effect — not silently no-op.
+    act(() =>
+      handlers['broadcast:manualPause']?.({
+        payload: { type: 'manualPause', userId: 'zork' },
+      }),
+    )
+
+    expect(result.current.paused).toBe(true)
+    expect(result.current.manuallyPausedBy?.user_id).toBe('zork')
+    expect(result.current.manuallyPausedBy?.username).toBe('Someone')
+  })
+
   it('receives a peer manualUnpause and clears manuallyPausedBy', async () => {
     const { result } = renderHook(() => useCommonGame('g1', fakeSession))
     await waitFor(() => expect(result.current.loading).toBe(false))

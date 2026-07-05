@@ -507,8 +507,15 @@ export function useCommonGame(
     presentUserIds,
     activePlayers,
   )
-  const manuallyPausedBy = manuallyPausedById
-    ? players.find((m) => m.user_id === manuallyPausedById) ?? null
+  const manuallyPausedBy: Member | null = manuallyPausedById
+    ? players.find((m) => m.user_id === manuallyPausedById) ??
+      // The pauser can be a club member spectating (on the game page without
+      // having joined as a player), so they're not in `players`. Resolve to a
+      // labeled pseudo-member so the pause still TAKES EFFECT (and the overlay
+      // reads "Someone paused") instead of silently no-opping — clicking Pause
+      // was otherwise a dead control for a non-player. Unknown color falls
+      // through to body-text in colorVarFor.
+      { user_id: manuallyPausedById, username: 'Someone', color: '' }
     : null
   const paused =
     (presencePaused || manuallyPausedBy !== null)
