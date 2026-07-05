@@ -41,8 +41,9 @@
  * local stack). Requires `psql` on PATH and a populated `common.words`
  * (run `npm run words:import` first).
  *
- * Usage:  npm run stackdown:gen -- [count] [baseSeed] [band]
- *           count    — how many boards to generate (default 8)
+ * Usage:  npm run stackdown:gen -- <count> [baseSeed] [band]
+ *           count    — how many boards to generate (REQUIRED; running with no
+ *                      arguments just prints this help and generates nothing)
  *           baseSeed — first seed; board i uses baseSeed + i (default 1000)
  *           band     — word-difficulty band 1..6 (default 1). band N draws
  *                      words from `difficulty = N` EXACTLY, so a band-2 board
@@ -60,11 +61,34 @@ const DB_URL =
   process.env.SUPABASE_DB_URL ??
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
-const COUNT = Number(process.argv[2] ?? 8)
+// No arguments → print usage and exit without touching anything (no psql
+// connection, no file read/write). `count` is therefore effectively required;
+// baseSeed + band keep their defaults once you pass at least a count.
+if (process.argv.length <= 2) {
+  console.log(
+    [
+      'Generate stackdown boards → supabase/data/stackdown-boards.jsonl',
+      '',
+      'Usage:  npm run stackdown:gen -- <count> [baseSeed] [band]',
+      '  count     how many boards to generate (required)',
+      '  baseSeed  first seed; board i uses baseSeed + i (default 1000)',
+      '  band      word-difficulty band 1..6 (default 1) — band N uses difficulty = N exactly',
+      '',
+      'Example:  npm run stackdown:gen -- 10 1000 2   # 10 band-2 boards',
+    ].join('\n'),
+  )
+  process.exit(0)
+}
+
+const COUNT = Number(process.argv[2])
+if (!Number.isInteger(COUNT) || COUNT < 1) {
+  console.error(`count must be a positive integer (got "${process.argv[2]}")`)
+  process.exit(1)
+}
 const BASE_SEED = Number(process.argv[3] ?? 1000)
-// Word-difficulty band (a common.words.difficulty ceiling). Default 1 keeps
-// the original everyday set; 2+ widens the pool AND forces >=1 top-band word
-// per board (see generateAnyBoard). Written onto every generated line.
+// Word-difficulty band: which common.words.difficulty a board is built from
+// (EXACTLY that difficulty — a band-N board is all band-N words). Default 1 =
+// the everyday set. Written onto every generated line.
 const BAND = Number(process.argv[4] ?? 1)
 if (!Number.isInteger(BAND) || BAND < 1 || BAND > 6) {
   console.error(`band must be an integer 1..6 (got ${process.argv[4]})`)

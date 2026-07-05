@@ -406,8 +406,9 @@ Generation is a few seconds per board (the strict validation), too slow to
 re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
 `words:import`'s vendored-file pattern:
 
-- **`npm run stackdown:gen -- [count] [baseSeed] [band]`** (`generate-stackdown-boards.ts`)
-  — the SLOW half, run rarely. Loads the 5-letter lexicon at the chosen `band`
+- **`npm run stackdown:gen -- <count> [baseSeed] [band]`** (`generate-stackdown-boards.ts`)
+  — the SLOW half, run rarely. `count` is required — running with no arguments
+  just prints usage and generates nothing. Loads the 5-letter lexicon at the chosen `band`
   (`difficulty = band` exactly, default 1) from `common.words` (read-only),
   generates N strictly-valid boards on the fixed geometry, and **appends** them
   to `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a
