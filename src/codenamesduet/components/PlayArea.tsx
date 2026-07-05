@@ -365,7 +365,7 @@ export function PlayArea({
         peerKey={peerKey}
         mySeat={mySeat}
         gameOver={gameOver}
-        cellsClickable={cellsClickable}
+        readOnly={!cellsClickable}
         highlight={snap?.highlight}
         // ── History viewer ──
         viewing={viewing}

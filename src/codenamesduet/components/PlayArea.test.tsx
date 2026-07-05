@@ -88,3 +88,21 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', target_position: 0 })
   })
 })
+
+/**
+ * Input-gating characterization. The board-gate prop (being unified to
+ * `readOnly`) controls whether board tiles accept clicks. Pinning the OBSERVABLE
+ * effect — tiles clickable during my guess turn, blocked at terminal — so a
+ * polarity flip that inverts the gate fails here instead of silently shipping.
+ */
+describe('codenamesduet PlayArea — input gating', () => {
+  it('tiles are clickable during my guess turn', () => {
+    render(<PlayArea {...makeCtx()} />) // playing, my turn, clue given → gate open
+    expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
+  })
+
+  it('tiles are blocked at terminal', () => {
+    render(<PlayArea {...makeCtx({ playState: 'won', isTerminal: true })} />) // gameOver
+    expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
+  })
+})

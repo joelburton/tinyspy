@@ -45,7 +45,7 @@ export function BoardCol({
   peerKey,
   mySeat,
   gameOver,
-  cellsClickable,
+  readOnly,
   highlight,
   // ── History viewer (its overlay lives in the below-board region) ──
   viewing,
@@ -76,9 +76,10 @@ export function BoardCol({
   /** Caller's seat, or undefined if watching. */
   mySeat: Seat | undefined
   gameOver: boolean
-  /** May I click a cell to guess right now (derivePhase)? Board input is also frozen
-   *  while `viewing` — this column ANDs the two before handing it to `<Board>`. */
-  cellsClickable: boolean
+  /** The board-gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
+   *  from the phase (`!derivePhase().cellsClickable`); this column ORs in
+   *  `viewing` before handing the leaf `<Board>` its `cellsClickable`. */
+  readOnly: boolean
   /** Turn-history: the positions the viewed turn decided — ring them (undefined live). */
   highlight: ReadonlySet<number> | undefined
 
@@ -114,6 +115,12 @@ export function BoardCol({
    *  which renders the panel high in the tree so react-rnd positions it on-screen). */
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
+  // Phase-clickability, the positive of the `readOnly` gate. Reintroduced (rather
+  // than flipping every internal use) so the leaf `<Board>`'s `cellsClickable`
+  // prop + the `viewing` interplay below stay byte-identical — the prop-name
+  // unification can't change behavior.
+  const cellsClickable = !readOnly
+
   // The guess move — a board click. Owned here (beside the board it gates). The
   // reveal arrives via realtime, so there's no optimistic state; the only own-move
   // feedback is an ERROR (a rejected guess), routed up via `onError`.
