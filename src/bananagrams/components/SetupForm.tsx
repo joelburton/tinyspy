@@ -4,6 +4,7 @@ import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
+  WORD_CHECK_OPTIONS,
   BANANAGRAMS_BAG_MAX,
   tilesNeeded,
   type BananagramsSetup,
@@ -26,13 +27,14 @@ import styles from './SetupForm.module.css'
  *   - **Dumping a tile** — "Return dumped tiles to the box": off (default) puts
  *     a dumped tile back in the bag; on takes it out of play (the game shrinks
  *     by one each dump).
- *   - **Words** — an opt-in "require real words to win" dictionary check on the
- *     winning peel, plus two always-shown DifficultyField pickers (one for
- *     2-letter words, band 2..6; one for longer words, 1..6, since 2-letter
- *     words are a separate, thinner vocabulary). The bands define what counts as
- *     a real word for both the win check AND the upcoming opt-in "check board"
- *     helper, so they show regardless of the checkbox. (Board geography — one
- *     connected grid — is always required, so it's not a knob.)
+ *   - **Words** — a 3-way `word_check` dictionary check (Off / At win / Every
+ *     peel), plus two always-shown DifficultyField pickers (one for 2-letter
+ *     words, band 2..6; one for longer words, 1..6, since 2-letter words are a
+ *     separate, thinner vocabulary). *Every peel* (strict) refuses a peel whose
+ *     board has an invalid word. The bands define what counts as a real word for
+ *     the check AND the upcoming opt-in "check board" helper, so they show
+ *     regardless of the mode. (Board geography — one connected grid — is always
+ *     required to win, so it's not a knob.)
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`bananagrams.submit_timeout`).
@@ -49,9 +51,6 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
     <div className={form.setup}>
       <fieldset className={form.fieldset}>
         <legend>Starter tiles per player</legend>
-        <p className="muted">
-          How many tiles each player is dealt. First to place them all wins.
-        </p>
         <RadioRow
           name="hand_size"
           options={HAND_SIZE_OPTIONS.map((n) => ({ value: n, label: n }))}
@@ -61,9 +60,9 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       </fieldset>
 
       <fieldset className={form.fieldset}>
-        <legend>Tiles in bag</legend>
+        <legend>Tiles in bunch</legend>
         <p className="muted">
-          The full bag is {BANANAGRAMS_BAG_MAX}; fewer makes a shorter game.
+          The full bag is {BANANAGRAMS_BAG_MAX}.
           This game deals {needed} ({playerCount} player
           {playerCount === 1 ? '' : 's'} × {s.hand_size}).
         </p>
@@ -88,36 +87,28 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             checked={s.dump_to_box}
             onChange={(e) => onChange({ ...s, dump_to_box: e.target.checked })}
           />
-          Return dumped tiles to the box (out of play)
+          Return dumped tiles to the bag (out of play)
         </label>
         <p className="muted">
-          By default a dumped tile goes back in the bag. To the box, it leaves
-          the bunch (so the game ends sooner) — though a dump can pull from the
-          box if the bunch runs low. You still draw three either way.
+          By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way.
         </p>
       </fieldset>
 
       <fieldset className={form.fieldset}>
         <legend>Words</legend>
-        <p className="muted">
-          To go out, your tiles must always form one connected grid. Optionally,
-          require every word in it to be real:
-        </p>
-        <label className={styles.checkRow}>
-          <input
-            type="checkbox"
-            name="check_words"
-            checked={s.check_words}
-            onChange={(e) => onChange({ ...s, check_words: e.target.checked })}
-          />
-          Require real words to win
-        </label>
+        <RadioRow
+          name="word_check"
+          prefix="Words must be legal"
+          options={WORD_CHECK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+          value={s.word_check}
+          onChange={(word_check) => onChange({ ...s, word_check })}
+        />
         {/* The two band pickers are ALWAYS shown — not gated on
-            check_words. They define which words count as "real" both for
-            the win check (when required above) and for the upcoming
-            opt-in "check board" helper a player can run mid-game even
-            when the win check is off. 2-letter words are a separate,
-            thinner vocabulary, so they get their own band. */}
+            word_check. They define which words count as "real" both for
+            the word check (when on above) and for the upcoming opt-in
+            "check board" helper a player can run mid-game even when the
+            check is off. 2-letter words are a separate, thinner
+            vocabulary, so they get their own band. */}
         <div className={styles.dictRow}>
           <DifficultyField
             label="2-letter words"

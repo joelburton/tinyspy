@@ -1,23 +1,24 @@
 -- ============================================================
 -- Test: bananagrams legal-board check (_win_blockers + peel gating)
 -- ============================================================
--- The board check on a winning peel, in two layers:
+-- The board check, in two layers:
 --   1. _win_blockers(board, dict_2, dict_3plus, check_words): the pure
---      validator. Connectivity (one 4-connected mass) is ALWAYS enforced; the
---      word check only runs when check_words, and a word is judged against the
---      band for its LENGTH (dict_2 for 2-letter words, dict_3plus for longer).
---      Returns the blocking cells (disconnected stragglers ∪ — if checking —
---      invalid-word tiles).
---   2. peel: a WINNING peel always requires a connected grid; setup.check_words
---      additionally requires real words. Either failure returns the offending
---      cells and leaves the game in progress.
+--      validator (its boolean arg = "check words too"). Connectivity (one
+--      4-connected mass) is ALWAYS enforced; the word check only runs when the
+--      flag is set, and a word is judged against the band for its LENGTH (dict_2
+--      for 2-letter words, dict_3plus for longer). Returns the blocking cells
+--      (disconnected stragglers ∪ — if checking — invalid-word tiles).
+--   2. peel: a WINNING peel always requires a connected grid; setup.word_check
+--      'win'/'strict' additionally require real words, and 'strict' runs the
+--      SAME check on every CONTINUING peel too. Either failure returns the
+--      offending cells and leaves the game in progress.
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(20);
+select plan(25);
 
 \ir ../_shared/setup.psql
 
@@ -129,11 +130,11 @@ select is(
 -- state (superuser bypasses RLS). An empty pool makes the next peel a WINNING
 -- one (needed = 1 player × 1 > 0 = length(pool)).
 
--- ── Game A: check_words on + legal board → peel WINS ──
+-- ── Game A: word_check win + legal board → peel WINS ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ga on commit drop as
 select * from bananagrams.create_game('=ada',
-  '{"hand_size": 15, "bag_size": 144, "check_words": true, "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bag_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]);
 
 reset role;
@@ -145,18 +146,18 @@ update bananagrams.games set pool = '' where id = (select id from ga);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pa on commit drop as select bananagrams.peel((select id from ga)) as res;
-select is((select res->>'result' from pa), 'won', 'check_words on + legal board → peel wins');
+select is((select res->>'result' from pa), 'won', 'word_check win + legal board → peel wins');
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from ga)),
   'won', 'the legal winning peel ended the game');
 
--- ── Game B: check_words on + connected NON-WORD → peel BLOCKED ──
+-- ── Game B: word_check win + connected NON-WORD → peel BLOCKED ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gb on commit drop as
 select * from bananagrams.create_game('=ada',
-  '{"hand_size": 15, "bag_size": 144, "check_words": true, "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bag_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]);
 
 reset role;
@@ -169,7 +170,7 @@ update bananagrams.games set pool = '' where id = (select id from gb);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pb on commit drop as select bananagrams.peel((select id from gb)) as res;
 select is((select res->>'result' from pb), 'illegal',
-  'check_words on + a non-word → peel is blocked');
+  'word_check win + a non-word → peel is blocked');
 select is((select res->'invalid_cells' from pb), '[0,1,2]'::jsonb,
   'the blocked peel returns the offending cells');
 reset role;
@@ -178,11 +179,11 @@ select is(
   (select play_state from common.games where id = (select id from gb)),
   'playing', 'a blocked peel leaves the game in progress');
 
--- ── Game C: check_words OFF + connected non-word → peel WINS (classic) ──
+-- ── Game C: word_check off + connected non-word → peel WINS (classic) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gc on commit drop as
 select * from bananagrams.create_game('=ada',
-  '{"hand_size": 15, "bag_size": 144, "check_words": false, "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bag_size": 144, "word_check": "off", "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]);
 
 reset role;
@@ -195,18 +196,18 @@ update bananagrams.games set pool = '' where id = (select id from gc);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pc on commit drop as select bananagrams.peel((select id from gc)) as res;
 select is((select res->>'result' from pc), 'won',
-  'check_words off → a CONNECTED non-word still wins (words not checked)');
+  'word_check off → a CONNECTED non-word still wins (words not checked)');
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from gc)),
   'won', 'the unchecked winning peel ended the game');
 
--- ── Game D: check_words OFF + DISCONNECTED board → peel BLOCKED (geography) ──
+-- ── Game D: word_check off + DISCONNECTED board → peel BLOCKED (geography) ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gd on commit drop as
 select * from bananagrams.create_game('=ada',
-  '{"hand_size": 15, "bag_size": 144, "check_words": false, "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+  '{"hand_size": 15, "bag_size": 144, "word_check": "off", "dict_2": 4, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid]);
 
 reset role;
@@ -220,7 +221,7 @@ update bananagrams.games set pool = '' where id = (select id from gd);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pd on commit drop as select bananagrams.peel((select id from gd)) as res;
 select is((select res->>'result' from pd), 'illegal',
-  'check_words off but DISCONNECTED → peel still blocked (geography is always checked)');
+  'word_check off but DISCONNECTED → peel still blocked (geography is always checked)');
 select is((select res->'invalid_cells' from pd), '[125,126,127]'::jsonb,
   'the blocked disconnected peel returns the floating tiles');
 reset role;
@@ -228,6 +229,75 @@ select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from gd)),
   'playing', 'the disconnected board left the game in progress');
+
+-- ════════════════ strict mode: a CONTINUING peel is checked too ════════════════
+-- Above, every peel was a WINNING one (empty pool). Here the pool is NON-empty,
+-- so `length(pool) >= needed` (1 player × 1) makes the peel a CONTINUING one
+-- ("everyone draws"). word_check 'strict' still validates it; 'win' does not.
+
+-- ── Game E: strict + continuing peel + NON-WORD → BLOCKED (no deal) ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table ge on commit drop as
+select * from bananagrams.create_game('=ada',
+  '{"hand_size": 15, "bag_size": 144, "word_check": "strict", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+update bananagrams.player_boards
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+ where game_id = (select id from ge);
+update bananagrams.games set pool = 'ABCDEFGHIJ' where id = (select id from ge);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table pe on commit drop as select bananagrams.peel((select id from ge)) as res;
+select is((select res->>'result' from pe), 'illegal',
+  'strict + a non-word on a CONTINUING peel → blocked (not just at win)');
+select is((select res->'invalid_cells' from pe), '[0,1,2]'::jsonb,
+  'the blocked strict peel returns the offending cells');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- Nothing was dealt: the pool is untouched and the game is still in progress.
+select is((select length(pool) from bananagrams.games where id = (select id from ge)), 10,
+  'a blocked strict peel deals nothing (pool untouched)');
+
+-- ── Game F: strict + continuing peel + VALID word → DEALS ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gf on commit drop as
+select * from bananagrams.create_game('=ada',
+  '{"hand_size": 15, "bag_size": 144, "word_check": "strict", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+update bananagrams.player_boards
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT'), tiles = 'CAT'
+ where game_id = (select id from gf);
+update bananagrams.games set pool = 'ABCDEFGHIJ' where id = (select id from gf);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table pf on commit drop as select bananagrams.peel((select id from gf)) as res;
+select is((select res->>'result' from pf), 'dealt',
+  'strict + a valid board on a continuing peel → deals normally');
+
+-- ── Game G: word_check 'win' + continuing peel + NON-WORD → DEALS (not checked) ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gg on commit drop as
+select * from bananagrams.create_game('=ada',
+  '{"hand_size": 15, "bag_size": 144, "word_check": "win", "dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+
+reset role;
+select set_config('request.jwt.claims', '', true);
+update bananagrams.player_boards
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ'), tiles = 'XQJ'
+ where game_id = (select id from gg);
+update bananagrams.games set pool = 'ABCDEFGHIJ' where id = (select id from gg);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table pg on commit drop as select bananagrams.peel((select id from gg)) as res;
+select is((select res->>'result' from pg), 'dealt',
+  'word_check win does NOT check a continuing peel (only the winning one)');
 
 select * from finish();
 rollback;

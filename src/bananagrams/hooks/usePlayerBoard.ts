@@ -178,8 +178,8 @@ export function usePlayerBoard({
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
   const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
   const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
-  // Board cells flagged illegal by a blocked winning peel (disconnected, or — with
-  // check_words on — in an invalid word). Stored WITH the board they were computed
+  // Board cells flagged illegal by a blocked peel (disconnected, or — with
+  // word_check on — in an invalid word). Stored WITH the board they were computed
   // against, so any edit (which changes `board`) makes them stop matching in render —
   // they clear themselves, no effect needed.
   const [invalid, setInvalid] = useState<{

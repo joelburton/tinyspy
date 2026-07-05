@@ -16,7 +16,8 @@
 --     DUMP swaps one awkward tile for three from the bunch. A
 --     winning peel ALWAYS re-checks board CONNECTIVITY (one
 --     connected grid); WORD validity is an opt-in extra
---     (`check_words`). See `_win_blockers`.
+--     (`word_check` = 'win'/'strict'; 'strict' also validates every
+--     non-winning peel). See `_win_blockers`.
 --
 -- All RPCs live INLINE in this one squashed baseline file —
 -- create_game, save_player_board, peel, dump, submit_timeout, concede
@@ -257,14 +258,15 @@ alter publication supabase_realtime add table bananagrams.player_boards;
 -- Setup shape (each field validated below):
 --   { "hand_size": 15 | 21,
 --     "bag_size": 1..144 (≥ player_count × hand_size),
---     "check_words": bool, "dict_2": 2..6, "dict_3plus": 1..6
---       (the two bands required only when check_words is on),
+--     "word_check": 'off' | 'win' | 'strict', "dict_2": 2..6, "dict_3plus": 1..6
+--       (the two bands required unless word_check is 'off'),
 --     "dump_to_box": bool (read at dump time, not here),
 --     "timer": (none | countdown{seconds}) }
 --
 -- A countdown that reaches 0 ends the race as a collective loss
--- (`submit_timeout`); the check_words/dict_* bands gate the opt-in
--- word check on a winning peel.
+-- (`submit_timeout`). `word_check` gates the real-word check: 'off' = never,
+-- 'win' = on the winning peel only, 'strict' = on EVERY peel (see peel +
+-- _win_blockers); the dict_* bands set the obscurity ceilings it uses.
 --
 -- The deal: build the 144-tile Bananagrams bag, shuffle it with a
 -- throwaway seed, and hand each player a contiguous slice of
@@ -286,7 +288,7 @@ declare
   new_id uuid;
   s_hand_size int;
   s_bag_size int;
-  s_check_words boolean;
+  s_word_check text;
   s_dict_2 int;
   s_dict_3plus int;
   bag_text text;
@@ -333,16 +335,23 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- check_words (optional, default off): when on, a winning peel additionally
-  -- requires every word to be real (see peel + _win_blockers). Connectivity is
-  -- checked regardless. Two obscurity ceilings (common.words difficulty),
-  -- required only when the word check is on: dict_2 for 2-letter words (2..6 —
-  -- band 1 has too few 2-letter words to be fun) and dict_3plus for longer
-  -- words (1..6).
-  s_check_words := coalesce((setup->>'check_words')::boolean, false);
-  if s_check_words then
+  -- word_check (optional, default 'off'): how strictly real words are enforced.
+  --   'off'    — never (only board connectivity is checked, at win).
+  --   'win'    — a WINNING peel additionally requires every word to be real.
+  --   'strict' — EVERY peel requires it: you can't peel with an invalid board
+  --              (see peel + _win_blockers). Connectivity is checked regardless
+  --              of this. The two obscurity ceilings (common.words difficulty)
+  --              are required unless 'off': dict_2 for 2-letter words (2..6 —
+  --              band 1 has too few 2-letter words to be fun) and dict_3plus for
+  --              longer words (1..6).
+  s_word_check := coalesce(setup->>'word_check', 'off');
+  if s_word_check not in ('off', 'win', 'strict') then
+    raise exception 'setup.word_check must be off, win or strict (got %)', s_word_check
+      using errcode = 'P0001';
+  end if;
+  if s_word_check <> 'off' then
     if (setup->>'dict_2') is null then
-      raise exception 'setup.dict_2 is required when check_words is on'
+      raise exception 'setup.dict_2 is required unless word_check is off'
         using errcode = 'P0001';
     end if;
     s_dict_2 := (setup->>'dict_2')::int;
@@ -351,7 +360,7 @@ begin
         using errcode = 'P0001';
     end if;
     if (setup->>'dict_3plus') is null then
-      raise exception 'setup.dict_3plus is required when check_words is on'
+      raise exception 'setup.dict_3plus is required unless word_check is off'
         using errcode = 'P0001';
     end if;
     s_dict_3plus := (setup->>'dict_3plus')::int;
@@ -657,13 +666,14 @@ $$;
 -- 2 without touching this logic. The base gate is "hand empty" (placed ==
 -- length(tiles)), trusting the FE flushed its latest board first.
 --
--- **Board check on a winning peel.** A WINNING peel (bunch can't refill) is
--- always validated for GEOGRAPHY via _win_blockers — the grid must be one
--- connected mass (a scattered board can't win, even in trust-the-friends
--- mode). When setup.check_words is on it ALSO requires every word to be real.
+-- **Board check on a peel.** A WINNING peel (bunch can't refill) is always
+-- validated for GEOGRAPHY via _win_blockers — the grid must be one connected
+-- mass (a scattered board can't win, even in trust-the-friends mode). When
+-- setup.word_check is 'win' or 'strict' it ALSO requires every word to be real.
 -- If anything blocks, the game stays in progress and the offending cells come
--- back for the FE to paint red. (A continuing peel — bunch can refill — is
--- never validated; you're not winning yet.)
+-- back for the FE to paint red. A CONTINUING peel (bunch can refill) is
+-- normally not validated — you're not winning yet — EXCEPT under 'strict',
+-- where the same check runs on every peel (you can't peel an invalid board).
 --
 -- Returns jsonb so the FE can react to a blocked win:
 --   { result: 'won' | 'dealt' | 'illegal', invalid_cells: int[] }
@@ -693,7 +703,7 @@ declare
   needed int;
   winner_name text;
   player_results jsonb;
-  v_check_words boolean;
+  v_word_check text;
   v_dict_2 int;
   v_dict_3plus int;
   v_blockers int[];
@@ -745,16 +755,21 @@ begin
    where game_id = target_game and not conceded;
   needed := player_count * s_peel_count;
 
+  -- Word-check policy for this game (see create_game / _win_blockers):
+  --   'off'    → words never checked (geography still gates a win)
+  --   'win'    → words checked on the winning peel
+  --   'strict' → words checked on EVERY peel (can't peel an invalid board)
+  v_word_check := coalesce(s_setup->>'word_check', 'off');
+  v_dict_2 := coalesce((s_setup->>'dict_2')::int, 4);
+  v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
+
   -- ─── Not enough to refill the table → the peeler goes out (win) ───
   if length(s_pool) < needed then
     -- A winning board is ALWAYS checked for geography (one connected mass —
     -- a scattered grid can't win), and additionally for real words when
-    -- setup.check_words is on. If anything blocks, don't end the game — hand
-    -- the FE the offending cells to paint red and let the player fix + re-peel.
-    v_check_words := coalesce((s_setup->>'check_words')::boolean, false);
-    v_dict_2 := coalesce((s_setup->>'dict_2')::int, 4);
-    v_dict_3plus := coalesce((s_setup->>'dict_3plus')::int, 4);
-    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_check_words);
+    -- word_check is 'win' or 'strict'. If anything blocks, don't end the game —
+    -- hand the FE the offending cells to paint red; the player fixes + re-peels.
+    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, v_word_check <> 'off');
     if array_length(v_blockers, 1) > 0 then
       return jsonb_build_object('result', 'illegal',
                                 'invalid_cells', to_jsonb(v_blockers));
@@ -784,6 +799,20 @@ begin
       player_results
     );
     return jsonb_build_object('result', 'won', 'invalid_cells', '[]'::jsonb);
+  end if;
+
+  -- ─── Strict mode: a CONTINUING peel is validated too ───
+  -- In 'strict' word_check you can't peel with an invalid board: the SAME
+  -- _win_blockers check (connectivity + real words) that gates a win runs on
+  -- every peel, not just the winning one. Block without dealing if anything's
+  -- wrong — the FE paints the cells red and shows an error. ('off' / 'win'
+  -- never validate a continuing peel: you're not winning yet.)
+  if v_word_check = 'strict' then
+    v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
+    if array_length(v_blockers, 1) > 0 then
+      return jsonb_build_object('result', 'illegal',
+                                'invalid_cells', to_jsonb(v_blockers));
+    end if;
   end if;
 
   -- ─── Enough → every ACTIVE player draws peel_count from the bunch ───

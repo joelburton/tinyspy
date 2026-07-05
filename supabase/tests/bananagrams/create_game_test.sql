@@ -19,7 +19,7 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 
@@ -133,24 +133,37 @@ select throws_ok(
   'a bag too small to deal every hand is rejected'
 );
 
--- check_words on but dict_2 missing
+-- an unknown word_check value is rejected
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "word_check": "bogus", "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_2 is required when check_words is on',
-  'check_words without dict_2 is rejected'
+  'setup.word_check must be off, win or strict (got bogus)',
+  'an unknown word_check value is rejected'
+);
+
+-- word_check on but dict_2 missing
+select throws_ok(
+  format(
+    $$ select bananagrams.create_game(%L,
+       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+       array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'setup.dict_2 is required unless word_check is off',
+  'word_check on without dict_2 is rejected'
 );
 
 -- dict_2 out of its 2..6 band (band 1 has too few 2-letter words)
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "word_check": "strict", "dict_2": 1, "dict_3plus": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
@@ -163,20 +176,20 @@ select throws_ok(
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_2": 4, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_3plus is required when check_words is on',
-  'check_words without dict_3plus is rejected'
+  'setup.dict_3plus is required unless word_check is off',
+  'word_check on without dict_3plus is rejected'
 );
 
 -- dict_3plus out of its 1..6 band
 select throws_ok(
   format(
     $$ select bananagrams.create_game(%L,
-       '{"hand_size": 21, "bag_size": 144, "check_words": true, "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
+       '{"hand_size": 21, "bag_size": 144, "word_check": "win", "dict_2": 4, "dict_3plus": 7, "timer": {"kind": "none"}}'::jsonb,
        array['ada11111-1111-1111-1111-111111111111'::uuid]) $$,
     (select handle from club)
   ),

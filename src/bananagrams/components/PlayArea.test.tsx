@@ -57,7 +57,7 @@ function progressRow(over: Partial<ProgressRow> & { user_id: string }): Progress
 const SETUP = {
   hand_size: 21,
   bag_size: 144,
-  check_words: false,
+  word_check: 'off',
   dict_2: 4,
   dict_3plus: 4,
   dump_to_box: false,

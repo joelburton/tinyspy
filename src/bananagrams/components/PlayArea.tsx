@@ -83,14 +83,22 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
       return null
     }
-    // A blocked winning peel: the board isn't a legal grid (disconnected, or —
-    // with check_words on — a non-word), so the game stays in progress and the
-    // RPC hands back the offending cells — PlayerBoard paints them red. A
-    // 'won'/'dealt' result needs nothing here: a continuing peel grows `tiles`
-    // (the announcement effect reacts) and a winning peel flips is_terminal (the
-    // modal reacts).
+    // A blocked peel: the board isn't win-legal (disconnected, or — with
+    // word_check 'win'/'strict' — an invalid word), so the game stays in
+    // progress and the RPC hands back the offending cells. Show the player an
+    // error and let PlayerBoard paint those cells red. In 'strict' this also
+    // fires on a CONTINUING peel (you can't peel an invalid board), not only on
+    // a winning one. A 'won'/'dealt' result needs nothing here: a continuing
+    // peel grows `tiles` (the announcement effect reacts) and a winning peel
+    // flips is_terminal (the modal reacts).
     const res = data as { result: string; invalid_cells: number[] } | null
     if (res?.result === 'illegal') {
+      showLocalFeedback({
+        tone: 'error',
+        text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
+        variant: 'outline',
+        dismiss: { kind: 'sticky' },
+      })
       return { illegalCells: res.invalid_cells ?? [] }
     }
     return null
@@ -190,9 +198,9 @@ export function PlayArea(ctx: GamePageCtx) {
           { label: 'Bag', value: `${setup.bag_size} tiles` },
           {
             label: 'Words',
-            value: setup.check_words
-              ? `Must be real (2-letter: ${DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer: ${DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})`
-              : 'Not checked',
+            value: setup.word_check === 'off'
+              ? 'Not checked'
+              : `Must be real ${setup.word_check === 'strict' ? 'every peel' : 'to win'} (2-letter: ${DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer: ${DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})`,
           },
         ],
         words,
@@ -257,12 +265,14 @@ export function PlayArea(ctx: GamePageCtx) {
           many tiles the player holds; the box count shows when the game isn't
           on a full bag (a reduced bag or dump-to-box sets tiles aside). */}
       <p className={shared.infoState}>
-        Holding <strong>{tiles.length}</strong> tile{tiles.length === 1 ? '' : 's'} ·{' '}
-        <strong>{bunchCount ?? '—'}</strong> in the bunch
+        <b>Tiles: </b>
+        You: <strong>{tiles.length}</strong>
+        {' · '}
+        Bunch: <strong>{bunchCount ?? '—'}</strong>
         {boxCount !== undefined && boxCount > 0 && (
           <>
-            {' '}
-            · <strong>{boxCount}</strong> in the box
+            {' · '}
+             Bag: <strong>{boxCount}</strong>
           </>
         )}
       </p>
@@ -281,17 +291,18 @@ export function PlayArea(ctx: GamePageCtx) {
 
       {/* Setup — behind a disclosure (closed by default). */}
       <SetupDisclosure>
+          <li>{setup.bag_size}-tile bunch</li>
           <li>{setup.hand_size}-tile starter hand</li>
-          <li>{setup.bag_size}-tile bag</li>
-          {setup.check_words ? (
+          {setup.word_check === 'off' ? (
+            <li>Words not checked (trust the friends)</li>
+          ) : (
             <li>
-              Real words required (2-letter: {DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer:{' '}
+              Real words required {setup.word_check === 'strict' ? 'every peel' : 'to win'}{' '}
+              (2-letter: {DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer:{' '}
               {DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})
             </li>
-          ) : (
-            <li>Words not checked (trust the friends)</li>
           )}
-          <li>Dumped tiles {setup.dump_to_box ? 'set aside (box)' : 'return to the bunch'}</li>
+          <li>Dumped tiles {setup.dump_to_box ? 'set aside (bag)' : 'return to the bunch'}</li>
           <li>{timerLabel(setup.timer)}</li>
         </SetupDisclosure>
     </>
