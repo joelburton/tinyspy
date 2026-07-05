@@ -1,12 +1,12 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { drawWordColumns } from '../../common/pdf/wordColumns'
+import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { drawWordListBody } from '../../common/pdf/wordListBody'
 
 /**
  * bananagrams's print-to-PDF, composed from the shared `common/pdf` helpers
- * (docs/pdf.md): the frame (header / Setup / save) + `wordColumns` (the found-words
- * list, here every word ON the board). It's the word-list body family — a board
- * top-left, the Setup to its right, the words below — like boggle/spellingbee.
+ * (docs/pdf.md): the frame (header / save) + the shared `wordListBody` (board
+ * top-left, Setup to its right, the found-words list below) — the same body family
+ * as boggle/spellingbee, here every word ON the board.
  *
  * The one bananagrams-specific twist is board SIZING. bananagrams builds a crossword
  * of arbitrary shape somewhere in a big 25×25 arena, so unlike boggle (a fixed 4×4 /
@@ -44,35 +44,33 @@ export function printBananagramsPdf(m: BananagramsPrintModel): void {
 
   drawHeader(pd, m)
 
-  // ── Board (sized to fill ~75% width), Setup to its right ──
-  const boardTop = margin + 44
-  const rows = m.board.length
-  const cols = rows ? m.board[0].length : 0
-  const contentW = pageW - 2 * margin
+  // The shared word-list body — the one bananagrams-specific twist is board SIZING,
+  // done inside the callback (which receives the board's top `y`). The words become
+  // bare rows (a Bananagrams board isn't "found" by anyone); a 6-column list + an
+  // empty-grid placeholder are the only knobs.
+  drawWordListBody(
+    pd,
+    { ...m, words: m.words.map((w) => ({ word: w, found: null })) },
+    (x, boardTop) => {
+      const rows = m.board.length
+      const cols = rows ? m.board[0].length : 0
+      const contentW = pageW - 2 * margin
 
-  // Tile size is WIDTH-driven — the used crop fills BOARD_WIDTH_FRAC of the content
-  // width — but clamped two ways: never taller than the page (a narrow-but-tall
-  // board), and never bigger than `maxTile` (the MAX_TILES_ACROSS size, so a small
-  // board doesn't balloon).
-  const boardW75 = contentW * BOARD_WIDTH_FRAC
-  const maxTile = boardW75 / MAX_TILES_ACROSS
-  const byWidth = cols ? boardW75 / cols : maxTile
-  const byHeight = rows ? (pageBottom - boardTop) / rows : maxTile
-  const tile = Math.min(byWidth, byHeight, maxTile)
+      // Tile size is WIDTH-driven — the used crop fills BOARD_WIDTH_FRAC of the content
+      // width — but clamped two ways: never taller than the page (a narrow-but-tall
+      // board), and never bigger than `maxTile` (the MAX_TILES_ACROSS size, so a small
+      // board doesn't balloon).
+      const boardW75 = contentW * BOARD_WIDTH_FRAC
+      const maxTile = boardW75 / MAX_TILES_ACROSS
+      const byWidth = cols ? boardW75 / cols : maxTile
+      const byHeight = rows ? (pageBottom - boardTop) / rows : maxTile
+      const tile = Math.min(byWidth, byHeight, maxTile)
 
-  drawBoard(doc, m.board, margin, boardTop, tile)
-  const boardW = cols * tile
-  const boardBottom = boardTop + rows * tile
-  // Setup sits in the space to the right of the board (the ~25% the board leaves).
-  const setupBottom = drawSetup(doc, m.setup, margin + boardW + 26, boardTop + 9)
-
-  // ── Words: 6 balanced column-major alphabetical columns, below board + setup ──
-  drawWordColumns(pd, {
-    startY: Math.max(boardBottom, setupBottom) + 24,
-    cols: 6,
-    rows: m.words.map((w) => ({ word: w, found: null })),
-    emptyText: 'No words yet — the board is empty.',
-  })
+      drawBoard(doc, m.board, x, boardTop, tile)
+      return { w: cols * tile, h: rows * tile }
+    },
+    { cols: 6, emptyText: 'No words yet — the board is empty.' },
+  )
 
   savePrint(pd, m, 'bananagrams')
 }

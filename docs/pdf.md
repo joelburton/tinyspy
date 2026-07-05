@@ -21,9 +21,11 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
+| `common/pdf/wordListBody.ts` | boggle, spellingbee, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
 
-A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, draw its own
-board, call `drawTurnLog` **or** `drawWordColumns`, `savePrint`.
+A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, then either
+call `drawTurnLog` under its own board (turn-log family) **or** call `drawWordListBody`
+with a board-drawing callback (word-list family), and `savePrint`.
 
 ## The aesthetic: clean + printable
 
@@ -109,9 +111,12 @@ hand-managed column cursor). The log is titled **"Turns"** (the project's word f
 turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> table with a
 thin rule between turns; the Setup section is appended at the end of the flow.
 
-**Body family 2 — word-list games (`wordColumns.ts`; boggle, spellingbee, bananagrams).** A
-board top-left, the Setup to its **right**, and below them the words in **N balanced,
-column-major, alphabetical columns** (each row `word (·bonus dot) … +score  finder`).
+**Body family 2 — word-list games (`wordListBody.ts` over `wordColumns.ts`; boggle,
+spellingbee, bananagrams).** A board top-left, the Setup to its **right**, and below them
+the words in **N balanced, column-major, alphabetical columns** (each row
+`word (·bonus dot) … +score  finder`). The whole skeleton — the board/Setup/words
+placement and the layout offsets — is the shared `drawWordListBody`; each printer passes
+only a `drawBoard(x, y) → { w, h }` callback and the `cols`/`emptyText` knobs.
 The board is per-game: boggle draws a tile grid; spellingbee draws its 7-hex honeycomb
 (from `spellingbee/lib/honeycomb.ts`, the same geometry the on-screen SVG board uses —
 white hexes, the center distinguished only by a thicker border). Spellingbee also uses

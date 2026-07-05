@@ -892,16 +892,19 @@ genuinely different metric vocab — leave those. **Shared version:** an
 `outcomeVerb(member, value)` helper in `common/lib/game/`. The win is the
 verbs staying in lockstep with `playerOutcome`'s vocabulary.
 
-**4.8 [LOW] PDF word-list-family body skeleton.**
-`boggle/pdf/printBogglePdf.ts:29–43` and
-`spellingbee/pdf/printSpellingbeePdf.ts:31–46` share the body skeleton beyond
-the shared helpers — the magic offsets (44/26/9/24) are copied constants
-(spellingbee's docstring: "It's boggle's shape with a different board").
-pdf.md already names the "two body families"; the layout could become
-`common/pdf/wordListBody.ts` taking a `drawBoard(doc, x, y) → {w, h}`
-callback. Small today, but it's the stated template for future word-list
-printers — extracting pins the offsets. (Not diffed: the three
-turn-log-family printers for the analogous skeleton; worth the same check.)
+**4.8 [LOW] PDF word-list-family body skeleton.** — **✅ DONE.** Extracted
+`common/pdf/wordListBody.ts` — `drawWordListBody(pd, m, drawBoard, opts?)`
+owning the whole skeleton (boardTop=margin+44 / board / Setup right / words
+below) and pinning the offsets (44/26/9/24) in one place. boggle + spellingbee
+now pass only a `drawBoard(x, y) → {w, h}` callback. **The check of the three
+"turn-log-family" printers found a mislabel:** scrabble + psychicnum are
+genuinely turn-log family (`twoColGeom` + `drawTurnLog`, a different body), but
+**bananagrams is word-list family** (its own docstring said so) and duplicated
+the identical skeleton — so it folded into `drawWordListBody` too (its `cols:6`
++ `emptyText` + width-derived board sizing became the callback + `opts`). Three
+consumers now share the offsets. tsc + eslint green; spellingbee-print +
+bananagrams-print e2e pass (boggle has no e2e but the skeleton is unchanged).
+pdf.md updated (helper table + body-family-2 section).
 
 **4.9 [LOW] SQL micro-dups: mode guards.** The create_game
 `if mode not in ('coop','compete')` stencil and the concede compete-gate
@@ -1276,6 +1279,7 @@ scrabble BoardCol owning RPCs (all documented-deliberate).
   mechanical (paths, links, names) + targeted spot-checks rather than
   line-by-line behavioral verification; per-game FE hook docstrings outside
   psychicnum/spellingbee/stackdown/waffle were sampled, not exhaustively read;
-  the three turn-log-family PDF printers weren't diffed for the §4.8 skeleton;
+  (the three "turn-log-family" PDF printers were later diffed for the §4.8
+  skeleton — see §4.8 DONE: bananagrams was mislabeled + folded in);
   pure game-logic libs (solvers, evaluate, ranks) were leaned on from the
   2026-07-01 verified-correct list rather than re-derived.

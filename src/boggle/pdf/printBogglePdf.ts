@@ -1,5 +1,6 @@
-import { BLACK, DARK_GREY, drawHeader, drawSetup, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { drawWordColumns, type WordRow } from '../../common/pdf/wordColumns'
+import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { type WordRow } from '../../common/pdf/wordColumns'
+import { drawWordListBody } from '../../common/pdf/wordListBody'
 import type { jsPDF } from 'jspdf'
 
 /**
@@ -26,19 +27,15 @@ const TILE_BORDER_W = 0.8 // board-tile border weight
 /** Generate the PDF and hand it to the browser as a download. */
 export function printBogglePdf(m: BogglePrintModel): void {
   const pd = newPrintDoc()
-  const { doc, margin } = pd
-
   drawHeader(pd, m)
 
-  // ── Board (fixed tile size, top-left), Setup to its right ──
-  const boardTop = margin + 44
-  const n = m.board.length
-  drawBoard(doc, m.board, margin, boardTop)
-  const boardBottom = boardTop + n * TILE
-  const setupBottom = drawSetup(doc, m.setup, margin + n * TILE + 26, boardTop + 9)
-
-  // ── Words: 4 column-major alphabetical columns, below the board + setup ──
-  drawWordColumns(pd, { startY: Math.max(boardBottom, setupBottom) + 24, cols: 4, rows: m.words })
+  // The shared word-list body (board top-left / Setup right / words below);
+  // boggle's only difference is the fixed-tile grid, drawn via the callback.
+  drawWordListBody(pd, m, (x, y) => {
+    drawBoard(pd.doc, m.board, x, y)
+    const size = m.board.length * TILE // square grid: width == height
+    return { w: size, h: size }
+  })
 
   savePrint(pd, m, 'boggle')
 }

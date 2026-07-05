@@ -1,6 +1,7 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { drawWordColumns, type WordRow } from '../../common/pdf/wordColumns'
+import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { type WordRow } from '../../common/pdf/wordColumns'
+import { drawWordListBody } from '../../common/pdf/wordListBody'
 import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
 
 /**
@@ -30,19 +31,16 @@ const CENTER_BORDER_W = 2 // the center hex's only distinction: a thicker border
 /** Generate the PDF and hand it to the browser as a download. */
 export function printSpellingbeePdf(m: SpellingbeePrintModel): void {
   const pd = newPrintDoc()
-  const { doc, margin } = pd
   const scale = HEX_W_PT / HEX_W
 
   drawHeader(pd, m)
 
-  // ── Board (fixed-size honeycomb, top-left), Setup to its right ──
-  const boardTop = margin + 44
-  drawHoneycomb(doc, m.outerLetters, m.centerLetter, margin, boardTop, scale)
-  const boardBottom = boardTop + BOX_H * scale
-  const setupBottom = drawSetup(doc, m.setup, margin + BOX_W * scale + 26, boardTop + 9)
-
-  // ── Words: 4 column-major alphabetical columns, below the board + setup ──
-  drawWordColumns(pd, { startY: Math.max(boardBottom, setupBottom) + 24, cols: 4, rows: m.words })
+  // The shared word-list body (board top-left / Setup right / words below);
+  // spellingbee's only difference is the honeycomb, drawn via the callback.
+  drawWordListBody(pd, m, (x, y) => {
+    drawHoneycomb(pd.doc, m.outerLetters, m.centerLetter, x, y, scale)
+    return { w: BOX_W * scale, h: BOX_H * scale }
+  })
 
   savePrint(pd, m, 'spellingbee')
 }
