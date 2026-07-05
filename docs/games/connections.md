@@ -60,7 +60,7 @@ Ported from an existing personal project ([`../connections`](https://github.com/
 In scope today:
 - Both **coop** and **compete** modes (sibling-manifest pair — see [The sibling-manifest pattern](#the-sibling-manifest-pattern))
 - Real puzzle archive (~1000+ puzzles, daily-updated upstream)
-- Calendar picker in the setup dialog, defaulting to today's puzzle. Mode-scoped: the same date can hold a separate coop game and a separate compete game for the same club
+- Calendar picker in the setup dialog, defaulting to the club's last-played puzzle (stepping one day forward if that one's already finished; most-recent import for a club that's never played). Mode-scoped: the same date can hold a separate coop game and a separate compete game for the same club
 - Same-date-same-mode opens the existing club game (no replay path — picking a date the club already has in this mode reopens that game rather than creating a new one)
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). In compete, individual-elimination triggers a personal reveal while the game keeps going for survivors
@@ -366,7 +366,9 @@ src/connections/
     HintModal.module.css
     SetupForm.tsx         Puzzle date picker + timer-mode field. Fetches the puzzle list +
                           (mode-scoped) club_game_status for the calendar overlay. Defaults
-                          to today's puzzle if available, else the most recent.
+                          to the club's saved-default puzzle (last one started), stepping
+                          one day forward if it's already finished; most-recent import for
+                          a never-played club.
     SetupForm.module.css
     Help.tsx              connections's help / rules modal (placeholder content), opened from the
                           GamePage menu — implements the manifest's `help` contract.

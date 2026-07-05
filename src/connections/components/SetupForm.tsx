@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
 import { Calendar, type OutcomeBucket } from '../../common/components/fields/Calendar'
+import { resolveDefaultPuzzle } from '../lib/defaultPuzzle'
 import styles from '../../common/components/fields/setupForm.module.css'
 
 /** A puzzle entry as the form needs it — id + date. Date is
@@ -33,8 +34,11 @@ type ClubGameStatusRow = {
  *     puzzle we haven't played" or "go back and finish that
  *     one we started." The resolved date maps to a
  *     `connections.puzzles` row id, which becomes
- *     `setup.puzzleId`. Defaults to today's puzzle if
- *     available, else the most recent.
+ *     `setup.puzzleId`. Defaults to the club's saved default
+ *     (the puzzle they last started), stepping one day forward
+ *     if that one's already been finished; a club with no saved
+ *     default starts on the most-recent imported puzzle. (Not
+ *     today — the friends resume where they left off.)
  *   - **Timer** — delegated to the shared `<TimerField>`
  *     component (None / Up / Down with MM:SS input).
  *
@@ -61,13 +65,16 @@ type ClubGameStatusRow = {
 export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBodyProps) {
   const s = value as ConnectionsSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
-  const [statuses, setStatuses] = useState<ClubGameStatusRow[]>([])
+  // `null` = still loading (distinct from a loaded-but-empty club with no
+  // games). The default-puzzle resolution below waits for this to settle,
+  // because it needs to know whether the club already finished the saved
+  // puzzle before deciding whether to step to the next day.
+  const [statuses, setStatuses] = useState<ClubGameStatusRow[] | null>(null)
 
   // Fetch the puzzle list once on mount. Order descending so
-  // index 0 is "most recent" — used as the default-pick fallback
-  // when today's date has no puzzle imported yet. Filter out
-  // NULL-dated rows: those are non-NYT puzzles that don't belong
-  // on a date-anchored picker.
+  // index 0 is "most recent" — the default-pick base when the club
+  // has no saved default yet. Filter out NULL-dated rows: those are
+  // non-NYT puzzles that don't belong on a date-anchored picker.
   useEffect(function loadPuzzleList() {
     let cancelled = false
     db.from('puzzles')
@@ -108,27 +115,41 @@ export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBod
       .eq('mode', mode)
       .then(({ data, error }) => {
         if (cancelled) return
-        if (error || !data) return
-        setStatuses(data as ClubGameStatusRow[])
+        // Settle to [] (not left at null) even on error/no-data so the
+        // default-puzzle resolution — which waits for statuses to load —
+        // isn't blocked forever.
+        setStatuses(error || !data ? [] : (data as ClubGameStatusRow[]))
       })
     return () => {
       cancelled = true
     }
   }, [clubHandle, mode])
 
-  // Auto-pick the default puzzle once the list arrives. We pick
-  // today's puzzle if it exists in the imported set, otherwise
-  // the most recent. The effect only runs while puzzleId is
-  // empty so a user-selected value (or a saved default) isn't
-  // overwritten on re-render.
-  useEffect(function autoPickDefaultPuzzle() {
+  // Resolve the default puzzle once, after both the puzzle list AND the
+  // club's per-date outcomes have loaded. This runs a single time (guarded
+  // by `defaultResolved`); afterwards the user's picks stand untouched.
+  const defaultResolved = useRef(false)
+  // The puzzleId the dialog seeded us with — the club's SAVED DEFAULT (the
+  // setup they last started), merged in by SetupGameDialog before mount, or
+  // '' for a club that's never played connections. Captured on first render
+  // so we can tell "still the seeded value" from "the user already picked."
+  const seededPuzzleId = useRef(s.puzzleId)
+  useEffect(function resolveDefaultPuzzleOnce() {
+    if (defaultResolved.current) return
     if (!puzzles || puzzles.length === 0) return
-    if (s.puzzleId !== '') return
-    const today = new Date().toISOString().slice(0, 10)
-    const todays = puzzles.find((p) => p.nyt_date === today)
-    const pick = todays ?? puzzles[0]
-    onChange({ ...s, puzzleId: pick.id })
-  }, [puzzles, s, onChange])
+    if (statuses === null) return // wait until the club's outcomes are known
+    defaultResolved.current = true
+
+    // If the user already picked something before this resolved, leave it.
+    if (s.puzzleId !== seededPuzzleId.current) return
+
+    // Dates the club has FINISHED (won/lost) — the step-forward trigger.
+    const finishedDates = new Set(
+      statuses.filter((r) => r.is_terminal).map((r) => r.nyt_date),
+    )
+    const pickId = resolveDefaultPuzzle(puzzles, finishedDates, s.puzzleId)
+    if (pickId && pickId !== s.puzzleId) onChange({ ...s, puzzleId: pickId })
+  }, [puzzles, statuses, s, onChange])
 
   // Build the two lookup structures the calendar needs:
   //   - puzzleDates: which dates have an importable puzzle (any
@@ -141,7 +162,7 @@ export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBod
   )
   const clubGameStatuses = useMemo(() => {
     const m = new Map<string, OutcomeBucket>()
-    for (const row of statuses) m.set(row.nyt_date, bucketForRow(row))
+    for (const row of statuses ?? []) m.set(row.nyt_date, bucketForRow(row))
     return m
   }, [statuses])
 
@@ -188,7 +209,8 @@ export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBod
         <p className="muted">
           Pick a {brand} puzzle by date. Green squares are
           puzzles your club has solved; red are lost; yellow are in
-          progress. Defaults to today's puzzle if available.
+          progress. Defaults to your last puzzle (or the next day's,
+          if you already finished it).
         </p>
         <input
           type="date"

@@ -29,9 +29,11 @@ export type ConnectionsSetup = {
  * as `defaults`. `puzzleId` starts empty — the defaults are
  * evaluated at module-load time, before any puzzles are
  * fetched, so the real id can't be filled in until the form
- * body mounts. The SetupForm auto-picks today's puzzle (or the
- * most-recent available) on mount. The timer starts off; players
- * choose a clock (or not) in the setup dialog.
+ * body mounts. The SetupForm resolves the real default on mount:
+ * the club's saved default (last puzzle started), stepping one
+ * day forward if it's already been finished, else the most-recent
+ * imported puzzle. The timer starts off; players choose a clock
+ * (or not) in the setup dialog.
  */
 export const DEFAULT_CONNECTIONS_SETUP: ConnectionsSetup = {
   puzzleId: '',
