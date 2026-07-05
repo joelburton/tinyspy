@@ -304,7 +304,7 @@ Mirrors the other game folders:
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
   rendering is the shared `common/lib/color/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
-- `lib/colors.ts` — a TS port of `waffle.compute_colors` / `_wordle_colors`, pinned
+- `lib/colors.ts` — a TS port of `waffle.compute_colors` / `common.wordle_colors`, pinned
   against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
   LIVE colors; this exists only so the turn-history viewer can color a *historical*
   board on the FE (see below).

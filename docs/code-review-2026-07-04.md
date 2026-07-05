@@ -864,6 +864,15 @@ frame. **Shared version:** `common/components/game/HelpPanel.tsx`
 (`<HelpPanel brand onClose size?>{children}</HelpPanel>`). ~12–18 lines × 10,
 kills the inline style, fixes boggle.
 
+> **✅ DONE.** The identical 2-pass green/yellow algorithm now lives once in
+> `common.wordle_colors(guess, answer)`; `wordle.compute_colors` and
+> `waffle._wordle_colors` are deleted, their callers (`wordle.submit_guess`,
+> `waffle.compute_colors`) repointed. The safety net was the existing
+> `colors_test.sql` (29 pinned assertions across wordle+waffle) — repointed to
+> `common.wordle_colors` and **still green**, proving the algorithm is preserved
+> byte-for-byte; wordle/waffle gameplay pgTAP + the oracle-pinned TS-port Vitest
+> also pass. (Baseline migrations edited directly, per the alpha prior.)
+
 **4.6 [MEDIUM] SQL: the Wordle coloring algorithm exists twice in plpgsql.**
 `waffle._wordle_colors` (`20260624000000_waffle.sql:53`) ≡
 `wordle.compute_colors` (`20260625000000_wordle.sql:61` — its own comment says

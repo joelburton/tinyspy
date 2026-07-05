@@ -963,6 +963,66 @@ revoke execute on function common.validate_timer(jsonb) from public;
 --   - P0001  'player_user_ids must not be empty'
 --   - P0001  'player_user_ids contains non-members: X, Y'
 
+-- ============================================================
+-- common.wordle_colors — color ONE word against an answer, Wordle-style
+-- ============================================================
+-- Returns a same-length string of 'g' (right letter, right spot), 'y' (in the
+-- word, wrong spot) or 'x' (not in the word), with the standard duplicate-letter
+-- accounting: a letter earns a yellow only if there's an unconsumed copy of it
+-- in the answer after greens are removed. Two passes — greens first (they claim
+-- their answer letter), yellows second from the leftover pool.
+--
+-- The single source of truth for this algorithm: wordle.compute_colors and
+-- waffle.compute_colors (via its per-word helper) both call this instead of
+-- keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
+-- TS port `src/waffle/lib/colors.ts` — this is exactly the kind of subtle
+-- duplicated algorithm that must live in one place.
+create function common.wordle_colors(guess text, answer text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  n    int := length(guess);
+  res  text[] := array_fill('x'::text, array[n]);
+  pool int[]  := array_fill(0, array[26]);   -- answer letters left after greens
+  i    int;
+  gc   text;
+  ac   text;
+  idx  int;
+begin
+  guess  := lower(guess);
+  answer := lower(answer);
+
+  -- Pass 1: greens. Non-green answer letters go into the pool.
+  for i in 1..n loop
+    gc := substr(guess, i, 1);
+    ac := substr(answer, i, 1);
+    if gc = ac then
+      res[i] := 'g';
+    else
+      idx := ascii(ac) - 96;                 -- 'a' -> 1 .. 'z' -> 26
+      if idx between 1 and 26 then
+        pool[idx] := pool[idx] + 1;
+      end if;
+    end if;
+  end loop;
+
+  -- Pass 2: yellows, consuming from the pool left-to-right.
+  for i in 1..n loop
+    if res[i] <> 'g' then
+      idx := ascii(substr(guess, i, 1)) - 96;
+      if idx between 1 and 26 and pool[idx] > 0 then
+        res[i]    := 'y';
+        pool[idx] := pool[idx] - 1;
+      end if;
+    end if;
+  end loop;
+
+  return array_to_string(res, '');
+end;
+$$;
+
 create function common.create_game(
   target_club text,
   gametype text,

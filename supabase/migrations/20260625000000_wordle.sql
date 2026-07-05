@@ -45,64 +45,10 @@ create schema if not exists wordle;
 grant usage on schema wordle to authenticated;
 
 -- ============================================================
--- wordle.compute_colors — color ONE 5-letter guess, Wordle-style
+-- Wordle coloring moved to common.wordle_colors
 -- ============================================================
--- Returns a same-length string of 'g' (right letter, right spot),
--- 'y' (in the word, wrong spot) or 'x' (not in the word), with the
--- standard duplicate-letter accounting: a letter only earns a yellow
--- if there's an unconsumed copy of it in the answer after greens are
--- removed. Two passes — greens first (so they claim their answer
--- letter), yellows second from the leftover pool. This is the single
--- source of truth for feedback; submit_guess returns it and stores it
--- on the guess row, reading the hidden target server-side so the FE
--- never holds the answer. (Mirrors waffle._wordle_colors; the
--- removability invariant forbids reaching into another game's schema,
--- so the small algorithm is duplicated here.)
-create function wordle.compute_colors(guess text, answer text)
-returns text
-language plpgsql
-immutable
-as $$
-declare
-  n    int := length(guess);
-  res  text[] := array_fill('x'::text, array[n]);
-  pool int[]  := array_fill(0, array[26]);   -- answer letters left after greens
-  i    int;
-  gc   text;
-  ac   text;
-  idx  int;
-begin
-  guess  := lower(guess);
-  answer := lower(answer);
-
-  -- Pass 1: greens. Non-green answer letters go into the pool.
-  for i in 1..n loop
-    gc := substr(guess, i, 1);
-    ac := substr(answer, i, 1);
-    if gc = ac then
-      res[i] := 'g';
-    else
-      idx := ascii(ac) - 96;                 -- 'a' -> 1 .. 'z' -> 26
-      if idx between 1 and 26 then
-        pool[idx] := pool[idx] + 1;
-      end if;
-    end if;
-  end loop;
-
-  -- Pass 2: yellows, consuming from the pool left-to-right.
-  for i in 1..n loop
-    if res[i] <> 'g' then
-      idx := ascii(substr(guess, i, 1)) - 96;
-      if idx between 1 and 26 and pool[idx] > 0 then
-        res[i]    := 'y';
-        pool[idx] := pool[idx] - 1;
-      end if;
-    end if;
-  end loop;
-
-  return array_to_string(res, '');
-end;
-$$;
+-- The per-word green/yellow/gray algorithm now lives once in
+-- common.wordle_colors (shared with waffle). submit_guess calls it directly.
 
 -- ============================================================
 -- wordle.games — one row per playthrough
@@ -581,7 +527,7 @@ begin
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
-  v_colors  := wordle.compute_colors(norm, g_row.target);
+  v_colors  := common.wordle_colors(norm, g_row.target);
   did_solve := (norm = lower(g_row.target));
   new_used  := p_used + 1;
 

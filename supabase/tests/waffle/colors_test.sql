@@ -3,7 +3,7 @@
 -- ============================================================
 --
 -- The per-tile green/yellow/gray feedback (waffle.compute_colors and
--- its per-word helper waffle._wordle_colors). This is the highest-
+-- its per-word helper common.wordle_colors). This is the highest-
 -- correctness-risk piece of the game — the Wordle duplicate-letter
 -- accounting plus the intersection merge — so it gets pinned first,
 -- before any tables or RPCs exist (Phase 1).
@@ -28,21 +28,21 @@ select plan(10);
 -- _wordle_colors — one 5-letter word, Wordle-style
 -- ============================================================
 
-select is(waffle._wordle_colors('abcde', 'abcde'), 'ggggg',
+select is(common.wordle_colors('abcde', 'abcde'), 'ggggg',
   'all correct → all green');
 
-select is(waffle._wordle_colors('fghij', 'abcde'), 'xxxxx',
+select is(common.wordle_colors('fghij', 'abcde'), 'xxxxx',
   'no shared letters → all gray');
 
-select is(waffle._wordle_colors('bacde', 'abcde'), 'yyggg',
+select is(common.wordle_colors('bacde', 'abcde'), 'yyggg',
   'two adjacent letters swapped → two yellows, rest green');
 
-select is(waffle._wordle_colors('edcba', 'abcde'), 'yygyy',
+select is(common.wordle_colors('edcba', 'abcde'), 'yygyy',
   'fully reversed (one fixed point) → green in the middle, yellows around');
 
 -- Duplicate accounting: the guess has three b's but the answer has
 -- only one. One earns a yellow; the extras gray.
-select is(waffle._wordle_colors('aabbb', 'abxyz'), 'gxyxx',
+select is(common.wordle_colors('aabbb', 'abxyz'), 'gxyxx',
   'duplicate guess letters only claim as many yellows as the answer has');
 
 -- ============================================================

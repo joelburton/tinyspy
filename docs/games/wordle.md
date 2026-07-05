@@ -35,7 +35,7 @@ with the standard duplicate-letter accounting (a letter only earns a yellow if t
 |---|---|
 | **target** | The hidden 5-letter answer. Stored on `wordle.games`, HIDDEN via a column grant, revealed post-terminal through `games_state`. |
 | **guess** | A submitted 5-letter word. Accepted ones land in `wordle.guesses` with their `colors`. |
-| **colors** | The 5-char `g`/`y`/`x` feedback string (`wordle.compute_colors`), the single source of truth — the FE renders it, never recomputes it. |
+| **colors** | The 5-char `g`/`y`/`x` feedback string (`common.wordle_colors`), the single source of truth — the FE renders it, never recomputes it. |
 | **soft reject** | A guess that's malformed / not-a-word / duplicate: feedback, but no guess consumed and no row written. |
 
 ## Schema (`wordle.*`)
@@ -48,7 +48,7 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus spellingbee's pe
 | `wordle.players` PK `(game_id, user_id)` | `guesses_used`, `solved`, `solved_at`. Coop: lock-step (shared budget). Compete: independent. |
 | `wordle.guesses` PK `(game_id, user_id, seq)` | `guess`, `colors`, `is_correct`. **RLS** (mirrors `spellingbee.found_words`): coop → club sees all; compete → see your own, opponents revealed only at `is_terminal`. |
 
-- **`wordle.compute_colors(guess, answer) → text`** — the two-pass green-then-yellow algorithm with duplicate-letter accounting (a duplicate of `waffle._wordle_colors`; the removability invariant forbids cross-game refs).
+- **`common.wordle_colors(guess, answer) → text`** — the two-pass green-then-yellow algorithm with duplicate-letter accounting. Lives once in `common` (the shared layer), called by both wordle's `submit_guess` and waffle's `compute_colors` — the earlier per-game duplication (`wordle.compute_colors` ≡ `waffle._wordle_colors`) was consolidated here (code-review §4.6).
 - **`wordle.games_state`** (`security_invoker`) — the game header with `target` only post-terminal.
 - Realtime on `wordle.{games, players, guesses}`.
 
