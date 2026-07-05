@@ -10,6 +10,7 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { StackdownSetup } from '../lib/setup'
 import type { PlayerRow, SubmissionRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -190,9 +191,10 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>30 tiles · 6 words to clear</li>
-          <li>Common 5-letter words</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Tiles: 30</li>
+          <li>Words to clear: 6</li>
+          <li>Dictionary: {difficultyValue(setup.band)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

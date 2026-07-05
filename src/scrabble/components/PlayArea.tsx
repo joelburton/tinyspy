@@ -6,7 +6,7 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { colorVarFor } from '../../common/lib/color/memberColor'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import { useGame, type PlayRow } from '../hooks/useGame'
@@ -116,7 +116,7 @@ export function PlayArea({
     if (!game) return
     const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
     const s = setup as unknown as ScrabbleSetup
-    const band = (n: number) => `${DIFFICULTY_LABELS[n - 1] ?? '?'} (band ${n})`
+    const band = (n: number) => difficultyValue(n)
     const model = {
       // "Brand: game title" (brand from the manifest via ctx — never the "scrabble"
       // code-name; title = common.games.title, this game's own name) + today's date.

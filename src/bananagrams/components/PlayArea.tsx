@@ -7,7 +7,7 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
@@ -200,7 +200,7 @@ export function PlayArea(ctx: GamePageCtx) {
             label: 'Words',
             value: setup.word_check === 'off'
               ? 'Not checked'
-              : `Must be real ${setup.word_check === 'strict' ? 'every peel' : 'to win'} (2-letter: ${DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer: ${DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})`,
+              : `Must be real ${setup.word_check === 'strict' ? 'every peel' : 'to win'} (2-letter: ${difficultyValue(setup.dict_2)}, longer: ${difficultyValue(setup.dict_3plus)})`,
           },
         ],
         words,
@@ -291,19 +291,24 @@ export function PlayArea(ctx: GamePageCtx) {
 
       {/* Setup — behind a disclosure (closed by default). */}
       <SetupDisclosure>
-          <li>{setup.bunch_size}-tile bunch</li>
-          <li>{setup.hand_size}-tile starter hand</li>
-          {setup.word_check === 'off' ? (
-            <li>Words not checked (trust the friends)</li>
-          ) : (
-            <li>
-              Real words required {setup.word_check === 'strict' ? 'every peel' : 'to win'}{' '}
-              (2-letter: {DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}, longer:{' '}
-              {DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'})
-            </li>
+          <li>Bunch: {setup.bunch_size} tiles</li>
+          <li>Starter hand: {setup.hand_size} tiles</li>
+          <li>
+            Word check:{' '}
+            {setup.word_check === 'off'
+              ? 'off'
+              : setup.word_check === 'strict'
+                ? 'every peel'
+                : 'at win'}
+          </li>
+          {setup.word_check !== 'off' && (
+            <>
+              <li>Dictionary (2-letter): {difficultyValue(setup.dict_2)}</li>
+              <li>Dictionary (longer): {difficultyValue(setup.dict_3plus)}</li>
+            </>
           )}
-          <li>Dumped tiles {setup.dump_to_bag ? 'set aside (bag)' : 'return to the bunch'}</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Dumped tiles: {setup.dump_to_bag ? 'set aside (bag)' : 'return to the bunch'}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
     </>
   )

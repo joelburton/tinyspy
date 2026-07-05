@@ -167,9 +167,9 @@ export function InfoCol({
             doesn't claim space; opening it grows the slot, the one allowed exception
             since it's closable). */}
         <SetupDisclosure>
-          <li>{setup.turns} turns</li>
+          <li>Turns: {setup.turns}</li>
           <li>First clue: {firstClueGiver?.username ?? '—'}</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

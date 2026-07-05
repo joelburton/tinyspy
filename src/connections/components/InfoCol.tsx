@@ -180,10 +180,10 @@ export function InfoCol({
             space). */}
         <SetupDisclosure>
           <li>Puzzle: {formatPuzzleDate(puzzleDate)}</li>
-          <li>{tileCount} words</li>
-          <li>{categoryCount} categories to find</li>
-          <li>{mistakeBudget} mistakes allowed</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Words: {tileCount}</li>
+          <li>Categories: {categoryCount}</li>
+          <li>Mistakes allowed: {mistakeBudget}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

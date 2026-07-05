@@ -9,7 +9,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { memberById } from '../../common/lib/game/peers'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { readLeaderboard } from '../lib/leaderboard'
 import { currentRankIndex, RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
@@ -122,8 +122,8 @@ export function PlayArea(ctx: GamePageCtx) {
       centerLetter: game.center_letter,
       // Relevant setup only (the timer isn't relevant on a print).
       setup: [
-        { label: 'Required words', value: `${DIFFICULTY_LABELS[spellingbeeSetup.required - 1] ?? '?'} (band ${spellingbeeSetup.required})` },
-        { label: 'Bonus words', value: `${DIFFICULTY_LABELS[spellingbeeSetup.legal - 1] ?? '?'} (band ${spellingbeeSetup.legal})` },
+        { label: 'Required words', value: difficultyValue(spellingbeeSetup.required) },
+        { label: 'Bonus words', value: difficultyValue(spellingbeeSetup.legal) },
         ...(game.mode === 'compete' && spellingbeeSetup.target_rank != null
           ? [{ label: 'Target rank', value: RANKS[spellingbeeSetup.target_rank] ?? '?' }]
           : []),

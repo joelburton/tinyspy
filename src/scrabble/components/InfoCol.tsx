@@ -2,7 +2,7 @@ import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/game
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { timerLabel } from '../../common/lib/game/timerLabel'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
@@ -166,9 +166,9 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>2-letter words: {DIFFICULTY_LABELS[setup.dict_2 - 1] ?? '—'}</li>
-          <li>Longer words: {DIFFICULTY_LABELS[setup.dict_3plus - 1] ?? '—'}</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Dictionary (2-letter): {difficultyValue(setup.dict_2)}</li>
+          <li>Dictionary (longer): {difficultyValue(setup.dict_3plus)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

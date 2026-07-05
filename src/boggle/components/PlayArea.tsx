@@ -5,7 +5,7 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { memberById } from '../../common/lib/game/peers'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
@@ -148,8 +148,8 @@ export function PlayArea(ctx: GamePageCtx) {
       // Relevant setup only (the timer isn't relevant on a print).
       setup: [
         { label: 'Dice', value: DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? boggleSetup.dice_set },
-        { label: 'Required words', value: `${DIFFICULTY_LABELS[boggleSetup.band - 1] ?? '?'} (band ${boggleSetup.band})` },
-        { label: 'Bonus words', value: `${DIFFICULTY_LABELS[boggleSetup.legal_band - 1] ?? '?'} (band ${boggleSetup.legal_band})` },
+        { label: 'Required words', value: difficultyValue(boggleSetup.band) },
+        { label: 'Bonus words', value: difficultyValue(boggleSetup.legal_band) },
         { label: 'Min length', value: `${boggleSetup.min_word_length} letters` },
         { label: 'Scoring', value: ladder.charAt(0).toUpperCase() + ladder.slice(1) },
       ],

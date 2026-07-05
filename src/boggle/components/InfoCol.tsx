@@ -1,7 +1,7 @@
 import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -147,11 +147,12 @@ export function InfoCol({
 
         {/* Setup — LAST before the list, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>{diceLabel} board</li>
-          <li>{DIFFICULTY_LABELS[setup.band - 1] ?? '—'} required words</li>
-          <li>{DIFFICULTY_LABELS[setup.legal_band - 1] ?? '—'} legal (bonus) words</li>
-          <li>{ladderLabel} scoring · min length {minWordLength}</li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Board: {diceLabel}</li>
+          <li>Dictionary (required): {difficultyValue(setup.band)}</li>
+          <li>Dictionary (legal): {difficultyValue(setup.legal_band)}</li>
+          <li>Scoring: {ladderLabel}</li>
+          <li>Min word length: {minWordLength}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

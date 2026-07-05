@@ -1,4 +1,4 @@
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
@@ -97,7 +97,6 @@ export function InfoCol({
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
-  const difficultyLabel = DIFFICULTY_LABELS[setup.difficulty - 1] ?? '—'
 
   // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of
   // the race → psychicnum.concede); solo / coop use the neutral "End" (a mutual
@@ -174,9 +173,9 @@ export function InfoCol({
             (docs/design-decisions.md → InfoCol order). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
         <SetupDisclosure>
-          <li>{wordCount} tiles on the board</li>
-          <li>{secretCount} secret words</li>
-          <li>{difficultyLabel} difficulty</li>
+          <li>Tiles: {wordCount}</li>
+          <li>Secret words: {secretCount}</li>
+          <li>Dictionary: {difficultyValue(setup.difficulty)}</li>
         </SetupDisclosure>
       </div>
 

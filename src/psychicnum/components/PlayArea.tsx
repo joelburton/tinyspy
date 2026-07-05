@@ -8,7 +8,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { colorVarFor } from '../../common/lib/color/memberColor'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
@@ -99,7 +99,7 @@ export function PlayArea({
       })),
       // Relevant setup only (the timer isn't relevant on a print).
       setup: [
-        { label: 'Difficulty', value: `${DIFFICULTY_LABELS[s.difficulty - 1] ?? '?'} (band ${s.difficulty})` },
+        { label: 'Difficulty', value: difficultyValue(s.difficulty) },
         { label: 'Guesses', value: String(s.guesses) },
       ],
     }

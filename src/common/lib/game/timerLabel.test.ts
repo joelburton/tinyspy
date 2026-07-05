@@ -3,11 +3,11 @@ import { timerLabel } from './timerLabel'
 
 describe('timerLabel', () => {
   it('labels no timer', () => {
-    expect(timerLabel({ kind: 'none' })).toBe('no timer')
+    expect(timerLabel({ kind: 'none' })).toBe('none')
   })
 
   it('labels a count-up timer', () => {
-    expect(timerLabel({ kind: 'countup' })).toBe('count-up timer')
+    expect(timerLabel({ kind: 'countup' })).toBe('count-up')
   })
 
   it('formats a countdown as m:ss with a zero-padded seconds field', () => {

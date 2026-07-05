@@ -1,7 +1,7 @@
 import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -153,10 +153,10 @@ export function InfoCol({
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the status above. */}
         <SetupDisclosure>
-          <li>{DIFFICULTY_LABELS[setup.required - 1] ?? '—'} required words</li>
-          <li>{DIFFICULTY_LABELS[setup.legal - 1] ?? '—'} legal (bonus) words</li>
+          <li>Dictionary (required): {difficultyValue(setup.required)}</li>
+          <li>Dictionary (legal): {difficultyValue(setup.legal)}</li>
           {isCompete && targetRankIdx !== null && <li>Target rank: {RANKS[targetRankIdx]}</li>}
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

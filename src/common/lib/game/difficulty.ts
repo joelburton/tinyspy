@@ -20,6 +20,16 @@ export const DIFFICULTY_LABELS = [
 ] as const
 
 /**
+ * A difficulty band formatted as the value shown in a game's "Setup options"
+ * recap — `"2 (Common)"`. Every game's dictionary row uses it, so a band always
+ * reads the same way (`Dictionary: 2 (Common)`, `Dictionary (legal): 4
+ * (Uncommon)`). An out-of-range band degrades to `"N (—)"`.
+ */
+export function difficultyValue(band: number): string {
+  return `${band} (${DIFFICULTY_LABELS[band - 1] ?? '—'})`
+}
+
+/**
  * Which sample-word set a dropdown shows: a fixed word length, or `null` for
  * "any length" (open). `'3+'` is the open set with its 2-letter words dropped
  * — bananagrams's longer-words dictionary, where 2-letter words are a separate

@@ -6,7 +6,7 @@ import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { Member } from '../../common/lib/games'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
@@ -18,7 +18,7 @@ import styles from './InfoCol.module.css'
 /** Where the hidden target is drawn from, for the setup disclosure. `0` = the curated
  *  NYT-Wordle answer list; `1..6` = a clean word of that difficulty band or easier. */
 const answerSourceLabel = (n: number): string =>
-  n === 0 ? 'NYT Wordle list' : `${DIFFICULTY_LABELS[n - 1] ?? 'any'} or easier`
+  n === 0 ? 'NYT Wordle list' : `${difficultyValue(n)} or easier`
 
 /**
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
@@ -168,12 +168,10 @@ export function InfoCol({
 
         {/* Setup — last, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>{maxGuesses} guesses</li>
+          <li>Guesses: {maxGuesses}</li>
           <li>Answer: {answerSourceLabel(setup.answer_source)}</li>
-          <li>
-            Legal guesses: {DIFFICULTY_LABELS[setup.legal_guess - 1] ?? '—'} or easier
-          </li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Dictionary: {difficultyValue(setup.legal_guess)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 

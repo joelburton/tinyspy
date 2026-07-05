@@ -1,7 +1,7 @@
 import type { Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { timerLabel } from '../../common/lib/game/timerLabel'
-import { DIFFICULTY_LABELS } from '../../common/lib/game/difficulty'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
@@ -96,7 +96,6 @@ export function InfoCol({
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
 }) {
-  const difficultyLabel = DIFFICULTY_LABELS[setup.difficulty - 1] ?? '—'
 
   // The End / Concede button — error-toned (red), shared by the "playing" and the
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
@@ -183,11 +182,11 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>{difficultyLabel} difficulty</li>
+          <li>Dictionary: {difficultyValue(setup.difficulty)}</li>
           <li>
-            Par {parSwaps} + {setup.extra_swaps} extra = {maxSwaps} swaps
+            Swaps: {maxSwaps} (par {parSwaps} + {setup.extra_swaps} extra)
           </li>
-          <li>{timerLabel(setup.timer)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
 
