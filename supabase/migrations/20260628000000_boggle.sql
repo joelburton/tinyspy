@@ -61,6 +61,12 @@ create table boggle.games (
   bonus_words jsonb not null default '[]'::jsonb,
   required_words_count int not null,
   required_words_score int not null,
+  -- Win-on-target: the percent of `required_words_score` a player (compete) or
+  -- the team (coop) must reach to WIN — 50..100 — or NULL for "no target" (the
+  -- game only ends on manual End / timer). Denormalized from setup so submit_word
+  -- can check the threshold without re-reading common.games.setup. The %5 step is
+  -- a create_game / FE concern; the column just bounds the range.
+  win_percent int check (win_percent is null or win_percent between 50 and 100),
   created_at timestamptz not null default now()
 );
 
@@ -160,6 +166,7 @@ declare
   s_band int;
   s_legal_band int;
   s_ladder text;
+  s_win_percent int;
   b_board text;
   b_n int;
   b_required_count int;
@@ -211,6 +218,15 @@ begin
     raise exception 'setup.dice_set is required' using errcode = 'P0001';
   end if;
 
+  -- win_percent: NULL/absent = "no target"; otherwise 50..100 in steps of 5.
+  -- The score bar a player/team must reach to win (see submit_word).
+  s_win_percent := (setup->>'win_percent')::int;   -- NULL when absent or JSON null
+  if s_win_percent is not null
+     and (s_win_percent < 50 or s_win_percent > 100 or s_win_percent % 5 <> 0) then
+    raise exception 'setup.win_percent must be 50..100 in steps of 5, or null (got %)', s_win_percent
+      using errcode = 'P0001';
+  end if;
+
   -- ─── Board validation (built by the edge function) ───────
   b_board := board->>'board';
   b_n := (board->>'n')::int;
@@ -244,12 +260,12 @@ begin
 
   insert into boggle.games (
     id, club_handle, mode, board, n, min_word_length, legal_band,
-    required_words, bonus_words, required_words_count, required_words_score
+    required_words, bonus_words, required_words_count, required_words_score, win_percent
   )
   values (
     new_id, target_club, mode, b_board, b_n, s_min_word_length, s_legal_band,
     board->'required_words', coalesce(board->'bonus_words', '[]'::jsonb),
-    b_required_count, b_required_score
+    b_required_count, b_required_score, s_win_percent
   );
 
   -- ─── Seed common.games.status for the club-page label ────
@@ -342,6 +358,10 @@ declare
   g_playstate text;
   w_lower text;
   dup_count int;
+  g_win_percent int;
+  g_req_score int;
+  threshold int;
+  total_score int;
 begin
   caller_id := common.require_game_player(target_game);
 
@@ -385,6 +405,32 @@ begin
 
   perform boggle._refresh_status(target_game);
 
+  -- Win-on-target: if this game has a score bar and the caller (compete) or the
+  -- team (coop) has now reached it, END the game with a win. The threshold is
+  -- win_percent% of the required-words score; bonus points count toward it. In
+  -- compete this is a RACE — the player who just crossed wins immediately (scores
+  -- are private, so "first to cross" is the fair rule); the non-'playing' guard
+  -- above makes a near-simultaneous second crosser a no-op 'gameOver'.
+  select win_percent, required_words_score into g_win_percent, g_req_score
+    from boggle.games where id = target_game;
+  if g_win_percent is not null then
+    threshold := ceil(g_win_percent::numeric / 100 * g_req_score)::int;
+    if g_mode = 'coop' then
+      -- Alias `fw` so `points` resolves to the column, not the RPC parameter.
+      select coalesce(sum(fw.points), 0) into total_score
+        from boggle.found_words fw where fw.game_id = target_game;
+      if total_score >= threshold then
+        perform boggle._finish(target_game, 'target');
+      end if;
+    else
+      select coalesce(sum(fw.points), 0) into total_score
+        from boggle.found_words fw where fw.game_id = target_game and fw.user_id = caller_id;
+      if total_score >= threshold then
+        perform boggle._finish(target_game, 'target', caller_id);
+      end if;
+    end if;
+  end if;
+
   return jsonb_build_object(
     'result', case when coalesce(is_bonus, false) then 'bonus' else 'accepted' end,
     'points', coalesce(points, 0)
@@ -398,10 +444,14 @@ grant execute on function boggle.submit_word(uuid, text, int, boolean) to authen
 -- ============================================================
 -- _finish / end_game / submit_timeout — terminal transitions.
 -- ============================================================
--- Boggle has no win-on-target during play; the game ends when a player ends it
--- or the timer expires. Coop has no individual winner (the team's total is the
--- score); compete ranks players by score (ties share the win).
-create function boggle._finish(target_game uuid, outcome text)
+-- A game ends three ways: a player hits End (`outcome = 'manual'`), the timer
+-- expires (`'timeout'`), or a score TARGET is reached (`'target'`, see
+-- submit_word — only when setup.win_percent is set). Coop has no individual
+-- winner (the team's total is the score); compete without a target ranks by
+-- score (ties share the win). A `'target'` compete win passes `winner_id` — the
+-- player who crossed the bar first — and THEY win outright (others lose
+-- regardless of their private banked score).
+create function boggle._finish(target_game uuid, outcome text, winner_id uuid default null)
 returns void
 language plpgsql
 security definer
@@ -460,12 +510,25 @@ begin
       'mode', 'compete', 'outcome', outcome, 'leaderboard', lb,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
-    -- Per-player result: win if you tied or beat the top score AND didn't
-    -- concede (a player who found nothing scores 0 and loses unless 0 is the
-    -- max; a conceder never wins even if their banked score ties the max).
+    -- A target win names the crosser so the FE can announce them without
+    -- recomputing a winner from the (privacy-scoped) leaderboard.
+    if winner_id is not null then
+      final_status := final_status || jsonb_build_object(
+        'winner_id', winner_id,
+        'winner_username', (select username from common.profiles where user_id = winner_id)
+      );
+    end if;
+    -- Per-player result:
+    --   target win  → the crosser wins outright; everyone else loses.
+    --   manual/timeout → win if you tied or beat the top score AND didn't concede
+    --     (a player who found nothing scores 0 and loses unless 0 is the max; a
+    --     conceder never wins even if their banked score ties the max).
     select coalesce(jsonb_object_agg(p.user_id::text,
-             jsonb_build_object('won', not p.conceded and coalesce(t.sc, 0) >= max_score,
-                                'score', coalesce(t.sc, 0))), '{}'::jsonb)
+             jsonb_build_object(
+               'won', case when winner_id is not null
+                           then p.user_id = winner_id
+                           else not p.conceded and coalesce(t.sc, 0) >= max_score end,
+               'score', coalesce(t.sc, 0))), '{}'::jsonb)
       into results
       from common.game_players p
       left join (
@@ -479,7 +542,7 @@ begin
 end;
 $$;
 
-revoke execute on function boggle._finish(uuid, text) from public;
+revoke execute on function boggle._finish(uuid, text, uuid) from public;
 
 create function boggle.end_game(target_game uuid)
 returns void

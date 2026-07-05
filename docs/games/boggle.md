@@ -44,9 +44,16 @@ minimum length.
   rejected.
 - **Timer.** The shared `TimerField` (none / count-up / count-down MM:SS),
   default none; a countdown lets the player pick the duration.
-- **Ending.** There's no intrinsic win threshold — you hunt until the timer
-  expires, a player hits **End game**, or (compete) everyone's done. The
-  end-of-game reveal lists the **required** words nobody found.
+- **Win target (`win_percent`).** An optional score bar: a dropdown of
+  **None / 50 / 55 / … / 100 %**, default None. When set, the game is WON the
+  moment the team (coop) or a player (compete) reaches `win_percent` % of the
+  required-words **score** (bonus points count toward it). Compete is a race —
+  the first player to cross wins outright, regardless of the others' private
+  scores (`submit_word` decides it; see [§10](#10-the-server-rpcs)).
+- **Ending.** With no win target, you hunt until the timer expires, a player
+  hits **End game**, or (compete) everyone's done — a neutral end. With a target
+  set, reaching it ends the game as a win (`status.outcome = 'target'`). Either
+  way the end-of-game reveal lists the **required** words nobody found.
 
 ### Modes (sibling-manifest pair)
 
@@ -243,19 +250,31 @@ game is terminal, then all.
 
 - **`create_game(target_club, setup, player_user_ids, mode, board)`** — called by
   the edge function. Validates club membership, player count, timer, `band`
-  (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9), and
-  the board structure; inserts the `common.games` header + the `boggle.games`
-  row; titles the game `Boggle n×n`.
+  (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9),
+  `win_percent` (null or 50..100 in steps of 5), and the board structure; inserts
+  the `common.games` header + the `boggle.games` row (`win_percent` denormalized
+  onto it); titles the game `Boggle n×n`.
 - **`submit_word(target_game, word, points, is_bonus)`** — the **trusting commit**.
   The FE validated the word against the shipped legal list (required ∪ bonus) and
   scored it, so the RPC trusts `word` + `points` + `is_bonus` and only:
   1. enforces the game is live (else `gameOver`);
   2. dedups against the caller's scope (coop = team, compete = self);
-  3. inserts the row + refreshes the club-page status.
+  3. inserts the row + refreshes the club-page status;
+  4. **checks the win target** (if `win_percent` is set): the threshold is
+     `ceil(win_percent% × required_words_score)`; when the team (coop) or the
+     caller (compete) reaches it, it calls `_finish(…, 'target'[, winner_id])` to
+     end the game as a win. Compete is a race — the caller who just crossed is the
+     `winner_id`, and the non-`playing` guard makes a near-simultaneous second
+     crosser a no-op.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
   read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,
   same as spellingbee.)
+- **`_finish(target_game, outcome, winner_id default null)`** — the terminal
+  transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target` compete win
+  passes the crosser as `winner_id` (they win outright, others lose regardless of
+  banked score). Coop has no per-player result; compete without a target ranks by
+  score.
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
   missed words from data it already holds. `end_game` is coop's manual stop.
@@ -315,7 +334,10 @@ board), swapped in for spellingbee's hex flower.
     (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
     next keystroke — not the GamePage header feedback channel.
 - **Info column** (the canonical v3 order — see design-decisions.md → Info column):
-  the live **state line** (`X / Y words · Z pts`), the compete **`OpponentStrip`**
+  the live **`<Stats>` grid** — a 4-cell two-line readout (label over value, the
+  spellingbee `<Stats>` idiom) of **Words** (found) · **Score** · **Required Words**
+  (required found / required on board) · **Legal Words** (found / required + bonus
+  on board) — the compete **`OpponentStrip`**
   (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
   the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
   the bold outcome line + a compact back-to-club button at terminal), a **help line**,
@@ -329,8 +351,11 @@ board), swapped in for spellingbee's hex flower.
 
 **End game** is an info-column action-row button (off the GamePage menu); the
 terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, tone}`)
-driving the below-board pill, the action-row line, and the `GameOverModal`. boggle
-has no intrinsic win — coop is a neutral shared hunt; compete picks the highest score.
+driving the below-board pill, the action-row line, and the `GameOverModal`. Without
+a win target, coop is a neutral shared hunt and compete picks the highest score;
+**with** one (`setup.win_percent`), reaching the score bar is a real win
+(`status.outcome === 'target'`) — coop reads "Target reached!", compete names the
+first player to cross (`status.winner_id`).
 
 **Guess flow.** Because the FE holds both word lists, *every* guess resolves
 instantly with no round-trip and commits optimistically: a word in required ∪

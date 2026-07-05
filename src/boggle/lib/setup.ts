@@ -22,8 +22,18 @@ export interface BoggleSetup {
   legal_band: number
   min_word_length: number
   scoring_ladder: LadderName
+  /** Win-on-target: the percent of the required-words SCORE a player (compete)
+   *  or the team (coop) must reach to win — one of 50, 55, … 100 — or `null`
+   *  for "no target" (play until manual End or the timer expires). Bonus-word
+   *  points count toward it (it's a score bar, not a required-words-found bar). */
+  win_percent: number | null
   constraints?: BoardConstraints
 }
+
+/** The `win_percent` dropdown options: None (null) + 50…100 by 5. */
+export const WIN_PERCENT_OPTIONS: ReadonlyArray<number | null> = [
+  null, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+]
 
 /** Coop default: 4×4 Revised board, familiar band, standard scoring, no timer. */
 export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
@@ -33,6 +43,7 @@ export const DEFAULT_BOGGLE_SETUP_COOP: BoggleSetup = {
   legal_band: 5,
   min_word_length: 3,
   scoring_ladder: 'basic',
+  win_percent: null,
   constraints: {
     minWordLength: 3,
     ladder: "basic",
@@ -56,5 +67,11 @@ export function legalError(s: BoggleSetup): string | null {
   if (s.legal_band < s.band || s.legal_band > 6) return 'Legal-word band must be between the required band and 6'
   if (s.min_word_length < 3 || s.min_word_length > 9) return 'Minimum word length must be 3–9'
   if (!(s.scoring_ladder in LADDERS)) return `Unknown scoring ladder: ${s.scoring_ladder}`
+  if (
+    s.win_percent !== null &&
+    (s.win_percent < 50 || s.win_percent > 100 || s.win_percent % 5 !== 0)
+  ) {
+    return 'Win target must be 50–100% in steps of 5, or None'
+  }
   return null
 }

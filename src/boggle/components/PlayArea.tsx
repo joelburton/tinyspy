@@ -115,6 +115,13 @@ export function PlayArea(ctx: GamePageCtx) {
   )
   const myScore = useMemo(() => myFoundRows.reduce((s, r) => s + r.points, 0), [myFoundRows])
   const myCount = useMemo(() => new Set(myFoundRows.map((r) => r.word)).size, [myFoundRows])
+  // Required words found (C) — the non-bonus subset of the finds. Legal words on
+  // the board (F) = the whole findable set, required ∪ bonus.
+  const requiredFound = useMemo(
+    () => new Set(myFoundRows.filter((r) => !r.is_bonus).map((r) => r.word)).size,
+    [myFoundRows],
+  )
+  const legalTotal = (game?.required_words_count ?? 0) + (game?.bonus_words?.length ?? 0)
 
   // "Print board (PDF)" GamePage menu item. Builds the plain-data print model from
   // the live state (RLS already scoped `foundWords` to what I may see — coop = the
@@ -234,7 +241,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, revealWords)
 
   const over = isTerminal
-    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded })
+    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded, selfId: myId })
     : null
 
   // Index the compete leaderboard by user so the OpponentStrip metric can read
@@ -270,10 +277,12 @@ export function PlayArea(ctx: GamePageCtx) {
         isTerminal={isTerminal}
         over={over}
         isLocallyDone={isLocallyDone}
-        // ── State readout ──
-        myCount={myCount}
-        requiredWordsCount={game.required_words_count}
-        myScore={myScore}
+        // ── State readout (the 4-cell Stats grid) ──
+        words={myCount}
+        score={myScore}
+        requiredFound={requiredFound}
+        requiredTotal={game.required_words_count}
+        legalTotal={legalTotal}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={myId}
@@ -302,10 +311,12 @@ type StatusBlob = Record<string, unknown>
 type LeaderRow = { user_id: string; count: number; score: number }
 
 /**
- * Per-status terminal copy. boggle has no intrinsic win threshold — a game ends
- * by manual End, a player hitting End, or the timer expiring — so the terminal is
- * always 'ended'/'timeout' (the reason is read off `status.outcome`). Coop is a
- * neutral shared hunt (no win/loss); compete picks the highest score.
+ * Per-status terminal copy. A game ends three ways (`status.outcome`): a player
+ * hitting End (`'manual'`), the timer expiring (`'timeout'`), or a score TARGET
+ * being reached (`'target'`, when setup.win_percent is set — a real win). Coop is
+ * otherwise a neutral shared hunt (no win/loss); compete without a target picks
+ * the highest score. A `'target'` compete win names the crosser in
+ * `status.winner_id` / `status.winner_username`.
  *
  * Returns `{ outcome, verdict, message, tone }`: `outcome` + `verdict` drive the
  * GameOverModal + the permanent below-board pill; `message` + `tone` drive the
@@ -318,6 +329,7 @@ function buildOver({
   myScore,
   players,
   myConceded,
+  selfId,
 }: {
   mode: 'coop' | 'compete'
   status: StatusBlob | null
@@ -325,22 +337,27 @@ function buildOver({
   myScore: number
   players: GamePlayer[]
   myConceded: boolean
+  selfId: string
 }): {
   outcome: 'won' | 'lost'
   verdict: string
   message: string
   tone: 'won' | 'lost' | 'neutral'
 } {
-  const reason = (status?.outcome as string | undefined) === 'timeout' ? "Time's up" : 'Game ended'
+  const statusOutcome = status?.outcome as string | undefined
+  const isTarget = statusOutcome === 'target'
+  const reason = statusOutcome === 'timeout' ? "Time's up" : 'Game ended'
 
   if (mode === 'coop') {
-    // Coop is a shared hunt with no loss: reuse the modal's non-red 'won' styling,
-    // but a neutral tone in the info-column line.
+    // Coop is a shared hunt: normally a neutral end (reuse the modal's non-red
+    // 'won' styling, neutral tone). Reaching the score target IS a real win.
     return {
       outcome: 'won',
-      verdict: `${reason} — ${myCount} words, ${myScore} points.`,
-      message: reason,
-      tone: 'neutral',
+      verdict: isTarget
+        ? `Target reached! ${myCount} words, ${myScore} points.`
+        : `${reason} — ${myCount} words, ${myScore} points.`,
+      message: isTarget ? 'Target reached!' : reason,
+      tone: isTarget ? 'won' : 'neutral',
     }
   }
 
@@ -352,6 +369,26 @@ function buildOver({
       outcome: 'lost',
       verdict: `${reason} — you conceded.`,
       message: 'You conceded',
+      tone: 'lost',
+    }
+  }
+  // A target win is a RACE the server already decided: the crosser (named in the
+  // status) wins outright, everyone else loses — no leaderboard comparison.
+  if (isTarget) {
+    const winnerId = status?.winner_id as string | undefined
+    const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
+    if (winnerId === selfId) {
+      return {
+        outcome: 'won',
+        verdict: `You won — reached the target with ${myScore} points!`,
+        message: 'You won!',
+        tone: 'won',
+      }
+    }
+    return {
+      outcome: 'lost',
+      verdict: `${winnerName} reached the target first — you had ${myScore} points.`,
+      message: `${winnerName} won`,
       tone: 'lost',
     }
   }

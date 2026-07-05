@@ -9,6 +9,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { WordList, type WordListRow } from '../../common/components/game/lists/WordList'
+import { Stats } from './Stats'
 import type { BoggleSetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 
@@ -29,9 +30,11 @@ export function InfoCol({
   isTerminal,
   over,
   isLocallyDone,
-  myCount,
-  requiredWordsCount,
-  myScore,
+  words,
+  score,
+  requiredFound,
+  requiredTotal,
+  legalTotal,
   players,
   selfId,
   metricByUser,
@@ -54,10 +57,15 @@ export function InfoCol({
   /** I conceded a compete race — the terminal LOOK while the others race on. */
   isLocallyDone: boolean
 
-  // ── State readout (words found + score) ──
-  myCount: number
-  requiredWordsCount: number
-  myScore: number
+  // ── State readout (the 4-cell Stats grid) ──
+  /** All words found (A), and their score (B). */
+  words: number
+  score: number
+  /** Required words found (C) / required on the board (D). */
+  requiredFound: number
+  requiredTotal: number
+  /** Legal words on the board (F) — required + bonus. Legal-found (E) = `words`. */
+  legalTotal: number
 
   // ── Players (the OpponentStrip — compete) ──
   /** The roster (identity + per-player concede/result bits playerOutcome reads). */
@@ -92,11 +100,15 @@ export function InfoCol({
         {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
             state → opponent strip → action row → help → setup disclosure → list. */}
 
-        {/* State — words found / required + score earned. */}
-        <p className={shared.infoState}>
-          <strong>{myCount}</strong> / {requiredWordsCount} words ·{' '}
-          <strong>{myScore}</strong> pts
-        </p>
+        {/* State — the 4-cell grid: Words · Score · Required Words · Legal Words. */}
+        <Stats
+          words={words}
+          score={score}
+          requiredFound={requiredFound}
+          requiredTotal={requiredTotal}
+          legalFound={words}
+          legalTotal={legalTotal}
+        />
 
         {/* Opponent strip (compete) — each peer's score, identity on a leading disc;
             word counts stay private (the compete privacy line). */}
@@ -106,13 +118,13 @@ export function InfoCol({
             selfId={selfId}
             metricLabel="Score"
             metricFor={(p, isSelf) => {
-              const score = isSelf ? myScore : (metricByUser.get(p.user_id) ?? 0)
+              const peerScore = isSelf ? score : (metricByUser.get(p.user_id) ?? 0)
               // Mid-game: a conceder reads as "out". At terminal, prefix the outcome
               // verb so the "no longer active" states read differently — "Quit at 12"
               // vs "Lost at 12" vs "Won at 40"; an ordinary player shows the number.
-              if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : score
+              if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : peerScore
               const member = players.find((m) => m.user_id === p.user_id)
-              return `${outcomeVerb(member)} at ${score}`
+              return `${outcomeVerb(member)} at ${peerScore}`
             }}
           />
         )}
@@ -152,6 +164,7 @@ export function InfoCol({
           <li>Dictionary (legal): {difficultyValue(setup.legal_band)}</li>
           <li>Scoring: {ladderLabel}</li>
           <li>Min word length: {minWordLength}</li>
+          <li>Win at: {setup.win_percent === null ? 'none' : `${setup.win_percent}%`}</li>
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>

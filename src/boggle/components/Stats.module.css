@@ -1,0 +1,44 @@
+/* boggle's 4-cell stat grid: Words / Score / Required Words / Legal Words.
+ * Leads the info column (the state readout). Each cell is a small uppercase
+ * label over a large tabular-nums value — the same idiom as spellingbee's
+ * <Stats>, widened to four columns. */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--color-surface-border);
+  padding: 10px 0;
+  margin: 8px 0 12px;
+  text-align: center;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  line-height: 1.2;
+}
+
+.value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.muted {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-muted);
+}

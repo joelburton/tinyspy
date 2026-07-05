@@ -5,7 +5,7 @@ import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
-import type { BoggleSetup } from '../lib/setup'
+import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
 import type { LadderName } from '../lib/solver'
 import { DICE_SETS } from '../lib/dice'
 import shared from '../../common/components/fields/setupForm.module.css'
@@ -129,6 +129,26 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={s.min_word_length}
           onChange={(min_word_length) => onChange({ ...s, min_word_length })}
         />
+      </fieldset>
+
+      <fieldset className={shared.fieldset}>
+        <legend>Winning</legend>
+        <p className="muted">
+          Win by reaching this share of the required-words score
+          {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'}
+          , or <strong>None</strong> to play until you End (or the timer runs out).
+        </p>
+        <SelectField
+          label="Win at"
+          value={s.win_percent === null ? 'none' : String(s.win_percent)}
+          onChange={(v) => onChange({ ...s, win_percent: v === 'none' ? null : Number(v) })}
+        >
+          {WIN_PERCENT_OPTIONS.map((p) => (
+            <option key={p ?? 'none'} value={p === null ? 'none' : String(p)}>
+              {p === null ? 'None' : `${p}%`}
+            </option>
+          ))}
+        </SelectField>
       </fieldset>
 
       <fieldset className={shared.fieldset}>

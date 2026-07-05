@@ -193,6 +193,7 @@ export type Database = {
           required_words: Json
           required_words_count: number
           required_words_score: number
+          win_percent: number | null
         }
         Insert: {
           board: string
@@ -207,6 +208,7 @@ export type Database = {
           required_words: Json
           required_words_count: number
           required_words_score: number
+          win_percent?: number | null
         }
         Update: {
           board?: string
@@ -221,6 +223,7 @@ export type Database = {
           required_words?: Json
           required_words_count?: number
           required_words_score?: number
+          win_percent?: number | null
         }
         Relationships: []
       }
@@ -230,7 +233,7 @@ export type Database = {
     }
     Functions: {
       _finish: {
-        Args: { outcome: string; target_game: string }
+        Args: { outcome: string; target_game: string; winner_id?: string }
         Returns: undefined
       }
       _refresh_status: { Args: { target_game: string }; Returns: undefined }

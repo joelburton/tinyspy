@@ -76,6 +76,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       legal_band: 5,
       min_word_length: 3,
       scoring_ladder: 'basic',
+      win_percent: null,
     },
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
@@ -92,12 +93,14 @@ beforeEach(() => {
 })
 
 describe('boggle PlayArea — render smoke', () => {
-  it('renders the 4×4 board + state line in coop play', () => {
+  it('renders the 4×4 board + the Stats grid in coop play', () => {
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
-    // The info-column state line ("<n> / 1 words · <s> pts").
-    expect(screen.getByText(/words ·/)).toBeInTheDocument()
-    expect(screen.getByText(/pts/)).toBeInTheDocument()
+    // The info-column 4-cell Stats grid (labels unique to Stats; "Words" alone
+    // also matches the WordList heading, so assert the qualified ones).
+    expect(screen.getByText('Score')).toBeInTheDocument()
+    expect(screen.getByText('Required Words')).toBeInTheDocument()
+    expect(screen.getByText('Legal Words')).toBeInTheDocument()
   })
 
   it('renders the OpponentStrip (Score) in compete play', () => {
@@ -112,6 +115,42 @@ describe('boggle PlayArea — render smoke', () => {
     // The neutral coop terminal: "Game ended" in the action row, and the
     // permanent verdict pill below the board.
     expect(screen.getAllByText(/Game ended/).length).toBeGreaterThan(0)
+  })
+
+  it('coop: reaching the score target reads as a win, not a neutral end', () => {
+    h.result = loaded(loadedGame())
+    render(<PlayArea {...makeCtx({ isTerminal: true, status: { mode: 'coop', outcome: 'target' } })} />)
+    expect(screen.getAllByText(/Target reached/).length).toBeGreaterThan(0)
+  })
+
+  it('compete: the target crosser sees "You won"', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          players: twoMembers,
+          // self is 'u1' (session.user.id); the server named u1 the crosser.
+          status: { mode: 'compete', outcome: 'target', winner_id: 'u1', winner_username: 'me', leaderboard: [] },
+        })}
+      />,
+    )
+    expect(screen.getAllByText(/You won/).length).toBeGreaterThan(0)
+  })
+
+  it('compete: a non-crosser sees the winner named', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          players: twoMembers,
+          // u2 (moth) crossed; self (u1) lost.
+          status: { mode: 'compete', outcome: 'target', winner_id: 'u2', winner_username: 'moth', leaderboard: [] },
+        })}
+      />,
+    )
+    expect(screen.getAllByText(/moth won/).length).toBeGreaterThan(0)
   })
 
   it('shows local feedback (and clears the box) for an off-board word', async () => {

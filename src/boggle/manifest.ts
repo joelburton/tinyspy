@@ -56,7 +56,7 @@ function coopLabel(row: { play_state: string; status: StatusBlob | null }): stri
   const pts = (s.score as number | undefined) ?? 0
   if (row.play_state === 'playing') return `${words} words · ${pts} pts`
   const outcome = s.outcome as string | undefined
-  const lead = outcome === 'timeout' ? 'time up' : 'done'
+  const lead = outcome === 'target' ? 'target reached' : outcome === 'timeout' ? 'time up' : 'done'
   return `${lead} · ${words} words · ${pts} pts`
 }
 
@@ -66,6 +66,10 @@ function competeLabel(row: { play_state: string; status: StatusBlob | null }): s
   const players = Array.isArray(s.leaderboard) ? s.leaderboard.length : 0
   if (row.play_state === 'playing') return players ? `competing · ${players} players` : 'competing'
   const outcome = s.outcome as string | undefined
+  if (outcome === 'target') {
+    const winner = s.winner_username as string | undefined
+    return winner ? `${winner} won` : 'won'
+  }
   return outcome === 'timeout' ? 'time up' : 'ended'
 }
 
