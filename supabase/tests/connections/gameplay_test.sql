@@ -25,7 +25,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(19);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -137,6 +137,27 @@ select is(
   (select max(mistake_count) from connections.players where game_id = (select id from g)),
   1,
   'submit_guess: wrong guess increments mistake_count to 1'
+);
+
+-- (7b) A repeat of the same wrong tile set (any order) is a silent no-op — it
+-- must NOT cost a second mistake. Guards the coop shared-selection double-
+-- submit (two players Submit the identical 4 tiles at once); resubmitting in a
+-- DIFFERENT order also pins the order-insensitive comparison.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select lives_ok(
+  format(
+    $$ select connections.submit_guess(%L::uuid,
+                                     array['DAGGER','ALPHA','CASTLE','BANANA']::text[],
+                                     'wrong', null) $$,
+    (select id from g)
+  ),
+  'submit_guess: a repeat wrong guess (reordered) returns without error'
+);
+reset role;
+select is(
+  (select max(mistake_count) from connections.players where game_id = (select id from g)),
+  1,
+  'submit_guess: a repeat wrong guess is a no-op — mistake_count stays 1'
 );
 
 select is(

@@ -882,6 +882,27 @@ begin
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
+  -- Dedup a repeat of the same (order-insensitive) tile set — the wrong/
+  -- oneAway analog of the correct branch's unique-index guard. Coop's
+  -- selection is a shared union, so two players can Submit the identical 4
+  -- tiles at once; the games-row lock serializes us, so this SELECT sees the
+  -- first transaction's committed row. Without it one wrong guess costs TWO
+  -- of the four mistakes (possibly the losing one) plus a duplicate turn-log
+  -- row. Scope: coop = anyone's prior guess, compete = the caller's own. The
+  -- FE already blocks repeats ("You already tried that"); this is the
+  -- authoritative, race-safe backstop. (Each guess is 4 distinct tiles, so
+  -- mutual containment `@>`/`<@` is exact set-equality.)
+  -- `submit_guess.tiles` qualifies the function PARAMETER: bare `tiles` is
+  -- ambiguous against `connections.guesses.tiles` inside this query.
+  if exists (
+    select 1 from connections.guesses gu
+     where gu.game_id = target_game
+       and (g_row.mode = 'coop' or gu.user_id = caller_id)
+       and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
+  ) then
+    return;
+  end if;
+
   insert into connections.guesses
     (game_id, user_id, tiles, result, matched_category_rank, mode)
   values

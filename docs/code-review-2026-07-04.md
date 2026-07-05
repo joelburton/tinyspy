@@ -269,7 +269,14 @@ is present at 5 call sites and absent here).
 the top, exactly like `bananagrams.submit_timeout`.
 
 **L2. [medium] connections coop: two simultaneous submissions of the same
-wrong/one-away tile set double-charge mistakes.**
+wrong/one-away tile set double-charge mistakes.** — **✅ DONE.** Added an
+order-insensitive dedup (`gu.tiles @> submit_guess.tiles and <@`) at the top of
+the wrong/oneAway branch, mode-scoped (coop = anyone's prior guess, compete =
+caller's) — the analog of the correct branch's unique-index guard. The
+games-row lock the RPC already holds serializes the race, so the SELECT sees a
+concurrent duplicate's committed row. New pgTAP: a reordered repeat wrong guess
+is a no-op (mistake_count stays 1). Migration reapplies clean; connections
+pgTAP (gameplay/compete/rls) + 36 FE tests green.
 `20260615000003_connections.sql:875–944` — the `correct` branch dedups via the
 partial unique index, but the wrong/oneAway branch has no duplicate check;
 dedup lives only in the FE against the *local* guess log
