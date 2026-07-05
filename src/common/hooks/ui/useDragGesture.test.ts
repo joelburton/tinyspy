@@ -17,7 +17,7 @@ type Cell = { x: number; y: number }
 function down(x: number, y: number, button = 0): React.PointerEvent {
   return { button, clientX: x, clientY: y, preventDefault: vi.fn() } as unknown as React.PointerEvent
 }
-function pointer(type: 'pointermove' | 'pointerup', x: number, y: number) {
+function pointer(type: 'pointermove' | 'pointerup' | 'pointercancel', x = 0, y = 0) {
   window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }))
 }
 
@@ -81,6 +81,27 @@ describe('useDragGesture', () => {
     expect(view.result.current.drag).toBeNull()
     expect(view.result.current.hover).toBeNull()
     expect(document.body.classList.contains('x-dragging')).toBe(false)
+  })
+
+  it('a pointercancel mid-drag tears down the gesture — no drop, no tap, state cleared', () => {
+    const { view, onDrop, onTap, onDragEnd } = setup()
+    act(() => view.result.current.start(SOURCE, 'A', { x: 7, y: 7 }, down(100, 100)))
+    act(() => pointer('pointermove', 130, 100)) // a real drag
+    expect(document.body.classList.contains('x-dragging')).toBe(true)
+    expect(view.result.current.drag).not.toBeNull()
+
+    // A touch-scroll takeover / OS gesture cancels the pointer — no pointerup.
+    act(() => pointer('pointercancel'))
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(onTap).not.toHaveBeenCalled()
+    expect(onDragEnd).toHaveBeenCalledTimes(1)
+    expect(view.result.current.drag).toBeNull()
+    expect(view.result.current.hover).toBeNull()
+    expect(document.body.classList.contains('x-dragging')).toBe(false)
+
+    // The gesture is disarmed: a later stray pointerup does nothing.
+    act(() => pointer('pointerup', 200, 200))
+    expect(onDrop).not.toHaveBeenCalled()
   })
 
   it('a non-draggable press (letter null) never drags, even past the threshold', () => {

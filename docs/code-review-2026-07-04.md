@@ -393,7 +393,11 @@ Compounding: `setProfileColor` (`:85–90`) silently drops a saved color while
 `current === null`.
 *Fix:* `loadedFor = null` on error so the next mount retries.
 
-**F4. [low] `useDragGesture` never handles `pointercancel`.**
+**F4. [low] `useDragGesture` never handles `pointercancel`.** — **✅ DONE.**
+Added a `pointercancel` window listener that disarms the gesture and, if a
+drag had started, clears drag/hover state + the body `dragClass` and calls
+`onDragEnd` — no drop, no tap (the gesture never completed). New unit test
+covers it (+ that a later stray pointerup no-ops). 5 useDragGesture tests green.
 `src/common/hooks/ui/useDragGesture.ts:93–133` — only
 `pointermove`/`pointerup`. A canceled pointer mid-drag (touch scroll takeover,
 OS gesture) strands the armed gesture: ghost tile stays rendered, body

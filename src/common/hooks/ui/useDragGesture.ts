@@ -124,11 +124,30 @@ export function useDragGesture<TSource, TCell>(
         onTap(g)
       }
     }
+    // A canceled pointer (touch-scroll takeover, an OS gesture) fires
+    // pointercancel and NO pointerup — without this the armed gesture is
+    // stranded: the ghost tile stays rendered and the body `dragClass` stays
+    // applied until some unrelated future pointerup. Tear the gesture down as
+    // a no-drop, no-tap (it never completed).
+    const onCancel = () => {
+      const g = gestureRef.current
+      if (!g) return
+      gestureRef.current = null
+      if (g.started) {
+        const { dragClass, onDragEnd } = optsRef.current
+        document.body.classList.remove(dragClass)
+        setDrag(null)
+        setHover(null)
+        onDragEnd?.()
+      }
+    }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
     return () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
     }
   }, [])
 
