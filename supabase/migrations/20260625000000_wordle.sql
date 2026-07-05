@@ -467,7 +467,7 @@ begin
                      then 'won_compete' else 'lost_compete' end;
   perform common.end_game(
     target_game, term_state,
-    jsonb_build_object('mode', 'compete', 'winner', winner_id),
+    jsonb_build_object('mode', 'compete', 'winner', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
     player_results
   );
   return true;
@@ -744,7 +744,7 @@ begin
     perform common.end_game(
       target_game, term_state,
       jsonb_build_object('mode', 'compete', 'outcome', 'timeout',
-                         'winner', winner_id),
+                         'winner', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
       player_results
     );
   end if;

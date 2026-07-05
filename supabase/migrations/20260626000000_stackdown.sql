@@ -494,7 +494,7 @@ begin
         into player_results from stackdown.players where game_id = target_game;
       perform common.end_game(
         target_game, 'won_compete',
-        jsonb_build_object('mode', 'compete', 'winner', caller_id),
+        jsonb_build_object('mode', 'compete', 'winner', caller_id, 'winner_username', (select username from common.profiles where user_id = caller_id)),
         player_results
       );
     end if;

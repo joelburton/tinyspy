@@ -60,8 +60,10 @@ function labelFor(modeLabel: string) {
     switch (row.play_state) {
       case 'won':
         return 'solved'
-      case 'won_compete':
-        return 'winner decided'
+      case 'won_compete': {
+        const winner = (row.status as { winner_username?: string } | null)?.winner_username
+        return winner ? `won by ${winner}` : 'winner decided'
+      }
       case 'lost':
         return 'out of swaps'
       case 'lost_compete':

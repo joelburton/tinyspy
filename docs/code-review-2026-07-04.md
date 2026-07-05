@@ -936,7 +936,15 @@ without the layer; the decomposition plan's own table flags it).
 `BoardArena` (bananagrams) is the documented exception — not flagged.
 
 **5.3 `common.games.status` winner key: `winner_username` vs `winner` — unify
-on `winner_username`, and it costs label quality today.** psychicnum
+on `winner_username`, and it costs label quality today.** — **✅ DONE.** All
+seven compete games now write `winner_username` in status. wordle/waffle/
+stackdown **added** it alongside the UUID `winner` (which stays — `buildOver`'s
+self-won check reads it) and their `labelFor` now renders "won by {name}"
+instead of "winner decided"; scrabble's `winner_name` → `winner_username`
+(SQL + FE + pgTAP). The internal plpgsql locals still named `winner_name` in
+psychicnum/connections/bananagrams are left (the status KEY they write is
+already `winner_username`). Migrations reapply clean; touched games' pgTAP +
+610 FE tests green. psychicnum
 (`psychicnum.sql:682`), connections (`:854`), bananagrams (`:782`) store
 `winner_username` (a username); waffle (`waffle.sql:608,863`), wordle
 (`:470,747`), stackdown (`:488`), scrabble (`:538`) store `winner` (a

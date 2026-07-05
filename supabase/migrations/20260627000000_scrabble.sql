@@ -537,7 +537,7 @@ begin
     v_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome, 'winner', v_winner,
       -- The winner's name (NULL on a tie) so the club-list label can show it.
-      'winner_name', (select username from common.profiles where user_id = v_winner),
+      'winner_username', (select username from common.profiles where user_id = v_winner),
       'leaderboard', (select jsonb_agg(
                                jsonb_build_object('user_id', user_id, 'score', score)
                                order by score desc, seat)

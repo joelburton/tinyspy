@@ -626,7 +626,7 @@ The `status` jsonb (written by the state-transition RPCs) drives the club-list
 - **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }` (`outcome` ∈
   `complete` / `timeout` / `manual` at terminal).
 - **Compete:** `{ mode:'compete', leaderboard:[{user_id, score}], current_user_id,
-  bag_count, winner?, winner_name?, outcome? }` — the leaderboard drives the
+  bag_count, winner?, winner_username?, outcome? }` — the leaderboard drives the
   in-game `OpponentStrip` (scores aren't hidden — the board reveals them);
   `winner_name` (NULL on a tie) lets the label name the winner.
 

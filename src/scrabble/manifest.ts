@@ -61,7 +61,7 @@ function labelFor(mode: 'coop' | 'compete') {
     const st = row.status as {
       team_score?: number
       bag_count?: number
-      winner_name?: string | null
+      winner_username?: string | null
     } | null
     switch (row.play_state) {
       case 'ended':
@@ -69,7 +69,7 @@ function labelFor(mode: 'coop' | 'compete') {
       case 'won': // coop completion
         return st?.team_score != null ? `${st.team_score} pts` : 'finished'
       case 'won_compete':
-        return st?.winner_name ? `won by ${st.winner_name}` : 'tie'
+        return st?.winner_username ? `won by ${st.winner_username}` : 'tie'
       case 'lost': // compete: everyone conceded (collective loss, no winner)
         return 'all conceded'
       default: {
