@@ -7,6 +7,7 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { StrikeMarks } from '../../common/components/game/StrikeMarks'
+import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
@@ -189,6 +190,20 @@ export function BoardCol({
     sendClear()
   }
 
+  // Enter submits the current selection from ANYWHERE on the board, not just when
+  // a tile happens to hold keyboard focus. (macOS doesn't focus a <button> on
+  // click, so the per-tile Enter never fired after mouse selection — the whole
+  // "click four tiles, hit Return" flow was dead.) Gated to live input: not while
+  // viewing a past turn (a keystroke there exits the viewer instead) and not with
+  // the Hints modal open. `handleSubmit` self-guards on the 4-tile / in-flight
+  // conditions, so a stray Enter with an incomplete selection is a harmless no-op.
+  // The shared hook already ignores keys aimed at a focused text field (chat, etc.).
+  useGlobalKeyHandler((e) => {
+    if (e.key !== 'Enter' || viewing || !showInput || hintsOpen) return
+    e.preventDefault()
+    void handleSubmit()
+  })
+
   // Tile click: dismiss any lingering own-result flash first (the commit buttons
   // return), then toggle the tile — connections's analog of "typing dismisses the
   // entry flash" (the player has moved on to the next selection).
@@ -211,7 +226,6 @@ export function BoardCol({
         ownerByTile={viewing ? NO_OWNERS : ownerByTile}
         selfId={selfId}
         onToggle={handleToggle}
-        onSubmit={() => void handleSubmit()}
         shakingTiles={shakingTiles}
         colorByUserId={colorByUserId}
         viewing={viewing}
