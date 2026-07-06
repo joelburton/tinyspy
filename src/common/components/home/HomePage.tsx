@@ -4,6 +4,7 @@ import { Link } from '../../lib/routing/Link'
 import { db as commonDb } from '../../db'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
+import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -85,6 +86,7 @@ export function HomePage({ session }: Props) {
 
   return (
     <div className="card">
+      <PuzpuzpuzWordmark />
       <h1>Welcome{username ? `, ${username}` : ''}</h1>
       <p className="muted">{session.user.email}</p>
 

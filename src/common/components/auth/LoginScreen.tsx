@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
+import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 
 /**
  * Magic-link sign-in flow with two verification paths.
@@ -94,7 +95,7 @@ export function LoginScreen() {
 
   return (
     <div className="card">
-      <h1>PuzPuzPuz</h1>
+      <PuzpuzpuzWordmark />
 
       {status === 'sent' ? (
         <p>

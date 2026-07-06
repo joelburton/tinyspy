@@ -1,0 +1,10 @@
+/* The big PuzPuzPuz wordmark image. A wide, short SVG (it carries its own aspect
+ * ratio via its viewBox), so we only constrain the width and let the height
+ * follow. Fills the card, centered, with clear space below before the screen's
+ * heading / sign-in copy. */
+.wordmark {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 1.5rem;
+}
