@@ -1452,6 +1452,54 @@ $$;
 -- No grant to authenticated; internal helper.
 revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
 
+-- ─── common.reset_game ─────────────────────────────────────
+-- The INVERSE of end_game: return a game to fresh, in-progress
+-- state on the SAME row (no new game). For a gametype's "replay
+-- this board" feature — the frozen puzzle/setup stays; only the
+-- terminal + per-player outcome bookkeeping is undone. Writes:
+--
+--   - common.games.play_state  = 'playing'
+--   - common.games.is_terminal = false
+--   - common.games.ended_at    = null (it's in progress again)
+--   - common.games.status      = status (the gametype's INITIAL
+--                                 status jsonb — the same shape
+--                                 create_game seeds)
+--   - common.game_players.{result, conceded, conceded_at} cleared
+--     for every player (undoes win/lose results + any concede)
+--
+-- The gametype's OWN working-state reset (its per-game tables +
+-- turn log) happens in the calling RPC; this helper only owns the
+-- common-layer half, exactly as end_game does. Internal helper —
+-- no grant to authenticated; the gametype's `replay_*` RPC is the
+-- membership-guarded caller.
+create function common.reset_game(target_game uuid, status jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+begin
+  update common.games
+     set play_state = 'playing',
+         is_terminal = false,
+         ended_at = null,
+         status = reset_game.status
+   where id = target_game;
+
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  update common.game_players
+     set result = null,
+         conceded = false,
+         conceded_at = null
+   where game_id = target_game;
+end;
+$$;
+
+revoke execute on function common.reset_game(uuid, jsonb) from public;
+
 -- ─── common._set_conceded ──────────────────────────────────
 -- The shared first half of "a player concedes": guard the action
 -- and flip the per-player `conceded` flag. Split out from

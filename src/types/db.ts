@@ -932,6 +932,10 @@ export type Database = {
         Args: { max_count: number; player_user_ids: string[] }
         Returns: undefined
       }
+      reset_game: {
+        Args: { status: Json; target_game: string }
+        Returns: undefined
+      }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined
@@ -1366,6 +1370,14 @@ export type Database = {
       reveal_cells: {
         Args: { p_cells: Json; target_game: string }
         Returns: undefined
+      }
+      reveal_solved_word: {
+        Args: { p_cells: Json; target_game: string }
+        Returns: {
+          answer: string
+          note: string
+          solved: boolean
+        }[]
       }
       set_cell: {
         Args: {
@@ -2572,6 +2584,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json

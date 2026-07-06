@@ -186,6 +186,19 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   existing solved/out-of-swaps locally-terminal look. Full mechanism:
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
+- **`replay_board(game)`** — the **"Replay board"** game-menu item (both modes,
+  any state). Restarts the SAME board from scratch for everyone: resets every
+  `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
+  coop `waffle.swaps` log, and hands the common-layer reset to the new
+  `common.reset_game` helper (the inverse of `end_game` — `play_state='playing'`,
+  `is_terminal=false`, `ended_at=null`, fresh initial `status`, and clears every
+  `game_players.{result, conceded, conceded_at}`). The frozen puzzle/setup
+  (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
+  it. No realtime touch needed — the `players` update + `swaps` delete wake
+  `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
+  the board, turn log, and terminal state reset **live for every player**. The
+  FE menu item confirms first (it wipes the whole group's progress). pgTAP:
+  `replay_test.sql`.
 - **`end_game(game)`** — the manual "End" action-row button in the info column
   (**coop**; compete shows Concede instead). A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's

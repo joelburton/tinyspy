@@ -916,3 +916,63 @@ $$;
 
 revoke execute on function waffle.end_game(uuid) from public;
 grant execute on function waffle.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- waffle.replay_board — restart this board from scratch
+-- ============================================================
+-- The "Replay board" game-menu item: reset the working state to the
+-- original scramble on the SAME game row. The frozen puzzle
+-- (solution / scramble / par / max_swaps / mode) stays; everything
+-- the players did is wiped. Any game player may call it, from a
+-- finished game OR mid-game (no play_state guard — it's a restart).
+-- Both modes reset ALL players (a group "run it back", per the
+-- friends trust model).
+--
+-- Resets the waffle-specific working state (every player's board →
+-- scramble, swaps zeroed, unsolved; the coop swap log cleared), then
+-- hands the common-layer reset to common.reset_game (un-terminal,
+-- fresh initial status, clear per-player results + concede).
+--
+-- No realtime touch needed (unlike end_game, which writes only
+-- common.games): the players update + swaps delete wake useGame
+-- (subscribed to waffle.{games,players,swaps}), and reset_game's
+-- common.games write wakes useCommonGame — so the board, turn log,
+-- and terminal state all reset live for every player.
+create function waffle.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  g_row waffle.games;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from waffle.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  update waffle.players
+     set board = g_row.scramble,
+         swaps_used = 0,
+         solved = false,
+         solved_at = null
+   where game_id = target_game;
+
+  delete from waffle.swaps where game_id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object(
+      'mode', g_row.mode,
+      'max_swaps', g_row.max_swaps,
+      'swaps_used', 0,
+      'solved', false
+    )
+  );
+end;
+$$;
+
+revoke execute on function waffle.replay_board(uuid) from public;
+grant execute on function waffle.replay_board(uuid) to authenticated;

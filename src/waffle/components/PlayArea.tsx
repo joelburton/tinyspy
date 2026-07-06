@@ -63,6 +63,7 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
 
@@ -155,6 +156,34 @@ export function PlayArea({
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) showLocalFeedback(ownAction('error', `Concede failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback])
+
+  // Replay board — restart THIS board (same scramble/setup) from scratch for
+  // everyone: clears the turn log + all progress and un-terminals the game.
+  // Available mid-game or after game-over; confirmed since it wipes progress
+  // for the whole group. The board/log/terminal reset arrives via the realtime
+  // refetch (useGame + useCommonGame); we just leave any open history view +
+  // clear the local pill.
+  const handleReplay = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Replay board? This clears everyone's progress and the turn log, and restarts from the original scramble.",
+      )
+    )
+      return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) {
+      showLocalFeedback(ownAction('error', `Replay failed: ${error.message}`))
+      return
+    }
+    exitViewing()
+    clearLocalFeedback()
+  }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+
+  // "Replay board" in the game menu (both modes, any state).
+  useEffect(() => {
+    menu.setGameItems([{ id: 'replay', label: 'Replay board', onClick: () => void handleReplay() }])
+    return () => menu.setGameItems([])
+  }, [menu, handleReplay])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
