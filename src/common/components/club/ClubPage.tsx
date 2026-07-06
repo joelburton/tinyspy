@@ -22,10 +22,12 @@ import { StatusSlot } from '../game/StatusSlot'
 import { games } from '../../../games'
 import type {
   CommonGameListRow,
+  GenericFeedbackApi,
   GenericFeedbackMsg,
   GameManifest,
   MenuSection,
 } from '../../lib/games'
+import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import type { Database } from '../../../types/db'
 import styles from './ClubPage.module.css'
 
@@ -236,6 +238,18 @@ export function ClubPage({ handle, session }: Props) {
   // Stable identity for the StatusSlot's onCloseGlobalFeedback prop
   // so passing it into props doesn't restage downstream effects.
   const clearGlobalFeedback = useCallback(() => setGlobalFeedback(null), [])
+
+  // The show/clear API over the single feedback slot (ClubPage sets the state
+  // directly for its own toasts; this wraps it for hook consumers like chat).
+  const globalFeedbackApi = useMemo<GenericFeedbackApi>(
+    () => ({ show: (msg) => setGlobalFeedback(msg), clear: clearGlobalFeedback }),
+    [clearGlobalFeedback],
+  )
+
+  // Club chat → the global feedback pill: a NEW message from any OTHER member
+  // pops "● HANDLE: text" (sticky) here. `members` is the full club roster, so
+  // every sender is named. Historic messages never pop (see useChatFeedback).
+  useChatFeedback({ clubHandle: handle, members, selfId, globalFeedback: globalFeedbackApi })
 
   /**
    * Delete a game from this club. Same RPC for current vs

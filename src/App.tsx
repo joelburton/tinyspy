@@ -85,7 +85,10 @@ export default function App() {
   } else {
     const clubMatch = path.match(/^\/c\/([^/]+)\/?$/)
     if (clubMatch) {
-      page = <ClubPage handle={clubMatch[1]} session={session} />
+      // Keyed by handle (like GamePage's gameId key below) so a club→club
+      // navigation REMOUNTS — fresh subscriptions + a fresh chat-feedback
+      // seen-set, so the new club's chat backlog doesn't replay as pills.
+      page = <ClubPage key={clubMatch[1]} handle={clubMatch[1]} session={session} />
     } else {
       // Game routes — GamePage shell + the manifest's PlayArea
       // as a render-prop child. Path shape: /g/<gametype>/<gameId>.

@@ -62,6 +62,12 @@ export function useClubChat(clubHandle: string) {
   // events append directly via setMessages; the SUBSCRIBED refetch
   // closes any reconnect gap. Re-runs only on clubHandle change.
   useEffect(function subscribeToClubMessages() {
+    // No club yet — e.g. the GamePage feedback bridge runs this before the game
+    // row (and its `club_handle`) has loaded. Skip the fetch + subscribe and
+    // LEAVE `loading` true, so a consumer gating on `!loading` (useChatFeedback)
+    // doesn't seed an empty backlog and then replay the real one when it arrives.
+    if (!clubHandle) return
+
     let mounted = true
 
     async function load() {

@@ -22,6 +22,8 @@ import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { useCommonGame } from '../../hooks/game/useCommonGame'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
+import { useClubRoster } from '../../hooks/club/useClubRoster'
+import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import { navigate } from '../../lib/routing/router'
 import { ChatBubble } from '../chat/ChatBubble'
 import { FloatingChat } from '../chat/FloatingChat'
@@ -251,6 +253,21 @@ export function GamePage({
     navigate(`/c/${clubHandle}`)
   }, [clubHandle])
 
+  // The FULL club roster (not just this game's players) — chat is club-wide, so
+  // naming a sender (chat window + the feedback pill) needs every member. Empty
+  // until the game row (and its club_handle) loads; `useClubRoster` no-ops on ''.
+  const { members: clubMembers } = useClubRoster(clubHandle)
+
+  // Club chat → the global feedback pill, same as ClubPage: a NEW message from
+  // any OTHER member pops "● HANDLE: text" (sticky) in the header. Runs even
+  // during the pre-load '' phase (useClubChat no-ops, so no historic replay).
+  useChatFeedback({
+    clubHandle,
+    members: clubMembers,
+    selfId: session.user.id,
+    globalFeedback: globalFeedbackApi,
+  })
+
   // Resolve the gametype's manifest once for downstream uses
   // (logo, help component). Find returns undefined for unknown
   // gametypes; we guard render below.
@@ -382,19 +399,19 @@ export function GamePage({
         })}
       </PauseBoundary>
 
-      {/* Chat is club-context vocabulary ("anyone in the club may
-          send a message"), so the prop is `members`. The data we
-          have here is the game-players list — a strict subset of
-          club members. Messages from a club member who isn't in
-          this game render with a '?' for the sender (latent gap,
-          pre-dates this rename; out of scope here).
+      {/* Chat is club-context vocabulary ("anyone in the club may send a
+          message"), so it gets the FULL club roster (`clubMembers` via
+          useClubRoster), not just this game's `players` — so a message from a
+          club member who ISN'T in this game still resolves to their handle +
+          color instead of a '?'. (`players` remains the right data for the
+          PlayersStrip / peer-game feedback, which are about THIS game.)
 
-          hideClosedButton: the closed-state toggle lives in the
-          header (<ChatBubble> above) on GamePage; FloatingChat
-          only renders the panel itself, not a duplicate bubble. */}
+          hideClosedButton: the closed-state toggle lives in the header
+          (<ChatBubble> above) on GamePage; FloatingChat only renders the panel
+          itself, not a duplicate bubble. */}
       <FloatingChat
         clubHandle={commonGame.club_handle}
-        members={players}
+        members={clubMembers}
         selfId={session.user.id}
         hideClosedButton
       />
