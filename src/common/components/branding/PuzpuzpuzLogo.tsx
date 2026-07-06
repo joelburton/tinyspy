@@ -12,15 +12,15 @@ import styles from './PuzpuzpuzLogo.module.css'
  *
  * Source SVG is at `src/common/puzpuzpuz.svg`, imported as `?url`
  * so Vite hashes the asset and the URL works in build output.
+ *
+ * The colorful "P!" mark sits inside a themed rounded-rect frame (the
+ * `.frame` span) — carrying over the rounded-square look of the earlier
+ * line-art logo, now as a real border around the image.
  */
 export function PuzpuzpuzLogo() {
   return (
-    <img
-      src={puzpuzpuzLogo}
-      alt="PuzPuzPuz"
-      className={styles.logo}
-      width={32}
-      height={32}
-    />
+    <span className={styles.frame}>
+      <img src={puzpuzpuzLogo} alt="PuzPuzPuz" className={styles.mark} />
+    </span>
   )
 }

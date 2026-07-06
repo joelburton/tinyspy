@@ -1,10 +1,26 @@
-/* The puzpuzpuz logo image. Matches GameLogo's sizing so the two
- * trigger shapes are interchangeable in the Menu component's
- * wrapping button. */
+/* The puzpuzpuz menu logo: the colorful "P!" mark inside a themed rounded-rect
+ * frame. The frame is 32×32 (matching GameLogo's sizing) so the two trigger
+ * shapes stay interchangeable in the Menu component's wrapping button; the border
+ * + radius carry over the rounded-square look of the earlier line-art logo. */
 
-.logo {
-  display: block;
+.frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   width: 32px;
   height: 32px;
+  padding: 2px;
+  border: 2px solid var(--color-text);
+  border-radius: 6px;
   color: var(--color-text);
+  flex-shrink: 0; /* hold 32px inside flex rows — don't let it compress */
+}
+
+/* The mark fills the frame's interior, keeping its own aspect ratio. */
+.mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
