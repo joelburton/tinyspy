@@ -1,23 +1,74 @@
-<!-- stackdown logo — overlapping lettered tiles cascading down a stack,
-     shaded light-to-dark for depth (the depthColor ramp in the game).
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- stackdown logo — two overlapping lettered tiles like the in-game stack:
+     "S" on top (tile shade 2) covering part of the deeper "D" tile (shade 4),
+     whose letter is shifted toward its uncovered corner so it stays readable.
+     Tile fills/borders mirror the shared tile ramp in common/theme.css.
      Hand-authored; no external source. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 64" role="img" aria-label="stackdown">
-  <g font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="34" text-anchor="middle" fill="#2a2a2a" stroke="rgba(0,0,0,0.2)" stroke-width="2">
-    <g>
-      <rect x="6" y="20" width="44" height="44" rx="7" fill="hsl(41 42% 60%)"/>
-      <text x="28" y="55" stroke="none">S</text>
-    </g>
-    <g>
-      <rect x="40" y="14" width="44" height="44" rx="7" fill="hsl(41 42% 69%)"/>
-      <text x="62" y="49" stroke="none">T</text>
-    </g>
-    <g>
-      <rect x="74" y="8" width="44" height="44" rx="7" fill="hsl(41 42% 78%)"/>
-      <text x="96" y="43" stroke="none">A</text>
-    </g>
-    <g>
-      <rect x="108" y="2" width="44" height="44" rx="7" fill="hsl(41 42% 86%)"/>
-      <text x="130" y="37" stroke="none">K</text>
-    </g>
-  </g>
+
+<svg
+   viewBox="0 0 72 72"
+   role="img"
+   aria-label="stackdown"
+   version="1.1"
+   id="svg2"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="4.0855058"
+     inkscape:cx="35.613705"
+     inkscape:cy="35.980857"
+     inkscape:window-width="1424"
+     inkscape:window-height="835"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg2" />
+  <rect
+     x="26"
+     y="26"
+     width="44"
+     height="44"
+     rx="7"
+     fill="#eadbb8"
+     stroke="#dabc77"
+     stroke-width="2"
+     id="rect1"
+     style="font-weight:700;font-family:Helvetica, Arial, sans-serif;text-anchor:middle;stroke:#7e6222;stroke-opacity:1" />
+  <text
+     x="55"
+     y="62"
+     font-size="26px"
+     id="text1"
+     style="font-weight:700;font-family:Helvetica, Arial, sans-serif;text-anchor:middle;fill:#1a1a1a">D</text>
+  <rect
+     x="2"
+     y="2"
+     width="44"
+     height="44"
+     rx="7"
+     fill="#f6efdf"
+     stroke="#e5d09e"
+     stroke-width="2"
+     id="rect2"
+     style="font-weight:700;font-family:Helvetica, Arial, sans-serif;text-anchor:middle;stroke:#b48d30;stroke-opacity:1" />
+  <text
+     x="24"
+     y="34"
+     font-size="28px"
+     id="text2"
+     style="font-weight:700;font-family:Helvetica, Arial, sans-serif;text-anchor:middle;fill:#1a1a1a">S</text>
 </svg>

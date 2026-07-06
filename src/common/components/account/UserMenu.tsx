@@ -4,6 +4,7 @@ import { colorVarFor } from '../../lib/color/memberColor'
 import { supabase } from '../../lib/supabase/supabase'
 import type { MenuSection } from '../../lib/games'
 import { Menu } from '../panels/Menu'
+import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import styles from './UserMenu.module.css'
 
 type Props = {
@@ -19,9 +20,10 @@ type Props = {
  * with zero per-page wiring.
  *
  * Sits at the top-right of the viewport with `position: fixed`,
- * in the empty 2rem padding zone above any page header. Shows
- * the current user's username with a small chevron; clicking
- * opens a dropdown of **user-focused** actions:
+ * overlapping the right end of the page header row (the GamePage
+ * header reserves room for it — see GamePage.module.css `.right`).
+ * Shows just the user's profile-color dot with a small chevron;
+ * clicking opens a dropdown of **user-focused** actions:
  *
  *   - **Profile** — opens the Edit-profile dialog (player color today;
  *     username and more later) via the `onEditProfile` callback.
@@ -67,18 +69,17 @@ export function UserMenu({ session, onEditProfile }: Props) {
     <div className={styles.anchor}>
       <Menu
         trigger={
-          <span className={styles.triggerContent}>
+          <TriggerWithChevron>
             {/* Profile-color dot, same visual vocabulary as the
-                PlayersStrip / ClubPage member-list dots. Reassures
-                the user "this is my color across the app." */}
+                PlayersStrip / ClubPage member-list dots — the dot IS the
+                whole identity display (no username text; the chip stays
+                tiny so it doesn't crowd the header row it overlaps). */}
             <span
               className={styles.dot}
               style={{ background: colorVarFor(profile?.color) }}
               aria-hidden
             />
-            <span className={styles.name}>{profile?.username ?? '…'}</span>
-            <ChevronDown />
-          </span>
+          </TriggerWithChevron>
         }
         sections={sections}
         triggerLabel="User menu"
@@ -86,26 +87,5 @@ export function UserMenu({ session, onEditProfile }: Props) {
         popoverAlign="right"
       />
     </div>
-  )
-}
-
-/** Tiny down-chevron next to the username. Inline SVG so it
- *  inherits `currentColor`; size kept small to match the
- *  tight-padding aesthetic Joel asked for. */
-function ChevronDown() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 6l4 4 4-4" />
-    </svg>
   )
 }

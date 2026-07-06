@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="scrabble">
-  <rect x="3" y="9" width="19" height="19" rx="3" fill="#f2dca8" stroke="#d8bd82" stroke-width="1.5"/>
-  <text x="12.5" y="22.5" font-family="Georgia, serif" font-size="13" font-weight="700" text-anchor="middle" fill="#3b2a14">R</text>
-  <text x="18" y="27" font-family="Georgia, serif" font-size="6" text-anchor="middle" fill="#3b2a14">1</text>
-  <rect x="20" y="20" width="19" height="19" rx="3" fill="#f2dca8" stroke="#d8bd82" stroke-width="1.5"/>
-  <text x="29.5" y="33.5" font-family="Georgia, serif" font-size="13" font-weight="700" text-anchor="middle" fill="#3b2a14">A</text>
-  <text x="35" y="38" font-family="Georgia, serif" font-size="6" text-anchor="middle" fill="#3b2a14">1</text>
+  <!-- The board's center square: the DW premium color with its star, exactly
+       as Board.module.css paints it (the scrabble DW token fill, #7a3b34 star).
+       NB: an XML comment must not contain a double hyphen, so no token names here. -->
+  <rect x="2" y="2" width="44" height="44" rx="4" fill="#f0a9a0" stroke="#c97f74" stroke-width="1.5"/>
+  <path d="M24 11 L27.2 19.5 L36.4 20 L29.2 25.7 L31.6 34.5 L24 29.5 L16.4 34.5 L18.8 25.7 L11.6 20 L20.8 19.5 Z"
+        fill="#7a3b34" stroke="#7a3b34" stroke-width="2" stroke-linejoin="round"/>
 </svg>

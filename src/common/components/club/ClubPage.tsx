@@ -14,6 +14,7 @@ import { ClubGameCard } from './ClubGameCard'
 import { ClubHelp } from './ClubHelp'
 import { EditClubDialog } from './EditClubDialog'
 import { Menu, type MenuHandle } from '../panels/Menu'
+import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { SetupGameDialog } from '../setup/SetupGameDialog'
 import { StartGameButtons } from './StartGameButtons'
@@ -619,7 +620,11 @@ export function ClubPage({ handle, session }: Props) {
       <header className={styles.header}>
         <Menu
           ref={menuRef}
-          trigger={<PuzpuzpuzLogo />}
+          trigger={
+            <TriggerWithChevron>
+              <PuzpuzpuzLogo />
+            </TriggerWithChevron>
+          }
           sections={menuSections}
           triggerLabel="Club menu"
         />
@@ -638,6 +643,16 @@ export function ClubPage({ handle, session }: Props) {
         />
       </header>
 
+      {/* Club title — a full-width row spanning both body columns.
+          The "Club:" / "Solo Club:" prefix says what kind of venue
+          this page is (solo = the '='-prefixed one-member club). */}
+      <div className={styles.titleBlock}>
+        <h1 className={styles.title}>
+          {soloClub ? 'Solo Club: ' : 'Club: '}
+          {club.name}
+        </h1>
+      </div>
+
       {/* Two-column body that takes the rest of the viewport height
           (per docs/ui.md → "Page-height fits the viewport"). Left
           column holds the active game card + start-game buttons;
@@ -645,10 +660,6 @@ export function ClubPage({ handle, session }: Props) {
           frame with internal overflow-y: auto. */}
       <main className={styles.body}>
         <section className={styles.left}>
-          <header className={styles.titleBlock}>
-            <h1 className={styles.title}>{club.name}</h1>
-          </header>
-
           {activeGame && (
             <div>
               <h3>Join the active game</h3>
@@ -665,21 +676,26 @@ export function ClubPage({ handle, session }: Props) {
             </div>
           )}
 
-          <div>
+          <div className={styles.startBlock}>
             <h3>Start a new game</h3>
-            {/* Filter the registry by the club's allowed-gametype m2m
-                (one button per gametype this club may play) and let
-                StartGameButtons handle the rendering, in-flight state,
-                and disabled-for-doesn't-fit tooltip. ClubPage stays
-                game-agnostic; the RPC call lives inside the manifest.
-                Add boggle later and (assuming the m2m is populated for
-                this club) a button appears here automatically. */}
-            <StartGameButtons
-              games={games.filter((g) => allowedGametypes.has(g.gametype))}
-              memberCount={members.length}
-              onStartSetup={handleStartSetup}
-              soloClub={soloClub}
-            />
+            {/* The scrolling card: the heading above stays put; only the
+                button list inside this frame scrolls (mirrors the right
+                column's heading + gamesList split). */}
+            <div className={styles.startList}>
+              {/* Filter the registry by the club's allowed-gametype m2m
+                  (one button per gametype this club may play) and let
+                  StartGameButtons handle the rendering, in-flight state,
+                  and disabled-for-doesn't-fit tooltip. ClubPage stays
+                  game-agnostic; the RPC call lives inside the manifest.
+                  Add boggle later and (assuming the m2m is populated for
+                  this club) a button appears here automatically. */}
+              <StartGameButtons
+                games={games.filter((g) => allowedGametypes.has(g.gametype))}
+                memberCount={members.length}
+                onStartSetup={handleStartSetup}
+                soloClub={soloClub}
+              />
+            </div>
             {activeGame && (
               <p className="muted">
                 Starting a new game will suspend the currently active

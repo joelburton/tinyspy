@@ -108,12 +108,12 @@ plain RPCs — no edge function needed.
 | RPC | behavior |
 |---|---|
 | `create_game(target_club, setup, player_user_ids, mode, board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete). |
-| `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), `char_length ≤ 8`. Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
+| `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. Fillable cells only (givens have no row — plan option A). See `docs/crosswords-marks-plan.md`. |
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). |
-| `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"), solution revealed in terminal. |
+| `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
 | `concede` / `submit_timeout` | Standard. Crosswords has **no timer** (timerMode none), so `submit_timeout` is never invoked in practice. |
 
 ## 5. Puzzle sourcing
@@ -196,8 +196,11 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
   per player in compete. See [docs/common.md](../common.md) → "The shared
   scratchpad" for the architecture.
-- **Terminal** — on coop give-up the blank cells fill with the greyed revealed
-  answers (`games_state.solution`, fetched at terminal).
+- **Terminal** — the board is **not** auto-revealed at game end: the blanks
+  stay blank until someone picks the **"Reveal board"** game-menu item, which
+  fetches `games_state.solution` and fills the blank cells with the greyed
+  answers. The item is disabled mid-game (the server only unshields the
+  solution at terminal) and disables itself once revealed.
 
 ### Printing the board (PDF) — a deliberate whole-cloth exception
 
@@ -212,18 +215,25 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 The game menu also carries a **"Show note"** item (`NoteDialog` on a
 `FloatingPanel`, ported from crossplay minus its broadcast sync) that opens the
 setter's free-form `meta.note`. It's **disabled when the puzzle has no note**.
+And a **"Reveal board"** item — the post-game answer key described under
+*Terminal* above.
 
 ## 8. Tests
 
 - pgTAP `supabase/tests/crosswords/` — create (library + inline board) / gameplay
-  (set_cell, check, reveal, `_matches`) / win (solve, pencil-counts,
+  (set_cell, check, reveal, set_mark, `_matches`) / win (solve, pencil-counts,
   first-correct-wins) / rls (compete privacy) / concede + give-up. Plus
   `common/scratchpad_test.sql`.
-- Vitest — `lib/cursor.test.ts`, the parser tests (`supabase/scripts/crosswords/`),
-  `lib/nyt.test.ts`, `pdf/*.test.ts`.
-- e2e `e2e/crosswords.e2e.ts` (solve, check+reveal+give-up-reveal, compete win,
-  no-scroll on a full-size puzzle, print-PDF download, peer cursors) +
-  `e2e/scratchpad.e2e.ts`.
+- Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`),
+  `hooks/useCells.test.ts`, `pdf/*.test.ts`, and the parser + content-hash tests
+  next to the CLI (`supabase/scripts/crosswords/`).
+- e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal
+  board" menu flow (disabled mid-game, blanks stay blank until clicked);
+  compete win; compete privacy (opponent never sees your letters); coop peer
+  cursors + shared-fill sync; keyboard (rebus, pencil, Backspace two-step, `#`
+  jump); cryptic `|`/`_` marks; menu gating (Show note / Explain cryptic clue);
+  upload via the setup form; print-PDF download; no-scroll on a full-size
+  puzzle. Plus `e2e/scratchpad.e2e.ts`.
 
 ## 9. Deferred / future
 

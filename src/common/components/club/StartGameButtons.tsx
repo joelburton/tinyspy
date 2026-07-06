@@ -66,9 +66,14 @@ export function StartGameButtons({
   onStartSetup,
   soloClub,
 }: Props) {
+  // Alphabetical by brand name, not registry order — the registry is ordered
+  // by when each game was built, which means nothing to a player scanning for
+  // a game. A coop/compete sibling pair shares one brand; the stable sort
+  // keeps their registry order (coop first) within the tie.
+  const ordered = [...games].sort((a, b) => a.name.localeCompare(b.name))
   return (
     <div className={styles.list}>
-      {games.map((g) => {
+      {ordered.map((g) => {
         const fits = playerCountFits(g.numberOfPlayers, memberCount)
         return (
           <button

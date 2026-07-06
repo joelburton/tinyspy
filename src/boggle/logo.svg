@@ -1,9 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="18" fill="#2b2622"/>
-  <!-- two stacked lettered cubes (MothCubes) -->
-  <rect x="20" y="22" width="42" height="42" rx="8" fill="#c0563b"/>
-  <rect x="38" y="36" width="42" height="42" rx="8" fill="#f3ede1"/>
-  <text x="41" y="54" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" fill="#f3ede1">M</text>
-  <text x="52" y="69" font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700" fill="#2b2622">C</text>
+<!-- boggle logo — a mini MothCubes board: the dark tray (boggle-board-bg
+     #2b2622) holding a 2x2 grid of tiles in the shared warm tile ramp
+     (tile shade 3 fill + border, tile-text ink; hex values inlined since
+     SVG files can't read CSS custom properties). "M" top-left and "C"
+     bottom-right (the MothCubes initials); the other two cubes are blank.
+     Hand-authored; no external source. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="boggle">
+  <rect width="100" height="100" rx="14" fill="#2b2622"/>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle" fill="#1a1a1a">
+    <rect x="8" y="8" width="39" height="39" rx="7" fill="#f2e8ce" stroke="#e1c88e" stroke-width="1.5"/>
+    <text x="27.5" y="39">M</text>
+    <rect x="53" y="8" width="39" height="39" rx="7" fill="#f2e8ce" stroke="#e1c88e" stroke-width="1.5"/>
+    <rect x="8" y="53" width="39" height="39" rx="7" fill="#f2e8ce" stroke="#e1c88e" stroke-width="1.5"/>
+    <rect x="53" y="53" width="39" height="39" rx="7" fill="#f2e8ce" stroke="#e1c88e" stroke-width="1.5"/>
+    <text x="72.5" y="84">C</text>
+  </g>
 </svg>

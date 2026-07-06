@@ -70,14 +70,24 @@ test.describe('crosswords play loop', () => {
     await expect(cell00).toHaveAttribute('data-fill', 'C', { timeout: 8000 })
     await expect(cell00).toHaveAttribute('data-revealed', '')
 
-    // Give up (coop End) → the terminal grid fills its blanks with the
-    // revealed answers (A / T / S), greyed.
+    // Mid-game "Reveal board" is disabled (the solution is still shielded).
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Reveal board' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+
+    // Give up (coop End) → terminal, but the blanks do NOT auto-fill; the
+    // answers wait behind the "Reveal board" menu item.
+    const cell11 = page.locator('[data-xw-cell][data-row="1"][data-col="1"]')
     await page.getByRole('button', { name: /^End$/ }).click()
-    await expect(page.locator('[data-xw-cell][data-row="1"][data-col="1"]')).toHaveAttribute(
-      'data-fill',
-      'S',
-      { timeout: 8000 },
-    )
+    await expect(page.getByText('Game over').first()).toBeVisible({ timeout: 8000 })
+    await expect(cell11).toHaveAttribute('data-fill', '')
+
+    // Close the game-over panel; "Reveal board" fills the blanks with the
+    // greyed answers (A / T / S).
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Reveal board' }).click()
+    await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
   })
 
   test('compete: finishing your own grid first wins', async ({ browser }) => {

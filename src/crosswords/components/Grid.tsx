@@ -57,8 +57,9 @@ type Props = {
   /** The read-only zoom-peek (Shift+Space): the cell + its fill, or null.
    *  Mutually exclusive with `rebus` (typing wins over peeking). */
   peek: { row: number; col: number; value: string } | null
-  /** At terminal, the answer grid — used to fill blank cells with the
-   *  revealed answer (greyed). Null mid-game (the solution is shielded). */
+  /** The answer grid — used to fill blank cells with the revealed answer
+   *  (greyed). Null until the post-game "Reveal board" menu item fetches it
+   *  (mid-game the solution is shielded server-side). */
   solution: (string[] | null)[][] | null
   /** `${row}:${col}` → CSS color, for teammates' cursor frames (coop). */
   peerCells: Map<string, string>
@@ -94,7 +95,7 @@ export function Grid({
           const given = t.given === true
           const live = given ? undefined : cells.get(cellKey(r, c))
           const liveFill = given ? (t.fill ?? null) : (live?.fill ?? null)
-          // Terminal reveal: fill a blank cell with the revealed answer (greyed).
+          // Post-game "Reveal board": fill a blank cell with the answer (greyed).
           const answer = solution && liveFill == null && !given ? (solution[r]?.[c]?.[0] ?? null) : null
           return (
             <Cell

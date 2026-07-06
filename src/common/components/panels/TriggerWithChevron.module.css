@@ -1,0 +1,8 @@
+/* The identity-element + down-chevron row inside a Menu trigger.
+ * The gap is deliberately tiny — the chevron hugs the logo / dot
+ * so the pair reads as ONE clickable unit, not two icons. */
+.row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}

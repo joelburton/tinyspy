@@ -1,13 +1,13 @@
-<!-- wordle logo — three Wordle-style letter tiles (green / yellow /
-     gray) spelling the feedback colors, for the guess-the-word theme.
-     Hand-authored; no external source. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 64" role="img" aria-label="wordle">
-  <rect x="2" y="2" width="60" height="60" rx="6" fill="#6aaa64"/>
-  <rect x="66" y="2" width="60" height="60" rx="6" fill="#c9b458"/>
-  <rect x="130" y="2" width="60" height="60" rx="6" fill="#787c7e"/>
-  <g fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="40" text-anchor="middle">
-    <text x="32" y="46">W</text>
-    <text x="96" y="46">N</text>
-    <text x="160" y="46">?</text>
+<!-- wordle logo — two Wordle-style letter tiles in the shared feedback
+     colors (common/theme.css): "W" on yellow, "N" on green — the WordNerd
+     initials. The tiles are taller than wide so the pair fills a square
+     (no letterboxing in the app's square logo slots). Hand-authored; no
+     external source. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="wordle">
+  <rect x="2" y="2" width="60" height="124" rx="6" fill="#c9b458"/>
+  <rect x="66" y="2" width="60" height="124" rx="6" fill="#6aaa64"/>
+  <g fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="44" text-anchor="middle">
+    <text x="32" y="80">W</text>
+    <text x="96" y="80">N</text>
   </g>
 </svg>

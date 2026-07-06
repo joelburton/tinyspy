@@ -71,20 +71,17 @@ export function PlayArea(ctx: GamePageCtx) {
   const [explainLabel, setExplainLabel] = useState('clue')
   // The read-only zoom-peek (Shift+Space): the cell + a snapshot of its fill.
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
-  // The answer grid — shielded mid-game, fetched from games_state at terminal
-  // to fill in the blanks (esp. after a coop give-up).
+  // The answer grid — shielded mid-game; the server unshields it at terminal
+  // (games_state.solution) but the FE does NOT fetch it automatically. The
+  // blanks stay blank until someone picks "Reveal board" from the game menu,
+  // so ending a game doesn't spoil a puzzle the group may want to keep
+  // chewing on. (Errors are tolerated silently, like the old auto-fetch was:
+  // solution stays null and the menu item stays enabled for a retry.)
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
-  useEffect(() => {
-    if (!isTerminal) return
-    let active = true
-    void (async () => {
-      const { data } = await db.from('games_state').select('solution').eq('id', gameId).single()
-      if (active && data?.solution) setSolution(data.solution as unknown as (string[] | null)[][])
-    })()
-    return () => {
-      active = false
-    }
-  }, [isTerminal, gameId])
+  const handleRevealBoard = useCallback(async () => {
+    const { data } = await db.from('games_state').select('solution').eq('id', gameId).single()
+    if (data?.solution) setSolution(data.solution as unknown as (string[] | null)[][])
+  }, [gameId])
 
   const grid = game?.meta.cells ?? null
   const [cursor, setCursor] = useState<Cursor | null>(null)
@@ -320,7 +317,8 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [gameId])
 
   // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
-  // current clue via a ref, so this doesn't rebuild per keystroke.
+  // current clue via a ref, so this doesn't rebuild per keystroke — only on the
+  // one-shot terminal / reveal transitions.
   useEffect(() => {
     if (!game) return
     const title = game.meta.title || 'crossword'
@@ -343,6 +341,15 @@ export function PlayArea(ctx: GamePageCtx) {
         onClick: () => void handleExplain(),
       },
       {
+        // Post-game answer key. Disabled mid-game because the server only
+        // unshields the solution at terminal (games_state returns NULL before
+        // that); once revealed it stays revealed, so the item disables itself.
+        id: 'reveal-board',
+        label: 'Reveal board',
+        disabled: !isTerminal || solution !== null,
+        onClick: () => void handleRevealBoard(),
+      },
+      {
         id: 'print',
         label: 'Print board (PDF)',
         onClick: () => {
@@ -352,7 +359,7 @@ export function PlayArea(ctx: GamePageCtx) {
       },
     ])
     return () => menu.setGameItems([])
-  }, [menu, game, handleExplain])
+  }, [menu, game, handleExplain, handleRevealBoard, isTerminal, solution])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 

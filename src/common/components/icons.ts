@@ -44,7 +44,8 @@ export {
   // node-graph glyph is the near-universal "send this to others" idiom.
   Share as IconShare,
   ChevronLeft as IconBack, // back to club
-  Pause as IconPause, // pause the game
+  // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
+  // the familiar solid two-bars mark, so PauseButton draws its own glyph.
   // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The
   // four-corners fullscreen glyph is the near-universal "fit to view" idiom.
   Fullscreen as IconZoomFit,

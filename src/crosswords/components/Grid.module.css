@@ -69,12 +69,13 @@
   pointer-events: none;
 }
 
-/* The fill letter (pen). */
+/* The fill letter (pen). Nudged down from dead-center so a tall letter
+ * clears the clue number in the cell's top-left corner. */
 .fill {
   font-size: 0.62em;
   font-weight: 600;
   color: var(--crosswords-fill);
-  transform: translate(0.09em, 0.09em);
+  transform: translate(0.09em, 0.17em);
   pointer-events: none;
 }
 .pencil {

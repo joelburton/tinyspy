@@ -12,7 +12,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin-top: 0.75rem;
+  /* No outer margin: the list sits inside ClubPage's .startList card,
+   * whose padding owns the breathing room on all four sides. */
 }
 
 /* The outline card itself. Resets the global filled-blue button

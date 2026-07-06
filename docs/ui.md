@@ -382,7 +382,7 @@ Same principle, applied to components.
 
 - `FloatingChat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmDialog`, `TimerField`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
-- `<UserMenu>` is mounted once at the App level (after the auth check), so it appears above every authenticated screen with zero per-page wiring. Fixed at the top-right of the viewport (in the body's empty 2rem padding zone above any page header); shows the current user's username + a small chevron, opens a dropdown for **user-focused** items only — **Edit profile** and **Log out**. **Never** carries club- or game-specific items; those belong on the ClubPage or GamePage menu off the logo. Hidden behind `<LoginScreen>` when there's no session.
+- `<UserMenu>` is mounted once at the App level (after the auth check), so it appears above every authenticated screen with zero per-page wiring. Fixed at the top-right of the viewport, overlapping the right end of the page header row (the GamePage header's right group reserves margin for it); shows just the user's profile-color dot + a small chevron (no username — the chip stays tiny), opens a dropdown for **user-focused** items only — **Edit profile** and **Log out**. **Never** carries club- or game-specific items; those belong on the ClubPage or GamePage menu off the logo. Hidden behind `<LoginScreen>` when there's no session.
 - `<EditProfileDialog>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Held in App-level state next to `<UserMenu>`; the menu item flips it open. Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
 - `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileDialog>`, the `<GameOverModal>`, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level (beside `<GameOverModal>`) or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
 - `<ColorChoiceList>` — the shared player-color picker: the 8-entry palette (`MEMBER_COLORS`) as a grid of swatches, each its actual color circle + capitalized name, the selected one ringed. Controlled (`value` / `onChange`). Used by both `<EditProfileDialog>` and the first-run `<ClaimHandleScreen>` (where it sits beside the username field, pre-selected from a deterministic FE hash of the username — `defaultColorFor` — so a new player isn't picking from a blank slate; the chosen color is sent to `claim_username`).
@@ -931,7 +931,7 @@ exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
 In `common/components/game/PlayArea.module.css`:
 - **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
 - **`.layout`** defines **`--avail-w`** = `calc(var(--client-width, 100vw) -
-  var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding))` — the
+  var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x))` — the
   width left beside the fixed info column, built from shared tokens (so a change to
   the info-column width, the layout gap, or the page padding flows through to every
   board automatically). This is the *input* to each game's board width — see [Why
@@ -942,7 +942,7 @@ In `common/components/game/PlayArea.module.css`:
 right edge at the game-over `WordList` reveal (a big list forces the info column
 tall/wide):**
 
-1. **`.layout` has a definite `width`, not shrink-to-fit** (`calc(var(--client-width, 100vw) - 2 * var(--page-padding))`).
+1. **`.layout` has a definite `width`, not shrink-to-fit** (`calc(var(--client-width, 100vw) - 2 * var(--page-padding-x))`).
    `body` is `place-items: start center`, which sizes its grid item to its content's
    *max-content* width. The shared `WordList`'s column-major grid has an enormous
    max-content (every column laid out) at the reveal, and **WebKit (Safari) leaks

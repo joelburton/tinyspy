@@ -15,21 +15,21 @@
 
 .frame {
   width: 100%;
-  /* Total height = viewport minus the body's 2rem top + 2rem
-   * bottom padding (defined in common/theme.css's body rule).
-   * Without this, .body's flex: 1 has no upper bound, and the
-   * .gamesList overflow-y: auto inside it never triggers. */
-  height: calc(100vh - 4rem);
+  /* Total height = viewport minus the body's vertical padding
+   * (defined in common/theme.css's body rule). Without this,
+   * .body's flex: 1 has no upper bound, and the .gamesList
+   * overflow-y: auto inside it never triggers. */
+  height: calc(100vh - 2 * var(--page-padding-y));
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Header row. Same surface + border + radius as the GamePage
- * header so the two pages read as a matching set. Single flex
- * row (no left/right groups) — the StatusSlot's `flex: 1`
- * absorbs whatever space the three fixed-width elements don't
- * claim, exactly like it does inside GamePage's left group. */
+/* Header row. Same chrome treatment as the GamePage header (bare
+ * strip + the thin rule below) so the two pages read as a matching
+ * set. Single flex row (no left/right groups) — the StatusSlot's
+ * `flex: 1` absorbs whatever space the three fixed-width elements
+ * don't claim, exactly like it does inside GamePage's left group. */
 .header {
   display: flex;
   align-items: center;
@@ -38,6 +38,20 @@
    * header keeps its intrinsic height. flex-shrink: 0 + auto
    * height is the standard "fixed chrome strip" recipe. */
   flex-shrink: 0;
+  /* Thin rule under the header, matching the GamePage header's — the same
+   * divider the play surface uses between its columns. */
+  border-bottom: 1px solid var(--color-divider);
+  padding-bottom: 0.5rem;
+}
+
+/* Everything below the (full-width) header — the title row + the
+ * two-column body — sits in a centered content well so the columns
+ * don't sprawl on a wide desktop. ~1000px, in rems. */
+.titleBlock,
+.body {
+  width: 100%;
+  max-width: 62.5rem;
+  margin-inline: auto;
 }
 
 /* The two-column body. flex: 1 to take the rest of .frame's
@@ -52,27 +66,27 @@
   min-height: 0;
 }
 
-/* Left column: club title block + active game + start buttons.
- * Stacked content, no internal scroll — content here is bounded
- * (1 active card + N start buttons where N is small). If we ever
- * outgrow the viewport on the left side, add overflow-y: auto
- * here too. */
+/* Left column: active game (fixed) + the start-a-new-game block.
+ * The column itself never scrolls — scrolling lives inside the
+ * .startList card (below), so the "Start a new game" heading stays
+ * put, mirroring the right column's heading + scrolling frame. */
 .left {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  /* .card-style chrome around the left content for surface
-   * parity with the right column's frame. */
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  /* Same min-height: 0 pattern; doesn't bite today (no internal
-   * scroll), but it's the correct flex-child posture for a
-   * bounded column. */
   min-height: 0;
-  overflow-y: auto;
+}
+
+/* The "Start a new game" block: heading (fixed) + the scrolling
+ * card. flex: 1 + min-height: 0 bound it to the column's remaining
+ * height (after the active-game block) so the card's overflow-y
+ * actually engages — the same recipe as .right. */
+.startBlock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Right column: "Other games" heading + the scrolling list.
@@ -85,35 +99,42 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  /* NO gap: the h3 heading's own margin-bottom is the only space above the
+   * gamesList frame, which is exactly the space the LEFT column has between
+   * its "Start a new game" h3 and the first start button (the h3's
+   * margin-bottom collapses over the button list's smaller margin-top).
+   * Any gap here would push the frame's top border below the buttons'. */
+  gap: 0;
   min-height: 0;
 }
 
-/* The games-list frame. Fixed-size visual container that scrolls
- * internally. The flex: 1 inside .right gives it the column's
- * remaining height (after the h3 heading); overflow-y: auto +
- * min-height: 0 make the scroll work.
- *
- * Surface styling matches the left column's card chrome so the
- * two halves of the body read as paired panels rather than one
- * panel + a transparent list. */
+/* The two scrolling card frames — the start-buttons card (left) and
+ * the games list (right). One rule so the paired panels can't drift
+ * apart cosmetically: fixed-size visual container (flex: 1 takes the
+ * column's remaining height after the fixed h3 heading), scrolling
+ * internally via overflow-y: auto + min-height: 0. */
+.startList,
 .gamesList {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
-/* Club title block — replaces the old <h1> placement inside the
- * .card wrapper. Sits inside the left column at the top. */
+.gamesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Club title block — a full-width row of the .frame column (between
+ * the header and the two-column body), so the "Club: <name>" heading
+ * spans both columns rather than living inside the left one. */
 .titleBlock {
-  margin-bottom: 0.25rem;
+  flex-shrink: 0;
 }
 
 .title {

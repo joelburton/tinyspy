@@ -29,6 +29,7 @@ import { ScratchpadBubble } from '../panels/ScratchpadBubble'
 import { GameScratchpad } from '../panels/GameScratchpad'
 import { GameLogo } from '../branding/GameLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
+import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
 import { StatusSlot } from './StatusSlot'
@@ -307,7 +308,11 @@ export function GamePage({
         <div className={styles.left}>
           <Menu
             ref={menuRef}
-            trigger={<GameLogo gametype={gametype} />}
+            trigger={
+              <TriggerWithChevron>
+                <GameLogo gametype={gametype} />
+              </TriggerWithChevron>
+            }
             sections={sections}
             triggerLabel="Game menu"
           />

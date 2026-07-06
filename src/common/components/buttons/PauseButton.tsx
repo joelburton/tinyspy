@@ -1,4 +1,3 @@
-import { IconPause } from '../icons'
 import styles from './PauseButton.module.css'
 
 type Props = {
@@ -32,7 +31,21 @@ export function PauseButton({ paused, onPause }: Props) {
     >
       {/* Pause glyph — inherits `currentColor` from the button. The button
        *  carries the label, so the icon is decorative. */}
-      <IconPause size={20} aria-hidden />
+      <PauseGlyph size={20} />
     </button>
+  )
+}
+
+/** The traditional pause glyph: two solid vertical bars. Drawn inline rather
+ *  than taken from the icons registry — lucide's `Pause` is two OUTLINED
+ *  rounded rects, which doesn't read as the familiar pause mark. The rounded
+ *  "button" rect around it is the button's own CSS border, not part of the
+ *  glyph, so hover/disabled chrome stays on real button state. */
+function PauseGlyph({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
+      <rect x="5" y="4" width="3.5" height="12" rx="1" fill="currentColor" />
+      <rect x="11.5" y="4" width="3.5" height="12" rx="1" fill="currentColor" />
+    </svg>
   )
 }

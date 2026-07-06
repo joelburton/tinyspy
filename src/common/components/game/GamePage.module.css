@@ -25,6 +25,11 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  /* Thin rule under the header — the same divider the play surface uses
+   * between its board / info columns, so the chrome strip reads as bounded
+   * without a card around it. (Its height is part of --game-chrome-height.) */
+  border-bottom: 1px solid var(--color-divider);
+  padding-bottom: 0.5rem;
 }
 
 /* Left group: logo + chat-bubble + status-slot. `flex: 1` so the
@@ -42,12 +47,19 @@
 
 /* Right group: pause + timer. `flex-shrink: 0` so the left group
  * gives space before this one does — feedback pills push the
- * pause/timer out only if there's no other choice. */
+ * pause/timer out only if there's no other choice.
+ *
+ * margin-right clears the fixed UserMenu chip (dot + chevron,
+ * ~2.7rem wide at the viewport's top-right corner, of which
+ * ~1.7rem overhangs this header past the body's 1rem side
+ * padding) so the chip never sits on top of the pause button /
+ * timer — sized to hold only a small breathing gap beyond that. */
 .right {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  margin-right: 2rem;
 }
 
 /* The countdown / count-up display. Tabular-nums so MM:SS digits

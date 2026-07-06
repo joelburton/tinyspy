@@ -42,7 +42,7 @@
    * intrinsic width can no longer inflate the layout, and `justify-content:
    * center` still centers the board+info pair within it. Uses `--client-width`
    * (see below); falls back to `100vw` pre-JS. */
-  width: calc(var(--client-width, 100vw) - 2 * var(--page-padding));
+  width: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -67,7 +67,7 @@
    * which forces a scrollbar. `--client-width` is measured + kept current with a
    * ResizeObserver (common/lib/util/layoutWidth.ts); it falls back to `100vw` for the
    * first paint before the JS runs. */
-  --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding));
+  --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
 }
 
 /* Board column: HUGS its board (`flex: 0 0 auto`). The board grows to fill up to

@@ -1,6 +1,7 @@
 /* The UserMenu's fixed-position anchor at the top-right of the
- * viewport. Sits in the body's empty 2rem padding zone above
- * any page header.
+ * viewport. Taller than the body's slim vertical padding, so it
+ * overlaps the right end of the page header row — the GamePage
+ * header's right group reserves margin for it.
  *
  * z-index 100 puts the trigger above ordinary page content but
  * below the 500-tier modals (SuspendConfirmDialog, HintModal,
@@ -38,12 +39,6 @@
   border-radius: 0;
 }
 
-.triggerContent {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 /* Profile-color dot. Same belt-and-braces ring pattern as
  * PlayersStrip / ClubPage's memberDot — keeps the dot legible
  * on any palette color. The white inner ring blends into the
@@ -59,12 +54,3 @@
   flex-shrink: 0;
 }
 
-.name {
-  /* Cap an unusually long username so the trigger never grows
-   * past a sensible width. Ellipsis on overflow. Unlikely to
-   * fire today (most usernames are short), but cheap insurance. */
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
