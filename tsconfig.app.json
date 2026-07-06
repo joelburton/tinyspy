@@ -23,8 +23,10 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  // cssTokens.test.ts is a node/filesystem meta-test — it's type-checked
-  // under tsconfig.node.json (which has node types) so the app project
-  // stays browser-only and app code still can't import `fs` by accident.
-  "exclude": ["src/cssTokens.test.ts"]
+  // These are node/filesystem tests (they read fixtures via `node:fs`) —
+  // type-checked under tsconfig.node.json (which has node types) so the app
+  // project stays browser-only and app code still can't import `fs` by
+  // accident. cssTokens is a CSS meta-test; importFile reads .puz/.ipuz
+  // fixtures to exercise the crosswords upload parser.
+  "exclude": ["src/cssTokens.test.ts", "src/crosswords/lib/importFile.test.ts"]
 }

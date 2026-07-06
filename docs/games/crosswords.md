@@ -208,6 +208,10 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 `menu.setGameItems` item; the grid is snapshotted at click-time. See
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
 
+The game menu also carries a **"Show note"** item (`NoteDialog` on a
+`FloatingPanel`, ported from crossplay minus its broadcast sync) that opens the
+setter's free-form `meta.note`. It's **disabled when the puzzle has no note**.
+
 ## 8. Tests
 
 - pgTAP `supabase/tests/crosswords/` — create (library + inline board) / gameplay

@@ -31,6 +31,7 @@ import { usePeerCursors } from '../hooks/usePeerCursors'
 import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid, type RebusPostCommit } from './Grid'
 import { NumberJumpDialog } from './NumberJumpDialog'
+import { NoteDialog } from './NoteDialog'
 import { ClueLists } from './ClueLists'
 import { Controls } from './Controls'
 import { db } from '../db'
@@ -60,6 +61,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const [pencil, setPencil] = useState(false)
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
   const [numberJumpOpen, setNumberJumpOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   // The read-only zoom-peek (Shift+Space): the cell + a snapshot of its fill.
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
   // The answer grid — shielded mid-game, fetched from games_state at terminal
@@ -232,7 +234,16 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     if (!game) return
     const title = game.meta.title || 'crossword'
+    // Some puzzles carry a setter's note (theme hints, constructor remarks);
+    // the menu item opens it, disabled when there's none.
+    const hasNote = (game.meta.note ?? '').trim().length > 0
     menu.setGameItems([
+      {
+        id: 'note',
+        label: 'Show note',
+        disabled: !hasNote,
+        onClick: () => setNoteOpen(true),
+      },
       {
         id: 'print',
         label: 'Print board (PDF)',
@@ -440,6 +451,14 @@ export function PlayArea(ctx: GamePageCtx) {
             return true
           }}
           onClose={() => setNumberJumpOpen(false)}
+        />
+      )}
+
+      {noteOpen && game.meta.note && (
+        <NoteDialog
+          title={game.meta.title || 'Puzzle note'}
+          note={game.meta.note}
+          onClose={() => setNoteOpen(false)}
         />
       )}
 

@@ -256,13 +256,14 @@ export async function createCrosswordsGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  note = '',
 ): Promise<{ id: string; gametype: string }> {
   const meta = {
     id: 'e2e',
     title: 'E2E Puzzle',
     author: 'Tester',
     copyright: '',
-    note: '',
+    note,
     width: 2,
     height: 2,
     clues: {

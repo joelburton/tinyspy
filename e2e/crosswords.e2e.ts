@@ -288,6 +288,33 @@ test.describe('crosswords play loop', () => {
     await expect(cell).toHaveAttribute('data-mark-bottom', 'break')
   })
 
+  // "Show note" menu item: disabled when the puzzle has no note, enabled +
+  // opens a panel with the note text when it does.
+  test('menu "Show note" is gated on the puzzle note', async ({ browser }) => {
+    // No note → the item is disabled.
+    const club1 = await createSoloClub('xwnn')
+    const game1 = await createCrosswordsGame(club1)
+    const ctx1 = await browser.newContext()
+    await signIn(ctx1, club1.members[0].session)
+    const p1 = await ctx1.newPage()
+    await p1.goto(`/g/${game1.gametype}/${game1.id}`)
+    await expect(p1.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await p1.getByRole('button', { name: 'Game menu' }).click()
+    await expect(p1.getByRole('menuitem', { name: 'Show note' })).toBeDisabled()
+
+    // With a note → enabled, and clicking it shows the note text.
+    const club2 = await createSoloClub('xwyn')
+    const game2 = await createCrosswordsGame(club2, 'coop', undefined, 'Theme: felines everywhere.')
+    const ctx2 = await browser.newContext()
+    await signIn(ctx2, club2.members[0].session)
+    const p2 = await ctx2.newPage()
+    await p2.goto(`/g/${game2.gametype}/${game2.id}`)
+    await expect(p2.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await p2.getByRole('button', { name: 'Game menu' }).click()
+    await p2.getByRole('menuitem', { name: 'Show note' }).click()
+    await expect(p2.getByText('Theme: felines everywhere.')).toBeVisible({ timeout: 8000 })
+  })
+
   // Upload flow: the setup form's "Upload file" tab parses a .puz/.ipuz
   // client-side and starts a self-contained game (inline board, no puzzles
   // row). Drives the real setup dialog end to end.
