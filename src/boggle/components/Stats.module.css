@@ -1,7 +1,8 @@
-/* boggle's 4-cell stat grid: Words / Score / Required Words / Legal Words.
+/* boggle's 4-cell stat grid: Req Words / Req Score / Bonus Words / Bonus Score.
  * Leads the info column (the state readout). Each cell is a small uppercase
- * label over a large tabular-nums value — the same idiom as spellingbee's
- * <Stats>, widened to four columns. */
+ * label over a large tabular-nums value over a muted found-share percent — the
+ * same idiom as spellingbee's <Stats>, widened to four columns and with a third
+ * percent line. */
 
 .stats {
   display: grid;
@@ -41,4 +42,14 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--color-muted);
+}
+
+/* The third line: the found-share as a percent (found / total). A quieter,
+ * smaller readout that sits under the raw count. */
+.percent {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  line-height: 1.2;
 }

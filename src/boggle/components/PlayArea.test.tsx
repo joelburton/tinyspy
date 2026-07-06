@@ -98,9 +98,9 @@ describe('boggle PlayArea — render smoke', () => {
     h.result = loaded(loadedGame({ bonus_words: [{ word: 'dog', points: 2 }] }))
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
-    // The info-column 4-cell Stats grid (labels unique to Stats; "Words" alone
-    // also matches the WordList heading, so assert the qualified ones).
-    expect(screen.getByText('Score')).toBeInTheDocument()
+    // The info-column 4-cell Stats grid (all labels are unique to Stats).
+    expect(screen.getByText('Req Words')).toBeInTheDocument()
+    expect(screen.getByText('Req Score')).toBeInTheDocument()
     expect(screen.getByText('Bonus Words')).toBeInTheDocument()
     expect(screen.getByText('Bonus Score')).toBeInTheDocument()
   })

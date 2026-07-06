@@ -16,11 +16,17 @@ export type BoggleStats = {
   bonusScore: number
 }
 
+/** `found / total` as a whole-number percent; 0 total reads as 0% (nothing to find). */
+function pct(found: number, total: number): string {
+  return total > 0 ? `${Math.round((found / total) * 100)}%` : '0%'
+}
+
 /**
- * boggle's stat grid — the two-line "label over value" idiom (like spellingbee's
- * `<Stats>`). Every cell is `found / total`:
- *   Words        required found / required on board
- *   Score        required-found score / required total score
+ * boggle's stat grid — the three-line "label / value / percent" idiom (an
+ * extension of spellingbee's two-line `<Stats>`). Every cell is `found / total`
+ * with the found-share as a percent underneath:
+ *   Req Words    required found / required on board
+ *   Req Score    required-found score / required total score
  *   Bonus Words  bonus found / bonus on board
  *   Bonus Score  bonus-found score / bonus total score
  * The two BONUS cells are dropped (and the grid narrows to two columns) when the
@@ -29,25 +35,25 @@ export type BoggleStats = {
  */
 export function Stats(s: BoggleStats) {
   const cells = [
-    { label: 'Words', value: `${s.requiredFound}`, sub: `/ ${s.requiredCount}` },
-    { label: 'Score', value: `${s.requiredFoundScore}`, sub: `/ ${s.requiredScore}` },
+    { label: 'Req Words', value: `${s.requiredFound}`, sub: `/ ${s.requiredCount}`, pct: pct(s.requiredFound, s.requiredCount) },
+    { label: 'Req Score', value: `${s.requiredFoundScore}`, sub: `/ ${s.requiredScore}`, pct: pct(s.requiredFoundScore, s.requiredScore) },
     ...(s.bonusCount > 0
       ? [
-          { label: 'Bonus Words', value: `${s.bonusFound}`, sub: `/ ${s.bonusCount}` },
-          { label: 'Bonus Score', value: `${s.bonusFoundScore}`, sub: `/ ${s.bonusScore}` },
+          { label: 'Bonus Words', value: `${s.bonusFound}`, sub: `/ ${s.bonusCount}`, pct: pct(s.bonusFound, s.bonusCount) },
+          { label: 'Bonus Score', value: `${s.bonusFoundScore}`, sub: `/ ${s.bonusScore}`, pct: pct(s.bonusFoundScore, s.bonusScore) },
         ]
       : []),
   ]
   return (
     <div className={styles.stats} style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}>
       {cells.map((c) => (
-        <Cell key={c.label} label={c.label} value={c.value} sub={c.sub} />
+        <Cell key={c.label} label={c.label} value={c.value} sub={c.sub} pct={c.pct} />
       ))}
     </div>
   )
 }
 
-function Cell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Cell({ label, value, sub, pct }: { label: string; value: string; sub?: string; pct: string }) {
   return (
     <div className={styles.cell}>
       <span className={styles.label}>{label}</span>
@@ -55,6 +61,7 @@ function Cell({ label, value, sub }: { label: string; value: string; sub?: strin
         {value}
         {sub && <span className={styles.muted}> {sub}</span>}
       </span>
+      <span className={styles.percent}>{pct}</span>
     </div>
   )
 }
