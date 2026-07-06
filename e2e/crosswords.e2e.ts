@@ -151,6 +151,58 @@ test.describe('crosswords play loop', () => {
     await expect(a.locator('[data-xw-cell][data-row="1"][data-col="1"][data-peer]')).toBeVisible({
       timeout: 10000,
     })
+
+    // ...and the headline coop behavior: a letter Alice types syncs to Bob's
+    // shared grid via the useCells direct-apply CDC path. Alice fills (0,0);
+    // Bob sees the 'C' land in his own render of the same shared grid.
+    await a.locator('[data-xw-cell][data-row="0"][data-col="0"]').click()
+    await a.keyboard.type('c')
+    await expect(b.locator('[data-xw-cell][data-row="0"][data-col="0"]')).toHaveAttribute(
+      'data-fill',
+      'C',
+      { timeout: 10000 },
+    )
+  })
+
+  // Compete privacy is enforced on the FE (the useCells `isMine` drop), NOT by
+  // Realtime withholding rows — the opponent's CDC payload arrives on the wire
+  // regardless, and the hook must drop it. Two compete clients: Alice fills her
+  // grid; Bob's private grid must never show her letter.
+  test('compete: an opponent never sees your letters', async ({ browser }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+    const game = await createCrosswordsGame(club, 'compete')
+
+    const bCtx = await browser.newContext()
+    await signIn(bCtx, bob.session)
+    const b = await bCtx.newPage()
+    await b.goto(`/g/${game.gametype}/${game.id}`)
+
+    const aCtx = await browser.newContext()
+    await signIn(aCtx, alice.session)
+    const a = await aCtx.newPage()
+    await a.goto(`/g/${game.gametype}/${game.id}`)
+
+    await expect(a.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await expect(b.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+
+    // Alice fills (0,0) on her own private grid.
+    await a.locator('[data-xw-cell][data-row="0"][data-col="0"]').click()
+    await a.keyboard.type('c')
+    // Alice sees her own letter (sanity: the write really happened + synced).
+    await expect(a.locator('[data-xw-cell][data-row="0"][data-col="0"]')).toHaveAttribute(
+      'data-fill',
+      'C',
+      { timeout: 10000 },
+    )
+
+    // Give any leaked CDC ample time to (wrongly) arrive, then assert Bob's
+    // corresponding cell is still empty. `data-fill` renders as '' when blank.
+    await b.waitForTimeout(1500)
+    await expect(b.locator('[data-xw-cell][data-row="0"][data-col="0"]')).toHaveAttribute(
+      'data-fill',
+      '',
+    )
   })
 
   // Regression guard for the layout exception: a full-size grid must fit the

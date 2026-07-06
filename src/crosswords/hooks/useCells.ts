@@ -33,6 +33,11 @@ export const cellKey = (row: number, col: number) => `${row}:${col}`
  * arrives in compete. We drop any row that isn't ours (`isMine`) before
  * touching state.
  *
+ * `setCell` applies its own write optimistically and then ROLLS BACK if the
+ * RPC fails — see the comment there for why a non-rolled-back failure is
+ * unrepairable under the "newer wins" merge (the whole reason the rollback
+ * exists rather than leaning on a refetch).
+ *
  * @param ownerId  null for coop's shared grid; the caller's id for their
  *                 private compete grid.
  */
@@ -140,6 +145,17 @@ export function useCells(
     async (row: number, col: number, fill: string | null, pencil: boolean): Promise<SetCellResult> => {
       const key = cellKey(row, col)
       const pen = pencil && fill !== null
+      // Snapshot the pre-optimistic cell so we can roll back on RPC failure.
+      // This is load-bearing: the optimistic echo below keeps the cell's
+      // CURRENT version (the RPC hands back the authoritative one), so a
+      // failed write would otherwise strand a wrong letter at the very same
+      // version the server holds. Because every merge path — CDC apply AND
+      // the load() refetch — is strict "newer wins" (`>`), no refetch, not
+      // even the SUBSCRIBED reconnect catch-up, could ever repair it: the
+      // server's row carries that same version and is dropped. The cell would
+      // diverge forever (indefinitely in compete, where nobody else writes
+      // this grid). Rolling back closes that hole at the source.
+      const prevCell = cellsRef.current.get(key)
       // Optimistic echo — show it immediately, keeping the current version
       // (the RPC hands back the authoritative one) and the revealed flag.
       setCells((prev) => {
@@ -160,7 +176,22 @@ export function useCells(
           p_pencil: pencil,
         })
         .single()
-      if (error || !data) return { error: error?.message ?? 'set_cell failed' }
+      if (error || !data) {
+        // Roll the optimistic write back — but only if no newer authoritative
+        // write (a higher version, e.g. a teammate's CDC event in coop) landed
+        // during the RPC's round trip. Our optimistic echo left the version
+        // unchanged, so an unchanged version means the cell is still our stale
+        // guess and is safe to revert; a bumped version is a real newer state
+        // that must win over the rollback.
+        setCells((prev) => {
+          const cur = prev.get(key)
+          if (!cur || !prevCell || cur.version !== prevCell.version) return prev
+          const out = new Map(prev)
+          out.set(key, prevCell)
+          return out
+        })
+        return { error: error?.message ?? 'set_cell failed' }
+      }
       // Adopt the authoritative version so our own CDC echo is dropped.
       applyRow(row, col, {
         fill,

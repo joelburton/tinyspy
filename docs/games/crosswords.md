@@ -81,9 +81,14 @@ and given cells are mirrored **from crossplay's `ws.ts`** (`fillMatchesSolution`
 `isPuzzleSolved`, `applyCheck`) — the plan's prose was subtly off in two ways,
 pinned in pgTAP:
 
-- **First-letter acceptance is Schrödinger-only.** `_matches` accepts a bare
-  first letter only when the cell has more than one candidate answer; a *normal*
-  rebus needs the exact full string.
+- **First-letter acceptance is keyed on the candidate's length (a rebus), not
+  on the number of candidates.** `_matches` accepts a bare first letter for any
+  multi-*character* candidate answer (`length(s.ans) > 1`, e.g. `"HEART"` → `"H"`)
+  — a long-standing NYT typing shortcut. This mirrors `fillMatchesSolution`'s
+  per-candidate `sol.length > 1` check. So a single-candidate rebus DOES accept
+  its first letter; a Schrödinger cell whose candidates are all single letters
+  does not. (The plan's amendment #13 misread `sol.length` as the array length
+  and framed this as "Schrödinger-only" — corrected here and in the migration.)
 - **Solve does NOT skip pencil.** `_is_solved` counts a pencil cell whose letter
   is right (pencil is a confidence marker). Only *check* skips pencil. An empty
   cell blocks solve.
@@ -123,11 +128,13 @@ plain RPCs — no edge function needed.
 
 ## 6. Server surface + parsers (the shared-code seam)
 
-The parsers + content-hash are Node CLI code; the NYT conversion + content-hash
-payload are **pure TS in `src/crosswords/lib/`** so the SAME code backs the FE,
-the Deno edge function (imported with `.ts` specifiers, like boggle), and the
-vitest tests. `contentHashPayload` builds the dedup string once; the CLI hashes
-it with `node:crypto`, the edge fn with `crypto.subtle` — identical hashes.
+The parsers + content-hash are Node CLI code; the NYT conversion is **pure TS in
+`src/crosswords/lib/`** so the SAME code backs the FE, the Deno edge function
+(imported with `.ts` specifiers, like boggle), and the vitest tests.
+`contentHashPayload` builds the dedup string, and the **CLI import** hashes it
+with `node:crypto` to dedup re-imports into `crosswords.puzzles`. The NYT edge
+function does **not** hash — it creates a self-contained inline game (no
+`puzzles` row), so `content_hash` never comes up on that path.
 
 ## 7. Frontend (`src/crosswords/`)
 

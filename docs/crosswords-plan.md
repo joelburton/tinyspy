@@ -322,11 +322,16 @@ of pencil, empty, and given cells must be mirrored in plpgsql **from crossplay's
 (`fillMatchesSolution`, `isPuzzleSolved`, `applyCheck`), not from this plan's prose** — the
 prose is an exploration summary and was already subtly off, as the two corrections below show:
 
-- **First-letter acceptance is Schrödinger-only, not general rebus** (`ws.ts:513`
-  `fillMatchesSolution`): a bare first letter is accepted only when the cell has *multiple*
-  candidate answers (`sol.length > 1`). A *normal* rebus cell requires the exact full string.
-  Earlier drafts of this plan said "rebus-first-letter" as a blanket rule — wrong; mirror the
-  code and pin both cases (normal rebus needs full string; Schrödinger accepts first letter).
+- **First-letter acceptance is keyed on the candidate's length (a rebus), not the number of
+  candidates** (`ws.ts:513` `fillMatchesSolution`): a bare first letter is accepted for any
+  multi-*character* candidate answer (`sol.length > 1`, where `sol` is a **string** — so
+  `"HEART"` accepts `"H"`). ~~First-letter acceptance is Schrödinger-only~~ **— CORRECTION
+  (2026-07-05):** this amendment (and #13 below) misread `sol.length` as the *array* length
+  (candidate count) when `sol` is the candidate string; the original "rebus-first-letter"
+  framing was the right instinct after all. A single-candidate rebus DOES accept its first
+  letter; a Schrödinger cell whose candidates are all single letters does not. The build
+  implemented the misread rule and pinned it wrong; fixed in the 2026-07-05 review remediation
+  (`_matches` now keys on `length(s.ans) > 1`).
 - **The plpgsql solved-check needs only `cells` + `solution`, not `meta`.** `given` cells are
   correct by construction and are excluded from the `cells` table entirely, so don't join
   `meta` to re-check them; iterate the `cells` rows. An empty cell (`fill is null`)
@@ -574,8 +579,11 @@ into the relevant section above.
     RLS SELECT modeled on `wordle.guesses` (own-rows-until-terminal) covers load + terminal
     reveal, and `useCells` in compete must **drop any incoming event where `owner_id !=
     auth.uid()`**. Opponent letters being technically on the wire is fine under the trust model.
-13. **First-letter answer acceptance is Schrödinger-only** (`ws.ts:513`), not general rebus;
-    normal rebus needs the exact full string. Mirror `ws.ts`, not this plan's earlier prose.
+13. ~~**First-letter answer acceptance is Schrödinger-only**~~ (`ws.ts:513`), not general rebus.
+    **— CORRECTION (2026-07-05):** WRONG, this misread `sol.length` (the candidate *string's*
+    length) as the array length. First-letter acceptance is keyed on the candidate being a
+    multi-*character* rebus (`sol.length > 1`), regardless of candidate count — mirror `ws.ts`.
+    See the corrected bullet under "Match semantics" above; fixed in the review remediation.
 14. **Print ports the puzzle generator only** — `generateSolutionPdf` (answer key) needs the
     shielded solution and is dropped for v1 (or terminal-gated later).
 15. **`useCells` reconciliation is new code, not a port** — per-cell `version` (not crossplay's

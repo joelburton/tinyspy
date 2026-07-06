@@ -98,6 +98,15 @@ export function useScratchpad(
         const r = payload.new as { owner_id: string | null; body: string; version: number }
         const rowOwner = r.owner_id ?? null
         if (rowOwner !== ownerId) return // not our pad
+        // While I hold the shared lock, MY local text is authoritative — ignore
+        // incoming CDC bodies (crossplay: "when we DO hold it, we ignore incoming
+        // text"). Without this, a body write that outruns my own flush's RPC
+        // response — my echo, or a racing non-holder's stray flush — lands mid-
+        // keystroke and visibly reverts what I've typed during the flush RTT
+        // (caret jumps to end). My next flush re-propagates my text (version
+        // bumps monotonically), so dropping the event is safe and self-heals.
+        // My own writes still advance versionRef via the flush RPC response.
+        if (shared && holderRef.current?.userId === myId) return
         applyBody(r.body, r.version)
       },
     )
@@ -161,7 +170,15 @@ export function useScratchpad(
         // p_owner is a nullable uuid (null = the shared pad), but the generated
         // arg type is non-null. PostgREST passes null through fine.
         .rpc('set_scratchpad', { target_game: gameId, p_owner: ownerId as string, p_body: text })
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          // Don't silently swallow a failed flush (keep-logs ethos): notes typed
+          // in the last debounce window before the game turns terminal ride on
+          // this write, and a dropped one is only visible locally + lost on
+          // reload. No retry — the next keystroke re-flushes the full body.
+          if (error) {
+            console.warn('[scratchpad] flush failed:', error.message)
+            return
+          }
           if (typeof data === 'number' && data > versionRef.current) versionRef.current = data
         })
     },

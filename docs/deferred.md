@@ -76,6 +76,34 @@ No outstanding deferred items today.
 
 - **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer peeling grows the caller's own `tiles` (everyone draws on a peel), so the caller's draw-announcement watcher reads it as a draw and shows the peel pill even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why the pill?"). Cosmetic — the tile counts are always correct. Joel hasn't decided whether to reword the peer case (e.g. "🍌 <name> peeled — you drew N") or leave it. Low priority.
 
+## crosswords (crosswords)
+
+Deferred from the crosswords build + its 2026-07-05 review. (The game doc's §9
+also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
+
+- **FE "upload your own `.puz`/`.ipuz`."** Today a puzzle enters play one of two
+  ways: the curated CLI library (`crosswords:import`) or NYT-by-date (the
+  `crosswords-import-nyt` edge function). There is no in-app path for a player to
+  drop their own `.puz`/`.ipuz` file and play it. The parsers already exist and
+  run client-safe (`puzjs` + the ipuz reader), so this is mostly a FE upload
+  widget → `create_game`'s inline `board` arg (the same self-contained path NYT
+  uses, no `puzzles` row). Deferred, not planned.
+- **Cryptic apparatus** — the rebus-"collapse" toggle, cryptic edge marks, and
+  the AI "Explain this clue" helper from crossplay, all dropped for v1. (Also
+  noted in the game doc §9; recorded here so the register is complete.)
+- **`generateSolutionPdf` (answer-key PDF).** Print ports the puzzle generator
+  only; the answer-key variant needs the shielded solution and was dropped for
+  v1 — could be terminal-gated later (the solution is readable then).
+- **Scratchpad lock races C3b / C3c** (review 2026-07-05; C3a — the holder-guard
+  — was fixed). Both self-heal within seconds and can't corrupt the DB, so
+  they're deferred: **C3b** — two clients' simultaneous first keystrokes each
+  adopt the *other's* claim (both read-only for ~STALE_MS) and the loser's
+  in-flight flush still lands (no server lock check); **C3c** — a late joiner
+  sees no lock state for ≤1s (Broadcast has no history / no snapshot-on-join),
+  so typing in that window can steal the lock from an active holder. Crossplay's
+  server arbitrated both; our serverless design would need a claim tiebreak +
+  a snapshot-on-join. Low priority at friend scale.
+
 ## Wordlist markers (spellingbee + boggle)
 
 The shared `WordList` (used by both spellingbee and boggle) now leads each row with a **circle marker** carrying finder attribution — a filled ● in the finder's color for found words, a hollow ○ in light grey for post-terminal misses — with the word text itself plain black. Rationale worth keeping: a solid disc is a far better color carrier than thin colored text (bigger area, no legibility/antialiasing fight), which **decouples identity from legibility** and relaxes the member palette — colors no longer have to survive as thin text, only as a ~12px disc. The deferred ideas that fall out of having a marker vocabulary:

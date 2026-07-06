@@ -8,9 +8,11 @@ import type { Cell, Clue } from './types.ts'
  * differences collide.
  *
  * This is the PURE part (the JSON string). The actual SHA-256 is applied by
- * the caller — `node:crypto` in the import CLI, `crypto.subtle` in the NYT
- * edge function — so the one definition backs both runtimes and their hashes
- * match. Uses `.ts` import specifiers so it resolves under Deno too.
+ * the caller: the CLI import (`node:crypto`) is the only hasher today, used to
+ * dedup re-imports into `crosswords.puzzles`. The NYT edge function does NOT
+ * hash — it creates a self-contained inline game (no `puzzles` row to dedup),
+ * so `content_hash` never arises on that path. Kept runtime-agnostic (`.ts`
+ * import specifiers resolve under Deno too) in case a future consumer needs it.
  */
 export function contentHashPayload(
   cells: Cell[][],

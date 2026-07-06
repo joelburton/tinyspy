@@ -97,6 +97,15 @@ type Config = {
  *     along). Splitting that out into a factory call + a hand-
  *     rolled broadcast hook would leave two coordinating effects
  *     where today there's one cohesive one — net loss.
+ *   - **High-frequency per-row direct-apply.** crosswords's
+ *     `useCells` applies each CDC row payload DIRECTLY (guarded by
+ *     a per-cell `version`, "newer wins") instead of refetching:
+ *     with several people typing at once, one keystroke per peer
+ *     is a refetch-the-whole-grid storm, and the per-row payload
+ *     already carries everything a merge needs. It keeps the
+ *     factory's SUBSCRIBED-refetch idea (initial load + reconnect
+ *     catch-up) but not the refetch-per-event one. See `useCells`
+ *     for the version-merge + optimistic-echo + rollback details.
  *
  * **When porting a new game**, the per-game `useGame` hook
  * should default to using this factory. Reach for hand-rolling

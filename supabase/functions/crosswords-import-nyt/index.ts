@@ -1,7 +1,8 @@
 /**
  * crosswords-import-nyt — Edge Function that fetches an NYT daily crossword by
- * date, imports it into `crosswords.puzzles`, and creates the game in one
- * round-trip (the boggle-build-board shape).
+ * date and creates a self-contained game from it in one round-trip (the
+ * boggle-build-board shape). It does NOT write `crosswords.puzzles` — the
+ * fetched puzzle rides inline on the game (see the paragraph below).
  *
  * Why edge (not the library create_game RPC): the NYT fetch needs cookies +
  * a browser User-Agent + CORS the browser can't send. The pure NYT→puzzle

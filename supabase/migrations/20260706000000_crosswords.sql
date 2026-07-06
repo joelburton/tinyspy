@@ -23,12 +23,14 @@
 create schema if not exists crosswords;
 grant usage on schema crosswords to authenticated;
 
--- ── crosswords.puzzles — the curated / NYT puzzle library ─────────────
+-- ── crosswords.puzzles — the curated CLI puzzle library ───────────────
 -- One row per imported puzzle. `meta` is the whole immutable template
 -- (PuzzleMeta + the initial grid cells — numbers, blocks, circles,
--- shading, givens); `solution` is the shielded answer grid. `source`
--- keeps NYT-fetched puzzles out of the library listing (the FE filters
--- source = 'library'); `content_hash` dedups re-imports.
+-- shading, givens); `solution` is the shielded answer grid;
+-- `content_hash` dedups re-imports. `source` currently only ever takes
+-- 'library': every row here comes from the CLI import. NYT-by-date games
+-- are SELF-CONTAINED (the puzzle rides inline on the game, no row here),
+-- so the 'nyt' check value is vestigial — nothing writes it today.
 create table crosswords.puzzles (
   id           uuid primary key default gen_random_uuid(),
   content_hash text not null unique,
@@ -53,10 +55,11 @@ create policy puzzles_select on crosswords.puzzles
   for select to authenticated
   using (true);
 
--- The import CLI + the NYT edge function write puzzles as the service_role
--- (bypasses RLS; the only writers — there's no INSERT grant to
--- authenticated). Needs schema USAGE + full column access (all columns,
--- incl. solution) to seed the library.
+-- The import CLI writes puzzles as the service_role (bypasses RLS; the
+-- only writer — there's no INSERT grant to authenticated). Needs schema
+-- USAGE + full column access (all columns, incl. solution) to seed the
+-- library. (The NYT edge function does NOT write here — it creates an
+-- inline, self-contained game under the caller's own JWT.)
 grant usage on schema crosswords to service_role;
 grant insert, select on crosswords.puzzles to service_role;
 
@@ -176,9 +179,15 @@ on conflict do nothing;
 
 -- True iff `p_fill` is an acceptable answer for the per-cell solution
 -- array `p_sols` (null for a block; length 1 normal; length > 1
--- Schrödinger). Each candidate accepts an exact match, and — ONLY for
--- Schrödinger cells (more than one candidate) — the bare first letter
--- (`fillMatchesSolution`, ws.ts). A normal rebus needs the full string.
+-- Schrödinger — more than one acceptable candidate). Each candidate
+-- accepts an exact match, and — for any multi-CHARACTER candidate (a
+-- rebus answer like "HEART") — the bare first letter alone, a long-
+-- standing NYT convention that saves typing on small screens. This
+-- mirrors `fillMatchesSolution` (ws.ts): the first-letter shortcut is
+-- keyed on the candidate STRING's length (`sol.length > 1` per candidate,
+-- i.e. `length(s.ans) > 1` here), NOT on the number of candidates. A
+-- Schrödinger cell whose candidates are all single letters gets no
+-- first-letter shortcut; a normal cell with one multi-char answer does.
 create function crosswords._matches(p_fill text, p_sols jsonb)
 returns boolean
 language sql
@@ -192,7 +201,7 @@ as $$
        select 1
          from jsonb_array_elements_text(p_sols) as s(ans)
         where p_fill = s.ans
-           or (jsonb_array_length(p_sols) > 1 and p_fill = left(s.ans, 1))
+           or (length(s.ans) > 1 and p_fill = left(s.ans, 1))
      );
 $$;
 revoke execute on function crosswords._matches(text, jsonb) from public;

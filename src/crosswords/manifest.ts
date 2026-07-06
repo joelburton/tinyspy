@@ -13,7 +13,8 @@ import logoUrl from './logo.svg?url'
  *
  * Start-game goes straight to `crosswords.create_game` (the library path,
  * like stackdown) — the puzzle already exists in the library. The
- * NYT-by-date path (an edge function) lands in a later stage.
+ * NYT-by-date path (the `crosswords-import-nyt` edge function) creates a
+ * self-contained game inline instead; see `docs/games/crosswords.md` §6.
  */
 
 const helpLoader = lazy(() =>

@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(18);
+select plan(19);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -112,12 +112,19 @@ select throws_ok(
 reset role;
 
 -- ── _matches (mirror ws.ts fillMatchesSolution) ──────────────────────
+-- The first-letter shortcut is keyed on the candidate STRING's length
+-- (a multi-char rebus answer), NOT on the number of candidates. So a
+-- single-candidate rebus DOES accept its bare first letter — this pins
+-- the divergence from the old (misread) count-keyed rule, which rejected
+-- it. See _matches's docstring and ws.ts fillMatchesSolution.
 select is(crosswords._matches('HEART', '["HEART"]'::jsonb), true,
   '_matches: exact rebus');
-select is(crosswords._matches('H', '["HEART"]'::jsonb), false,
-  '_matches: normal rebus needs the FULL string, not the first letter');
+select is(crosswords._matches('H', '["HEART"]'::jsonb), true,
+  '_matches: single-candidate rebus accepts the bare first letter (keyed on candidate length)');
+select is(crosswords._matches('HE', '["HEART"]'::jsonb), false,
+  '_matches: only the bare first letter or the full string — a longer prefix is not accepted');
 select is(crosswords._matches('H', '["HEART","LUNGS"]'::jsonb), true,
-  '_matches: Schrödinger cell accepts the bare first letter');
+  '_matches: Schrödinger cell with multi-char candidates accepts the bare first letter');
 select is(crosswords._matches(null, '["A"]'::jsonb), false,
   '_matches: empty fill never matches');
 
