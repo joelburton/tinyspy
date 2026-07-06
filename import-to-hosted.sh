@@ -137,7 +137,7 @@ SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 # Schemas to expose via the Data API. `public` + `graphql_public`
 # are Supabase defaults that we keep so other features that read
 # from them don't break.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble,boggle"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords"
 
 # Extra search path. Strictly speaking we don't NEED this (every
 # common.* reference in our RLS and RPCs is fully qualified — see
