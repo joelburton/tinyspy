@@ -148,6 +148,8 @@ The per-game PlayArea picks the right verdict per status (play_state + timer.exp
 
 macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
 
+The **setup dialog** (`<SetupGameDialog>`) extends this: an icon-only [`<HelpButton>`](../src/common/components/buttons/HelpButton.tsx) (`IconHelp`) is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/components/setup/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
+
 **Back to club** — the one button that recurs across surfaces (every game's post-terminal indicator + the GameOverModal CTA) is the shared [`<BackToClubButton>`](../src/common/components/buttons/BackToClubButton.tsx), so the glyph (a `‹` U+2039 chevron, `aria-hidden` so screen readers just say "Back to club"), its spacing, and the label stay identical everywhere. `variant` only swaps the fill — both the in-page terminal indicators and the modal CTA now use `primary` (filled accent); `secondary` (outline) is the component default, used elsewhere (e.g. the pause overlay's "Suspend and return to club"). The GamePage *menu* item is plain text, not this button.
 
 ### Existing offenders to retrofit
@@ -1074,7 +1076,7 @@ icon buttons).
 | Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
 | Get answer / reveal | `Eye` | Peel | `Banana` (`IconPeel`) |
 | End game | `Flag` | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
-| Clear selection | `Eraser` | | |
+| Clear selection | `Eraser` | Help / rules | `CircleQuestionMark` (`IconHelp`) |
 
 **Conventions:**
 

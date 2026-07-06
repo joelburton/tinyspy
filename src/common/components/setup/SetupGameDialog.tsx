@@ -2,8 +2,8 @@ import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { FloatingPanel } from '../panels/FloatingPanel'
+import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
-import actionRow from '../panels/modalActions.module.css'
 import styles from './SetupGameDialog.module.css'
 
 type Props = {
@@ -100,6 +100,9 @@ export function SetupGameDialog({
   }))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | RichMessageType | null>(null)
+  // The game's Help/rules, opened from the footer's HelpButton ON TOP of this
+  // dialog (which stays open behind it) — read the rules, then keep setting up.
+  const [showHelp, setShowHelp] = useState(false)
 
   // Who's playing this game. Defaults to every club member; the
   // creator unchecks anyone sitting this one out (the moth+joel
@@ -187,7 +190,11 @@ export function SetupGameDialog({
     ? ''
     : ` · ${MODE_LABEL[manifest.mode]}`
 
+  // The manifest's lazy Help component (same one the in-game menu's Help opens).
+  const HelpComponent = manifest.help
+
   return (
+    <>
     <FloatingPanel
       title={`Start ${manifest.name}${modeSuffix}`}
       onClose={onCancel}
@@ -254,24 +261,38 @@ export function SetupGameDialog({
           <RichMessage message={error} />
         </p>
       )}
-      <div className={actionRow.modalActions}>
-        <button
-          type="button"
-          className="secondary"
-          onClick={onCancel}
-          disabled={busy}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleStartGame}
-          disabled={busy || !countOk || setupError !== null}
-          autoFocus
-        >
-          {busy ? 'Starting…' : `Start ${manifest.name}${modeSuffix}`}
-        </button>
+      {/* Footer: the Help "?" on the far left, the Cancel/Start pair on the right
+          (macOS order). Help opens the rules on top without closing the dialog. */}
+      <div className={styles.footer}>
+        <HelpButton onClick={() => setShowHelp(true)} disabled={busy} />
+        <div className={styles.footerActions}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={onCancel}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleStartGame}
+            disabled={busy || !countOk || setupError !== null}
+            autoFocus
+          >
+            {busy ? 'Starting…' : `Start ${manifest.name}${modeSuffix}`}
+          </button>
+        </div>
       </div>
     </FloatingPanel>
+
+    {/* The game's Help, mounted as its OWN FloatingPanel above this dialog (which
+        stays open behind it). Lazy — Suspense guards the chunk fetch. */}
+    {showHelp && (
+      <Suspense fallback={null}>
+        <HelpComponent onClose={() => setShowHelp(false)} brand={manifest.name} />
+      </Suspense>
+    )}
+    </>
   )
 }

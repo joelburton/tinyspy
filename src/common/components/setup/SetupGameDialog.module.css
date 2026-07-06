@@ -1,7 +1,27 @@
 /* Setup-specific styles. The chrome (surface, padding, backdrop,
- * drag-handle, close X) lives on <FloatingPanel>, and the Cancel | Start
- * action row is the shared modalActions.module.css; this stylesheet owns
- * the per-game setup-body wrappers below. */
+ * drag-handle, close X) lives on <FloatingPanel>; this stylesheet owns
+ * the per-game setup-body wrappers + the footer action row below. */
+
+/* Footer: the icon-only Help "?" pinned far-left, the Cancel/Start pair
+ * right (macOS order). A dedicated row (not the shared modalActions) because
+ * the icon-only Help button must NOT take modalActions' 6rem button floor;
+ * `.footerActions` reproduces that floor for the two text buttons only. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.footerActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.footerActions button {
+  min-width: 6rem;
+}
 
 /* Player picker — a checkbox list of club members, all checked by
  * default. Sits above the game-specific setup body. */

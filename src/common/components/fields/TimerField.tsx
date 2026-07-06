@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
+import { timerLabel } from '../../lib/game/timerLabel'
+import { SetupSection } from '../setup/SetupSection'
 import type { TimerMode } from '../../lib/games'
 import styles from './TimerField.module.css'
 
@@ -80,8 +82,9 @@ export function TimerField({ value, onChange }: Props) {
   const textValid = parseMmSs(timerText) !== null
 
   return (
-    <fieldset className={styles.fieldset}>
-      <legend>Timer</legend>
+    // Collapsed by default; the summary carries the current setting (e.g.
+    // "Timer: none", "Timer: 2:30 countdown"), so it's readable without opening.
+    <SetupSection label={`Timer: ${timerLabel(value)}`}>
       <div className={styles.timerRow}>
         <label className={styles.radio}>
           <input
@@ -126,7 +129,7 @@ export function TimerField({ value, onChange }: Props) {
       {downSelected && !textValid && (
         <p className="error">Enter MM:SS between 0:01 and 60:00.</p>
       )}
-    </fieldset>
+    </SetupSection>
   )
 }
 

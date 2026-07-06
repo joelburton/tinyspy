@@ -1,6 +1,8 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import { cls } from '../../common/lib/util/cls'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
@@ -46,6 +48,15 @@ const TARGET_RANK_CHOICES = [2, 3, 4, 5, 6] as const
 export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const s = value as SpellingbeeSetup
 
+  // Disclosure summaries carry the current value so it reads without opening.
+  const dictLabel = `Dictionaries: ${difficultyValue(s.required)} / ${difficultyValue(s.legal)}`
+  const customCenter = (s.custom_center ?? '').toUpperCase()
+  const customOuter = (s.custom_letters ?? '').toUpperCase()
+  const customLabel =
+    customCenter && customOuter
+      ? `Custom letters: ${customCenter}-${customOuter}`
+      : 'Custom letters (optional)'
+
   return (
     <div className={styles.setup}>
       {mode === 'coop' ? (
@@ -73,8 +84,10 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         </fieldset>
       )}
 
-      <fieldset className={styles.fieldset}>
-        <legend>Word difficulty</legend>
+      {/* "Dictionaries" — the required/legal word bands, behind a disclosure whose
+          summary shows the current bands (e.g. "Dictionaries: 3 (Familiar) / 5
+          (Obscure)"). */}
+      <SetupSection label={dictLabel}>
         <p className="muted">
           Required words are the goal; legal words also score but aren't
           required. Both are length-agnostic (examples just show the band).
@@ -95,15 +108,16 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={s.legal}
           onChange={(legal) => onChange({ ...s, legal })}
         />
-      </fieldset>
+      </SetupSection>
 
-      {/* Optional custom letters. Both blank → a random board (the normal path);
-          fill both to build a board from your own letters. The Start button is
-          gated on `customLettersError` (via the manifest's validate), so an
-          invalid partial entry blocks Start with an inline reason. Cleared inputs
-          store `undefined` so the edge function sees them as absent → random. */}
-      <fieldset className={styles.fieldset}>
-        <legend>Custom letters (optional)</legend>
+      {/* Optional custom letters, behind a disclosure whose summary shows the
+          chosen letters (e.g. "Custom letters: A-CHIROT") or "(optional)" when
+          blank. Both blank → a random board (the normal path); fill both to build
+          a board from your own letters. The Start button is gated on
+          `customLettersError` (via the manifest's validate), so an invalid partial
+          entry blocks Start with an inline reason. Cleared inputs store `undefined`
+          so the edge function sees them as absent → random. */}
+      <SetupSection label={customLabel}>
         <p className="muted">
           Leave blank for a random board, or set your own: a center letter plus
           six other letters. No S, and all seven must be different.
@@ -142,7 +156,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             />
           </label>
         </div>
-      </fieldset>
+      </SetupSection>
 
       <TimerField
         value={s.timer}

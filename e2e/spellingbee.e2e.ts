@@ -90,7 +90,9 @@ test.describe('spellingbee custom letters', () => {
     // club; compete needs a second player).
     await page.getByRole('button', { name: /FreeBee/ }).first().click()
 
-    // Enter our own letters: center A + the six others C H I R O T.
+    // Custom letters live behind a collapsed disclosure — expand it, then enter
+    // our own letters: center A + the six others C H I R O T.
+    await page.getByText('Custom letters (optional)').click()
     await page.getByRole('textbox', { name: 'Center letter' }).fill('a')
     await page.getByRole('textbox', { name: 'Six other letters' }).fill('chirot')
 

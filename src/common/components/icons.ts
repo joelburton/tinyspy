@@ -44,6 +44,9 @@ export {
   // node-graph glyph is the near-universal "send this to others" idiom.
   Share as IconShare,
   ChevronLeft as IconBack, // back to club
+  // open the game's rules/help — the "?" the setup dialog's HelpButton shows.
+  // The circled question mark is the near-universal "help / what is this?" idiom.
+  CircleQuestionMark as IconHelp,
   // NB: pause is NOT here — lucide's Pause is two outlined rounded rects, not
   // the familiar solid two-bars mark, so PauseButton draws its own glyph.
   // zoom the view to fit / frame everything (bananagrams' "Center + fit"). The
