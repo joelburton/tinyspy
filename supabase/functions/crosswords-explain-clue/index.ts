@@ -77,10 +77,17 @@ serve(async (req) => {
 
     const result = await anthropic.messages.create({
       model: 'claude-sonnet-5',
-      // Native thinking (logged, never shown) + a short prose answer. Leave
-      // headroom so the deliberation never truncates the final explanation.
-      max_tokens: 4096,
+      // Native thinking tokens count against max_tokens, so leave generous
+      // headroom (8192, like codenamesduet-suggest-clue) — otherwise the
+      // deliberation eats the whole budget and the final explanation never
+      // gets emitted (stop_reason: max_tokens with a thinking block but no
+      // text). Explaining a GIVEN answer is a lighter task than generating a
+      // clue, so we cap effort at `medium` rather than the default `high`,
+      // which was over-deliberating (and spiralling on hard cross-reference
+      // clues whose referenced entry we don't send).
+      max_tokens: 8192,
       thinking: { type: 'adaptive', display: 'summarized' },
+      output_config: { effort: 'medium' },
       system: SYSTEM_PROMPT,
       messages: [
         { role: 'user', content: buildUserMessage(clueText, enumeration, ctx.answer, ctx.note) },
