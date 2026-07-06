@@ -95,6 +95,23 @@ export function boardWords(board: string): string[] {
 }
 
 /**
+ * The 6 answer words, each revealed ONLY if the player has turned it fully green
+ * (every cell correct) on their OWN board — otherwise `null` (an em dash in the
+ * UI). A fully-green word is already sitting on the player's board, so surfacing
+ * it leaks nothing that isn't already on their screen; the unsolved words stay
+ * hidden. This is why the reveal reads off the caller's `board` + `colors`, NOT
+ * the shielded solution — so it's identical (and leak-safe) in compete, where the
+ * solution isn't sent during play. Order matches `WORDS` (3 across, then 3 down).
+ * `colors` is the 25-char g/y/x string; `null` (e.g. a non-player watcher) hides
+ * every word.
+ */
+export function solvedWords(board: string, colors: string | null): (string | null)[] {
+  return WORDS.map((cells) =>
+    colors !== null && cells.every((c) => colors[c] === 'g') ? lettersAt(board, cells) : null,
+  )
+}
+
+/**
  * Structural validity of a board string: correct length, holes are
  * `.`, every filled cell is a single ASCII letter. Does NOT check
  * that the words are real — that's the generator's job.

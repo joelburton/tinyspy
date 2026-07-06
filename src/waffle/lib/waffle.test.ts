@@ -8,6 +8,7 @@ import {
   isHole,
   isValidBoard,
   lettersAt,
+  solvedWords,
   WORDS,
   wordsContaining,
 } from './waffle'
@@ -69,5 +70,35 @@ describe('waffle geometry', () => {
     expect(isValidBoard(ok.slice(0, 6) + 'z' + ok.slice(7))).toBe(false)
     // a non-letter in a filled cell:
     expect(isValidBoard('1' + ok.slice(1))).toBe(false)
+  })
+})
+
+describe('solvedWords — the progressive answer reveal', () => {
+  // Same fixture board as the boardWords test: a0=abcde a2=fghij a4=klmno, downs
+  // read off the shared cells. Holes (6,8,16,18) are '.'.
+  const board = 'abcde' + 'p.q.r' + 'fghij' + 's.t.u' + 'klmno'
+  /** A 25-char colors string: `fill` at every filled cell, '.' at the four holes. */
+  const colorsOf = (fill: string) =>
+    Array.from({ length: CELLS }, (_, i) => (isHole(i) ? '.' : fill)).join('')
+
+  it('reveals every word when the whole board is green', () => {
+    expect(solvedWords(board, colorsOf('g'))).toEqual(boardWords(board))
+  })
+
+  it('hides every word (all null) when nothing is green', () => {
+    expect(solvedWords(board, colorsOf('y'))).toEqual([null, null, null, null, null, null])
+  })
+
+  it('hides every word when colors is null (a non-player watcher)', () => {
+    expect(solvedWords(board, null)).toEqual([null, null, null, null, null, null])
+  })
+
+  it('reveals only the fully-green word; a partly-green word stays hidden', () => {
+    // Green just the a0 cells (0–4); everything else yellow. a0 is fully green →
+    // revealed; the down words that cross it (d0/d2/d4) still have yellow cells → null.
+    const colors = Array.from({ length: CELLS }, (_, i) =>
+      isHole(i) ? '.' : WORDS[0].includes(i) ? 'g' : 'y',
+    ).join('')
+    expect(solvedWords(board, colors)).toEqual(['abcde', null, null, null, null, null])
   })
 })

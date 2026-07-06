@@ -17,8 +17,8 @@ import shared from '../../common/components/game/PlayArea.module.css'
 /**
  * waffle's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/design-decisions.md → Info column): swap-state
- * readout → OpponentStrip → action row → help → setup disclosure → terminal answer
- * reveal → swap log. Every mutation is a named callback up
+ * readout → progressive answer reveal → OpponentStrip → action row → help → setup
+ * disclosure → swap log. Every mutation is a named callback up
  * (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the RPCs + coordination.
  * Prop names match the other games' columns for the same idea (see
  * docs/playarea-decomposition-plan.md).
@@ -46,7 +46,7 @@ export function InfoCol({
   onConcede,
   onBackToClub,
   setup,
-  solution,
+  answerWords,
   swaps,
   viewingIndex,
   onSelectTurn,
@@ -85,10 +85,11 @@ export function InfoCol({
   onConcede: () => void
   onBackToClub: () => void
 
-  // ── Setup disclosure + terminal answer reveal ──
+  // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
-  /** The 25-char solution board, revealed at game-over (terminal only). */
-  solution: string | null
+  /** The 6 answer words in `WORDS` order (3 across, 3 down): a solved word's letters,
+   *  or null for one still hidden. Revealed progressively throughout the game. */
+  answerWords: (string | null)[]
 
   // ── Turn-history log (GameTurnLog — coop only) ──
   swaps: SwapRow[]
@@ -131,6 +132,12 @@ export function InfoCol({
           </strong>{' '}
           ({remaining} left) · Par <strong>{parSwaps}</strong>
         </p>
+
+        {/* The answer, revealed progressively: a word shows once you've turned it
+            fully green; the rest read as em dashes. Part of the status readout (above
+            the action buttons), shown throughout the game. Leak-safe — every revealed
+            word is already on the caller's board (see `solvedWords`). */}
+        <SolutionReveal words={answerWords} />
 
         {/* Opponent strip (compete) — each player's swaps used + a ✓/✗ done mark. */}
         {isCompete && (
@@ -189,16 +196,6 @@ export function InfoCol({
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
-
-      {/* Terminal-only extra: the answer (the six solution words). In the info column
-          — NOT the below-board slot — because it's several lines and would overflow
-          the viewport there. The shared `.terminalExtra` grows the info column at
-          game-over (a deliberate layout-stability exception). */}
-      {over && solution && (
-        <div className={shared.terminalExtra}>
-          <SolutionReveal solution={solution} />
-        </div>
-      )}
 
       {/* The shared swap log — coop only (compete writes none, and a swap sequence
           would leak an opponent's hidden board). Rows are clickable to replay that

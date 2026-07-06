@@ -210,6 +210,20 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `GameOverModal` `outcome:'won'` purely for the green styling — the verdict copy
   says there's no winner). `buildOver` / `labelFor` both branch on `'ended'`
   before their win/lose branches. Modeled exactly on `spellingbee.end_game`.
+- **`reveal_answer(game)`** — the **"Reveal answer"** game-menu item: give up,
+  **show the solution, end the game**. Where `end_game` leaves each board as-is,
+  this overwrites every `waffle.players.board` with `games.solution` and *then*
+  ends the game — so the board the players are looking at literally becomes the
+  answer (`games_state` colors it all-green for free), with no FE overlay. A
+  give-up, so like `end_game` it's a neutral `play_state='ended'` with every player
+  `{"won": false}`, but tagged `status.outcome='revealed'`. Same `play_state`
+  guard + `P0001` idempotency as `end_game`; any game player may call it. **No
+  realtime touch needed** (unlike `end_game`): the `waffle.players` board rewrite
+  already wakes `useGame`, and `common.end_game`'s `common.games` write wakes
+  `useCommonGame`. The FE only offers it while a game is **in progress AND the
+  solution is on the client** — disabled at terminal and in compete-during-play
+  (the shield lifts only post-terminal), so in practice it's a coop action; you
+  can't reveal what the server never sent. pgTAP: `reveal_test.sql`.
 
 ### Terminal logic
 
@@ -344,11 +358,23 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout
   **`.belowBoard` local-feedback slot** holds a centered `<FeedbackPill>` — a
   transient own-action error during play, the sticky "waiting" pill when the
   player is locally terminal, or the permanent fill verdict at game-over. (The
-  multi-line `SolutionReveal` answer is NOT here — it would overflow the viewport;
-  it lives in the info column's `.terminalExtra`.)
+  `SolutionReveal` answer list is NOT here — it lives in the info column's status
+  section.) There's no special "reveal" board mode: the **"Reveal answer"** menu
+  action ENDS the game and overwrites every board with the solution server-side
+  (see `reveal_answer` below), so the caller's own board simply *becomes* the
+  answer — the grid renders it all-green for free, with zero FE branching.
 - **Info column** — the shared readouts in canonical order (`.infoState` swap
-  tally + par → `OpponentStrip` (compete) → action row → `.infoHelp` → `.infoSetup`
-  disclosure), over the coop `GameTurnLog`. The action row is the semantic
+  tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) → action
+  row → `.infoHelp` → `.infoSetup` disclosure), over the coop `GameTurnLog`.
+  **`SolutionReveal`** is the **progressive answer reveal**: the six words (3
+  across, 3 down), each shown once the caller has turned it fully green (every tile
+  correct) on their own board, else an em dash. It's shown *throughout* the game,
+  not just at terminal, and it's **leak-safe without the shielded solution** — a
+  fully-green word is already on the caller's board, so `lib/waffle.ts`'s
+  `solvedWords(board, colors)` reads the revealed letters off the caller's OWN
+  board + `colors` (identical, and safe, in compete where the solution isn't sent
+  during play). The six slots (word or em dash) are always present, so it's a fixed
+  height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is the semantic
   `EndGameButton` / `ConcedeGameButton` during play; the terminal/locally-terminal
   look (a bold status line + compact back-to-club or Concede) otherwise.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the

@@ -33,4 +33,31 @@ test.describe('waffle replay board', () => {
     await page.getByRole('menuitem', { name: 'Replay board' }).click()
     await expect(page.getByText('#1', { exact: true })).toHaveCount(0, { timeout: 8000 })
   })
+
+  test('coop: "Reveal answer" ends the game and fills the board with the solution', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('wfrv')
+    const game = await createWaffleGame(club) // coop → the solution is on the client
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    // Auto-confirm the "Reveal the answer?" window.confirm.
+    page.on('dialog', (d) => void d.accept())
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    // The scramble swaps cells 0,1, so 'A' starts at position 1 (top-left tile is
+    // "B (…)"), and the across word a0 reads as an em dash in the info list.
+    await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Reveal answer' }).click()
+
+    // The game ends (neutral terminal) → the "Game ended." verdict shows (in both the
+    // modal and the below-board pill — hence `.first()`)...
+    await expect(page.getByText('Game ended.').first()).toBeVisible({ timeout: 8000 })
+    // ...AND the board is now the solution — so the previously-hidden across word a0
+    // (ABCDE) now appears in the info-column answer list.
+    await expect(page.getByText('ABCDE', { exact: true })).toBeVisible({ timeout: 8000 })
+  })
 })

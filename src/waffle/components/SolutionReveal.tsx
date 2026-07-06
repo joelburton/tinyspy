@@ -1,26 +1,27 @@
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { boardWords } from '../lib/waffle'
 import styles from './SolutionReveal.module.css'
 
 /**
- * End-of-game answer panel: the six solution words grouped across /
- * down, each click-to-define via the shared `DefinitionPopover` — the
- * same lookup spellingbee's WordList uses (the common-define Edge Function reads
- * common.words, where these words live). The words alone fully reveal
- * the solution, so there's no separate solved-board grid (it just ate
- * space); the player's final board stays on the left.
+ * The answer panel — the six solution words grouped across / down, revealed
+ * PROGRESSIVELY as you solve them: a word you've turned fully green (every tile
+ * correct) shows its letters (click-to-define via the shared `DefinitionPopover`,
+ * the same lookup spellingbee's WordList uses); a word you haven't solved shows an
+ * em dash. Shown throughout the game, not just at game-over, and it leaks nothing —
+ * a fully-green word is already sitting on the player's board (see
+ * `solvedWords`). The six slots are always present (word or em dash), so the panel
+ * is a fixed height and never reflows the info column as words come in.
+ *
+ * `words` is the per-word reveal in `WORDS` order (3 across, then 3 down): a string
+ * for a solved word, `null` for one still hidden.
  */
-export function SolutionReveal({ solution }: { solution: string }) {
-  const [a0, a2, a4, d0, d2, d4] = boardWords(solution)
+export function SolutionReveal({ words }: { words: (string | null)[] }) {
   const { define, popover } = useDefinePopover()
 
   return (
     <div className={styles.reveal}>
-      <div className={styles.label}>The answer</div>
-
       <div className={styles.wordCols}>
-        <WordGroup heading="Across" words={[a0, a2, a4]} onDefine={define} />
-        <WordGroup heading="Down" words={[d0, d2, d4]} onDefine={define} />
+        <WordGroup heading="Across" words={words.slice(0, 3)} onDefine={define} />
+        <WordGroup heading="Down" words={words.slice(3, 6)} onDefine={define} />
       </div>
 
       {popover}
@@ -34,23 +35,32 @@ function WordGroup({
   onDefine,
 }: {
   heading: string
-  words: string[]
+  /** A solved word's letters, or `null` for one still hidden (an em dash). */
+  words: (string | null)[]
   onDefine: (word: string, el: HTMLElement) => void
 }) {
   return (
     <div className={styles.group}>
       <div className={styles.heading}>{heading}</div>
-      {words.map((w) => (
-        <button
-          key={w}
-          type="button"
-          className={styles.word}
-          title="Click for definition"
-          onClick={(e) => onDefine(w, e.currentTarget)}
-        >
-          {w.toUpperCase()}
-        </button>
-      ))}
+      {words.map((w, i) =>
+        w ? (
+          <button
+            key={i}
+            type="button"
+            className={styles.word}
+            title="Click for definition"
+            onClick={(e) => onDefine(w, e.currentTarget)}
+          >
+            {w.toUpperCase()}
+          </button>
+        ) : (
+          // Not yet solved — an em dash placeholder holds the slot (so the panel
+          // keeps its height as words come in).
+          <span key={i} className={styles.unsolved} aria-label="not yet solved">
+            —
+          </span>
+        ),
+      )}
     </div>
   )
 }

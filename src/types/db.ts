@@ -2585,6 +2585,7 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
+      reveal_answer: { Args: { target_game: string }; Returns: undefined }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json

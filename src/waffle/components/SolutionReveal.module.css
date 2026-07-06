@@ -5,10 +5,6 @@
   align-items: flex-start;
 }
 
-.label {
-  font-weight: 600;
-}
-
 .wordCols {
   display: flex;
   gap: 1.5rem;
@@ -44,4 +40,14 @@
 .word:hover {
   background: var(--color-surface-hover);
   text-decoration: underline;
+}
+
+/* An unsolved word: an em dash placeholder aligned with the word slots (same
+ * monospace metrics + padding), muted since there's nothing to read yet. */
+.unsolved {
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.25rem;
+  color: var(--color-muted);
 }

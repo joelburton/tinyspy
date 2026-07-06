@@ -918,6 +918,80 @@ revoke execute on function waffle.end_game(uuid) from public;
 grant execute on function waffle.end_game(uuid) to authenticated;
 
 -- ============================================================
+-- waffle.reveal_answer — give up: show the solution, end the game
+-- ============================================================
+--
+-- The "Reveal answer" game-menu item. Where end_game is a neutral
+-- "we're done" that leaves each board as-is, this is a give-up that
+-- **fills every player's board with the SOLUTION** and then ends the
+-- game. So the board the players are looking at literally becomes the
+-- answer — colors read all-green for free (they're a pure function of
+-- board+solution in games_state), no FE overlay required.
+--
+-- Nobody wins: like end_game it writes the uniform 'ended' terminal
+-- with every player {"won": false}, but tags status.outcome='revealed'
+-- (vs 'manual') so the intent is legible in the row. Any game player
+-- may fire it; idempotent on the play_state guard (a second click, or
+-- one racing the countdown, raises P0001 — swallowed by the FE).
+--
+-- The FE only offers it while a game is in progress AND the caller
+-- holds the solution (disabled at terminal + in compete-during-play,
+-- where the solution is shielded) — so in practice it's coop. The
+-- guard here is the server backstop.
+--
+-- No separate realtime touch (unlike end_game, which writes only
+-- common.games): the waffle.players board rewrite already wakes
+-- useGame (subscribed to waffle.{games,players}), and common.end_game's
+-- common.games write wakes useCommonGame — the answer board + terminal
+-- state land live for everyone.
+create function waffle.reveal_answer(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+declare
+  g_row              waffle.games%rowtype;
+  current_play_state text;
+  player_results     jsonb;
+begin
+  select * into g_row from waffle.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Change the board to the answer: every player's board becomes the
+  -- solution (games_state then colors it all-green).
+  update waffle.players
+     set board = g_row.solution
+   where game_id = target_game;
+
+  -- A give-up — nobody won.
+  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'ended',
+    jsonb_build_object('outcome', 'revealed', 'mode', g_row.mode),
+    player_results
+  );
+end;
+$$;
+
+revoke execute on function waffle.reveal_answer(uuid) from public;
+grant execute on function waffle.reveal_answer(uuid) to authenticated;
+
+-- ============================================================
 -- waffle.replay_board — restart this board from scratch
 -- ============================================================
 -- The "Replay board" game-menu item: reset the working state to the

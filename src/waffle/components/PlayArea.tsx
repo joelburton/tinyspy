@@ -12,6 +12,7 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
+import { solvedWords } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -179,11 +180,42 @@ export function PlayArea({
     clearLocalFeedback()
   }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
-  // "Replay board" in the game menu (both modes, any state).
+  // Reveal answer — give up: fill every board with the solution and END the game.
+  // Server-side `reveal_answer` overwrites `waffle.players.board` with the solution
+  // (so the board the players are looking at literally becomes the answer, all green)
+  // then ends the game as a neutral give-up (nobody wins). Confirmed since it ends the
+  // game for the whole group + wipes progress. The answer board + terminal state arrive
+  // via the realtime refetch; we just leave any open history view + clear the pill.
+  const handleRevealAnswer = useCallback(async () => {
+    if (!window.confirm('Reveal the answer? This ends the game and fills the board with the solution.'))
+      return
+    const { error } = await db.rpc('reveal_answer', { target_game: gameId })
+    if (error) {
+      showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
+      return
+    }
+    exitViewing()
+    clearLocalFeedback()
+  }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+
+  // Game menu: "Replay board" (both modes, any state) + "Reveal answer". Reveal ENDS
+  // the game, so it's only offered while a game is in progress and the caller actually
+  // holds the solution — disabled at terminal (already over) and whenever the solution
+  // isn't on the client (compete *during play*; the shield only lifts post-terminal).
+  // In practice that's coop-in-progress. No leak: you can't reveal what wasn't sent.
+  const solutionKnown = game?.solution != null
   useEffect(() => {
-    menu.setGameItems([{ id: 'replay', label: 'Replay board', onClick: () => void handleReplay() }])
+    menu.setGameItems([
+      { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
+      {
+        id: 'reveal',
+        label: 'Reveal answer',
+        disabled: isTerminal || !solutionKnown,
+        onClick: () => void handleRevealAnswer(),
+      },
+    ])
     return () => menu.setGameItems([])
-  }, [menu, handleReplay])
+  }, [menu, handleReplay, handleRevealAnswer, isTerminal, solutionKnown])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -206,9 +238,18 @@ export function PlayArea({
     viewingIndex !== null ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
-  // while viewing, the historical snapshot. The answer is revealed separately below.
+  // while viewing, the historical snapshot. After "Reveal answer" the caller's own
+  // board IS the solution (the RPC overwrote it), so this needs no special case — it
+  // renders the all-green answer for free. The info-column word list is derived below.
   const board = snap ? snap.board : (self?.board ?? game.scramble)
   const colors = snap ? snap.colors : (self?.colors ?? null)
+
+  // The answer reveal (info column) reads the caller's OWN live board + colors —
+  // never the history snapshot, and never the shielded solution. A word all of
+  // whose cells are green is already on the caller's screen, so revealing it leaks
+  // nothing; unsolved words stay hidden (em dashes). A non-player watcher (no
+  // colors) sees all-hidden.
+  const answerWords = solvedWords(self?.board ?? game.scramble, self?.colors ?? null)
 
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
@@ -270,7 +311,7 @@ export function PlayArea({
         onConcede={() => void handleConcede()}
         onBackToClub={goToClub}
         setup={waffleSetup}
-        solution={game.solution}
+        answerWords={answerWords}
         swaps={swaps}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
