@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
+import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { db } from '../db'
 
 export type CellState = {
@@ -106,7 +107,11 @@ export function useCells(
       setLoading(false)
     }
 
-    const ch = supabase.channel(`crosswords:cells:${gameId}`)
+    // Postgres-changes-only (Pattern A) → a per-effect-run dedup suffix so a
+    // StrictMode double-mount doesn't hit supabase-js's name cache and throw
+    // on the second `.on(...)` after `.subscribe(...)`. (usePeerCursors, by
+    // contrast, needs a STABLE Broadcast room, so it must NOT use this.)
+    const ch = supabase.channel(`crosswords:cells:${gameId}:${channelDedupSuffix()}`)
     ch.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'crosswords', table: 'cells', filter: `game_id=eq.${gameId}` },

@@ -162,8 +162,12 @@ create trigger cells_bump_version
   for each row
   execute function crosswords._bump_cell_version();
 
--- Realtime: FE subscribes to the game row (status) and the cells (fills).
--- Missing this line fails silently (no error, no events).
+-- Realtime: the FE subscribes to the cells (fills) via useCells. It does NOT
+-- currently subscribe to crosswords.games — useGame is a one-shot fetch and
+-- status flows through common.games (useCommonGame). The crosswords.games entry
+-- here + the four "Realtime touch" self-updates below are therefore latent
+-- no-ops today; kept as ready-made wiring if the FE ever needs to react to a
+-- crosswords.games change. (Missing this line would fail silently — no events.)
 alter publication supabase_realtime add table crosswords.games;
 alter publication supabase_realtime add table crosswords.cells;
 
@@ -278,8 +282,10 @@ begin
     jsonb_build_object('mode', 'coop', 'outcome', 'solved'),
     v_results
   );
-  -- Realtime touch: common.end_game writes common.games, not our table;
-  -- a no-op self-update wakes FE subscribers of crosswords.games.
+  -- Realtime touch: common.end_game writes common.games, not our table; a
+  -- no-op self-update would wake any FE subscriber of crosswords.games. NB:
+  -- there is no such subscriber today (see the publication note above), so this
+  -- is currently latent — kept for symmetry with the other terminal RPCs.
   update crosswords.games set club_handle = club_handle where id = target_game;
 end;
 $$;
@@ -416,8 +422,14 @@ begin
     end if;
   end if;
 
+  -- Saved-default arg: strip `puzzle_id` (like codenamesduet strips
+  -- `firstClueGiverUserId`). Which puzzle you play is a per-game choice, not a
+  -- club preference — the setup dialog picks a puzzle each time; persisting one
+  -- as the club default would silently re-pick a specific (possibly already
+  -- played) puzzle.
   new_id := common.create_game(
-    target_club, 'crosswords_' || mode, player_user_ids, 'New crossword', setup, setup
+    target_club, 'crosswords_' || mode, player_user_ids, 'New crossword', setup,
+    setup - 'puzzle_id'
   );
 
   insert into crosswords.games (id, club_handle, mode, puzzle_id, meta, solution)
@@ -494,8 +506,12 @@ begin
     v_fill := null;
   else
     v_fill := upper(p_fill);
-    if char_length(v_fill) > 8 then
-      raise exception 'fill over 8 characters' using errcode = 'P0001';
+    -- Mirror crossplay's `^[A-Z]{1,8}$` (ws.ts): letters only, 1–8 chars.
+    -- Rejects a stray non-letter fill (e.g. "1") that upper() + a length
+    -- check alone would persist. (An empty fill clears the cell — handled
+    -- by the branch above.)
+    if v_fill !~ '^[A-Z]{1,8}$' then
+      raise exception 'fill must be 1 to 8 letters' using errcode = 'P0001';
     end if;
   end if;
   v_pencil := coalesce(p_pencil, false) and v_fill is not null;
@@ -547,6 +563,12 @@ begin
   if v_playstate is distinct from 'playing' then
     raise exception 'game is not in play' using errcode = 'P0001';
   end if;
+  -- A conceded compete player is out — no checking their (frozen) grid, same
+  -- guard set_cell has (reveal_cells is coop-only, where nobody concedes).
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = v_caller) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
   update crosswords.cells c
@@ -597,6 +619,10 @@ begin
      and c.game_id = target_game
      and c.owner_id is null
      and g.solution -> c.row::int -> c.col::int is not null
+     -- Skip a (degenerate) empty solution array: crossplay's revealAt does the
+     -- same. `->> 0` on `[]` is null, so without this the reveal would blank
+     -- the cell + flag it revealed. Never happens with real puzzles.
+     and jsonb_array_length(g.solution -> c.row::int -> c.col::int) > 0
      and exists (
        select 1 from jsonb_array_elements(p_cells) e
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col

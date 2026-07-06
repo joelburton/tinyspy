@@ -10,6 +10,10 @@ type FillMsg = { userId: string; row: number; col: number; color: string }
 
 /** How long a peer-fill flash lingers before fading (mirrors crossplay). */
 const RECENT_FILL_MS = 5000
+/** Cursor-broadcast throttle window (leading + trailing), so arrow-key
+ *  auto-repeat doesn't fire one Broadcast per repeat (crossplay throttles the
+ *  same). Compounds the plan's Realtime-quota watch-item. */
+const CURSOR_THROTTLE_MS = 80
 
 export type PeerCursorsApi = {
   /** peer userId → their cursor cell + color; the caller draws a frame. */
@@ -47,6 +51,9 @@ export function usePeerCursors(
   const channelRef = useRef<RealtimeChannel | null>(null)
   // One expiry timer per flashing cell; cleared/reset on a fresh fill + on unmount.
   const fillTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  // Cursor-broadcast throttle bookkeeping (leading + trailing edge).
+  const lastCursorSent = useRef(0)
+  const trailingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Flash a cell in `color`, auto-expiring after RECENT_FILL_MS. A repeat fill
   // of the same cell resets its timer.
@@ -69,8 +76,10 @@ export function usePeerCursors(
   }, [])
 
   useEffect(() => {
-    // Compete has private grids — no peer cursors. `enabled` is constant for
-    // a game's lifetime (mode never changes), so the maps just stay empty.
+    // Compete has private grids — no peer cursors. (`enabled` is usually
+    // stable, but PlayArea defaults mode to 'coop' until `useGame` resolves,
+    // so a compete game flips it true→false once; nothing broadcasts while
+    // `cursor` is null, so the transient is harmless — the maps stay empty.)
     if (!enabled) return
     const timers = fillTimers.current
     const ch = supabase.channel(`crosswords:cursors:${gameId}`, {
@@ -112,14 +121,35 @@ export function usePeerCursors(
     }
   }, [gameId, enabled, myId, trackRecentFill])
 
-  // Broadcast our own cursor whenever it moves.
+  // Broadcast our own cursor when it moves, throttled to CURSOR_THROTTLE_MS.
+  // Leading edge: send immediately when the window is idle. Trailing edge:
+  // if we're inside the window, schedule the LATEST position to go out when
+  // it closes (each new move reschedules, so the trailing send always carries
+  // the final resting cell).
   useEffect(() => {
     if (!enabled || !cursor) return
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'cursor',
-      payload: { userId: myId, row: cursor.row, col: cursor.col, color: myColor } satisfies CursorMsg,
-    })
+    const { row, col } = cursor
+    const sendNow = () => {
+      lastCursorSent.current = Date.now()
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: { userId: myId, row, col, color: myColor } satisfies CursorMsg,
+      })
+    }
+    const since = Date.now() - lastCursorSent.current
+    if (since >= CURSOR_THROTTLE_MS) {
+      sendNow()
+    } else {
+      if (trailingTimer.current) clearTimeout(trailingTimer.current)
+      trailingTimer.current = setTimeout(sendNow, CURSOR_THROTTLE_MS - since)
+    }
+    return () => {
+      if (trailingTimer.current) {
+        clearTimeout(trailingTimer.current)
+        trailingTimer.current = null
+      }
+    }
   }, [enabled, cursor, myId, myColor])
 
   const broadcastFill = useCallback(

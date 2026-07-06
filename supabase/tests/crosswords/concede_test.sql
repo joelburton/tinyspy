@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(9);
+select plan(10);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -71,6 +71,15 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format('select crosswords.end_game(%L)', :'gp2_id'),
   'P0001', null, 'end_game is rejected in compete');
+reset role;
+
+-- A conceded compete player can't check their now-frozen grid (same guard
+-- set_cell has). ada concedes gp2 (bea still active → game stays playing).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select crosswords.concede(:'gp2_id');
+select throws_ok(
+  format('select crosswords.check_cells(%L, %L::jsonb)', :'gp2_id', '[{"row":0,"col":0}]'),
+  'P0001', null, 'check_cells is rejected for a conceded compete player');
 reset role;
 
 select * from finish();

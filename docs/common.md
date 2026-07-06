@@ -89,6 +89,16 @@ Concretely, freeze onto the game row at create time:
 
 **stackdown is the template** — its `board_id` is `on delete set null` with the board data copied (see its schema comment). **connections was the cautionary case**: it hard-FK'd the puzzle (`on delete restrict`) and left the date un-frozen, so it couldn't retire a puzzle and had to *join* `puzzles` just to show the date — since fixed to match this rule. The payoff: puzzles can be cleaned up / re-imported freely, and in-flight games never break.
 
+## The shared scratchpad (opt-in common feature)
+
+A per-game **scratchpad** — a free-text notepad for working out answers — that any gametype opts into via a manifest field. Built as a genuinely common feature (crosswords is the first consumer; the removability invariant holds — there are zero game-specific references under `src/common/`). The moving parts:
+
+- **`common.game_scratchpads`** (table) + **`common.set_scratchpad(target_game, p_owner, p_body)`** (RPC) — one row per pad, a per-row `version` bumped on write. `owner_id null` = the **shared** coop pad; a user id = a **private** per-player compete pad. RLS gates a row to game members (and, for a private pad, its owner).
+- **`useScratchpad`** (`hooks/scratchpad/`) — the body syncs via CDC "newer wins" (per-row `version`) with an optimistic local echo + a debounced full-text flush, exactly like `useCells` but for one text blob. The shared coop pad also carries a **Realtime-Broadcast takeover lock**: the current editor re-asserts a claim while typing and auto-releases when idle; others are read-only until they take over. While you hold the lock, incoming CDC bodies are ignored so a write racing your flush can't revert your keystrokes (mirrors crossplay's `ScratchpadPanel`).
+- **`GameScratchpad` / `ScratchpadBubble`** (`components/panels/`) — the panel rides on `FloatingPanel` + `useDraggablePanel` (persisted per-game rect), and `scratchpadOpenStore` (`lib/scratchpad/`) mirrors `chatOpenStore`. `<GamePage>` gates the whole thing purely off the manifest `scratchpad` field (`{ enabled; perPlayerInCompete? }`).
+
+Trust model: the lock is FE-only arbitration (friends, not adversaries) — `set_scratchpad` itself has no lock check. Two self-healing lock races (simultaneous claims; a late joiner with no lock snapshot) are documented in [`deferred.md`](deferred.md) → crosswords.
+
 ## Schema: `common.*`
 
 ### Tables

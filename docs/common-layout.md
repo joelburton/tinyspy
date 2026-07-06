@@ -69,7 +69,8 @@ components/
   definitions/   # click-a-word dictionary lookup
       DefinitionPopover, DefinitionView, WordLookupDialog
   panels/        # generic floating/popup chrome (the draggable shell, the dropdown menu)
-      FloatingPanel, Menu
+                 #   + the shared scratchpad panel/bubble that ride on it
+      FloatingPanel, Menu, GameScratchpad, ScratchpadBubble
   feedback/      # the near-input validity pill ("not a word", "too short")
       GenericFeedbackPill
   toasts/        # the bottom-right announcement stack (a generic primitive)
@@ -106,6 +107,8 @@ hooks/
       useDefinition, useDefinePopover
   chat/          # club-chat data
       useClubChat
+  scratchpad/    # the per-game shared-notes body + takeover-lock state
+      useScratchpad
 ```
 
 ## `common/lib/`
@@ -126,6 +129,8 @@ lib/
       memberColor, tileColor
   chat/          # chat open-state + unread stores
       chatOpenStore, chatUnread
+  scratchpad/    # the scratchpad open-state store (mirrors chatOpenStore)
+      scratchpadOpenStore
   toast/         # the toast store
       toastStore
   util/          # tiny cross-cutting utilities (class names, dates, layout width)

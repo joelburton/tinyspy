@@ -6,10 +6,11 @@ doc is the **shared design language** for those printouts, so every game's print
 like it belongs to the same system (the on-screen consistency goal — see
 [ui.md](ui.md) — extended to paper).
 
-Status: **shared `common/pdf/` helpers**, with five games printing today (scrabble,
-psychicnum, boggle, spellingbee, bananagrams). **Joel picked jsPDF** over react-pdf (see [project memory] / the
-`scrabble-react-pdf` branch): precise layout control, a lighter dep, and it matches his
-existing jsPDF crossword-print code that will land in puzpuzpuz.
+Status: **shared `common/pdf/` helpers**, with six games printing today (scrabble,
+psychicnum, boggle, spellingbee, bananagrams, and crosswords — the last a deliberate
+third body family, see below). **Joel picked jsPDF** over react-pdf (see [project memory] / the
+`scrabble-react-pdf` branch): precise layout control, a lighter dep, and it matches the
+existing jsPDF crossword-print code that landed with crosswords.
 
 The extraction is a **toolkit of à-la-carte helpers**, not a template — the games' body
 layouts differ too much (a 2-column newspaper turn flow vs. a board + side-setup + word

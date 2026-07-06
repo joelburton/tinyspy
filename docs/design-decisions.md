@@ -294,6 +294,16 @@ narrow/mobile screen that drops the info column can still play the game.
 > under zoom. No turn log / word list — fills are continuous shared state, not
 > discrete moves. See [`docs/games/crosswords.md`](games/crosswords.md).
 
+> **crosswords compete stays single-grid (decision C5, 2026-07-05).** Each
+> compete player sees only their own grid — during play *and* at terminal.
+> The `crosswords.cells` RLS deliberately *opens* opponents' rows once the game
+> is terminal (mirroring `wordle.guesses`), but the FE never consumes that:
+> `useCells` stays filtered to the caller's own `owner_id` and PlayArea renders
+> one grid. Showing all players' finished grids side-by-side at the end is a
+> plausible future feature, but not built; the terminal RLS opening is
+> intentionally-unused surface, kept for when/if we add it. (Reviewed as C5;
+> Joel chose defer-not-build.)
+
 Contents, in order:
 
 - **Game status info (`.infoState`)** — core live state: words found, score, etc.

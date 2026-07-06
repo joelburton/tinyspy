@@ -15,6 +15,8 @@
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
 | `npm run connections:import` | populate `connections.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
+| `npm run crosswords:import` | populate the curated `crosswords.puzzles` library from `.puz`/`.ipuz` files in `supabase/data/crosswords/` (idempotent via `content_hash`). NYT-by-date games don't use this — they're inline/self-contained |
+| `npm run import` | run every game's importer in sequence (words + spellingbee + connections + stackdown + crosswords). **Run after `db:reset`** — a bare reset leaves `common.words` + the puzzle libraries empty |
 | `npm run words:import` | populate `common.words` (the shared master word list) from `~/src/gamelist/words.tsv` (the word-list project's working copy, read live; override with `WORDS_TSV`). Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
 | `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |

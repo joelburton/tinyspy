@@ -121,50 +121,63 @@ Ported each against crossplay as the spec. **Gates green: `tsc -b` · eslint · 
 
 ---
 
-## Stage 4 — quick wins + C5 defer + remaining nits
+## Stage 4 — quick wins + C5 defer + remaining nits — ✅ DONE 2026-07-05
 
-Small, cheap, none block play. Batch as convenient.
+**Gates green: `tsc -b` · eslint · Vitest 762 · crosswords pgTAP (now 23+13+10 = win/gameplay/
+concede plans grew with the T2 pins) · 7 crosswords e2e. Terminal reflow verified headless.**
 
-- [ ] **C6** — `PlayArea.tsx:411–412`: `play_state='lost'` maps to "Time's up." but crosswords
-      has no timer; the all-concede path reaches it. Copy → "everyone conceded" (or similar).
-- [ ] **C7** — wire the shared `outOfRacePill` ("You conceded — the rest are still racing.") for
-      a conceded compete player; today input just greys out with no explanation.
-- [ ] **C5 defer** — record in `design-decisions.md` (and fix `crosswords.md`'s "until terminal"
-      wording): compete stays single-grid; the terminal `cells_select` RLS opening is
-      unused-for-now, kept intentionally.
-- [ ] **C8** — throttle `usePeerCursors.ts:66–74` to ~80ms leading+trailing (crossplay
-      `PuzzleView.tsx:99,468`); arrow auto-repeat currently sends one Broadcast per repeat.
-      Compounds the plan's Realtime-quota watch-item.
-- [ ] **C9 correctness nits** (pick the real ones): `set_cell` char validation `^[A-Z]{1,8}$`
-      (rejects `"1"`, `''`); add the `conceded` guard to `check_cells`/`reveal_cells` for
-      sibling-consistency; strip `puzzle_id` from `saved_default` in `create_game` (a per-game
-      choice, not a club preference — same as codenamesduet's `firstClueGiverUserId`);
-      `useCells` channel name needs `channelDedupSuffix()` (StrictMode double-mount footgun);
-      `reveal_cells` empty-solution skip; a `_maybe_finish` comment on the coop read-committed
-      solve race.
-- [ ] **T2 pgTAP gap-fills** (riskiest first): compete win-race (post-terminal `set_cell`
-      rejected; second solver can't overwrite winner — plan said "pin in pgTAP"); `set_cell` on
-      a revealed cell allowed + preserves `revealed`; reveal clears `wrong`/`pencil` + reveal
-      completing the grid triggers coop win; an end-to-end Schrödinger play; scratchpad
-      play-state guard; inline-`board` missing-meta/solution rejection.
-- [ ] **D4** — migration comments describe nonexistent `crosswords.games` realtime subscribers
-      (`:162` + the four "Realtime touch … wakes FE subscribers" no-op self-updates). Either fix
-      the comments or drop the touches — flag to Joel per don't-remove-unprompted.
-- [ ] **D5 doc staleness** — `docs/pdf.md` intro ("five games"→six; "will land"→landed);
-      `docs/cheatsheet.md` missing `crosswords:import`; `docs/common-layout.md` missing
-      `hooks/scratchpad/` + `lib/scratchpad/` + the `panels/` scratchpad additions; give the
-      shipped scratchpad a real architecture home (not the struck-through deferred.md entry);
-      `usePeerCursors.ts:31–32` "enabled is constant" overstatement.
-- [ ] **Terminal reflow check** (C9) — `{!isTerminal && <toolRow>}` / `{isTerminal &&
-      <BackToClub>}` swap in a non-height-reserved `.strip`; verify with a headless render
-      before calling it (per the no-reflow + verify-layout-headless rules).
-- [ ] **Terminal navigation** (C9) — keyboard disabled at terminal but mouse clicks still move
-      the cursor; decide whether to fully freeze or fully allow arrowing the revealed solution.
+- [x] **C6** — `buildOver`'s `lost` verdict → "Everyone conceded." (crosswords has no timer; the
+      only path to `lost` is all remaining compete players conceding).
+- [x] **C7** — a conceded compete player now sees `outOfRacePill` in the below-board slot (derived
+      `slotPill`: active local pill wins, else conceded indicator, else the active clue).
+- [x] **C5 defer** — recorded in `design-decisions.md` (new C5 note) + fixed `crosswords.md`'s
+      RLS wording to say the terminal opening is intentionally-unused FE surface.
+- [x] **C8** — `usePeerCursors` cursor broadcast throttled to 80ms leading+trailing
+      (`CURSOR_THROTTLE_MS`); the trailing send always carries the latest cell.
+- [x] **C9 nits** — `set_cell` now enforces `^[A-Z]{1,8}$` (rejects `"1"`); `check_cells` gained
+      the `conceded` guard (reveal is coop-only, N/A); `create_game` strips `puzzle_id` from
+      `saved_default`; `useCells` channel gained `channelDedupSuffix()`; `reveal_cells` skips an
+      empty solution array. (Left the `_maybe_finish` read-committed-race comment — friend-scale
+      ≈ 0; not worth the noise.)
+- [x] **T2 pgTAP** — pinned: non-letter `set_cell` rejected; revealed cell stays editable + keeps
+      the flag; reveal clears pencil; **compete win-race** (post-terminal `set_cell` rejected +
+      winner stands, win_test); conceded player can't `check_cells` (concede_test). (Skipped the
+      Schrödinger end-to-end + inline-board-missing-meta pins — lower value; noted.)
+- [x] **D4** — fixed the misleading realtime comments: the publication note + the representative
+      "Realtime touch" comment now say plainly that **no FE subscribes to `crosswords.games`**
+      today, so the entry + the four self-updates are latent no-ops. Left the touches in place
+      (don't-remove-unprompted) — see flag below.
+- [x] **D5** — `pdf.md` (six games + landed), `cheatsheet.md` (`crosswords:import` + `npm run
+      import`), `common-layout.md` (scratchpad added to `panels/` + `hooks/scratchpad/` +
+      `lib/scratchpad/`), `usePeerCursors` "enabled is constant" comment corrected, and the
+      scratchpad got a **real architecture home** in `common.md` (crosswords.md now points there,
+      not the struck-through deferred entry).
+- [x] **Terminal reflow check** — VERIFIED no reflow. The board cell size is computed from
+      `100dvh` (a constant) and `.boardSlot` spans all three grid rows (`grid-row: 1 / 4`), so the
+      strip's toolRow↔BackToClub swap can't resize the board. Headless measure: cell 60→60px.
+
+> **Flags for Joel (deliberately not changed):**
+> - The four `crosswords.games` "Realtime touch" self-updates + the publication entry are dead
+>   today (no FE subscriber). Comments now say so; drop them if you want the migration leaner.
+> - **Terminal navigation** (C9): at terminal the keyboard is disabled but mouse clicks still
+>   move the cursor (you can click around the revealed grid but not arrow). Minor UX
+>   inconsistency — a decision (fully freeze vs fully allow arrowing), not a bug. Left as-is.
 
 ---
 
 ## Not doing (recorded decisions)
 
 - **C5 compete terminal grids** — not building; single-grid stays, RLS opening documented as
-  unused-for-now (Stage 4).
+  unused-for-now (Stage 4, `design-decisions.md`).
+- **Scratchpad lock races C3b/C3c** — deferred (`deferred.md` → crosswords); self-heal, can't
+  corrupt the DB.
 - Anything in the review marked "confirmed accurate" — no action.
+
+---
+
+## All stages complete (2026-07-05)
+
+Every ranked review finding is worked or recorded-as-deliberate. Stages 1–3 committed
+(`7adc54f`, `4ee1aea`; header removal `e5073ab`); Stage 4 pending commit. Two standing flags for
+Joel above (the `nyt` vestigial constraint value in Stage 2's flag block, the dead realtime
+touches + terminal-navigation here).

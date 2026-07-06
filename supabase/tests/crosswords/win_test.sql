@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(11);
+select plan(13);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -80,6 +80,19 @@ select is(
   (select result -> 'won' from common.game_players
      where game_id = :'gp_id' and user_id = 'bea22222-2222-2222-2222-222222222222'),
   'false'::jsonb, 'compete non-winner result won = false');
+
+-- ── Post-terminal: the game is frozen; the winner stands ─────────────
+-- ada has won gp. bea (a would-be second solver) can no longer write her
+-- grid — set_cell's play_state guard rejects it — so nothing can flip the
+-- already-recorded winner. This is the win-race guard the plan asked to pin.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select throws_ok(
+  format('select crosswords.set_cell(%L, 0, 0, %L, false)', :'gp_id', 'c'),
+  'P0001', null, 'compete: set_cell is rejected once the game is terminal');
+reset role;
+select is(
+  (select status ->> 'winner_username' from common.games where id = :'gp_id'),
+  'ada', 'compete: a late solver cannot overwrite the winner');
 
 select * from finish();
 rollback;

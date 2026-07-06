@@ -6,7 +6,8 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
-import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
+import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { cls } from '../../common/lib/util/cls'
 import {
@@ -249,6 +250,13 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
+  // What the below-board pill slot shows: an active local pill (own-move
+  // result, or the terminal verdict pushed in by the effect below) wins;
+  // otherwise a conceded compete player gets the standard "you're out, the
+  // rest race on" indicator so their greyed-out input has an explanation.
+  const slotPill: GenericFeedbackMsg | null =
+    localFeedback ?? (myConceded && !isTerminal ? outOfRacePill(true) : null)
+
   // Surface the terminal verdict in the active-clue slot (the reserved
   // 3-line home), permanently (`locked`).
   useEffect(() => {
@@ -347,10 +355,13 @@ export function PlayArea(ctx: GamePageCtx) {
           />
         </div>
 
-        {/* Active-clue bar — doubles as the local-feedback slot. */}
+        {/* Active-clue bar — doubles as the local-feedback slot. Priority:
+            an active local pill (own move / terminal verdict), else the
+            "you conceded, others race on" indicator for a conceded compete
+            player, else the active clue. */}
         <div className={styles.activeClue}>
-          {localFeedback ? (
-            <GenericFeedbackPill msg={localFeedback} onClose={clearLocalFeedback} />
+          {slotPill ? (
+            <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
           ) : (
             activeNumber != null && (
               <>
@@ -467,7 +478,9 @@ function buildOver(
     case 'lost_compete':
       return { outcome: 'lost', verdict: 'Out of the race.', message: 'You lost', tone: 'lost' }
     case 'lost':
-      return { outcome: 'lost', verdict: "Time's up.", message: 'Game over', tone: 'lost' }
+      // crosswords has no timer; `lost` is only reached when every remaining
+      // compete player concedes (common.concede's last-active-conceder path).
+      return { outcome: 'lost', verdict: 'Everyone conceded.', message: 'Game over', tone: 'lost' }
     case 'ended':
     default:
       return endedCopy(mode)

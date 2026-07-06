@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(19);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -59,6 +59,11 @@ select throws_ok(
   format('select crosswords.set_cell(%L, 1, 0, %L, false)', :'gc_id', 'ABCDEFGHI'),
   'P0001', null, 'fill over 8 characters is rejected');
 
+-- A non-letter fill is rejected (mirror ws.ts `^[A-Z]{1,8}$`).
+select throws_ok(
+  format('select crosswords.set_cell(%L, 1, 0, %L, false)', :'gc_id', '1'),
+  'P0001', null, 'non-letter fill is rejected');
+
 reset role;
 -- Non-player can't write.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -103,6 +108,27 @@ select is((select fill from crosswords.cells
 select is((select revealed from crosswords.cells
              where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
   true, 'reveal marks the cell revealed');
+
+-- A revealed cell stays editable and KEEPS its revealed flag (applyFill).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select set_cell from crosswords.set_cell(:'gc_id', 1, 0, 'z', false);
+reset role;
+select is((select fill from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+  'Z', 'a revealed cell is still editable');
+select is((select revealed from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 0),
+  true, 'editing a revealed cell keeps the revealed flag');
+
+-- Reveal clears an existing pencil flag on the target (a pencil-then-reveal).
+-- (1,1)'s answer is S; grid stays unsolved since (1,0) now holds a wrong Z.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select set_cell from crosswords.set_cell(:'gc_id', 1, 1, 'z', true);
+select crosswords.reveal_cells(:'gc_id', '[{"row":1,"col":1}]'::jsonb);
+reset role;
+select is((select pencil from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 1 and col = 1),
+  false, 'reveal clears the pencil flag on the revealed cell');
 
 -- Reveal is coop-only.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

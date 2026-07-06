@@ -73,6 +73,10 @@ player** for compete. Notable shapes (see the plan's pressure-test):
   RLS-filtered READ, not the Realtime payload** — the CDC event for an
   opponent's cell still arrives, so `useCells` drops non-self events in compete
   (this repo does not rely on Realtime to withhold rows; see `psychicnum.md`).
+  Note the compete RLS *opens* opponents' rows at terminal, but the **FE never
+  renders them** — `useCells` stays filtered to the caller's own owner and
+  PlayArea draws one grid (decision C5, `design-decisions.md`). The terminal
+  opening is deliberately-unused surface, not a delivered feature.
 
 ## 3. Match semantics (mirror `ws.ts`, not prose)
 
@@ -174,7 +178,8 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   private grids, so all of it is disabled there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
-  per player in compete. See [docs/deferred.md](../deferred.md) → scratchpad.
+  per player in compete. See [docs/common.md](../common.md) → "The shared
+  scratchpad" for the architecture.
 - **Terminal** — on coop give-up the blank cells fill with the greyed revealed
   answers (`games_state.solution`, fetched at terminal).
 
