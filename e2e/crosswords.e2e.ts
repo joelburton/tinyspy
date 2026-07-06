@@ -288,6 +288,36 @@ test.describe('crosswords play loop', () => {
     await expect(cell).toHaveAttribute('data-mark-bottom', 'break')
   })
 
+  // Upload flow: the setup form's "Upload file" tab parses a .puz/.ipuz
+  // client-side and starts a self-contained game (inline board, no puzzles
+  // row). Drives the real setup dialog end to end.
+  test('upload: a .puz file creates a game via the setup form', async ({ browser }) => {
+    const club = await createSoloClub('xwup')
+    const [alice] = club.members
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+
+    // Open the CrossPlay coop setup dialog (coop is the first, enabled button;
+    // compete is disabled in a solo club).
+    await page.getByRole('button', { name: /CrossPlay/ }).first().click()
+
+    // Switch to the Upload tab and choose a fixture .puz (the hidden input
+    // accepts setInputFiles even though it's not visible).
+    await page.getByRole('button', { name: 'Upload file' }).click()
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles('supabase/scripts/crosswords/fixtures/sunday-sample.puz')
+
+    // The dropzone shows the parsed puzzle once it's ready.
+    await expect(page.getByText(/click to replace/)).toBeVisible({ timeout: 10000 })
+
+    // Start → land on the game with a rendered grid.
+    await page.getByRole('button', { name: /^Start CrossPlay/ }).click()
+    await expect(page.locator('[data-xw-cell]').first()).toBeVisible({ timeout: 15000 })
+  })
+
   // Regression guard for the layout exception: a full-size grid must fit the
   // viewport — the board fills, the clue lists scroll INTERNALLY, and the
   // page itself never scrolls. (Needs a seeded library; skips if empty.)

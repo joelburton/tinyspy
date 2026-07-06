@@ -74,3 +74,45 @@
   text-align: center;
   color: var(--color-muted);
 }
+
+/* Upload tab: a hidden native file input + a dropzone that is also a button
+ * (click opens the file chooser; drag-drop drops onto it). */
+.fileInput {
+  display: none;
+}
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 6rem;
+  padding: 1rem;
+  font: inherit;
+  text-align: center;
+  color: var(--color-text);
+  background: var(--color-control-bg);
+  border: 2px dashed var(--color-control-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.dropzone:hover {
+  border-color: var(--color-text);
+}
+/* Active drag-over state — highlight the target. */
+.dropOver {
+  border-color: var(--color-text);
+  background: var(--crosswords-in-word, #d7ebff);
+}
+.dropTitle {
+  font-weight: 600;
+}
+.dropMeta {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.uploadError {
+  color: var(--color-sys-error-red);
+  font-size: 0.9rem;
+  margin: 0;
+}

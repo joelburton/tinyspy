@@ -27,7 +27,7 @@ import {
   type GridSnapshot,
   type PuzzleMeta,
   type PuzzleState,
-} from '../../../src/crosswords/lib/types'
+} from '../types'
 
 export { MAX_REBUS_LEN }
 
@@ -221,8 +221,10 @@ function parseSolutionCell(
  * @param id  Puzzle id used in `meta.id`.
  * @param buffer  Raw file bytes (UTF-8 JSON; BOM tolerated).
  */
-export function parseIpuzBuffer(id: string, buffer: Buffer): ParseResult {
-  let text = buffer.toString('utf8')
+export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
+  // TextDecoder works in both Node and the browser (a Node Buffer is a
+  // Uint8Array, so the CLI path decodes fine too).
+  let text = new TextDecoder('utf-8').decode(buffer)
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
 
   let data: unknown

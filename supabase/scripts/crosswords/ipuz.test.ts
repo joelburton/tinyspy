@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { IpuzUnsupportedError, parseIpuzBuffer } from './ipuz'
-import { parsePuzBuffer } from './puz'
+import { IpuzUnsupportedError, parseIpuzBuffer } from '../../../src/crosswords/lib/parse/ipuz'
+import { parsePuzBuffer } from '../../../src/crosswords/lib/parse/puz'
 
 const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 const SUNDAY_PUZ = resolve(FIXTURE_DIR, 'sunday-sample.puz')

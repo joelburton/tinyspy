@@ -3,8 +3,9 @@
  * crossplay. Only the `decode` surface `puz.ts` actually reads is
  * declared — `encode` is present for completeness but unused here.
  *
- * puzjs is an unmaintained legacy `.puz` reader; it runs ONLY in this
- * Node import CLI, never in the frontend bundle.
+ * puzjs is a dependency-free legacy `.puz` reader operating on a
+ * `Uint8Array`, so it runs in both the Node import CLI and the browser
+ * (the in-app upload).
  */
 declare module 'puzjs' {
   type RawCell = string | { solution: string }

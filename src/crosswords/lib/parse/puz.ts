@@ -1,8 +1,10 @@
 /**
  * Parse a legacy binary `.puz` file into the same `{ state, solution }`
  * shape `parseIpuzBuffer` returns. Ported from crossplay's `puzzle.ts`.
- * Uses the unmaintained `puzjs` reader — Node-only, never bundled into
- * the frontend.
+ * Uses the `puzjs` reader — a dependency-free UMD module that operates on a
+ * `Uint8Array`, so it bundles fine in the browser (the in-app upload) as well
+ * as running under the Node import CLI. Lives in `lib/parse/` so both consume
+ * it (dual-runtime, like `nyt.ts`).
  *
  * `.puz` gotcha (see crossplay): the format is ISO-8859-1 (Latin-1), not
  * UTF-8. Stay in ASCII when touching fixture strings — UTF-8 multi-byte
@@ -17,13 +19,14 @@
 
 import Puz from 'puzjs'
 import { IpuzUnsupportedError, MAX_REBUS_LEN, type ParseResult } from './ipuz'
-import type { Cell, Clue, GridSnapshot, PuzzleMeta } from '../../../src/crosswords/lib/types'
+import type { Cell, Clue, GridSnapshot, PuzzleMeta } from '../types'
 
 /**
  * @param id  The puzzle id used in `meta.id`.
- * @param buffer  Raw `.puz` bytes.
+ * @param buffer  Raw `.puz` bytes as a `Uint8Array` (a Node `Buffer` from the
+ *                CLI is one; the browser upload passes one from `File`).
  */
-export function parsePuzBuffer(id: string, buffer: Buffer): ParseResult {
+export function parsePuzBuffer(id: string, buffer: Uint8Array): ParseResult {
   const decoded = Puz.decode(new Uint8Array(buffer))
   const rawGrid = decoded.grid
   const height = rawGrid.length

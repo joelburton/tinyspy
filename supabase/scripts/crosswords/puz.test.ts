@@ -3,8 +3,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Puz from 'puzjs'
-import { parsePuzBuffer } from './puz'
-import { IpuzUnsupportedError } from './ipuz'
+import { parsePuzBuffer } from '../../../src/crosswords/lib/parse/puz'
+import { IpuzUnsupportedError } from '../../../src/crosswords/lib/parse/ipuz'
 
 const FIXTURE = resolve(
   dirname(fileURLToPath(import.meta.url)),

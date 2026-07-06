@@ -117,11 +117,22 @@ plain RPCs — no edge function needed.
 
 ## 5. Puzzle sourcing
 
-- **`crosswords:import`** (`supabase/scripts/crosswords/`) — ports crossplay's
-  `.puz` (via `puzjs`) + `.ipuz` parsers + the `content_hash` dedup into a Node
-  CLI. Reads a **git-ignored** `supabase/data/crosswords/` folder (Joel keeps his
-  own puzzle files; nothing committed). After `db:reset` the library is empty
-  until re-run — same posture as the other library games.
+Three sources, exposed as three tabs in the setup form (Library / NYT by date /
+Upload file):
+
+- **`crosswords:import`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
+  `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
+  `crosswords.puzzles` library. Reads a **git-ignored** `supabase/data/crosswords/`
+  folder (Joel keeps his own puzzle files; nothing committed). After `db:reset`
+  the library is empty until re-run — same posture as the other library games.
+  The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).
+- **In-app upload** — the setup form's "Upload file" tab parses a dropped /
+  chosen `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` →
+  `lib/parse/`; puzjs is a dependency-free `Uint8Array` reader, so it bundles in
+  the browser) into the inline board, then `create_game(board=…)` directly — a
+  self-contained game, no `puzzles` row (like NYT). The parsed board rides in the
+  FE-only `setup.board` and is **stripped** before create_game stores the setup,
+  so the solution never lands in the unshielded status / saved-default.
 - **`crosswords-import-nyt`** edge function — fetches an NYT daily by date
   (list-by-date → first `Normal` puzzle → v6 JSON; browser User-Agent +
   `NYT_COOKIE_JAR` cookie secret **mandatory**), converts via the pure
@@ -133,8 +144,11 @@ plain RPCs — no edge function needed.
 
 ## 6. Server surface + parsers (the shared-code seam)
 
-The parsers + content-hash are Node CLI code; the NYT conversion is **pure TS in
-`src/crosswords/lib/`** so the SAME code backs the FE, the Deno edge function
+The `.puz` / `.ipuz` parsers live in **`src/crosswords/lib/parse/`** (`puz.ts`,
+`ipuz.ts`, `format.ts`) as **dual-runtime** modules taking a `Uint8Array`: the
+Node import CLI (`supabase/scripts/crosswords/convert.ts`) and the browser upload
+(`lib/importFile.ts`) both consume them. The NYT conversion is likewise **pure TS
+in `src/crosswords/lib/`** so the SAME code backs the FE, the Deno edge function
 (imported with `.ts` specifiers, like boggle), and the vitest tests.
 `contentHashPayload` builds the dedup string, and the **CLI import** hashes it
 with `node:crypto` to dedup re-imports into `crosswords.puzzles`. The NYT edge

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseIpuzBuffer } from './ipuz'
+import { parseIpuzBuffer } from '../../../src/crosswords/lib/parse/ipuz'
 import { puzzleContentHash } from './contentHash'
 
 function ipuzOf(obj: unknown): Buffer {

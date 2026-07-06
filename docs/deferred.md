@@ -81,13 +81,10 @@ No outstanding deferred items today.
 Deferred from the crosswords build + its 2026-07-05 review. (The game doc's §9
 also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
 
-- **FE "upload your own `.puz`/`.ipuz`."** Today a puzzle enters play one of two
-  ways: the curated CLI library (`crosswords:import`) or NYT-by-date (the
-  `crosswords-import-nyt` edge function). There is no in-app path for a player to
-  drop their own `.puz`/`.ipuz` file and play it. The parsers already exist and
-  run client-safe (`puzjs` + the ipuz reader), so this is mostly a FE upload
-  widget → `create_game`'s inline `board` arg (the same self-contained path NYT
-  uses, no `puzzles` row). Deferred, not planned.
+- ~~**FE "upload your own `.puz`/`.ipuz`."**~~ **SHIPPED 2026-07-05** — the setup
+  form's "Upload file" tab (drop zone + file chooser) parses the file client-side
+  (`lib/importFile.ts` → the relocated `lib/parse/`) and starts a self-contained
+  game via `create_game`'s inline `board` arg. See `crosswords.md` §5.
 - **Cryptic apparatus** — the rebus-"collapse" toggle + the AI "Explain this
   clue" helper from crossplay, still deferred. (The **cryptic edge marks**
   `|`/`_` shipped — `set_mark` + `docs/crosswords-marks-plan.md`.)

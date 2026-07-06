@@ -10,7 +10,7 @@
 
 import { basename, extname } from 'node:path'
 import type { PuzzleTemplate } from '../../../src/crosswords/lib/types'
-import { detectFormat, parsePuzzleBuffer } from './format'
+import { detectFormat, parsePuzzleBuffer } from '../../../src/crosswords/lib/parse/format'
 import { puzzleContentHash } from './contentHash'
 
 export type ConvertedPuzzle = {

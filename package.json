@@ -32,7 +32,8 @@
     "lucide-react": "^1.22.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-rnd": "^10.5.3"
+    "react-rnd": "^10.5.3",
+    "puzjs": "^1.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -49,7 +50,6 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
-    "puzjs": "^1.0.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",

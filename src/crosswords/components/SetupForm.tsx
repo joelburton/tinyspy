@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
+import { importCrosswordFile } from '../lib/importFile'
 import type { PuzzleMeta } from '../lib/types'
 import styles from './SetupForm.module.css'
 
@@ -24,6 +25,29 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as CrosswordsSetup
   const [puzzles, setPuzzles] = useState<LibraryPuzzle[] | null>(null)
   const [query, setQuery] = useState('')
+  // Upload tab state.
+  const [uploadBusy, setUploadBusy] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Parse a dropped / chosen .puz / .ipuz file entirely client-side into the
+  // inline board, storing it in `setup.board` (start passes it to create_game).
+  async function handleFile(file: File | undefined) {
+    if (!file) return
+    setUploadBusy(true)
+    setUploadError(null)
+    try {
+      const board = await importCrosswordFile(file)
+      onChange({ ...s, source: 'upload', board, filename: file.name })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not read that file.')
+      // Clear any previously-parsed board so Start stays blocked.
+      onChange({ ...s, source: 'upload', board: undefined, filename: file.name })
+    } finally {
+      setUploadBusy(false)
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -81,9 +105,67 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         >
           NYT by date
         </button>
+        <button
+          type="button"
+          className={cls(styles.segBtn, source === 'upload' && styles.segOn)}
+          aria-pressed={source === 'upload'}
+          onClick={() => onChange({ ...s, source: 'upload' })}
+        >
+          Upload file
+        </button>
       </div>
 
-      {source === 'nyt' ? (
+      {source === 'upload' ? (
+        <>
+          <p className="muted">Upload a .puz or .ipuz crossword file to play it.</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".puz,.ipuz"
+            className={styles.fileInput}
+            onChange={(e) => {
+              void handleFile(e.target.files?.[0])
+              // Allow re-selecting the same file (onChange won't fire otherwise).
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            className={cls(styles.dropzone, dragOver && styles.dropOver)}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              void handleFile(e.dataTransfer.files?.[0])
+            }}
+          >
+            {uploadBusy ? (
+              <span className={styles.dropTitle}>Reading…</span>
+            ) : s.board ? (
+              <>
+                <span className={styles.dropTitle}>
+                  {s.board.meta.title || s.filename || 'Puzzle ready'}
+                </span>
+                <span className={styles.dropMeta}>
+                  {s.board.meta.width}×{s.board.meta.height}
+                  {s.board.meta.author ? ` · ${s.board.meta.author}` : ''} · click to replace
+                </span>
+              </>
+            ) : (
+              <>
+                <span className={styles.dropTitle}>Drop a .puz / .ipuz file here</span>
+                <span className={styles.dropMeta}>or click to choose one</span>
+              </>
+            )}
+          </button>
+          {uploadError && <p className={styles.uploadError}>{uploadError}</p>}
+        </>
+      ) : source === 'nyt' ? (
         <>
           <p className="muted">Import a New York Times daily crossword by date.</p>
           <input

@@ -28,10 +28,14 @@ const setupFormLoader = lazy(() =>
 )
 
 /**
- * Start branches on the puzzle source: a **library** puzzle goes straight to
- * the `create_game` RPC (like stackdown); an **NYT** date goes through the
- * `crosswords-import-nyt` edge function (fetch → import → create), which owns
- * the error-context unwrap via `invokeStartGameEdgeFn`.
+ * Start branches on the puzzle source:
+ *  - **library** → straight to the `create_game` RPC (like stackdown);
+ *  - **NYT** → the `crosswords-import-nyt` edge function (fetch → import →
+ *    create), which owns the error-context unwrap via `invokeStartGameEdgeFn`;
+ *  - **upload** → the FE already parsed the file into `setup.board`, so we call
+ *    `create_game` directly with the inline `board` arg (self-contained game,
+ *    like NYT). The board is STRIPPED from the persisted `setup` blob so the
+ *    solution never lands in the unshielded status / saved-default.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
@@ -43,12 +47,23 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
         brand,
       )
     }
+    // Upload: pass the parsed board inline; strip it (+ filename) from the
+    // setup that create_game stores as status / saved-default.
+    let board: CrosswordsSetup['board'] | undefined
+    let setupToStore: CrosswordsSetup = s
+    if (s.source === 'upload') {
+      board = s.board
+      setupToStore = { ...s }
+      delete setupToStore.board
+      delete setupToStore.filename
+    }
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        setup: s,
+        setup: setupToStore,
         player_user_ids: playerUserIds,
         mode,
+        ...(board ? { board } : {}),
       })
       .single()
     if (error || !data) return { error: error?.message ?? `failed to start ${brand} (${mode})` }
@@ -59,16 +74,13 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-/** Start is blocked until a puzzle is chosen (library) or a date is set (NYT). */
+/** Start is blocked until a puzzle is chosen (library) / a date is set (NYT) /
+ *  a file is parsed (upload). */
 const validate = (setup: unknown): string | null => {
   const s = setup as CrosswordsSetup
-  return s.source === 'nyt'
-    ? s.date
-      ? null
-      : 'Pick a date.'
-    : s.puzzle_id
-      ? null
-      : 'Pick a puzzle to start.'
+  if (s.source === 'nyt') return s.date ? null : 'Pick a date.'
+  if (s.source === 'upload') return s.board ? null : 'Choose a .puz or .ipuz file.'
+  return s.puzzle_id ? null : 'Pick a puzzle to start.'
 }
 
 type StatusBlob = Record<string, unknown>

@@ -28,7 +28,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { convertPuzzleFile } from './crosswords/convert'
-import { IpuzUnsupportedError } from './crosswords/ipuz'
+import { IpuzUnsupportedError } from '../../src/crosswords/lib/parse/ipuz'
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SUPABASE_SERVICE_ROLE_KEY =
