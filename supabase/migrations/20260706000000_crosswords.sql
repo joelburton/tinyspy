@@ -111,6 +111,13 @@ create table crosswords.cells (
   pencil   boolean not null default false,
   revealed boolean not null default false,
   wrong    boolean not null default false,
+  -- Cryptic edge marks (docs/crosswords-marks-plan.md): a player-drawn
+  -- word-break / hyphen on the cell's right / bottom edge. Display-only
+  -- (ignored by solve/check/reveal); they ride on the cell row and sync
+  -- through the same useCells CDC path as fills. Only fillable cells get
+  -- rows, so — by design (plan option A) — givens can't carry a mark.
+  mark_right  text check (mark_right in ('break', 'hyphen')),
+  mark_bottom text check (mark_bottom in ('break', 'hyphen')),
   -- Bumped by trigger on every UPDATE; the FE applies an incoming CDC
   -- event only when event.version > local.version ("newer wins").
   version  bigint not null default 0,
@@ -534,6 +541,72 @@ end;
 $$;
 revoke execute on function crosswords.set_cell(uuid, int, int, text, boolean) from public;
 grant execute on function crosswords.set_cell(uuid, int, int, text, boolean) to authenticated;
+
+-- ============================================================
+-- set_mark — cryptic edge marks (display-only annotations)
+-- ============================================================
+-- Sets / clears a word-break or hyphen mark on ONE edge of the caller's
+-- grid cell (coop's shared grid, or the caller's own in compete). Marks
+-- are player annotations, NOT gameplay — no solve check runs. Same guards
+-- as set_cell (membership, play state, not conceded). Only fillable cells
+-- have rows, so a mark aimed at a given cell finds no row and is rejected
+-- (plan option A — marks live on fillable cells only). The version trigger
+-- bumps `version`, so the mark syncs via the same useCells CDC path as a
+-- fill; the RPC returns the new version so the FE's own echo is a no-op.
+create function crosswords.set_mark(
+  target_game uuid,
+  p_row int,
+  p_col int,
+  p_side text,
+  p_mark text
+)
+returns table(version bigint)
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  v_caller    uuid;
+  v_mode      text;
+  v_playstate text;
+  v_owner     uuid;
+  v_version   bigint;
+begin
+  v_caller := common.require_game_player(target_game);
+  select mode into v_mode from crosswords.games where id = target_game;
+  select play_state into v_playstate from common.games where id = target_game;
+  if v_playstate is distinct from 'playing' then
+    raise exception 'game is not in play' using errcode = 'P0001';
+  end if;
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = v_caller) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+  if p_side not in ('right', 'bottom') then
+    raise exception 'side must be right or bottom' using errcode = 'P0001';
+  end if;
+  if p_mark is not null and p_mark not in ('break', 'hyphen') then
+    raise exception 'mark must be break, hyphen, or null' using errcode = 'P0001';
+  end if;
+  v_owner := case when v_mode = 'coop' then null else v_caller end;
+
+  -- Update only the targeted edge; leave the other edge's mark untouched.
+  update crosswords.cells c
+     set mark_right  = case when p_side = 'right'  then p_mark else c.mark_right  end,
+         mark_bottom = case when p_side = 'bottom' then p_mark else c.mark_bottom end
+   where c.game_id = target_game
+     and c.owner_id is not distinct from v_owner
+     and c.row = p_row and c.col = p_col
+  returning c.version into v_version;
+  if not found then
+    raise exception 'not an editable cell' using errcode = 'P0001';
+  end if;
+
+  return query select v_version;
+end;
+$$;
+revoke execute on function crosswords.set_mark(uuid, int, int, text, text) from public;
+grant execute on function crosswords.set_mark(uuid, int, int, text, text) to authenticated;
 
 -- ============================================================
 -- check_cells / reveal_cells

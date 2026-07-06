@@ -2,12 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { db } from '../db'
+import type { MarkSide, MarkType } from '../lib/types'
 
 export type CellState = {
   fill: string | null
   pencil: boolean
   revealed: boolean
   wrong: boolean
+  /** Cryptic edge marks (docs/crosswords-marks-plan.md) — display-only,
+   *  synced on the cell row like the fill. */
+  markRight: MarkType | null
+  markBottom: MarkType | null
   version: number
 }
 
@@ -15,6 +20,7 @@ export type CellState = {
 export type CellsMap = Map<string, CellState>
 
 export type SetCellResult = { solved: boolean } | { error: string }
+export type SetMarkResult = { ok: true } | { error: string }
 
 export const cellKey = (row: number, col: number) => `${row}:${col}`
 
@@ -48,6 +54,7 @@ export function useCells(
 ): {
   cells: CellsMap
   setCell: (row: number, col: number, fill: string | null, pencil: boolean) => Promise<SetCellResult>
+  setMark: (row: number, col: number, side: MarkSide, next: MarkType | null) => Promise<SetMarkResult>
   loading: boolean
 } {
   const [cells, setCells] = useState<CellsMap>(() => new Map())
@@ -82,7 +89,7 @@ export function useCells(
     async function load() {
       const base = db
         .from('cells')
-        .select('owner_id, row, col, fill, pencil, revealed, wrong, version')
+        .select('owner_id, row, col, fill, pencil, revealed, wrong, mark_right, mark_bottom, version')
         .eq('game_id', gameId)
       const { data } = await (ownerId === null
         ? base.is('owner_id', null)
@@ -98,6 +105,10 @@ export function useCells(
             pencil: r.pencil,
             revealed: r.revealed,
             wrong: r.wrong,
+            // The columns are `text` with a check constraint; the generated
+            // type widens to `string | null`, so narrow back to MarkType.
+            markRight: r.mark_right as MarkType | null,
+            markBottom: r.mark_bottom as MarkType | null,
             version: r.version,
           }
           if (!cur || next.version > cur.version) out.set(key, next)
@@ -124,6 +135,8 @@ export function useCells(
           pencil: boolean
           revealed: boolean
           wrong: boolean
+          mark_right: MarkType | null
+          mark_bottom: MarkType | null
           version: number
         }
         if (!isMine(r.owner_id ?? null)) return
@@ -132,6 +145,8 @@ export function useCells(
           pencil: r.pencil,
           revealed: r.revealed,
           wrong: r.wrong,
+          markRight: r.mark_right,
+          markBottom: r.mark_bottom,
           version: r.version,
         })
       },
@@ -198,11 +213,16 @@ export function useCells(
         return { error: error?.message ?? 'set_cell failed' }
       }
       // Adopt the authoritative version so our own CDC echo is dropped.
+      // Marks live on the same row and aren't touched by a fill, so carry
+      // the current ones through.
+      const held = cellsRef.current.get(key)
       applyRow(row, col, {
         fill,
         pencil: pen,
-        revealed: cellsRef.current.get(key)?.revealed ?? false,
+        revealed: held?.revealed ?? false,
         wrong: false,
+        markRight: held?.markRight ?? null,
+        markBottom: held?.markBottom ?? null,
         version: data.version,
       })
       return { solved: data.solved }
@@ -210,5 +230,49 @@ export function useCells(
     [gameId, applyRow],
   )
 
-  return { cells, setCell, loading }
+  // Set / clear a cryptic edge mark on the caller's grid cell. Same
+  // optimistic + version-guarded-rollback shape as setCell, minus the solve
+  // (marks are display-only). `next` is null to clear the edge.
+  const setMark = useCallback(
+    async (row: number, col: number, side: MarkSide, next: MarkType | null): Promise<SetMarkResult> => {
+      const key = cellKey(row, col)
+      const prevCell = cellsRef.current.get(key)
+      const field = side === 'right' ? 'markRight' : 'markBottom'
+      // Optimistic echo (keep the current version — the RPC returns the real one).
+      setCells((prev) => {
+        const cur = prev.get(key)
+        if (!cur) return prev
+        const out = new Map(prev)
+        out.set(key, { ...cur, [field]: next })
+        return out
+      })
+      const { data, error } = await db
+        .rpc('set_mark', {
+          target_game: gameId,
+          p_row: row,
+          p_col: col,
+          p_side: side,
+          p_mark: next as string, // nullable text param; PostgREST passes null fine
+        })
+        .single()
+      if (error || !data) {
+        // Roll back only if no newer authoritative write landed mid-RPC.
+        setCells((prev) => {
+          const cur = prev.get(key)
+          if (!cur || !prevCell || cur.version !== prevCell.version) return prev
+          const out = new Map(prev)
+          out.set(key, prevCell)
+          return out
+        })
+        return { error: error?.message ?? 'set_mark failed' }
+      }
+      // Adopt the authoritative version; the whole cell is otherwise unchanged.
+      const held = cellsRef.current.get(key)
+      if (held) applyRow(row, col, { ...held, [field]: next, version: data.version })
+      return { ok: true }
+    },
+    [gameId, applyRow],
+  )
+
+  return { cells, setCell, setMark, loading }
 }

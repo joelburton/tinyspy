@@ -88,9 +88,9 @@ also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
   run client-safe (`puzjs` + the ipuz reader), so this is mostly a FE upload
   widget → `create_game`'s inline `board` arg (the same self-contained path NYT
   uses, no `puzzles` row). Deferred, not planned.
-- **Cryptic apparatus** — the rebus-"collapse" toggle, cryptic edge marks, and
-  the AI "Explain this clue" helper from crossplay, all dropped for v1. (Also
-  noted in the game doc §9; recorded here so the register is complete.)
+- **Cryptic apparatus** — the rebus-"collapse" toggle + the AI "Explain this
+  clue" helper from crossplay, still deferred. (The **cryptic edge marks**
+  `|`/`_` shipped — `set_mark` + `docs/crosswords-marks-plan.md`.)
 - **`generateSolutionPdf` (answer-key PDF).** Print ports the puzzle generator
   only; the answer-key variant needs the shielded solution and was dropped for
   v1 — could be terminal-gated later (the solution is readable then).

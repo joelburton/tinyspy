@@ -151,3 +151,52 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* Cryptic edge marks (docs/crosswords-marks-plan.md) — player-drawn
+ * word-break / hyphen annotations on a cell boundary. Ported from
+ * crossplay's Cell.module.css. Em-sized so they scale with the cell;
+ * pointer-events:none so they never absorb a click meant for the cell. */
+
+/* Word break on the RIGHT edge: a thick bar centered on the boundary with
+ * the cell to the right. Sits "on top of" the 1px grid line. */
+.markRightBreak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -0.07em;
+  width: 0.14em;
+  background: #000;
+  pointer-events: none;
+}
+.markBottomBreak {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.07em;
+  height: 0.14em;
+  background: #000;
+  pointer-events: none;
+}
+
+/* Hyphen: a short dash perpendicular to the edge, centered on the boundary.
+ * Smaller than the break so the two are distinguishable at a glance. */
+.markRightHyphen {
+  position: absolute;
+  top: 50%;
+  right: -0.18em;
+  width: 0.36em;
+  height: 0.08em;
+  background: #000;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.markBottomHyphen {
+  position: absolute;
+  left: 50%;
+  bottom: -0.18em;
+  width: 0.08em;
+  height: 0.36em;
+  background: #000;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

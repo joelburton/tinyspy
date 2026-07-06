@@ -10,12 +10,14 @@
  *
  * Deliberately dropped from the crossplay original (see the crosswords
  * plan → "Feature scope"):
- *   - The cryptic edge marks (`markRight` / `markBottom`) and their
- *     `MarkSide` / `MarkType` unions — cryptic-crossword apparatus that
- *     NYT dailies don't need. Nothing in the port sets or reads them.
  *   - The whole `ClientMessage` / `ServerMessage` WebSocket protocol —
  *     crossplay's transport. Our model is RPCs + Postgres CDC, so the
  *     wire protocol doesn't port at all.
+ *
+ * The cryptic edge marks (`markRight` / `markBottom` + `MarkSide` /
+ * `MarkType`) WERE dropped initially, then ported per
+ * `docs/crosswords-marks-plan.md`: they persist on `crosswords.cells`
+ * (two columns) and sync through the same `useCells` CDC path as fills.
  */
 
 /** Cap on a single cell's fill / solution length, in characters.
@@ -59,7 +61,23 @@ export type Cell =
        *  is part of the template. `set_cell` refuses to mutate it, and
        *  the client renders the letter underlined. */
       given?: boolean
+      /** Player-drawn word-break / hyphen mark on this cell's RIGHT edge
+       *  (the boundary shared with the cell to the right) — a cryptic
+       *  convention annotating where one grid entry breaks into multiple
+       *  lexical words. "break" renders as a thick bar, "hyphen" as a
+       *  short dash. Display-only (ignored by solve / check / reveal);
+       *  shared on the coop grid, per-player in compete. */
+      markRight?: MarkType
+      /** Same as `markRight`, for the BOTTOM edge (boundary with the
+       *  cell below) — down-entry breaks. */
+      markBottom?: MarkType
     }
+
+/** Which edge of a cell a mark sits on. `right` = the boundary with the
+ *  cell to the right (across breaks); `bottom` = the cell below (down). */
+export type MarkSide = 'right' | 'bottom'
+/** A cryptic edge mark: a word break or a hyphen. */
+export type MarkType = 'break' | 'hyphen'
 
 export type Clue = {
   number: number

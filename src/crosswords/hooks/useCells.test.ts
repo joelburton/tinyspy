@@ -25,7 +25,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { SetCellResult } from './useCells'
+import type { SetCellResult, SetMarkResult } from './useCells'
 
 const { mockFrom, mockRpc, mockChannel, mockRemoveChannel } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
@@ -56,6 +56,8 @@ type CellRow = {
   pencil: boolean
   revealed: boolean
   wrong: boolean
+  mark_right: 'break' | 'hyphen' | null
+  mark_bottom: 'break' | 'hyphen' | null
   version: number
 }
 
@@ -69,6 +71,8 @@ function row(patch: Partial<CellRow>): CellRow {
     pencil: false,
     revealed: false,
     wrong: false,
+    mark_right: null,
+    mark_bottom: null,
     version: 0,
     ...patch,
   }
@@ -262,5 +266,51 @@ describe('useCells — compete privacy drop (isMine)', () => {
     // Our own cell still applies.
     fireCdc({ owner_id: ME, fill: 'B', version: 2 })
     expect(result.current.cells.get(cellKey(0, 0))?.fill).toBe('B')
+  })
+})
+
+describe('useCells — setMark (cryptic edge marks)', () => {
+  it('applies a mark optimistically and adopts the RPC version', async () => {
+    loadData = [row({ owner_id: null, version: 1 })]
+    const { result } = renderHook(() => useCells(GAME_ID, null))
+    await fireSubscribed(() => result.current.loading)
+
+    const d = deferred<{ data: { version: number } | null; error: null }>()
+    mockRpc.mockReturnValue({ single: () => d.promise })
+
+    let call!: Promise<SetMarkResult>
+    act(() => {
+      call = result.current.setMark(0, 0, 'right', 'break')
+    })
+    // Optimistic: the mark shows before the RPC resolves; the other edge is
+    // untouched.
+    expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('break')
+    expect(result.current.cells.get(cellKey(0, 0))?.markBottom).toBeNull()
+
+    await act(async () => {
+      d.resolve({ data: { version: 6 }, error: null })
+      await call
+    })
+    expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('break')
+    expect(result.current.cells.get(cellKey(0, 0))?.version).toBe(6)
+  })
+
+  it('rolls the mark back when the RPC errors', async () => {
+    loadData = [row({ owner_id: null, mark_right: 'hyphen', version: 3 })]
+    const { result } = renderHook(() => useCells(GAME_ID, null))
+    await fireSubscribed(() => result.current.loading)
+
+    mockRpc.mockReturnValue({
+      single: () => Promise.resolve({ data: null, error: { message: 'nope' } }),
+    })
+
+    let out!: SetMarkResult
+    await act(async () => {
+      out = await result.current.setMark(0, 0, 'right', null)
+    })
+    expect(out).toEqual({ error: 'nope' })
+    // Reverted to the pre-write mark, not left cleared.
+    expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('hyphen')
+    expect(result.current.cells.get(cellKey(0, 0))?.version).toBe(3)
   })
 })

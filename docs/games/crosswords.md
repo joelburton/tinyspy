@@ -109,6 +109,7 @@ plain RPCs — no edge function needed.
 |---|---|
 | `create_game(target_club, setup, player_user_ids, mode, board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete). |
 | `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), `char_length ≤ 8`. Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
+| `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. Fillable cells only (givens have no row — plan option A). See `docs/crosswords-marks-plan.md`. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"), solution revealed in terminal. |
@@ -160,10 +161,10 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   PuzzleView): letters (fill + advance), Backspace (two-step) / Shift+Backspace
   (clear word), Space (advance) / Shift+Space (read-only zoom-peek of a squeezed
   rebus), arrows / Shift+arrows (word edge), Tab / Shift+Tab (jump clue),
-  Shift+Enter (rebus overlay), `#` (jump-to-number popup). Bails inside inputs
+  Shift+Enter (rebus overlay), `#` (jump-to-number popup), `|` / `_` (cycle the
+  right / bottom cryptic edge mark → `set_mark`). Bails inside inputs
   (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta/
-  Alt (except `#`). The `⌥` shell shortcuts + cryptic `|`/`_` marks are out of
-  scope (shell / deferred).
+  Alt (except `#`). The `⌥` shell shortcuts stay with the shell.
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
   letter/word/grid scope (scope resolved client-side via `cursor.ts`).
 - **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
@@ -211,5 +212,6 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   minority of themed puzzles; needs a Deno PNG decoder. Normal dailies unaffected.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
   new game (fine; NYT was always kept out of the library).
-- **Rebus "collapse" toggle, cryptic edge marks, AI "Explain"** — cryptic
-  apparatus from crossplay, dropped for v1.
+- **Rebus "collapse" toggle + AI "Explain"** — the remaining cryptic apparatus
+  from crossplay, still deferred. (The **cryptic edge marks** `|`/`_` were
+  shipped — see `set_mark` above + `docs/crosswords-marks-plan.md`.)

@@ -31,10 +31,12 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         <strong>More:</strong> <kbd>Shift+Enter</kbd> opens a box for a{' '}
         <strong>rebus</strong> (several letters in one cell) — <kbd>Enter</kbd> commits
         and steps on, <kbd>Tab</kbd> commits and jumps to the next clue. Press{' '}
-        <kbd>#</kbd> to jump straight to a clue number. Use the toolbar to switch
-        between pen and <strong>pencil</strong> (a tentative mark), or to{' '}
-        <strong>check</strong> / <strong>reveal</strong> a letter, word, or the whole
-        grid.
+        <kbd>#</kbd> to jump straight to a clue number. <kbd>|</kbd> and{' '}
+        <kbd>_</kbd> cycle a word-break / hyphen mark on the current cell's right /
+        bottom edge (a cryptic-style annotation for where one entry splits into
+        several words). Use the toolbar to switch between pen and{' '}
+        <strong>pencil</strong> (a tentative mark), or to <strong>check</strong> /{' '}
+        <strong>reveal</strong> a letter, word, or the whole grid.
       </p>
       <p>
         <strong>Co-op:</strong> the whole club solves one shared grid together —

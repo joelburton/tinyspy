@@ -115,6 +115,8 @@ export function Grid({
               isInWord={highlighted.has(key)}
               peerColor={peerCells.get(key)}
               recentColor={recentFills.get(key) ?? null}
+              markRight={live?.markRight ?? null}
+              markBottom={live?.markBottom ?? null}
               onCellClick={onCellClick}
             />
           )
@@ -212,6 +214,9 @@ type CellProps =
       /** A teammate JUST filled this cell (coop) — flash the fill in their
        *  color for a few seconds. Null otherwise. */
       recentColor: string | null
+      /** Cryptic word-break / hyphen marks on the right / bottom edge. */
+      markRight: 'break' | 'hyphen' | null
+      markBottom: 'break' | 'hyphen' | null
       onCellClick: (row: number, col: number) => void
     }
 
@@ -231,7 +236,8 @@ const Cell = memo(function Cell(props: CellProps) {
 
   const {
     row, col, number, fill, given, answerReveal, pencil, revealed, wrong,
-    circled, shaded, isCursor, isInWord, peerColor, recentColor, onCellClick,
+    circled, shaded, isCursor, isInWord, peerColor, recentColor,
+    markRight, markBottom, onCellClick,
   } = props
 
   const bg = isCursor ? styles.cursor : isInWord ? styles.inWord : ''
@@ -261,6 +267,8 @@ const Cell = memo(function Cell(props: CellProps) {
       data-pencil={pencil && fill ? '' : undefined}
       data-cursor={isCursor ? '' : undefined}
       data-peer={peerColor ? '' : undefined}
+      data-mark-right={markRight ?? undefined}
+      data-mark-bottom={markBottom ?? undefined}
       onMouseDown={(e) => {
         e.preventDefault()
         onCellClick(row, col)
@@ -285,6 +293,12 @@ const Cell = memo(function Cell(props: CellProps) {
       {(wrong || revealed) && (
         <span className={cls(styles.mark, wrong ? styles.markWrong : styles.markRevealed)} />
       )}
+      {/* Cryptic edge marks: a break bar or hyphen dash on the right / bottom
+          boundary (aria-hidden — decorative). */}
+      {markRight === 'break' && <span className={styles.markRightBreak} aria-hidden />}
+      {markRight === 'hyphen' && <span className={styles.markRightHyphen} aria-hidden />}
+      {markBottom === 'break' && <span className={styles.markBottomBreak} aria-hidden />}
+      {markBottom === 'hyphen' && <span className={styles.markBottomHyphen} aria-hidden />}
       {peerColor && <span className={styles.peerFrame} style={{ borderColor: peerColor }} />}
     </div>
   )

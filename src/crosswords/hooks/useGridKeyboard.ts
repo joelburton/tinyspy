@@ -37,15 +37,17 @@ export type GridKeyboard = {
   /** Dismiss the peek — called before every other handled key so it doesn't
    *  linger over the new cursor position. */
   clearPeek: () => void
+  /** Cycle the cryptic edge mark on one side of a cell (`|` = right,
+   *  `_` = bottom). The consumer reads the current mark + advances it. */
+  onMark: (row: number, col: number, side: 'right' | 'bottom') => void
 }
 
 const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
 
 /**
  * The crossword keyboard, ported from crossplay's PuzzleView (grid keys
- * only — the ⌥ chat/menu shortcuts + cryptic `|`/`_` marks belong elsewhere:
- * the former to the PupGames shell, the latter deferred). A single window
- * `keydown` listener reads the latest state from `ref`.
+ * only — the ⌥ chat/menu shortcuts belong to the PupGames shell). A single
+ * window `keydown` listener reads the latest state from `ref`.
  *
  * The full grid key set:
  *   - letter → fill + advance (given cells slide off)
@@ -55,6 +57,8 @@ const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDo
  *   - arrows → move; Shift+arrows → jump to the word edge
  *   - Tab / Shift+Tab → next / previous clue
  *   - Shift+Enter → rebus (multi-char) overlay; `#` → jump-to-number popup
+ *   - `|` / `_` → cycle a cryptic word-break / hyphen mark on the right /
+ *     bottom edge of the cursor cell
  *
  * Bails when disabled, when a modal is `suspended`-ing the board, when focus
  * is in an editable field (except Tab, which always navigates clues), and on
@@ -73,7 +77,7 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
 
       const {
         grid, cursor, pencil, setCursor, fillAt, isGiven, setCell,
-        onRebus, onNumberJump, onPeek, clearPeek,
+        onRebus, onNumberJump, onPeek, clearPeek, onMark,
       } = k
       const { row, col } = cursor
 
@@ -132,6 +136,16 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
         e.preventDefault()
         if (!isGiven(row, col)) setCell(row, col, e.key.toUpperCase(), pencil)
         setCursor(advanceAfterFill(grid, cursor))
+        return
+      }
+
+      // Cryptic edge marks: `|` cycles the right-edge mark, `_` the bottom-edge
+      // mark, each none → break → hyphen → none. Marks live on fillable cells
+      // only (plan option A), so a given cell is a no-op. The cursor does not
+      // move — you're annotating a boundary, not filling.
+      if (e.key === '|' || e.key === '_') {
+        e.preventDefault()
+        if (!isGiven(row, col)) onMark(row, col, e.key === '|' ? 'right' : 'bottom')
         return
       }
 

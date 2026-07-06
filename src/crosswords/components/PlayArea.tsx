@@ -20,7 +20,8 @@ import {
   type Cursor,
 } from '../lib/cursor'
 import type { CellPos } from '../lib/cursor'
-import type { Cell, Direction, PuzzleState, PuzzleTemplate, Scope } from '../lib/types'
+import type { Cell, Direction, MarkSide, PuzzleState, PuzzleTemplate, Scope } from '../lib/types'
+import { nextMarkState } from '../lib/marks'
 import { printCrosswordsPdf } from '../pdf/printCrosswordsPdf'
 import type { CellsMap } from '../hooks/useCells'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -50,7 +51,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game } = useGame(gameId)
   const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
   const ownerId = mode === 'compete' ? myId : null
-  const { cells, setCell } = useCells(gameId, ownerId)
+  const { cells, setCell, setMark } = useCells(gameId, ownerId)
 
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
     locked: isTerminal,
@@ -117,6 +118,19 @@ export function PlayArea(ctx: GamePageCtx) {
     [setCell, showLocalFeedback, clearLocalFeedback, broadcastFill],
   )
 
+  // Cycle a cryptic edge mark (none → break → hyphen → none) on the cursor
+  // cell's right/bottom edge, then persist via set_mark. Display-only, so no
+  // cursor move + no solve — just the write (with the same error surfacing).
+  const handleMark = useCallback(
+    async (row: number, col: number, side: MarkSide) => {
+      const cur = cells.get(cellKey(row, col))
+      const current = side === 'right' ? cur?.markRight : cur?.markBottom
+      const res = await setMark(row, col, side, nextMarkState(current ?? undefined))
+      if ('error' in res) showLocalFeedback(stickyPill('error', res.error))
+    },
+    [cells, setMark, showLocalFeedback],
+  )
+
   // Latest play state for the window keyboard handler (dodges stale
   // closures). Written in an effect (runs after every render), not during
   // render — the handler reads `.current` at event time.
@@ -147,9 +161,10 @@ export function PlayArea(ctx: GamePageCtx) {
             onNumberJump: () => setNumberJumpOpen(true),
             onPeek: (r, c) => setPeek({ row: r, col: c, value: fillAt(r, c) ?? '' }),
             clearPeek: () => setPeek(null),
+            onMark: (r, c, side) => void handleMark(r, c, side),
           }
         : null
-  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell, rebus, numberJumpOpen])
+  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen])
   useGridKeyboard(kbRef)
 
   const handleRebusCommit = useCallback(
@@ -449,6 +464,8 @@ function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
         ...(t.shaded ? { shaded: true } : {}),
         ...(given ? { given: true } : {}),
         ...(live?.pencil ? { pencil: true } : {}),
+        ...(live?.markRight ? { markRight: live.markRight } : {}),
+        ...(live?.markBottom ? { markBottom: live.markBottom } : {}),
       }
     }),
   )

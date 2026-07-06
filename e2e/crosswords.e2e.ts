@@ -259,6 +259,35 @@ test.describe('crosswords play loop', () => {
     await expect(cell(0, 0)).toHaveAttribute('data-cursor', '', { timeout: 8000 })
   })
 
+  // Cryptic edge marks: `|` cycles the right-edge mark none→break→hyphen→none,
+  // `_` the bottom edge. Display-only; they sync on the cell row like fills.
+  test('cryptic marks: | and _ cycle the edge marks', async ({ browser }) => {
+    const club = await createSoloClub('xwmk')
+    const [alice] = club.members
+    const game = await createCrosswordsGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+
+    const cell = page.locator('[data-xw-cell][data-row="0"][data-col="0"]')
+    await cell.click()
+
+    // `|` cycles the right edge: break → hyphen → (cleared).
+    await page.keyboard.press('|')
+    await expect(cell).toHaveAttribute('data-mark-right', 'break', { timeout: 8000 })
+    await page.keyboard.press('|')
+    await expect(cell).toHaveAttribute('data-mark-right', 'hyphen')
+    await page.keyboard.press('|')
+    await expect(cell).not.toHaveAttribute('data-mark-right', /.+/)
+
+    // `_` marks the bottom edge independently.
+    await page.keyboard.press('_')
+    await expect(cell).toHaveAttribute('data-mark-bottom', 'break')
+  })
+
   // Regression guard for the layout exception: a full-size grid must fit the
   // viewport — the board fills, the clue lists scroll INTERNALLY, and the
   // page itself never scrolls. (Needs a seeded library; skips if empty.)

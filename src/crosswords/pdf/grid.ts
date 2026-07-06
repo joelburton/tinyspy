@@ -6,12 +6,10 @@
  * pencil fills render in italic, non-bold, light gray so a mid-solve
  * printout makes it obvious which cells are guesses (and gives
  * ink/pencil room to overwrite them on paper). `circled`, `shaded`,
- * `given`, `number`, and `fill` are all preserved.
- *
- * Deviation from the crossplay source (see the crosswords plan): the
- * cryptic edge marks (`markRight` / `markBottom`) are dropped here
- * exactly as they were dropped from the ported `Cell` type — nothing
- * in this port sets or reads them, so their draw code went with them.
+ * `given`, `number`, `fill`, and the cryptic edge marks (`markRight` /
+ * `markBottom`) are all preserved. The edge marks were ported per
+ * `docs/crosswords-marks-plan.md` — a break renders as a thick bar on the
+ * boundary, a hyphen as a short dash across it.
  */
 
 import type { jsPDF } from 'jspdf'
@@ -24,6 +22,8 @@ const BLACK: [number, number, number] = [0, 0, 0]
 const SHADE_GRAY: [number, number, number] = [217, 217, 217] // ≈ 0.85 lightness
 const PENCIL_GRAY: [number, number, number] = [140, 140, 140]
 const BORDER_WIDTH = 0.5
+const MARK_BREAK_WIDTH = 1.5 // thick bar for a word-break mark
+const MARK_HYPHEN_FRACTION = 0.3 // hyphen dash length, as a fraction of the cell
 
 /**
  * Render the grid into the rectangle at the top-left of `rect`.
@@ -87,6 +87,39 @@ function drawCell(doc: jsPDF, cell: Cell, x: number, y: number, size: number): v
   if (cell.fill) {
     drawFill(doc, cell.fill, x, y, size, cell.given === true, cell.pencil === true)
   }
+
+  if (cell.markRight) drawEdgeMark(doc, cell.markRight, 'right', x, y, size)
+  if (cell.markBottom) drawEdgeMark(doc, cell.markBottom, 'bottom', x, y, size)
+}
+
+/** Draw a cryptic edge mark (ported from crossplay's print/grid.ts). A
+ *  "break" is a thick line along the whole boundary; a "hyphen" is a short
+ *  dash centered on it, perpendicular to the edge. */
+function drawEdgeMark(
+  doc: jsPDF,
+  markType: 'break' | 'hyphen',
+  side: 'right' | 'bottom',
+  x: number,
+  y: number,
+  size: number,
+): void {
+  if (markType === 'break') {
+    doc.setLineWidth(MARK_BREAK_WIDTH)
+    if (side === 'right') doc.line(x + size, y, x + size, y + size)
+    else doc.line(x, y + size, x + size, y + size)
+    doc.setLineWidth(BORDER_WIDTH)
+    return
+  }
+  const dash = size * MARK_HYPHEN_FRACTION
+  doc.setLineWidth(MARK_BREAK_WIDTH * 0.6)
+  if (side === 'right') {
+    const cy = y + size / 2
+    doc.line(x + size - dash / 2, cy, x + size + dash / 2, cy)
+  } else {
+    const cx = x + size / 2
+    doc.line(cx, y + size - dash / 2, cx, y + size + dash / 2)
+  }
+  doc.setLineWidth(BORDER_WIDTH)
 }
 
 function drawFill(

@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(23);
+select plan(29);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -135,6 +135,45 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format('select crosswords.reveal_cells(%L, %L::jsonb)', :'gp_id', '[{"row":0,"col":0}]'),
   'P0001', null, 'reveal is rejected in compete');
+reset role;
+
+-- ── set_mark (cryptic edge marks) ────────────────────────────────────
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+-- Set + cycle the RIGHT-edge mark on (0,0).
+select set_mark from crosswords.set_mark(:'gc_id', 0, 0, 'right', 'break');
+reset role;
+select is((select mark_right from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+  'break', 'set_mark sets the right-edge mark');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select set_mark from crosswords.set_mark(:'gc_id', 0, 0, 'right', 'hyphen');
+-- Setting the BOTTOM edge must leave the right edge untouched.
+select set_mark from crosswords.set_mark(:'gc_id', 0, 0, 'bottom', 'break');
+reset role;
+select is((select mark_right from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+  'hyphen', 'set_mark cycles the right edge (break → hyphen)');
+select is((select mark_bottom from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+  'break', 'set_mark sets the bottom edge without disturbing the right edge');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select set_mark from crosswords.set_mark(:'gc_id', 0, 0, 'right', null);
+reset role;
+select is((select mark_right from crosswords.cells
+             where game_id = :'gc_id' and owner_id is null and row = 0 and col = 0),
+  null, 'set_mark with null clears the edge');
+
+-- A given cell has no row → marks are rejected (plan option A).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select throws_ok(
+  format('select crosswords.set_mark(%L, 0, 0, %L, %L)', :'gg_id', 'right', 'break'),
+  'P0001', null, 'set_mark on a given cell is rejected');
+-- Invalid side is rejected.
+select throws_ok(
+  format('select crosswords.set_mark(%L, 0, 0, %L, %L)', :'gc_id', 'sideways', 'break'),
+  'P0001', null, 'set_mark rejects an invalid side');
 reset role;
 
 -- ── _matches (mirror ws.ts fillMatchesSolution) ──────────────────────
