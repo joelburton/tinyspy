@@ -593,3 +593,41 @@ into the relevant section above.
 **Watch-item (not a blocker):** every keystroke is an UPDATE + CDC fanout to all peers (no
 debounce — correctly dropped). Fine at friend-scale, but crossplay's own sketch flags "4 people
 speed-solving → watch row update rates"; it also brushes Supabase Realtime message quotas.
+
+---
+
+## Post-review open items (2026-07-05)
+
+The 2026-07-05 build review (`docs/crosswords-review-2026-07-05.md`) was fully worked across four
+remediation stages (worklog: `docs/crosswords-review-2026-07-05-worklog.md`). Three things were
+**deliberately left for Joel to decide** rather than changed unilaterally — each is harmless
+today, so none blocks play. They're recorded here so they don't get silently forgotten.
+
+1. **Vestigial `'nyt'` value in the `crosswords.puzzles.source` check constraint.** The column's
+   check is `source in ('library', 'nyt')`, but **nothing writes `'nyt'` anymore**: NYT-by-date
+   games are self-contained (the puzzle rides inline on the game, no `puzzles` row), and the CLI
+   importer only ever writes `'library'`. So the `'nyt'` branch is dead. The migration comment now
+   says so. *Decision:* drop `'nyt'` from the constraint if you want the schema to state the truth,
+   or leave it as a harmless spare. (Schema change, not a comment fix — that's why it wasn't done.)
+
+2. **Dead `crosswords.games` Realtime wiring.** The migration adds `crosswords.games` to the
+   `supabase_realtime` publication and does four "Realtime touch" no-op self-updates
+   (`update crosswords.games set club_handle = club_handle …`) in the terminal RPCs, the idea being
+   to wake FE subscribers. But **no FE code subscribes to `crosswords.games`** — `useGame` is a
+   one-shot fetch and game status flows through `common.games` via `useCommonGame`. So the
+   publication entry + the four touches are latent no-ops. The comments now say this plainly.
+   *Decision:* drop the touches + the publication line to lean the migration out, or keep them as
+   ready-made wiring for a future feature that needs to react to a `crosswords.games` change.
+
+3. **Terminal cursor navigation is half-frozen.** At terminal the keyboard is fully disabled
+   (`useGridKeyboard` bails on `!enabled`), but a **mouse click still moves the cursor** (the
+   `onCellClick` handler isn't gated on `isPlayable`). So on a finished puzzle you can click around
+   the revealed grid but can't arrow through it — an inconsistency, not a bug. *Decision:* either
+   fully **freeze** (gate `onCellClick` at terminal too, so the grid is inert) or fully **allow**
+   (re-enable the arrow/Tab navigation keys at terminal so you can read the solution by keyboard).
+   Left as-is pending that call.
+
+**Also deferred (see `deferred.md` → crosswords), not in the above list because they were always
+planned-out:** the FE `.puz`/`.ipuz` upload path, the cryptic apparatus (edge marks / rebus
+collapse / AI "Explain"), the answer-key PDF, and the two self-healing scratchpad lock races
+(C3b/C3c).
